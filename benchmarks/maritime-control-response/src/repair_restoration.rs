@@ -370,26 +370,34 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
     let mut metric_ids = BTreeSet::new();
     let mut measurement_ids = BTreeSet::new();
     for measurement in &episode.measurements {
+        if !measurement.observed_at_seconds.is_finite()
+            || !measurement.available_at_seconds.is_finite()
+            || measurement.observed_at_seconds < episode.started_at_seconds
+            || measurement.observed_at_seconds > episode.ended_at_seconds
+            || measurement.available_at_seconds < measurement.observed_at_seconds
+            || measurement.available_at_seconds > episode.ended_at_seconds
+        {
+            return Err(RepairVerificationError::InvalidEpisodeWindow(
+                episode.episode_id.clone(),
+            ));
+        }
+        let calibration_digest_invalid = measurement
+            .calibration_record_sha256
+            .as_deref()
+            .is_some_and(|digest| !is_sha256_hex(digest));
+        let verified_without_digest = measurement.calibration == CalibrationState::Verified
+            && measurement.calibration_record_sha256.is_none();
         if measurement.measurement_id.trim().is_empty()
             || measurement.source_id.trim().is_empty()
             || measurement.metric_id.trim().is_empty()
             || measurement.measurement_principle_id.trim().is_empty()
             || measurement.dependency_domain_id.trim().is_empty()
             || measurement.unit.trim().is_empty()
-            || !measurement.observed_at_seconds.is_finite()
-            || !measurement.available_at_seconds.is_finite()
-            || measurement.observed_at_seconds < episode.started_at_seconds
-            || measurement.observed_at_seconds > episode.ended_at_seconds
-            || measurement.available_at_seconds < measurement.observed_at_seconds
-            || measurement.available_at_seconds > episode.ended_at_seconds
             || !measurement.value.is_finite()
             || !measurement.uncertainty_abs.is_finite()
             || measurement.uncertainty_abs < 0.0
-            || (measurement.calibration == CalibrationState::Verified
-                && measurement
-                    .calibration_record_sha256
-                    .as_deref()
-                    .is_none_or(|digest| !is_sha256_hex(digest)))
+            || calibration_digest_invalid
+            || verified_without_digest
         {
             return Err(RepairVerificationError::InvalidMeasurement(
                 measurement.measurement_id.clone(),
@@ -618,7 +626,13 @@ pub fn evaluate_repair_restoration(
         if let Err(reason) = valid_measurement(post_measurement, envelope) {
             return Ok(not_evaluable_report(case, reason, matched_condition_ids));
         }
-        if !independent_verification_measurement(post_measurement, binding) {
+        let same_reference_measurement_path = pre_measurement.measurement_principle_id
+            == post_measurement.measurement_principle_id
+            && pre_measurement.dependency_domain_id == post_measurement.dependency_domain_id;
+        if !independent_verification_measurement(pre_measurement, binding)
+            || !independent_verification_measurement(post_measurement, binding)
+            || !same_reference_measurement_path
+        {
             return Ok(not_evaluable_report(
                 case,
                 NotEvaluableReason::NoIndependentVerificationPath,
@@ -1059,6 +1073,52 @@ mod tests {
         assert_eq!(
             evaluate_repair_restoration(&case),
             Err(RepairVerificationError::InvalidEpisodeWindow("post".into()))
+        );
+    }
+
+    #[test]
+    fn pre_and_post_verification_use_the_same_independent_reference_path() {
+        let mut case = valid_case();
+        case.pre_repair_episode.measurements[0].measurement_principle_id =
+            "diagnostic-engine-speed".into();
+        let report = evaluate_repair_restoration(&case).unwrap();
+        assert_eq!(report.disposition, RestorationDisposition::NotEvaluable);
+        assert_eq!(
+            report.not_evaluable_reason,
+            Some(NotEvaluableReason::NoIndependentVerificationPath)
+        );
+    }
+
+    #[test]
+    fn pre_repair_measurement_sharing_diagnostic_path_is_not_an_independent_baseline() {
+        let mut case = valid_case();
+        case.pre_repair_episode.measurements[0].dependency_domain_id =
+            "control-gateway".into();
+        let report = evaluate_repair_restoration(&case).unwrap();
+        assert_eq!(report.disposition, RestorationDisposition::NotEvaluable);
+        assert_eq!(
+            report.not_evaluable_reason,
+            Some(NotEvaluableReason::NoIndependentVerificationPath)
+        );
+    }
+
+    #[test]
+    fn post_repair_evidence_available_after_its_test_window_is_rejected() {
+        let mut case = valid_case();
+        case.post_repair_episode.measurements[0].available_at_seconds = 21.0;
+        assert_eq!(
+            evaluate_repair_restoration(&case),
+            Err(RepairVerificationError::InvalidEpisodeWindow("post".into()))
+        );
+    }
+
+    #[test]
+    fn verified_measurement_without_calibration_record_digest_is_rejected() {
+        let mut case = valid_case();
+        case.post_repair_episode.measurements[0].calibration_record_sha256 = None;
+        assert_eq!(
+            evaluate_repair_restoration(&case),
+            Err(RepairVerificationError::InvalidMeasurement("m-torque".into()))
         );
     }
 
