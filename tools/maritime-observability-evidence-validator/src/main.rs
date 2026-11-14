@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+use maritime_observability_evidence_validator::verify_sha256;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -789,6 +790,7 @@ fn run(path: &str, source: &str, digest: &str) -> Result<Value, String> {
         return Err("invalid source commit or report digest".into());
     }
     let raw = fs::read_to_string(path).map_err(|e| format!("read report: {e}"))?;
+    verify_sha256(raw.as_bytes(), digest)?;
     let report: Value = serde_json::from_str(&raw).map_err(|e| format!("parse report: {e}"))?;
     match validate(&report) {
         Ok(mut receipt) => {

@@ -3,6 +3,7 @@
 //! maritime diagnostic observations. It never initiates a measurement,
 //! controller excitation, actuation, maintenance action or mode transition.
 #![forbid(unsafe_code)]
+use maritime_observability_evidence_validator::verify_sha256;
 use serde_json::{json, Value};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process::ExitCode};
 
@@ -533,6 +534,7 @@ fn run(path:&str,source:&str,digest:&str)->Result<Value,String>{
         return Err("invalid source commit or case SHA-256".to_owned());
     }
     let raw=fs::read_to_string(path).map_err(|error|format!("read case: {error}"))?;
+    verify_sha256(raw.as_bytes(),digest)?;
     let input:Value=serde_json::from_str(&raw).map_err(|error|format!("parse case: {error}"))?;
     match evaluate(&input) {
         Ok(mut receipt) => {

@@ -147,9 +147,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin
+          cp tools/maritime-observability-evidence-validator/src/bin/maritime_pairwise_observability.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/observation_value.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/qualification_impact.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/main.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
+          cp tools/maritime-observability-evidence-validator/src/lib.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
           tar -czf maritime-rustfmt-sources.tar.gz -C /tmp/maritime-rustfmt .
       - name: Upload rustfmt-normalized maritime sources
         if: always()

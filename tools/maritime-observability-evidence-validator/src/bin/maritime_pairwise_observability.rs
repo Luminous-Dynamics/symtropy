@@ -4,6 +4,7 @@
 //! interval, availability, dependency-cut and independent-principle semantics
 //! to symtropy-sensor-observability-bench. It does not duplicate that algorithm.
 
+use maritime_observability_evidence_validator::verify_sha256;
 use serde_json::{json, Value};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -481,6 +482,7 @@ fn main()->ExitCode{
         return ExitCode::from(2);
     }
     let raw=match fs::read_to_string(&a[1]){Ok(v)=>v,Err(e)=>{eprintln!("read case: {e}");return ExitCode::FAILURE;}};
+    if let Err(e)=verify_sha256(raw.as_bytes(),&a[5]){eprintln!("case digest verification failed: {e}");return ExitCode::FAILURE;}
     let case:Value=match serde_json::from_str(&raw){Ok(v)=>v,Err(e)=>{eprintln!("parse case: {e}");return ExitCode::FAILURE;}};
     match run_case(&case,&a[3],&a[5]){
         Ok(v)=>{println!("{}",serde_json::to_string_pretty(&v).unwrap_or_else(|_|"{\"result\":\"fail\"}".into()));ExitCode::SUCCESS}
@@ -492,9 +494,30 @@ fn main()->ExitCode{
 mod tests{
     use super::*;
     fn fixture()->Value{serde_json::from_str(FIXTURE).expect("fixture parses")}
-    fn run(v:&Value)->Value{run_case(v,&"a".repeat(40),&"b".repeat(64)).expect("fixture evaluates")}
+    fn run(v:&Value)->Value{
+        // Mutations intentionally alter signatures and evidence. The frozen
+        // fixture expectations are checked separately, not reused here.
+        let mut candidate=v.clone();
+        if let Some(pairs)=candidate.get_mut("pairs").and_then(Value::as_array_mut){
+            for pair in pairs{
+                if let Some(object)=pair.as_object_mut(){object.remove("expected_status");}
+            }
+        }
+        if let Some(cuts)=candidate.get_mut("dependency_cut_scenarios").and_then(Value::as_array_mut){
+            for cut in cuts{
+                if let Some(object)=cut.as_object_mut(){object.remove("expected_statuses");}
+            }
+        }
+        run_case(&candidate,&"a".repeat(40),&"b".repeat(64)).expect("mutated case evaluates")
+    }
     fn status<'a>(v:&'a Value,id:&str)->&'a str{
         v["base_pair_results"].as_array().unwrap().iter().find(|p|p["pair_id"]==id).unwrap()["status"].as_str().unwrap()
+    }
+    #[test]
+    fn frozen_fixture_expected_statuses_are_enforced(){
+        let v=fixture();
+        run_case(&v,&"a".repeat(40),&"b".repeat(64))
+            .expect("unmodified fixture must match declared base and dependency-cut outcomes");
     }
     #[test]
     fn maritime_adapter_reuses_generic_pair_kernel(){

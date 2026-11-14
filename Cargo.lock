@@ -11782,6 +11782,7 @@ version = "0.1.0"
 dependencies = [
  "serde_json",
  "symtropy-sensor-observability-bench",
+ "sha2",
 ]
 
 [[package]]

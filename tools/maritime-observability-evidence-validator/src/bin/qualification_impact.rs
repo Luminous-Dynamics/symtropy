@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+use maritime_observability_evidence_validator::verify_sha256;
 use serde_json::{Value, json};
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
@@ -682,6 +683,7 @@ fn run(path: &str, source_commit: &str, manifest_sha256: &str) -> Result<Value, 
         return Err("invalid source commit or manifest SHA-256".to_owned());
     }
     let raw = fs::read_to_string(path).map_err(|error| format!("read change set: {error}"))?;
+    verify_sha256(raw.as_bytes(), manifest_sha256)?;
     let manifest: Value =
         serde_json::from_str(&raw).map_err(|error| format!("parse change set: {error}"))?;
     match validate(&manifest) {
