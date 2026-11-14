@@ -71,6 +71,11 @@
       "case_id": "OT14",
       "scenario": "A treatment strategy label is present but its underlying work-order/strategy record digest is missing.",
       "expected": "rejected_unbound_strategy_record"
+    },
+    {
+      "case_id": "OT15",
+      "scenario": "The target-trial protocol lacks an independent exchangeability review reference.",
+      "expected": "not_identified_missing_assumption_review"
     }
   ]
 }
