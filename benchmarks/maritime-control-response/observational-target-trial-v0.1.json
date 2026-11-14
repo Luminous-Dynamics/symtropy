@@ -52,10 +52,10 @@
     "Review references are required for exchangeability, treatment versions, censoring and interference.",
     "The report always states causal_effect_estimated=false and all authorization fields false.",
     "The propensity model's declared fit-covariate IDs must exactly equal the preregistered baseline covariate set; post-treatment variables are not eligible fit inputs.",
-    "Each unit's propensity estimate must bind an evidence digest and be available no later than that unit's time zero.",
     "The propensity support floor and ceiling are preregistered and checked for every unit.",
     "A unit's time zero is per asset; the cohort need not share one absolute timestamp.",
-    "A complete-follow-up record cannot simultaneously carry a censoring timestamp; censored/competing records must preserve their censoring time."
+    "A complete-follow-up record cannot simultaneously carry a censoring timestamp; censored/competing records must preserve their censoring time.",
+    "The propensity model fit-covariate IDs must exactly equal the declared pre-treatment baseline covariate set; a score may be estimated retrospectively, but post-treatment covariates and outcomes cannot enter the propensity model."
   ],
   "reasons": [
     "time_zero_misaligned",
@@ -72,8 +72,7 @@
     "outcome_not_in_followup_window",
     "outcome_evidence_unavailable",
     "outcome_measurement_contract_mismatch",
-    "assumption_review_reference_missing",
-    "propensity_evidence_unavailable"
+    "assumption_review_reference_missing"
   ],
   "metrics": [
     "time_zero_alignment_rate",
@@ -153,8 +152,8 @@
     },
     {
       "case_id": "OT13",
-      "scenario": "The propensity estimate is produced or becomes available after an asset's time zero.",
-      "expected": "not_identified_propensity_temporal_leakage"
+      "scenario": "The propensity model declares a post-treatment covariate outside the preregistered baseline set.",
+      "expected": "rejected_post_treatment_propensity_feature"
     }
   ],
   "claim_ceiling": "The P0 module validates target-trial design structure under declared metadata and reports not-identified reasons. It does not estimate a causal effect, prove conditional exchangeability, authenticate source evidence, establish censoring exchangeability, identify unmeasured confounding, transport to marine engines, or authorize maintenance/operation."
