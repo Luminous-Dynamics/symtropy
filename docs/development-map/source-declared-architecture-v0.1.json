@@ -1,0 +1,2027 @@
+{
+  "schema_version": "0.1.0",
+  "map_id": "symtropy:readme-architecture-projection:2026-11-14",
+  "repository": {
+    "canonical_name": "Luminous-Dynamics/symtropy",
+    "visibility": "public",
+    "default_branch": "main"
+  },
+  "snapshot": {
+    "revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+    "tree_digest": "4aa895fb1a0c47cd678e4ade9684327c2c7f50ac",
+    "tree_digest_algorithm": "git_tree_oid_sha1",
+    "observed_at": "2026-11-14T09:00:00.000Z",
+    "parent_snapshot": null,
+    "source_event_high_watermark": null,
+    "configuration_world": {
+      "map_kind": "read_only_source_projection",
+      "source_scope": [
+        "README.md",
+        "docs/tech/ARCHITECTURE.md"
+      ]
+    }
+  },
+  "extractor": {
+    "name": "manual-readonly-readme-architecture-projection",
+    "version": "0.1.0",
+    "build_digest": null
+  },
+  "nodes": [
+    {
+      "id": "symtropy:project",
+      "type": "project",
+      "claim_state": "observed",
+      "label": "Symtropy",
+      "attributes": {
+        "declared_description": "State-coupled N-dimensional physics engine",
+        "reported_experiments": 68,
+        "reported_tests": 827,
+        "reported_crates_io_crates": 11
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L1-L7",
+            "path": "README.md",
+            "line_start": 1,
+            "line_end": 7,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "All counts and descriptions are README declarations; no tests, experiments or crates.io releases were independently verified."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:nd-geometry",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "N-dimensional geometric primitives",
+      "attributes": {
+        "declared_components": [
+          "Sphere<D>",
+          "Capsule<D>",
+          "HyperBox<D>",
+          "HalfSpace<D>",
+          "ConvexHull<D>",
+          "Point<D>",
+          "Bivector<D>",
+          "Rotor<D>",
+          "Transform<D>"
+        ],
+        "declared_scope": "const-generic, stack-allocated geometry"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L6-L9",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 6,
+            "line_end": 9,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Source-declared; not compiler or numerical verification."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:rigid-body",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "N-dimensional rigid-body physics",
+      "attributes": {
+        "declared_components": [
+          "PhysicsWorld<D>",
+          "RigidBody<D>",
+          "GJK",
+          "EPA",
+          "CCD",
+          "ContactManifold<D>",
+          "BallJoint",
+          "FixedJoint",
+          "HingeJoint",
+          "Raycast"
+        ],
+        "declared_scope": "N-dimensional collision and constraints"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L19",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 19,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Source-declared; no simulation or physical validation."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:metric-coupling",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "Generic state/metric coupling",
+      "attributes": {
+        "declared_metrics": [
+          "Phi",
+          "health",
+          "wealth",
+          "trust",
+          "skill"
+        ],
+        "coupling_channels": [
+          "metric_to_force",
+          "metric_to_energy",
+          "harmony_to_impulse",
+          "harmony_to_friction",
+          "collision_to_metric"
+        ],
+        "declared_range": "[0,1] value per body"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L1-L5",
+            "path": "README.md",
+            "line_start": 1,
+            "line_end": 5,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Source-declared coupling description; no independent physics validation."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:consciousness-physics",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "Consciousness-physics research layer",
+      "attributes": {
+        "declared_components": [
+          "ConsciousnessField<D>",
+          "EntityConsciousness",
+          "HarmonyField<D>",
+          "EnergyBudget",
+          "ThermodynamicLedger",
+          "SafetyTier",
+          "FEP gradient",
+          "Active Inference",
+          "DimensionalLeakage"
+        ],
+        "declared_role": "PhysicsCallback coupling point"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Does not imply evidence of consciousness, validated thermodynamics or safe motor authority."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:replay",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "Deterministic record/replay",
+      "attributes": {
+        "declared_components": [
+          "ReplayTape<D>",
+          "WorldSnapshot<D>",
+          "NetId"
+        ],
+        "documented_limits": [
+          "cross-platform bitwise equality not guaranteed",
+          "multithreaded determinism not guaranteed",
+          "single-threaded step described as deterministic"
+        ]
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L20-L20",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 20,
+            "line_end": 20,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Determinism statements are source-declared; replay was not run."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:render-bridge",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "N-dimensional rendering bridge",
+      "attributes": {
+        "declared_components": [
+          "symtropy-render-bridge"
+        ],
+        "declared_scope": "ND-to-Bevy projection and 4D cross-section slicing"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L37-L48",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 37,
+            "line_end": 48,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No renderer or WASM artifact was built."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:robotics-bridge",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "Robotics and embodied-agent bridge",
+      "attributes": {
+        "declared_components": [
+          "symtropy-robotics-bridge"
+        ],
+        "declared_scope": "FEP agents and six embodied platforms"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No robot controller, simulation or hardware run was performed."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:network-authority",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "Peer-to-peer spatial authority and lockstep",
+      "attributes": {
+        "declared_components": [
+          "symtropy-net"
+        ],
+        "declared_scope": "P2P spatial authority and lockstep protocol"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L21",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 21,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No network or distributed replay tests were performed."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:capability:experiments",
+      "type": "capability",
+      "claim_state": "observed",
+      "label": "Research experiment catalogue",
+      "attributes": {
+        "reported_experiment_count": 68,
+        "declared_examples": [
+          "cooperation_emergence",
+          "jphi_convergence",
+          "cooperation_1000",
+          "inequality_emergence",
+          "tragedy_commons",
+          "dunbar_number",
+          "anesthesia_transition"
+        ],
+        "reported_findings": [
+          "81.3% tighter clustering under thermodynamic enforcement",
+          "J/Phi stable value ~10K J/Phi",
+          "solo agents collapse ~4 minutes while cooperative agents sustain"
+        ]
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L170-L201",
+            "path": "README.md",
+            "line_start": 170,
+            "line_end": 201,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No example or research finding was independently reproduced."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:evidence:reported-performance",
+      "type": "evidence",
+      "claim_state": "observed",
+      "label": "README-reported physics performance",
+      "attributes": {
+        "reported_measurements": {
+          "GJK sphere-sphere 3D": "156 ns",
+          "GJK capsule-capsule 3D": "173 ns",
+          "GJK HyperBox 3D": "116 ns",
+          "GJK HyperBox 4D": "101 ns",
+          "EPA sphere-sphere 3D": "30 ns",
+          "Raycast 100 bodies": "14 us",
+          "Step 10 bodies": "5.8 us",
+          "Step 100 bodies": "135 us",
+          "Step 500 bodies": "910 us"
+        },
+        "reported_environment": "NixOS, Rust stable, AMD Ryzen, single-threaded"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L122-L136",
+            "path": "README.md",
+            "line_start": 122,
+            "line_end": 136,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Measurements transcribed from README only; no raw runs or independent baselines."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:evidence:reported-tests",
+      "type": "evidence",
+      "claim_state": "observed",
+      "label": "README-reported aggregate test count",
+      "attributes": {
+        "reported_test_count": 827,
+        "test_scope_detail": "not split into unit/integration/physics validation in this projection"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L7-L7",
+            "path": "README.md",
+            "line_start": 7,
+            "line_end": 7,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "A README test count is not a current exact-head test pass or independent verification."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:evidence:licensing",
+      "type": "evidence",
+      "claim_state": "observed",
+      "label": "README-declared dual-track licensing",
+      "attributes": {
+        "tracks": [
+          {
+            "name": "permissive core",
+            "license": "Apache-2.0 OR MIT",
+            "crates": [
+              "symtropy-math",
+              "symtropy-physics",
+              "symtropy-render-bridge"
+            ]
+          },
+          {
+            "name": "AGPL research layer",
+            "license": "AGPL-3.0-or-later",
+            "crates": [
+              "symtropy-consciousness-physics",
+              "symtropy-sim-bridge",
+              "game crates"
+            ]
+          }
+        ]
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L245-L251",
+            "path": "README.md",
+            "line_start": 245,
+            "line_end": 251,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "README summary only; not a per-crate SPDX audit."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:component:symtropy-math",
+      "type": "crate",
+      "claim_state": "observed",
+      "label": "symtropy-math",
+      "attributes": {
+        "declared_dependencies": [],
+        "declared_components": [
+          "Shape<D>",
+          "Sphere<D>",
+          "Capsule<D>",
+          "HyperBox<D>",
+          "HalfSpace<D>",
+          "ConvexHull<D>"
+        ]
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L6-L9",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 6,
+            "line_end": 9,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:component:symtropy-physics",
+      "type": "crate",
+      "claim_state": "observed",
+      "label": "symtropy-physics",
+      "attributes": {
+        "declared_dependencies": [
+          "symtropy-math",
+          "nalgebra",
+          "arrayvec"
+        ],
+        "declared_components": [
+          "PhysicsWorld<D>",
+          "GJK",
+          "EPA",
+          "CCD",
+          "ContactManifold<D>",
+          "Constraint<D>"
+        ]
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L21",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 21,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:component:consciousness-physics",
+      "type": "crate",
+      "claim_state": "observed",
+      "label": "symtropy-consciousness-physics",
+      "attributes": {
+        "declared_dependencies": [
+          "symtropy-physics",
+          "symthaea-consciousness-equation"
+        ],
+        "declared_components": [
+          "ConsciousnessField<D>",
+          "EnergyBudget",
+          "ThermodynamicLedger",
+          "SafetyTier"
+        ]
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:external:symthaea",
+      "type": "external_system",
+      "claim_state": "observed",
+      "label": "Symthaea",
+      "attributes": {
+        "relationship_claim": "README adoption story declares Symthaea cognitive loop integration.",
+        "integration_status": "source_declared_not_contract_verified"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L9-L22",
+            "path": "README.md",
+            "line_start": 9,
+            "line_end": 22,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No API/schema/version contract or successful end-to-end compatibility test is asserted."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:external:mycelix",
+      "type": "external_system",
+      "claim_state": "observed",
+      "label": "Mycelix",
+      "attributes": {
+        "relationship_claim": "README adoption story and feature flag describe Mycelix identity, vault, governance and economic integrations.",
+        "integration_status": "source_declared_not_contract_verified"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L15-L22",
+            "path": "README.md",
+            "line_start": 15,
+            "line_end": 22,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No runtime, network or end-to-end integration is established by the README."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:external:sol-atlas",
+      "type": "external_system",
+      "claim_state": "observed",
+      "label": "Sol Atlas",
+      "attributes": {
+        "relationship_claim": "README feature flag named atlas enables a Sol Atlas planetary globe view.",
+        "integration_status": "source_declared_feature_flag_only"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L159-L168",
+            "path": "README.md",
+            "line_start": 159,
+            "line_end": 168,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No external Sol-Atlas repository revision, compatibility or deployment is inferred."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:scope:non-goals",
+      "type": "authority_boundary",
+      "claim_state": "observed",
+      "label": "Explicit project scope boundaries",
+      "attributes": {
+        "declared_non_goals": [
+          "bespoke game editor",
+          "custom wgpu renderer",
+          "Jacobian solver",
+          "mobile iOS/Android",
+          "GPU broadphase in core",
+          "soft-body in core"
+        ],
+        "declared_constraint": "PBD + impulse, target under 1000 bodies"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L40-L47",
+            "path": "README.md",
+            "line_start": 40,
+            "line_end": 47,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Scope declarations only; no independent architectural audit."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "symtropy:edge:001",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:nd-geometry",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L6-L9",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 6,
+            "line_end": 9,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Source-declared; not compiler or numerical verification."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:002",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:rigid-body",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L19",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 19,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Source-declared; no simulation or physical validation."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:003",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:metric-coupling",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L1-L5",
+            "path": "README.md",
+            "line_start": 1,
+            "line_end": 5,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Source-declared coupling description; no independent physics validation."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:004",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:consciousness-physics",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Does not imply evidence of consciousness, validated thermodynamics or safe motor authority."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:005",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:replay",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L20-L20",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 20,
+            "line_end": 20,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Determinism statements are source-declared; replay was not run."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:006",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:render-bridge",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L37-L48",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 37,
+            "line_end": 48,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No renderer or WASM artifact was built."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:007",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:robotics-bridge",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No robot controller, simulation or hardware run was performed."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:008",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:network-authority",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L21",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 21,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No network or distributed replay tests were performed."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:009",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:capability:experiments",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L170-L201",
+            "path": "README.md",
+            "line_start": 170,
+            "line_end": 201,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No example or research finding was independently reproduced."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:010",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:evidence:reported-performance",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L122-L136",
+            "path": "README.md",
+            "line_start": 122,
+            "line_end": 136,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Measurements transcribed from README only; no raw runs or independent baselines."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:011",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:evidence:reported-tests",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L7-L7",
+            "path": "README.md",
+            "line_start": 7,
+            "line_end": 7,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "A README test count is not a current exact-head test pass or independent verification."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:012",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:evidence:licensing",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L245-L251",
+            "path": "README.md",
+            "line_start": 245,
+            "line_end": 251,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "README summary only; not a per-crate SPDX audit."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:013",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:component:symtropy-math",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L6-L9",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 6,
+            "line_end": 9,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:014",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:component:symtropy-physics",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L21",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 21,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:015",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:component:consciousness-physics",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:016",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:external:symthaea",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L9-L22",
+            "path": "README.md",
+            "line_start": 9,
+            "line_end": 22,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No API/schema/version contract or successful end-to-end compatibility test is asserted."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:017",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:external:mycelix",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L15-L22",
+            "path": "README.md",
+            "line_start": 15,
+            "line_end": 22,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No runtime, network or end-to-end integration is established by the README."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:018",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:external:sol-atlas",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L159-L168",
+            "path": "README.md",
+            "line_start": 159,
+            "line_end": 168,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "No external Sol-Atlas repository revision, compatibility or deployment is inferred."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:019",
+      "from": "symtropy:project",
+      "relation": "contains",
+      "to": "symtropy:scope:non-goals",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L40-L47",
+            "path": "README.md",
+            "line_start": 40,
+            "line_end": 47,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": [
+          "Scope declarations only; no independent architectural audit."
+        ]
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:020",
+      "from": "symtropy:component:symtropy-physics",
+      "relation": "depends_on",
+      "to": "symtropy:component:symtropy-math",
+      "attributes": {
+        "source_statement": "symtropy-physics depends on symtropy-math"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L12",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 12,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:021",
+      "from": "symtropy:component:consciousness-physics",
+      "relation": "depends_on",
+      "to": "symtropy:component:symtropy-physics",
+      "attributes": {
+        "source_statement": "symtropy-consciousness-physics depends on symtropy-physics"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L24",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 24,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:022",
+      "from": "symtropy:project",
+      "relation": "implements",
+      "to": "symtropy:capability:nd-geometry",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L6-L9",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 6,
+            "line_end": 9,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:023",
+      "from": "symtropy:project",
+      "relation": "implements",
+      "to": "symtropy:capability:rigid-body",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L12-L21",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 12,
+            "line_end": 21,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:024",
+      "from": "symtropy:project",
+      "relation": "implements",
+      "to": "symtropy:capability:metric-coupling",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L1-L5",
+            "path": "README.md",
+            "line_start": 1,
+            "line_end": 5,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:025",
+      "from": "symtropy:project",
+      "relation": "implements",
+      "to": "symtropy:capability:consciousness-physics",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L24-L34",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 24,
+            "line_end": 34,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:026",
+      "from": "symtropy:project",
+      "relation": "implements",
+      "to": "symtropy:capability:replay",
+      "attributes": {},
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/docs/tech/ARCHITECTURE.md#L20-L20",
+            "path": "docs/tech/ARCHITECTURE.md",
+            "line_start": 20,
+            "line_end": 20,
+            "digest": "77d1666c7c69786d5e25eef0173059f2ae7c9ec4"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:027",
+      "from": "symtropy:project",
+      "relation": "compatible_with",
+      "to": "symtropy:external:symthaea",
+      "attributes": {
+        "relationship_status": "source_declared_only"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L15-L22",
+            "path": "README.md",
+            "line_start": 15,
+            "line_end": 22,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:028",
+      "from": "symtropy:project",
+      "relation": "compatible_with",
+      "to": "symtropy:external:mycelix",
+      "attributes": {
+        "relationship_status": "source_declared_only"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L15-L22",
+            "path": "README.md",
+            "line_start": 15,
+            "line_end": 22,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    },
+    {
+      "id": "symtropy:edge:029",
+      "from": "symtropy:project",
+      "relation": "compatible_with",
+      "to": "symtropy:external:sol-atlas",
+      "attributes": {
+        "relationship_status": "feature_flag_declared_only"
+      },
+      "provenance": {
+        "authority": "source_declared",
+        "sources": [
+          {
+            "kind": "repository_file",
+            "uri": "https://github.com/Luminous-Dynamics/symtropy/blob/aea5d824b31dd949c7b24680d27c9041d025db85/README.md#L159-L168",
+            "path": "README.md",
+            "line_start": 159,
+            "line_end": 168,
+            "digest": "2305f295cae5c868465aef7f190a9d56e3a85596"
+          }
+        ],
+        "extracted_by": {
+          "name": "manual-readonly-readme-architecture-projection",
+          "version": "0.1.0",
+          "build_digest": null
+        },
+        "observed_at": "2026-11-14T09:00:00.000Z",
+        "valid_for_revision": "aea5d824b31dd949c7b24680d27c9041d025db85",
+        "valid_for_world": "root-README-and-architecture-documents-only",
+        "limitations": []
+      },
+      "lifecycle": {
+        "state": "current",
+        "supersedes": null,
+        "invalidated_by": null,
+        "reason": "Current only for the pinned source revision."
+      }
+    }
+  ],
+  "limitations": [
+    "Bounded projection of README.md and docs/tech/ARCHITECTURE.md; not a full source-code or capability inventory.",
+    "All claims and architecture relationships are source_declared. No build, test, benchmark, experiment, simulation, GPU, robot controller or hardware action was executed.",
+    "README aggregate test and experiment counts are not independently reproduced or split by test type.",
+    "Performance timings and research findings are reported README values only.",
+    "The adoption story and Mycelix/Atlas feature flags do not establish versioned contract compatibility or end-to-end integration.",
+    "Licensing is represented from README summary only; consult per-crate licensing files before reuse.",
+    "The Architecture document explicitly limits determinism guarantees; cross-platform bitwise and multithreaded determinism are not claimed."
+  ]
+}
