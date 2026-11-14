@@ -90,7 +90,8 @@ impl LinearDiscreteProblem2V1 {
         if !self.time_step.is_finite() || self.time_step <= 0.0 {
             return Err(EffectiveMetricErrorV1::InvalidTimeStep);
         }
-        if !profile.minimum_pivot.is_finite()
+        if profile.maximum_basis_entry <= 0
+            || !profile.minimum_pivot.is_finite()
             || profile.minimum_pivot <= 0.0
             || !profile.maximum_effective_condition_inf.is_finite()
             || profile.maximum_effective_condition_inf < 1.0
@@ -123,10 +124,10 @@ impl LinearDiscreteProblem2V1 {
         if !is_positive_definite(&self.mass, profile.minimum_pivot) {
             return Err(EffectiveMetricErrorV1::MassNotPositiveDefinite);
         }
-        if !is_positive_semidefinite(&self.damping, profile.minimum_pivot) {
+        if !is_positive_semidefinite(&self.damping) {
             return Err(EffectiveMetricErrorV1::DampingNotPositiveSemidefinite);
         }
-        if !is_positive_semidefinite(&self.stiffness, profile.minimum_pivot) {
+        if !is_positive_semidefinite(&self.stiffness) {
             return Err(EffectiveMetricErrorV1::StiffnessNotPositiveSemidefinite);
         }
         let effective = self.effective_metric()?;
@@ -143,12 +144,12 @@ impl LinearDiscreteProblem2V1 {
             return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
         }
         let mut result = [[0.0; 2]; 2];
-        for row in 0..2 {
-            for column in 0..2 {
-                result[row][column] = self.mass[row][column]
+        for (row, result_row) in result.iter_mut().enumerate() {
+            for (column, value) in result_row.iter_mut().enumerate() {
+                *value = self.mass[row][column]
                     + h * self.damping[row][column]
                     + h_squared * self.stiffness[row][column];
-                if !result[row][column].is_finite() {
+                if !value.is_finite() {
                     return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
                 }
             }
@@ -186,11 +187,12 @@ impl IntegerFrame2V1 {
         if self.frame_id.trim().is_empty() {
             return Err(EffectiveMetricErrorV1::InvalidIdentifier);
         }
-        if self
-            .basis_to_physical
-            .iter()
-            .flatten()
-            .any(|value| value.unsigned_abs() > profile.maximum_basis_entry as u64)
+        if profile.maximum_basis_entry <= 0
+            || self
+                .basis_to_physical
+                .iter()
+                .flatten()
+                .any(|value| value.unsigned_abs() > profile.maximum_basis_entry as u64)
         {
             return Err(EffectiveMetricErrorV1::BasisNotUnimodular);
         }
@@ -269,7 +271,7 @@ fn is_positive_definite(matrix: &Matrix2, minimum_pivot: f64) -> bool {
         && d - c * b / a > minimum_pivot
 }
 
-fn is_positive_semidefinite(matrix: &Matrix2, minimum_pivot: f64) -> bool {
+fn is_positive_semidefinite(matrix: &Matrix2) -> bool {
     let a = matrix[0][0];
     let b = matrix[0][1];
     let c = matrix[1][0];
@@ -290,11 +292,10 @@ fn transpose(matrix: Matrix2) -> Matrix2 {
 
 fn multiply(left: Matrix2, right: Matrix2) -> Matrix2 {
     let mut result = [[0.0; 2]; 2];
-    for row in 0..2 {
-        for column in 0..2 {
-            for inner in 0..2 {
-                result[row][column] += left[row][inner] * right[inner][column];
-            }
+    for (row, output_row) in result.iter_mut().enumerate() {
+        for (column, output) in output_row.iter_mut().enumerate() {
+            *output = left[row][0] * right[0][column]
+                + left[row][1] * right[1][column];
         }
     }
     result
@@ -312,8 +313,10 @@ fn vector_inf(vector: Vector2) -> f64 {
 }
 
 fn matrix_inf(matrix: Matrix2) -> f64 {
-    (matrix[0][0].abs() + matrix[0][1].abs())
-        .max(matrix[1][0].abs() + matrix[1][1].abs())
+    matrix
+        .iter()
+        .map(|row| row.iter().map(|value| value.abs()).sum::<f64>())
+        .fold(0.0, f64::max)
 }
 
 fn solve(matrix: Matrix2, rhs: Vector2, profile: EffectiveMetricProfileV1) -> Result<Vector2, EffectiveMetricErrorV1> {
@@ -575,9 +578,9 @@ mod tests {
             ],
         ];
         let actual = problem.effective_metric().unwrap();
-        for row in 0..2 {
-            for column in 0..2 {
-                assert!((actual[row][column] - expected[row][column]).abs() < 1.0e-14);
+        for (actual_row, expected_row) in actual.iter().zip(expected.iter()) {
+            for (actual_value, expected_value) in actual_row.iter().zip(expected_row.iter()) {
+                assert!((actual_value - expected_value).abs() < 1.0e-14);
             }
         }
     }
@@ -641,9 +644,9 @@ mod tests {
         let problem = fixture(0.5);
         let correct = problem.effective_metric().unwrap();
         let mut wrong = problem.mass;
-        for row in 0..2 {
-            for column in 0..2 {
-                wrong[row][column] += 0.5 * problem.damping[row][column]
+        for (row, wrong_row) in wrong.iter_mut().enumerate() {
+            for (column, value) in wrong_row.iter_mut().enumerate() {
+                *value += 0.5 * problem.damping[row][column]
                     + 0.5 * problem.stiffness[row][column];
             }
         }
