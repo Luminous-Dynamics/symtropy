@@ -3,7 +3,7 @@ use liu_ice_control_response_evaluator::maintenance_effect::{
     MeasurementQuality, OutcomeDirection, RandomizedUnitObservation, StratumAllocation,
 };
 use liu_ice_control_response_evaluator::monte_carlo_randomization::{
-    estimate_monte_carlo_randomization_p_value, MonteCarloRandomizationConfig,
+    MonteCarloRandomizationConfig, estimate_monte_carlo_randomization_p_value,
 };
 use std::error::Error;
 use std::time::Instant;
