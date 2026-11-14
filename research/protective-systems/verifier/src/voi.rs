@@ -190,7 +190,7 @@ pub fn run(problem: &Problem) -> Result<BenchmarkReport, ProblemError> {
         });
     }
 
-    let best = scores
+    let best_candidate = scores
         .iter()
         .filter(|s| s.affordable)
         .min_by(|a, b| {
@@ -198,6 +198,9 @@ pub fn run(problem: &Problem) -> Result<BenchmarkReport, ProblemError> {
                 .total_cmp(&b.cost_adjusted_objective)
                 .then_with(|| a.experiment_id.cmp(&b.experiment_id))
         });
+    // "Do nothing" is a first-class action. Never run a test whose expected
+    // cost-adjusted objective is no better than the current decision.
+    let best = best_candidate.filter(|s| s.cost_adjusted_objective < baseline);
     let cheapest = scores
         .iter()
         .min_by(|a, b| a.cost.total_cmp(&b.cost).then_with(|| a.experiment_id.cmp(&b.experiment_id)))
@@ -278,6 +281,15 @@ mod tests {
         problem.experiment_budget = 0.7;
         let report = run(&problem).expect("valid problem");
         assert_ne!(report.best_experiment_id.as_deref(), Some("ANTI_CORRELATED_PROXY"));
+    }
+
+    #[test]
+    fn no_experiment_is_selected_when_every_test_costs_more_than_its_value() {
+        let mut problem = problem();
+        problem.decision_cost_weight = 10.0;
+        let report = run(&problem).expect("valid problem");
+        assert_eq!(report.best_experiment_id, None);
+        assert!((report.best_cost_adjusted_objective - report.prior_bayes_loss).abs() < 1e-12);
     }
 
     #[test]
