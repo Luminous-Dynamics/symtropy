@@ -16,7 +16,8 @@
         "sensor_health": "healthy",
         "media_service_state": "within_service",
         "maintenance_state": "none_since_qualification",
-        "lab_sample_state": "not_available"
+        "lab_sample_state": "not_available",
+        "calibration_state": "current"
       }
     },
     {
@@ -32,7 +33,8 @@
         "sensor_health": "healthy",
         "media_service_state": "within_service",
         "maintenance_state": "none_since_qualification",
-        "lab_sample_state": "not_available"
+        "lab_sample_state": "not_available",
+        "calibration_state": "current"
       }
     },
     {
@@ -48,7 +50,8 @@
         "sensor_health": "offline",
         "media_service_state": "within_service",
         "maintenance_state": "none_since_qualification",
-        "lab_sample_state": "sample_result_present"
+        "lab_sample_state": "sample_result_present",
+        "calibration_state": "current"
       }
     },
     {
@@ -64,7 +67,8 @@
         "sensor_health": "healthy",
         "media_service_state": "within_service",
         "maintenance_state": "none_since_qualification",
-        "lab_sample_state": "not_available"
+        "lab_sample_state": "not_available",
+        "calibration_state": "current"
       }
     },
     {
@@ -80,7 +84,8 @@
         "sensor_health": "healthy",
         "media_service_state": "expired",
         "maintenance_state": "none_since_qualification",
-        "lab_sample_state": "not_available"
+        "lab_sample_state": "not_available",
+        "calibration_state": "current"
       }
     },
     {
@@ -94,7 +99,8 @@
         "sensor_health": "healthy",
         "media_service_state": "within_service",
         "maintenance_state": "none_since_qualification",
-        "lab_sample_state": "not_available"
+        "lab_sample_state": "not_available",
+        "calibration_state": "current"
       }
     },
     {
@@ -110,7 +116,8 @@
         "sensor_health": "healthy",
         "media_service_state": "within_service",
         "maintenance_state": "requalification_pending",
-        "lab_sample_state": "sample_flagged_for_authority_review"
+        "lab_sample_state": "sample_flagged_for_authority_review",
+        "calibration_state": "current"
       }
     },
     {
@@ -125,6 +132,24 @@
         "operating_envelope_status": "in_profile",
         "bypass_state": "closed",
         "sensor_health": "healthy",
+        "media_service_state": "within_service",
+        "maintenance_state": "none_since_qualification",
+        "lab_sample_state": "not_available",
+        "calibration_state": "current"
+      }
+    },
+    {
+      "case_id": "FBA-009-critical-sensor-calibration-expired",
+      "inputs": {
+        "requested_claim_scope": "microbial_bacteria",
+        "independent_challenge_status": "valid",
+        "qualified_claim_scopes": [
+          "microbial_bacteria"
+        ],
+        "operating_envelope_status": "in_profile",
+        "bypass_state": "closed",
+        "sensor_health": "healthy",
+        "calibration_state": "expired",
         "media_service_state": "within_service",
         "maintenance_state": "none_since_qualification",
         "lab_sample_state": "not_available"
