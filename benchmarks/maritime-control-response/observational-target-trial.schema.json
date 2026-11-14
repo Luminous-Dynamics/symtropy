@@ -222,9 +222,7 @@
           "followup_status",
           "censoring_at_seconds",
           "concurrent_intervention_ids",
-          "outcome",
-          "propensity_evidence_sha256",
-          "propensity_available_at_seconds"
+          "outcome"
         ],
         "properties": {
           "unit_id": {
@@ -449,14 +447,6 @@
                 "type": "null"
               }
             ]
-          },
-          "propensity_evidence_sha256": {
-            "type": "string",
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "propensity_available_at_seconds": {
-            "type": "number",
-            "minimum": 0
           }
         }
       }
