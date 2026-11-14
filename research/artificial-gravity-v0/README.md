@@ -129,6 +129,10 @@ These are development goals, not published SOTA scores, certified limits, or ach
 
 Every result binds code/model digest, inputs, units, coordinate frames, solver/version, hardware/calibration, procedure, uncertainty, raw observations, and reviewer disposition. Unknown test outcome means no promotion to a higher maturity level.
 
+## Independent reference fixture
+
+[rotation_design_points.csv](fixtures/rotation_design_points.csv) contains the 15 radius/RPM/gravity points above, independently evaluated from the analytic equation with standard gravity 9.80665 m/s² and rounded to 0.001 m. It is a golden comparison artifact, not output captured from a compiled Rust binary. The CLI should reproduce the same rows and rounded values.
+
 ## Reproduction
 
 ```bash
