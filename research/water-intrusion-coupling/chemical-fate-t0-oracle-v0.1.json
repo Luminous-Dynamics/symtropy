@@ -10,10 +10,10 @@
       "expected": {
         "chemical_disposition": "ANALYTICAL_FIRST_ORDER_KNOWN_ANSWER",
         "parent_remaining_concentration_mg_l": 1.5163266492815834,
-        "parent_transformed_concentration_mg_l": 0.9836733507184166,
         "qualification_status": "NotRun",
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "parent_loss_concentration_equivalent_mg_l": 0.9836733507184166
       }
     },
     {
@@ -132,6 +132,21 @@
       "expected": {
         "chemical_disposition": "INVALID_INPUT",
         "reason": "NEGATIVE_CONCENTRATION_OR_RATE",
+        "qualification_status": "NotRun",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CF-T0-013-stoichiometric-molecular-weight-conversion",
+      "expected": {
+        "chemical_disposition": "ANALYTICAL_STOICHIOMETRIC_MASS_CONVERSION",
+        "initial_parent_mass_mg_l": 100,
+        "remaining_parent_mass_mg_l": 60,
+        "product_B_mass_mg_l": 20,
+        "product_C_mass_mg_l": 20,
+        "recovered_total_mass_mg_l": 100,
+        "mass_residual_mg_l": 0,
         "qualification_status": "NotRun",
         "potability_claim_permitted": false,
         "release_authorized": false
