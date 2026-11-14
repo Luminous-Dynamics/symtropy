@@ -79,7 +79,8 @@
     "Allocation constraint violations are counted and must remain zero.",
     "The result cannot authorize maintenance, physical restoration or operating-restriction clearance.",
     "The canonical frame digest binds the complete validated trial object, including all source, calibration, timestamp, measurement-quality and uncertainty metadata.",
-    "A valid input exceeding 10,000 independent units must be rejected before randomization sampling."
+    "A valid input exceeding 10,000 independent units must be rejected before randomization sampling.",
+    "The optional performance harness uses a fixed seed and draw budget across declared unit sizes and reports observed throughput without enforcing or inventing a machine-independent speed threshold."
   ],
   "comparators": [
     {
@@ -169,6 +170,11 @@
       "case_id": "MC13",
       "scenario": "A valid blocked trial containing 10,001 independent units is rejected before Monte Carlo sampling.",
       "expected": "unit_ceiling_rejected"
+    },
+    {
+      "case_id": "MC14",
+      "scenario": "An opt-in Rust benchmark sweeps fixed 1,000-draw trials at 16, 32, 64, 128, 256, 1,000 and 10,000 units and reports replay-bound throughput metadata.",
+      "expected": "performance_profile_recorded_without_claimed_sota"
     }
   ],
   "metrics": [
