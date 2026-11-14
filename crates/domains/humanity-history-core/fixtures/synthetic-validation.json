@@ -1,0 +1,106 @@
+{
+  "schema_version": "0.1",
+  "sources": [
+    {
+      "id": "fixture:source-1",
+      "title": "Synthetic test source (not a historical assertion)",
+      "source_uri": "urn:example:synthetic-source-1",
+      "rights": {
+        "status": "open_license",
+        "license_id": "CC0-1.0",
+        "attribution": null,
+        "basis_note": "Synthetic test fixture only"
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "fixture:claim-a",
+      "proposition": "Synthetic fixture claim A",
+      "mode": "attested",
+      "valid_time": {
+        "calendar": "fixture-year-scale",
+        "start_year": 100,
+        "end_year": 100,
+        "precision": "exact_year"
+      },
+      "evidence": [
+        {
+          "source_id": "fixture:source-1",
+          "locator": "fixture:paragraph-1",
+          "relation": "supports",
+          "note": null
+        }
+      ],
+      "interpretation_note": null
+    },
+    {
+      "id": "fixture:claim-b",
+      "proposition": "Synthetic fixture claim B",
+      "mode": "attested",
+      "valid_time": null,
+      "evidence": [
+        {
+          "source_id": "fixture:source-1",
+          "locator": "fixture:paragraph-2",
+          "relation": "supports",
+          "note": null
+        }
+      ],
+      "interpretation_note": null
+    }
+  ],
+  "relations": [
+    {
+      "id": "fixture:relation-1",
+      "from_claim_id": "fixture:claim-a",
+      "to_claim_id": "fixture:claim-b",
+      "kind": "supports",
+      "status": "documented",
+      "evidence": [
+        {
+          "source_id": "fixture:source-1",
+          "locator": "fixture:relation-1",
+          "relation": "supports",
+          "note": "Synthetic edge for validator demonstration"
+        }
+      ],
+      "interpretation_note": null
+    }
+  ],
+  "assets": [
+    {
+      "id": "fixture:asset-1",
+      "source_id": "fixture:source-1",
+      "rights": {
+        "status": "public_domain",
+        "license_id": null,
+        "attribution": null,
+        "basis_note": "Synthetic fixture uses the SHA-256 of an empty byte sequence; no media is included"
+      },
+      "distributable": true,
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "analysis_runs": [
+    {
+      "id": "fixture:planned-run-1",
+      "purpose": "Synthetic planned run for schema validation",
+      "status": "planned",
+      "model_spec_version": "synthetic-model-v1",
+      "code_revision": null,
+      "command": null,
+      "environment_fingerprint": null,
+      "input_manifest_sha256": null,
+      "input_artifacts": [],
+      "output_artifacts": [],
+      "random_seed": null,
+      "target_estimate_ids": [],
+      "comparison_source_id": null,
+      "result_summary": null,
+      "limitations": [
+        "Synthetic fixture only; no experiment was executed."
+      ]
+    }
+  ]
+}

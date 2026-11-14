@@ -133,6 +133,8 @@ members = [
     "crates/apps/symtropy-mycelix-village",
     "crates/domains/symtropy-net",
     "crates/domains/symtropy-lifesim-core",
+    "crates/domains/humanity-history-core",
+    "crates/domains/symtropy-experiment-core",
     "crates/domains/symtropy-colony",
     "crates/domains/symtropy-mycelium",
     "crates/domains/symtropy-basin",

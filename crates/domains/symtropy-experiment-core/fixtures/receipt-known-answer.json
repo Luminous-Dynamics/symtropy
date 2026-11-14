@@ -1,0 +1,28 @@
+{
+  "payload": {
+    "receipt_schema_version": "0.3.0",
+    "digest_algorithm": "sha256",
+    "canonicalization_algorithm": "RFC8785-JCS",
+    "execution_mode": "fixture",
+    "package_version": "0.1.0",
+    "source_revision": null,
+    "cargo_lock_sha256": null,
+    "package_manifest_sha256": null,
+    "execution_environment": {
+      "architecture": "x86_64",
+      "build_profile": "release",
+      "operating_system": "linux"
+    },
+    "experiment_id": "experiment:receipt-known-answer",
+    "model_schema_version": "0.1",
+    "unit_registry_version": "0.1.0",
+    "input_artifact_sha256": "cc014e7a9694d0bf7a836dd7ec8aa19552424111024d60822ad09a637a503e84",
+    "serialized_model_sha256": "71d93acd678db5ef8385b1e21984caff6547b22b2fe1c79753c4818d55f1841b",
+    "output_payload_sha256": "8cd5aa75a94d38bbd330f9942a42e6136e9759125c09f2c23da95964621460e6",
+    "execution_settings": {
+      "numeric_format": "IEEE-754 binary64",
+      "purpose": "known-answer-fixture"
+    }
+  },
+  "receipt_sha256": "b0b045ab62955c0e0342ee9746447dee39181c32318920ab13ac40b15c871775"
+}

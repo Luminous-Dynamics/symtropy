@@ -1,0 +1,134 @@
+{
+  "schema_version": "0.1",
+  "id": "experiment:synthetic-gear-pair",
+  "title": "Synthetic external gear-pair ratio",
+  "question": "Given tooth counts and an input angle, what output angle follows from an ideal external gear pair?",
+  "kind": "synthetic_benchmark",
+  "evidence": [],
+  "variables": [
+    {
+      "id": "variable:n_driver",
+      "symbol": "N_driver",
+      "description": "Number of teeth on the driving gear.",
+      "unit": "tooth",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 0] },
+      "role": "parameter",
+      "value_decimal": "48",
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:n_driven",
+      "symbol": "N_driven",
+      "description": "Number of teeth on the driven gear.",
+      "unit": "tooth",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 0] },
+      "role": "parameter",
+      "value_decimal": "12",
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:theta_input",
+      "symbol": "theta_in",
+      "description": "Input angular displacement in the model's radian convention.",
+      "unit": "rad",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 1] },
+      "role": "input",
+      "value_decimal": "0.5",
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:phase_offset",
+      "symbol": "phi",
+      "description": "Synthetic phase offset applied to the output angle.",
+      "unit": "rad",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 1] },
+      "role": "parameter",
+      "value_decimal": "0.1",
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:gear_ratio",
+      "symbol": "r",
+      "description": "Positive tooth-count ratio before external-gear direction inversion.",
+      "unit": "1",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 0] },
+      "role": "derived",
+      "value_decimal": null,
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:signed_ratio",
+      "symbol": "r_signed",
+      "description": "Signed ideal external gear ratio; negative sign indicates opposite rotation.",
+      "unit": "1",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 0] },
+      "role": "derived",
+      "value_decimal": null,
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:theta_scaled",
+      "symbol": "theta_scaled",
+      "description": "Input angle scaled by the signed ideal gear ratio.",
+      "unit": "rad",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 1] },
+      "role": "derived",
+      "value_decimal": null,
+      "evidence_ids": []
+    },
+    {
+      "id": "variable:theta_output",
+      "symbol": "theta_out",
+      "description": "Output angle after the synthetic phase offset.",
+      "unit": "rad",
+      "dimension": { "exponents": [0, 0, 0, 0, 0, 0, 0, 1] },
+      "role": "output",
+      "value_decimal": null,
+      "evidence_ids": []
+    }
+  ],
+  "equations": [
+    {
+      "id": "equation:gear-ratio",
+      "operator": "divide",
+      "input_variable_ids": ["variable:n_driver", "variable:n_driven"],
+      "output_variable_id": "variable:gear_ratio",
+      "basis": "synthetic_benchmark",
+      "basis_note": "Exact toy input with a known algebraic result; not measured historical geometry.",
+      "evidence_ids": []
+    },
+    {
+      "id": "equation:external-gear-direction",
+      "operator": "negate",
+      "input_variable_ids": ["variable:gear_ratio"],
+      "output_variable_id": "variable:signed_ratio",
+      "basis": "synthetic_benchmark",
+      "basis_note": "Ideal external gear pair reverses direction; losses, backlash, compliance, and tooth geometry are outside this toy graph.",
+      "evidence_ids": []
+    },
+    {
+      "id": "equation:scaled-input-angle",
+      "operator": "multiply",
+      "input_variable_ids": ["variable:signed_ratio", "variable:theta_input"],
+      "output_variable_id": "variable:theta_scaled",
+      "basis": "synthetic_benchmark",
+      "basis_note": "Memoryless ideal kinematic relation for a fixed ratio.",
+      "evidence_ids": []
+    },
+    {
+      "id": "equation:phase-offset",
+      "operator": "add",
+      "input_variable_ids": ["variable:theta_scaled", "variable:phase_offset"],
+      "output_variable_id": "variable:theta_output",
+      "basis": "synthetic_benchmark",
+      "basis_note": "Phase offset is an explicit toy parameter, not sourced from a real device.",
+      "evidence_ids": []
+    }
+  ],
+  "limitations": [
+    "Synthetic known-answer benchmark; not a reconstruction of a historical mechanism.",
+    "Acyclic arithmetic interpreter only; no torque, inertia, friction, backlash, elasticity, dynamics, or numerical integration.",
+    "All arithmetic uses IEEE-754 binary64 and is not a formal proof or arbitrary-precision calculation.",
+    "The model's eighth dimension axis distinguishes angle semantically even though SI treats radians as dimensionless."
+  ]
+}
