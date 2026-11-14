@@ -155,6 +155,19 @@ Zero-containing divisors, reversed/non-finite endpoints, and non-finite arithmet
 
 This primitive is **not yet a complete interval-analysis engine**. It does not enclose matrix inverses, singular values, automatic derivatives, Hessians, Krawczyk operators or Taylor models. It does not establish the eta or gamma source bounds consumed by the scalar Newton-Kantorovich calculator. Those require a separate verified implementation and independent tests.
 
+
+## Independent scalar Krawczyk inclusion v0.1
+
+The `scalar_krawczyk` module provides a second, independent route for a one-dimensional nonlinear root fixture. Given a candidate center x0, a nonzero preconditioner C, an interval enclosing F(x0), an interval enclosing F'(X), and a finite search box X, it evaluates
+
+    K(x0, X) = x0 - C F(x0) + (1 - C F'(X)) (X - x0).
+
+Only strict inclusion of the Krawczyk image inside the interior of X yields `ConditionalUniqueRoot`. Failure to include strictly returns INCONCLUSIVE, not proof of nonexistence.
+
+The example uses the analytic quadratic F(x)=1/8 + x + x^2 on X=[-0.2,-0.05], with outward-enclosed F(x0) and F'(X), and compares the reported box with the exact scalar root. The function/derivative enclosures are built from the interval primitive, but this scalar module does not authenticate arbitrary external enclosures. A physical receiver must still validate the equations, derivatives, parameter ranges and all interval inputs.
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example scalar_krawczyk_quadratic
+
 ## Reproducible microbenchmark v0.1
 
 The `metric-induced-microbenchmark` binary uses one frozen 6-DOF diagonal-mass / dense unit-triangular rebasing fixture. It reports per-operation median, p95 and p99 nanoseconds plus a numerical checksum for:
