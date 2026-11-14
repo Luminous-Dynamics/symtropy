@@ -232,6 +232,184 @@ jobs:
                   if not mutation["path"].startswith("/"):
                       raise SystemExit(f"mutation path is not a JSON pointer in {case['case_id']}")
 
+          # Versioned UQ sidecar: it extends rather than mutates the v0.1 parent packet.
+          uq_sidecar_path = root / "joint_uq_sidecar_v0_1_complete.json"
+          uq_schema_path = root / "joint_uq_sidecar_v0_1.schema.json"
+          uq_mutations_path = root / "joint_uq_mutations_v0_1.json"
+          uq_sidecar = load_unique(uq_sidecar_path)
+          uq_schema = load_unique(uq_schema_path)
+          uq_mutations = load_unique(uq_mutations_path)
+          Draft202012Validator.check_schema(uq_schema)
+          uq_errors = sorted(
+              Draft202012Validator(uq_schema).iter_errors(uq_sidecar),
+              key=lambda error: list(error.absolute_path),
+          )
+          if uq_errors:
+              for error in uq_errors:
+                  print(f"UQ sidecar schema error at {list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          reject_floats(uq_sidecar)
+
+          uq_integrity = uq_sidecar["integrity"]
+          uq_payload = dict(uq_sidecar)
+          del uq_payload["integrity"]
+          uq_canonical = json.dumps(
+              uq_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+          ).encode("utf-8")
+          uq_digest = hashlib.sha256(uq_canonical).hexdigest()
+          if uq_digest != uq_integrity["payload_sha256"]:
+              raise SystemExit(
+                  f"UQ sidecar digest mismatch: expected={uq_integrity['payload_sha256']} observed={uq_digest}"
+              )
+          if uq_sidecar["parent_binding"]["payload_sha256"] != expected_digest:
+              raise SystemExit("UQ sidecar is not bound to this exact parent v0.1 packet")
+          if uq_sidecar["parent_binding"]["protocol_id"] != packet["protocol_id"]:
+              raise SystemExit("UQ sidecar parent protocol identity mismatch")
+
+          uq_scope = uq_sidecar["scope"]
+          scope_canonical = json.dumps(
+              uq_scope, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+          ).encode("utf-8")
+          scope_digest = hashlib.sha256(scope_canonical).hexdigest()
+          parent_scope = packet["scope"]
+          parent_configuration = packet["configuration"]
+          parent_physical = packet["events"]["physical_transition"]
+          exact_bindings = (
+              uq_scope["mission_id"] == parent_scope["mission_id"],
+              uq_scope["robot_id"] == parent_scope["robot_id"],
+              uq_scope["actuator_id"] == parent_scope["actuator_id"],
+              uq_scope["actuator_configuration_digest"] == parent_configuration["actuator_configuration_digest"],
+              uq_scope["controller_configuration_digest"] == parent_configuration["controller_configuration_digest"],
+              uq_scope["scenario_manifest_digest"] == parent_scope["scenario_manifest_digest"],
+              uq_scope["physical_boundary_manifest_digest"] == parent_configuration["energy_boundary_manifest_digest"],
+              uq_scope["physical_state_predecessor_digest"] == parent_physical["reserve_predecessor_digest"],
+              uq_scope["physical_state_result_digest"] == parent_physical["reserve_result_digest"],
+              uq_scope["monotonic_clock_id"] == parent_scope["clock_id"],
+              uq_scope["boot_epoch"] == parent_scope["boot_epoch"],
+          )
+          if not all(exact_bindings):
+              raise SystemExit("UQ sidecar mission/robot/actuator/configuration/clock/state scope differs from parent")
+
+          measurements = uq_sidecar["measurements"]
+          measurement_by_id = {item["measurement_id"]: item for item in measurements}
+          if len(measurement_by_id) != len(measurements):
+              raise SystemExit("duplicate UQ measurement identity")
+          uncertainty_receipts = uq_sidecar["uncertainty_receipts"]
+          uncertainty_by_id = {item["receipt_id"]: item for item in uncertainty_receipts}
+          if len(uncertainty_by_id) != len(uncertainty_receipts):
+              raise SystemExit("duplicate UQ uncertainty receipt identity")
+
+          shared_sources = {}
+          for measurement in measurements:
+              receipt_id = measurement["uncertainty_receipt_id"]
+              if receipt_id not in uncertainty_by_id:
+                  raise SystemExit(f"measurement has no UQ receipt: {measurement['measurement_id']}")
+              receipt = uncertainty_by_id[receipt_id]
+              if receipt["measurement_id"] != measurement["measurement_id"]:
+                  raise SystemExit("measurement points to a different UQ measurement")
+              for field in (
+                  "measurement_artifact_digest",
+                  "instrument_configuration_digest",
+                  "calibration_receipt_digest",
+                  "unit_code",
+                  "decimal_exponent",
+              ):
+                  if receipt[field] != measurement[field]:
+                      raise SystemExit(f"measurement/UQ binding mismatch: {measurement['measurement_id']}:{field}")
+              if receipt["scope_digest"] != scope_digest:
+                  raise SystemExit(f"UQ receipt has a different common scope: {receipt_id}")
+              start = int(measurement["start_tick"])
+              end = int(measurement["end_tick"])
+              if start > end:
+                  raise SystemExit(f"measurement interval inverted: {measurement['measurement_id']}")
+              if int(measurement["calibration_valid_from_tick"]) > start or int(measurement["calibration_valid_through_tick"]) < end:
+                  raise SystemExit(f"calibration does not cover full measurement window: {measurement['measurement_id']}")
+              if int(receipt["valid_from_tick"]) > start or int(receipt["valid_through_tick"]) < end:
+                  raise SystemExit(f"UQ receipt does not cover full measurement window: {receipt_id}")
+
+              required_group_members = {}
+              for component in receipt["components"]:
+                  group = component["dependence_group_id"]
+                  required_group_members.setdefault(group, set()).add(component["component_id"])
+                  shared_sources.setdefault(component["source_receipt_digest"], []).append(
+                      (measurement["measurement_id"], group)
+                  )
+              observed_group_members = {}
+              for declaration in receipt["dependence"]:
+                  group = declaration["dependence_group_id"]
+                  if group in observed_group_members:
+                      raise SystemExit(f"duplicate dependence declaration: {receipt_id}:{group}")
+                  observed_group_members[group] = set(declaration["component_ids"])
+                  decision = declaration["decision"]
+                  if decision["kind"] in {"joint_model", "independence_supported"} and not decision["receipt_digest"]:
+                      raise SystemExit(f"dependence decision lacks receipt: {receipt_id}:{group}")
+                  if decision["kind"] == "unknown" and decision["receipt_digest"] is not None:
+                      raise SystemExit(f"Unknown dependence must not masquerade as a qualified receipt: {receipt_id}:{group}")
+              if required_group_members != observed_group_members:
+                  raise SystemExit(f"dependence group component set mismatch: {receipt_id}")
+
+              coverage = receipt["coverage"]
+              if coverage["kind"] == "probability_interval":
+                  if coverage["method"] == "monte_carlo_distribution" and not coverage["convergence_receipt_digest"]:
+                      raise SystemExit(f"Monte Carlo interval lacks convergence receipt: {receipt_id}")
+                  if coverage["method"] not in {"first_order_gum", "higher_order_gum", "monte_carlo_distribution", "other_approved"}:
+                      raise SystemExit(f"unsupported probability coverage method: {receipt_id}")
+              elif coverage["kind"] != "conservative_bound":
+                  raise SystemExit(f"unsupported coverage representation: {receipt_id}")
+
+          for source_digest, source_members in shared_sources.items():
+              member_measurements = {item[0] for item in source_members}
+              if len(member_measurements) < 2:
+                  continue
+              group_ids = {item[1] for item in source_members}
+              if len(group_ids) != 1:
+                  raise SystemExit(f"shared source has inconsistent dependence groups: {source_digest}")
+              shared_group = next(iter(group_ids))
+              decisions = set()
+              for measurement_id, _ in source_members:
+                  measurement = measurement_by_id[measurement_id]
+                  receipt = uncertainty_by_id[measurement["uncertainty_receipt_id"]]
+                  declaration = next(
+                      item for item in receipt["dependence"]
+                      if item["dependence_group_id"] == shared_group
+                  )
+                  decision = declaration["decision"]
+                  decisions.add((decision["kind"], decision["receipt_digest"]))
+              if len(decisions) != 1 or next(iter(decisions))[0] == "unknown":
+                  raise SystemExit(f"shared source dependence is missing or inconsistent: {source_digest}")
+
+          for derived in uq_sidecar["derived_results"]:
+              output = measurement_by_id.get(derived["output_measurement_id"])
+              if output is None:
+                  raise SystemExit(f"derived output measurement missing: {derived['result_id']}")
+              if derived["result_id"] != derived["output_measurement_id"]:
+                  raise SystemExit("derived result and output measurement identities differ")
+              if derived["output_result_digest"] != output["measurement_artifact_digest"]:
+                  raise SystemExit("derived output artifact digest mismatch")
+              if derived["output_uncertainty_receipt_id"] != output["uncertainty_receipt_id"]:
+                  raise SystemExit("derived output uncertainty receipt mismatch")
+              expected_inputs = set()
+              for measurement_id in derived["input_measurement_ids"]:
+                  source_measurement = measurement_by_id.get(measurement_id)
+                  if source_measurement is None:
+                      raise SystemExit(f"derived input measurement missing: {measurement_id}")
+                  expected_inputs.add(source_measurement["uncertainty_receipt_id"])
+              if expected_inputs != set(derived["input_uncertainty_receipt_ids"]):
+                  raise SystemExit("derived input uncertainty receipt set mismatch")
+              if any(item not in uncertainty_by_id for item in derived["input_uncertainty_receipt_ids"]):
+                  raise SystemExit("derived input uncertainty receipt is not present")
+              if derived["output_uncertainty_receipt_id"] not in uncertainty_by_id:
+                  raise SystemExit("derived output uncertainty receipt is not present")
+
+          if uq_sidecar["actuation_authorized"] is not False or uq_sidecar["conformity_certified"] is not False:
+              raise SystemExit("UQ evidence sidecar cannot authorize actuation or conformity")
+
+          uq_cases = uq_mutations["cases"]
+          uq_ids = [item["case_id"] for item in uq_cases]
+          if len(uq_cases) != 10 or len(set(uq_ids)) != 10:
+              raise SystemExit("expected ten unique UQ sidecar mutation oracles")
+          print(f"UQ sidecar schema/integrity/scope/derived/dependence preflight: PASS ({uq_digest})")
+          print("UQ sidecar mutation oracle inventory: PASS (10 cases; oracle inventory is not a claim that every Rust mutation is executed)")
           print("golden packet causal/physical-semantic preflight: PASS")
           print(f"mutation oracle inventory: PASS ({len(cases)} cases; not executed against Rust adapters)")
           PY
