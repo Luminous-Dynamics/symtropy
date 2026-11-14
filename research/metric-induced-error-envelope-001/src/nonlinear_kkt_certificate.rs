@@ -89,6 +89,8 @@ pub struct NewtonKantorovichReceiptV1 {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NewtonKantorovichErrorV1 {
     EmptyEvidenceIdentity,
+    ProblemIdentityMismatch,
+    LinearizationIdentityMismatch,
     NormIdentityMismatch,
     InvalidProfile,
     NegativeUpperBound,
