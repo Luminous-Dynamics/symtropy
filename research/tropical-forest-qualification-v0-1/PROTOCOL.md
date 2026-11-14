@@ -169,6 +169,8 @@ For each, score forecast calibration, decision regret, out-of-domain detection, 
 
 ### T0 — semantic and data admission
 
+The record-level gate is specified in [OBSERVATION_ADMISSION_CONTRACT_V0_1.md](OBSERVATION_ADMISSION_CONTRACT_V0_1.md) and exercised by the eleven-case synthetic corpus. This is an admission contract for descriptors, not a production adapter or a rights adjudicator. The next support-conversion work is tracked separately in [FOREST-SUPPORT-INTERSECTION-QUAL-001 #5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237).
+
 - Each variable declares unit, spatial support, temporal support, source, transformation, quality, uncertainty, and valid domain.
 - Distinguish observations, derived labels, inferences, simulated states, interventions and decisions.
 - Missing, cloud-covered, unobserved, below-detection and out-of-domain are not observed absence.
@@ -217,6 +219,8 @@ Once baseline variance, sample size and cluster structure are known, preregister
 
 ## First concrete sequence
 
+0. Freeze and review the record-level observation-admission contract; keep production adapters, source authentication, geometry and rights adjudication explicitly separate.
+0. Implement cross-scale support conversion in [#5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237) before any plot/footprint/pixel score comparison.
 1. Audit each current code variable/process as **measured**, **derived**, **illustrative**, or **unimplemented**.
 2. Define a typed forest-state vocabulary and units; do not relabel generic `[0,1]` values as physical measurements.
 3. Create a tiny known-truth synthetic forest patch manifest and verify growth / mortality / biomass budgets; run the standalone Rust verifier at `validator/` and preserve its receipt.
