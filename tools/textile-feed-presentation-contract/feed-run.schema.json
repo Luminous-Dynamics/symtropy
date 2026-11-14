@@ -7,6 +7,8 @@
   "required": [
     "run_id",
     "line_id",
+    "run_started_at_ns",
+    "run_completed_at_ns",
     "configuration_revision",
     "incoming_items",
     "attempts",
@@ -35,6 +37,8 @@
           "item_id",
           "lot_id",
           "intake_sequence",
+          "intake_at_ns",
+          "measured_mass_mg",
           "reference_destination"
         ],
         "properties": {
@@ -56,6 +60,14 @@
               "null"
             ],
             "minLength": 1
+          },
+          "intake_at_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "measured_mass_mg": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }
@@ -161,6 +173,14 @@
           }
         }
       }
+    },
+    "run_started_at_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "run_completed_at_ns": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "$defs": {
