@@ -93,6 +93,7 @@ fn matrix_rank(matrix: &[Vec<f64>], relative_tolerance: f64) -> usize {
             *value /= pivot_value;
         }
 
+        let pivot_values = reduced[pivot_row].clone();
         for row in 0..rows {
             if row == pivot_row {
                 continue;
@@ -102,7 +103,7 @@ fn matrix_rank(matrix: &[Vec<f64>], relative_tolerance: f64) -> usize {
                 continue;
             }
             for col in column..columns {
-                reduced[row][col] -= factor * reduced[pivot_row][col];
+                reduced[row][col] -= factor * pivot_values[col];
             }
         }
         pivot_row += 1;
