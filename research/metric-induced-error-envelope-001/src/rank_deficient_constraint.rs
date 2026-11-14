@@ -1087,6 +1087,155 @@ mod tests {
     }
 
     #[test]
+    fn rank_and_compatibility_ladder_is_invariant_under_metric_aware_row_shear() {
+        let profile = ConstraintQuotientProfileV1 {
+            relative_rank_tolerance: 1.0e-10,
+            rank_uncertainty_factor: 10.0,
+            relative_compatibility_tolerance: 1.0e-10,
+            relative_reduced_pivot_tolerance: 1.0e-12,
+        };
+        let t = [[1.0, 8.0, 0.0], [0.0, 1.0, 4.0], [0.0, 0.0, 1.0]];
+        let s = [[1.0, -8.0, 32.0], [0.0, 1.0, -4.0], [0.0, 0.0, 1.0]];
+        let row_rebasis =
+            Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(s, metric_profile())
+                .unwrap();
+        let h_old = residual_metric::<OldConstraintSpace>();
+        let h_new = row_rebasis.metric_to_to(&h_old, metric_profile()).unwrap();
+        let x = [0.1, -0.2, 0.3];
+
+        for epsilon in [1.0e-8, 1.0e-9, 1.0e-10, 1.0e-11, 1.0e-12, 0.0] {
+            let j_old = [
+                [1.0, 0.0, 1.0],
+                [0.0, 2.0, -1.0],
+                [1.0, epsilon, 1.0],
+            ];
+            let j_new: [[f64; 3]; 3] = std::array::from_fn(|row| {
+                std::array::from_fn(|column| {
+                    (0..3).map(|inner| t[row][inner] * j_old[inner][column]).sum()
+                })
+            });
+            let residual_old = std::array::from_fn(|row| {
+                (0..3).map(|column| j_old[row][column] * x[column]).sum()
+            });
+            let residual_new = row_rebasis
+                .tangent_to_to(
+                    &Tangent::<OldConstraintSpace, 3>::new(residual_old).unwrap(),
+                )
+                .unwrap();
+
+            let old_quotient = RankDeficientDelassusQuotientV1::<
+                Cartesian,
+                OldConstraintSpace,
+                3,
+                3,
+            >::new(&mass(), j_old, &h_old, profile)
+            .unwrap();
+            let new_quotient = RankDeficientDelassusQuotientV1::<
+                Cartesian,
+                NewConstraintSpace,
+                3,
+                3,
+            >::new(&mass(), j_new, &h_new, profile)
+            .unwrap();
+            let old_result = old_quotient
+                .solve_residual(&ConstraintResidualV1::<OldConstraintSpace, 3>::new(residual_old).unwrap())
+                .unwrap();
+            let new_result = new_quotient
+                .solve_residual(
+                    &ConstraintResidualV1::<NewConstraintSpace, 3>::new(
+                        *residual_new.components(),
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+
+            assert_eq!(old_result.status(), new_result.status(), "epsilon={epsilon:e}");
+            assert_eq!(
+                old_result.numerical_rank(),
+                new_result.numerical_rank(),
+                "epsilon={epsilon:e}"
+            );
+            assert_eq!(
+                old_result.multiplier_nullity(),
+                new_result.multiplier_nullity(),
+                "epsilon={epsilon:e}"
+            );
+            close(
+                old_result.compatibility_relative_defect(),
+                new_result.compatibility_relative_defect(),
+                2.0e-8,
+            );
+            if let (Some(old_norm), Some(new_norm)) = (
+                old_result.residual_dual_norm(),
+                new_result.residual_dual_norm(),
+            ) {
+                close(old_norm, new_norm, 2.0e-8);
+                let old_correction = old_result.minimum_kinetic_correction().unwrap();
+                let new_correction = new_result.minimum_kinetic_correction().unwrap();
+                for dof in 0..3 {
+                    close(
+                        old_correction.components()[dof],
+                        new_correction.components()[dof],
+                        2.0e-8,
+                    );
+                }
+            } else {
+                assert_eq!(old_result.status(), ConstraintResidualStatusV1::Inconclusive);
+            }
+        }
+
+        // For an exactly duplicated first/third row, z=(1,0,-1) lies in
+        // ker(J^T). Adding it to a realizable residual makes the residual
+        // incompatible; the same verdict must survive the row-basis change.
+        let j_old = redundant_jacobian();
+        let base = compatible_residual();
+        let incompatible_old = std::array::from_fn(|row| {
+            base[row] + 0.1 * [1.0, 0.0, -1.0][row]
+        });
+        let incompatible_new = row_rebasis
+            .tangent_to_to(
+                &Tangent::<OldConstraintSpace, 3>::new(incompatible_old).unwrap(),
+            )
+            .unwrap();
+        let old_quotient = RankDeficientDelassusQuotientV1::<
+            Cartesian,
+            OldConstraintSpace,
+            3,
+            3,
+        >::new(&mass(), j_old, &h_old, profile)
+        .unwrap();
+        let j_new: [[f64; 3]; 3] = std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                (0..3).map(|inner| t[row][inner] * j_old[inner][column]).sum()
+            })
+        });
+        let new_quotient = RankDeficientDelassusQuotientV1::<
+            Cartesian,
+            NewConstraintSpace,
+            3,
+            3,
+        >::new(&mass(), j_new, &h_new, profile)
+        .unwrap();
+        let old_result = old_quotient
+            .solve_residual(
+                &ConstraintResidualV1::<OldConstraintSpace, 3>::new(incompatible_old).unwrap(),
+            )
+            .unwrap();
+        let new_result = new_quotient
+            .solve_residual(
+                &ConstraintResidualV1::<NewConstraintSpace, 3>::new(
+                    *incompatible_new.components(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        assert_eq!(old_result.status(), ConstraintResidualStatusV1::Incompatible);
+        assert_eq!(new_result.status(), ConstraintResidualStatusV1::Incompatible);
+        assert!(old_result.minimum_kinetic_correction().is_none());
+        assert!(new_result.minimum_kinetic_correction().is_none());
+    }
+
+    #[test]
     fn rank_threshold_uncertainty_band_forces_inconclusive_without_correction() {
         let profile = ConstraintQuotientProfileV1 {
             relative_rank_tolerance: 1.0e-8,
