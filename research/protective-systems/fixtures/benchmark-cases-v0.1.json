@@ -1,0 +1,316 @@
+{
+  "schema_version": "protective-systems-fixtures/0.1",
+  "frozen_at": "2026-11-14",
+  "evidence_class": "synthetic",
+  "intended_use": "record-conformance and decision-boundary tests only; not physical-performance evidence",
+  "decisions": [
+    "ACCEPT_RECORD_ONLY",
+    "REJECT_SCOPE",
+    "REJECT_STALE_OR_REVOKED",
+    "REJECT_MISSING_OR_INVALID",
+    "ABSTAIN_UNKNOWN",
+    "REQUIRE_INDEPENDENT_REVIEW"
+  ],
+  "cases": [
+    {
+      "case_id": "HUMAN-POSITIVE-TORSO-001",
+      "domain": "human_worn",
+      "fixture_class": "positive_control",
+      "subject": {
+        "id": "SYNTHETIC-VEST-001",
+        "configuration_revision": "R3",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "test_record_is_complete_for_declared_scope",
+        "performance_claim_permitted": false
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "1",
+          "2",
+          "3"
+        ],
+        "currentness": "CURRENT",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-H-001",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-CAL-001",
+        "conditioning_record": "SYNTHETIC-COND-001",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true
+      },
+      "expected_decision": "ACCEPT_RECORD_ONLY",
+      "rationale": "All required record fields are present; this does not establish that the synthetic article passed a real test."
+    },
+    {
+      "case_id": "HUMAN-NIJ-TORSO-USED-FOR-LIMB-002",
+      "domain": "human_worn",
+      "fixture_class": "scope_negative",
+      "subject": {
+        "id": "SYNTHETIC-LIMB-GUARD-002",
+        "configuration_revision": "R1",
+        "form_factor": "limb_accessory"
+      },
+      "claim": {
+        "proposition": "NIJ_torso_result_qualifies_limb_accessory",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "1",
+          "2",
+          "3"
+        ],
+        "currentness": "CURRENT",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-H-002",
+        "configuration_bound": true
+      },
+      "expected_decision": "REJECT_SCOPE",
+      "rationale": "The cited torso test scope is not a qualification for this form factor."
+    },
+    {
+      "case_id": "HUMAN-STALE-ADDENDUM-003",
+      "domain": "human_worn",
+      "fixture_class": "currentness_negative",
+      "subject": {
+        "id": "SYNTHETIC-VEST-003",
+        "configuration_revision": "R2",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "current_standard_conformance",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [],
+        "currentness": "INCOMPLETE_REFERENCE",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-H-003",
+        "configuration_bound": true
+      },
+      "expected_decision": "REJECT_STALE_OR_REVOKED",
+      "rationale": "The base document without applicable addenda is an incomplete standards reference."
+    },
+    {
+      "case_id": "VEHICLE-POSITIVE-CONFIGURATION-004",
+      "domain": "vehicle",
+      "fixture_class": "positive_control",
+      "subject": {
+        "id": "SYNTHETIC-VEHICLE-004",
+        "configuration_revision": "V4",
+        "market": "declared_synthetic_market",
+        "vehicle_class": "declared_synthetic_class"
+      },
+      "claim": {
+        "proposition": "crash_test_record_matches_configuration",
+        "performance_claim_permitted": false
+      },
+      "standard": {
+        "id": "IIHS-2026-TEST-PROTOCOL",
+        "addenda": [],
+        "currentness": "CURRENT_SNAPSHOT",
+        "scope": "declared_test_protocol_only"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-V-004",
+        "vehicle_identity_bound": true,
+        "mass_recorded": true,
+        "restraint_configuration_bound": true,
+        "units_present": true,
+        "uncertainty_present": true
+      },
+      "expected_decision": "ACCEPT_RECORD_ONLY",
+      "rationale": "Complete synthetic record binding; no real vehicle or crashworthiness claim is made."
+    },
+    {
+      "case_id": "VEHICLE-ADDED-MASS-WITHOUT-RETEST-005",
+      "domain": "vehicle",
+      "fixture_class": "unknown_effect_negative",
+      "subject": {
+        "id": "SYNTHETIC-VEHICLE-005",
+        "configuration_revision": "V5-MOD",
+        "vehicle_class": "declared_synthetic_class"
+      },
+      "claim": {
+        "proposition": "occupant_protection_improved_by_local_reinforcement",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "IIHS-2026-TEST-PROTOCOL",
+        "addenda": [],
+        "currentness": "CURRENT_SNAPSHOT",
+        "scope": "declared_test_protocol_only"
+      },
+      "evidence": {
+        "class": "model_predicted",
+        "model_id": "SYNTHETIC-FEA-001",
+        "complete_vehicle_retest": false,
+        "handling_assessment": false,
+        "crash_partner_assessment": false
+      },
+      "expected_decision": "ABSTAIN_UNKNOWN",
+      "rationale": "A local model and an added-mass change do not establish complete-vehicle occupant or crash-partner outcomes."
+    },
+    {
+      "case_id": "HOUSING-POSITIVE-SHELTER-006",
+      "domain": "housing",
+      "fixture_class": "positive_control",
+      "subject": {
+        "id": "SYNTHETIC-SHELTER-006",
+        "configuration_revision": "A2",
+        "assembly_scope": "complete_declared_shelter"
+      },
+      "claim": {
+        "proposition": "storm_shelter_dossier_record_complete",
+        "performance_claim_permitted": false
+      },
+      "standard": {
+        "id": "ICC-500-2023",
+        "addenda": [],
+        "currentness": "CURRENT_REFERENCE",
+        "scope": "declared_storm_shelter_scope"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-B-006",
+        "drawings_bound": true,
+        "assembly_bound": true,
+        "egress_recorded": true,
+        "ventilation_recorded": true,
+        "uncertainty_present": true
+      },
+      "expected_decision": "ACCEPT_RECORD_ONLY",
+      "rationale": "Complete synthetic dossier fields; no shelter compliance or protective performance is established."
+    },
+    {
+      "case_id": "HOUSING-SMALL-FLAME-AS-WHOLE-WALL-007",
+      "domain": "housing",
+      "fixture_class": "scope_negative",
+      "subject": {
+        "id": "SYNTHETIC-WALL-007",
+        "configuration_revision": "W7",
+        "assembly_scope": "complete_wall_assembly"
+      },
+      "claim": {
+        "proposition": "whole_wall_fire_resistance_proven_by_ignitability_test",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "ISO-11925-2:2026",
+        "addenda": [],
+        "currentness": "CURRENT",
+        "scope": "small_flame_ignitability_test"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-B-007",
+        "specimen_scope": "surface_product_only"
+      },
+      "expected_decision": "REJECT_SCOPE",
+      "rationale": "A small-flame ignitability method does not prove whole-assembly fire resistance."
+    },
+    {
+      "case_id": "ALL-SIGNATURE-ONLY-008",
+      "domain": "cross_domain",
+      "fixture_class": "evidence-authority_negative",
+      "subject": {
+        "id": "SYNTHETIC-COMPONENT-008",
+        "configuration_revision": "R1"
+      },
+      "claim": {
+        "proposition": "physical_protection_test_passed",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "UNSPECIFIED",
+        "addenda": [],
+        "currentness": "UNKNOWN",
+        "scope": "UNKNOWN"
+      },
+      "evidence": {
+        "class": "signed_hash_only",
+        "signature_valid": true,
+        "physical_test_report": null,
+        "measurement_data": null,
+        "independent_reviewer": null
+      },
+      "expected_decision": "REJECT_MISSING_OR_INVALID",
+      "rationale": "Integrity of a claim record is not physical corroboration."
+    },
+    {
+      "case_id": "ALL-UNKNOWN-AS-ZERO-009",
+      "domain": "cross_domain",
+      "fixture_class": "unknown_semantics_negative",
+      "subject": {
+        "id": "SYNTHETIC-UNKNOWN-009",
+        "configuration_revision": "R1"
+      },
+      "claim": {
+        "proposition": "all_required_protection_dimensions_satisfied",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "DECLARED-BUT-UNVERIFIED",
+        "addenda": [],
+        "currentness": "UNKNOWN",
+        "scope": "UNKNOWN"
+      },
+      "evidence": {
+        "class": "incomplete",
+        "missing_dimensions": [
+          "heat",
+          "mobility",
+          "egress"
+        ],
+        "missing_values_encoded_as_zero": true
+      },
+      "expected_decision": "ABSTAIN_UNKNOWN",
+      "rationale": "Unknown or missing values must remain explicit; they cannot become zero or PASS."
+    },
+    {
+      "case_id": "ALL-CONFIGURATION-CHANGED-AFTER-TEST-010",
+      "domain": "cross_domain",
+      "fixture_class": "configuration_invalidation_negative",
+      "subject": {
+        "id": "SYNTHETIC-ASSEMBLY-010",
+        "configuration_revision": "R3"
+      },
+      "claim": {
+        "proposition": "previous_test_still_applies_after_material_lot_change",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "DECLARED-METHOD-V1",
+        "addenda": [],
+        "currentness": "CURRENT",
+        "scope": "declared_article_scope"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-REPORT-010",
+        "tested_configuration_revision": "R2",
+        "current_configuration_revision": "R3",
+        "material_lot_changed": true,
+        "impact_analysis": null
+      },
+      "expected_decision": "REQUIRE_INDEPENDENT_REVIEW",
+      "rationale": "The configuration changed after testing; dependent claims require scoped invalidation and re-evaluation."
+    }
+  ]
+}
