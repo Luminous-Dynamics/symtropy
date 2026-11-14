@@ -99,6 +99,10 @@ fn options(size: usize) -> Vec<OptionCandidate> {
                 functional_contract_id: "synthetic-partition-outcome-v1".to_owned(),
                 functional_contract_digest: "fixture:synthetic-partition-contract-v1".to_owned(),
                 option_design_digest: design,
+                method_profile_digest: format!("method-option-{index:05}"),
+                scheduler_profile_digest: "scheduler-reference-v1".to_owned(),
+                fleet_profile_digest: "fleet-reference-v1".to_owned(),
+                matched_reference_option_id: None,
                 scenario_results,
             }
         })
