@@ -3,7 +3,7 @@
   "snapshot_date": "2026-11-14",
   "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5090",
   "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
-  "use_restriction": "internal research baseline design only; WHO product list is explicitly not for commercial or promotional use and is not WHO endorsement",
+  "use_restriction": "internal research baseline design only; WHO product list is explicitly not to be used for commercial or promotional purposes and is not WHO endorsement",
   "evidence_ceiling": "published_standard_scope_and_public_listing_metadata_only_no_independent_product_test_or_Luminous_performance_claim",
   "who_hwt": {
     "source": "https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies/products-evaluated",
