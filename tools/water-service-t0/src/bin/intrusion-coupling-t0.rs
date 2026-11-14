@@ -927,7 +927,7 @@ mod tests {
     }
 
     #[test]
-    fn raw_observation_digest_is_required() {
+    fn synthetic_observation_digest_marker_is_required() {
         let result = evaluated();
         let row = result["results"]
             .as_array()
