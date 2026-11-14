@@ -174,20 +174,16 @@
           }
         },
         "exchangeability_review_ref": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "treatment_version_review_ref": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "censoring_review_ref": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "interference_review_ref": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "propensity_fit_covariate_ids": {
           "type": "array",
