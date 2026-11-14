@@ -20,6 +20,7 @@ use std::fmt;
 
 pub mod constraint_metric;
 pub mod constrained_kkt_error;
+pub mod nonlinear_kkt_certificate;
 
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
