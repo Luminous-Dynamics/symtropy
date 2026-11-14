@@ -1,0 +1,76 @@
+name: ZA Energy Billing Reference
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/za-energy-billing-bench/**"
+      - ".github/workflows/za-energy-billing-bench.yml"
+  push:
+    branches: ["feat/za-tariff-reference-evaluator-v0-1"]
+    paths:
+      - "tools/za-energy-billing-bench/**"
+      - ".github/workflows/za-energy-billing-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: za-energy-billing-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Verify exact source head
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          expected_commit="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$source_commit" = "$expected_commit"
+
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/za-energy-billing-bench/Cargo.toml -- --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/za-energy-billing-bench/Cargo.toml --all-targets -- -D warnings
+
+      - name: Unit and negative-control tests
+        run: cargo test --manifest-path tools/za-energy-billing-bench/Cargo.toml
+
+      - name: Execute synthetic reference and validate receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet --manifest-path tools/za-energy-billing-bench/Cargo.toml > za-energy-billing-reference-receipt.json
+          jq -e '
+            .result == "pass"
+            and .status == "COMPLETE"
+            and .source_profile_id == "ZA-ENERGY-MARKET-SIGNAL-2026-27-V0.1"
+            and (.input_fingerprint_fnv1a64 | test("^[0-9a-f]{16}$"))
+            and (.breakdown.invoice_total_zar != null)
+            and (.claim_ceiling | contains("Synthetic/account-supplied"))
+          ' za-energy-billing-reference-receipt.json
+
+      - name: Upload deterministic reference receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: za-energy-billing-reference-receipt
+          path: za-energy-billing-reference-receipt.json
+          if-no-files-found: error
+          retention-days: 90

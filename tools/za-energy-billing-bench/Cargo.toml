@@ -1,0 +1,21 @@
+[package]
+name = "za-energy-billing-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic City Power 2026/27 Industrial TOU billing-component conformance evaluator"
+publish = false
+
+[lib]
+name = "za_energy_billing_bench"
+path = "src/lib.rs"
+
+[[bin]]
+name = "za-energy-billing-bench"
+path = "src/main.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[workspace]
