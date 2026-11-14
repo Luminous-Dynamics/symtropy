@@ -85,7 +85,7 @@ A test changes only unobserved potential outcomes: the known-truth score changes
 
 ## Falsification and synthetic cases
 
-The machine-readable manifest has ten scenarios:
+The machine-readable manifest has fourteen scenarios:
 1. blocked randomized known-truth repair experiment;
 2. observational assignment rejected;
 3. missing treatment/control overlap rejected;
@@ -95,7 +95,11 @@ The machine-readable manifest has ten scenarios:
 7. tampered oracle rejected;
 8. duplicate randomization unit rejected by the Rust validator;
 9. insufficient within-arm replication rejected;
-10. exact enumeration beyond the frozen P0 bound rejected.
+10. exact enumeration beyond the frozen P0 bound rejected;
+11. stale outcome measurement rejected;
+12. calibration expired before evidence availability rejected;
+13. outcome measurement principle differs from the frozen trial;
+14. valid measurement-error bounds produce a separate robust effect interval.
 
 The Rust unit suite exercises the estimator, exact randomization reference distribution, directionality, chronology, assignment design, oracle separation, calibration validity, measurement-principle binding, deterministic measurement-error expansion and the protocol/case manifest.
 
