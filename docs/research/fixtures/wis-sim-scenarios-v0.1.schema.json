@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wis-sim-scenarios-v0.1.schema.json",
+  "title": "WIS-SIM deterministic synthetic scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "assertion_specifications",
+    "baseline_policy",
+    "claim_ceiling",
+    "deterministic_seed",
+    "execution_profile",
+    "exogenous_events",
+    "expected_invariants",
+    "initial_conditions",
+    "known_model_limits",
+    "observables",
+    "policies_under_comparison",
+    "policy_version",
+    "scenario_family",
+    "scenario_id",
+    "scenario_version",
+    "title",
+    "variant_axis",
+    "variant_description",
+    "variant_id",
+    "variant_kind"
+  ],
+  "properties": {
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^WSS-[0-9]{3}$"
+    },
+    "scenario_version": {
+      "const": "0.1"
+    },
+    "scenario_family": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "variant_id": {
+      "type": "string"
+    },
+    "variant_kind": {
+      "enum": [
+        "baseline",
+        "adversarial"
+      ]
+    },
+    "variant_axis": {
+      "type": "string"
+    },
+    "variant_description": {
+      "type": "string"
+    },
+    "deterministic_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "execution_profile": {
+      "type": "string"
+    },
+    "policy_version": {
+      "type": "string"
+    },
+    "policies_under_comparison": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "baseline_policy": {
+      "type": "string"
+    },
+    "initial_conditions": {
+      "type": "object"
+    },
+    "exogenous_events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "expected_invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "statement"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "observables": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "known_model_limits": {
+      "type": "string"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "assertion_specifications": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assertion_id",
+          "assertion_kind",
+          "scope",
+          "severity",
+          "report_pointer",
+          "rationale"
+        ],
+        "properties": {
+          "assertion_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assertion_kind": {
+            "enum": [
+              "numeric_upper_bound",
+              "collection_contains_all_ids",
+              "field_present",
+              "metric_zero",
+              "value_equals",
+              "boolean_true",
+              "field_absent"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "each_policy",
+              "policy_matrix",
+              "per_scenario",
+              "paired_replay"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "hard",
+              "diagnostic"
+            ]
+          },
+          "report_pointer": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "scenario_pointer": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "identity_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
