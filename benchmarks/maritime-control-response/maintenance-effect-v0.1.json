@@ -64,7 +64,8 @@
       "quality": "Only valid measurement quality and verified calibration that remains valid through evidence availability are accepted.",
       "uncertainty": "Each outcome measurement carries a deterministic absolute-error bound. The contrast bound is the stratum-weighted sum of treatment-arm and control-arm mean absolute-error bounds.",
       "reporting": "The reported Neyman standard error and normal-approximation sampling interval remain sampling-only. A second robust interval expands the sampling interval by the deterministic measurement-error bound.",
-      "baseline_use": "Baseline provenance is validated, but baseline covariates remain unused by the P0 estimator."
+      "baseline_use": "Baseline provenance is validated, but baseline covariates remain unused by the P0 estimator.",
+      "calibration": "Calibration status must be verified and bind a calibration-record digest. Its validity interval must begin no later than the observation and remain in force through evidence availability."
     }
   },
   "hard_gates": [
@@ -96,7 +97,8 @@
     "Each baseline and outcome measurement carries a finite non-negative deterministic absolute-error bound.",
     "The estimator reports the Neyman sampling standard error separately from the measurement-error bound.",
     "The effect uncertainty report includes a robust interval formed by expanding the sampling interval by the deterministic weighted measurement-error bound.",
-    "The synthetic oracle consistency check also binds the measurement-error bound and robust interval."
+    "The synthetic oracle consistency check also binds the measurement-error bound and robust interval.",
+    "Calibration validity must start no later than measurement observation and end no earlier than measurement evidence availability."
   ],
   "nonclaims": [
     "Randomization metadata and hashes do not authenticate the allocation issuer.",
