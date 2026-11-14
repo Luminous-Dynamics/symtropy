@@ -105,6 +105,71 @@ Numerical thresholds should be fixed per scenario after a calibration-only pilot
 
 An experiment receipt should identify its target mechanism, model class, exact inputs and digests, run seeds, software revisions, evaluation code, metrics, confidence intervals, negative controls and claim ceiling.
 
+
+## 10. Existing Symtropy substrate reconnaissance — 2026-11-14
+
+The public Symtropy source already contains adjacent systems. HMP should qualify these before creating a second simulation stack. This is source inspection only; it is not a test or validation result.
+
+| Existing surface | Source-level observation | HMP implication |
+|---|---|---|
+| src/systems/psychology.rs | A Bevy NPC system updates approximately every 3 seconds. Its PsychologicalNeeds state contains allostatic_load, social_satiation, engagement and burnout_ticks. Fixed constants govern baseline stress, isolation load, danger load, load decay, proximity bonus, burnout and collapse. The player counts as a nearby agent. | Treat this as a game-NPC heuristic, not a validated human psychological model, clinical construct, diagnostic tool or evidence about real people. Every constant and proxy needs an explicit assumption register and calibration target. |
+| Social-proximity rule | Nearby-agent count influences social satiation; a code comment describes cooperation as “thermodynamically mandatory.” | This is a normative/game-design assumption, not an established law of psychology or thermodynamics. The model must represent chosen solitude, different social needs, safe boundaries, non-proximity relationships and the possibility that isolation is harmful in one context but voluntary and restorative in another. |
+| src/systems/ai_player.rs | An optional FEP ActiveInferenceAgent controls one game player from an 8-dimensional observation. | This is an embodied control demonstration, not a population-level social simulation and not evidence that an agent's choices model human preferences. |
+| crates/domains/symtropy-world | The bridge exposes a seeded simulation thread, monthly ticks, snapshots, governance/economy/faction summaries and player actions. | This is a natural future adapter for HMP experiment receipts if its dependency and replay contract are qualified. |
+| symtropy-world dependency | Its Cargo.toml references mycelix-multiworld-sim at a relative path four directory levels above the crate. That companion source was not present at the public Symtropy repository root during this inspection. | Standalone reproducibility/buildability of this bridge is not established by the public repository snapshot. Resolve and pin the dependency before claiming the social-simulation stack is runnable from this repository alone. |
+| src/systems/settlement.rs | The settlement demo includes fixed option effects and local fallback behavior when a governance port call fails. | Treat as a gameplay scenario, not an empirical governance model. Separate illustrative mechanics from validated causal mechanisms. |
+
+### 10.1 Qualification target: the existing NPC psychology heuristic
+
+The first target is not to make the model more biologically elaborate. It is to determine whether its constructs and causal assumptions are defensible for the intended game scenario, and to prevent the code from being misrepresented as real human psychology.
+
+| Current design element | Qualification question | Required negative control / limitation |
+|---|---|---|
+| Allostatic load [0,1] | What observable game-state outcome is this variable intended to predict? | Do not call it a clinical allostatic-load measurement or infer a player's health. |
+| Social satiation | Does proximity predict the intended outcome better than voluntary contact, relationship quality, communication and perceived support? | A nearby NPC is not automatically a trusted or meaningful relationship. |
+| Isolation load | Is the effect conditional on the NPC's preferences, safety, context and chosen activity? | A voluntarily solitary NPC must not accrue automatic pathology merely because it is alone. |
+| Fixed stress / relief constants | Are parameters calibrated to a declared game telemetry target or independently collected research data? | Arbitrary constants must be labeled illustrative and sensitivity-tested, not cited as empirical coefficients. |
+| Burnout and collapse thresholds | Do the thresholds create intended gameplay behavior without encoding stereotypes or coercive social norms? | Game state thresholds are not diagnostic cutoffs for humans. |
+| Player counts as nearby agent | Does the player actually interact, communicate or provide support? | Mere geometric proximity must not be treated as consent, trust or support. |
+| “Cooperation is thermodynamically mandatory” | Is this a fictional gameplay law, or a testable empirical statement? | It must remain explicitly a fictional mechanic unless independently demonstrated; thermodynamic language must not be used to legitimize a moral obligation to socialize. |
+
+### 10.2 First bounded experiment: social contact is not one variable
+
+Build a controlled scenario with otherwise matched NPCs and vary the social condition independently:
+
+1. voluntary solitude with meaningful self-directed activity;
+2. unwanted isolation with no available support;
+3. frequent proximity without meaningful interaction;
+4. trusted relationship with low physical proximity;
+5. social contact that is coercive, unsafe or unwanted;
+6. reciprocal group activity with explicit choice and exit.
+
+Pre-register the outcome for the game mechanic (for example, engagement or task completion), the population of simulated NPCs, the observation horizon and the parameter range. Keep all six conditions synthetic until a lawful, ethically reviewed empirical dataset is available.
+
+Compare:
+- current proximity-only rule;
+- a richer relationship/choice state model;
+- a simple statistical baseline;
+- an ablation with the social effect removed.
+
+Report sensitivity and worst-case behavior. Do not tune the model to force cooperation to win. The purpose is to discover when, for whom and under what assumptions each mechanism changes the declared game outcome.
+
+### 10.3 Architecture and evidence requirements
+
+Before integrating this with HMP:
+- separate game-mechanic state from any human-facing psychological statement;
+- give each parameter a source, rationale, range, units and uncertainty;
+- record the exact seed, code revision, config digest, tick horizon and output digest;
+- make runs replayable, and distinguish deterministic logic from stochastic events;
+- expose per-agent and distributional outcomes, not only population averages;
+- run ablations and negative controls for proximity, consent, agency, safety and chosen solitude;
+- do not use personal mental-health data, infer users' diagnoses or recommend psychological interventions;
+- require independent human-factors and domain review before using any result to make claims about people.
+
+### 10.4 Existing integration gap
+
+The HMP-001 research branch does not add a new social-simulation engine to Symtropy. The next implementation should first identify the actual source and version of mycelix-multiworld-sim, then define an adapter that emits the experiment receipt in Section 8. If that dependency cannot be pinned and built in the public repo, keep the benchmark scenario runner independent and label the bridge integration as blocked rather than silently relying on a private workspace path.
+
 ## 9. Research gap and competitive objective
 
 Industry and academic systems often optimize interaction quality, agent believability or output similarity. This programme should compete on a harder standard: **reproducible prediction of held-out collective outcomes, explicit mechanism tests, valid intervention forecasts and transparent failure characterization.**
