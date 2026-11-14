@@ -1,0 +1,395 @@
+{
+  "schema_version": 1,
+  "profile_id": "ZA-ENERGY-MARKET-SIGNAL-2026-27-V0.1",
+  "profile_status": "SOURCE_PINNED_RESEARCH_PROFILE",
+  "sources": [
+    {
+      "source_id": "COJ-MTB-2026-27",
+      "title": "City of Johannesburg Medium-Term Budget 2026/27 to 2028/29, Annexure B and tariff-category rules",
+      "url": "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf",
+      "publication_date": "2026-05-01",
+      "source_type": "OFFICIAL_MUNICIPAL_BUDGET",
+      "document_locator": "Printed page 76 for effective date and general surcharge; printed pages 78–81 for Annexure B schedule/exclusions; printed pages 95–97 for industrial TOU eligibility, rate components and time bands",
+      "notes": "Rates are budget-published for FY2026/27. Annexure B explicitly excludes 6 c/kWh network surcharge, 2% Business/LPU surcharge and VAT. Eligibility and tariff account must be confirmed."
+    },
+    {
+      "source_id": "DFFE-2024-GEF-GN7891",
+      "title": "South Africa's 2024 Grid Emission Factors Report, Government Notice 7891, Government Gazette 55353",
+      "url": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+      "publication_date": "2026-09-11",
+      "source_type": "OFFICIAL_GOVERNMENT_NOTICE",
+      "document_locator": "Government Notice opening page; report pages 3–4, 6–12 and Appendix A",
+      "notes": "Published 11 September 2026 using 2024 calendar-year data. The report states an approximately two-year data-availability lag."
+    },
+    {
+      "source_id": "REN-2026-SA-TOU-GREENHOUSE",
+      "title": "Price-responsive energy, water, and carbon cost assessment of greenhouse climate control under South African time-of-use tariffs",
+      "url": "https://doi.org/10.1016/j.seta.2026.105320",
+      "publication_date": "2026-09-01",
+      "source_type": "PEER_REVIEWED_SIMULATION_STUDY",
+      "document_locator": "Sustainable Energy Technologies and Assessments 93 (September 2026), article 105320",
+      "notes": "Simulation using Pretoria weather and South African TOU tariffs; outcome values are not measured facility savings."
+    }
+  ],
+  "city_power_industrial_tou": {
+    "utility": "City Power Johannesburg",
+    "tariff_name": "Industrial Three Part Time-of-Use (TOU) Tariff",
+    "tariff_year": "2026/27",
+    "schedule_status": "BUDGET_PUBLISHED_PROPOSED_SCHEDULE",
+    "budget_effective_date": "2026-07-01",
+    "eligibility": {
+      "minimum_supply_capacity_kva_exclusive": 100,
+      "application_required": true,
+      "city_power_approval_required": true,
+      "large_consumer_load_shifting_profile_required": true,
+      "site_eligibility_status": "NOT_ASSESSED",
+      "legacy_exception": "Customers with demand-tariff supply agreements originally concluded before 1 July 1999 and demand below 100 kVA may, until further notice, continue on this tariff.",
+      "service_connection_context": "Annexure E provides a Low Voltage Large Power User service-connection range from 70 kVA to 1,000 kVA at 400 V AC. This is a service-connection classification, not a substitute for Industrial TOU tariff clause 5.4.3 eligibility.",
+      "tariff_specific_threshold_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, clause 5.4.3, printed page 97: business supply capacity must exceed 100 kVA and application/approval is required.",
+      "service_connection_source_ref": "City of Johannesburg 2026/27 Medium-Term Budget, Annexure E, printed page 101: LV LPU service connection from 70 kVA to 1,000 kVA at 400 V AC.",
+      "source_conflict_status": "BUDGET_CLAUSE_5_4_3_VS_SECONDARY_APPROVED_SCHEDULE_REQUIRES_ACCOUNT_CONFIRMATION",
+      "source_conflict_note": "City budget printed p.97 says new Business TOU supply capacity >100 kVA; Focal Energy's 31 Aug 2026 secondary schedule says LV LPU TOU uses 70–1,000 kVA (same LPU qualification as demand tariff), with separate MV criteria. Do not automatically admit or reject 70–100 kVA from the general profile; require the customer's approved tariff/account evidence. Current calculator uses the stricter budget gate.",
+      "source_conflict_sources": [
+        {
+          "source_id": "CITY-OF-JOHANNESBURG-2026-27-BUDGET",
+          "source_type": "OFFICIAL_BUDGET_CLAUSE",
+          "locator": "Printed p.97, clause 5.4.3",
+          "url": "https://joburg.org.za/documents_/Documents/2026-27-Final-Medium-Budget-Reports/2026-27-FINAL-BUDGET-BOOK.pdf"
+        },
+        {
+          "source_id": "FOCAL-ENERGY-CITY-POWER-2026-27",
+          "source_type": "SECONDARY_ENGINEERING_PROVIDER_SCHEDULE",
+          "locator": "Updated 31 August 2026; section 3 LPU TOU qualification",
+          "url": "https://www.focalenergy.co.za/knowledge/city-power-tariffs-johannesburg"
+        }
+      ]
+    },
+    "source_rate_basis": {
+      "energy_charge_unit": "c/kWh",
+      "fixed_charge_unit": "ZAR/month",
+      "demand_charge_unit": "ZAR/kVA/month",
+      "published_rates_ex_vat": true,
+      "excludes_network_surcharge": true,
+      "excludes_business_lpu_surcharge": true,
+      "excludes_vat": true,
+      "notes": "Annexure B excludes 6 c/kWh per-kWh Network Surcharge, 2% Business/LPU surcharge and VAT. The per-kWh surcharge is distinct from the monthly network charge."
+    },
+    "additional_charges": {
+      "network_surcharge_c_per_kwh": 6,
+      "network_surcharge_scope": "all customer categories; residential exemption for first 500 kWh/month in the budget description; applicable to business/LPU after account confirmation",
+      "business_large_power_user_surcharge_percent": 2,
+      "business_surcharge_basis": "ACCOUNT_BILLING_BASE_REQUIRES_CONFIRMATION",
+      "vat_status": "EXCLUDED_FROM_ANNEXURE_B_APPLY_CURRENT_LEGAL_RATE",
+      "notes": "Annexure B says the schedule excludes the 6 c/kWh Network Surcharge, 2% Business/Large Power User surcharge and VAT. Apply only the charges applicable to the actual customer account and exactly once."
+    },
+    "voltage_classes": {
+      "LV": {
+        "voltage_limit": "≤ 1,000 V",
+        "service_charge_zar_month": 2444.32,
+        "network_charge_zar_month": 2185.32,
+        "demand_charge_zar_kva_month": 461.28
+      },
+      "MV": {
+        "voltage_limit": "> 1,000 V and ≤ 33,000 V",
+        "service_charge_zar_month": 3360.96,
+        "network_charge_zar_month": 9347.51,
+        "demand_charge_zar_kva_month": 431.11
+      },
+      "HV": {
+        "voltage_limit": "> 33,000 V",
+        "service_charge_zar_month": 42915.09,
+        "network_charge_zar_month": 43848.71,
+        "demand_charge_zar_kva_month": 400.93
+      }
+    },
+    "energy_charges": {
+      "summer": {
+        "peak_c_per_kwh": 322,
+        "standard_c_per_kwh": 242.42,
+        "off_peak_c_per_kwh": 186.35
+      },
+      "winter": {
+        "peak_c_per_kwh": 766.24,
+        "standard_c_per_kwh": 292.56,
+        "off_peak_c_per_kwh": 200.44
+      }
+    },
+    "demand_floor": {
+      "rule": "max(measured_demand, fixed_minimum, rolling_peak_floor)",
+      "minimum_kva": 70,
+      "rolling_peak_average_fraction": 0.8,
+      "rolling_peak_count": 3,
+      "rolling_window_months": 12
+    },
+    "reactive_energy": {
+      "charge_c_per_kvarh": 46.25,
+      "power_factor_threshold": 0.96,
+      "excess_reactive_threshold_fraction": 0.3
+    },
+    "season_definition": {
+      "summer_months": [
+        9,
+        10,
+        11,
+        12,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "winter_months": [
+        6,
+        7,
+        8
+      ]
+    },
+    "time_bands": {
+      "weekday": {
+        "peak": [
+          {
+            "start": "07:00",
+            "end": "10:00",
+            "source_literal": "07h00-10h00",
+            "normalization_status": "SOURCE_EXACT"
+          },
+          {
+            "start": "18:00",
+            "end": "20:00",
+            "source_literal": "18h00-20h00",
+            "normalization_status": "SOURCE_EXACT"
+          }
+        ],
+        "standard": [
+          {
+            "start": "06:00",
+            "end": "07:00",
+            "source_literal": "06h00-7h00",
+            "normalization_status": "SOURCE_EXACT"
+          },
+          {
+            "start": "10:00",
+            "end": "18:00",
+            "source_literal": "10h00-18h00",
+            "normalization_status": "SOURCE_EXACT"
+          },
+          {
+            "start": "20:00",
+            "end": "22:00",
+            "source_literal": "20h00-22h00",
+            "normalization_status": "SOURCE_EXACT"
+          }
+        ],
+        "off_peak": [
+          {
+            "start": "22:00",
+            "end": "06:00",
+            "source_literal": "22h00-06h00",
+            "normalization_status": "SOURCE_EXACT"
+          }
+        ],
+        "source_status": "SOURCE_EXACT"
+      },
+      "saturday_public_holiday": {
+        "peak": [],
+        "standard": [
+          {
+            "start": "07:00",
+            "end": "12:00",
+            "source_literal": "07h00-12h00",
+            "normalization_status": "SOURCE_EXACT"
+          },
+          {
+            "start": "18:00",
+            "end": "20:00",
+            "source_literal": "18h00-20h0",
+            "normalization_status": "INFERRED_FROM_TYPO_REQUIRES_CONFIRMATION"
+          }
+        ],
+        "off_peak": [
+          {
+            "start": "12:00",
+            "end": "18:00",
+            "source_literal": "12h00-18h00",
+            "normalization_status": "SOURCE_EXACT"
+          },
+          {
+            "start": "20:00",
+            "end": "07:00",
+            "source_literal": "20h00-07h00",
+            "normalization_status": "SOURCE_EXACT"
+          }
+        ],
+        "source_status": "PARTIAL_SOURCE_TYPO; CONFIRM_SATURDAY_18_20_END"
+      },
+      "sunday": {
+        "peak": [],
+        "standard": [
+          {
+            "start": "17:00",
+            "end": "19:00",
+            "source_literal": "17h00-19h00",
+            "normalization_status": "SOURCE_EXACT"
+          }
+        ],
+        "off_peak": [
+          {
+            "start": "19:00",
+            "end": "17:00",
+            "source_literal": "19h00-17h00",
+            "normalization_status": "SOURCE_EXACT"
+          }
+        ],
+        "source_status": "SOURCE_EXACT"
+      }
+    },
+    "source_ambiguities": [
+      "Annexure B is a budget-published proposed FY2026/27 schedule, not proof of a particular consumer's approved tariff.",
+      "Tariff qualification requires supply above 100 kVA, application and City Power approval; the actual site tariff must be verified.",
+      "The published Saturday/public-holiday standard interval is printed as 18h00-20h0. The fixture stores an assumed 20:00 endpoint but marks it for confirmation.",
+      "Budget page 76 says the tariff changes take effect 1 July 2026, while Annexure B uses proposed schedule wording. Treat 2026-07-01 as the budget-indicated date; verify against City Power account records.",
+      "Annexure B (printed pages 78–81) explicitly excludes the 6 c/kWh Network Surcharge, 2% Business/LPU surcharge and VAT from the proposed FY2026/27 tariff rates.",
+      "The 6 c/kWh per-kWh network surcharge is separate from the monthly network charge shown in the Industrial Three-Part TOU table.",
+      "The budget describes the 6 c/kWh network surcharge as applicable to all customer categories, with residential customers exempt for the first 500 kWh/month; confirm the account treatment for an actual non-residential site.",
+      "The budget states the electricity tariff change takes effect 1 July 2026; Annexure B still describes the rate schedule as proposed. The gazetted July 2026 tariff schedule / approved account invoice takes precedence.",
+      "Eligibility conflict: City budget clause 5.4.3 states new Business TOU supply capacity >100 kVA; Focal Energy's 31 Aug 2026 secondary approved-schedule summary says LPU TOU uses the LV LPU qualification band 70–1,000 kVA, with separate MV criteria. Preserve strict >100 kVA as current automated budget-based gate; 70–100 kVA requires approved account tariff / City Power confirmation, not a default eligible/ineligible conclusion."
+    ]
+  },
+  "dffe_grid_emission_factors": {
+    "report_title": "South Africa's 2024 Grid Emission Factors Report",
+    "report_publication_date": "2026-09-11",
+    "data_year": 2024,
+    "unit": "tCO2e/MWh",
+    "factors": {
+      "DGGEF": 0.994,
+      "NGGEF": 0.96,
+      "TLGEF": 0.021,
+      "DLGEF": 0.071
+    },
+    "intended_use": {
+      "DGGEF": "Policy development and government international reporting",
+      "NGGEF": "Corporate reporting and consumer Scope 2 emissions reporting",
+      "TLGEF": "Scope 3 transmission-loss reporting",
+      "DLGEF": "Scope 3 distribution-loss reporting"
+    },
+    "data_lag_years_approx": 2,
+    "interval_marginal_factor_available": false,
+    "notes": [
+      "NGGEF includes imported electricity and excludes transmission/distribution losses; DFFE identifies it as appropriate for Scope 2 reporting.",
+      "TLGEF and DLGEF are separate loss factors for Scope 3 boundaries and must not be added to NGGEF in a Scope 2 calculation by default.",
+      "The report uses 2024 calendar-year data and states annual factors have an approximate two-year data-availability lag.",
+      "These are annual location-based factors, not hourly average, marginal or forecast emissions signals.",
+      "2024 factor values in this fixture are a secondary transcription linked to the official notice; the primary PDF table must be independently admitted before production accounting relies on this fixture.",
+      "DFFE's preceding methodology identifies NGGEF for consumer Scope 2 reporting; 2024 use should remain linked to the actual current report / reporting instructions.",
+      "The 2024 factor is annual and must not be used as a real-time or marginal grid-carbon series."
+    ],
+    "source_admission_status": "OFFICIAL_NOTICE_AND_SECONDARY_TRANSCRIPTION_PRIMARY_PDF_UNREAD",
+    "primary_pdf_audit": {
+      "url": "https://www.gov.za/sites/default/files/gcis_document/202609/55353gon7891.pdf",
+      "retrieval_status": "HTTP_502_DURING_AUDIT",
+      "official_notice_url": "https://www.gov.za/documents/notices/national-environmental-management-air-quality-act-report-south-africa%E2%80%99s-2024-grid",
+      "data_year": 2024,
+      "publication_date": "2026-09-11"
+    },
+    "historical_comparison_2023": {
+      "DGGEF": 0.942,
+      "NGGEF": 0.906,
+      "TLGEF": 0.02,
+      "DLGEF": 0.062,
+      "source_url": "https://www.gov.za/documents/notices/south-africa%E2%80%99s-2023-grid-emission-factors-report-25-jul-2025"
+    }
+  },
+  "south_african_greenhouse_comparator": {
+    "doi": "10.1016/j.seta.2026.105320",
+    "publication_date": "2026-09-01",
+    "study_type": "SIMULATION",
+    "weather_location": "Pretoria, South Africa",
+    "grid_factor_assumption_kgco2e_per_kwh": 0.879,
+    "social_cost_carbon_zar_per_tco2e": 866,
+    "groundwater_penalty_type": "MODEL_ASSUMED_WEIGHT_NOT_MARKET_PRICE",
+    "reported_outcomes": {
+      "winter_mtc_total_cost_reduction_vs_mec_percent": 37.01,
+      "winter_mtc_total_cost_reduction_vs_meco_percent": 39.41,
+      "winter_mtc_energy_use_reduction_vs_meco_percent": 13.74,
+      "winter_mtc_co2_supply_cost_reduction_vs_meco_percent": 89.15,
+      "summer_mtc_total_cost_reduction_vs_meco_percent": 34.69
+    },
+    "claim_limitations": [
+      "This is a greenhouse climate-control simulation, not a measured vertical farm or subterranean facility.",
+      "The groundwater penalty is a model weighting, not an observed market tariff or transaction price.",
+      "The model's 0.879 kgCO2e/kWh factor is a source-specific assumption and is not the DFFE 2024 NGGEF value.",
+      "The study's SCC of R866/tCO2e is a scenario coefficient, not asserted to be the current South African carbon tax rate.",
+      "Crop CO2 assimilation is an internal model-accounting term, not verified permanent carbon removal or an offset.",
+      "MTC results are simulations with the study's Pretoria weather, tariff and process-model assumptions."
+    ]
+  },
+  "derived_checks": [
+    {
+      "check_id": "winter_peak_to_offpeak_tariff_ratio",
+      "formula": "766.24 / 200.44",
+      "result": 3.8227899,
+      "unit": "ratio",
+      "interpretation": "Winter peak energy charge is about 3.82 times the winter off-peak energy charge for the budget-published schedule; this ratio applies only to the energy-charge component and excludes billed demand, fixed charges, surcharges and VAT.",
+      "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "check_id": "summer_peak_to_offpeak_tariff_ratio",
+      "formula": "322.00 / 186.35",
+      "result": 1.7279313,
+      "unit": "ratio",
+      "interpretation": "Summer peak energy charge is about 1.73 times the summer off-peak energy charge for the budget-published schedule; not a full-bill saving estimate.",
+      "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "check_id": "winter_peak_to_offpeak_energy_charge_delta",
+      "formula": "(766.24 - 200.44) / 100",
+      "result": 5.658,
+      "unit": "ZAR/kWh",
+      "interpretation": "Energy-charge difference per kWh shifted from winter peak to winter off-peak, before surcharges and VAT and before all demand/fixed effects.",
+      "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "check_id": "NGGEF_unit_conversion",
+      "formula": "0.960 tCO2e/MWh × 1000 kg/t ÷ 1000 kWh/MWh",
+      "result": 0.96,
+      "unit": "kgCO2e/kWh",
+      "interpretation": "The NGGEF is numerically 0.960 kgCO2e/kWh for annual location-based Scope 2 reporting; this conversion does not create an hourly or marginal emissions signal.",
+      "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "check_id": "Ren_study_embedded_grid_factor_difference",
+      "formula": "0.960 - 0.879",
+      "result": 0.081,
+      "unit": "kgCO2e/kWh",
+      "interpretation": "DFFE 2024 NGGEF is 0.081 kgCO2e/kWh above the Ren et al. study's 0.879 factor assumption; this is a cross-source vintage/boundary comparison only, not a reason to rewrite the study's simulation result.",
+      "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "check_id": "synthetic-winter-100kwh-peak-to-offpeak-energy-charge-saving",
+      "formula": "100 kWh × (766.24 - 200.44) c/kWh ÷ 100 c/R",
+      "result": 565.8,
+      "unit": "ZAR_before_surcharges_VAT_and_demand",
+      "interpretation": "A synthetic 100 kWh shift from winter peak to off-peak saves R565.80 in the energy-charge component only, before account surcharges and VAT. It is not a whole-bill or energy-use saving.",
+      "status": "CONDITIONAL_INTERPRETATION"
+    },
+    {
+      "check_id": "synthetic-demand-ratchet-floor-binds-after-load-shift",
+      "formula": "before=max(95,70,0.8×125)=100 kVA; after=max(80,70,0.8×125)=100 kVA",
+      "result": 0,
+      "unit": "kVA_billed_demand_reduction",
+      "interpretation": "In this synthetic case, measured maximum demand falls from 95 to 80 kVA, but the rolling ratchet floor remains 100 kVA. The billed demand is unchanged, so the demand-charge component does not fall. Actual account history and the applicable tariff contract must determine the real bill.",
+      "status": "CONDITIONAL_INTERPRETATION"
+    }
+  ],
+  "interpretation_rules": [
+    "Never apply the City Power industrial TOU tariff without confirming supply distributor, contracted voltage, supply capacity, account tariff, application and City Power approval.",
+    "The budget rate table is exclusive of 6c/kWh network surcharge, 2% business/LPU surcharge and VAT. Apply each only when applicable and exactly once.",
+    "The monthly billed demand is the greatest of measured demand, 70 kVA or 80% of the mean of the three highest demands in the preceding 12 months.",
+    "Tariff savings are not energy savings; report full bill, energy charge, billed demand, peak kVA, kWh and facility energy separately.",
+    "The DFFE NGGEF is for annual location-based Scope 2 reporting. It is not an interval marginal factor or real-time dispatch signal.",
+    "The DFFE DGGEF, TLGEF and DLGEF have different intended boundaries; do not substitute or sum them without the relevant reporting methodology.",
+    "Do not treat the Ren et al. assumed groundwater penalty as a real price or crop CO2 assimilation as verified carbon removal.",
+    "Unknown / stale / ambiguous tariff details or emissions signals produce NEEDS_EVIDENCE / NO_CARBON_CLAIM, not a favorable default."
+  ],
+  "claim_ceiling": "Source-pinned South African budget tariff and annual grid-factor research profile plus arithmetic checks. Not an approved City Power account tariff, customer bill, current interval emissions dataset, marginal-carbon signal or measured energy saving."
+}

@@ -1,0 +1,452 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/cea-harvest-control-case-v0.1.json",
+  "title": "CEA Harvest-Constrained Control Benchmark Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "crop",
+    "harvest_contract",
+    "facility",
+    "timebase",
+    "control_policy",
+    "resource_boundaries",
+    "measurements",
+    "constraints",
+    "claim_ceiling"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "source_ref",
+        "evidence_status"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "string"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "evidence_status": {
+          "enum": [
+            "SOURCE_REPORTED",
+            "MEASURED",
+            "MODEL_OUTPUT",
+            "SYNTHETIC",
+            "UNKNOWN"
+          ]
+        },
+        "uncertainty": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "resource_stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "resource",
+        "unit",
+        "measurement_boundary_ref"
+      ],
+      "properties": {
+        "stream_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "resource": {
+          "enum": [
+            "ELECTRICITY",
+            "THERMAL_ENERGY",
+            "WATER",
+            "CO2",
+            "NUTRIENT",
+            "MASS_OUTPUT",
+            "MONETARY_COST",
+            "EMISSIONS",
+            "OTHER"
+          ]
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurement_boundary_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "meter_or_method_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_series_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_status": {
+          "enum": [
+            "MEASURED",
+            "MODELLED",
+            "SYNTHETIC",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "measurand",
+        "method_ref",
+        "instrument_ref",
+        "calibration_status",
+        "timebase_ref",
+        "evidence_role"
+      ],
+      "properties": {
+        "measurement_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "measurand": {
+          "$ref": "#/$defs/ref"
+        },
+        "method_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "instrument_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "calibration_status": {
+          "enum": [
+            "QUALIFIED_IN_DOMAIN",
+            "EXPIRED",
+            "OUT_OF_RANGE",
+            "UNQUALIFIED",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timebase_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "evidence_role": {
+          "enum": [
+            "INDEPENDENT_BIOMASS_OBSERVATION",
+            "CROP_STAGE_OBSERVATION",
+            "CLIMATE_OBSERVATION",
+            "PHOTON_OBSERVATION",
+            "ELECTRICAL_METER",
+            "WATER_OR_NUTRIENT_ASSAY",
+            "MODEL_STATE",
+            "SYNTHETIC_ONLY"
+          ]
+        },
+        "uncertainty_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_data_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependence_group_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "case_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "evidence_class": {
+      "enum": [
+        "SOURCE_PUBLISHED_SIMULATION_SUMMARY",
+        "SYNTHETIC_CONFORMANCE_CASE",
+        "MEASURED_BENCH_CASE",
+        "MEASURED_FACILITY_CASE"
+      ]
+    },
+    "crop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "species",
+        "cultivar_ref",
+        "crop_stage_ref",
+        "plant_density",
+        "plant_density_unit",
+        "crop_model_ref"
+      ],
+      "properties": {
+        "species": {
+          "$ref": "#/$defs/ref"
+        },
+        "cultivar_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "seed_lot_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "crop_stage_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "plant_density": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "plant_density_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "crop_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "model_validity_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "harvest_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_mass",
+        "mass_unit",
+        "target_deadline_ref",
+        "marketability_rule_ref",
+        "tolerance_ref",
+        "evidence_owner_ref"
+      ],
+      "properties": {
+        "target_mass": {
+          "$ref": "#/$defs/quantity"
+        },
+        "mass_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "target_deadline_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "marketability_rule_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "tolerance_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "evidence_owner_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "dry_matter_requirement_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nutritional_service_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "facility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "facility_type",
+        "zone_geometry_ref",
+        "cultivation_area",
+        "area_unit",
+        "climate_model_ref",
+        "photon_model_ref"
+      ],
+      "properties": {
+        "facility_type": {
+          "$ref": "#/$defs/ref"
+        },
+        "zone_geometry_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "cultivation_area": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "area_unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "climate_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "photon_model_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "hardware_configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "timebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_zone_ref",
+        "interval_seconds",
+        "campaign_window_ref",
+        "forecast_vintage_policy_ref"
+      ],
+      "properties": {
+        "time_zone_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "interval_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "campaign_window_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "forecast_vintage_policy_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "wall_clock_and_biological_cycle_distinction_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "control_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "control_layers",
+        "optimization_objective_ref",
+        "hard_constraint_refs",
+        "fallback_policy_ref"
+      ],
+      "properties": {
+        "policy_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "control_layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "STRATEGIC_CROP_CYCLE",
+              "DAY_AHEAD",
+              "INTRADAY_MPC",
+              "STATIC_BASELINE",
+              "HUMAN_OPERATOR"
+            ]
+          }
+        },
+        "optimization_objective_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "hard_constraint_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "fallback_policy_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "biomass_feedback_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_uncertainty_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resource_boundaries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/resource_stream"
+      }
+    },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/measurement"
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "harvest_contract_hard",
+        "crop_climate_hard",
+        "power_hard",
+        "quality_hard",
+        "resource_bounds_ref"
+      ],
+      "properties": {
+        "harvest_contract_hard": {
+          "type": "boolean"
+        },
+        "crop_climate_hard": {
+          "type": "boolean"
+        },
+        "power_hard": {
+          "type": "boolean"
+        },
+        "quality_hard": {
+          "type": "boolean"
+        },
+        "resource_bounds_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "human_authority_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_authorization_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claim_ceiling": {
+      "$ref": "#/$defs/ref"
+    }
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "case_id": "SOURCE-HARVEST-CONSTRAINED-LIGHT-CLIMATE-2026-001",
+  "evidence_class": "SOURCE_PUBLISHED_SIMULATION_SUMMARY",
+  "crop": {
+    "species": "Lactuca sativa",
+    "cultivar_ref": "cultivar:Batavia-Othilie",
+    "crop_stage_ref": "crop-stage:full-cycle-harvest",
+    "plant_density": null,
+    "plant_density_unit": "UNKNOWN",
+    "crop_model_ref": "source-model:mechanistic-lettuce-growth-and-indoor-climate",
+    "model_validity_ref": "source-summary-validity-envelope-not-fully-disclosed"
+  },
+  "harvest_contract": {
+    "target_mass": {
+      "value": 250,
+      "unit": "g_per_head",
+      "source_ref": "source:doi-10.1016-j-atech-2026-102636",
+      "evidence_status": "SOURCE_REPORTED",
+      "uncertainty": "±1.5 g/head source-reported harvest target"
+    },
+    "mass_unit": "g/head",
+    "target_deadline_ref": "source:14-to-25-day-growing-cycle-horizon",
+    "marketability_rule_ref": "source:target-harvest-weight-and-date",
+    "tolerance_ref": "source:±1.5g-per-head",
+    "evidence_owner_ref": "owner:independent-harvest-adjudication"
+  },
+  "facility": {
+    "facility_type": "four-level indoor container vertical farm",
+    "zone_geometry_ref": "source:12m2-per-level-four-level-container",
+    "cultivation_area": 48,
+    "area_unit": "m2",
+    "climate_model_ref": "source:mechanistic-indoor-climate-model",
+    "photon_model_ref": "source:LED-and-photoperiod-model",
+    "hardware_configuration_ref": "source:LED-heater-cooler-dehumidifier-configuration"
+  },
+  "timebase": {
+    "time_zone_ref": "source:country-specific-price-series",
+    "interval_seconds": 900,
+    "campaign_window_ref": "source:14-to-25-day-growing-cycle",
+    "forecast_vintage_policy_ref": "source:strategic-day-ahead-intraday-forecast-layers",
+    "wall_clock_and_biological_cycle_distinction_ref": "source:harvest-date-and-daily-biomass-trajectory"
+  },
+  "control_policy": {
+    "policy_id": "source:three-level-hierarchical-control",
+    "control_layers": [
+      "STRATEGIC_CROP_CYCLE",
+      "DAY_AHEAD",
+      "INTRADAY_MPC"
+    ],
+    "optimization_objective_ref": "source:minimize-energy-cost-subject-to-harvest-and-climate-constraints",
+    "hard_constraint_refs": [
+      "constraint:250-plus-minus-1-5-g-head-harvest-target",
+      "constraint:harvest-date",
+      "constraint:crop-light-and-climate-envelope"
+    ],
+    "fallback_policy_ref": "unknown-not-reported-in-source-summary",
+    "biomass_feedback_policy_ref": "source:strategic-biomass-trajectory; independent measurement feedback not claimed in primary abstract",
+    "model_uncertainty_policy_ref": "source:price-and-weather-scenario-forecasting; complete sensor/model-error details require source admission"
+  },
+  "resource_boundaries": [
+    {
+      "stream_id": "source-electricity-total",
+      "resource": "ELECTRICITY",
+      "unit": "kWh",
+      "measurement_boundary_ref": "source:LED-and-climate-control-electricity",
+      "meter_or_method_ref": "source:mechanistic-model-estimated-device-electricity",
+      "time_series_ref": "data-access:available-on-request",
+      "evidence_status": "MODELLED"
+    },
+    {
+      "stream_id": "source-energy-cost",
+      "resource": "MONETARY_COST",
+      "unit": "currency_per_growing_cycle",
+      "measurement_boundary_ref": "source:country-specific-electricity-price-profile",
+      "meter_or_method_ref": "source:modelled-tariff-weighted-electricity-cost",
+      "time_series_ref": "data-access:available-on-request",
+      "evidence_status": "MODELLED"
+    },
+    {
+      "stream_id": "source-crop-output",
+      "resource": "MASS_OUTPUT",
+      "unit": "g_marketable_per_head",
+      "measurement_boundary_ref": "source:harvest-target",
+      "meter_or_method_ref": "source:mechanistic-crop-model",
+      "time_series_ref": "data-access:available-on-request",
+      "evidence_status": "MODEL_OUTPUT"
+    }
+  ],
+  "measurements": [],
+  "constraints": {
+    "harvest_contract_hard": true,
+    "crop_climate_hard": true,
+    "power_hard": true,
+    "quality_hard": true,
+    "resource_bounds_ref": "source:harvest-light-climate-and-equipment-constraints",
+    "human_authority_ref": "not-applicable-source-simulation-only",
+    "physical_authorization_ref": "none-source-simulation-only"
+  },
+  "source_summary_metrics": {
+    "scenario_count": 36,
+    "scenario_design": "three countries x four seasons x three production intensities",
+    "mean_energy_cost_reduction_percent": 13.7,
+    "energy_cost_reduction_range_percent": [
+      7.3,
+      19.7
+    ],
+    "electricity_use_reduction_percent": 8.4,
+    "climate_share_of_cost_savings_percent": 97,
+    "lighting_only_cost_penalty_percent": 10,
+    "variable_dli_incremental_benefit_percentage_points": 3,
+    "intraday_mpc_incremental_benefit_percentage_points": [
+      0.6,
+      1.4
+    ],
+    "evidence_status": "SIMULATED_SOURCE_REPORTED"
+  },
+  "secondary_source_challenge_hypotheses": {
+    "source_url": "https://scienmag.com/simulated-vertical-farm-controller-cuts-costs-by-co-optimizing-light-and-climate/",
+    "status": "SECONDARY_REPORT_REQUIRES_PRIMARY_CONFIRMATION",
+    "limitations_reported": [
+      "sensor noise and measurement delay omitted",
+      "equipment cycling and defrost behavior omitted",
+      "peak-demand charges omitted",
+      "equipment wear omitted",
+      "specific three-device climate configuration limits transfer"
+    ],
+    "model_error_and_biomass_feedback_reported": "Secondary summary reports crop-model error can cause harvest marketability failures and that daily biomass feedback improves modeled marketability. Exact percentages require primary paper / supplement verification."
+  },
+  "data_access": {
+    "data_and_simulation_code": "AVAILABLE_ON_REQUEST",
+    "independent_reproduction_status": "NOT_ATTEMPTED",
+    "claim_ceiling": "Published simulation summary only; no field-measured savings or controller qualification."
+  },
+  "claim_ceiling": "Published simulation benchmark reference only. The target, savings and control performance are not measured physical facility outcomes."
+}
