@@ -254,7 +254,11 @@
               "uncertainty_abs",
               "unit",
               "quality",
-              "calibration"
+              "calibration",
+              "source_id",
+              "observed_at_seconds",
+              "available_at_seconds",
+              "calibration_record_sha256"
             ],
             "properties": {
               "measurement_id": {
@@ -298,6 +302,29 @@
                   "verified",
                   "unknown",
                   "expired"
+                ]
+              },
+              "source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "observed_at_seconds": {
+                "type": "number",
+                "minimum": 0
+              },
+              "available_at_seconds": {
+                "type": "number",
+                "minimum": 0
+              },
+              "calibration_record_sha256": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               }
             }
