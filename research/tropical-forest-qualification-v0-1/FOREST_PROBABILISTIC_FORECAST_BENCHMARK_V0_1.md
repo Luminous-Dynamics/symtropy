@@ -91,6 +91,12 @@ The summary reports:
 
 Abstentions are not assigned zero CRPS and are not silently deleted from the coverage denominator. A system cannot make itself look better simply by refusing difficult regions or time horizons. This v0.1 slice records issued-versus-abstained status; a later version should add confidence thresholds and publish the full risk–coverage curve, including risk at 50%, 70%, 90% and 100% coverage.
 
+### Confidence-ranked risk–coverage
+
+The continuous corpus also declares six candidate forecasts and a confidence score per case. The scorer ranks cases in descending confidence (forecast ID breaks ties deterministically) and returns every prefix's selected-case count, actual coverage fraction and mean CRPS risk.
+
+The curve is an offline evaluation of whether the submitted confidence score ranks lower-risk forecasts first. It does not infer confidence from ensemble spread and does not set an operational abstention threshold. The six-case curve is discrete; target coverage such as 70% maps to the next attainable prefix, 5/6 or 83.33%. The score is a synthetic ranking label and is not calibrated.
+
 ## 4. Synthetic reference result
 
 The six-case corpus contains five issued forecasts and one abstention. An independent JavaScript reference calculation reproduces all case-level scores and the aggregate summary:
@@ -161,7 +167,7 @@ Not implemented:
 - empirical PIT and reliability diagnostics;
 - weighted interval score / interval score;
 - confidence intervals / calibration belts for Brier reliability bins and event-stratified uncertainty;
-- confidence-ranked risk–coverage curves;
+- confidence-score calibration and operational abstention thresholds;
 - block-bootstrap confidence intervals and hierarchical region/site aggregation;
 - distributional parameters beyond equally weighted finite ensembles;
 - multi-year process forecast evaluation;
