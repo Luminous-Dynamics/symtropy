@@ -1,0 +1,36 @@
+name: Physics kinematic pose replay evidence v0.2
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "crates/core/symtropy-physics/src/replay.rs"
+      - "crates/core/symtropy-physics/tests/replay_harness.rs"
+      - "crates/core/symtropy-physics/Cargo.toml"
+      - "docs/ops/PHYSICS_KINEMATIC_POSE_REPLAY_V0_2.md"
+      - ".github/workflows/physics-kinematic-pose-replay.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/core/symtropy-physics/src/replay.rs"
+      - "crates/core/symtropy-physics/tests/replay_harness.rs"
+      - ".github/workflows/physics-kinematic-pose-replay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pose-replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format physics crate
+        run: cargo fmt --package symtropy-physics -- --check
+      - name: Run full replay integration harness
+        run: cargo test --package symtropy-physics --test replay_harness --locked
+      - name: Clippy physics crate
+        run: cargo clippy --package symtropy-physics --all-targets --locked -- -D warnings
