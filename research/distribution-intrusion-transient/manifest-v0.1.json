@@ -81,5 +81,7 @@
     "select a qualified transient reference method without creating a competing solver",
     "design the external-head defect spool and containment with competent reviewers",
     "reproduce a published intrusion experiment before new-model comparisons"
-  ]
+  ],
+  "input_file": "intrusion-t0-scenarios-v0.1.json",
+  "oracle_file": "intrusion-t0-oracle-v0.1.json"
 }
