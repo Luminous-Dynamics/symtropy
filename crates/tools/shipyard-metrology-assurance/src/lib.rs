@@ -50,6 +50,7 @@ pub struct Measurement {
     pub workpiece_id: String,
     pub joint_revision: String,
     pub coordinate_frame: String,
+    pub unit: String,
     pub scan_id: String,
     pub scan_sha256: [u8; 32],
     pub registration_receipt_sha256: [u8; 32],
@@ -72,6 +73,7 @@ pub struct ValidatedMeasurement {
     pub workpiece_id: String,
     pub joint_revision: String,
     pub coordinate_frame: String,
+    pub unit: String,
     pub scan_id: String,
     pub scan_sha256: [u8; 32],
     pub registration_receipt_sha256: [u8; 32],
@@ -108,6 +110,7 @@ pub enum AdmissionError {
     EmptySourceIdentity,
     DuplicateSourceIdentity,
     UnitMismatch,
+    UncertaintyKindMismatch,
     ScopeMismatch,
     UnverifiedContribution,
     ContributionNotYetValid,
@@ -164,6 +167,7 @@ fn validate_budget(
     expected_unit: &str,
     expected_scope: &str,
     measurement_tick: u64,
+    expected_kind: Option<UncertaintyKind>,
 ) -> Result<ValidatedBudget, AdmissionError> {
     if budget.contributions.is_empty() {
         return Err(AdmissionError::EmptyBudget);
@@ -187,6 +191,9 @@ fn validate_budget(
         }
         if contribution.unit != expected_unit {
             return Err(AdmissionError::UnitMismatch);
+        }
+        if expected_kind.is_some_and(|kind| contribution.kind != kind) {
+            return Err(AdmissionError::UncertaintyKindMismatch);
         }
         if contribution.valid_from_tick > contribution.valid_until_tick {
             return Err(AdmissionError::InvalidContributionValidity);
@@ -245,9 +252,10 @@ fn validate_measurement(
     }
     let uncertainty = validate_budget(
         &measurement.budget,
-        &measurement.budget.unit,
+        &measurement.unit,
         &measurement.scope_id,
         measurement.observed_at_tick,
+        None,
     )?;
 
     Ok(ValidatedMeasurement {
@@ -256,6 +264,7 @@ fn validate_measurement(
         workpiece_id: measurement.workpiece_id.clone(),
         joint_revision: measurement.joint_revision.clone(),
         coordinate_frame: measurement.coordinate_frame.clone(),
+        unit: measurement.unit.clone(),
         scan_id: measurement.scan_id.clone(),
         scan_sha256: measurement.scan_sha256,
         registration_receipt_sha256: measurement.registration_receipt_sha256,
@@ -353,21 +362,26 @@ pub fn decide_difference(
     if after.observed_at_tick <= before.observed_at_tick {
         return Err(AdmissionError::NonMonotonicObservations);
     }
-    if before.uncertainty.unit != after.uncertainty.unit {
+    if before.unit != after.unit
+        || before.uncertainty.unit != before.unit
+        || after.uncertainty.unit != after.unit
+    {
         return Err(AdmissionError::UnitMismatch);
     }
 
     let transform = validate_budget(
         &request.transform_budget,
-        &before.uncertainty.unit,
+        &before.unit,
         &request.difference_scope_id,
         request.decision_at_tick,
+        Some(UncertaintyKind::Registration),
     )?;
     let datum = validate_budget(
         &request.datum_budget,
-        &before.uncertainty.unit,
+        &before.unit,
         &request.difference_scope_id,
         request.decision_at_tick,
+        Some(UncertaintyKind::Datum),
     )?;
 
     let difference_units = after
@@ -456,6 +470,7 @@ mod tests {
             workpiece_id: "WID-SYNTH-01".to_owned(),
             joint_revision: "JOINT-R1".to_owned(),
             coordinate_frame: "SYNTHETIC-JOINT-FRAME".to_owned(),
+            unit: "SYMBOLIC_AREA".to_owned(),
             scan_id: scan_id.to_owned(),
             scan_sha256: [digest; 32],
             registration_receipt_sha256: [digest.wrapping_add(1); 32],
@@ -530,7 +545,7 @@ mod tests {
     }
 
     #[test]
-    fn uncertainty_overlap_with_lower_specification_is_indeterminate() {
+    fn uncertainty_interval_touching_specification_boundary_is_conforming() {
         let mut request = base_request(200, 258);
         request.specification_lower_units = 50;
         request.specification_upper_units = 70;
@@ -645,6 +660,38 @@ mod tests {
         assert_eq!(
             decide_difference(&request),
             Err(AdmissionError::DuplicateSourceIdentity)
+        );
+    }
+
+    #[test]
+    fn measurement_unit_must_match_its_uncertainty_budget() {
+        let mut request = base_request(200, 260);
+        request.after.unit = "MILLIMETRE".to_owned();
+        assert_eq!(
+            decide_difference(&request),
+            Err(AdmissionError::UnitMismatch)
+        );
+    }
+
+    #[test]
+    fn transform_budget_accepts_only_registration_contributions() {
+        let mut request = base_request(200, 260);
+        request.transform_budget.contributions[0].kind =
+            UncertaintyKind::SensorCalibration;
+        assert_eq!(
+            decide_difference(&request),
+            Err(AdmissionError::UncertaintyKindMismatch)
+        );
+    }
+
+    #[test]
+    fn datum_budget_accepts_only_datum_contributions() {
+        let mut request = base_request(200, 260);
+        request.datum_budget.contributions[0].kind =
+            UncertaintyKind::Registration;
+        assert_eq!(
+            decide_difference(&request),
+            Err(AdmissionError::UncertaintyKindMismatch)
         );
     }
 
