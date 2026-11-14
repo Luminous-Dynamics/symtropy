@@ -1,0 +1,27 @@
+# MIKASA-Robo-VLA Long split at benchmark source commit 509b875f3d207c287497c0a897661062de928bb0
+# Upstream file: mikasa_robo_vla_envs.csv
+# Upstream Git blob SHA-1: 613c571bc4a5e1585c995249adb31d594601822e
+# MIT code/data licenses were observed at research time; audit simulator/dependency/assets separately.
+# task_id<TAB>env_id<TAB>memory_type<TAB>max_length
+44	BatteriesCheckerEasy-6-VLA-v0	Checklist	1080
+45	BatteriesCheckerHard-3-VLA-v0	Checklist	1080
+46	BatteriesCheckerHard-6-VLA-v0	Checklist	2160
+59	BunchOfColors3-Long-VLA-v0	Capacity	700
+60	BunchOfColors5-Long-VLA-v0	Capacity	700
+61	BunchOfColors7-Long-VLA-v0	Capacity	700
+62	SeqOfColors3-Long-VLA-v0	Capacity	800
+63	SeqOfColors5-Long-VLA-v0	Capacity	1000
+64	SeqOfColors7-Long-VLA-v0	Capacity	1200
+65	ChainOfColors3-Long-VLA-v0	Sequential	800
+66	ChainOfColors5-Long-VLA-v0	Sequential	1000
+67	ChainOfColors7-Long-VLA-v0	Sequential	1200
+70	BlinkCountButtonPressEasy-Long-VLA-v0	Temporal	1200
+71	BlinkCountButtonPressMedium-Long-VLA-v0	Temporal	1200
+72	BlinkCountButtonPressHard-Long-VLA-v0	Temporal	1200
+76	TraceShapeSeqEasy-VLA-v0	Procedural	1500
+77	TraceShapeSeqMedium-VLA-v0	Procedural	1500
+78	TraceShapeSeqHard-VLA-v0	Procedural	1500
+83	TimedTransferMedium-Long-VLA-v0	Temporal	900
+84	TimedTransferHard-Long-VLA-v0	Temporal	1200
+88	GatherAndRecall7-VLA-v0	Prospective	800
+89	GatherAndRecall9-VLA-v0	Prospective	1000
