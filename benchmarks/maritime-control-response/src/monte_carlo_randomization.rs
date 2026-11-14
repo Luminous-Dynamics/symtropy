@@ -132,6 +132,13 @@ impl From<MaintenanceEffectError> for MonteCarloRandomizationError {
     }
 }
 
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 /// Build a run configuration whose seed commitment is bound to the analysis plan
 /// and fixed draw budget. The referenced preregistration receipt is an upstream
 /// evidence pointer; this module does not authenticate its issuer or timestamp.
