@@ -1118,6 +1118,27 @@ mod tests {
         receipt
     }
 
+    fn gcd_u128(mut left: u128, mut right: u128) -> u128 {
+        while right != 0 {
+            let remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+        left
+    }
+
+    fn normalize_ratio(numerator: i128, denominator: i128) -> (i128, i128) {
+        assert_ne!(denominator, 0);
+        let sign = if denominator < 0 { -1 } else { 1 };
+        let numerator = numerator * sign;
+        let denominator = denominator.abs();
+        if numerator == 0 {
+            return (0, 1);
+        }
+        let divisor = gcd_u128(numerator.unsigned_abs(), denominator as u128) as i128;
+        (numerator / divisor, denominator / divisor)
+    }
+
     fn exact_f64_ratio(value: f64) -> (i128, i128) {
         let bits = value.to_bits();
         let negative = (bits >> 63) != 0;
@@ -1137,37 +1158,33 @@ mod tests {
             significand
         };
         if exponent >= 0 {
-            (signed << exponent as u32, 1)
+            normalize_ratio(signed << exponent as u32, 1)
         } else {
-            (signed, 1_i128 << (-exponent) as u32)
+            normalize_ratio(signed, 1_i128 << (-exponent) as u32)
         }
     }
 
     fn exact_add(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
-        (
+        normalize_ratio(
             left.0 * right.1 + right.0 * left.1,
             left.1 * right.1,
         )
     }
 
     fn exact_sub(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
-        (
+        normalize_ratio(
             left.0 * right.1 - right.0 * left.1,
             left.1 * right.1,
         )
     }
 
     fn exact_mul(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
-        (left.0 * right.0, left.1 * right.1)
+        normalize_ratio(left.0 * right.0, left.1 * right.1)
     }
 
     fn exact_div(left: (i128, i128), right: (i128, i128)) -> (i128, i128) {
         assert_ne!(right.0, 0);
-        let sign = if right.0 < 0 { -1 } else { 1 };
-        (
-            left.0 * right.1 * sign,
-            left.1 * right.0 * sign,
-        )
+        normalize_ratio(left.0 * right.1, left.1 * right.0)
     }
 
     fn compare_f64_with_ratio(value: f64, numerator: i128, denominator: i128) -> std::cmp::Ordering {
@@ -1509,6 +1526,22 @@ mod tests {
             profile,
         );
         assert_eq!(frame, Err(CertificateInputErrorV1::InvalidFrame));
+    }
+
+    #[test]
+    fn frame_integer_limit_prevents_inexact_binary64_embedding() {
+        let profile = KrawczykProfileV1 {
+            maximum_basis_entry: (1_i64 << 53) + 1,
+            ..KrawczykProfileV1::default()
+        };
+        let frame = MetricFrame2V1::new(
+            "inexact-integer-frame".to_owned(),
+            [[1, 1], [0, 1]],
+            [[1, 0], [1, 1]],
+            [[1, 0], [0, 1]],
+            profile,
+        );
+        assert_eq!(frame, Err(CertificateInputErrorV1::InvalidProfile));
     }
 
     #[test]
