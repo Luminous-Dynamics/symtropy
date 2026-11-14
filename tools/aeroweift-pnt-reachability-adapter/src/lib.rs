@@ -12,7 +12,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use aeroweift_reachability_core::Interval;
+use aeroweft_reachability_core::Interval;
 
 /// Upstream PNT service state supplied by Symtropy #3909 / #4079.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
