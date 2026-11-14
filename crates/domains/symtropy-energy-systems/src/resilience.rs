@@ -217,7 +217,7 @@ pub fn assess_resilience(
         for node_id in &node_ids {
             if node_id == source_id || node_id == load_id { continue; }
             let affected = edge_disjoint_paths.iter()
-                .filter(|path| path.node_ids.binary_search(node_id).is_ok())
+                .filter(|path| path.node_ids.iter().any(|path_node| path_node == node_id))
                 .count();
             if affected >= 2 { shared_intermediate_nodes.insert(node_id.clone()); }
         }
@@ -597,6 +597,34 @@ mod tests {
         assert_eq!(result.independence_assessment(), IndependenceAssessment::NoSharedModeledIntermediateDependencyDetected);
         assert!(result.shared_source_terminal_across_paths());
         assert!(result.shared_intermediate_node_ids().is_empty());
+    }
+
+
+    #[test]
+    fn shared_intermediate_bus_is_detected_without_explicit_domain_record() {
+        let graph = graph(
+            vec![
+                ("source", ServiceNodeKind::UtilitySource),
+                ("shared-bus", ServiceNodeKind::AcBus),
+                ("left", ServiceNodeKind::Converter),
+                ("right", ServiceNodeKind::Converter),
+                ("load", ServiceNodeKind::Load),
+            ],
+            vec![
+                ("e0", "source", "shared-bus"),
+                ("e1", "shared-bus", "left"),
+                ("e2", "left", "load"),
+                ("e3", "shared-bus", "right"),
+                ("e4", "right", "load"),
+            ],
+        );
+        let result = assess_resilience(
+            &graph, "source", "load", &[],
+            FailureDomainInventoryStatus::CompleteWithinDeclaredScope,
+        ).unwrap();
+        assert_eq!(result.edge_disjoint_path_count(), 2);
+        assert_eq!(result.shared_intermediate_node_ids(), &["shared-bus".to_owned()]);
+        assert_eq!(result.independence_assessment(), IndependenceAssessment::SharedModeledFailureDomainAcrossPaths);
     }
 
     #[test]

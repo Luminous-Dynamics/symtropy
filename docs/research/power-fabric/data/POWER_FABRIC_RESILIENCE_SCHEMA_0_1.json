@@ -2,27 +2,200 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://luminousdynamics.io/schemas/power-fabric-resilience-0.1.schema.json",
   "title": "Power Fabric Resilience Fixture v0.1",
-  "type": "object", "additionalProperties": false,
-  "required": ["graph_id", "revision_id", "nodes", "power_edges", "failure_domains", "inventory_status", "expected"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "graph_id",
+    "revision_id",
+    "nodes",
+    "power_edges",
+    "failure_domains",
+    "inventory_status",
+    "expected"
+  ],
   "properties": {
-    "graph_id": { "type": "string", "minLength": 1 },
-    "revision_id": { "type": "string", "minLength": 1 },
-    "nodes": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["node_id", "kind"], "properties": { "node_id": { "type": "string", "minLength": 1 }, "kind": { "type": "string", "minLength": 1 } } } },
-    "power_edges": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["edge_id", "from", "to"], "properties": { "edge_id": { "type": "string", "minLength": 1 }, "from": { "type": "string", "minLength": 1 }, "to": { "type": "string", "minLength": 1 } } } },
-    "failure_domains": { "type": "array", "items": { "$ref": "#/$defs/failure_domain" } },
-    "inventory_status": { "enum": ["complete_within_declared_scope", "incomplete", "unknown"] },
-    "expected": { "type": "object", "additionalProperties": false, "required": ["edge_disjoint_path_count", "shared_upstream_domain_paths_affected", "left_route_domain_paths_affected", "independence_assessment"], "properties": { "edge_disjoint_path_count": { "type": "integer", "minimum": 0 }, "shared_upstream_domain_paths_affected": { "type": "integer", "minimum": 0 }, "left_route_domain_paths_affected": { "type": "integer", "minimum": 0 }, "independence_assessment": { "enum": ["fewer_than_two_edge_disjoint_paths", "failure_domain_inventory_incomplete", "shared_modeled_failure_domain_across_paths", "no_shared_modeled_failure_domain_detected"] } } }
+    "graph_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "kind"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "power_edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "edge_id",
+          "from",
+          "to"
+        ],
+        "properties": {
+          "edge_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "failure_domains": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/failure_domain"
+      }
+    },
+    "inventory_status": {
+      "enum": [
+        "complete_within_declared_scope",
+        "incomplete",
+        "unknown"
+      ]
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_disjoint_path_count",
+        "shared_upstream_domain_paths_affected",
+        "left_route_domain_paths_affected",
+        "independence_assessment",
+        "shared_source_terminal_across_paths",
+        "shared_intermediate_node_ids"
+      ],
+      "properties": {
+        "edge_disjoint_path_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shared_upstream_domain_paths_affected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "left_route_domain_paths_affected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independence_assessment": {
+          "enum": [
+            "fewer_than_two_edge_disjoint_paths",
+            "failure_domain_inventory_incomplete",
+            "shared_modeled_failure_domain_across_paths",
+            "no_shared_modeled_intermediate_dependency_detected"
+          ]
+        },
+        "shared_source_terminal_across_paths": {
+          "type": "boolean"
+        },
+        "shared_intermediate_node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
   },
   "$defs": {
     "failure_domain": {
-      "type": "object", "additionalProperties": false,
-      "required": ["domain_id", "kind", "node_ids", "edge_ids", "evidence"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "kind",
+        "node_ids",
+        "edge_ids",
+        "evidence"
+      ],
       "properties": {
-        "domain_id": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["upstream_supply", "enclosure", "cable_route", "protection", "communications", "cooling", "authority", "other"] },
-        "node_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-        "edge_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
-        "evidence": { "type": "object", "additionalProperties": false, "required": ["state", "evidence_id"], "properties": { "state": { "enum": ["unknown", "design_declared", "field_observed", "independently_reviewed"] }, "evidence_id": { "type": ["string", "null"] } } }
+        "domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "upstream_supply",
+            "enclosure",
+            "cable_route",
+            "protection",
+            "communications",
+            "cooling",
+            "authority",
+            "other"
+          ]
+        },
+        "node_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "edge_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "evidence_id"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "unknown",
+                "design_declared",
+                "field_observed",
+                "independently_reviewed"
+              ]
+            },
+            "evidence_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
       }
     }
   }
