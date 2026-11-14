@@ -575,6 +575,7 @@ mod tests {
             brief_id: "housing-service-level-01".to_owned(),
             revision_digest: "brief-revision-01".to_owned(),
             required_gate_ids: vec![
+                "functional-service-adequacy".to_owned(),
                 "structural-adequacy".to_owned(),
                 "fire-safety".to_owned(),
                 "accessibility".to_owned(),
@@ -597,6 +598,12 @@ mod tests {
 
     fn passing_gates() -> BTreeMap<String, GateResult> {
         BTreeMap::from([
+            (
+                "functional-service-adequacy".to_owned(),
+                GateResult::QualifiedPass {
+                    evidence_ref: "evidence:functional-service-review-01".to_owned(),
+                },
+            ),
             (
                 "structural-adequacy".to_owned(),
                 GateResult::QualifiedPass {
@@ -1113,6 +1120,12 @@ mod tests {
             report.scenario_metrics_by_option["avoid"]["normal"]
                 [&MetricKey::WholeLifeCostMinorUnits],
             800
+        );
+        assert_eq!(
+            assess(&report, "avoid").gate_results["functional-service-adequacy"],
+            GateResult::QualifiedPass {
+                evidence_ref: "evidence:functional-service-review-01".to_owned()
+            }
         );
         assert_eq!(
             assess(&report, "avoid").gate_results["structural-adequacy"],
