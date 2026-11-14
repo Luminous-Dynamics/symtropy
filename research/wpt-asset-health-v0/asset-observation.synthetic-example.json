@@ -99,6 +99,17 @@
         "temperature_c": 44,
         "method_id": "synthetic-thermal-map-v0"
       }
+    ],
+    "spatial_heat_flux_profile": [
+      {
+        "sensor_id": "synthetic-heat-flux-01",
+        "coordinate_frame_id": "synthetic-asset-frame",
+        "x_mm": 50,
+        "y_mm": 0,
+        "depth_mm": 10,
+        "heat_flux_w_m2": 125,
+        "method_id": "synthetic-heat-flux-map-v0"
+      }
     ]
   },
   "electromagnetic": {
