@@ -1,0 +1,87 @@
+{
+  "run_id": "RUN-EXAMPLE-001",
+  "line_id": "LINE-EXAMPLE-A",
+  "configuration_revision": "FEEDER-R1",
+  "incoming_items": [
+    {
+      "item_id": "ITEM-01",
+      "lot_id": "LOT-01",
+      "intake_sequence": 1,
+      "reference_destination": "cotton"
+    },
+    {
+      "item_id": "ITEM-02",
+      "lot_id": "LOT-01",
+      "intake_sequence": 2,
+      "reference_destination": "polyester"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_id": "ATTEMPT-01",
+      "item_id": "ITEM-01",
+      "attempt_number": 1,
+      "predecessor_attempt_id": null,
+      "state": "single_item_in_field_of_view",
+      "started_at_ns": 100,
+      "completed_at_ns": 200,
+      "evidence": {
+        "evidence_id": "EV-01",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "method_ref": "feed-cam-v1"
+      }
+    },
+    {
+      "attempt_id": "ATTEMPT-02",
+      "item_id": "ITEM-02",
+      "attempt_number": 1,
+      "predecessor_attempt_id": null,
+      "state": "overlap",
+      "started_at_ns": 110,
+      "completed_at_ns": 220,
+      "evidence": {
+        "evidence_id": "EV-02",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "method_ref": "feed-cam-v1"
+      }
+    },
+    {
+      "attempt_id": "ATTEMPT-03",
+      "item_id": "ITEM-02",
+      "attempt_number": 2,
+      "predecessor_attempt_id": "ATTEMPT-02",
+      "state": "single_item_in_field_of_view",
+      "started_at_ns": 230,
+      "completed_at_ns": 320,
+      "evidence": {
+        "evidence_id": "EV-03",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "method_ref": "feed-cam-v1"
+      }
+    }
+  ],
+  "terminal_dispositions": [
+    {
+      "item_id": "ITEM-01",
+      "outcome": "routed",
+      "actual_destination": "cotton",
+      "completed_at_ns": 240,
+      "evidence": {
+        "evidence_id": "TERM-01",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "method_ref": "route-log-v1"
+      }
+    },
+    {
+      "item_id": "ITEM-02",
+      "outcome": "manual_review",
+      "actual_destination": null,
+      "completed_at_ns": 340,
+      "evidence": {
+        "evidence_id": "TERM-02",
+        "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "method_ref": "operator-log-v1"
+      }
+    }
+  ]
+}
