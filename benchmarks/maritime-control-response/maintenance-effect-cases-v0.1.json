@@ -76,6 +76,11 @@
       "case_id": "ME15",
       "scenario": "Calibration record becomes effective after the baseline or outcome was observed.",
       "expected": "rejected_calibration_not_yet_effective"
+    },
+    {
+      "case_id": "ME16",
+      "scenario": "A direct Rust caller supplies a non-finite calibration valid-from timestamp.",
+      "expected": "rejected_non_finite_calibration_timestamp"
     }
   ]
 }
