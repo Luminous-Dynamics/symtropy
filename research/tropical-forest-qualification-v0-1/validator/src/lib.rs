@@ -9,6 +9,7 @@ pub mod canopy_kernel;
 pub mod support_kernel;
 pub mod aggregation_kernel;
 pub mod model_set_kernel;
+pub mod forecast_kernel;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -885,6 +886,232 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
     }))
 }
 
+
+
+fn finite_array_at(root: &Value, path: &[&str]) -> Result<Vec<f64>, String> {
+    let values = at(root, path)?
+        .as_array()
+        .ok_or_else(|| format!("expected array at {}", path.join(".")))?;
+    let mut result = Vec::with_capacity(values.len());
+    for (index, value) in values.iter().enumerate() {
+        let number = value
+            .as_f64()
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| format!("expected finite number at {}[{index}]", path.join(".")))?;
+        result.push(number);
+    }
+    Ok(result)
+}
+
+fn optional_number_matches(actual: Option<f64>, expected: &Value, tolerance: f64) -> bool {
+    match (actual, expected.as_f64(), expected.is_null()) {
+        (Some(actual), Some(expected), _) => close_enough(actual, expected, tolerance),
+        (None, None, true) => true,
+        _ => false,
+    }
+}
+
+fn validate_probabilistic_forecast_corpus(
+    raw: &[u8],
+    manifest: &Value,
+) -> Result<Value, String> {
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let variable = string_at(manifest, &["target", "variable"])?;
+    let unit = string_at(manifest, &["target", "unit"])?;
+    let horizon = u32::try_from(usize_at(manifest, &["target", "horizon_days"])?)
+        .map_err(|_| "target.horizon_days exceeds u32".to_string())?;
+    let baseline_kind = string_at(manifest, &["baseline_kind"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "FORECAST-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-PROBABILISTIC-FORECAST-SCORING-001"
+            && status == "PUBLIC_SYNTHETIC_PROBABILISTIC_SCORE_CASES_NOT_ECOLOGICAL_CALIBRATION"
+            && ceiling.contains("Six public synthetic forecast cases")
+            && ceiling.contains("not a calibrated forecast")
+            && baseline_kind == "SYNTHETIC_POINT_MASS_REFERENCE",
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; target={variable} [{unit}] horizon={horizon}"),
+    );
+
+    let mut forecast_cases = Vec::with_capacity(cases.len());
+    for case in cases {
+        forecast_cases.push(forecast_kernel::ForecastCase {
+            forecast_id: string_at(case, &["forecast_id"])?,
+            variable: string_at(case, &["variable"])?,
+            unit: string_at(case, &["unit"])?,
+            horizon_days: u32::try_from(usize_at(case, &["horizon_days"])?)
+                .map_err(|_| "case.horizon_days exceeds u32".to_string())?,
+            observed: number_at(case, &["observed"])?,
+            model_samples: finite_array_at(case, &["model_samples"])?,
+            baseline_samples: finite_array_at(case, &["baseline_samples"])?,
+        });
+    }
+
+    let summary = forecast_kernel::summarize_forecasts(&forecast_cases)
+        .map_err(|error| format!("forecast scoring failed: {error}"))?;
+    let expected_summary = at(manifest, &["expected_summary"])?;
+    let summary_matches = summary.eligible_case_count
+        == usize_at(expected_summary, &["eligible_case_count"])?
+        && summary.forecast_case_count
+            == usize_at(expected_summary, &["forecast_case_count"])?
+        && summary.abstained_case_count
+            == usize_at(expected_summary, &["abstained_case_count"])?
+        && close_enough(
+            summary.forecast_coverage_fraction,
+            number_at(expected_summary, &["forecast_coverage_fraction"])?,
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.mean_model_crps,
+            expected_summary.get("mean_model_crps").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.mean_baseline_crps_paired,
+            expected_summary.get("mean_baseline_crps_paired").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && close_enough(
+            summary.mean_baseline_crps_all,
+            number_at(expected_summary, &["mean_baseline_crps_all"])?,
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.crps_skill_score,
+            expected_summary.get("crps_skill_score").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.mean_absolute_error,
+            expected_summary.get("mean_absolute_error").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.interval_coverage_50,
+            expected_summary.get("interval_coverage_50").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.interval_coverage_80,
+            expected_summary.get("interval_coverage_80").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.interval_coverage_95,
+            expected_summary.get("interval_coverage_95").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            summary.mean_interval_width_80,
+            expected_summary.get("mean_interval_width_80").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.mean_interval_width_95,
+            expected_summary.get("mean_interval_width_95").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && summary.disposition == string_at(expected_summary, &["disposition"])?;
+
+    push_check(
+        &mut checks,
+        "FORECAST-PAIRED-CRPS-AND-COVERAGE-001",
+        summary_matches
+            && summary.eligible_case_count == cases.len()
+            && variable == forecast_cases.first().map(|case| case.variable.as_str()).unwrap_or("")
+            && unit == forecast_cases.first().map(|case| case.unit.as_str()).unwrap_or("")
+            && Some(horizon) == forecast_cases.first().map(|case| case.horizon_days),
+        format!(
+            "eligible={}; forecasts={}; abstained={}; coverage={}; mean_crps={:?}; paired_baseline={:?}; crps_skill={:?}",
+            summary.eligible_case_count,
+            summary.forecast_case_count,
+            summary.abstained_case_count,
+            summary.forecast_coverage_fraction,
+            summary.mean_model_crps,
+            summary.mean_baseline_crps_paired,
+            summary.crps_skill_score
+        ),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let calibration = string_at(execution, &["probabilistic_calibration"])?;
+    let ecological_skill = string_at(execution, &["ecological_forecast_skill"])?;
+    let blind = string_at(execution, &["blind_evaluation"])?;
+    push_check(
+        &mut checks,
+        "FORECAST-SYNTHETIC-CLAIM-BOUNDARY-001",
+        runner == "EMPIRICAL_ENSEMBLE_CRPS_AND_SELECTIVE_COVERAGE"
+            && !external
+            && calibration == "NOT_ESTABLISHED"
+            && ecological_skill == "NOT_ESTABLISHED"
+            && blind == "NOT_CREATED",
+        "synthetic empirical-ensemble scoring only; no calibration, ecological skill or blind evaluation is claimed",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| json!({
+            "id": check.id,
+            "passed": check.passed,
+            "detail": check.detail
+        }))
+        .collect();
+    let forecast_rows: Vec<Value> = forecast_cases
+        .iter()
+        .map(|case| {
+            let score = forecast_kernel::score_forecast_case(case);
+            match score {
+                Ok(score) => json!({
+                    "forecast_id": case.forecast_id,
+                    "model_crps": score.model_crps,
+                    "baseline_crps": score.baseline_crps,
+                    "model_mean": score.model_mean,
+                    "absolute_error": score.absolute_error,
+                    "median": score.median,
+                    "lower_50": score.lower_50,
+                    "upper_50": score.upper_50,
+                    "lower_80": score.lower_80,
+                    "upper_80": score.upper_80,
+                    "lower_95": score.lower_95,
+                    "upper_95": score.upper_95
+                }),
+                Err(error) => json!({"forecast_id": case.forecast_id, "error": error.to_string()}),
+            }
+        })
+        .collect();
+
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_FORECAST_SCORING" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "summary": summary,
+        "forecast_scores": forecast_rows,
+        "probabilistic_calibration": "NOT_ESTABLISHED",
+        "ecological_forecast_skill": "NOT_ESTABLISHED",
+        "external_data_ingested": false
+    }))
+}
 
 fn validate_executable_model_set_corpus(
     raw: &[u8],
@@ -2445,6 +2672,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return validate_consilience_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-PROBABILISTIC-FORECAST-SCORING-001")
+    {
+        return validate_probabilistic_forecast_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-KNOWN-TRUTH-DIAGNOSTICS-001")
     {
         return validate_executable_model_set_corpus(raw, &manifest);
@@ -2788,6 +3020,8 @@ mod tests {
         include_str!("../../cases/forest-model-set-adequacy-development-v0.1.json");
     const EXECUTABLE_MODEL_SET_FIXTURE: &str =
         include_str!("../../cases/forest-model-set-known-truth-diagnostics-synthetic-v0.1.json");
+    const FORECAST_SCORING_FIXTURE: &str =
+        include_str!("../../cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json");
     const DECISION_VALUE_FIXTURE: &str =
         include_str!("../../cases/forest-decision-value-development-v0.1.json");
     const OBSERVATION_ADMISSION_FIXTURE: &str =
@@ -3042,6 +3276,40 @@ mod tests {
 
 
 
+
+
+    #[test]
+    fn forecast_scoring_corpus_matches_crps_skill_intervals_and_abstention() {
+        let receipt = evaluate(FORECAST_SCORING_FIXTURE.as_bytes())
+            .expect("forecast scoring corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORECAST_SCORING");
+        assert_eq!(receipt["summary"]["eligible_case_count"], 6);
+        assert_eq!(receipt["summary"]["forecast_case_count"], 5);
+        assert_eq!(receipt["summary"]["abstained_case_count"], 1);
+        assert_eq!(receipt["summary"]["disposition"], "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE");
+        assert_eq!(receipt["probabilistic_calibration"], "NOT_ESTABLISHED");
+        assert_eq!(receipt["ecological_forecast_skill"], "NOT_ESTABLISHED");
+    }
+
+    #[test]
+    fn forecast_scoring_corpus_rejects_skill_oracle_mutation() {
+        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
+            .expect("valid forecast scoring corpus");
+        manifest["expected_summary"]["crps_skill_score"] = json!(0.99);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated forecast corpus");
+        let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn forecast_scoring_corpus_rejects_abstention_coverage_mutation() {
+        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
+            .expect("valid forecast scoring corpus");
+        manifest["expected_summary"]["forecast_coverage_fraction"] = json!(1.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated forecast corpus");
+        let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn executable_model_set_corpus_runs_five_known_truth_counterexamples() {
