@@ -1,6 +1,6 @@
 use metric_induced_error_envelope_reference::{
-    ConstraintMultiplierV1, ConstraintQuotientProfileV1, ConstraintResidualStatusV1,
-    ConstraintResidualV1, CartesianQ, CoordinateFrame, Metric, MetricProfileV1,
+    CartesianQ, ConstraintMultiplierV1, ConstraintQuotientProfileV1, ConstraintResidualStatusV1,
+    ConstraintResidualV1, CoordinateFrame, Metric, MetricProfileV1,
     RankDeficientDelassusQuotientV1,
 };
 
@@ -15,22 +15,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
         metric_profile,
     )?;
-    let residual_metric =
-        Metric::<ConstraintRows, 3>::admit(
-            [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
-            metric_profile,
-        )?;
+    let residual_metric = Metric::<ConstraintRows, 3>::admit(
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+        metric_profile,
+    )?;
     let jacobian = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 0.0, 1.0]];
-    let quotient = RankDeficientDelassusQuotientV1::<
-        CartesianQ,
-        ConstraintRows,
-        3,
-        3,
-    >::new(&mass, jacobian, &residual_metric, quotient_profile)?;
+    let quotient = RankDeficientDelassusQuotientV1::<CartesianQ, ConstraintRows, 3, 3>::new(
+        &mass,
+        jacobian,
+        &residual_metric,
+        quotient_profile,
+    )?;
 
     let compatible = ConstraintResidualV1::<ConstraintRows, 3>::new([0.4, -0.7, 0.4])?;
-    let incompatible =
-        ConstraintResidualV1::<ConstraintRows, 3>::new([0.4, -0.7, 0.41])?;
+    let incompatible = ConstraintResidualV1::<ConstraintRows, 3>::new([0.4, -0.7, 0.41])?;
     let accepted = quotient.solve_residual(&compatible)?;
     let rejected = quotient.solve_residual(&incompatible)?;
 
@@ -41,7 +39,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         accepted.status(),
         accepted.compatibility_relative_defect(),
         accepted.residual_dual_norm().unwrap_or(f64::NAN),
-        accepted.minimum_kinetic_correction_norm().unwrap_or(f64::NAN),
+        accepted
+            .minimum_kinetic_correction_norm()
+            .unwrap_or(f64::NAN),
     );
     println!(
         "incompatible_status={:?},incompatible_defect={:.8e},correction_authorized={}",
@@ -51,8 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let lambda = ConstraintMultiplierV1::<ConstraintRows, 3>::new([0.5, -0.75, 1.25])?;
-    let shifted =
-        ConstraintMultiplierV1::<ConstraintRows, 3>::new([3.5, -0.75, -1.75])?;
+    let shifted = ConstraintMultiplierV1::<ConstraintRows, 3>::new([3.5, -0.75, -1.75])?;
     println!(
         "multiplier_quotient_norm={:.12e},null_shifted_norm={:.12e}",
         quotient.multiplier_quotient_norm(&lambda)?,
