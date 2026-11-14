@@ -5,68 +5,462 @@
   "description": "Untrusted wire format. Implementations must deserialize to a wire DTO and validate through constructors before use.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "document_id", "revision_id", "objects", "relationships", "extensions"],
+  "required": [
+    "schema_version",
+    "document_id",
+    "revision_id",
+    "objects",
+    "relationships",
+    "extensions"
+  ],
   "properties": {
     "schema_version": {
-      "type": "object", "additionalProperties": false,
-      "required": ["major", "minor", "patch"],
-      "properties": { "major": { "const": 0 }, "minor": { "enum": [0, 1, 2] }, "patch": { "type": "integer", "minimum": 0 } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "properties": {
+        "major": {
+          "const": 0
+        },
+        "minor": {
+          "const": 2
+        },
+        "patch": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     },
-    "document_id": { "type": "string", "minLength": 1 },
-    "revision_id": { "type": "string", "minLength": 1 },
-    "objects": { "type": "array", "items": { "$ref": "#/$defs/object" } },
-    "relationships": { "type": "array", "items": { "$ref": "#/$defs/relationship" } },
-    "extensions": { "type": "array", "items": { "$ref": "#/$defs/extension" } }
+    "document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/object"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relationship"
+      }
+    },
+    "extensions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/extension"
+      }
+    }
   },
   "$defs": {
     "namespaced_type": {
-      "type": "object", "additionalProperties": false, "required": ["namespace", "local_name"],
-      "properties": { "namespace": { "type": "string", "minLength": 1 }, "local_name": { "type": "string", "minLength": 1 } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "local_name"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "local_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "provenance": {
-      "type": "object", "additionalProperties": false, "required": ["source_id", "evidence_id", "recorded_at"],
-      "properties": { "source_id": { "type": "string", "minLength": 1 }, "evidence_id": { "type": ["string", "null"], "minLength": 1 }, "recorded_at": { "type": ["string", "null"], "minLength": 1 } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "property_value": {
       "oneOf": [
-        { "type": "object", "additionalProperties": false, "required": ["type", "value"], "properties": { "type": { "const": "text" }, "value": { "type": "string", "minLength": 1 } } },
-        { "type": "object", "additionalProperties": false, "required": ["type", "value"], "properties": { "type": { "const": "boolean" }, "value": { "type": "boolean" } } },
-        { "type": "object", "additionalProperties": false, "required": ["type", "value"], "properties": { "type": { "const": "integer" }, "value": { "type": "integer" } } },
-        { "type": "object", "additionalProperties": false, "required": ["type", "lexical", "unit"], "properties": { "type": { "const": "decimal" }, "lexical": { "type": "string", "minLength": 1 }, "unit": { "type": ["string", "null"], "minLength": 1 } } },
-        { "type": "object", "additionalProperties": false, "required": ["type", "namespace", "value"], "properties": { "type": { "const": "identifier" }, "namespace": { "type": "string", "minLength": 1 }, "value": { "type": "string", "minLength": 1 } } }
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "text"
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "boolean"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "integer"
+            },
+            "value": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "lexical"
+          ],
+          "properties": {
+            "type": {
+              "const": "decimal"
+            },
+            "lexical": {
+              "type": "string",
+              "minLength": 1
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "namespace",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "const": "identifier"
+            },
+            "namespace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
       ]
     },
     "claim_state": {
       "oneOf": [
-        { "type": "object", "additionalProperties": false, "required": ["state", "value"], "properties": { "state": { "const": "value" }, "value": { "$ref": "#/$defs/property_value" } } },
-        { "type": "object", "additionalProperties": false, "required": ["state"], "properties": { "state": { "enum": ["unknown", "unavailable", "not_applicable"] } } },
-        { "type": "object", "additionalProperties": false, "required": ["state", "value"], "properties": { "state": { "const": "contradictory" }, "value": { "type": "object", "additionalProperties": false, "required": ["conflicting_claim_ids"], "properties": { "conflicting_claim_ids": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } } } } }
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "value"
+          ],
+          "properties": {
+            "state": {
+              "const": "value"
+            },
+            "value": {
+              "$ref": "#/$defs/property_value"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "unknown",
+                "unavailable",
+                "not_applicable"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "value"
+          ],
+          "properties": {
+            "state": {
+              "const": "contradictory"
+            },
+            "value": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "conflicting_claim_ids"
+              ],
+              "properties": {
+                "conflicting_claim_ids": {
+                  "type": "array",
+                  "minItems": 2,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "claim": {
-      "type": "object", "additionalProperties": false, "required": ["claim_id", "property_id", "domain", "state", "provenance"],
-      "properties": { "claim_id": { "type": "string", "minLength": 1 }, "property_id": { "type": "string", "minLength": 1 }, "domain": { "enum": ["design_intent", "declared", "observed", "verified"] }, "state": { "$ref": "#/$defs/claim_state" }, "provenance": { "$ref": "#/$defs/provenance" } }
-    },
-    "object": {
-      "type": "object", "additionalProperties": false, "required": ["stable_id", "external_identifiers", "kind", "claims"],
-      "properties": { "stable_id": { "type": "string", "minLength": 1 }, "external_identifiers": { "type": "object", "additionalProperties": { "type": "string", "minLength": 1 } }, "kind": { "$ref": "#/$defs/namespaced_type" }, "claims": { "type": "array", "items": { "$ref": "#/$defs/claim" } } }
-    },
-    "relationship": {
-      "type": "object", "additionalProperties": false, "required": ["relationship_id", "from_object_id", "to_object_id", "kind", "direction", "domain", "provenance"],
-      "properties": { "relationship_id": { "type": "string", "minLength": 1 }, "from_object_id": { "type": "string", "minLength": 1 }, "to_object_id": { "type": "string", "minLength": 1 }, "kind": { "$ref": "#/$defs/namespaced_type" }, "direction": { "enum": ["directed", "undirected"] }, "domain": { "enum": ["design_intent", "declared", "observed", "verified"] }, "provenance": { "$ref": "#/$defs/provenance" } }
-    },
-    "extension": {
-      "type": "object", "additionalProperties": false, "required": ["extension_id", "namespace", "media_type", "owner", "payload"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "property_id",
+        "domain",
+        "state",
+        "provenance"
+      ],
       "properties": {
-        "extension_id": { "type": "string", "minLength": 1 }, "namespace": { "type": "string", "minLength": 1 }, "media_type": { "type": "string", "minLength": 1 },
-        "owner": {
-          "oneOf": [
-            { "type": "object", "additionalProperties": false, "required": ["scope"], "properties": { "scope": { "const": "document" } } },
-            { "type": "object", "additionalProperties": false, "required": ["scope", "object_id"], "properties": { "scope": { "const": "object" }, "object_id": { "type": "string", "minLength": 1 } } },
-            { "type": "object", "additionalProperties": false, "required": ["scope", "relationship_id"], "properties": { "scope": { "const": "relationship" }, "relationship_id": { "type": "string", "minLength": 1 } } }
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "property_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "enum": [
+            "design_intent",
+            "declared",
+            "observed",
+            "verified"
           ]
         },
-        "payload": { "type": "string" }
+        "state": {
+          "$ref": "#/$defs/claim_state"
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_id",
+        "external_identifiers",
+        "kind",
+        "claims"
+      ],
+      "properties": {
+        "stable_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_identifiers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "kind": {
+          "$ref": "#/$defs/namespaced_type"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claim"
+          }
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationship_id",
+        "from_object_id",
+        "to_object_id",
+        "kind",
+        "direction",
+        "domain",
+        "provenance"
+      ],
+      "properties": {
+        "relationship_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/namespaced_type"
+        },
+        "direction": {
+          "enum": [
+            "directed",
+            "undirected"
+          ]
+        },
+        "domain": {
+          "enum": [
+            "design_intent",
+            "declared",
+            "observed",
+            "verified"
+          ]
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        }
+      }
+    },
+    "extension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extension_id",
+        "namespace",
+        "media_type",
+        "owner",
+        "payload"
+      ],
+      "properties": {
+        "extension_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "const": "document"
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scope",
+                "object_id"
+              ],
+              "properties": {
+                "scope": {
+                  "const": "object"
+                },
+                "object_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scope",
+                "relationship_id"
+              ],
+              "properties": {
+                "scope": {
+                  "const": "relationship"
+                },
+                "relationship_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        },
+        "payload": {
+          "type": "string"
+        }
       }
     }
   }

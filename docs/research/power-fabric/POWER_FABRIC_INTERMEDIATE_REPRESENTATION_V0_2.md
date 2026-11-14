@@ -28,7 +28,7 @@ The Power Fabric IR is a composition and evidence layer, not a competing electri
 
 ## 3. Version and migration policy
 
-The first implementation supports schema major 0 and minor versions up to 2. Unsupported major/minor versions fail closed. An adapter must not silently reinterpret an older schema with newer semantics.
+The first implementation supports schema major 0, minor 2, with any non-negative patch version. Unsupported major/minor versions fail closed. An adapter must not silently reinterpret an older schema with newer semantics.
 
 A migration is a separate transformation that emits source and destination schema versions, input identity, mapping/adapter version, preserved and changed object identities, unresolved and explicitly lossy fields, diagnostics, and output revision identity. Historical source artifacts are immutable; migration creates a new revision linked to its parent.
 

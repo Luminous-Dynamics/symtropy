@@ -8,7 +8,7 @@
 //! or safety certification. Wire DTOs deserialize separately and must pass
 //! validated constructors before becoming trusted IR values.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use std::collections::{BTreeMap, BTreeSet};
 
 const SUPPORTED_SCHEMA_MAJOR: u16 = 0;
@@ -23,7 +23,7 @@ pub struct IrSchemaVersion {
 
 impl IrSchemaVersion {
     pub fn new(major: u16, minor: u16, patch: u16) -> Result<Self, IrError> {
-        if major != SUPPORTED_SCHEMA_MAJOR || minor > SUPPORTED_SCHEMA_MINOR {
+        if major != SUPPORTED_SCHEMA_MAJOR || minor != SUPPORTED_SCHEMA_MINOR {
             return Err(IrError::UnsupportedSchemaVersion { major, minor });
         }
         Ok(Self { major, minor, patch })
@@ -222,6 +222,7 @@ impl PropertyClaim {
 pub struct IrObject {
     identity: ObjectIdentity,
     kind: NamespacedType,
+    #[serde(serialize_with = "serialize_map_values")]
     claims: BTreeMap<String, PropertyClaim>,
 }
 
@@ -236,6 +237,24 @@ impl IrObject {
             let id = claim.claim_id.clone();
             if by_id.insert(id.clone(), claim).is_some() {
                 return Err(IrError::DuplicateClaimId { claim_id: id });
+            }
+        }
+        for claim in by_id.values() {
+            if let ClaimState::Contradictory { conflicting_claim_ids } = &claim.state {
+                for conflicting_id in conflicting_claim_ids {
+                    let Some(conflicting) = by_id.get(conflicting_id) else {
+                        return Err(IrError::InvalidContradictionReference {
+                            claim_id: claim.claim_id.clone(),
+                            conflicting_claim_id: conflicting_id.clone(),
+                        });
+                    };
+                    if conflicting.property_id != claim.property_id {
+                        return Err(IrError::InvalidContradictionReference {
+                            claim_id: claim.claim_id.clone(),
+                            conflicting_claim_id: conflicting_id.clone(),
+                        });
+                    }
+                }
             }
         }
         Ok(Self { identity, kind, claims: by_id })
@@ -352,8 +371,11 @@ pub struct PowerFabricDocument {
     schema_version: IrSchemaVersion,
     document_id: String,
     revision_id: String,
+    #[serde(serialize_with = "serialize_map_values")]
     objects: BTreeMap<String, IrObject>,
+    #[serde(serialize_with = "serialize_map_values")]
     relationships: BTreeMap<String, IrRelationship>,
+    #[serde(serialize_with = "serialize_map_values")]
     extensions: BTreeMap<String, OpaqueExtension>,
 }
 
@@ -625,6 +647,7 @@ pub enum IrError {
     UnexpectedEvidenceForUnknownClaim,
     EvidenceRequiredForDomain { domain: ClaimDomain },
     InvalidContradiction,
+    InvalidContradictionReference { claim_id: String, conflicting_claim_id: String },
     DuplicateObjectId { object_id: String },
     DuplicateRelationshipId { relationship_id: String },
     DuplicateClaimId { claim_id: String },
@@ -638,6 +661,18 @@ impl core::fmt::Display for IrError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result { write!(f, "{self:?}") }
 }
 impl std::error::Error for IrError {}
+
+fn serialize_map_values<K, V, S>(
+    values: &BTreeMap<K, V>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    K: Ord,
+    V: Serialize,
+    S: Serializer,
+{
+    values.values().collect::<Vec<_>>().serialize(serializer)
+}
 
 fn require_non_empty(field: &'static str, value: &str) -> Result<(), IrError> {
     if value.trim().is_empty() { return Err(IrError::EmptyField { field }); }
@@ -744,6 +779,39 @@ mod tests {
         assert_eq!(asset.claims_for_property("nominal_voltage").count(), 2);
         assert_eq!(asset.claims()["design-1"].domain(), ClaimDomain::DesignIntent);
         assert_eq!(asset.claims()["declared-1"].domain(), ClaimDomain::Declared);
+    }
+
+
+    #[test]
+    fn contradictory_references_must_resolve_to_same_property_on_same_object() {
+        let p = provenance(ClaimDomain::Declared);
+        let first = PropertyClaim::new(
+            "claim:a", "nominal_voltage", ClaimDomain::Declared,
+            ClaimState::Value(PropertyValue::Decimal { lexical: "230".into(), unit: Some("V".into()) }),
+            p.clone()
+        ).unwrap();
+        let second = PropertyClaim::new(
+            "claim:b", "nominal_voltage", ClaimDomain::Declared,
+            ClaimState::Value(PropertyValue::Decimal { lexical: "240".into(), unit: Some("V".into()) }),
+            p.clone()
+        ).unwrap();
+        let contradiction = PropertyClaim::new(
+            "claim:c", "nominal_voltage", ClaimDomain::Declared,
+            ClaimState::Contradictory { conflicting_claim_ids: vec!["claim:a".into(), "claim:b".into()] },
+            p
+        ).unwrap();
+        assert!(IrObject::new(identity("asset:1"), kind("asset"),
+            vec![first, second, contradiction]).is_ok());
+
+        let missing = PropertyClaim::new(
+            "claim:d", "nominal_voltage", ClaimDomain::Declared,
+            ClaimState::Contradictory { conflicting_claim_ids: vec!["missing:a".into(), "missing:b".into()] },
+            provenance(ClaimDomain::Declared)
+        ).unwrap();
+        assert!(matches!(
+            IrObject::new(identity("asset:2"), kind("asset"), vec![missing]),
+            Err(IrError::InvalidContradictionReference { .. })
+        ));
     }
 
     #[test]
