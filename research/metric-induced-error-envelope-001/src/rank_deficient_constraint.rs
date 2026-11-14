@@ -402,6 +402,8 @@ pub struct RankDeficientDelassusQuotientV1<
     dual_range_basis: [[f64; K]; K],
     reduced_cholesky: [[f64; K]; K],
     rank: usize,
+    rank_resolved: bool,
+    unresolved_relative_pivot: Option<f64>,
     profile: ConstraintQuotientProfileV1,
     receipt: ConstraintQuotientAdmissionReceiptV1,
     _spaces: PhantomData<(Frame, Space)>,
@@ -442,12 +444,18 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             }
         }
 
-        let (range_basis, rank, orthogonality_defect) =
-            build_h_orthonormal_range_basis(
-                &jacobian,
-                residual_metric,
-                profile.relative_rank_tolerance,
-            )?;
+        let (
+            range_basis,
+            rank,
+            orthogonality_defect,
+            rank_resolved,
+            unresolved_relative_pivot,
+        ) = build_h_orthonormal_range_basis(
+            &jacobian,
+            residual_metric,
+            profile.relative_rank_tolerance,
+            profile.rank_uncertainty_factor,
+        )?;
 
         // H U is the dual basis. In these coordinates the reduced quotient
         // operator K_r = U^T H W H U is positive definite on range(W).
@@ -494,10 +502,14 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             dual_range_basis,
             reduced_cholesky,
             rank,
+            rank_resolved,
+            unresolved_relative_pivot,
             profile,
             receipt: ConstraintQuotientAdmissionReceiptV1 {
                 numerical_rank: rank,
                 multiplier_nullity: K - rank,
+                rank_resolved,
+                unresolved_relative_pivot,
                 maximum_residual_basis_orthogonality_defect: orthogonality_defect,
                 minimum_reduced_cholesky_pivot: minimum_pivot,
                 residual_metric: residual_metric.admission_receipt().into(),
@@ -544,6 +556,13 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
     {
         let residual_components = *residual.components();
         let residual_norm = h_norm(&self.residual_metric, &residual_components)?;
+        if !self.rank_resolved {
+            return Ok(self.empty_receipt(
+                ConstraintResidualStatusV1::Inconclusive,
+                0.0,
+                f64::INFINITY,
+            ));
+        }
 
         // H-orthogonal projection onto range(W)=range(J).
         let mut coefficients = [0.0; K];
@@ -711,6 +730,7 @@ mod tests {
     fn quotient_profile() -> ConstraintQuotientProfileV1 {
         ConstraintQuotientProfileV1 {
             relative_rank_tolerance: 1.0e-10,
+            rank_uncertainty_factor: 10.0,
             relative_compatibility_tolerance: 1.0e-9,
             relative_reduced_pivot_tolerance: 1.0e-12,
         }
