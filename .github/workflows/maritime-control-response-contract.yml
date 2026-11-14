@@ -62,6 +62,9 @@ jobs:
             (.event_evaluation.alarm_debounce.positive_run_must_not_bridge_unobserved_gap == true) and
             (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10) and
             (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
+            (.event_evaluation.temporal_uncertainty_status == "point_annotations_not_yet_interval_qualified") and
+            (.event_evaluation.physical_latency_precision_claim_allowed == false) and
+            (.event_evaluation.required_before_latency_precision_claim | length == 4) and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.status == "protocol_only_not_executed") and
             (.shift_matrix.axes | length == 6) and
@@ -85,6 +88,12 @@ jobs:
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.status == "protocol_only_not_executed") and
             (.streaming_contract.one_sample_one_output == true) and
+            (.streaming_contract.bounded_time_intervals == true) and
+            (.streaming_contract.timebase_identity_bound == true) and
+            (.streaming_contract.overlap_rejected_before_model == true) and
+            (.streaming_contract.timebase_qualification_sha256_bound == true) and
+            (.streaming_contract.timestamp_uncertainty_is_not_clock_sync == true) and
+            (.streaming_contract.temporal_contract_version == "bounded-event-time-v0.1") and
             (.streaming_contract.historical_output_mutation == false) and
             (.streaming_contract.rust_core_direct_submission_compatible == false) and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
@@ -165,7 +174,12 @@ jobs:
           set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
+            .temporal_contract_version == "bounded-event-time-v0.1" and
             .status == "protocol_only_not_executed" and
+            (.stream_invariants.temporal_order | contains("strictly later")) and
+            (.stream_invariants.timebase_identity | contains("qualification SHA-256")) and
+            ([.receipt.fields[]] | index("timestamp_uncertainty_seconds") != null) and
+            ([.receipt.fields[]] | index("timebase_qualification_sha256") != null) and
             (.interface.historical_output_mutation == false) and
             (.stream_invariants.sample_sequence | contains("contiguous")) and
             (.competition_adapter.adapter_status == "not_implemented") and
