@@ -12,7 +12,7 @@ Stacked dependency order:
 
 ## Implemented v0.1
 
-- Declares observation actions with coverage-profile and calibration references, regions, a space-time access envelope, duration, crew time, cost and energy.
+- Declares observation actions with coverage-profile and calibration references, regions, a space-time access envelope, duration, crew time, integer minor-unit cost with an explicit currency code, and energy.
 - Selects one targeted observation using a deterministic lexicographic rule: maximize currently blocked work units covered, then minimize crew minutes, cost, duration and action ID.
 - Uses the existing space-time occupancy owner to reject or report access conflicts and stale site/design/frame context; no geometry checker is duplicated.
 - Keeps hidden scenario truth in a separate scenario oracle, never in the planner's selection inputs.
@@ -33,7 +33,7 @@ cargo clippy --manifest-path research/construction-observation-planning-v0-1/Car
 
 ## Interpretation
 
-The scenario oracle supplies explicit no-observation and residual-loss figures for a frozen synthetic case. They are scenario inputs, not probability-weighted estimates, sensor detection rates or project cost estimates. A positive VOI is useful only within that declared case; negative VOI is a valid result.
+The scenario oracle supplies explicit no-observation and residual-loss figures plus a currency code for a frozen synthetic case. They are scenario inputs, not probability-weighted estimates, sensor detection rates or project cost estimates. A positive VOI is useful only within that declared case; negative VOI is a valid result.
 
 This adapter records references and consumes the occupancy index. It does not compute coverage, verify calibration, authenticate evidence, update survey adjustments or authorize work. Only qualified external observation/acceptance owners can establish those facts.
 
