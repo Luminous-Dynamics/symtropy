@@ -287,6 +287,21 @@ const EVENTS: [Event; 21] = [
     // The stand release is represented as the terminal event in a companion assertion.
 ];
 
+
+fn all_events() -> Vec<Event> {
+    let mut events = EVENTS.to_vec();
+    events.push(Event {
+        event_id: "event-c-stand-release",
+        aircraft_id: "aircraft-c",
+        resource_id: "stand-1",
+        kind: EventKind::Release,
+        tick: 28,
+        predecessor: Some("event-c-stand-acquire"),
+        blocker_aircraft_id: None,
+    });
+    events
+}
+
 #[test]
 fn frozen_json_fixture_identity_and_expected_metrics_are_bound() {
     assert!(GOLDEN_FIXTURE.contains("AW-AB-TINY-001"));
@@ -346,18 +361,8 @@ fn blocking_holding_energy_and_arrival_delay_match_golden_values() {
 
 #[test]
 fn every_reservation_has_matching_resource_acquire_and_release_events() {
-    // A terminal stand-release event is appended separately so the event list
-    // remains an exact one-to-one representation of every reservation.
-    let mut events = EVENTS.to_vec();
-    events.push(Event {
-        event_id: "event-c-stand-release",
-        aircraft_id: "aircraft-c",
-        resource_id: "stand-1",
-        kind: EventKind::Release,
-        tick: 28,
-        predecessor: Some("event-c-stand-acquire"),
-        blocker_aircraft_id: None,
-    });
+    // The terminal stand release completes the one-to-one event manifest.
+    let events = all_events();
     audit_causality(&events).expect("terminal release must have a valid predecessor");
     audit_reservation_events(&RESERVATIONS, &events)
         .expect("each reservation must have exactly one matching acquisition and release");
@@ -446,6 +451,78 @@ fn unknown_resources_invalid_intervals_and_duplicate_capacities_fail_closed() {
     );
 }
 
+
+#[test]
+fn duplicate_resource_reservations_are_rejected_even_with_extra_capacity() {
+    let duplicate = [
+        Reservation {
+            aircraft_id: "aircraft-x",
+            resource_id: "tlof-1",
+            start_tick: 0,
+            end_tick: 1,
+        },
+        Reservation {
+            aircraft_id: "aircraft-x",
+            resource_id: "tlof-1",
+            start_tick: 0,
+            end_tick: 1,
+        },
+    ];
+    let events = [
+        Event {
+            event_id: "acquire-x",
+            aircraft_id: "aircraft-x",
+            resource_id: "tlof-1",
+            kind: EventKind::Acquire,
+            tick: 0,
+            predecessor: None,
+            blocker_aircraft_id: None,
+        },
+        Event {
+            event_id: "release-x",
+            aircraft_id: "aircraft-x",
+            resource_id: "tlof-1",
+            kind: EventKind::Release,
+            tick: 1,
+            predecessor: Some("acquire-x"),
+            blocker_aircraft_id: None,
+        },
+    ];
+    assert!(audit_capacities(
+        &duplicate,
+        &[ResourceCapacity {
+            resource_id: "tlof-1",
+            capacity: 2,
+        }]
+    ).is_ok());
+    assert_eq!(
+        audit_reservation_events(&duplicate, &events),
+        Err(AuditError::DuplicateReservation)
+    );
+}
+
+#[test]
+fn event_and_reservation_input_order_does_not_change_semantic_audit() {
+    let events = all_events();
+    let baseline = (
+        audit_capacities(&RESERVATIONS, &CAPACITIES),
+        audit_reservation_events(&RESERVATIONS, &events),
+        audit_causality(&events),
+    );
+
+    let mut reservations_permuted = RESERVATIONS.to_vec();
+    reservations_permuted.reverse();
+    let mut events_permuted = events;
+    events_permuted.reverse();
+
+    let permuted = (
+        audit_capacities(&reservations_permuted, &CAPACITIES),
+        audit_reservation_events(&reservations_permuted, &events_permuted),
+        audit_causality(&events_permuted),
+    );
+    assert_eq!(baseline, permuted);
+}
+
 #[test]
 fn missing_blocker_or_future_causal_predecessor_is_rejected() {
     let mut events = EVENTS.to_vec();
@@ -481,6 +558,31 @@ fn missing_blocker_or_future_causal_predecessor_is_rejected() {
     ];
     assert_eq!(
         audit_causality(&invalid_cause),
+        Err(AuditError::CausalityViolation)
+    );
+
+    let same_tick_cycle = [
+        Event {
+            event_id: "cycle-a",
+            aircraft_id: "aircraft-a",
+            resource_id: "tlof-1",
+            kind: EventKind::ServiceComplete,
+            tick: 5,
+            predecessor: Some("cycle-b"),
+            blocker_aircraft_id: None,
+        },
+        Event {
+            event_id: "cycle-b",
+            aircraft_id: "aircraft-a",
+            resource_id: "tlof-1",
+            kind: EventKind::Release,
+            tick: 5,
+            predecessor: Some("cycle-a"),
+            blocker_aircraft_id: None,
+        },
+    ];
+    assert_eq!(
+        audit_causality(&same_tick_cycle),
         Err(AuditError::CausalityViolation)
     );
 }
