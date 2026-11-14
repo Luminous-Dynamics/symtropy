@@ -3,13 +3,13 @@ name: Construction Production Optioneering v0.1
 on:
   pull_request:
     branches:
-      - "research/construction-observation-planning-v0-1"
+      - "research/construction-observation-planning-time-index-stack-v0-1"
     paths:
       - "research/construction-production-optioneering-v0-1/**"
       - ".github/workflows/construction-production-optioneering-v0-1.yml"
   push:
     branches:
-      - "research/construction-production-optioneering-v0-1"
+      - "research/construction-production-optioneering-time-index-stack-v0-1"
     paths:
       - "research/construction-production-optioneering-v0-1/**"
       - ".github/workflows/construction-production-optioneering-v0-1.yml"
