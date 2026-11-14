@@ -1,0 +1,14 @@
+[package]
+name = "solar-thermal-kernel"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Standalone dependency-free solar capture and sensible thermal storage research kernel"
+
+# Deliberately isolated while equations and verification receive review.
+[workspace]
+
+[lib]
+path = "src/lib.rs"
