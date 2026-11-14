@@ -34,6 +34,18 @@ For a radially aligned body with feet outward, this version computes head, centr
 
 Rotational kinetic energy is ½ Iω²: stored spin-up energy, **not** continuous operating power. Bearing losses, utility transfer, thermal management, control, spin duty, and regenerative recovery must be measured separately.
 
+## Linear-acceleration reference class
+
+For a uniformly accelerating vehicle frame, the local apparent-acceleration vector is the negative of the frame acceleration:
+
+\`\`\`text
+a_apparent = -a_frame
+\`\`\`
+
+The Rust reference function translating_frame_apparent_acceleration tests this sign convention. This is the local kinematic equivalence-principle baseline. It does not model propulsion, propellant, trajectory, finite vehicle geometry, tidal curvature, or a global gravity field.
+
+Rotation-generated and acceleration-generated environments should be compared as different system architectures under matched mission duration, useful volume, crew/cargo, trajectory, delivered propellant/energy, propulsion duty, thermal rejection, abort modes, and safety requirements. A sustained-thrust trajectory cannot be ranked against a rotating habitat using only its nominal g-value.
+
 ## First design-space oracle
 
 Ideal radii in metres using standard gravity:
