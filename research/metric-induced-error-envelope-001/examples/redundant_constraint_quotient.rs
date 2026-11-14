@@ -23,14 +23,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let jacobian = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 0.0, 1.0]];
     let quotient = RankDeficientDelassusQuotientV1::<
         CartesianQ,
-        OldConstraintSpace,
+        ConstraintRows,
         3,
         3,
     >::new(&mass, jacobian, &residual_metric, quotient_profile)?;
 
     let compatible = ConstraintResidualV1::<ConstraintRows, 3>::new([0.4, -0.7, 0.4])?;
     let incompatible =
-        ConstraintResidualV1::<OldConstraintSpace, 3>::new([0.4, -0.7, 0.41])?;
+        ConstraintResidualV1::<ConstraintRows, 3>::new([0.4, -0.7, 0.41])?;
     let accepted = quotient.solve_residual(&compatible)?;
     let rejected = quotient.solve_residual(&incompatible)?;
 
@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let lambda = ConstraintMultiplierV1::<ConstraintRows, 3>::new([0.5, -0.75, 1.25])?;
     let shifted =
-        ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([3.5, -0.75, -1.75])?;
+        ConstraintMultiplierV1::<ConstraintRows, 3>::new([3.5, -0.75, -1.75])?;
     println!(
         "multiplier_quotient_norm={:.12e},null_shifted_norm={:.12e}",
         quotient.multiplier_quotient_norm(&lambda)?,
