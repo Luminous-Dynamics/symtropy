@@ -18,6 +18,7 @@ use symtropy_sensor_observability_bench::{
 
 const VERSION: &str = "0.1.0";
 const KERNEL_REV: &str = "3c4a86de830a24bbf97c7d7fe30d79de299999c5";
+#[cfg(test)]
 const FIXTURE: &str = include_str!("../../../../benchmarks/maritime-observability/pairwise-observability-case.v0.1.json");
 
 type Errors = Vec<Value>;
