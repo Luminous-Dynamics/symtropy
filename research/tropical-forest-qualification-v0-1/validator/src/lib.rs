@@ -887,7 +887,7 @@ mod tests {
     #[test]
     fn canopy_duplicate_coordinate_is_rejected() {
         let mut manifest: Value = serde_json::from_str(CANOPY_FIXTURE).expect("valid canopy fixture");
-        let duplicate = manifest["arrangements"][0]["open_coordinates"][0].clone();
+        let duplicate = manifest["arrangements"][0]["occupied_coordinates"][0].clone();
         manifest["arrangements"][0]["occupied_coordinates"]
             .as_array_mut().unwrap().push(duplicate);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated canopy fixture");
