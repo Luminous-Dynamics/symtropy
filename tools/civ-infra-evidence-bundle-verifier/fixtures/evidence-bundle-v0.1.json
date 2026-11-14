@@ -1,0 +1,37 @@
+{
+  "schema_version": "civ-infra-evidence-bundle/v0.1",
+  "bundle_id": "synthetic-bridge-evidence-bundle-v0.1",
+  "artifacts": [
+    {
+      "artifact_id": "case-input-001",
+      "role": "case_input",
+      "relative_path": "cases/case-input.json",
+      "expected_byte_len": 68,
+      "expected_sha256": "1becfb9277e9d10bec786803449ac50ae41dd1bfdc9bd0554486810583791778",
+      "producer": "synthetic-fixture-generator",
+      "version": "0.1",
+      "applicability_domain_id": "synthetic-only"
+    },
+    {
+      "artifact_id": "model-artifact-001",
+      "role": "model_artifact",
+      "relative_path": "models/model-artifact.json",
+      "expected_byte_len": 86,
+      "expected_sha256": "b915d643620bdd9fc53ee6afb495152e5973579100381e72cd75ebdfaca83fb8",
+      "producer": "synthetic-fixture-generator",
+      "version": "0.1",
+      "applicability_domain_id": "synthetic-only"
+    },
+    {
+      "artifact_id": "reference-artifact-001",
+      "role": "reference_artifact",
+      "relative_path": "references/reference-observation.json",
+      "expected_byte_len": 77,
+      "expected_sha256": "63861ca8c3e8e4e61c5bae7e0e9d6ae8dcaf678a62a801a36ae62e0f0e1bafe7",
+      "producer": "synthetic-fixture-generator",
+      "version": "0.1",
+      "applicability_domain_id": "synthetic-only"
+    }
+  ],
+  "claim_ceiling": "integrity_verified_against_manifest_only_not_authenticity_or_physical_validity"
+}
