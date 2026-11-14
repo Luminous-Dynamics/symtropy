@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "corpus_id": "CEA-ROOTZONE-ADVERSARIAL-2026-V0.1",
+  "created_on": "2026-11-07",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "cases": [
+    {
+      "case_id": "RZ-NUTRIENT-001",
+      "family": "ELEMENTAL_BALANCE",
+      "scenario": "All source additions, crop uptake, purge, sample exports and final inventory are known for N, P and K; each element closes within its declared tolerance.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "elements": [
+          "N",
+          "P",
+          "K"
+        ],
+        "all_fluxes_known": true,
+        "unit_basis": "elemental_mass",
+        "expected_residual_fraction": 0
+      },
+      "expected_decision": "ACCEPT_SYNTHETIC_BALANCE",
+      "must_not_infer": [
+        "Measured facility performance",
+        "Food safety",
+        "Universal crop uptake coefficients"
+      ],
+      "reason": "A fully specified synthetic mass balance should close exactly and remain explicitly synthetic.",
+      "claim_ceiling": "Known-answer synthetic accounting case only."
+    },
+    {
+      "case_id": "RZ-NUTRIENT-002",
+      "family": "ELEMENTAL_BALANCE",
+      "scenario": "A fertilizer addition is recorded only as aggregate product mass; the product assay and recipe are missing.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "fertilizer_product_mass_known": true,
+        "stock_composition_known": false,
+        "requested_elements": [
+          "N",
+          "P",
+          "K"
+        ]
+      },
+      "expected_decision": "INCOMPLETE",
+      "must_not_infer": [
+        "N/P/K mass fractions",
+        "Zero contribution for an unmeasured element",
+        "A balanced nutrient inventory"
+      ],
+      "reason": "Aggregate fertilizer mass cannot be silently decomposed into elemental inventories without a composition source.",
+      "claim_ceiling": "Incomplete synthetic input-state test."
+    },
+    {
+      "case_id": "RZ-EC-003",
+      "family": "SENSOR_PROXY",
+      "scenario": "Two nutrient solutions have the same measured EC but different synthetic ionic compositions, including different nitrate and sodium concentrations.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "solution_A_EC_mS_cm": 1.2,
+        "solution_B_EC_mS_cm": 1.2,
+        "solution_A_ions_known": true,
+        "solution_B_ions_known": true,
+        "ion_vectors_different": true
+      },
+      "expected_decision": "REJECT_CLAIM",
+      "must_not_infer": [
+        "Equal EC means equal nutrient inventory",
+        "EC is a nitrate/NPK measurement",
+        "A nutrient recipe from EC alone"
+      ],
+      "reason": "This negative control proves aggregate conductivity does not uniquely identify elemental composition.",
+      "claim_ceiling": "Synthetic sensor-proxy counterexample."
+    },
+    {
+      "case_id": "RZ-NA-004",
+      "family": "SOURCE_WATER",
+      "scenario": "Source water introduces sodium at a level outside the declared target envelope while EC remains within the configured EC range.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "EC_within_target": true,
+        "sodium_assay_out_of_target": true,
+        "source_water_assay_current": true
+      },
+      "expected_decision": "HUMAN_REVIEW",
+      "must_not_infer": [
+        "Acceptable water chemistry from EC alone",
+        "Dosing correction is guaranteed safe",
+        "Potable or crop-use approval"
+      ],
+      "reason": "Ion-specific water quality can violate the crop profile even when bulk EC appears acceptable.",
+      "claim_ceiling": "Synthetic water-source screening case."
+    },
+    {
+      "case_id": "RZ-BIO-005",
+      "family": "PATHOGEN_EVIDENCE",
+      "scenario": "A qualified laboratory result is positive in a shared drainage return; edible-leaf sample from one location is negative.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "drainage_result": "POSITIVE",
+        "leaf_result": "NOT_DETECTED",
+        "leaf_sample_count": 1,
+        "assay_method_qualified": true,
+        "shared_return_domains": [
+          "zone_A",
+          "zone_B"
+        ]
+      },
+      "expected_decision": "HOLD_BATCH",
+      "must_not_infer": [
+        "The crop is safe because one leaf sample is negative",
+        "All facility batches are proven contaminated",
+        "The positive result's viability or extent beyond the assay scope"
+      ],
+      "reason": "A positive result in a crop-contact return path requires batch/domain adjudication; one negative leaf sample does not clear it.",
+      "claim_ceiling": "Synthetic food-safety evidence-routing case; no live pathogen work."
+    },
+    {
+      "case_id": "RZ-BIO-006",
+      "family": "SAMPLE_COVERAGE",
+      "scenario": "All submitted samples are negative, but they cover one reservoir point and omit return lines, crop roots, drainage, tools and post-harvest zones.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "results_all_negative": true,
+        "matrices_sampled": [
+          "reservoir"
+        ],
+        "required_matrices": [
+          "source",
+          "reservoir",
+          "return",
+          "drainage",
+          "root",
+          "leaf",
+          "food_contact_surface",
+          "non_food_contact_surface"
+        ],
+        "coverage_complete": false
+      },
+      "expected_decision": "INDETERMINATE",
+      "must_not_infer": [
+        "Facility-wide absence",
+        "Batch safety",
+        "Sanitation efficacy"
+      ],
+      "reason": "Negative evidence is bounded by matrix coverage, sampling locations and detection limits.",
+      "claim_ceiling": "Synthetic sampling-coverage case."
+    },
+    {
+      "case_id": "RZ-BIO-007",
+      "family": "PATHOGEN_EVIDENCE",
+      "scenario": "PCR assay target is detected, but viability is not resolved and no viability assay or culture result is available.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "PCR_result": "DETECTED",
+        "viability_status": "UNRESOLVED",
+        "assay_detection_limit_known": true
+      },
+      "expected_decision": "HUMAN_REVIEW",
+      "must_not_infer": [
+        "Viable pathogen confirmed",
+        "No viable pathogen present",
+        "Safe product release"
+      ],
+      "reason": "A molecular target and viable-organism status are distinct evidence claims.",
+      "claim_ceiling": "Synthetic assay-interpretation case."
+    },
+    {
+      "case_id": "RZ-MICROBIOME-008",
+      "family": "MICROBIOME",
+      "scenario": "A 16S community profile changes across crop cycles but no defined hazard, pathogen assay or plant disease endpoint is positive.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "microbiome_profile_changed": true,
+        "defined_foodborne_hazard_detected": false,
+        "plant_disease_endpoint_positive": false
+      },
+      "expected_decision": "REJECT_CLAIM",
+      "must_not_infer": [
+        "Contamination solely from community shift",
+        "Disease suppression solely from community shift",
+        "Food safety from a low or changed total bacterial count"
+      ],
+      "reason": "Microbiome change is not itself a defined hazard or a validated biological-control result.",
+      "claim_ceiling": "Synthetic microbial-ecology classification case."
+    },
+    {
+      "case_id": "RZ-PLANT-PATHOGEN-009",
+      "family": "PLANT_DISEASE",
+      "scenario": "A plant-pathogen signal is detected in roots, but no human foodborne-pathogen assay is positive.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "plant_pathogen_result": "POSITIVE",
+        "human_foodborne_hazard_result": "NOT_DETECTED",
+        "human_hazard_sampling_complete": true
+      },
+      "expected_decision": "HUMAN_REVIEW",
+      "must_not_infer": [
+        "Human foodborne pathogen from plant-pathogen result",
+        "Edible-batch release without crop-health review",
+        "A commercial biocontrol treatment"
+      ],
+      "reason": "Plant disease and human foodborne hazards are different hazard categories with different endpoints.",
+      "claim_ceiling": "Synthetic hazard-class distinction case."
+    },
+    {
+      "case_id": "RZ-SANITATION-010",
+      "family": "SANITATION_VERIFICATION",
+      "scenario": "A cleaning event is logged, but no independent post-cleaning samples or assay results are available.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "cleaning_record_present": true,
+        "post_treatment_assays_present": false,
+        "coverage_reference_present": false
+      },
+      "expected_decision": "INCOMPLETE",
+      "must_not_infer": [
+        "Sanitation effectiveness",
+        "No residual contamination",
+        "Product release"
+      ],
+      "reason": "A procedure log is not evidence that the outcome was achieved.",
+      "claim_ceiling": "Synthetic evidence-admissibility case."
+    },
+    {
+      "case_id": "RZ-LOOP-011",
+      "family": "LOOP_TOPOLOGY",
+      "scenario": "A proposed return pipe links the crop nutrient reservoir to an MTES/minewater domain without a qualified treatment and separation boundary.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "source_domain": "MTES_MINEWATER",
+        "destination_domain": "CROP_ROOT_ZONE",
+        "qualified_transfer_edge": false,
+        "chemistry_assay_known": false,
+        "food_safety_evidence": false
+      },
+      "expected_decision": "REJECT_CLAIM",
+      "must_not_infer": [
+        "Water interchangeability",
+        "Crop suitability",
+        "Potable status",
+        "Thermal benefit justifies the connection"
+      ],
+      "reason": "Different water domains require explicit source quality, treatment, intended-use and authority evidence.",
+      "claim_ceiling": "Synthetic loop-topology negative control."
+    },
+    {
+      "case_id": "RZ-ZERODISCHARGE-012",
+      "family": "ZERO_DISCHARGE_BOUNDARY",
+      "scenario": "A system claims zero discharge but omits filter sludge, cleaning waste, sampling exports and contaminated-batch disposal from the boundary.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "declared_discharge": 0,
+        "omitted_streams": [
+          "filter_residue",
+          "cleaning_waste",
+          "sample_exports",
+          "batch_disposal"
+        ],
+        "boundary_complete": false
+      },
+      "expected_decision": "REJECT_CLAIM",
+      "must_not_infer": [
+        "Zero-discharge operation",
+        "Closed nutrient loop",
+        "No environmental release"
+      ],
+      "reason": "A zero-discharge claim is invalid when relevant waste/export streams are omitted.",
+      "claim_ceiling": "Synthetic mass-boundary counterexample."
+    },
+    {
+      "case_id": "RZ-RECOVERY-013",
+      "family": "WATER_RECOVERY",
+      "scenario": "A treatment train recovers water and nutrients, but recovered solution chemistry and microbiological quality are not assessed for reuse.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "water_recovery_fraction": 0.92,
+        "nutrient_capture_fraction": 0.84,
+        "recovered_product_quality": "UNKNOWN",
+        "reuse_approval": false
+      },
+      "expected_decision": "HUMAN_REVIEW",
+      "must_not_infer": [
+        "Recovered product is crop-ready",
+        "Recovered water is potable",
+        "Recovery fraction equals safe circularity"
+      ],
+      "reason": "Recovery quantity and recovered-product suitability are separate qualifications.",
+      "claim_ceiling": "Synthetic recovery/product-quality case."
+    },
+    {
+      "case_id": "RZ-FOOD-014",
+      "family": "FOOD_RELEASE",
+      "scenario": "Harvest weight and crop quality are within agronomic specifications, but an environmental hazard result is unresolved.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "harvest_contract_met": true,
+        "agronomic_quality_pass": true,
+        "environmental_hazard_status": "INCONCLUSIVE",
+        "release_authority_decision": "ABSENT"
+      },
+      "expected_decision": "HOLD_BATCH",
+      "must_not_infer": [
+        "Food-safe product from agronomic quality",
+        "Automatic release from a harvest-controller pass",
+        "Hazard absence from incomplete sampling"
+      ],
+      "reason": "Food-safety disposition is a separate authority decision from harvest service and crop quality.",
+      "claim_ceiling": "Synthetic food-release routing case."
+    },
+    {
+      "case_id": "RZ-TOPOLOGY-015",
+      "family": "LOOP_TOPOLOGY",
+      "scenario": "A qualified positive result appears in a shared manifold that physically connects zones A and B during the relevant crop cycles; zone C has an independently validated isolated supply and return.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "positive_sample_zone": "shared_manifold_AB",
+        "connected_zones": [
+          "zone_A",
+          "zone_B"
+        ],
+        "isolated_zones": [
+          "zone_C"
+        ],
+        "flow_path_interval_valid": true,
+        "zone_C_isolation_verified": true
+      },
+      "expected_decision": "HOLD_BATCH",
+      "must_not_infer": [
+        "Every facility lot is exposed",
+        "Zone C has no risk without its own evidence",
+        "The exact contaminated lot set without crop/lot/flow timestamps"
+      ],
+      "reason": "Exposure follows a qualified hydraulic path and time interval; hold the evidenced connected lots while preserving the independently isolated zone's separate evidence boundary.",
+      "claim_ceiling": "Synthetic exposure-path routing case only."
+    },
+    {
+      "case_id": "RZ-TOPOLOGY-016",
+      "family": "LOOP_TOPOLOGY",
+      "scenario": "A positive environmental result occurs in zone A; zone B is physically isolated with independently verified supply/return separation and its own complete valid sample set.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "positive_zone": "zone_A",
+        "other_zone": "zone_B",
+        "hydraulic_connection": false,
+        "barrier_verification_current": true,
+        "zone_B_sampling_complete": true,
+        "zone_B_results": "NOT_DETECTED"
+      },
+      "expected_decision": "ISOLATE_DOMAIN",
+      "must_not_infer": [
+        "Whole-facility contamination",
+        "Automatic release of zone B without responsible authority",
+        "Universal absence outside the sampled scope"
+      ],
+      "reason": "The affected domain is isolated; keep zone A on hold and evaluate zone B only within its own complete, current evidence and authority process.",
+      "claim_ceiling": "Synthetic physical-segmentation decision case."
+    },
+    {
+      "case_id": "RZ-SAMPLE-017",
+      "family": "SAMPLE_COVERAGE",
+      "scenario": "A microbiological assay result is reported, but chain of custody is broken and sample identity cannot be linked to a specific water path, crop zone or batch.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "lab_result": "POSITIVE",
+        "sample_identity_verified": false,
+        "chain_of_custody_valid": false,
+        "matrix_known": true,
+        "batch_and_zone_link_known": false
+      },
+      "expected_decision": "INDETERMINATE",
+      "must_not_infer": [
+        "A verified facility-positive result",
+        "The absence of a hazard",
+        "The affected batch or zone without source identity"
+      ],
+      "reason": "A result without valid sample identity and custody is not admissible for exact lot or facility attribution; preserve it for investigation and recollection.",
+      "claim_ceiling": "Synthetic sample-admissibility case."
+    },
+    {
+      "case_id": "RZ-SANITATION-018",
+      "family": "SANITATION_VERIFICATION",
+      "scenario": "A cleaning/sanitation event is followed by negative samples, but the assay detection limit is above the predeclared decision threshold and the return-line biofilm locations were not sampled.",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "input_facts": {
+        "sanitation_event_recorded": true,
+        "post_event_results": "NOT_DETECTED",
+        "assay_detection_limit_adequate": false,
+        "return_line_coverage_complete": false,
+        "independent_controls_passed": true
+      },
+      "expected_decision": "INDETERMINATE",
+      "must_not_infer": [
+        "Sanitation efficacy at the required threshold",
+        "Facility-wide clearance",
+        "Food release solely from these samples"
+      ],
+      "reason": "Negative results with insufficient detection sensitivity and incomplete matrix coverage cannot verify the sanitation outcome.",
+      "claim_ceiling": "Synthetic sanitation evidence-sufficiency case."
+    }
+  ],
+  "corpus_claim_ceiling": "Synthetic adversarial routing corpus only. It does not implement assays, define a pathogen-handling procedure, validate sanitation or certify food safety."
+}

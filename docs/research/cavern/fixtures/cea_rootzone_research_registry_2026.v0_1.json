@@ -1,0 +1,570 @@
+{
+  "schema_version": 1,
+  "registry_id": "CEA-ROOTZONE-CIRCULARITY-BIOSECURITY-2026-V0.1",
+  "created_on": "2026-11-07",
+  "comparators": [
+    {
+      "comparator_id": "MASS-BALANCE-ZERO-DISCHARGE-LETTUCE-2026",
+      "title": "Using mass-balance principles to optimize nutrition of lettuce",
+      "authors": "Noah James Langenfeld and Bruce Bugbee",
+      "publication_date": "2026-08-10",
+      "venue": "Frontiers in Plant Science, Volume 17, article 1885837",
+      "doi": "10.3389/fpls.2026.1885837",
+      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13500615/",
+      "evidence_class": "LONGITUDINAL_CONTROLLED_EXPERIMENT",
+      "system": {
+        "crop_or_subject": "Three lettuce cultivars: Grand Rapids, Red Sails and Rex",
+        "system_type": "Deep-water culture hydroponics; zero-discharge nutrient solution",
+        "setting": "Research greenhouse, Utah State University, Logan, Utah, USA",
+        "duration": "Study 1: 25 × 28-day crop cycles over 707 days; Study 2: 7 cycles over 196 days; Study 3: 9 cycles over 252 days",
+        "replication": "Three cultivars; repeated crop cycles are not independent facilities",
+        "sample_basis": "Solution volume maintained at ≥90% of initial 53 L; plant tissue nutrient analyses and daily EC measurement"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "element_mass_balance_recovery",
+          "value": ">90% for most measured elements",
+          "unit": "percent recovery",
+          "basis": "Element-specific mass balance across the closed-system study",
+          "evidence_status": "MEASURED_EXPERIMENT",
+          "notes": "The article does not claim every element has >90% recovery."
+        },
+        {
+          "metric_id": "zero_solution_replacement",
+          "value": true,
+          "unit": "binary study condition",
+          "basis": "No nutrient solution was discarded in the long-term zero-discharge studies",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "steady_crop_cycles",
+          "value": 25,
+          "unit": "28-day crop cycles",
+          "basis": "Study 1, 707 days; yield and nutrient uptake reported as consistent",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "water_use_efficiency_basis",
+          "value": 3,
+          "unit": "g dry biomass per L transpired",
+          "basis": "Nutrient refill recipe design value for the stated conditions",
+          "evidence_status": "AUTHOR_REPORTED_QUALITATIVE",
+          "notes": "Not a universal crop constant; depends on CO2, humidity, VPD and crop conditions."
+        },
+        {
+          "metric_id": "late_study_electrical_conductivity",
+          "value": 0.3,
+          "unit": "mS/cm",
+          "basis": "Later zero-discharge study condition reported without yield advantage from replacing to 1.0 mS/cm",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "active_nutrient_solution_concentrations",
+          "value": "approximately 5 ppm N, 1 ppm P, 10 ppm K",
+          "unit": "mg/L elemental basis as described by source",
+          "basis": "Stable low solution concentrations in the long-term experiment",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        }
+      ],
+      "limitations": [
+        "Deep-water culture in one research greenhouse; not multi-facility or underground vertical-farm validation.",
+        "The approach depends on crop tissue composition, transpiration/growth relationship and stated environmental conditions.",
+        "The authors measured EC daily and used tissue analysis to establish or refine refill composition; this is not evidence that no monitoring or assays are ever needed.",
+        "The first study showed accumulation of some passive-uptake elements when refill composition was too concentrated.",
+        "The nutrient mass-balance study does not qualify microbial safety or food-safety release of a recirculating loop."
+      ],
+      "transferability": "Strong longitudinal comparator for crop-specific nutrient mass balance and zero-discharge operation. Replicate on matched crops and source-water chemistry, then challenge salinity, cultivar transfer, changing VPD/CO2 and biosecurity.",
+      "claim_ceiling": "Published controlled greenhouse DWC studies only. No general zero-discharge guarantee, no food-safety certification, no vertical-farm transfer claim."
+    },
+    {
+      "comparator_id": "ISE-DSS-SODIUM-CUCUMBER-2025",
+      "title": "Sodium accumulation management in a closed-loop soilless cropping system using ion selective electrodes and a novel Decision Support System",
+      "authors": "Evangelos Giannothanasis, Ioannis Karavidas, Theodora Ntanasi, Georgia Ntatsi, Rodney B. Thompson and Dimitrios Savvas",
+      "publication_date": "2025-12",
+      "venue": "Smart Agricultural Technology, Volume 12, article 101366",
+      "doi": "10.1016/j.atech.2025.101366",
+      "source_url": "https://doi.org/10.1016/j.atech.2025.101366",
+      "evidence_class": "CONTROLLED_EXPERIMENT",
+      "system": {
+        "crop_or_subject": "Cucumber",
+        "system_type": "Closed-loop soilless culture with drainage-solution recirculation and multi-tank fertigation",
+        "setting": "Controlled crop study using raw source water with sub-optimal sodium",
+        "duration": "Daily ion measurement and adjustment during growing cycle",
+        "replication": "Three management treatments: open system, standard closed-loop, ISE-DSS closed-loop",
+        "sample_basis": "Source-water sodium 2.5 mM; ISE measurements for K, Ca, nitrate and Na"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "source_water_sodium",
+          "value": 2.5,
+          "unit": "mmol/L",
+          "basis": "Raw irrigation water used in study",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "water_productivity_gain_vs_open",
+          "value": 46,
+          "unit": "percent",
+          "basis": "ISE-DSS closed-loop treatment versus open system",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "water_productivity_gain_vs_standard_closed_loop",
+          "value": 15,
+          "unit": "percent",
+          "basis": "ISE-DSS treatment versus standard nutrient management",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "nitrogen_agronomic_efficiency_gain_vs_open",
+          "value": 64,
+          "unit": "percent",
+          "basis": "ISE-DSS treatment versus open system",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "nitrogen_agronomic_efficiency_gain_vs_standard_closed_loop",
+          "value": 73,
+          "unit": "percent",
+          "basis": "ISE-DSS treatment versus standard closed-loop",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        }
+      ],
+      "limitations": [
+        "Cucumber-specific result; not a lettuce trial.",
+        "Source-water salinity and system details are experiment-specific.",
+        "Performance depends on ISE calibration, selectivity, temperature, drift and fertilizer-stock composition.",
+        "Reported gains are not guaranteed for another facility or water source."
+      ],
+      "transferability": "Strong comparator for source-water sodium accumulation and ion-specific fertilizer adjustment. Test water composition and sensor uncertainty independently.",
+      "claim_ceiling": "Study-specific crop experiment. No universal water-use improvement and no food-safety qualification."
+    },
+    {
+      "comparator_id": "ION-EQUIVALENT-RATIO-LETTUCE-2025",
+      "title": "Development of nutrient management system based on ion-equivalent concentration ratio and ion monitoring to maintain ionic balance in closed hydroponic solution",
+      "authors": "Min-Seok Gang, Hak-Jin Kim, Tae In Ahn, Woo-Jae Cho, Sang-Hyun Lee, Ju Young Lee and Ji-Eun Hwang",
+      "publication_date": "2025",
+      "venue": "Computers and Electronics in Agriculture, article 110588",
+      "doi": "10.1016/j.compag.2025.110588",
+      "source_url": "https://doi.org/10.1016/j.compag.2025.110588",
+      "evidence_class": "CONTROLLED_EXPERIMENT",
+      "system": {
+        "crop_or_subject": "Lettuce (Lactuca sativa)",
+        "system_type": "Greenhouse closed-loop hydroponics with ISE monitoring and variable-composition fertilizer replenishment",
+        "setting": "Greenhouse lettuce crop",
+        "duration": "Nutrient composition adjusted twice weekly",
+        "replication": "The publication reports a crop trial; facility and independent-compartment count require full-method extraction",
+        "sample_basis": "ISE array for nitrate, potassium and calcium; chemical analysis comparator"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "nitrate_ise_rmse",
+          "value": 39.18,
+          "unit": "mg/L",
+          "basis": "ISE measurements versus chemical analysis",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "potassium_ise_rmse",
+          "value": 17.79,
+          "unit": "mg/L",
+          "basis": "ISE measurements versus chemical analysis",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "calcium_ise_rmse",
+          "value": 20.64,
+          "unit": "mg/L",
+          "basis": "ISE measurements versus chemical analysis",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "final_ion_equivalent_target_ratio_rmse",
+          "value": 5.9,
+          "unit": "percent",
+          "basis": "Final ratio error reported by study",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "ratio_error_improvement_vs_ec_only",
+          "value": 58,
+          "unit": "percent",
+          "basis": "Study comparison with EC-only replenishment",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        }
+      ],
+      "limitations": [
+        "Only nitrate, K and Ca were measured by the described ISE array; not a complete trace-element profile.",
+        "ISE performance depends on analyte, matrix, temperature and calibration.",
+        "Fertilizer-salt cross-contributions must be included in dosing calculations.",
+        "Facility replication and raw-data access need confirmation before strict matched comparison."
+      ],
+      "transferability": "Useful sensor/recipe-control comparator for ion-equivalent balance; benchmark calibration and matrix interference before using ISE outputs as authoritative inventory.",
+      "claim_ceiling": "Study-specific greenhouse lettuce trial. Does not establish full element closure, zero discharge or microbial safety."
+    },
+    {
+      "comparator_id": "ROOTZONE-MICROBIOME-RECIRCULATION-2026",
+      "title": "Continuous recirculation of hydroponic-nutrient solutions shifts bacterial communities and induces plant-defense gene expression in lettuce",
+      "authors": "Cora M. Kenderdine and Rosa E. Raudales",
+      "publication_date": "2026-04-22",
+      "venue": "Applied and Environmental Microbiology, Volume 92, Issue 4, e0164725",
+      "doi": "10.1128/aem.01647-25",
+      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13101472/",
+      "evidence_class": "CONTROLLED_EXPERIMENT",
+      "system": {
+        "crop_or_subject": "Lettuce cultivar Rex; Pythium myriotylum plant-pathogen treatment",
+        "system_type": "Deep-water culture with reused autoclaved or non-autoclaved nutrient solutions, with/without P. myriotylum",
+        "setting": "Controlled research hydroponics",
+        "duration": "Five consecutive crop cycles",
+        "replication": "Study reports n=5 in plant-growth figures",
+        "sample_basis": "16S rRNA gene sequencing, qPCR detection of P. myriotylum, plant-defense gene expression"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "solution_bacterial_community_between_cycle_dissimilarity",
+          "value": "R²=0.35",
+          "unit": "PERMANOVA R²",
+          "basis": "Bacterial community differences in nutrient solution across cycles",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "root_bacterial_community_between_cycle_dissimilarity",
+          "value": "R²=0.24",
+          "unit": "PERMANOVA R²",
+          "basis": "Bacterial community differences in roots across cycles",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "pathogen_presence_solution_association",
+          "value": "R²=0.02",
+          "unit": "PERMANOVA R²",
+          "basis": "Community dissimilarity associated with P. myriotylum presence in nutrient solution",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "pathogen_presence_root_association",
+          "value": "R²=0.10",
+          "unit": "PERMANOVA R²",
+          "basis": "Community dissimilarity associated with P. myriotylum presence in roots",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        }
+      ],
+      "limitations": [
+        "Plant pathogen and plant-defense study, not a human foodborne-pathogen survey.",
+        "Community shifts do not identify a universally beneficial or protective microbiome.",
+        "The authors call for further research on specific microorganisms and bioactive compounds; no commercial biocontrol is qualified.",
+        "A microbiome shift must not automatically be labelled contamination or disease suppression."
+      ],
+      "transferability": "Supports microbiome-aware root-zone modelling and sampling. It is not a sanitation or food-release standard.",
+      "claim_ceiling": "Controlled five-cycle lettuce/Pythium experiment. No universal microbiome intervention or food-safety clearance."
+    },
+    {
+      "comparator_id": "RECIRCULATING-PATHOGEN-PERSISTENCE-2026",
+      "title": "Persistence and localization of Salmonella enterica subsp. enterica Javiana and Listeria monocytogenes during recirculating hydroponic cultivation of leaf lettuce",
+      "authors": "Gayatri Rajashekhar Dhulappanavar and colleagues",
+      "publication_date": "2026-03",
+      "venue": "Food Microbiology, Volume 134, article 104950",
+      "doi": "10.1016/j.fm.2025.104950",
+      "source_url": "https://doi.org/10.1016/j.fm.2025.104950",
+      "evidence_class": "PATHOGEN_PERSISTENCE_EXPERIMENT",
+      "system": {
+        "crop_or_subject": "Leaf lettuce; Salmonella Javiana and Listeria monocytogenes",
+        "system_type": "Recirculating deep-water culture hydroponics with nutrient solution, roots and rockwool",
+        "setting": "Controlled experimental hydroponic cultivation",
+        "duration": "21-day study",
+        "replication": "Controlled pathogen-persistence experiment; exact independent experimental-unit count must be extracted from full paper",
+        "sample_basis": "Nutrient solution, plant roots, rockwool and edible-leaf sampling"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "persistence_duration",
+          "value": 21,
+          "unit": "days",
+          "basis": "Pathogens persisted in nutrient solution, roots and rockwool during reported period",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        },
+        {
+          "metric_id": "edible_leaf_recovery",
+          "value": "not recovered in reported experiment",
+          "unit": "qualitative detection result",
+          "basis": "Edible-leaf sampling in the reported test",
+          "evidence_status": "AUTHOR_REPORTED_QUALITATIVE",
+          "notes": "A negative result within one experiment does not certify food safety or universal absence."
+        }
+      ],
+      "limitations": [
+        "Experimental persistence study; do not convert to a commercial-facility prevalence estimate.",
+        "No recovery from edible leaves in this study does not imply zero risk in other conditions.",
+        "This is food-safety pathogen research and does not define a pathogen-handling protocol."
+      ],
+      "transferability": "Supports challenge fixtures where reservoir, roots, substrate and edible crop have different detection states.",
+      "claim_ceiling": "Study-specific pathogen-persistence experiment. Does not certify a commercial system or define sanitation procedure."
+    },
+    {
+      "comparator_id": "COMMERCIAL-CEA-LISTERIA-MONITORING-2026",
+      "title": "Presence of Listeria monocytogenes in hydroponic controlled environment agriculture (CEA): Contamination transfer in indoor production",
+      "authors": "María Ayala-San Nicolás and colleagues",
+      "publication_date": "2026-06",
+      "venue": "Food Control, Volume 184, article 112023",
+      "doi": "10.1016/j.foodcont.2026.112023",
+      "source_url": "https://doi.org/10.1016/j.foodcont.2026.112023",
+      "evidence_class": "COMMERCIAL_FACILITY_MONITORING",
+      "system": {
+        "crop_or_subject": "Pak choi (Brassica rapa cv. Bonsai); Listeria monocytogenes",
+        "system_type": "Commercial NFT hydroponic CEA with recirculated nutrient solution",
+        "setting": "Commercial facility with preharvest, harvest and postharvest areas",
+        "duration": "Three environmental monitoring events over eight months",
+        "replication": "156 environmental samples across three monitoring events",
+        "sample_basis": "Crop, food-contact surfaces, non-food-contact surfaces, boot covers, irrigation water, nutrient solution and drainage solution"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "total_environmental_samples",
+          "value": 156,
+          "unit": "samples",
+          "basis": "Three monitoring events over eight months",
+          "evidence_status": "COMMERCIAL_FIELD_MONITORING"
+        },
+        {
+          "metric_id": "listeria_positive_samples",
+          "value": 2,
+          "unit": "samples",
+          "basis": "Both during first monitoring event: boot-cover sample and drainage nutrient-solution sample",
+          "evidence_status": "COMMERCIAL_FIELD_MONITORING"
+        },
+        {
+          "metric_id": "subsequent_monitoring_detection",
+          "value": "no L. monocytogenes detected",
+          "unit": "qualitative result",
+          "basis": "Later monitoring after cleaning/sanitation actions",
+          "evidence_status": "COMMERCIAL_FIELD_MONITORING"
+        },
+        {
+          "metric_id": "boot_to_floor_transfer",
+          "value": "transfer at T0; limited detection at T24",
+          "unit": "qualitative result",
+          "basis": "L. innocua surrogate transfer study in facility movement routes",
+          "evidence_status": "MEASURED_EXPERIMENT"
+        }
+      ],
+      "limitations": [
+        "One commercial facility and one crop/system configuration; not a general prevalence estimate.",
+        "Later negative monitoring events are bounded by sampling plan and assay detection limits.",
+        "L. monocytogenes was detected in drainage nutrient solution; the study did not establish positive edible leaves.",
+        "The surrogate transfer experiment does not provide a universal pathogen survival model."
+      ],
+      "transferability": "Strong environmental-monitoring comparator for sampling matrices and connecting movement routes to loop evidence. A single negative sample cannot clear the facility.",
+      "claim_ceiling": "Single commercial pak-choi NFT facility monitoring. Not a general risk percentage, certification or sanitation protocol."
+    },
+    {
+      "comparator_id": "HYDROPONIC-NUTRIENT-RECOVERY-REVIEW-2026",
+      "title": "Circularity of nutrient recovery technologies in hydroponics: A systematic review",
+      "authors": "Victor Viluwa Kenga and colleagues",
+      "publication_date": "2026-05",
+      "venue": "Journal of Water Process Engineering, Volume 87, article 110095",
+      "doi": "10.1016/j.jwpe.2026.110095",
+      "source_url": "https://doi.org/10.1016/j.jwpe.2026.110095",
+      "evidence_class": "SYSTEMATIC_REVIEW",
+      "system": {
+        "crop_or_subject": "Hydroponic effluent and nutrient-recovery technologies",
+        "system_type": "Systematic review across effluent and recovery pathways",
+        "setting": "Published research literature",
+        "duration": "Review; included-study windows vary",
+        "replication": "Systematic review, not a new field trial",
+        "sample_basis": "Published concentrations and physical, chemical, biochemical and biological recovery methods"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "mean_ammonium_concentration",
+          "value": "22.6 ± 36",
+          "unit": "mg N/L",
+          "basis": "Review-reported hydroponic effluent concentration",
+          "evidence_status": "AUTHOR_REPORTED_QUALITATIVE"
+        },
+        {
+          "metric_id": "mean_nitrate_concentration",
+          "value": "287 ± 238",
+          "unit": "mg N/L",
+          "basis": "Review-reported hydroponic effluent concentration",
+          "evidence_status": "AUTHOR_REPORTED_QUALITATIVE"
+        },
+        {
+          "metric_id": "mean_phosphate_concentration",
+          "value": "75.5 ± 75",
+          "unit": "mg P/L",
+          "basis": "Review-reported hydroponic effluent concentration",
+          "evidence_status": "AUTHOR_REPORTED_QUALITATIVE"
+        },
+        {
+          "metric_id": "recovery_technology_families",
+          "value": "physical, chemical, biochemical and biological methods, including algae cultivation, electrocoagulation, membrane/forward osmosis and constructed wetlands",
+          "unit": "qualitative taxonomy",
+          "basis": "Systematic review synthesis",
+          "evidence_status": "AUTHOR_REPORTED_QUALITATIVE"
+        }
+      ],
+      "limitations": [
+        "Review aggregates heterogeneous crops, water systems and analytical boundaries.",
+        "Mean concentrations are not design influent without site-specific sampling.",
+        "Recovered product purity, contaminant separation, pathogen safety, energy and residual handling must be qualified process by process."
+      ],
+      "transferability": "Useful technology-screening reference for nutrient recovery. Require site-specific chemistry and product-quality evidence.",
+      "claim_ceiling": "Systematic review only. Does not qualify any specific process or recovered product for crop reuse."
+    },
+    {
+      "comparator_id": "OPTIDOSE-HYDROPONIC-LETTUCE-2026",
+      "title": "OptiDose: An optimal control for macronutrient dosing in hydroponics",
+      "authors": "Saeed Karimzadeh, Robert D. McAllister and Md Shamim Ahamed",
+      "publication_date": "2026-03-01",
+      "venue": "Computers and Electronics in Agriculture, Volume 243, article 111428",
+      "doi": "10.1016/j.compag.2026.111428",
+      "source_url": "https://doi.org/10.1016/j.compag.2026.111428",
+      "evidence_class": "SIMULATOR_SCENARIOS",
+      "system": {
+        "crop_or_subject": "Hydroponic lettuce",
+        "system_type": "Optimal-control dosing with six fertilizer source stocks",
+        "setting": "Simulation scenarios, not physical facility demonstration",
+        "duration": "Daily fertigation strategy through modelled crop cycle",
+        "replication": "Five simulated scenarios",
+        "sample_basis": "N, P, K, Ca, Mg and S control against crop-specific adequacy ranges"
+      },
+      "reported_metrics": [
+        {
+          "metric_id": "water_use_efficiency_gain",
+          "value": "sixfold",
+          "unit": "relative gain",
+          "basis": "Simulator compared with single-shot preparation baseline",
+          "evidence_status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "fertilizer_use_efficiency_gain",
+          "value": "twofold",
+          "unit": "relative gain",
+          "basis": "Simulator compared with baseline",
+          "evidence_status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "water_cost_reduction",
+          "value": "approximately 76%",
+          "unit": "relative cost reduction",
+          "basis": "Simulator scenario results",
+          "evidence_status": "MODEL_SCENARIO"
+        },
+        {
+          "metric_id": "fertilizer_cost_reduction",
+          "value": "approximately 51%",
+          "unit": "relative cost reduction",
+          "basis": "Simulator scenario results",
+          "evidence_status": "MODEL_SCENARIO"
+        }
+      ],
+      "limitations": [
+        "Five simulator scenarios; not a measured crop or commercial facility result.",
+        "Transfer depends on model calibration, sensor/actuator accuracy and fertilizer stock composition.",
+        "Efficiency gains must be re-evaluated with full water/electricity/quality and marketable-yield boundaries."
+      ],
+      "transferability": "Model-control comparator for fertilizer-recipe optimization. Reproduce its simulator baseline, then compare with mass-balance and ISE strategies.",
+      "claim_ceiling": "Simulation results only; no field-proven sixfold water or twofold fertilizer efficiency claim."
+    }
+  ],
+  "interpretation_rules": [
+    "Do not interpret EC as elemental nutrient inventory; equal EC does not imply equal ion composition.",
+    "Retain chemical species and analytical basis; nitrate-N is not interchangeable with nitrate-ion mass.",
+    "A nutrient balance is not a food-safety balance. Chemical closure does not prove microbial safety.",
+    "A PCR-positive result does not automatically prove viable organism; a negative result does not prove facility absence. Preserve assay, viability status, matrix, detection limit and sampling coverage.",
+    "Do not classify all root-zone bacteria as harmful. Distinguish defined hazards, plant pathogens, indicators and beneficial/commensal microbiome evidence.",
+    "Nutrient or water recovery percentage is not a circularity or safety score; report product quality, treatment residuals, energy and crop suitability separately.",
+    "Zero-discharge claims must declare leaks, samples, purge, cleaning waste, filter residues, condensate and failed-batch disposal.",
+    "A model scenario or synthetic fixture cannot be promoted to measured crop/facility evidence.",
+    "No negative environmental sample, single reservoir assay or sanitation record independently certifies food safety or authorizes produce release.",
+    "Do not create cross-connections between root-zone solution, potable water, condensate, minewater/MTES and wastewater without qualified source, treatment and authority evidence."
+  ],
+  "claim_ceiling": "Source-comparator registry only. It does not certify a hydroponic loop, water reuse, microbial safety, plant health, food release, discharge compliance or nutrient recovery process.",
+  "regulatory_references": [
+    {
+      "source_id": "CODEX-CXC-53-2003-2017",
+      "title": "Code of Hygienic Practice for Fresh Fruits and Vegetables (CXC 53-2003; revised 2017)",
+      "jurisdiction": "CODEX_INTERNATIONAL",
+      "document_type": "CODE_OF_PRACTICE",
+      "source_date": "Adopted 2003; revisions 2010, 2012, 2013 and 2017",
+      "source_url": "https://www.nda.gov.za/images/Branches/AgricProducHealthFoodSafety/food-safety-and-quality-assurance/food-safety/audit-policy/cxc-codes-of-hygienic-practices-for-fresh-fruits-and-vegetables.pdf",
+      "clauses_or_sections": [
+        "2.1 Scope",
+        "3.1 Environmental Hygiene",
+        "3.2.1.1.3 Hydroponic water",
+        "3.2.2.2 Water supply",
+        "3.2.2.3 Drainage and waste disposal"
+      ],
+      "key_requirements": [
+        "Applies to fresh fruits and vegetables grown in protected facilities including hydroponic systems.",
+        "The nutrient solution used in hydroponics may enhance survival or growth of pathogens; recycled nutrient solution should be treated to minimize microbial and chemical contamination and water-delivery systems maintained/cleaned.",
+        "Non-potable water should use a separate identified system with no connection to, or reflux into, potable-water systems.",
+        "Evaluate present and previous site uses and adjoining land; mining extraction, hazardous waste, sewage treatment and industry are named as potential contamination sources.",
+        "Where irrigation water is known or likely to contain human pathogens and connection failure can overspray or locally flood edible crops, consider no-harvest zones."
+      ],
+      "applicability_note": "International code-of-practice guidance, not automatically a South African statutory provision. It is directly relevant technical guidance for hydroponic fresh-produce systems; use the current adopted Codex text and competent local authority interpretation.",
+      "authority_boundary": "Does not itself certify water, site, crop or food lot, prescribe a universal sampling plan, or replace South African law / local authority decisions."
+    },
+    {
+      "source_id": "ZA-DOH-R638-2018",
+      "title": "Regulations Governing General Hygiene Requirements for Food Premises, the Transport of Food and Related Matters, R638 of 22 June 2018",
+      "jurisdiction": "SOUTH_AFRICA",
+      "document_type": "ACT_REGULATION",
+      "source_date": "2018-06-22",
+      "source_url": "https://www.gov.za/sites/default/files/gcis_document/201806/41730gon638.pdf",
+      "clauses_or_sections": [
+        "Regulation 1 definitions",
+        "Regulation 3 Certificate of Acceptability",
+        "Regulation 4 prohibition on handling/transport",
+        "Regulation 5 food premises",
+        "Regulation 6 facilities",
+        "Regulation 13 food transport"
+      ],
+      "key_requirements": [
+        "Food-premises handling is subject to a valid Certificate of Acceptability, subject to stated exceptions and specific-food regulations.",
+        "Certificate issuance follows inspection and local-authority process; certificate is not general business approval under all other laws.",
+        "A Certificate of Acceptability is not transferable between persons or premises and is valid for the nature of handling specified in its application/certificate.",
+        "Relevant changes to food-premises conditions under regulations 5/6 require advance written notification to the local authority.",
+        "The regulation defines 'water' as potable water complying with SANS 241; do not conflate this statutory term with every process-water or nutrient-solution use."
+      ],
+      "applicability_note": "Applies to food premises, food handling and transport within its scope. A specific CEA operation must determine whether its growing, harvest, packing, storage and transport activities are covered and which other specific-food requirements apply with the local authority.",
+      "authority_boundary": "A Certificate of Acceptability is not automatic product-safety certification, irrigation-water approval, all-legislation business approval or produce release."
+    },
+    {
+      "source_id": "ZA-DOH-R692-1997-AMENDED",
+      "title": "Regulations Governing Microbiological Standards for Foodstuffs and Related Matters, R692 of 16 May 1997, as amended",
+      "jurisdiction": "SOUTH_AFRICA",
+      "document_type": "ACT_REGULATION",
+      "source_date": "1997-05-16; amendments listed through R706 of 2011",
+      "source_url": "https://www.health.gov.za/wp-content/uploads/2024/10/Regulations-governing-microbiological-standards-for-foodstuffs-and-related-matters-R692-of-1997.pdf",
+      "clauses_or_sections": [
+        "Regulation 2 and Annex A microbiological methods/specifications",
+        "Product-specific provisions in the Schedule"
+      ],
+      "key_requirements": [
+        "The regulation links foodstuff examinations to the methods specified in Annex A.",
+        "Its Schedule contains food/product-specific microbiological provisions; do not infer a universal limit for every raw fresh vegetable, nutrient solution, environmental surface or process-water sample.",
+        "The product category, intended use, current amendments and applicable method must be confirmed before adopting any numerical criterion."
+      ],
+      "applicability_note": "South African foodstuff microbiological regulation. Its current product-specific application to the exact crop/product and sample matrix must be confirmed with the Department of Health / competent authority; it is not a generic environmental-monitoring specification.",
+      "authority_boundary": "Does not supply a universal hydroponic nutrient-solution or environmental-surface release threshold, nor does it by itself establish a complete CEA environmental monitoring programme."
+    },
+    {
+      "source_id": "ZA-DOH-FOOD-CONTROL-INDEX",
+      "title": "National Department of Health Food Control Regulations index",
+      "jurisdiction": "SOUTH_AFRICA",
+      "document_type": "GOVERNMENT_INDEX",
+      "source_date": "Current official index page accessed 7 November 2026",
+      "source_url": "https://www.health.gov.za/food-control-regulations/",
+      "clauses_or_sections": [
+        "Food Hygiene and Microbiology index"
+      ],
+      "key_requirements": [
+        "The official index currently lists R638 (2018), R692 (1997), R908 (HACCP system) and other food-hygiene / microbiology regulations.",
+        "Use the current official register and applicable amendment notices when determining the legal rule set."
+      ],
+      "applicability_note": "Index used to confirm which regulatory instruments the Department of Health currently lists; a listing alone does not determine the duties of a particular CEA business.",
+      "authority_boundary": "Not a legal opinion or permit; site/operator-specific applicability must be confirmed by qualified South African professionals and authorities."
+    }
+  ]
+}
