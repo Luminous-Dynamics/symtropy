@@ -390,6 +390,65 @@ fn explicitly_degraded_sensor_service_is_not_full_coverage() {
     assert!(result.unresolved_possible_occupancy);
 }
 
+
+#[test]
+fn unknown_evidence_class_is_indeterminate_not_qualified() {
+    let mut unknown = claim(
+        "unknown-evidence",
+        "rx-unknown",
+        SensorModality::Adsb,
+        TrafficClass::CooperativeCrewed,
+        "cell-unknown-evidence",
+        Some("family-unknown"),
+    );
+    unknown.evidence_class = CoverageEvidenceClass::Unknown;
+
+    let result = assessment(
+        &[unknown],
+        None,
+        TrafficClass::CooperativeCrewed,
+        "cell-unknown-evidence",
+        5,
+        1,
+    );
+    assert_eq!(result.coverage_status, CoverageStatus::Indeterminate);
+    assert_eq!(result.independent_family_count, 0);
+    assert!(result.qualified_claim_ids.is_empty());
+    assert!(result.unresolved_possible_occupancy);
+}
+
+#[test]
+fn degraded_claim_cannot_qualify_an_observed_track() {
+    let mut degraded = claim(
+        "degraded-track-claim",
+        "rx-degraded",
+        SensorModality::Adsb,
+        TrafficClass::CooperativeCrewed,
+        "cell-degraded-track",
+        Some("family-degraded"),
+    );
+    degraded.upstream_degraded = true;
+    let report = observation(
+        "rx-degraded",
+        TrafficClass::CooperativeCrewed,
+        "cell-degraded-track",
+        5,
+    );
+
+    let result = assessment(
+        &[degraded],
+        Some(&report),
+        TrafficClass::CooperativeCrewed,
+        "cell-degraded-track",
+        5,
+        1,
+    );
+    assert_eq!(result.coverage_status, CoverageStatus::Degraded);
+    assert_eq!(result.observation_status, ObservationStatus::InvalidOrStaleTrack);
+    assert!(result.qualified_claim_ids.is_empty());
+    assert!(result.unresolved_possible_occupancy);
+}
+
 #[test]
 fn pnt_time_loss_invalidates_a_previously_qualified_report() {
     let mut claim = claim(
