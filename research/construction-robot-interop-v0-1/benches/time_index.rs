@@ -296,6 +296,70 @@ fn expiry_run(size: u64) {
     black_box(book);
 }
 
+fn epoch_invalidation_run(size: u64, active_after_release: u64) {
+    assert!(active_after_release <= size);
+    let mut book = ReservationBook::new("site-epoch-1", "site-monotonic-ms", 0)
+        .expect("valid reservation book");
+    book.register_resource("epoch-load", u32::MAX)
+        .expect("epoch resource");
+
+    for index in 0..size {
+        let start = 1_000 + index * 20;
+        book.reserve(
+            request(index, "epoch-load", start, start + 10, start + 20_000, 1),
+            0,
+        )
+        .expect("epoch benchmark reservation");
+    }
+
+    let released_count = size - active_after_release;
+    for index in 0..released_count {
+        book.release(&format!("reservation-{index:06}"), &format!("owner-{index:06}"))
+            .expect("release historical reservation");
+    }
+
+    let indexed_count = book
+        .active_reservation_count_for_resource("epoch-load")
+        .expect("indexed active count");
+    let reference_count = book
+        .reference_active_reservation_count_for_resource("epoch-load")
+        .expect("full-history active count");
+    assert_eq!(indexed_count, active_after_release as usize);
+    assert_eq!(reference_count, indexed_count);
+
+    let indexed_samples = measure_query(|| {
+        black_box(
+            book.active_reservation_count_for_resource("epoch-load")
+                .expect("indexed active count"),
+        );
+    });
+    let reference_samples = measure_query(|| {
+        black_box(
+            book.reference_active_reservation_count_for_resource("epoch-load")
+                .expect("full-history active count"),
+        );
+    });
+
+    let start = Instant::now();
+    book.advance_site_epoch("site-epoch-2")
+        .expect("invalidate only active reservations");
+    let invalidate_elapsed = start.elapsed();
+    let remaining = book
+        .active_reservation_count_for_resource("epoch-load")
+        .expect("remaining active count");
+
+    println!(
+        "distribution=epoch_invalidation history={size} released={released_count} active_before={indexed_count} invalidated={} remaining={remaining} indexed_active_count_p50_us={:.3} full_scan_active_count_p50_us={:.3} epoch_invalidation_ms={:.3}",
+        indexed_count,
+        percentile(&indexed_samples, 50).as_secs_f64() * 1_000_000.0,
+        percentile(&reference_samples, 50).as_secs_f64() * 1_000_000.0,
+        invalidate_elapsed.as_secs_f64() * 1_000.0
+    );
+    assert_eq!(remaining, 0);
+    assert_eq!(book.reservations.len(), size as usize);
+    black_box(book);
+}
+
 fn main() {
     for size in [10_u64, 100, 1_000, 10_000, 50_000] {
         sparse_run(size);
@@ -303,4 +367,5 @@ fn main() {
     multi_resource_run(1_000);
     dense_run(1_000);
     expiry_run(50_000);
+    epoch_invalidation_run(50_000, 100);
 }
