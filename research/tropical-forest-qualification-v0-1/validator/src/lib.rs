@@ -1072,7 +1072,7 @@ fn validate_binary_event_brier_corpus(
             expected_summary.get("brier_skill_score").unwrap_or(&Value::Null),
             1e-12,
         )
-        && summary.disposition == expected_disposition
+        && summary.disposition == expected_disposition.as_str()
         && bins_match;
 
     push_check(
