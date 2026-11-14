@@ -1,0 +1,80 @@
+name: Recovery Scenario Envelope Audit
+
+on:
+  push:
+    branches: ["feat/recovery-scenario-envelope-v0-1"]
+    paths:
+      - "docs/tech/recovery-scenario-envelope-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_SCENARIO_ENVELOPE_AUDIT_V0_1.md"
+      - "tools/recovery-scenario-envelope-audit/**"
+      - ".github/workflows/recovery-scenario-envelope-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/recovery-scenario-envelope-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_SCENARIO_ENVELOPE_AUDIT_V0_1.md"
+      - "tools/recovery-scenario-envelope-audit/**"
+      - ".github/workflows/recovery-scenario-envelope-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-scenario-envelope-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  envelope-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Check formatting
+        run: cargo fmt --check --manifest-path tools/recovery-scenario-envelope-audit/Cargo.toml
+      - name: Run unit and mutation tests
+        run: cargo test --manifest-path tools/recovery-scenario-envelope-audit/Cargo.toml
+      - name: Audit exact-head synthetic corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-scenario-envelope-audit/Cargo.toml -- \
+            docs/tech/recovery-scenario-envelope-corpus-v0.1.json \
+            --source-commit "$source_commit" > recovery-scenario-envelope-receipt.json
+          jq -e --arg head "$source_commit" '
+            .result == "pass"
+            and .schema_version == "recovery-scenario-envelope-v0.1"
+            and .algorithm_id == "family-held-out-applicability-envelope-audit-v0.1"
+            and .source_commit == $head
+            and .profile_count == 3
+            and .case_count == 17
+            and .expected_outcomes_match == true
+            and .all_review_only == true
+            and .all_actuation_disabled == true
+            and .scope_counts.IN_SCOPE == 10
+            and .scope_counts.OUT_OF_SCOPE == 7
+            and .evidence_counts.INSUFFICIENT == 5
+            and .disposition_counts.REVIEW_ONLY_CANDIDATE == 3
+            and .disposition_counts.REASSESS_SCOPE == 7
+            and .disposition_counts.HOLD_EVIDENCE == 5
+            and .disposition_counts.BLOCKED_HARD_GATE == 2
+            and (.case_results | length) == 17
+            and (.errors | length) == 0
+          ' recovery-scenario-envelope-receipt.json
+      - name: Upload deterministic receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-scenario-envelope-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: recovery-scenario-envelope-receipt.json
+          if-no-files-found: warn
+          retention-days: 14

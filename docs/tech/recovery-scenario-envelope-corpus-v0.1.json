@@ -1,0 +1,510 @@
+{
+  "schema_version": "recovery-scenario-envelope-v0.1",
+  "algorithm_id": "family-held-out-applicability-envelope-audit-v0.1",
+  "status": "synthetic-boundary-fixtures",
+  "claim_ceiling": {
+    "real_world_measurements": false,
+    "predictive_coverage_claimed": false,
+    "safety_qualification_claimed": false,
+    "expected_actuation": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "profiles": [
+    {
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "covered_failure_families": [
+        "access_constraint",
+        "habitat_conflict",
+        "timber_condition",
+        "weather_window",
+        "route_capacity"
+      ],
+      "required_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "max_evidence_age_days": 30,
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1"
+    },
+    {
+      "profile_id": "pv-second-life-v1",
+      "domain": "pv_second_life",
+      "profile_version": "pv-second-life-v1",
+      "criteria_regime": "electrical-safety-and-reuse-v1",
+      "covered_failure_families": [
+        "insulation_failure",
+        "mechanical_damage",
+        "thermal_event",
+        "provenance_gap"
+      ],
+      "required_evidence_tags": [
+        "provenance",
+        "electrical_safety_test",
+        "visual_damage_assessment",
+        "hazard_classification_review"
+      ],
+      "max_evidence_age_days": 14,
+      "family_taxonomy_version": "pv-failure-taxonomy-v1"
+    },
+    {
+      "profile_id": "infrastructure-recovery-v1",
+      "domain": "infrastructure_recovery",
+      "profile_version": "infrastructure-recovery-v1",
+      "criteria_regime": "service-continuity-and-structural-safety-v1",
+      "covered_failure_families": [
+        "structural_crack",
+        "water_ingress",
+        "capacity_overload",
+        "utility_outage"
+      ],
+      "required_evidence_tags": [
+        "structural_inspection",
+        "capacity_record",
+        "service_state",
+        "hazard_classification_review"
+      ],
+      "max_evidence_age_days": 7,
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "forest-known-family-complete-evidence",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "timber_condition",
+        "access_constraint"
+      ],
+      "evidence_age_days": 3,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-known-family-complete-evidence"
+    },
+    {
+      "case_id": "forest-mixed-known-and-held-out-contamination",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "timber_condition",
+        "chemical_residue_contamination"
+      ],
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-mixed-known-and-held-out-contamination"
+    },
+    {
+      "case_id": "forest-family-classification-incomplete",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "INCOMPLETE",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-family-classification-incomplete"
+    },
+    {
+      "case_id": "forest-criteria-regime-changed",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "biosecurity-and-containment-priority-v2",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "timber_condition"
+      ],
+      "evidence_age_days": 4,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-criteria-regime-changed"
+    },
+    {
+      "case_id": "forest-stale-evidence",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "weather_window"
+      ],
+      "evidence_age_days": 31,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "INSUFFICIENT",
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-stale-evidence"
+    },
+    {
+      "case_id": "forest-required-legal-evidence-missing",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "access_constraint"
+      ],
+      "evidence_age_days": 1,
+      "observed_evidence_tags": [
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "INSUFFICIENT",
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-required-legal-evidence-missing"
+    },
+    {
+      "case_id": "forest-habitat-hard-gate-block",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "habitat_conflict"
+      ],
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "BLOCK",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "BLOCKED_HARD_GATE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-habitat-hard-gate-block"
+    },
+    {
+      "case_id": "forest-hard-gate-unknown",
+      "profile_id": "forest-recovery-v1",
+      "domain": "forestry_recovery",
+      "profile_version": "forest-recovery-v1",
+      "criteria_regime": "protect-habitat-and-recover-material-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "route_capacity"
+      ],
+      "evidence_age_days": 3,
+      "observed_evidence_tags": [
+        "legal_authority",
+        "species_material_id",
+        "condition_inspection",
+        "habitat_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "UNKNOWN",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "forest-hazard-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/forest-hard-gate-unknown"
+    },
+    {
+      "case_id": "pv-known-family-complete-evidence",
+      "profile_id": "pv-second-life-v1",
+      "domain": "pv_second_life",
+      "profile_version": "pv-second-life-v1",
+      "criteria_regime": "electrical-safety-and-reuse-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "insulation_failure"
+      ],
+      "evidence_age_days": 4,
+      "observed_evidence_tags": [
+        "provenance",
+        "electrical_safety_test",
+        "visual_damage_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-known-family-complete-evidence"
+    },
+    {
+      "case_id": "pv-held-out-corrosion-family",
+      "profile_id": "pv-second-life-v1",
+      "domain": "pv_second_life",
+      "profile_version": "pv-second-life-v1",
+      "criteria_regime": "electrical-safety-and-reuse-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "delamination_with_hidden_interconnect_corrosion"
+      ],
+      "evidence_age_days": 4,
+      "observed_evidence_tags": [
+        "provenance",
+        "electrical_safety_test",
+        "visual_damage_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-held-out-corrosion-family"
+    },
+    {
+      "case_id": "pv-stale-inspection",
+      "profile_id": "pv-second-life-v1",
+      "domain": "pv_second_life",
+      "profile_version": "pv-second-life-v1",
+      "criteria_regime": "electrical-safety-and-reuse-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "mechanical_damage"
+      ],
+      "evidence_age_days": 15,
+      "observed_evidence_tags": [
+        "provenance",
+        "electrical_safety_test",
+        "visual_damage_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "INSUFFICIENT",
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-stale-inspection"
+    },
+    {
+      "case_id": "pv-insulation-safety-gate-block",
+      "profile_id": "pv-second-life-v1",
+      "domain": "pv_second_life",
+      "profile_version": "pv-second-life-v1",
+      "criteria_regime": "electrical-safety-and-reuse-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "insulation_failure"
+      ],
+      "evidence_age_days": 5,
+      "observed_evidence_tags": [
+        "provenance",
+        "electrical_safety_test",
+        "visual_damage_assessment",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "BLOCK",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "BLOCKED_HARD_GATE",
+      "family_taxonomy_version": "pv-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/pv-insulation-safety-gate-block"
+    },
+    {
+      "case_id": "infrastructure-known-family-complete-evidence",
+      "profile_id": "infrastructure-recovery-v1",
+      "domain": "infrastructure_recovery",
+      "profile_version": "infrastructure-recovery-v1",
+      "criteria_regime": "service-continuity-and-structural-safety-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "capacity_overload",
+        "utility_outage"
+      ],
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "structural_inspection",
+        "capacity_record",
+        "service_state",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REVIEW_ONLY_CANDIDATE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-known-family-complete-evidence"
+    },
+    {
+      "case_id": "infrastructure-profile-version-mismatch",
+      "profile_id": "infrastructure-recovery-v1",
+      "domain": "infrastructure_recovery",
+      "profile_version": "infrastructure-recovery-v2",
+      "criteria_regime": "service-continuity-and-structural-safety-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "water_ingress"
+      ],
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "structural_inspection",
+        "capacity_record",
+        "service_state",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-profile-version-mismatch"
+    },
+    {
+      "case_id": "infrastructure-capacity-evidence-missing",
+      "profile_id": "infrastructure-recovery-v1",
+      "domain": "infrastructure_recovery",
+      "profile_version": "infrastructure-recovery-v1",
+      "criteria_regime": "service-continuity-and-structural-safety-v1",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "structural_crack"
+      ],
+      "evidence_age_days": 1,
+      "observed_evidence_tags": [
+        "structural_inspection",
+        "service_state",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "IN_SCOPE",
+      "expected_evidence_status": "INSUFFICIENT",
+      "expected_disposition": "HOLD_EVIDENCE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-capacity-evidence-missing"
+    },
+    {
+      "case_id": "unknown-profile-id",
+      "profile_id": "unregistered-profile-v9",
+      "domain": "unknown_domain",
+      "profile_version": "unregistered-profile-v9",
+      "criteria_regime": "unregistered-criteria-v9",
+      "family_classification": "COMPLETE",
+      "observed_failure_families": [
+        "unmapped_hazard"
+      ],
+      "evidence_age_days": 1,
+      "observed_evidence_tags": [
+        "some_evidence",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "INSUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "unregistered-taxonomy-v9",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/unknown-profile-id"
+    },
+    {
+      "case_id": "infrastructure-hazard-classification-unknown",
+      "profile_id": "infrastructure-recovery-v1",
+      "domain": "infrastructure_recovery",
+      "profile_version": "infrastructure-recovery-v1",
+      "criteria_regime": "service-continuity-and-structural-safety-v1",
+      "family_classification": "UNKNOWN",
+      "observed_failure_families": [
+        "structural_crack"
+      ],
+      "evidence_age_days": 2,
+      "observed_evidence_tags": [
+        "structural_inspection",
+        "capacity_record",
+        "service_state",
+        "hazard_classification_review"
+      ],
+      "hard_gate_status": "PASS",
+      "expected_scope_status": "OUT_OF_SCOPE",
+      "expected_evidence_status": "SUFFICIENT",
+      "expected_disposition": "REASSESS_SCOPE",
+      "family_taxonomy_version": "infrastructure-failure-taxonomy-v1",
+      "classification_review_status": "REVIEWED",
+      "classification_record_ref": "synthetic://classification-review/infrastructure-hazard-classification-unknown"
+    }
+  ]
+}
