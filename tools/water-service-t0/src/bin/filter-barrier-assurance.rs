@@ -35,26 +35,22 @@ fn run() -> Result<i32, String> {
                 .to_owned(),
         );
     }
-    let input_path = PathBuf::from(
-        args.first().map(String::as_str).unwrap_or(
+    let input_path =
+        PathBuf::from(args.first().map(String::as_str).unwrap_or(
             "research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json",
-        ),
-    );
-    let oracle_path = PathBuf::from(
-        args.get(1).map(String::as_str).unwrap_or(
+        ));
+    let oracle_path =
+        PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
             "research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json",
-        ),
-    );
+        ));
     let schema_path = PathBuf::from(
         args.get(2)
             .map(String::as_str)
             .unwrap_or("research/water-service-engineering/filter-barrier-assurance.schema.json"),
     );
-    let manifest_path = PathBuf::from(
-        args.get(3)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/filter-barrier-assurance-manifest-v0.1.json"),
-    );
+    let manifest_path = PathBuf::from(args.get(3).map(String::as_str).unwrap_or(
+        "research/water-service-engineering/filter-barrier-assurance-manifest-v0.1.json",
+    ));
     let receipt_path = PathBuf::from(
         args.get(4)
             .map(String::as_str)
@@ -82,15 +78,13 @@ fn run() -> Result<i32, String> {
     let no_mismatches = evaluation["mismatches"]
         .as_array()
         .is_some_and(Vec::is_empty);
-    let all_non_authorizing = evaluation["results"]
-        .as_array()
-        .is_some_and(|rows| {
-            rows.iter().all(|row| {
-                !row["computed"]["potability_or_compliance_claim_allowed"]
-                    .as_bool()
-                    .unwrap_or(true)
-            })
-        });
+    let all_non_authorizing = evaluation["results"].as_array().is_some_and(|rows| {
+        rows.iter().all(|row| {
+            !row["computed"]["potability_or_compliance_claim_allowed"]
+                .as_bool()
+                .unwrap_or(true)
+        })
+    });
     let success = total == 9 && matched == 9 && no_mismatches && all_non_authorizing;
 
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
