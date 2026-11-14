@@ -1,0 +1,512 @@
+{
+  "schema_version": "wpt-rul-survival-eval-v0",
+  "run_id": "synthetic-competing-risk-ipcw-001",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "evaluation_split": "TEST",
+  "estimand": "COMPETING_RISK_CIF_AT_HORIZON",
+  "censoring_assumption": "INDEPENDENT_RIGHT_CENSORING",
+  "censoring_estimator": "EVALUATION_COHORT_UNCONDITIONAL_KM",
+  "prediction_horizon_hours": 10,
+  "minimum_censoring_survival": 0.1,
+  "target_event_codes": [
+    "STRUCTURAL_CRACK_LIMIT",
+    "INSULATION_RESISTANCE_LIMIT"
+  ],
+  "competing_event_codes": [
+    "ROAD_RECONSTRUCTION",
+    "PLANNED_REPLACEMENT"
+  ],
+  "prediction_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "outcome_data_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "subjects": [
+    {
+      "subject_id": "asset-a",
+      "cluster_id": "route-cluster-a",
+      "observed_duration_hours": 4,
+      "outcome_kind": "TARGET_FAILURE",
+      "event_code": "STRUCTURAL_CRACK_LIMIT",
+      "predicted_survival_probability": 0.2,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.5
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.1
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.1
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.1
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.10058986952713125,
+            0.10058986952713125,
+            0.10058986952713125
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.020117973905426252,
+            0.020117973905426252,
+            0.020117973905426252
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.020117973905426252,
+            0.020117973905426252,
+            0.020117973905426252
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.020117973905426252,
+            0.020117973905426252,
+            0.020117973905426252
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-b",
+      "cluster_id": "route-cluster-a",
+      "observed_duration_hours": 8,
+      "outcome_kind": "TARGET_FAILURE",
+      "event_code": "INSULATION_RESISTANCE_LIMIT",
+      "predicted_survival_probability": 0.3,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.1
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.4
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.1
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.1
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.017199611490370515,
+            0.017199611490370515,
+            0.017199611490370515
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.06879844596148206,
+            0.06879844596148206,
+            0.06879844596148206
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.017199611490370515,
+            0.017199611490370515,
+            0.017199611490370515
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.017199611490370515,
+            0.017199611490370515,
+            0.017199611490370515
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-c",
+      "cluster_id": "route-cluster-b",
+      "observed_duration_hours": 6,
+      "outcome_kind": "RIGHT_CENSORED",
+      "event_code": null,
+      "predicted_survival_probability": 0.6,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.2
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.05
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.05
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.1
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.025541281188299538,
+            0.025541281188299538,
+            0.025541281188299538
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.0063853202970748845,
+            0.0063853202970748845,
+            0.0063853202970748845
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.0063853202970748845,
+            0.0063853202970748845,
+            0.0063853202970748845
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.012770640594149769,
+            0.012770640594149769,
+            0.012770640594149769
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-d",
+      "cluster_id": "route-cluster-c",
+      "observed_duration_hours": 12,
+      "outcome_kind": "COMPETING_EVENT",
+      "event_code": "ROAD_RECONSTRUCTION",
+      "predicted_survival_probability": 0.7,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.1
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.05
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.1
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.05
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.011889164797957747,
+            0.011889164797957747,
+            0.011889164797957747
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.005944582398978874,
+            0.005944582398978874,
+            0.005944582398978874
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.011889164797957747,
+            0.011889164797957747,
+            0.011889164797957747
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.005944582398978874,
+            0.005944582398978874,
+            0.005944582398978874
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-e",
+      "cluster_id": "route-cluster-d",
+      "observed_duration_hours": 12,
+      "outcome_kind": "RIGHT_CENSORED",
+      "event_code": null,
+      "predicted_survival_probability": 0.8,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.05
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.05
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.05
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.05
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.005578588782855245,
+            0.005578588782855245,
+            0.005578588782855245
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.005578588782855245,
+            0.005578588782855245,
+            0.005578588782855245
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.005578588782855245,
+            0.005578588782855245,
+            0.005578588782855245
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.005578588782855245,
+            0.005578588782855245,
+            0.005578588782855245
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-f",
+      "cluster_id": "route-cluster-e",
+      "observed_duration_hours": 3,
+      "outcome_kind": "COMPETING_EVENT",
+      "event_code": "PLANNED_REPLACEMENT",
+      "predicted_survival_probability": 0.3,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.1
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.1
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.1
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.4
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.017199611490370515,
+            0.017199611490370515,
+            0.017199611490370515
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.017199611490370515,
+            0.017199611490370515,
+            0.017199611490370515
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.017199611490370515,
+            0.017199611490370515,
+            0.017199611490370515
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.06879844596148206,
+            0.06879844596148206,
+            0.06879844596148206
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-g",
+      "cluster_id": "route-cluster-f",
+      "observed_duration_hours": 15,
+      "outcome_kind": "TARGET_FAILURE",
+      "event_code": "STRUCTURAL_CRACK_LIMIT",
+      "predicted_survival_probability": 0.85,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.05
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.03
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.04
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.03
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.005417297649925831,
+            0.005417297649925831,
+            0.005417297649925831
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.003250378589955498,
+            0.003250378589955498,
+            0.003250378589955498
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.004333838119940664,
+            0.004333838119940664,
+            0.004333838119940664
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.003250378589955498,
+            0.003250378589955498,
+            0.003250378589955498
+          ]
+        }
+      ]
+    },
+    {
+      "subject_id": "asset-h",
+      "cluster_id": "route-cluster-g",
+      "observed_duration_hours": 2,
+      "outcome_kind": "RIGHT_CENSORED",
+      "event_code": null,
+      "predicted_survival_probability": 0.9,
+      "predicted_cumulative_incidence": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "probability": 0.02
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "probability": 0.02
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "probability": 0.03
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "probability": 0.03
+        }
+      ],
+      "predicted_cause_specific_hazard_rates_per_hour": [
+        {
+          "event_code": "STRUCTURAL_CRACK_LIMIT",
+          "rates_per_interval": [
+            0.0021072103131565263,
+            0.0021072103131565263,
+            0.0021072103131565263
+          ]
+        },
+        {
+          "event_code": "INSULATION_RESISTANCE_LIMIT",
+          "rates_per_interval": [
+            0.0021072103131565263,
+            0.0021072103131565263,
+            0.0021072103131565263
+          ]
+        },
+        {
+          "event_code": "ROAD_RECONSTRUCTION",
+          "rates_per_interval": [
+            0.0031608154697347892,
+            0.0031608154697347892,
+            0.0031608154697347892
+          ]
+        },
+        {
+          "event_code": "PLANNED_REPLACEMENT",
+          "rates_per_interval": [
+            0.0031608154697347892,
+            0.0031608154697347892,
+            0.0031608154697347892
+          ]
+        }
+      ]
+    }
+  ],
+  "quality_flags": [
+    "SYNTHETIC_ONLY"
+  ],
+  "hazard_time_edges_hours": [
+    0,
+    5,
+    10,
+    20
+  ]
+}
