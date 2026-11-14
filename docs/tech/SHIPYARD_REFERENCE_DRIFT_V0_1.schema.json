@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic scan reference-artifact drift corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "scenarios",
+    "negative_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-REFERENCE-DRIFT-001"
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 18,
+      "maxItems": 18,
+      "items": {
+        "$ref": "#/$defs/control"
+      }
+    }
+  },
+  "$defs": {
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "revision",
+        "sha256",
+        "frozen_baseline",
+        "instrument_id",
+        "calibration_revision",
+        "artifact_id",
+        "characteristic_id",
+        "certified_value_um",
+        "maximum_absolute_error_um",
+        "ewma_lambda_ppm",
+        "initial_ewma_residual_um",
+        "ewma_limit_um",
+        "minimum_observations",
+        "maximum_gap_ms",
+        "minimum_environment_milli_c",
+        "maximum_environment_milli_c"
+      ],
+      "properties": {
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frozen_baseline": {
+          "const": true
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "characteristic_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "certified_value_um": {
+          "type": "integer"
+        },
+        "maximum_absolute_error_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ewma_lambda_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "initial_ewma_residual_um": {
+          "type": "integer"
+        },
+        "ewma_limit_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_observations": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "maximum_gap_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_environment_milli_c": {
+          "type": "integer"
+        },
+        "maximum_environment_milli_c": {
+          "type": "integer"
+        }
+      }
+    },
+    "certificate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "artifact_id",
+        "characteristic_id",
+        "instrument_id",
+        "calibration_revision",
+        "verified",
+        "valid_from_ms",
+        "valid_until_ms"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "characteristic_id": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "calibration_revision": {
+          "type": "string"
+        },
+        "verified": {
+          "const": true
+        },
+        "valid_from_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "artifact_id",
+        "characteristic_id",
+        "instrument_id",
+        "calibration_revision",
+        "captured_at_ms",
+        "measured_value_um",
+        "expanded_uncertainty_um",
+        "environment_milli_c"
+      ],
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "artifact_id": {
+          "type": "string"
+        },
+        "characteristic_id": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "calibration_revision": {
+          "type": "string"
+        },
+        "captured_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "measured_value_um": {
+          "type": "integer"
+        },
+        "expanded_uncertainty_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "environment_milli_c": {
+          "type": "integer"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "benchmark_id",
+        "evidence_class",
+        "sequence_id",
+        "policy",
+        "certificate",
+        "observations",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0"
+        },
+        "benchmark_id": {
+          "const": "SHIPYARD-REFERENCE-DRIFT-001"
+        },
+        "evidence_class": {
+          "const": "synthetic_contract_only"
+        },
+        "sequence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
+        },
+        "certificate": {
+          "$ref": "#/$defs/certificate"
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "claim_ceiling": {
+          "const": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "input",
+        "expected_decision",
+        "expected_hold_reason"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input": {
+          "$ref": "#/$defs/input"
+        },
+        "expected_decision": {
+          "enum": [
+            "continue_within_declared_check_limits",
+            "hold_for_metrology_review"
+          ]
+        },
+        "expected_hold_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ewma_guard_exceeded",
+            null
+          ]
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "mutation",
+        "expected_disposition"
+      ],
+      "properties": {
+        "control_id": {
+          "type": "string",
+          "pattern": "^SRD-[0-9]{3}$"
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 10
+        },
+        "expected_disposition": {
+          "type": "string",
+          "minLength": 4
+        }
+      }
+    }
+  }
+}
