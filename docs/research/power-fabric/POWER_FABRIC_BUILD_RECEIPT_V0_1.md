@@ -6,7 +6,7 @@
 
 ## 1. Purpose
 
-A Power Fabric output must be reconstructable from the exact source data, mapping policy, compiler/toolchain, dependency lock and applicable standard profiles that produced it.
+A Power Fabric output must be reconstructable from the exact source data, mapping policy, exact installed module identities/configuration, compiler/toolchain, dependency lock and applicable standard profiles that produced it.
 
 The build receipt records four distinct SHA-256 digests:
 1. validated source IR document;
@@ -23,7 +23,7 @@ Every receipt requires:
 - exact compiler ID and version;
 - toolchain fingerprint (at minimum Rust compiler version and compilation target);
 - SHA-256 digest of the workspace dependency lockfile (Cargo.lock);
-- mapping profile ID/version and explicit namespaced maps;
+- mapping profile ID/version, explicit namespaced maps and per-object exact module/configuration identities;
 - graph ID/revision/maturity and declared graph content digest;
 - at least one standard applicability profile pin;
 - each standard profile's exact ID/version, standard/part, edition, amendments, publication status and jurisdiction;
@@ -56,7 +56,7 @@ The lock digest covers:
 - source document ID/revision/schema and source digest;
 - mapping profile ID/version and profile digest;
 - graph ID/revision/maturity and declared content digest;
-- computed ServiceGraph payload digest;
+- computed ServiceGraph payload digest, including the exact module identities/configuration attached to nodes;
 - all standard profile pins and upstream artifact pins.
 
 The receipt is reproducible: an independent verifier with the same inputs and serialization profile can recompute all four digests and compare them. It is not authentic by itself: SHA-256 does not prove who supplied a source, whether a piece of evidence is truthful, when a measurement occurred, or whether the equipment is physically installed as described.
@@ -70,7 +70,7 @@ This creates the foundation for a physical-infrastructure equivalent of a lockfi
 - a changed equipment catalogue, upstream model, or Cargo.lock creates a new build lock;
 - old receipts remain reproducible rather than being silently rewritten.
 
-Next increments should add role-projection artifact digests, export/import output receipts, independent verification signatures, and a dependency invalidation bridge. Signatures must be separate from these content hashes and must identify the signer, authority, key lifecycle and signing time.
+Next increments should add role-projection artifact digests, export/import output receipts, independent verification signatures, and a dependency invalidation bridge. The module-identity mutation test explicitly verifies that changing one mapped module configuration changes the mapping-profile digest, compiled graph payload digest and build-lock digest while leaving the source IR digest unchanged. Signatures must be separate from these content hashes and must identify the signer, authority, key lifecycle and signing time.
 
 ## 6. Claim ceiling
 
