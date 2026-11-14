@@ -252,7 +252,10 @@
     "unique_within_catalogue_rate",
     "false_unique_within_catalogue_rate",
     "behavioral_envelope_coverage",
-    "worst_regime_admissible_set_size"
+    "worst_regime_admissible_set_size",
+    "command_prediction_temporal_order_unproven_count",
+    "response_prediction_temporal_order_unproven_count",
+    "timebase_qualification_rejection_count"
   ],
   "hard_evidence_gates": [
     "model, source data, evaluator, feature map and split manifests are content-addressed",
@@ -966,5 +969,18 @@
     "dataset_bytes_audited": false,
     "dataset_license_verified": false,
     "claim_ceiling": "New target for multi-source domain transfer. No dataset bytes, split membership, license or 70.18% result have been independently audited."
+  },
+  "temporal_evidence_contract": {
+    "status": "source_authored_ci_pending",
+    "module": "src/temporal.rs",
+    "command_response_evaluator": "evaluate_command_response",
+    "streaming_evaluator": "StreamingDiagnosisSession",
+    "interval_rule": "earliest(current_event) > latest(previous_event)",
+    "overlap_disposition": "not_evaluable",
+    "timebase_identity_bound": true,
+    "clock_synchronization_implemented": false,
+    "clock_qualification_authentication_implemented": false,
+    "event_annotation_uncertainty": "not_yet_interval_qualified",
+    "claim_ceiling": "software contract over declared timebase evidence only; not a synchronization implementation or physical clock-network qualification"
   }
 }
