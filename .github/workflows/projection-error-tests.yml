@@ -1,0 +1,35 @@
+name: Projection Error Tests
+
+on:
+  pull_request:
+    branches:
+      - "main"
+      - "feat/semantic-screen-space-lod-budget-001"
+    paths:
+      - "crates/bridges/symtropy-render-bridge/src/screen_error.rs"
+      - "docs/research/RENDER_PROJECTION_ERROR_002.md"
+      - ".github/workflows/projection-error-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  projection-error:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run render bridge library tests
+        run: cargo test -p symtropy-render-bridge --lib
+      - name: Run strict render bridge Clippy
+        run: cargo clippy -p symtropy-render-bridge --all-targets -- -D warnings
