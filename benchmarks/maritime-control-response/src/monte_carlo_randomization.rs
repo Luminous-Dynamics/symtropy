@@ -240,10 +240,10 @@ fn validate_work_budget(
 fn sample_blocked_assignment(
     trial: &BlockedRandomizedMaintenanceTrial,
     groups: &BTreeMap<String, Vec<usize>>,
+    allocations: &BTreeMap<&str, (usize, usize)>,
     rng: &mut SplitMix64,
 ) -> Result<Vec<bool>, MonteCarloRandomizationError> {
     let mut treatment_mask = vec![false; trial.observations.len()];
-    let allocations = allocation_map(trial);
     for (stratum_id, indices) in groups {
         let Some((planned_treatment_count, _)) = allocations.get(stratum_id.as_str()) else {
             return Err(MonteCarloRandomizationError::MissingStratum(
@@ -272,12 +272,12 @@ fn sample_blocked_assignment(
 fn count_allocation_constraint_violations(
     trial: &BlockedRandomizedMaintenanceTrial,
     groups: &BTreeMap<String, Vec<usize>>,
+    allocations: &BTreeMap<&str, (usize, usize)>,
     assignment: &[bool],
 ) -> usize {
     if assignment.len() != trial.observations.len() {
         return 1;
     }
-    let allocations = allocation_map(trial);
     let mut violations = 0usize;
     if groups.len() != allocations.len() {
         violations += 1;
@@ -304,12 +304,12 @@ fn plus_one_p_value(exceedances: usize, draw_count: usize) -> f64 {
 fn stratified_difference_in_means(
     trial: &BlockedRandomizedMaintenanceTrial,
     groups: &BTreeMap<String, Vec<usize>>,
+    allocations: &BTreeMap<&str, (usize, usize)>,
     treatment_mask: &[bool],
 ) -> Result<f64, MonteCarloRandomizationError> {
     if treatment_mask.len() != trial.observations.len() {
         return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
     }
-    let allocations = allocation_map(trial);
     let total_count = trial.observations.len() as f64;
     let mut weighted_effect = 0.0;
     for (stratum_id, indices) in groups {
@@ -386,13 +386,15 @@ pub fn estimate_monte_carlo_randomization_p_value(
 
     validate_work_budget(trial.observations.len(), config.draw_count)?;
     let groups = stratum_indices(trial);
+    let allocations = allocation_map(trial);
     let frame_sha256 = randomization_frame_sha256(trial)?;
     let observed_mask = trial
         .observations
         .iter()
         .map(|observation| observation.assigned_arm == AssignedArm::Treatment)
         .collect::<Vec<_>>();
-    let observed_statistic = stratified_difference_in_means(trial, &groups, &observed_mask)?;
+    let observed_statistic =
+        stratified_difference_in_means(trial, &groups, &allocations, &observed_mask)?;
     let mut rng = SplitMix64::new(config.seed_u64);
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-monte-carlo-assignment-stream-v1\0");
@@ -405,15 +407,19 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let mut exceedances = 0usize;
     let mut allocation_constraint_violations = 0usize;
     for _ in 0..config.draw_count {
-        let assignment = sample_blocked_assignment(trial, &groups, &mut rng)?;
-        allocation_constraint_violations +=
-            count_allocation_constraint_violations(trial, &groups, &assignment);
+        let assignment = sample_blocked_assignment(trial, &groups, &allocations, &mut rng)?;
+        allocation_constraint_violations += count_allocation_constraint_violations(
+            trial,
+            &groups,
+            &allocations,
+            &assignment,
+        );
         if allocation_constraint_violations > 0 {
             return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
         }
         update_sampled_assignment_digest(&mut hasher, trial, &groups, &assignment);
 
-        let statistic = stratified_difference_in_means(trial, &groups, &assignment)?;
+        let statistic = stratified_difference_in_means(trial, &groups, &allocations, &assignment)?;
         if statistic.abs() + 1e-12 >= observed_statistic.abs() {
             exceedances += 1;
         }
@@ -619,11 +625,13 @@ mod tests {
     fn partial_fisher_yates_sampler_covers_all_small_subsets_without_block_violations() {
         let trial = trial();
         let groups = stratum_indices(&trial);
+        let allocations = allocation_map(&trial);
         let mut rng = SplitMix64::new(2026);
         let first_group = groups.values().next().unwrap();
         let mut counts = BTreeMap::<u8, usize>::new();
         for _ in 0..12_000 {
-            let assignment = sample_blocked_assignment(&trial, &groups, &mut rng).unwrap();
+            let assignment =
+                sample_blocked_assignment(&trial, &groups, &allocations, &mut rng).unwrap();
             let mask = first_group
                 .iter()
                 .enumerate()
@@ -687,18 +695,19 @@ mod tests {
     fn independent_allocation_verifier_rejects_malformed_assignment_masks() {
         let trial = trial();
         let groups = stratum_indices(&trial);
+        let allocations = allocation_map(&trial);
         let mut assignment = trial
             .observations
             .iter()
             .map(|item| item.assigned_arm == AssignedArm::Treatment)
             .collect::<Vec<_>>();
         assert_eq!(
-            count_allocation_constraint_violations(&trial, &groups, &assignment),
+            count_allocation_constraint_violations(&trial, &groups, &allocations, &assignment),
             0
         );
         assignment[0] = false;
         assert!(
-            count_allocation_constraint_violations(&trial, &groups, &assignment) > 0
+            count_allocation_constraint_violations(&trial, &groups, &allocations, &assignment) > 0
         );
     }
 
