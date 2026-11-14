@@ -1,0 +1,47 @@
+name: Manufacturing measurement-conformity reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/conformity.rs"
+      - "tools/manufacturing-conformity/README.md"
+      - "tools/manufacturing-conformity/expected.csv"
+      - ".github/workflows/manufacturing-conformity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-conformity/conformity.rs"
+      - "tools/manufacturing-conformity/README.md"
+      - "tools/manufacturing-conformity/expected.csv"
+      - ".github/workflows/manufacturing-conformity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conformity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run boundary/evidence tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-conformity/conformity.rs -o "$RUNNER_TEMP/conformity-tests"
+          "$RUNNER_TEMP/conformity-tests"
+      - name: Build and verify frozen conformance campaign
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-conformity/conformity.rs -o "$RUNNER_TEMP/conformity"
+          "$RUNNER_TEMP/conformity" --verify
+      - name: Check deterministic output and golden table
+        run: |
+          "$RUNNER_TEMP/conformity" --csv > "$RUNNER_TEMP/conformity-a.csv"
+          "$RUNNER_TEMP/conformity" --csv > "$RUNNER_TEMP/conformity-b.csv"
+          diff -u "$RUNNER_TEMP/conformity-a.csv" "$RUNNER_TEMP/conformity-b.csv"
+          diff -u tools/manufacturing-conformity/expected.csv "$RUNNER_TEMP/conformity-a.csv"
+          cat "$RUNNER_TEMP/conformity-a.csv"
+      - name: Emit exact source and output digests
+        run: |
+          sha256sum tools/manufacturing-conformity/conformity.rs tools/manufacturing-conformity/expected.csv "$RUNNER_TEMP/conformity-a.csv"
