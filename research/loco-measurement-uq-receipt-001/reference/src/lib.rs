@@ -1547,6 +1547,92 @@ mod tests {
     }
 
     #[test]
+    fn shared_source_across_channels_without_a_global_decision_is_unknown() {
+        let mut audit = profile();
+        let source = "shared-clock-calibration";
+        let group = "shared-clock-group";
+        audit.uncertainty_receipts[0].components[0].source_receipt_digest = source.into();
+        audit.uncertainty_receipts[0].components[0].dependence_group_id = group.into();
+        audit.uncertainty_receipts[0].dependence[0].dependence_group_id = group.into();
+        audit.uncertainty_receipts[0].dependence[0].disposition =
+            DependenceDisposition::JointModel {
+                joint_model_receipt_digest: "shared-clock-joint-model".into(),
+            };
+
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
+        audit.measurements.push(measurement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+            Some("uq-voltage-001"),
+        ));
+        let mut voltage = uncertainty("uq-voltage-001", "voltage-001");
+        voltage.components[0].source_receipt_digest = source.into();
+        voltage.components[0].dependence_group_id = group.into();
+        voltage.dependence.clear();
+        audit.uncertainty_receipts.push(voltage);
+
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Unknown);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "SHARED_SOURCE_DEPENDENCE_UNRESOLVED"
+        }));
+    }
+
+    #[test]
+    fn shared_source_independence_requires_one_scope_bound_receipt() {
+        let mut audit = profile();
+        let source = "shared-reference-source";
+        let group = "shared-reference-group";
+        audit.uncertainty_receipts[0].components[0].source_receipt_digest = source.into();
+        audit.uncertainty_receipts[0].components[0].dependence_group_id = group.into();
+        audit.uncertainty_receipts[0].dependence[0].dependence_group_id = group.into();
+        audit.uncertainty_receipts[0].dependence[0].disposition =
+            DependenceDisposition::IndependenceSupported {
+                independence_receipt_digest: "joint-scope-independence-review".into(),
+            };
+
+        audit.measurement_requirements.push(requirement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+        ));
+        audit.measurements.push(measurement(
+            "voltage-001",
+            MeasurementKind::ElectricalVoltage,
+            Some("uq-voltage-001"),
+        ));
+        let mut voltage = uncertainty("uq-voltage-001", "voltage-001");
+        voltage.components[0].source_receipt_digest = source.into();
+        voltage.components[0].dependence_group_id = group.into();
+        voltage.dependence[0].dependence_group_id = group.into();
+        voltage.dependence[0].disposition =
+            DependenceDisposition::IndependenceSupported {
+                independence_receipt_digest: "joint-scope-independence-review".into(),
+            };
+        audit.uncertainty_receipts.push(voltage);
+
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Qualified);
+    }
+
+    #[test]
+    fn probability_interval_cannot_claim_a_deterministic_bound_method() {
+        let mut audit = profile();
+        if let CoverageRepresentation::ProbabilityInterval { method, .. } =
+            &mut audit.uncertainty_receipts[0].coverage
+        {
+            *method = CoverageMethod::ConservativeBound;
+        }
+        let report = audit_measurement_uncertainty(&audit);
+        assert_eq!(report.disposition, EvidenceDisposition::Rejected);
+        assert!(report.findings.iter().any(|finding| {
+            finding.code == "PROBABILISTIC_INTERVAL_HAS_BOUND_ONLY_METHOD"
+        }));
+    }
+
+    #[test]
     fn shared_source_with_different_group_ids_is_rejected() {
         let mut audit = profile();
         audit.uncertainty_receipts[0].components[0].source_receipt_digest =
