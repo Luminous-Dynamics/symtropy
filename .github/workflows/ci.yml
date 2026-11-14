@@ -57,6 +57,13 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+
+    - name: Verify FlyGym Evidence Adapter (standalone manifest)
+      run: |
+        cargo fmt --manifest-path research/loco-flygym-evidence-v0/Cargo.toml -- --check
+        cargo test --manifest-path research/loco-flygym-evidence-v0/Cargo.toml --locked
+        cargo clippy --manifest-path research/loco-flygym-evidence-v0/Cargo.toml --locked --all-targets -- -D warnings
+
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
