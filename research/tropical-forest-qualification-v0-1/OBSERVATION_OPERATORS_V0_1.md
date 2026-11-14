@@ -182,7 +182,7 @@ The companion JSON file defines nine synthetic expected-disposition cases for:
 8. the PNG security/logistics omissions promoted to healthy/absent forest;
 9. a single NFI / plot census treated as a longitudinal growth or mortality panel without a matched prior census.
 
-These cases are validated as a manifest by the standalone Rust verifier, which returns MANIFEST_VALID only when the expected dispositions and non-execution claim ceiling are coherent. The verifier does not yet execute them against a production observation adapter. MANIFEST_VALID must not be represented as passing the underlying observation-operator negative controls.
+These nine synthetic descriptors are now evaluated by the standalone Rust rule engine. Its PASS_SYNTHETIC_RULES receipt means the declared missingness/support/semantics inputs produced the expected dispositions. It does not mean production observation adapters are implemented, nor that real GEDI, TMF, MapBiomas, plot or NFI observations have been processed. Production adapter execution, external data ingestion and rights adjudication remain NOT_IMPLEMENTED / NOT_RUN.
 
 ## 8. Ownership
 
