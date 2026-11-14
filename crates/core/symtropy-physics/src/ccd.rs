@@ -307,3 +307,119 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod analytic_qualification_tests {
+    use super::*;
+    use nalgebra::SVector;
+
+    #[test]
+    fn thin_wall_crossing_is_detected_even_when_endpoints_do_not_overlap() {
+        let start = SVector::from([-10.0, 0.0, 0.0]);
+        let velocity = SVector::from([1_000.0, 0.0, 0.0]);
+        let wall_center = SVector::zeros();
+        let wall_velocity = SVector::zeros();
+        let radius = 0.1;
+        let dt = 0.02;
+
+        // The body has crossed completely through the static sphere by t=dt.
+        let end = start + velocity * dt;
+        assert!((end - wall_center).norm() > 2.0 * radius);
+
+        let hit = sphere_sphere(
+            &start,
+            &velocity,
+            radius,
+            &wall_center,
+            &wall_velocity,
+            radius,
+            dt,
+        )
+        .expect("the swept path intersects the thin obstacle");
+
+        // Independent chord-geometry oracle: first contact occurs when the
+        // moving center has traversed center_distance - (r_a + r_b).
+        let expected_toi = (10.0 - 2.0 * radius) / 1_000.0;
+        assert!((hit.toi - expected_toi).abs() < 1e-12);
+        assert!((hit.toi - 0.0098).abs() < 1e-12);
+        assert!(hit.toi >= 0.0 && hit.toi <= dt);
+        let center_at_toi = start + velocity * hit.toi;
+        assert!(((center_at_toi - wall_center).norm() - 2.0 * radius).abs() < 1e-10);
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_sphere_toi_matches_independent_chord_oracle_over_parameter_sweep() {
+        let combined_radius = 0.75;
+        let speed = 12.0;
+        let start_x = -4.0;
+        let dt = 1.0;
+        let target = SVector::zeros();
+        let target_velocity = SVector::zeros();
+
+        // For an offset y, the first-contact x coordinate is the near
+        // intersection of the radius-R circle: x = -sqrt(R² - y²).
+        // This oracle is geometric and independent of the production
+        // quadratic-root expression.
+        for step in 0..=30 {
+            let y = combined_radius * step as f64 / 30.0;
+            let start = SVector::from([start_x, y, 0.0]);
+            let velocity = SVector::from([speed, 0.0, 0.0]);
+            let near_x = -(combined_radius * combined_radius - y * y).sqrt();
+            let expected_toi = (near_x - start_x) / speed;
+
+            let hit = sphere_sphere(&start, &velocity, 0.25, &target, &target_velocity, 0.5, dt)
+                .expect("each swept chord intersects the combined-radius circle");
+
+            assert!(
+                (hit.toi - expected_toi).abs() < 1e-11,
+                "offset={y}: got {}, expected {expected_toi}",
+                hit.toi
+            );
+            let center_at_toi = start + velocity * hit.toi;
+            assert!(
+                ((center_at_toi - target).norm() - combined_radius).abs() < 1e-10,
+                "offset={y}: returned time does not satisfy contact geometry"
+            );
+            assert!((hit.normal.norm() - 1.0).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn exact_grazing_contact_has_finite_unit_normal() {
+        let start = SVector::from([-2.0, 0.2, 0.0]);
+        let velocity = SVector::from([4.0, 0.0, 0.0]);
+        let stationary = SVector::zeros();
+        let hit = sphere_sphere(&start, &velocity, 0.1, &stationary, &stationary, 0.1, 1.0)
+            .expect("a tangent trajectory must report the grazing contact");
+
+        assert!((hit.toi - 0.5).abs() < 1e-10);
+        assert!(hit.toi.is_finite());
+        assert!(hit.point.iter().all(|value| value.is_finite()));
+        assert!(hit.normal.iter().all(|value| value.is_finite()));
+        assert!((hit.normal.norm() - 1.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn halfspace_toi_matches_signed_distance_oracle_over_speed_sweep() {
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+        let plane_offset = 2.0;
+        let radius = 0.25;
+        let start_height = 10.0;
+
+        for speed_step in 1..=20 {
+            let speed = speed_step as f64 * 3.0;
+            let start = SVector::from([0.0, start_height, 0.0]);
+            let velocity = SVector::from([0.0, -speed, 0.0]);
+            let expected_toi = (start_height - plane_offset - radius) / speed;
+            let hit = sphere_halfspace(&start, &velocity, radius, &normal, plane_offset, 10.0)
+                .expect("the falling sphere reaches the plane during the horizon");
+
+            assert!((hit.toi - expected_toi).abs() < 1e-12);
+            let center_at_toi = start + velocity * hit.toi;
+            let signed_distance = normal.dot(&center_at_toi) - plane_offset;
+            assert!((signed_distance - radius).abs() < 1e-10);
+            assert!((hit.normal - normal).norm() < 1e-12);
+        }
+    }
+}
