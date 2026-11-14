@@ -1,0 +1,5 @@
+case_id,initial_dissolved_p_umol,initial_living_p_umol,initial_detritus_p_umol,initial_sediment_p_umol,initial_oxygen_umol,external_p_in_umol,external_p_out_umol,uptake_p_umol,mortality_p_umol,mineralization_p_umol,settling_p_umol,photosynthesis_o2_umol,reaeration_o2_in_umol,reaeration_o2_out_umol,respiration_o2_umol,decomposition_o2_umol
+closed_uptake,100,0,0,0,50,0,0,25,0,0,0,0,0,0,0,0
+turnover_and_settling,80,10,5,0,50,0,0,20,8,3,4,0,0,0,0,0
+open_boundary_budget,10,0,0,0,50,20,5,10,0,0,0,10,5,4,8,3
+no_process_control,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

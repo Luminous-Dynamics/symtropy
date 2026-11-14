@@ -1,0 +1,5 @@
+case_id,expected_dissolved_p_umol,expected_living_p_umol,expected_detritus_p_umol,expected_sediment_p_umol,expected_oxygen_umol
+closed_uptake,75,25,0,0,50
+turnover_and_settling,63,22,6,4,50
+open_boundary_budget,15,10,0,0,50
+no_process_control,0,0,0,0,0
