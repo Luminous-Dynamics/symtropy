@@ -108,12 +108,8 @@ pub struct BudgetComponent {
 /// evidence-backed independence determination. Unknown remains Unknown.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DependenceDisposition {
-    JointModel {
-        joint_model_receipt_digest: String,
-    },
-    IndependenceSupported {
-        independence_receipt_digest: String,
-    },
+    JointModel { joint_model_receipt_digest: String },
+    IndependenceSupported { independence_receipt_digest: String },
     Unknown,
 }
 
@@ -913,9 +909,7 @@ fn validate_shared_source_dependencies(
 ///
 /// The function consumes upstream budget and distribution conclusions. It
 /// never computes uncertainty or upgrades a non-qualified upstream result.
-pub fn audit_measurement_uncertainty(
-    profile: &UncertaintyProfile,
-) -> UncertaintyAuditReport {
+pub fn audit_measurement_uncertainty(profile: &UncertaintyProfile) -> UncertaintyAuditReport {
     let mut report = UncertaintyAuditReport {
         disposition: EvidenceDisposition::Qualified,
         checked_measurement_count: profile.measurements.len(),
@@ -1206,7 +1200,11 @@ mod tests {
         }
     }
 
-    fn measurement(id: &str, kind: MeasurementKind, receipt_id: Option<&str>) -> MeasurementReceipt {
+    fn measurement(
+        id: &str,
+        kind: MeasurementKind,
+        receipt_id: Option<&str>,
+    ) -> MeasurementReceipt {
         MeasurementReceipt {
             measurement_id: id.into(),
             kind,
@@ -1277,10 +1275,7 @@ mod tests {
         UncertaintyProfile {
             scope: scope(),
             evaluation_tick: 150,
-            measurement_requirements: vec![requirement(
-                "torque-001",
-                MeasurementKind::ShaftTorque,
-            )],
+            measurement_requirements: vec![requirement("torque-001", MeasurementKind::ShaftTorque)],
             measurements: vec![measurement(
                 "torque-001",
                 MeasurementKind::ShaftTorque,
@@ -1349,8 +1344,7 @@ mod tests {
     #[test]
     fn shared_source_group_without_dependence_decision_is_unknown() {
         let mut audit = profile();
-        audit.uncertainty_receipts[0].dependence[0].disposition =
-            DependenceDisposition::Unknown;
+        audit.uncertainty_receipts[0].dependence[0].disposition = DependenceDisposition::Unknown;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
         assert!(report.findings.iter().any(|finding| {
@@ -1428,23 +1422,22 @@ mod tests {
             MeasurementKind::ElectricalVoltage,
             Some("uq-voltage-001"),
         ));
-        audit.uncertainty_receipts
+        audit
+            .uncertainty_receipts
             .push(uncertainty("uq-voltage-001", "voltage-001"));
         audit.measurements.push(measurement(
             "energy-001",
             MeasurementKind::DerivedElectricalEnergy,
             Some("uq-energy-001"),
         ));
-        audit.uncertainty_receipts
+        audit
+            .uncertainty_receipts
             .push(uncertainty("uq-energy-001", "energy-001"));
         audit.derived_results.push(DerivedResultReceipt {
             result_id: "energy-001".into(),
             output_measurement_id: "energy-001".into(),
             input_measurement_ids: vec!["torque-001".into(), "voltage-001".into()],
-            input_uncertainty_receipt_ids: vec![
-                "uq-torque-001".into(),
-                "uq-voltage-001".into(),
-            ],
+            input_uncertainty_receipt_ids: vec!["uq-torque-001".into(), "uq-voltage-001".into()],
             output_result_digest: "artifact-energy-001".into(),
             output_uncertainty_receipt_id: "uq-energy-001".into(),
             upstream_disposition: EvidenceDisposition::Qualified,
@@ -1796,18 +1789,20 @@ mod tests {
             EvidenceDisposition::Rejected
         );
 
-        audit.measurement_requirements[1].applicability =
-            MeasurementApplicability::NotApplicable {
-                reason: "No gearbox thermal node in this single-joint fixture".into(),
-            };
+        audit.measurement_requirements[1].applicability = MeasurementApplicability::NotApplicable {
+            reason: "No gearbox thermal node in this single-joint fixture".into(),
+        };
         audit.measurements.push(measurement(
             "optional-temp",
             MeasurementKind::ThermalNode("gearbox".into()),
             None,
         ));
-        assert!(audit_measurement_uncertainty(&audit).findings.iter().any(|finding| {
-            finding.code == "NOT_APPLICABLE_MEASUREMENT_WAS_SUPPLIED"
-        }));
+        assert!(
+            audit_measurement_uncertainty(&audit)
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "NOT_APPLICABLE_MEASUREMENT_WAS_SUPPLIED" })
+        );
     }
 
     #[test]
