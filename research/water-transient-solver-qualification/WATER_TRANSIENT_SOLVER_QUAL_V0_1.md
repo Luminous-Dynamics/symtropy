@@ -52,7 +52,9 @@ Repository records inspected:
 - [LICENSE_1-AWH (MIT)](https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/LICENSE_1-AWH)
 - [CMake build definition](https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/CMakeLists.txt)
 
-The exact source commit is still not pinned in our benchmark, and no independent build, test, numerical convergence or physical pressure validation has been performed by Symtropy.
+At the 14 November 2026 snapshot, the upstream default branch was pinned to commit [`1f009d84764f33775f6f0bf244d78fa439c30bb7`](https://github.com/MehmetMelihKosucu/EPANET-AWH/commit/1f009d84764f33775f6f0bf244d78fa439c30bb7). The README says the Nault case is the shipped configuration and the Onizuka case requires compile-time edits to wave speed, transient timestep and output target; reproducibility must therefore record the exact source revision plus a local patch digest for every changed case.
+
+No independent build, test, numerical convergence or physical pressure validation has been performed by Symtropy.
 
 ### Bentley OpenFlows HAMMER
 
