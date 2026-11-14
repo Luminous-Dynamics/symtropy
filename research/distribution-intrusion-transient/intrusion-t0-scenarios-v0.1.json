@@ -1,0 +1,224 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "DISTRIBUTION-INTRUSION-TRANSIENT-QUAL-001",
+  "evidence_class": "synthetic_only",
+  "evidence_ceiling": "state_semantics_and_declared_tracer_arithmetic_only_no_physical_or_health_claim",
+  "profile": {
+    "profile_id": "LUMINOUS-DISTRIBUTION-INTRUSION-T0-SYNTHETIC",
+    "revision": "0.1",
+    "all_values_are_fictional": true,
+    "units": {
+      "pressure": "kPa_gauge",
+      "head": "m_water",
+      "volume": "L",
+      "concentration": "mg/L",
+      "mass": "mg",
+      "time": "s"
+    }
+  },
+  "dispositions": [
+    "INGRESS_CONFIRMED_IN_TEST",
+    "INGRESS_NOT_DEMONSTRATED",
+    "INDETERMINATE",
+    "MASS_BALANCE_UNRESOLVED",
+    "DOWNSTREAM_TRACER_DETECTED",
+    "RECOMMISSIONING_NOT_VERIFIED"
+  ],
+  "cases": [
+    {
+      "case_id": "DI-T0-001-positive-tracer-with-valid-pressure-and-pathway",
+      "description": "A connected defect and external head coincide with a pressure deficit; calibrated direct tracer evidence confirms ingress.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "tracer_source_attribution": "unique",
+        "ingress_volume_l": 0.25,
+        "external_tracer_concentration_mg_l": 20,
+        "measured_tracer_mass_mg": 5,
+        "sample_coverage_complete": true,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-002-transient-with-no-defect-and-complete-negative-samples",
+      "description": "A pressure transient occurs, but no connected opening or external tracer is present; all declared samples are valid.",
+      "inputs": {
+        "external_head_m": 1.5,
+        "internal_minimum_head_m": 0.8,
+        "pressure_event_duration_s": 2,
+        "pathway_state": "no_defect_confirmed",
+        "external_tracer_present": false,
+        "sample_coverage_complete": true,
+        "sample_result": "not_detected",
+        "detection_limit_mg_l": 0.001,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-003-defect-and-tracer-but-no-external-head-exceedance",
+      "description": "A known defect and external tracer exist, but internal pressure remains above the external head throughout the declared window and no tracer is detected by a valid method.",
+      "inputs": {
+        "external_head_m": 1,
+        "internal_minimum_head_m": 3,
+        "pressure_event_duration_s": 0,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "sample_coverage_complete": true,
+        "sample_result": "not_detected",
+        "detection_limit_mg_l": 0.001,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-004-pressure-deficit-with-unknown-pathway",
+      "description": "A pressure deficit and external water are observed, but the existence/connectivity of a leak pathway is unknown.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 0.5,
+        "pressure_event_duration_s": 5,
+        "pathway_state": "unknown",
+        "external_tracer_present": true,
+        "sample_coverage_complete": true,
+        "sample_result": "not_detected",
+        "detection_limit_mg_l": 0.001,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-005-missing-downstream-sample",
+      "description": "Pressure and defect evidence are valid, but the far-end sample required to bound downstream transport is missing.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "sample_coverage_complete": false,
+        "missing_sample_points": [
+          "far_end"
+        ],
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-006-expired-pressure-or-sample-calibration",
+      "description": "The critical measurement channel is outside its valid calibration interval.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "sample_coverage_complete": true,
+        "sample_result": "not_detected",
+        "instrument_calibration_current": false,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-007-detection-limit-insufficient",
+      "description": "A non-detect is reported, but the method detection limit is too high for the declared test sensitivity.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "sample_coverage_complete": true,
+        "sample_result": "not_detected",
+        "detection_limit_mg_l": 0.5,
+        "required_test_sensitivity_mg_l": 0.01,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-008-tracer-source-ambiguous",
+      "description": "Tracer is detected, but source attribution is ambiguous because a second uncontrolled source exists.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "tracer_source_attribution": "ambiguous",
+        "sample_coverage_complete": true,
+        "sample_result": "detected",
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-009-ingress-known-but-mass-balance-incomplete",
+      "description": "Direct tracer evidence confirms ingress, but one declared residual stream is unmeasured and complete mass closure cannot be asserted.",
+      "inputs": {
+        "ingress_volume_l": 0.25,
+        "external_tracer_concentration_mg_l": 20,
+        "measured_tracer_mass_mg": 5,
+        "measured_downstream_mass_mg": 2,
+        "captured_residual_mass_mg": null,
+        "all_declared_streams_measured": false,
+        "tracer_source_attribution": "unique",
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-010-downstream-tracer-arrival",
+      "description": "A valid, attributed tracer sample is detected at a named downstream location.",
+      "inputs": {
+        "sample_point_id": "downstream_far_end",
+        "sample_time_s": 45,
+        "sample_concentration_mg_l": 0.04,
+        "method_quantification_limit_mg_l": 0.005,
+        "tracer_source_attribution": "unique",
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence",
+      "description": "Pressure has returned and the repair ticket is closed, but no valid post-event samples or independent quality evidence exist.",
+      "inputs": {
+        "pressure_within_declared_band": true,
+        "maintenance_ticket": "closed",
+        "post_event_samples_present": false,
+        "independent_quality_verification": false,
+        "stable_dwell_complete": false
+      }
+    },
+    {
+      "case_id": "DI-T0-012-similar-pressure-event-no-ingress-pathway",
+      "description": "A pump/valve disturbance creates a similar pressure signature, but no defect or external tracer source is present and sampling is valid.",
+      "inputs": {
+        "pressure_event_signature_id": "synthetic_shape_B",
+        "pathway_state": "no_defect_confirmed",
+        "external_tracer_present": false,
+        "sample_coverage_complete": true,
+        "sample_result": "not_detected",
+        "detection_limit_mg_l": 0.001,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    }
+  ],
+  "invariants": [
+    "pressure_event_alone_never_confirms_ingress",
+    "pressure_recovery_never_confirms_water_quality_recommissioning",
+    "missing_sample_or_unknown_pathway_never_becomes_no_ingress",
+    "below_detection_is_not_zero",
+    "ambiguous_tracer_source_never_becomes_confirmed_ingress",
+    "unmeasured_declared_stream_never_counts_as_zero_mass",
+    "every_case_keeps_potability_claim_permitted_false",
+    "every_case_keeps_release_authorized_false",
+    "synthetic_cases_are_not_physical_or_health_evidence"
+  ]
+}
