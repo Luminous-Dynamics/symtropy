@@ -8,6 +8,7 @@ on:
       - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
       - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
+      - "docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -20,6 +21,7 @@ on:
       - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
       - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
+      - "docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -111,6 +113,12 @@ jobs:
             and .dependency_cut_results[1].pair_results[0].status == "IDENTIFIABLE"
             and .pair_separability_computed_by_reused_kernel == true
             and (.base_pair_results[0].measurement_window_id_a != .base_pair_results[0].measurement_window_id_b)
+            and .base_pair_results[0].window_comparison.state == "MATCHED"
+            and .base_pair_results[0].pair_kernel_evaluated == true
+            and .pair_kernel_evaluated_count == 3
+            and .pair_kernel_skipped_count == 0
+            and .window_comparison_withheld_count == 0
+            and .source_artifact_payloads_verified == false
             and .physical_diagnosability_established == false
             and .mutation_performed == false
             and .authorization_granted == false
