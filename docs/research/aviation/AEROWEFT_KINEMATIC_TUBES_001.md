@@ -44,9 +44,11 @@ Keep the following objects separate:
 
 Do not compress these into one confidence score. Do not treat source reputation, consensus, a valid digest or a successful simulation as a physical error bound.
 
-## 3. First model profile: synthetic fixed-wing coordinated turn
+## 3. First physical model profile: Symthaea-owned fixed-wing dynamics
 
-V0.1 should implement one narrowly scoped, synthetic, local-tangent-plane profile. It must not be generalized to rotorcraft, multirotors, eVTOL transition, helicopters, high-lift/stall regimes or real aircraft without separate models and qualification.
+The aircraft equations, parameters, performance-envelope semantics and applicability limits must come from the existing Symthaea owner [TRANSPORT-FIXED-WING-001 #6249](https://github.com/Luminous-Dynamics/symthaea/issues/6249), composed with candidate-specific mass-coupled mission models (#7729) and adaptive engineering evidence orchestration (#10902). AeroWeft must not create a second aircraft-physics owner.
+
+V0.1 uses one narrowly scoped, synthetic fixed-wing coordinated-turn profile in a local tangent frame. Symthaea owns the declared vector field, profile revision, aircraft-regime limits, parameter/control/disturbance semantics and evidence. Symtropy owns the independent set-enclosure algorithm, numerical soundness obligations, trajectory-tube output and replay. This profile must not be generalized to rotorcraft, multirotors, eVTOL transition, helicopters, high-lift/stall regimes or real aircraft without separate model owners and qualification.
 
 For a declared local East-North-Up frame, a candidate reduced-order model is:
 
@@ -70,7 +72,7 @@ where:
 - (w_x,w_y,w_z) are wind/disturbance components;
 - (g) is the declared gravity constant and units are SI.
 
-The coordinated-turn relation is a model assumption, not a universal aircraft law. This reduced-order profile omits roll transients, sideslip, propulsion dynamics, structural/load limits, stall behaviour, wake, icing and detailed aerodynamic performance. The implementation must identify these omissions and return unsupported/not-assessable outside its declared domain.
+The coordinated-turn relation is only an illustrative candidate model for interface discussion; it is not a model validated or owned by Symtropy. The Symthaea fixed-wing owner must specify the actual reduced-order equations and identify omissions such as roll transients, sideslip, propulsion dynamics, structural/load limits, stall behaviour, wake, icing and detailed aerodynamic performance. The set-enclosure implementation must return unsupported/not-assessable outside the exact profile supplied by that owner.
 
 ### 3.1 Required profile inputs
 
@@ -137,8 +139,8 @@ Pairwise geometric audit remains a separate narrow-phase step. Broadphase candid
 
 | Project | Owns | Must not own |
 |---|---|---|
-| Symtropy | Set-valued dynamics, reachability, deterministic replay, independent numerical oracles, synthetic scenario execution | Flight clearance, certified separation, aircraft control |
-| Symthaea | Model-family research, uncertainty-question prioritization, advisory policy comparison, evidence/contradiction analysis | Self-certification, authoritative release, unbounded autonomous control |
+| Symthaea | Fixed-wing aerodynamic/flight-dynamics profiles (#6249), candidate-specific mass-coupled mission inputs (#7729), applicability envelopes, engineering evidence and advisory model analysis | Self-certification, authoritative release, unbounded autonomous control |
+| Symtropy | Validated set-enclosure/reachability algorithms, numerical error contracts, independent oracles, deterministic replay, trajectory-tube composition and synthetic scenario execution | A second aircraft-physics model, flight clearance, certified separation or aircraft control |
 | Sol-Atlas | Read-only airspace/airfield/obstacle/terrain/weather/energy/ground-access context, with source freshness, scope and rights | Declaring missing geography unrestricted or a feature operational |
 | Mycelix | Identity, access, profile/evidence provenance, authority references, supersession/revocation and cross-provider audit | Real-time separation loop or physical-truth-by-consensus |
 | Competent authorities / certified systems | Legal authority, airworthiness, operational approvals, separation responsibilities and aircraft-local safety | Delegation of these responsibilities to an unapproved research stack |
@@ -223,9 +225,9 @@ The initial test corpus must remain synthetic. Any later real geography, airfiel
 
 ## 10. Staged execution
 
-1. Freeze the v0.1 model/domain and typed input/output contract.
-2. Build a tiny independently checkable analytic corpus for straight flight and bounded coordinated turns.
-3. Compare enclosure methods on identical cases; document soundness argument and conservatism.
+1. Freeze a typed model interface with Symthaea #6249 and bind exact profile/applicability/source identities; do not duplicate fixed-wing equations in Symtropy.
+2. Have Symthaea supply a synthetic, explicitly bounded vector-field profile and analytic reference cases; keep unsupported aircraft regimes explicit.
+3. Compare enclosure methods on the same Symthaea-owned equations and input domains; document soundness, conservatism and model omissions.
 4. Implement the smallest profile-specific outer-enclosure generator in an isolated Rust workspace.
 5. Add independent enclosure and mutation oracles before integration.
 6. Adapt tube slices to the existing pairwise conflict auditor without weakening its input gates.
@@ -246,21 +248,21 @@ An isolated, dependency-free Rust research crate now exists at
 `tools/aeroweft-reachability` on the AeroWeft kinematic branch. It propagates
 finite position intervals through contiguous, caller-supplied, per-axis
 bounded-velocity intervals and emits an axis-aligned occupancy box for each
-time slice. The crate keeps additive nominal, state, model, control and
-disturbance contributions separately represented in the request. It expands
+time slice. The crate keeps additive nominal-velocity, velocity-estimation,
+model-parameter, control and environmental-disturbance contributions
+separately represented in the request. It expands
 binary64 addition and multiplication results outward by one representable
 step, rejects non-finite/overflow cases, and carries profile, frame and
 vertical-datum identifiers.
 
-The first corpus contains eight unit-test definitions and one separately
-compiled integration test using an integer-millimetre / integer-millisecond
-reference calculation. The dedicated workflow runs format, Clippy and locked
+The first corpus contains seventeen unit-test definitions and two separately
+compiled integer-reference integration tests: positive one-axis and signed
+three-axis cases using integer millimetres and milliseconds. The dedicated workflow runs format, Clippy and locked
 tests for this standalone workspace.
 
 **This is only an interval integration foundation.** It does not derive
 velocity bounds from bank angle, airspeed, aircraft performance, weather or
-any real aircraft model. It does not implement the synthetic coordinated-turn
-profile described above. The caller must establish that every supplied
+any real aircraft model. It does not implement the aircraft dynamics profile owned by Symthaea #6249. The caller must establish that every supplied
 velocity interval contains all instantaneous velocities over the entire
 slice. Axis-aligned interval propagation discards correlation and may become
 very conservative. A one-ULP arithmetic enclosure is not a proof of the
