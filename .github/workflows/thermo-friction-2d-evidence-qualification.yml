@@ -1,0 +1,273 @@
+name: Thermodynamic Friction 2D Evidence Qualification
+
+on:
+  push:
+    branches:
+      - "ci/thermo-friction-2d-evidence-qualification-v0.1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: thermo-friction-2d-evidence-qualification-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  PRODUCT_HEAD: 7988f1ddc068fbaf2a4146c76be9420ce4891f4d
+  RESERVATION_PARENT: 4a97946f25b92fdbdc8067fd1db684423cb12d4a
+  COORDINATE_PARENT: c5229bb2921c7a1d0ecae3e652e7eb856c0da653
+
+jobs:
+  qualify:
+    name: Frozen thermo/friction 2D evidence / Rust 1.96
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout exact frozen product head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_HEAD }}
+          fetch-depth: 0
+
+      - name: Assert exact subject and stacked lineage
+        id: subject
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git merge-base --is-ancestor "${COORDINATE_PARENT}" "${RESERVATION_PARENT}"
+          git merge-base --is-ancestor "${RESERVATION_PARENT}" "${PRODUCT_HEAD}"
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Freeze source identities
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum \
+            crates/core/symtropy-physics/src/body_energy_2d.rs \
+            crates/core/symtropy-physics/src/friction_energy_2d.rs \
+            crates/core/symtropy-physics/src/friction_coordinates.rs \
+            crates/core/symtropy-physics/src/friction_transaction.rs \
+            crates/core/symtropy-physics/src/friction_promotion.rs \
+            crates/core/symtropy-physics/src/lib.rs \
+            src/systems/thermodynamic_runtime.rs \
+            src/systems/thermodynamic_reservation_tests.rs \
+            src/systems/thermodynamic_schedule.rs \
+            > "${RUNNER_TEMP}/thermo-friction-2d-source-sha256.txt"
+          cat "${RUNNER_TEMP}/thermo-friction-2d-source-sha256.txt"
+
+      - name: Check workspace formatting
+        id: fmt
+        run: cargo fmt --all -- --check
+
+      - name: Check symtropy-physics all targets
+        id: physics_check
+        run: cargo check -p symtropy-physics --locked --all-targets
+
+      - name: Run checked 2D body-energy theorem corpus
+        id: body2d_tests
+        run: cargo test -p symtropy-physics --locked --lib body_energy_2d::tests
+
+      - name: Run checked 2D friction pair-energy theorem corpus
+        id: friction2d_tests
+        run: cargo test -p symtropy-physics --locked --lib friction_energy_2d::tests
+
+      - name: Run core friction transaction and promotion regressions
+        id: friction_core_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-physics --locked --lib friction_coordinates::tests
+          cargo test -p symtropy-physics --locked --lib friction_evidence::tests
+          cargo test -p symtropy-physics --locked --lib friction_transaction::tests
+          cargo test -p symtropy-physics --locked --lib friction_promotion::tests
+
+      - name: Run complete symtropy-physics library regression
+        id: physics_tests
+        run: cargo test -p symtropy-physics --locked --lib
+
+      - name: Check launcher default all targets
+        id: launcher_default_check
+        run: cargo check -p symtropy-launcher --locked --all-targets
+
+      - name: Run launcher reservation and coordinate authority corpora
+        id: launcher_default_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_reservation_tests
+          cargo test -p symtropy-launcher --locked --lib friction_solver_coordinate_tests
+          cargo test -p symtropy-launcher --locked --lib thermodynamic_runtime_tests
+
+      - name: Check launcher consciousness-runtime all targets
+        id: launcher_consciousness_check
+        run: cargo check -p symtropy-launcher --locked --all-targets --features consciousness-runtime
+
+      - name: Run launcher reservation authority with consciousness-runtime
+        id: launcher_consciousness_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_reservation_tests
+          cargo test -p symtropy-launcher --locked --lib --features consciousness-runtime thermodynamic_runtime_tests
+
+      - name: Run strict core physics Clippy
+        id: physics_clippy
+        run: cargo clippy -p symtropy-physics --locked --all-targets -- -D warnings
+
+      - name: Run strict launcher consciousness-runtime Clippy
+        id: launcher_clippy
+        run: cargo clippy -p symtropy-launcher --locked --lib --features consciousness-runtime -- -D warnings
+
+      - name: Audit authority and measurement separation
+        id: authority_audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          coords=crates/core/symtropy-physics/src/friction_coordinates.rs
+          body2d=crates/core/symtropy-physics/src/body_energy_2d.rs
+          pair2d=crates/core/symtropy-physics/src/friction_energy_2d.rs
+          runtime=src/systems/thermodynamic_runtime.rs
+
+          grep -Fq 'pub struct FrictionSolverCoordinates' "${coords}"
+          grep -Fq 'pub fn try_from_indices' "${coords}"
+          if grep -Fq 'fixed_tick' "${coords}"; then
+            echo 'solver-local coordinate type must not own fixed_tick' >&2
+            exit 1
+          fi
+          if grep -Fq 'as u32' "${coords}"; then
+            echo 'lossy native-index conversion found in friction coordinates' >&2
+            exit 1
+          fi
+
+          grep -Fq 'pub fn reserve_friction_impulse_at' "${runtime}"
+          grep -Fq 'pub fn apply_reserved_friction_impulse' "${runtime}"
+          grep -Fq 'PendingFrictionReservations' "${runtime}"
+          grep -Fq 'self.require_no_pending_reservations()?' "${runtime}"
+
+          grep -Fq 'pub fn kinetic_energy_2d_solver_checked' "${body2d}"
+          grep -Fq 'pub fn solver_inverse_inertia_2d_checked' "${body2d}"
+          grep -Fq 'let effective_inertia = 1.0 / inverse_inertia;' "${body2d}"
+
+          grep -Fq 'pub enum FrictionPairEnergyDelta2d' "${pair2d}"
+          grep -Fq 'DissipationCandidate' "${pair2d}"
+          grep -Fq 'SolverInjection' "${pair2d}"
+          grep -Fq 'SnapshotIdentityMismatch' "${pair2d}"
+
+          if grep -Eq 'use crate::thermal|EnergyTransferLedger|add_heat_joules|promote_applied_friction_loss_to_heat' "${pair2d}"; then
+            echo '2D pair measurement module acquired physical heat/ledger authority' >&2
+            exit 1
+          fi
+
+      - name: Assert unchanged frozen subject
+        id: postflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_HEAD}"
+          git diff --exit-code
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Emit qualification receipt
+        if: always()
+        shell: bash
+        env:
+          HELPER_HEAD: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          SUBJECT_OUTCOME: ${{ steps.subject.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          FMT_OUTCOME: ${{ steps.fmt.outcome }}
+          PHYSICS_CHECK_OUTCOME: ${{ steps.physics_check.outcome }}
+          BODY2D_TESTS_OUTCOME: ${{ steps.body2d_tests.outcome }}
+          FRICTION2D_TESTS_OUTCOME: ${{ steps.friction2d_tests.outcome }}
+          FRICTION_CORE_TESTS_OUTCOME: ${{ steps.friction_core_tests.outcome }}
+          PHYSICS_TESTS_OUTCOME: ${{ steps.physics_tests.outcome }}
+          LAUNCHER_DEFAULT_CHECK_OUTCOME: ${{ steps.launcher_default_check.outcome }}
+          LAUNCHER_DEFAULT_TESTS_OUTCOME: ${{ steps.launcher_default_tests.outcome }}
+          LAUNCHER_CONSCIOUSNESS_CHECK_OUTCOME: ${{ steps.launcher_consciousness_check.outcome }}
+          LAUNCHER_CONSCIOUSNESS_TESTS_OUTCOME: ${{ steps.launcher_consciousness_tests.outcome }}
+          PHYSICS_CLIPPY_OUTCOME: ${{ steps.physics_clippy.outcome }}
+          LAUNCHER_CLIPPY_OUTCOME: ${{ steps.launcher_clippy.outcome }}
+          AUTHORITY_AUDIT_OUTCOME: ${{ steps.authority_audit.outcome }}
+          POSTFLIGHT_OUTCOME: ${{ steps.postflight.outcome }}
+        run: |
+          set -euo pipefail
+          receipt="${RUNNER_TEMP}/thermo-friction-2d-evidence-v01-receipt.json"
+          export RECEIPT_PATH="${receipt}"
+          python3 - <<'PY'
+          import json, os, subprocess
+
+          keys = [
+              ("subject", "SUBJECT_OUTCOME"),
+              ("source_identity", "SOURCE_OUTCOME"),
+              ("fmt", "FMT_OUTCOME"),
+              ("physics_check", "PHYSICS_CHECK_OUTCOME"),
+              ("body2d_tests", "BODY2D_TESTS_OUTCOME"),
+              ("friction2d_tests", "FRICTION2D_TESTS_OUTCOME"),
+              ("friction_core_tests", "FRICTION_CORE_TESTS_OUTCOME"),
+              ("physics_tests", "PHYSICS_TESTS_OUTCOME"),
+              ("launcher_default_check", "LAUNCHER_DEFAULT_CHECK_OUTCOME"),
+              ("launcher_default_tests", "LAUNCHER_DEFAULT_TESTS_OUTCOME"),
+              ("launcher_consciousness_check", "LAUNCHER_CONSCIOUSNESS_CHECK_OUTCOME"),
+              ("launcher_consciousness_tests", "LAUNCHER_CONSCIOUSNESS_TESTS_OUTCOME"),
+              ("physics_clippy", "PHYSICS_CLIPPY_OUTCOME"),
+              ("launcher_clippy", "LAUNCHER_CLIPPY_OUTCOME"),
+              ("authority_audit", "AUTHORITY_AUDIT_OUTCOME"),
+              ("postflight", "POSTFLIGHT_OUTCOME"),
+          ]
+          outcomes = {name: os.environ.get(env, "unknown") for name, env in keys}
+
+          def version(command):
+              try:
+                  return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+              except Exception:
+                  return "unavailable"
+
+          receipt = {
+              "receipt_version": 1,
+              "qualification": "thermo-friction-runtime-reservation-and-checked-2d-energy-v0.1",
+              "product_head": os.environ["PRODUCT_HEAD"],
+              "reservation_parent": os.environ["RESERVATION_PARENT"],
+              "coordinate_parent": os.environ["COORDINATE_PARENT"],
+              "helper_head": os.environ["HELPER_HEAD"],
+              "workflow_run_id": int(os.environ["RUN_ID"]),
+              "workflow_run_attempt": int(os.environ["RUN_ATTEMPT"]),
+              "declared_rust_toolchain": "1.96.0",
+              "rustc_version": version(["rustc", "--version"]),
+              "cargo_version": version(["cargo", "--version"]),
+              "step_outcomes": outcomes,
+              "overall": "pass" if all(v == "success" for v in outcomes.values()) else "fail",
+              "claim_boundary": "runtime reservation authority plus checked solver-consistent 2D mechanical energy evidence only; production world friction hot loop, physical heat promotion, off-center real-world qualification, and first-law closure remain unestablished",
+          }
+          with open(os.environ["RECEIPT_PATH"], "w", encoding="utf-8") as handle:
+              json.dump(receipt, handle, sort_keys=True, indent=2)
+              handle.write("\n")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+          cp "${RUNNER_TEMP}/thermo-friction-2d-source-sha256.txt" "${RUNNER_TEMP}/thermo-friction-2d-source-sha256-evidence.txt" || true
+          sha256sum "${receipt}" > "${receipt}.sha256"
+          cat "${receipt}"
+          cat "${receipt}.sha256"
+
+      - name: Upload qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thermo-friction-2d-evidence-v01-${{ env.PRODUCT_HEAD }}
+          path: |
+            ${{ runner.temp }}/thermo-friction-2d-evidence-v01-receipt.json
+            ${{ runner.temp }}/thermo-friction-2d-evidence-v01-receipt.json.sha256
+            ${{ runner.temp }}/thermo-friction-2d-source-sha256-evidence.txt
+          if-no-files-found: error
+          retention-days: 90
