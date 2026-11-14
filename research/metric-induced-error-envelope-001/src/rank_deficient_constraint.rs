@@ -224,12 +224,16 @@ fn build_h_orthonormal_range_basis<
         return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
     }
     let threshold = relative_rank_tolerance * scale;
-    if !threshold.is_finite() {
+    let lower_threshold = threshold / rank_uncertainty_factor;
+    let upper_threshold = threshold * rank_uncertainty_factor;
+    if !threshold.is_finite() || !lower_threshold.is_finite() || !upper_threshold.is_finite() {
         return Err(ConstraintQuotientErrorV1::NonFiniteIntermediate);
     }
 
     let mut basis = [[0.0; K]; K]; // basis[coordinate][axis]
     let mut rank = 0usize;
+    let mut rank_resolved = true;
+    let mut unresolved_relative_pivot = None;
     for pivot_index in 0..N.min(K) {
         let mut selected = pivot_index;
         let mut selected_norm = h_norm(residual_metric, &columns[selected])?;
@@ -241,8 +245,13 @@ fn build_h_orthonormal_range_basis<
             }
         }
         columns.swap(pivot_index, selected);
-        if selected_norm <= threshold {
-            break;
+        if selected_norm <= lower_threshold {
+            break; // Resolved numerical null direction.
+        }
+        if selected_norm < upper_threshold {
+            rank_resolved = false;
+            unresolved_relative_pivot = Some(selected_norm / scale);
+            break; // Ambiguous: do not promote either rank or incompatibility.
         }
 
         let pivot = h_norm(residual_metric, &columns[pivot_index])?;
@@ -276,7 +285,13 @@ fn build_h_orthonormal_range_basis<
             maximum_defect = maximum_defect.max((actual - expected).abs());
         }
     }
-    Ok((basis, rank, maximum_defect))
+    Ok((
+        basis,
+        rank,
+        maximum_defect,
+        rank_resolved,
+        unresolved_relative_pivot,
+    ))
 }
 
 fn cholesky_reduced<const K: usize>(
