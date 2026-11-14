@@ -1,0 +1,294 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-REFERENCE-DRIFT-001",
+  "scenarios": [
+    {
+      "scenario_id": "STABLE-CHECKS-001",
+      "input": {
+        "schema_version": "0.1.0",
+        "benchmark_id": "SHIPYARD-REFERENCE-DRIFT-001",
+        "evidence_class": "synthetic_contract_only",
+        "sequence_id": "STABLE-CHECKS-001",
+        "policy": {
+          "policy_id": "POLICY-SYNTH-01",
+          "revision": "R1",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "frozen_baseline": true,
+          "instrument_id": "SCANNER-SYNTH-01",
+          "calibration_revision": "CAL-R1",
+          "artifact_id": "ARTIFACT-SYNTH-01",
+          "characteristic_id": "LENGTH-X-100MM",
+          "certified_value_um": 100000,
+          "maximum_absolute_error_um": 100,
+          "ewma_lambda_ppm": 500000,
+          "initial_ewma_residual_um": 0,
+          "ewma_limit_um": 45,
+          "minimum_observations": 3,
+          "maximum_gap_ms": 2000,
+          "minimum_environment_milli_c": 15000,
+          "maximum_environment_milli_c": 30000
+        },
+        "certificate": {
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "artifact_id": "ARTIFACT-SYNTH-01",
+          "characteristic_id": "LENGTH-X-100MM",
+          "instrument_id": "SCANNER-SYNTH-01",
+          "calibration_revision": "CAL-R1",
+          "verified": true,
+          "valid_from_ms": 0,
+          "valid_until_ms": 10000
+        },
+        "observations": [
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000003",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 1000,
+            "measured_value_um": 100002,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000004",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 2000,
+            "measured_value_um": 99999,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000005",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 3000,
+            "measured_value_um": 100003,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000006",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 4000,
+            "measured_value_um": 100000,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          }
+        ],
+        "claim_ceiling": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
+      },
+      "expected_decision": "continue_within_declared_check_limits",
+      "expected_hold_reason": null
+    },
+    {
+      "scenario_id": "SMALL-PERSISTENT-DRIFT-001",
+      "input": {
+        "schema_version": "0.1.0",
+        "benchmark_id": "SHIPYARD-REFERENCE-DRIFT-001",
+        "evidence_class": "synthetic_contract_only",
+        "sequence_id": "SMALL-PERSISTENT-DRIFT-001",
+        "policy": {
+          "policy_id": "POLICY-SYNTH-01",
+          "revision": "R1",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "frozen_baseline": true,
+          "instrument_id": "SCANNER-SYNTH-01",
+          "calibration_revision": "CAL-R1",
+          "artifact_id": "ARTIFACT-SYNTH-01",
+          "characteristic_id": "LENGTH-X-100MM",
+          "certified_value_um": 100000,
+          "maximum_absolute_error_um": 100,
+          "ewma_lambda_ppm": 500000,
+          "initial_ewma_residual_um": 0,
+          "ewma_limit_um": 45,
+          "minimum_observations": 3,
+          "maximum_gap_ms": 2000,
+          "minimum_environment_milli_c": 15000,
+          "maximum_environment_milli_c": 30000
+        },
+        "certificate": {
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "artifact_id": "ARTIFACT-SYNTH-01",
+          "characteristic_id": "LENGTH-X-100MM",
+          "instrument_id": "SCANNER-SYNTH-01",
+          "calibration_revision": "CAL-R1",
+          "verified": true,
+          "valid_from_ms": 0,
+          "valid_until_ms": 10000
+        },
+        "observations": [
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000003",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 1000,
+            "measured_value_um": 100020,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000004",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 2000,
+            "measured_value_um": 100020,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000005",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 3000,
+            "measured_value_um": 100030,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000006",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 4000,
+            "measured_value_um": 100040,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000007",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 5000,
+            "measured_value_um": 100050,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          },
+          {
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000008",
+            "artifact_id": "ARTIFACT-SYNTH-01",
+            "characteristic_id": "LENGTH-X-100MM",
+            "instrument_id": "SCANNER-SYNTH-01",
+            "calibration_revision": "CAL-R1",
+            "captured_at_ms": 6000,
+            "measured_value_um": 100060,
+            "expanded_uncertainty_um": 10,
+            "environment_milli_c": 20000
+          }
+        ],
+        "claim_ceiling": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
+      },
+      "expected_decision": "hold_for_metrology_review",
+      "expected_hold_reason": "ewma_guard_exceeded"
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "SRD-001",
+      "mutation": "Wrong artifact identity is substituted in one observation.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-002",
+      "mutation": "The check-artifact certificate SHA-256 is malformed or changed.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-003",
+      "mutation": "The scanner identity changes mid-sequence.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-004",
+      "mutation": "The calibration revision changes mid-sequence.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-005",
+      "mutation": "The calibration certificate expires before the last observation.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-006",
+      "mutation": "The baseline is not frozen and is allowed to adapt to drift.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-007",
+      "mutation": "The EWMA lambda is zero or outside the qualified integer range.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-008",
+      "mutation": "The sequence contains fewer observations than the policy minimum.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-009",
+      "mutation": "An expanded measurement uncertainty value is missing.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-010",
+      "mutation": "An expanded measurement uncertainty value is zero.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-011",
+      "mutation": "A timestamp is repeated or moves backwards.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-012",
+      "mutation": "The inter-observation gap exceeds the frozen maximum.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-013",
+      "mutation": "Ambient temperature is outside the declared qualified range.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-014",
+      "mutation": "Two observations reuse the same byte digest.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-015",
+      "mutation": "The policy digest is malformed or substituted.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-016",
+      "mutation": "A pointwise residual plus its uncertainty exceeds the error guard.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-017",
+      "mutation": "The EWMA statistic plus uncertainty exceeds its predeclared limit.",
+      "expected_disposition": "HOLD"
+    },
+    {
+      "control_id": "SRD-018",
+      "mutation": "The caller attempts to convert HOLD into CONTINUE or authorize recalibration.",
+      "expected_disposition": "HOLD"
+    }
+  ]
+}
