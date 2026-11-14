@@ -88,7 +88,7 @@ Data admission records the exact asset/version/digest, provider, access and deri
 
 Keep a latent ecological state separate from each observation product:
 
-\`observation = H_source(latent_state, sampling_geometry, instrument, acquisition, processing) + observation_error\`
+`observation = H_source(latent_state, sampling_geometry, instrument, acquisition, processing) + observation_error`
 
 - A plot census samples selected stems inside a plot, with census dates, size thresholds, taxonomic decisions and measurement error.
 - GEDI L4A is a footprint-level model estimate derived from waveform metrics and field-plot calibration. It does not directly observe a plot-wide biomass surface.
@@ -187,7 +187,7 @@ Once baseline variance, sample size and cluster structure are known, preregister
 2. Define a typed forest-state vocabulary and units; do not relabel generic `[0,1]` values as physical measurements.
 3. Create a tiny known-truth synthetic forest patch manifest and verify growth / mortality / biomass budgets; run the standalone Rust verifier at `validator/` and preserve its receipt.
 4. Implement a simple persistence/climatology and size-stratified statistical baseline before calibrating a complex model.
-5. Reproduce or explicitly mark FATES / LPJ-GUESS baselines `NOT_RUN` with a reason.
+5. Reproduce or explicitly mark FATES / LPJ-GUESS (including SEC versus PPA canopy schemes) baselines `NOT_RUN` with a concrete reason.
 6. Secure plot-network collaboration and derivative rights before ingesting restricted data; start with properly licensed EO source snapshots.
 7. Connect a validated profile to Living World #252 and Living Valley #1247 only after their owning prerequisites are green.
 
