@@ -100,7 +100,7 @@ The observability adapter does not invent unobserved aircraft kinematics. Unknow
 
 Golden fixture: fixtures/aeroweift-surveillance-observability/tiny-coverage-gap-v0.json.
 
-All cells, aircraft, sources, time intervals, modalities and failure domains are fictional. The fixture covers:
+All cells, aircraft, sources, time intervals, modalities and failure domains are fictional. The fixture covers eleven scenarios:
 1. cooperative aircraft inside a valid ADS-B coverage claim;
 2. cooperative aircraft outside that claim;
 3. non-cooperative crewed aircraft in an ADS-B-only volume;
@@ -119,6 +119,7 @@ Expected outcomes:
 - Unknown TDoA timing dependency yields INDETERMINATE, not qualified multilateration coverage.
 - Losing PNT/time integrity invalidates the affected time-dependent track claim, not the physical aircraft.
 - Missing reports without independent qualified coverage become NO_OBSERVATION with unresolved possible occupancy, never an empty sky.
+- Even when class-specific coverage is qualified, an individual NO_OBSERVATION does not assert zero traffic; unresolved possible occupancy remains true.
 - EO/IR claims apply only within their declared environment envelope.
 - Positive controls prove the evaluator can accept class-specific qualified coverage; it must not reject everything by default.
 
@@ -166,6 +167,7 @@ ASTM F3442-25 is a bounded system-performance reference for its stated smaller-U
 - A fresh signature does not repair stale or physically unqualified sensor evidence.
 - Input-order/ID permutation preserves semantic outputs.
 - NO_OBSERVATION, NOT_QUALIFIED and INDETERMINATE never become an empty occupancy set.
+- A qualified coverage claim with no report remains NO_OBSERVATION and does not assert zero traffic.
 - The positive control retains qualified class-specific coverage.
 
 ## 11. Acceptance targets
