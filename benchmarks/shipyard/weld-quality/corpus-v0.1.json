@@ -23,7 +23,9 @@
         "material_group": "S355J2+N",
         "material_heat_lot": "SYNTH-HEAT-01",
         "process_family": "TANDEM-GMAW",
-        "thickness_class": "20mm"
+        "thickness_class": "20mm",
+        "process_trace_ref": "synthetic://process-trace/PASS-01-PASS-03",
+        "process_trace_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
       },
       "inspection": {
         "inspection_id": "SYNTH-INSP-01",
@@ -651,6 +653,18 @@
         }
       ],
       "expected_code": "BLOCK_FINAL_RELEASE"
+    },
+    {
+      "id": "WQL-042",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/subject/process_trace_sha256",
+          "op": "set",
+          "value": "bad-process-digest"
+        }
+      ],
+      "expected_code": "BLOCK_PROCESS_TRACE_LINK"
     }
   ]
 }
