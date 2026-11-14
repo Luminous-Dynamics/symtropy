@@ -21,7 +21,7 @@ Every mapping profile records:
 - publication status (published, working draft, technical report);
 - jurisdiction or national adoption scope.
 
-A working draft or technical report is not silently treated as a published normative edition. Publication metadata is not itself proof that an implementation conforms.
+A working draft or technical report is not silently treated as a published edition. The helper only reports whether the referenced publication status is Published; this is not a judgment that the standard is applicable or that an implementation conforms.
 
 ## 3. Source semantic inventory
 
@@ -57,7 +57,7 @@ For each in-scope source item:
 - changed or missing item with Unsupported/Ambiguous mapping: reported as unresolved/incomplete;
 - changed or missing item whose mapping claimed ExactPreservation or SemanticallyEquivalent: rejected as undeclared semantic loss.
 
-Additional target-only items are reported separately rather than silently treated as source preservation.
+Additional target-only items are reported separately rather than silently treated as source preservation. The result also retains the exact profile, adapter, standard reference and ledger status. Unsupported/ambiguous mapping entries keep the result incomplete even when some same-ID payload happens to survive.
 
 ## 6. Qualification states
 

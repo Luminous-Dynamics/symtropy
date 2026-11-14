@@ -100,7 +100,7 @@ impl MappingProfile {
     pub fn adapter_version(&self) -> &str { &self.adapter_version }
     pub const fn direction(&self) -> MappingDirection { self.direction }
     pub fn standard(&self) -> &StandardReference { &self.standard }
-    pub const fn normatively_eligible(&self) -> bool { self.standard.is_published_edition() }
+    pub const fn uses_published_edition(&self) -> bool { self.standard.is_published_edition() }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -413,6 +413,11 @@ pub struct RoundTripResult {
     source_document_digest: String,
     round_trip_document_id: String,
     round_trip_document_digest: String,
+    profile_id: String,
+    profile_version: String,
+    adapter_version: String,
+    standard: StandardReference,
+    ledger_status: MappingLedgerStatus,
     status: RoundTripStatus,
     preserved_item_ids: Vec<String>,
     differences: Vec<RoundTripDifference>,
@@ -431,11 +436,15 @@ impl RoundTripResult {
             if !source_item.in_scope { continue; }
             let entry = ledger.entries.get(source_id).expect("ledger covers every source item");
             let target_item = round_trip_inventory.items.get(source_id);
-            if target_item.is_some_and(|target| target.semantic_digest == source_item.semantic_digest) {
-                preserved.push(source_id.clone());
-                continue;
-            }
+            let digest_matches = target_item.is_some_and(|target| target.semantic_digest == source_item.semantic_digest);
             match entry.outcome {
+                TransformationOutcome::ExactPreservation | TransformationOutcome::SemanticallyEquivalent => {
+                    if digest_matches {
+                        preserved.push(source_id.clone());
+                    } else {
+                        return Err(InteropError::UndeclaredSemanticLoss { item_id: source_id.clone() });
+                    }
+                }
                 TransformationOutcome::ExplicitlyLossy | TransformationOutcome::Unsupported | TransformationOutcome::Ambiguous => {
                     differences.push(RoundTripDifference {
                         source_item_id: source_id.clone(),
@@ -444,9 +453,6 @@ impl RoundTripResult {
                         outcome: entry.outcome,
                         information_loss_ids: entry.information_losses.iter().map(|loss| loss.loss_id.clone()).collect(),
                     });
-                }
-                TransformationOutcome::ExactPreservation | TransformationOutcome::SemanticallyEquivalent => {
-                    return Err(InteropError::UndeclaredSemanticLoss { item_id: source_id.clone() });
                 }
                 TransformationOutcome::NotInScope => {
                     return Err(InteropError::InScopeItemMarkedOutOfScope { item_id: source_id.clone() });
@@ -458,9 +464,11 @@ impl RoundTripResult {
             .filter(|id| !source.items.contains_key(*id))
             .cloned()
             .collect::<Vec<_>>();
-        let has_unresolved = differences.iter().any(|difference| {
-            matches!(difference.outcome, TransformationOutcome::Unsupported | TransformationOutcome::Ambiguous)
-        });
+        let has_unresolved = ledger.status == MappingLedgerStatus::IncompleteUnsupported
+            || ledger.status == MappingLedgerStatus::IncompleteAmbiguous
+            || differences.iter().any(|difference| {
+                matches!(difference.outcome, TransformationOutcome::Unsupported | TransformationOutcome::Ambiguous)
+            });
         let has_explicit_loss = differences.iter().any(|difference| difference.outcome == TransformationOutcome::ExplicitlyLossy);
         let status = if has_unresolved {
             RoundTripStatus::Incomplete
@@ -475,6 +483,11 @@ impl RoundTripResult {
             source_document_digest: source.document_digest.clone(),
             round_trip_document_id: round_trip_inventory.document_id.clone(),
             round_trip_document_digest: round_trip_inventory.document_digest.clone(),
+            profile_id: ledger.profile.profile_id.clone(),
+            profile_version: ledger.profile.profile_version.clone(),
+            adapter_version: ledger.profile.adapter_version.clone(),
+            standard: ledger.profile.standard.clone(),
+            ledger_status: ledger.status,
             status,
             preserved_item_ids: preserved,
             differences,
@@ -484,6 +497,11 @@ impl RoundTripResult {
 
     pub fn source_document_id(&self) -> &str { &self.source_document_id }
     pub fn round_trip_document_id(&self) -> &str { &self.round_trip_document_id }
+    pub fn profile_id(&self) -> &str { &self.profile_id }
+    pub fn profile_version(&self) -> &str { &self.profile_version }
+    pub fn adapter_version(&self) -> &str { &self.adapter_version }
+    pub const fn ledger_status(&self) -> MappingLedgerStatus { self.ledger_status }
+    pub fn standard(&self) -> &StandardReference { &self.standard }
     pub const fn status(&self) -> RoundTripStatus { self.status }
     pub fn preserved_item_ids(&self) -> &[String] { &self.preserved_item_ids }
     pub fn differences(&self) -> &[RoundTripDifference] { &self.differences }
@@ -562,11 +580,11 @@ mod tests {
 
     #[test]
     fn published_standard_profile_is_normatively_eligible() {
-        assert!(profile(StandardPublicationStatus::Published).normatively_eligible());
+        assert!(profile(StandardPublicationStatus::Published).uses_published_edition());
     }
     #[test]
     fn working_draft_is_not_silently_treated_as_published() {
-        assert!(!profile(StandardPublicationStatus::WorkingDraft).normatively_eligible());
+        assert!(!profile(StandardPublicationStatus::WorkingDraft).uses_published_edition());
     }
     #[test]
     fn mapping_ledger_requires_one_entry_for_every_source_item() {
@@ -681,6 +699,23 @@ mod tests {
         assert_eq!(result.status(), RoundTripStatus::EquivalentWithExplicitLosses);
         assert_eq!(result.differences()[0].outcome, TransformationOutcome::ExplicitlyLossy);
     }
+
+    #[test]
+    fn unresolved_mapping_keeps_result_incomplete_even_if_digest_survives() {
+        let ledger = ledger(vec![
+            exact("object:board", "target:board"),
+            exact("relationship:feeder", "target:feeder"),
+            MappingEntry::new("extension:vendor", TransformationOutcome::Unsupported, Vec::new(), None, Vec::new(), Some("mapping semantics unresolved".into())).unwrap(),
+            MappingEntry::new("object:out-of-scope", TransformationOutcome::NotInScope, Vec::new(), None, Vec::new(), Some("outside".into())).unwrap(),
+        ]).unwrap();
+        let result = RoundTripResult::compare(&ledger, &roundtrip(vec![
+            SemanticItem::new("object:board", SemanticItemKind::Object, "urn:site", "digest:board", true).unwrap(),
+            SemanticItem::new("relationship:feeder", SemanticItemKind::Relationship, "urn:site", "digest:feeder", true).unwrap(),
+            SemanticItem::new("extension:vendor", SemanticItemKind::Extension, "urn:vendor", "digest:vendor", true).unwrap(),
+        ])).unwrap();
+        assert_eq!(result.status(), RoundTripStatus::Incomplete);
+    }
+
     #[test]
     fn extra_round_trip_items_are_reported_separately() {
         let ledger = ledger(vec![
