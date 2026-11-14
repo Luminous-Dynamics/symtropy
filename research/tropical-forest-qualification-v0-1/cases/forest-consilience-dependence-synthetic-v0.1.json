@@ -1,0 +1,841 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-CONSILIENCE-DEPENDENCE-001",
+  "status": "PUBLIC_SYNTHETIC_DEPENDENCE_CASES_NOT_PRODUCTION",
+  "claim_ceiling": "Twelve synthetic lineage pairs exercise dependence disposition rules only. Declared lineage completeness is not authenticated against a real source registry. No real source data, probability model, ecological fusion or field truth is used.",
+  "required_dependency_dimensions": [
+    "upstream_assets",
+    "campaign",
+    "site",
+    "sensor",
+    "calibration_data",
+    "training_data",
+    "common_causes",
+    "processing_pipeline"
+  ],
+  "cases": [
+    {
+      "case_id": "CONSILIENCE-SHARED-UPSTREAM-001",
+      "left": {
+        "product_id": "product-alpha",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "product-alpha-asset"
+        ],
+        "campaign_id": "product-alpha-campaign",
+        "site_id": "product-alpha-site",
+        "sensor_id": "product-alpha-sensor",
+        "calibration_dataset_ids": [
+          "product-alpha-calibration"
+        ],
+        "training_dataset_ids": [
+          "product-alpha-training"
+        ],
+        "common_cause_ids": [
+          "product-alpha-cause"
+        ],
+        "processing_pipeline_ids": [
+          "product-alpha-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "product-beta",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "raw-scene-01"
+        ],
+        "campaign_id": "product-beta-campaign",
+        "site_id": "product-beta-site",
+        "sensor_id": "product-beta-sensor",
+        "calibration_dataset_ids": [
+          "product-beta-calibration"
+        ],
+        "training_dataset_ids": [
+          "product-beta-training"
+        ],
+        "common_cause_ids": [
+          "product-beta-cause"
+        ],
+        "processing_pipeline_ids": [
+          "product-beta-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "SHARED_UPSTREAM_EVIDENCE"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-CAMPAIGN-001",
+      "left": {
+        "product_id": "plot-census",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "plot-census-asset"
+        ],
+        "campaign_id": "plot-census-campaign",
+        "site_id": "plot-census-site",
+        "sensor_id": "plot-census-sensor",
+        "calibration_dataset_ids": [
+          "plot-census-calibration"
+        ],
+        "training_dataset_ids": [
+          "plot-census-training"
+        ],
+        "common_cause_ids": [
+          "plot-census-cause"
+        ],
+        "processing_pipeline_ids": [
+          "plot-census-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "uav-survey",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "uav-survey-asset"
+        ],
+        "campaign_id": "campaign-2026-01",
+        "site_id": "uav-survey-site",
+        "sensor_id": "uav-survey-sensor",
+        "calibration_dataset_ids": [
+          "uav-survey-calibration"
+        ],
+        "training_dataset_ids": [
+          "uav-survey-training"
+        ],
+        "common_cause_ids": [
+          "uav-survey-cause"
+        ],
+        "processing_pipeline_ids": [
+          "uav-survey-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "SHARED_CAMPAIGN"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-CALIBRATION-001",
+      "left": {
+        "product_id": "gedi-product",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "gedi-product-asset"
+        ],
+        "campaign_id": "gedi-product-campaign",
+        "site_id": "gedi-product-site",
+        "sensor_id": "gedi-product-sensor",
+        "calibration_dataset_ids": [
+          "gedi-product-calibration"
+        ],
+        "training_dataset_ids": [
+          "gedi-product-training"
+        ],
+        "common_cause_ids": [
+          "gedi-product-cause"
+        ],
+        "processing_pipeline_ids": [
+          "gedi-product-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "biomass-model",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "biomass-model-asset"
+        ],
+        "campaign_id": "biomass-model-campaign",
+        "site_id": "biomass-model-site",
+        "sensor_id": "biomass-model-sensor",
+        "calibration_dataset_ids": [
+          "field-calibration-01"
+        ],
+        "training_dataset_ids": [
+          "biomass-model-training"
+        ],
+        "common_cause_ids": [
+          "biomass-model-cause"
+        ],
+        "processing_pipeline_ids": [
+          "biomass-model-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_MODEL_REQUIRED"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-TRAINING-001",
+      "left": {
+        "product_id": "vision-model-a",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "vision-model-a-asset"
+        ],
+        "campaign_id": "vision-model-a-campaign",
+        "site_id": "vision-model-a-site",
+        "sensor_id": "vision-model-a-sensor",
+        "calibration_dataset_ids": [
+          "vision-model-a-calibration"
+        ],
+        "training_dataset_ids": [
+          "vision-model-a-training"
+        ],
+        "common_cause_ids": [
+          "vision-model-a-cause"
+        ],
+        "processing_pipeline_ids": [
+          "vision-model-a-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "vision-model-b",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "vision-model-b-asset"
+        ],
+        "campaign_id": "vision-model-b-campaign",
+        "site_id": "vision-model-b-site",
+        "sensor_id": "vision-model-b-sensor",
+        "calibration_dataset_ids": [
+          "vision-model-b-calibration"
+        ],
+        "training_dataset_ids": [
+          "camera-trap-training-01"
+        ],
+        "common_cause_ids": [
+          "vision-model-b-cause"
+        ],
+        "processing_pipeline_ids": [
+          "vision-model-b-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_MODEL_REQUIRED"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-COMMON-CAUSE-001",
+      "left": {
+        "product_id": "optical-sensor",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "optical-sensor-asset"
+        ],
+        "campaign_id": "optical-sensor-campaign",
+        "site_id": "optical-sensor-site",
+        "sensor_id": "optical-sensor-sensor",
+        "calibration_dataset_ids": [
+          "optical-sensor-calibration"
+        ],
+        "training_dataset_ids": [
+          "optical-sensor-training"
+        ],
+        "common_cause_ids": [
+          "optical-sensor-cause"
+        ],
+        "processing_pipeline_ids": [
+          "optical-sensor-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "acoustic-sensor",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "acoustic-sensor-asset"
+        ],
+        "campaign_id": "acoustic-sensor-campaign",
+        "site_id": "acoustic-sensor-site",
+        "sensor_id": "acoustic-sensor-sensor",
+        "calibration_dataset_ids": [
+          "acoustic-sensor-calibration"
+        ],
+        "training_dataset_ids": [
+          "acoustic-sensor-training"
+        ],
+        "common_cause_ids": [
+          "regional-storm-01"
+        ],
+        "processing_pipeline_ids": [
+          "acoustic-sensor-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_MODEL_REQUIRED"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-SITE-001",
+      "left": {
+        "product_id": "plot-census-a",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "plot-census-a-asset"
+        ],
+        "campaign_id": "plot-census-a-campaign",
+        "site_id": "plot-census-a-site",
+        "sensor_id": "plot-census-a-sensor",
+        "calibration_dataset_ids": [
+          "plot-census-a-calibration"
+        ],
+        "training_dataset_ids": [
+          "plot-census-a-training"
+        ],
+        "common_cause_ids": [
+          "plot-census-a-cause"
+        ],
+        "processing_pipeline_ids": [
+          "plot-census-a-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "camera-deployment",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "camera-deployment-asset"
+        ],
+        "campaign_id": "camera-deployment-campaign",
+        "site_id": "site-01",
+        "sensor_id": "camera-deployment-sensor",
+        "calibration_dataset_ids": [
+          "camera-deployment-calibration"
+        ],
+        "training_dataset_ids": [
+          "camera-deployment-training"
+        ],
+        "common_cause_ids": [
+          "camera-deployment-cause"
+        ],
+        "processing_pipeline_ids": [
+          "camera-deployment-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_MODEL_REQUIRED"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-SENSOR-001",
+      "left": {
+        "product_id": "sensor-product-a",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "sensor-product-a-asset"
+        ],
+        "campaign_id": "sensor-product-a-campaign",
+        "site_id": "sensor-product-a-site",
+        "sensor_id": "sensor-product-a-sensor",
+        "calibration_dataset_ids": [
+          "sensor-product-a-calibration"
+        ],
+        "training_dataset_ids": [
+          "sensor-product-a-training"
+        ],
+        "common_cause_ids": [
+          "sensor-product-a-cause"
+        ],
+        "processing_pipeline_ids": [
+          "sensor-product-a-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "sensor-product-b",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "sensor-product-b-asset"
+        ],
+        "campaign_id": "sensor-product-b-campaign",
+        "site_id": "sensor-product-b-site",
+        "sensor_id": "sensor-platform-01",
+        "calibration_dataset_ids": [
+          "sensor-product-b-calibration"
+        ],
+        "training_dataset_ids": [
+          "sensor-product-b-training"
+        ],
+        "common_cause_ids": [
+          "sensor-product-b-cause"
+        ],
+        "processing_pipeline_ids": [
+          "sensor-product-b-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_MODEL_REQUIRED"
+    },
+    {
+      "case_id": "CONSILIENCE-SHARED-PIPELINE-001",
+      "left": {
+        "product_id": "classifier-a",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "classifier-a-asset"
+        ],
+        "campaign_id": "classifier-a-campaign",
+        "site_id": "classifier-a-site",
+        "sensor_id": "classifier-a-sensor",
+        "calibration_dataset_ids": [
+          "classifier-a-calibration"
+        ],
+        "training_dataset_ids": [
+          "classifier-a-training"
+        ],
+        "common_cause_ids": [
+          "classifier-a-cause"
+        ],
+        "processing_pipeline_ids": [
+          "classifier-a-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "classifier-b",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "classifier-b-asset"
+        ],
+        "campaign_id": "classifier-b-campaign",
+        "site_id": "classifier-b-site",
+        "sensor_id": "classifier-b-sensor",
+        "calibration_dataset_ids": [
+          "classifier-b-calibration"
+        ],
+        "training_dataset_ids": [
+          "classifier-b-training"
+        ],
+        "common_cause_ids": [
+          "classifier-b-cause"
+        ],
+        "processing_pipeline_ids": [
+          "pipeline-family-01"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_MODEL_REQUIRED"
+    },
+    {
+      "case_id": "CONSILIENCE-INDEPENDENT-CONDITIONS-001",
+      "left": {
+        "product_id": "field-plot",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "field-plot-asset"
+        ],
+        "campaign_id": "field-plot-campaign",
+        "site_id": "field-plot-site",
+        "sensor_id": "field-plot-sensor",
+        "calibration_dataset_ids": [
+          "field-plot-calibration"
+        ],
+        "training_dataset_ids": [
+          "field-plot-training"
+        ],
+        "common_cause_ids": [
+          "field-plot-cause"
+        ],
+        "processing_pipeline_ids": [
+          "field-plot-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "gedi-shot",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "gedi-shot-asset"
+        ],
+        "campaign_id": "gedi-shot-campaign",
+        "site_id": "gedi-shot-site",
+        "sensor_id": "gedi-shot-sensor",
+        "calibration_dataset_ids": [
+          "gedi-shot-calibration"
+        ],
+        "training_dataset_ids": [
+          "gedi-shot-training"
+        ],
+        "common_cause_ids": [
+          "gedi-shot-cause"
+        ],
+        "processing_pipeline_ids": [
+          "gedi-shot-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DECLARED_INDEPENDENT_GIVEN_CONDITIONS"
+    },
+    {
+      "case_id": "CONSILIENCE-LINEAGE-UNKNOWN-001",
+      "left": {
+        "product_id": "unknown-a",
+        "lineage_complete": false,
+        "upstream_asset_ids": [
+          "unknown-a-asset"
+        ],
+        "campaign_id": "unknown-a-campaign",
+        "site_id": "unknown-a-site",
+        "sensor_id": "unknown-a-sensor",
+        "calibration_dataset_ids": [
+          "unknown-a-calibration"
+        ],
+        "training_dataset_ids": [
+          "unknown-a-training"
+        ],
+        "common_cause_ids": [
+          "unknown-a-cause"
+        ],
+        "processing_pipeline_ids": [
+          "unknown-a-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "unknown-b",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "unknown-b-asset"
+        ],
+        "campaign_id": "unknown-b-campaign",
+        "site_id": "unknown-b-site",
+        "sensor_id": "unknown-b-sensor",
+        "calibration_dataset_ids": [
+          "unknown-b-calibration"
+        ],
+        "training_dataset_ids": [
+          "unknown-b-training"
+        ],
+        "common_cause_ids": [
+          "unknown-b-cause"
+        ],
+        "processing_pipeline_ids": [
+          "unknown-b-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_UNKNOWN"
+    },
+    {
+      "case_id": "CONSILIENCE-DIMENSION-UNASSESSED-001",
+      "left": {
+        "product_id": "incomplete-a",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "incomplete-a-asset"
+        ],
+        "campaign_id": "incomplete-a-campaign",
+        "site_id": "incomplete-a-site",
+        "sensor_id": "incomplete-a-sensor",
+        "calibration_dataset_ids": [
+          "incomplete-a-calibration"
+        ],
+        "training_dataset_ids": [
+          "incomplete-a-training"
+        ],
+        "common_cause_ids": [
+          "incomplete-a-cause"
+        ],
+        "processing_pipeline_ids": [
+          "incomplete-a-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "incomplete-b",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "incomplete-b-asset"
+        ],
+        "campaign_id": "incomplete-b-campaign",
+        "site_id": "incomplete-b-site",
+        "sensor_id": "incomplete-b-sensor",
+        "calibration_dataset_ids": [
+          "incomplete-b-calibration"
+        ],
+        "training_dataset_ids": [
+          "incomplete-b-training"
+        ],
+        "common_cause_ids": [
+          "incomplete-b-cause"
+        ],
+        "processing_pipeline_ids": [
+          "incomplete-b-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "DEPENDENCE_UNKNOWN"
+    },
+    {
+      "case_id": "CONSILIENCE-DIFFERENT-PRODUCT-SAME-RAW-001",
+      "left": {
+        "product_id": "jrc-tmf-product",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "jrc-tmf-product-asset"
+        ],
+        "campaign_id": "jrc-tmf-product-campaign",
+        "site_id": "jrc-tmf-product-site",
+        "sensor_id": "jrc-tmf-product-sensor",
+        "calibration_dataset_ids": [
+          "jrc-tmf-product-calibration"
+        ],
+        "training_dataset_ids": [
+          "jrc-tmf-product-training"
+        ],
+        "common_cause_ids": [
+          "jrc-tmf-product-cause"
+        ],
+        "processing_pipeline_ids": [
+          "jrc-tmf-product-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "right": {
+        "product_id": "third-party-forest-alert",
+        "lineage_complete": true,
+        "upstream_asset_ids": [
+          "landsat-scene-198"
+        ],
+        "campaign_id": "third-party-forest-alert-campaign",
+        "site_id": "third-party-forest-alert-site",
+        "sensor_id": "third-party-forest-alert-sensor",
+        "calibration_dataset_ids": [
+          "third-party-forest-alert-calibration"
+        ],
+        "training_dataset_ids": [
+          "third-party-forest-alert-training"
+        ],
+        "common_cause_ids": [
+          "third-party-forest-alert-cause"
+        ],
+        "processing_pipeline_ids": [
+          "third-party-forest-alert-pipeline"
+        ],
+        "dependency_dimensions_assessed": [
+          "upstream_assets",
+          "campaign",
+          "site",
+          "sensor",
+          "calibration_data",
+          "training_data",
+          "common_causes",
+          "processing_pipeline"
+        ]
+      },
+      "expected_disposition": "SHARED_UPSTREAM_EVIDENCE"
+    }
+  ],
+  "execution": {
+    "runner": "SYNTHETIC_EVIDENCE_DEPENDENCE_RULES",
+    "external_data_ingested": false,
+    "lineage_registry_authentication": "NOT_IMPLEMENTED",
+    "probabilistic_dependence_model": "NOT_IMPLEMENTED",
+    "evidence_fusion": "NOT_IMPLEMENTED"
+  }
+}
