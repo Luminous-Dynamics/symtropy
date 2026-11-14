@@ -404,9 +404,6 @@ mod tests {
     use std::collections::BTreeMap;
 
     fn ns(value: &str) -> NamespacedType { NamespacedType::new("urn:pf:test", value).unwrap() }
-    fn evidence(domain: GraphEvidenceState) -> GraphEvidence {
-        GraphEvidence::new(domain, Some("evidence:maturity".into())).unwrap()
-    }
     fn doc(direction: RelationshipDirection) -> PowerFabricDocument {
         let claim = |id: &str, text: &str| PropertyClaim::new(
             id, "label", ClaimDomain::Declared,
