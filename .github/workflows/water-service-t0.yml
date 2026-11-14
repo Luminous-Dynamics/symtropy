@@ -93,6 +93,7 @@ jobs:
             research/water-transient-solver-qualification/water-transient-t0-cases-v0.1.json
             research/water-transient-solver-qualification/water-transient-t0-oracle-v0.1.json
             research/water-transient-solver-qualification/manifest-v0.1.json
+            research/water-transient-solver-qualification/reference-feature-matrix-v0.1.json
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
             artifacts/water-transient-t0/receipt.json
