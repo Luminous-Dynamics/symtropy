@@ -1271,6 +1271,231 @@ fn validate_observation_admission_corpus(raw: &[u8], manifest: &Value) -> Result
     }))
 }
 
+
+fn rect_from_json(value: &Value) -> Result<support_kernel::Rect, support_kernel::SupportError> {
+    let coordinates = value
+        .as_array()
+        .filter(|coordinates| coordinates.len() == 4)
+        .ok_or(support_kernel::SupportError::InvalidGeometry)?;
+    let mut parsed = [0.0; 4];
+    for (index, coordinate) in coordinates.iter().enumerate() {
+        parsed[index] = coordinate
+            .as_f64()
+            .filter(|value| value.is_finite())
+            .ok_or(support_kernel::SupportError::InvalidGeometry)?;
+    }
+    support_kernel::Rect::new(parsed[0], parsed[1], parsed[2], parsed[3])
+}
+
+fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let expected_ids: BTreeSet<&'static str> = [
+        "SUPPORT-IDENTITY-001",
+        "SUPPORT-TARGET-CONTAINED-001",
+        "SUPPORT-PARTIAL-EDGE-001",
+        "SUPPORT-NONOVERLAP-001",
+        "SUPPORT-TILED-COMPLETE-001",
+        "SUPPORT-FRAGMENTED-001",
+        "SUPPORT-CLOUD-FULL-GEOMETRY-001",
+        "SUPPORT-MIXED-VALIDITY-001",
+        "SUPPORT-REGISTRATION-SHIFT-001",
+        "SUPPORT-CRS-MISMATCH-001",
+        "SUPPORT-OVERLAP-DOUBLE-COUNT-001",
+        "SUPPORT-DEGENERATE-GEOMETRY-001",
+        "SUPPORT-EDGE-TOUCH-001",
+        "SUPPORT-EMPTY-EVIDENCE-001",
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let coordinate_model = string_at(manifest, &["coordinate_model"])?;
+    let claim_ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "SUPPORT-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-SUPPORT-INTERSECTION-001"
+            && status == "PUBLIC_SYNTHETIC_RECTANGLE_CASES_NOT_GIS"
+            && coordinate_model == "LOCAL_PLANAR_METRES_ALREADY_TRANSFORMED"
+            && claim_ceiling.contains("axis-aligned rectangle intersections")
+            && claim_ceiling.contains("No arbitrary geometry"),
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; coordinate_model={coordinate_model}"),
+    );
+
+    let mut result_rows = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let case_id = case
+            .get("case_id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
+        let unique = seen.insert(case_id.to_string());
+        let target = at(case, &["target_support"])?;
+        let target_crs = string_at(target, &["crs"])?;
+        let target_rect = rect_from_json(at(target, &["bounds"])?)
+            .map_err(|error| format!("cases[{index}].target_support.bounds: {error}"))?;
+        let sample_values = at(case, &["samples"])?
+            .as_array()
+            .ok_or_else(|| format!("cases[{index}].samples must be an array"))?;
+        let mut samples = Vec::with_capacity(sample_values.len());
+        for (sample_index, sample) in sample_values.iter().enumerate() {
+            let sample_id = string_at(sample, &["sample_id"])?;
+            let crs = string_at(sample, &["crs"])?;
+            let bounds = rect_from_json(at(sample, &["bounds"])?)
+                .map_err(|error| format!("cases[{index}].samples[{sample_index}].bounds: {error}"))?;
+            let valid = at(sample, &["valid"])?
+                .as_bool()
+                .ok_or_else(|| format!("cases[{index}].samples[{sample_index}].valid must be boolean"))?;
+            samples.push(support_kernel::SupportSample {
+                sample_id,
+                crs,
+                bounds,
+                valid,
+            });
+        }
+
+        let actual = support_kernel::qualify_rectangular_support(
+            &target_crs,
+            target_rect,
+            &samples,
+        );
+        let expected_error = case.get("expected_error").and_then(Value::as_str);
+        let (case_passed, detail, row) = if let Some(expected_error) = expected_error {
+            match actual {
+                Err(error) => {
+                    let actual_error = error.to_string();
+                    let passed = unique && actual_error == expected_error
+                        && expected_ids.contains(case_id);
+                    (
+                        passed,
+                        format!("case={case_id}; error={actual_error}; expected_error={expected_error}; unique={unique}"),
+                        json!({"case_id":case_id,"error":actual_error}),
+                    )
+                }
+                Ok(report) => (
+                    false,
+                    format!("case={case_id}; expected error={expected_error}; got {}", report.disposition.as_str()),
+                    json!({"case_id":case_id,"unexpected_disposition":report.disposition.as_str()}),
+                ),
+            }
+        } else {
+            let expected = at(case, &["expected"])?;
+            let report = actual.map_err(|error| {
+                format!("cases[{index}] unexpectedly returned support error: {error}")
+            })?;
+            let expected_overlap = number_at(expected, &["geometric_overlap_area"])?;
+            let expected_geometry_fraction =
+                number_at(expected, &["geometric_coverage_fraction"])?;
+            let expected_valid_area = number_at(expected, &["valid_data_area"])?;
+            let expected_valid_fraction =
+                number_at(expected, &["valid_data_coverage_fraction"])?;
+            let expected_disposition = string_at(expected, &["disposition"])?;
+            let derived_disposition = report.disposition.as_str();
+            let passed = unique
+                && expected_ids.contains(case_id)
+                && close_enough(report.geometric_overlap_area, expected_overlap, 1e-9)
+                && close_enough(
+                    report.geometric_coverage_fraction,
+                    expected_geometry_fraction,
+                    1e-12,
+                )
+                && close_enough(report.valid_data_area, expected_valid_area, 1e-9)
+                && close_enough(
+                    report.valid_data_coverage_fraction,
+                    expected_valid_fraction,
+                    1e-12,
+                )
+                && derived_disposition == expected_disposition;
+            (
+                passed,
+                format!("case={case_id}; geometric_coverage={}; valid_coverage={}; disposition={derived_disposition}; unique={unique}", report.geometric_coverage_fraction, report.valid_data_coverage_fraction),
+                json!({
+                    "case_id":case_id,
+                    "target_area":report.target_area,
+                    "geometric_overlap_area":report.geometric_overlap_area,
+                    "geometric_coverage_fraction":report.geometric_coverage_fraction,
+                    "valid_data_area":report.valid_data_area,
+                    "valid_data_coverage_fraction":report.valid_data_coverage_fraction,
+                    "disposition":derived_disposition
+                }),
+            )
+        };
+        push_check(
+            &mut checks,
+            "SUPPORT-CASE-ORACLE-AGREEMENT-001",
+            case_passed,
+            detail,
+        );
+        result_rows.push(row);
+    }
+
+    push_check(
+        &mut checks,
+        "SUPPORT-CASE-COVERAGE-001",
+        seen.len() == expected_ids.len()
+            && cases.len() == expected_ids.len()
+            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let transform = string_at(execution, &["crs_transform"])?;
+    let arbitrary = string_at(execution, &["arbitrary_polygon_support"])?;
+    let uncertainty = string_at(execution, &["positional_uncertainty"])?;
+    push_check(
+        &mut checks,
+        "SUPPORT-EXECUTION-BOUNDARY-001",
+        runner == "ANALYTIC_RECTANGULAR_SUPPORT_KERNEL"
+            && !external
+            && transform == "NOT_IMPLEMENTED"
+            && arbitrary == "NOT_IMPLEMENTED"
+            && uncertainty == "NOT_IMPLEMENTED",
+        "pre-transformed axis-aligned synthetic rectangles only; no external data or unimplemented geometry/uncertainty capability is claimed",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_SUPPORT" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "case_count": seen.len(),
+        "support_kernel": "AXIS_ALIGNED_RECTANGLES_SAME_DECLARED_CRS",
+        "arbitrary_polygon_support": "NOT_IMPLEMENTED",
+        "crs_transform": "NOT_IMPLEMENTED",
+        "positional_uncertainty": "NOT_IMPLEMENTED",
+        "external_data_ingested": false
+    }))
+}
+
 /// Dispatch a JSON fixture to its domain-specific verifier and return a deterministic receipt.
 ///
 /// This command verifies manifests and analytical/synthetic invariants only. It does not
@@ -1287,6 +1512,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-OBSERVATION-ADMISSION-CONTRACT-001")
     {
         return validate_observation_admission_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-SUPPORT-INTERSECTION-001")
+    {
+        return validate_support_intersection_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
@@ -1629,7 +1859,42 @@ mod tests {
         include_str!("../../cases/forest-decision-value-development-v0.1.json");
     const OBSERVATION_ADMISSION_FIXTURE: &str =
         include_str!("../../cases/forest-observation-admission-contract-synthetic-v0.1.json");
+    const SUPPORT_INTERSECTION_FIXTURE: &str =
+        include_str!("../../cases/forest-support-intersection-synthetic-v0.1.json");
 
+
+
+    #[test]
+    fn support_intersection_corpus_matches_fourteen_analytic_cases() {
+        let receipt = evaluate(SUPPORT_INTERSECTION_FIXTURE.as_bytes())
+            .expect("support intersection corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_SUPPORT");
+        assert_eq!(receipt["case_count"], 14);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["arbitrary_polygon_support"], "NOT_IMPLEMENTED");
+        assert_eq!(receipt["crs_transform"], "NOT_IMPLEMENTED");
+        assert_eq!(receipt["positional_uncertainty"], "NOT_IMPLEMENTED");
+    }
+
+    #[test]
+    fn support_intersection_corpus_rejects_mutated_coverage_oracle() {
+        let mut manifest: Value = serde_json::from_str(SUPPORT_INTERSECTION_FIXTURE)
+            .expect("valid support intersection corpus");
+        manifest["cases"][2]["expected"]["geometric_coverage_fraction"] = json!(0.75);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated support corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn support_intersection_corpus_rejects_crs_mismatch_mutation() {
+        let mut manifest: Value = serde_json::from_str(SUPPORT_INTERSECTION_FIXTURE)
+            .expect("valid support intersection corpus");
+        manifest["cases"][9]["samples"][0]["crs"] = json!("LOCAL_METRE_GRID_A");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated support corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn observation_admission_contract_executes_eleven_synthetic_cases() {
