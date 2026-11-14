@@ -1,0 +1,215 @@
+name: Polar Resilience Scorer
+
+on:
+  pull_request:
+    paths:
+      - "research/polar-infrastructure/benchmark/**"
+      - ".github/workflows/polar-resilience-scorer.yml"
+  push:
+    paths:
+      - "research/polar-infrastructure/benchmark/**"
+      - ".github/workflows/polar-resilience-scorer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: polar-resilience-score-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  score-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact PR head (or exact pushed commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert checked-out revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable toolchain action pinned
+      - name: Syntax-check independent run-receipt verifier
+        run: bash -n scripts/verify-polar-resilience-receipt.sh
+      - name: Self-test independent run-receipt verifier
+        run: bash scripts/verify-polar-resilience-receipt.sh --self-test
+      - name: Run unit and negative-control tests
+        run: cargo test --locked --manifest-path research/polar-infrastructure/benchmark/Cargo.toml
+      - name: Exercise JSON CLI on synthetic fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin polar-resilience-score -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-episode.json > /tmp/polar-score-report.json
+          jq -e '
+            .report_kind == "polar-resilience-score-report" and
+            .schema_version == "0.2.0" and
+            .episode_duration_hours > 0 and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "metric_calculation_only_not_physical_validation" and
+            (.results | length == 4) and
+            ([.results[] | select(.policy_id == "defective_low_fuel_control") | .gate_pass] == [false]) and
+            ([.results[] | select(.policy_id == "candidate_full_service") |
+              (.services | length == 3 and all(.[]; ((.rate_unit | length > 0) and (.integrated_unit | length > 0) and (.service_fraction == null or (.service_fraction >= 0 and .service_fraction <= 1)) and (.floor_breach_episode_count >= 0) and (.longest_consecutive_floor_breach_hours >= 0) and (.time_to_first_floor_breach_hours == null or .time_to_first_floor_breach_hours >= 0))))] | length == 1)
+          ' /tmp/polar-score-report.json
+
+      - name: Exercise weighted scenario-tail evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin resilience_ensemble -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json > /tmp/polar-ensemble-report.json
+          jq -e '
+            .report_kind == "polar-resilience-ensemble-report" and
+            .schema_version == "0.4.0" and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "weighted_synthetic_scenario_aggregation_not_physical_validation" and
+            .scenario_count == 2 and
+            ([.results[] | select(.policy_id == "candidate_full_service") |
+              (.cvar_service_shortfall >= .expected_service_shortfall and
+               .gate_failure_probability > 0 and
+               (.scenario_outcomes | length == 2) and
+               (.service_results | length == 3) and
+               (all(.service_results[]; (.floor_breach_probability >= 0 and .floor_breach_probability <= 1 and (.expected_service_fraction == null or (.expected_service_fraction >= 0 and .expected_service_fraction <= 1)) and (.expected_service_shortfall == null or (.expected_service_shortfall >= 0 and .expected_service_shortfall <= 1)) and (.cvar_service_shortfall == null or (.cvar_service_shortfall >= 0 and .cvar_service_shortfall <= 1))))) and
+               (.expected_system_floor_breach_episode_count >= 0) and
+               (.expected_longest_consecutive_system_floor_breach_hours >= 0) and
+               (.worst_case_longest_consecutive_system_floor_breach_hours >= 0) and
+               (.expected_weighted_unserved_service_fraction_hours >= 0 and .expected_weighted_unserved_service_fraction_hours <= .worst_case_weighted_unserved_service_fraction_hours) and
+               (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
+               ([.scenario_outcomes[] | select(.scenario_id == "toy-compound-failure" and .gate_pass == false and .scenario_duration_hours > 0 and .weighted_unserved_service_fraction_hours >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours)))] | length == 1) and
+               ([.service_results[] | select(.service_id == "water" and .floor_breach_probability > 0 and .cvar_service_shortfall > .expected_service_shortfall and (.scenario_outcomes | length == 2))] | length == 1))] | length == 1)
+          ' /tmp/polar-ensemble-report.json
+
+      - name: Exercise probability-free robust stress-set evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --locked --quiet --manifest-path research/polar-infrastructure/benchmark/Cargo.toml --bin robust_set -- \
+            research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json > /tmp/polar-robust-set-report.json
+          jq -e '
+            .report_kind == "polar-resilience-robust-set-report" and
+            .schema_version == "0.4.0" and
+            .evidence_class == "synthetic_only" and
+            .result_scope == "unweighted_enumerated_stress_set_not_probability_estimate" and
+            .pareto_comparison_status == "complete" and
+            .scenario_count == 3 and
+            (.policy_results | length == 4) and
+            ([.policy_results[] | select(.policy_id == "candidate_full_service") |
+              (.passed_all_declared_service_floors == false and
+               .service_floor_breach_scenario_count > 0 and
+               .maximum_system_floor_breach_episode_count_across_scenarios >= 0 and
+               .worst_case_longest_consecutive_system_floor_breach_hours >= 0 and
+               (.worst_case_weighted_unserved_service_fraction_hours >= 0 and .unweighted_mean_weighted_unserved_service_fraction_hours >= 0 and .unweighted_mean_weighted_unserved_service_fraction_hours <= .worst_case_weighted_unserved_service_fraction_hours) and
+               (.earliest_observed_time_to_first_system_floor_breach_hours == null or .earliest_observed_time_to_first_system_floor_breach_hours >= 0) and
+               (.service_results | length == 3 and all(.[]; (.service_floor_breach_scenario_count >= 0 and (if .active_in_all_scenarios then (.passed_all_declared_service_floors == (.service_floor_breach_scenario_count == 0) and .worst_case_service_shortfall >= 0 and .worst_case_service_shortfall <= 1 and .unweighted_mean_service_shortfall_across_stress_suite >= 0 and .unweighted_mean_service_shortfall_across_stress_suite <= 1) else (.passed_all_declared_service_floors == null and .worst_case_service_shortfall == null and .unweighted_mean_service_shortfall_across_stress_suite == null) end)))) and
+               (.scenario_outcomes | length == 3 and all(.[]; (.scenario_duration_hours > 0 and .system_floor_breach_episode_count >= 0 and .weighted_unserved_service_fraction_hours >= 0 and .longest_consecutive_system_floor_breach_hours >= 0 and (.time_to_first_system_floor_breach_hours == null or (.time_to_first_system_floor_breach_hours >= 0 and .time_to_first_system_floor_breach_hours <= .scenario_duration_hours))))))] | length == 1) and
+            ([.policy_results[] | select(.policy_id == "candidate_full_service") | .service_results[] | select(.service_id == "water" and .active_in_all_scenarios and .service_floor_breach_scenario_count > 0 and .worst_case_service_shortfall > 0 and (.scenario_outcomes | length == 3))] | length == 1)
+          ' /tmp/polar-robust-set-report.json
+
+      - name: Package digest-pinned synthetic run evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_dir="artifacts/polar-resilience"
+          mkdir -p "$artifact_dir/inputs/source/bin" "$artifact_dir/reports"
+          tested_commit="$(git rev-parse HEAD)"
+          cp research/polar-infrastructure/benchmark/Cargo.toml "$artifact_dir/inputs/Cargo.toml"
+          cp research/polar-infrastructure/benchmark/Cargo.lock "$artifact_dir/inputs/Cargo.lock"
+          cp rust-toolchain.toml "$artifact_dir/inputs/rust-toolchain.toml"
+          cp research/polar-infrastructure/benchmark/src/lib.rs "$artifact_dir/inputs/source/lib.rs"
+          cp research/polar-infrastructure/benchmark/src/main.rs "$artifact_dir/inputs/source/main.rs"
+          cp research/polar-infrastructure/benchmark/src/bin/resilience_ensemble.rs "$artifact_dir/inputs/source/bin/resilience_ensemble.rs"
+          cp research/polar-infrastructure/benchmark/src/bin/robust_set.rs "$artifact_dir/inputs/source/bin/robust_set.rs"
+          cp .github/workflows/polar-resilience-scorer.yml "$artifact_dir/inputs/polar-resilience-scorer.yml"
+          cp scripts/verify-polar-resilience-receipt.sh "$artifact_dir/verify-polar-resilience-receipt.sh"
+          cp research/polar-infrastructure/benchmark/fixtures/toy-episode.json "$artifact_dir/inputs/toy-episode.json"
+          cp research/polar-infrastructure/benchmark/fixtures/toy-ensemble.json "$artifact_dir/inputs/toy-ensemble.json"
+          cp research/polar-infrastructure/benchmark/fixtures/toy-robust-set.json "$artifact_dir/inputs/toy-robust-set.json"
+          cp /tmp/polar-score-report.json "$artifact_dir/reports/score-report.json"
+          cp /tmp/polar-ensemble-report.json "$artifact_dir/reports/ensemble-report.json"
+          cp /tmp/polar-robust-set-report.json "$artifact_dir/reports/robust-set-report.json"
+          printf '%s\n' "$tested_commit" > "$artifact_dir/TESTED_COMMIT"
+          (
+            cd "$artifact_dir"
+            sha256sum \
+              inputs/Cargo.toml \
+              inputs/Cargo.lock \
+              inputs/rust-toolchain.toml \
+              inputs/source/lib.rs \
+              inputs/source/main.rs \
+              inputs/source/bin/resilience_ensemble.rs \
+              inputs/source/bin/robust_set.rs \
+              inputs/polar-resilience-scorer.yml \
+              verify-polar-resilience-receipt.sh \
+              inputs/toy-episode.json \
+              inputs/toy-ensemble.json \
+              inputs/toy-robust-set.json \
+              reports/score-report.json \
+              reports/ensemble-report.json \
+              reports/robust-set-report.json \
+              TESTED_COMMIT \
+              > SHA256SUMS
+            jq -n \
+              --arg tested_commit "$tested_commit" \
+              --arg tested_repository "${{ github.event.pull_request.head.repo.full_name || github.repository }}" \
+              --arg workflow_run_id "$GITHUB_RUN_ID" \
+              --arg workflow_attempt "$GITHUB_RUN_ATTEMPT" \
+              --arg event "$GITHUB_EVENT_NAME" \
+              --arg runner_os "$RUNNER_OS" \
+              --arg runner_arch "$RUNNER_ARCH" \
+              --arg rustc_version "$(rustc --version --verbose)" \
+              --arg cargo_version "$(cargo --version)" \
+              '{
+                receipt_schema_version: "0.2.0",
+                evidence_class: "synthetic_only",
+                receipt_status: "checks_completed",
+                tested_commit: $tested_commit,
+                tested_repository: $tested_repository,
+                workflow_run_id: $workflow_run_id,
+                workflow_attempt: $workflow_attempt,
+                workflow_event: $event,
+                tested_commit_path: "TESTED_COMMIT",
+                verifier_path: "verify-polar-resilience-receipt.sh",
+                input_schema_versions: { score: "0.1.0", ensemble: "0.1.0", robust_set: "0.1.0" },
+                report_schema_versions: { score: "0.2.0", ensemble: "0.4.0", robust_set: "0.4.0" },
+                runner: { os: $runner_os, arch: $runner_arch, rustc: $rustc_version, cargo: $cargo_version },
+                input_paths: [
+                  "inputs/Cargo.toml",
+                  "inputs/Cargo.lock",
+                  "inputs/rust-toolchain.toml",
+                  "inputs/source/lib.rs",
+                  "inputs/source/main.rs",
+                  "inputs/source/bin/resilience_ensemble.rs",
+                  "inputs/source/bin/robust_set.rs",
+                  "inputs/polar-resilience-scorer.yml",
+                  "inputs/toy-episode.json",
+                  "inputs/toy-ensemble.json",
+                  "inputs/toy-robust-set.json"
+                ],
+                report_paths: [
+                  "reports/score-report.json",
+                  "reports/ensemble-report.json",
+                  "reports/robust-set-report.json"
+                ],
+                checksums_file: "SHA256SUMS",
+                caveat: "Synthetic scorer contract evidence only; not physical validation or controller certification."
+              }' > run-receipt.json
+            sha256sum run-receipt.json > run-receipt.sha256
+            sha256sum -c SHA256SUMS
+            sha256sum -c run-receipt.sha256
+          )
+          bash "$artifact_dir/verify-polar-resilience-receipt.sh" "$artifact_dir"
+          printf 'tested_commit=%s\n' "$tested_commit"
+
+      - name: Upload digest-pinned synthetic run receipt
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: polar-resilience-synthetic-receipt-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/polar-resilience/
+          if-no-files-found: error
+          retention-days: 30
