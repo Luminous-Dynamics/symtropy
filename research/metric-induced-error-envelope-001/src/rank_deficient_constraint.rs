@@ -22,6 +22,8 @@ use super::{ConstraintMultiplierV1, ConstraintResidualV1};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstraintQuotientProfileV1 {
     pub relative_rank_tolerance: f64,
+    /// Multiplicative uncertainty band around the rank threshold; must exceed one.
+    pub rank_uncertainty_factor: f64,
     pub relative_compatibility_tolerance: f64,
     pub relative_reduced_pivot_tolerance: f64,
 }
@@ -30,6 +32,7 @@ impl Default for ConstraintQuotientProfileV1 {
     fn default() -> Self {
         Self {
             relative_rank_tolerance: 1.0e-10,
+            rank_uncertainty_factor: 10.0,
             relative_compatibility_tolerance: 1.0e-10,
             relative_reduced_pivot_tolerance: 128.0 * f64::EPSILON,
         }
@@ -64,6 +67,8 @@ impl From<crate::MetricAdmissionReceiptV1> for MetricAdmissionSummaryV1 {
 pub struct ConstraintQuotientAdmissionReceiptV1 {
     pub numerical_rank: usize,
     pub multiplier_nullity: usize,
+    pub rank_resolved: bool,
+    pub unresolved_relative_pivot: Option<f64>,
     pub maximum_residual_basis_orthogonality_defect: f64,
     pub minimum_reduced_cholesky_pivot: Option<f64>,
     pub residual_metric: MetricAdmissionSummaryV1,
@@ -150,6 +155,9 @@ fn validate_profile(
     if !profile.relative_rank_tolerance.is_finite()
         || profile.relative_rank_tolerance <= 0.0
         || profile.relative_rank_tolerance >= 1.0
+        || !profile.rank_uncertainty_factor.is_finite()
+        || profile.rank_uncertainty_factor <= 1.0
+        || profile.rank_uncertainty_factor > 1.0e6
         || !profile.relative_compatibility_tolerance.is_finite()
         || profile.relative_compatibility_tolerance <= 0.0
         || profile.relative_compatibility_tolerance >= 1.0
@@ -199,7 +207,8 @@ fn build_h_orthonormal_range_basis<
     jacobian: &[[f64; N]; K],
     residual_metric: &Metric<Space, K>,
     relative_rank_tolerance: f64,
-) -> Result<([[f64; K]; K], usize, f64), ConstraintQuotientErrorV1> {
+    rank_uncertainty_factor: f64,
+) -> Result<([[f64; K]; K], usize, f64, bool, Option<f64>), ConstraintQuotientErrorV1> {
     // Columns of J span range(J)=range(W). Reveal that subspace using H,
     // so the rank profile is meaningful under a matching residual-metric
     // transformation H_new=T^-T H_old T^-1.
