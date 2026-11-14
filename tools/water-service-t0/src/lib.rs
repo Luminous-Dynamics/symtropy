@@ -665,6 +665,192 @@ pub fn evaluate(
     }))
 }
 
+pub fn evaluate_pump_system_energy(inputs: &Value, oracle: &Value) -> Result<Value, String> {
+    const EXPECTED_CASES: usize = 5;
+    const INPUT_SCHEMA: &str = "pump-system-energy-matched-duty-cases-v0.1";
+    const ORACLE_SCHEMA: &str = "pump-system-energy-matched-duty-oracle-v0.1";
+    const CEILING: &str = "synthetic_pump_system_equation_checks_only_no_energy_saving_or_installed_performance_claim";
+
+    if string(inputs, &["schema_version"])? != INPUT_SCHEMA
+        || string(inputs, &["evidence_class"])? != "synthetic_matched_hydraulic_service_arithmetic"
+        || string(inputs, &["evidence_ceiling"])? != CEILING
+        || string(oracle, &["schema_version"])? != ORACLE_SCHEMA
+        || string(oracle, &["evidence_class"])? != "synthetic_matched_hydraulic_service_arithmetic"
+        || string(oracle, &["evidence_ceiling"])? != CEILING
+    {
+        return Err("pump energy M0 input/oracle identity or evidence ceiling mismatch".to_owned());
+    }
+
+    let cases = at(inputs, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "pump energy M0 cases must be an array".to_owned())?;
+    let oracle_cases = at(oracle, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "pump energy M0 oracle cases must be an array".to_owned())?;
+    if cases.len() != EXPECTED_CASES || oracle_cases.len() != EXPECTED_CASES {
+        return Err(format!(
+            "pump energy M0 expected {EXPECTED_CASES} input/oracle cases; got {}/{}",
+            cases.len(),
+            oracle_cases.len()
+        ));
+    }
+
+    let rho = number(inputs, &["assumptions", "water_density_kg_m3"])?;
+    let gravity = number(inputs, &["assumptions", "gravity_m_s2"])?;
+    let efficiency = number(inputs, &["assumptions", "wire_to_water_efficiency_assumed"])?;
+    if rho <= 0.0 || gravity <= 0.0 || !(0.0 < efficiency && efficiency <= 1.0) {
+        return Err(
+            "pump energy M0 physical constants or efficiency are outside domain".to_owned(),
+        );
+    }
+    if string(
+        inputs,
+        &[
+            "assumptions",
+            "efficiency_is_identical_for_fixed_speed_and_vfd",
+        ],
+    )? != "yes_for_isolating_head_loss_effect_only"
+    {
+        return Err(
+            "pump energy M0 efficiency assumption is not the declared isolation model".to_owned(),
+        );
+    }
+
+    let mut expected_by_id = BTreeMap::new();
+    for row in oracle_cases {
+        let id = string(row, &["case_id"])?;
+        if expected_by_id.insert(id.clone(), row).is_some() {
+            return Err(format!("pump energy M0 duplicate oracle ID: {id}"));
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut results = Vec::with_capacity(EXPECTED_CASES);
+    let mut mismatches = Vec::new();
+
+    for case in cases {
+        let id = case_id(case)?;
+        if !seen.insert(id.clone()) {
+            return Err(format!("pump energy M0 duplicate input ID: {id}"));
+        }
+        let i = at(case, &["inputs"])?;
+        let q = number(i, &["flow_m3_s"])?;
+        let shutoff = number(i, &["pump_shutoff_head_m"])?;
+        let pump_k = number(i, &["pump_curve_k_m_per_m6_s2"])?;
+        let static_head = number(i, &["system_static_head_m"])?;
+        let system_k = number(i, &["system_curve_k_m_per_m6_s2"])?;
+        if q <= 0.0 || shutoff <= 0.0 || pump_k < 0.0 || static_head < 0.0 || system_k < 0.0 {
+            return Err(format!("{id}: invalid pump/system curve input domain"));
+        }
+
+        let q_squared = q * q;
+        let fixed_head = shutoff - pump_k * q_squared;
+        let system_head = static_head + system_k * q_squared;
+        let throttle_head = fixed_head - system_head;
+        if !fixed_head.is_finite()
+            || !system_head.is_finite()
+            || !throttle_head.is_finite()
+            || system_head <= 0.0
+            || fixed_head <= 0.0
+            || throttle_head < -1.0e-9
+        {
+            return Err(format!(
+                "{id}: fixed-speed pump cannot meet the declared service duty"
+            ));
+        }
+
+        let speed_squared = (system_head + pump_k * q_squared) / shutoff;
+        if !speed_squared.is_finite() || !(0.0 < speed_squared && speed_squared <= 1.0 + 1.0e-9) {
+            return Err(format!("{id}: required VFD speed is outside (0, 1]"));
+        }
+        let speed_ratio = speed_squared.sqrt();
+        let vfd_head = speed_squared * shutoff - pump_k * q_squared;
+        let fixed_hydraulic = rho * gravity * q * fixed_head;
+        let vfd_hydraulic = rho * gravity * q * vfd_head;
+        let fixed_electrical = fixed_hydraulic / efficiency;
+        let vfd_electrical = vfd_hydraulic / efficiency;
+        if !vfd_head.is_finite()
+            || !fixed_hydraulic.is_finite()
+            || !vfd_hydraulic.is_finite()
+            || !fixed_electrical.is_finite()
+            || !vfd_electrical.is_finite()
+            || fixed_electrical <= 0.0
+        {
+            return Err(format!("{id}: non-finite or invalid pump energy result"));
+        }
+
+        let actual = json!({
+            "fixed_speed_pump_head_m": fixed_head,
+            "system_required_head_m": system_head,
+            "fixed_speed_throttle_head_m": throttle_head.max(0.0),
+            "vfd_speed_ratio": speed_ratio,
+            "vfd_pump_head_m": vfd_head,
+            "fixed_speed_hydraulic_power_w": fixed_hydraulic,
+            "vfd_hydraulic_power_w": vfd_hydraulic,
+            "fixed_speed_electrical_power_w": fixed_electrical,
+            "vfd_electrical_power_w": vfd_electrical,
+            "equal_service_energy_saving_fraction": 1.0 - vfd_electrical / fixed_electrical,
+            "system_head_fraction_of_fixed_speed_head": system_head / fixed_head
+        });
+
+        let oracle_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("pump energy M0 oracle missing case {id}"))?;
+        let expected = at(oracle_row, &["expected"])?;
+        let matches = compare_json(&actual, expected);
+        if !matches {
+            mismatches.push(json!({
+                "case_id": id,
+                "expected": expected,
+                "actual": actual
+            }));
+        }
+        results.push(json!({
+            "case_id": id,
+            "family": "PUMP_SYSTEM_MATCHED_DUTY",
+            "matched": matches,
+            "computed": actual
+        }));
+    }
+
+    if seen.len() != expected_by_id.len() {
+        return Err(format!(
+            "pump energy M0 input/oracle identity mismatch: input={}, oracle={}",
+            seen.len(),
+            expected_by_id.len()
+        ));
+    }
+    results.sort_by(|a, b| {
+        a.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("case_id").and_then(Value::as_str))
+    });
+    let matched = results.len() - mismatches.len();
+
+    Ok(json!({
+        "schema_version": "pump-system-energy-evaluation-v0.1",
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
+        "qualification_status": "NotRun",
+        "evidence_class": "synthetic_matched_hydraulic_service_arithmetic",
+        "evidence_ceiling": CEILING,
+        "result_count": results.len(),
+        "matched_case_count": matched,
+        "mismatches": mismatches,
+        "results": results,
+        "nonclaims": [
+            "No measured pump, motor or VFD efficiency map is used.",
+            "The equal-efficiency assumption isolates hydraulic head-loss differences only.",
+            "The quadratic pump/system curves are synthetic and are not vendor acceptance curves.",
+            "No energy savings, installed performance, NPSH, cavitation, transient, water-hammer or safety qualification is established.",
+            "Affinity laws are not used as a substitute for solving the pump/system operating point."
+        ]
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -683,9 +869,79 @@ mod tests {
             "oracle" => include_str!(
                 "../../../research/water-service-engineering/t0-known-answer-oracle-v0.1.json"
             ),
+            "pump_energy_inputs" => include_str!(
+                "../../../research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json"
+            ),
+            "pump_energy_oracle" => include_str!(
+                "../../../research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json"
+            ),
             _ => panic!("unknown test fixture"),
         };
         serde_json::from_str(text).expect("fixture JSON must parse")
+    }
+
+    #[test]
+    fn all_five_pump_energy_matched_duty_cases_match_oracle() {
+        let result =
+            evaluate_pump_system_energy(&load("pump_energy_inputs"), &load("pump_energy_oracle"))
+                .expect("pump energy benchmark must evaluate");
+        assert_eq!(result["result_count"], 5);
+        assert_eq!(result["matched_case_count"], 5);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn high_static_head_reduces_available_vfd_head_loss_savings() {
+        let result = evaluate_pump_system_energy(
+            &load("pump_energy_inputs"),
+            &load("pump_energy_oracle"),
+        )
+        .expect("pump energy benchmark must evaluate");
+        let rows = result["results"].as_array().unwrap();
+        let low_static = rows
+            .iter()
+            .find(|row| row["case_id"] == "PSE-001-friction-dominated-low-static-head")
+            .unwrap();
+        let high_static = rows
+            .iter()
+            .find(|row| row["case_id"] == "PSE-002-high-static-head")
+            .unwrap();
+        assert!(
+            low_static["computed"]["equal_service_energy_saving_fraction"]
+                .as_f64()
+                .unwrap()
+                > high_static["computed"]["equal_service_energy_saving_fraction"]
+                    .as_f64()
+                    .unwrap()
+        );
+    }
+
+    #[test]
+    fn pump_energy_rejects_duty_beyond_fixed_speed_curve() {
+        let mut inputs = load("pump_energy_inputs");
+        inputs["cases"][0]["inputs"]["system_static_head_m"] = json!(100.0);
+        assert!(evaluate_pump_system_energy(&inputs, &load("pump_energy_oracle")).is_err());
+    }
+
+    #[test]
+    fn pump_energy_rejects_vfd_speed_above_rated_speed() {
+        let mut inputs = load("pump_energy_inputs");
+        inputs["cases"][0]["inputs"]["system_static_head_m"] = json!(45.0);
+        assert!(
+            evaluate_pump_system_energy(&inputs, &load("pump_energy_oracle")).is_err()
+        );
+    }
+
+    #[test]
+    fn pump_energy_oracle_mismatch_is_visible() {
+        let mut oracle = load("pump_energy_oracle");
+        oracle["cases"][0]["expected"]["fixed_speed_pump_head_m"] = json!(999.0);
+        let result = evaluate_pump_system_energy(&load("pump_energy_inputs"), &oracle)
+            .expect("oracle mismatch should remain inspectable");
+        assert_eq!(result["verification_state"], "OracleMismatch");
+        assert_eq!(result["matched_case_count"], 4);
+        assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
     }
 
     #[test]

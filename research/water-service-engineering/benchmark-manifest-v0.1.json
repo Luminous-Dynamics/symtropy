@@ -181,5 +181,17 @@
       "pipe_internal_diameter_candidate_mm": 40
     },
     "evidence_ceiling": "no_pump_product_test_pressure_system_or_safety_qualification"
+  },
+  "pump_system_energy_service": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5103",
+    "child_of": "https://github.com/Luminous-Dynamics/symtropy/issues/4994",
+    "protocol": "research/water-service-engineering/PUMP_SYSTEM_ENERGY_SERVICE_M0_V0_1.md",
+    "manifest": "research/water-service-engineering/pump-system-energy-manifest-v0.1.json",
+    "inputs": "research/water-service-engineering/pump-system-energy-matched-duty-cases-v0.1.json",
+    "oracle": "research/water-service-engineering/pump-system-energy-matched-duty-oracle-v0.1.json",
+    "schema": "research/water-service-engineering/pump-system-energy-matched-duty.schema.json",
+    "cli": "tools/water-service-t0/src/bin/pump-system-energy.rs",
+    "status": "synthetic_matched_service_curve_comparison_only",
+    "evidence_ceiling": "no_measured_energy_savings_or_installed_pump_performance_claim"
   }
 }
