@@ -67,7 +67,7 @@ jobs:
           assert protocol["algorithm"]["max_units"] == 10000
           assert protocol["algorithm"]["max_draws"] == 2000000
           assert protocol["algorithm"]["max_total_unit_draws"] == 100000000
-          assert len(protocol["hard_gates"]) >= 31
+          assert len(protocol["hard_gates"]) >= 35
           assert len(corpus["cases"]) == 16
           assert len({case["case_id"] for case in corpus["cases"]}) == 16
           assert config_schema["additionalProperties"] is False
