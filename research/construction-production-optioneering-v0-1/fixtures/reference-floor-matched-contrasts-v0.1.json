@@ -111,7 +111,8 @@
           "energy_wh": 2000,
           "carbon_gco2e": 1500,
           "material_mass_kg_milli": 150000,
-          "rework_units": 2
+          "rework_units": 2,
+          "measurement_basis": "full_required_quantity"
         },
         "outage-rework": {
           "scenario_id": "outage-rework",
@@ -151,7 +152,8 @@
           "energy_wh": 2200,
           "carbon_gco2e": 1600,
           "material_mass_kg_milli": 150000,
-          "rework_units": 3
+          "rework_units": 3,
+          "measurement_basis": "full_required_quantity"
         }
       }
     },
@@ -203,7 +205,8 @@
           "energy_wh": 1900,
           "carbon_gco2e": 1450,
           "material_mass_kg_milli": 150000,
-          "rework_units": 2
+          "rework_units": 2,
+          "measurement_basis": "full_required_quantity"
         },
         "outage-rework": {
           "scenario_id": "outage-rework",
@@ -243,7 +246,8 @@
           "energy_wh": 2000,
           "carbon_gco2e": 1500,
           "material_mass_kg_milli": 150000,
-          "rework_units": 2
+          "rework_units": 2,
+          "measurement_basis": "full_required_quantity"
         }
       },
       "matched_reference_option_id": "baseline-in-situ"
@@ -296,7 +300,8 @@
           "energy_wh": 1600,
           "carbon_gco2e": 1100,
           "material_mass_kg_milli": 145000,
-          "rework_units": 1
+          "rework_units": 1,
+          "measurement_basis": "full_required_quantity"
         },
         "outage-rework": {
           "scenario_id": "outage-rework",
@@ -336,7 +341,8 @@
           "energy_wh": 1700,
           "carbon_gco2e": 1150,
           "material_mass_kg_milli": 145000,
-          "rework_units": 1
+          "rework_units": 1,
+          "measurement_basis": "full_required_quantity"
         }
       },
       "matched_reference_option_id": "baseline-in-situ"
@@ -389,7 +395,8 @@
           "energy_wh": 1400,
           "carbon_gco2e": 1000,
           "material_mass_kg_milli": 142000,
-          "rework_units": 1
+          "rework_units": 1,
+          "measurement_basis": "full_required_quantity"
         },
         "outage-rework": {
           "scenario_id": "outage-rework",
@@ -429,7 +436,8 @@
           "energy_wh": 1500,
           "carbon_gco2e": 1050,
           "material_mass_kg_milli": 142000,
-          "rework_units": 1
+          "rework_units": 1,
+          "measurement_basis": "full_required_quantity"
         }
       },
       "matched_reference_option_id": "baseline-in-situ"
