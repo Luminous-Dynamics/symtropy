@@ -24,6 +24,7 @@ pub struct ConstraintQuotientProfileV1 {
     pub rank_uncertainty_factor: f64,
     pub relative_compatibility_tolerance: f64,
     /// Relative consistency threshold for reconstructed physical equations.
+    /// Relative error ceiling for the reconstructed multiplier, constraint, and kinetic equations.
     pub relative_reduced_pivot_tolerance: f64,
 }
 
@@ -709,7 +710,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             .max(reconstruction_relative_defect)
             .max(norm_identity_defect);
         if !reduced_solve_relative_defect.is_finite()
-            || reduced_solve_relative_defect > tolerance
+            || reduced_solve_relative_defect > self.profile.relative_reduced_pivot_tolerance
         {
             return Ok(self.empty_receipt(
                 ConstraintResidualStatusV1::Inconclusive,
