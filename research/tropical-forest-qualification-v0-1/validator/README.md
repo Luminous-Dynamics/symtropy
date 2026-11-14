@@ -90,7 +90,7 @@ The public forest decision-value corpus defines twenty case families and checks 
 
 ## Model-set adequacy
 
-The public forest model-set corpus is a case-family contract only. It deliberately exposes no hidden generator equations and returns `MANIFEST_VALID`, not a model-adequacy pass. A real blind tournament requires independent custody of generator identity/outcomes and a precommitted candidate run.
+The public forest model-set corpus contains 30 development descriptors (three variants across each of ten families). It is a public case-family contract only: it deliberately exposes no hidden generator equations and returns `MANIFEST_VALID`, not a model-adequacy pass. A real blind tournament requires independent custody of generator identity/outcomes and a precommitted candidate run.
 
 ## Fixture-specific result meanings
 
@@ -101,7 +101,7 @@ The public forest model-set corpus is a case-family contract only. It deliberate
 | Observation operators | `PASS_SYNTHETIC_RULES` | The nine synthetic input descriptors are run through the Rust rule engine and produce their declared missingness/support/semantics dispositions; no external data or production adapter is used |
 | Rectangular support intersection | `PASS_SYNTHETIC_SUPPORT` | Fourteen exact axis-aligned rectangle cases report geometric and valid-data coverage separately; CRS mismatch, overlap and degenerate geometry are refused; no CRS transforms or arbitrary polygons are implemented |
 | Observation admission envelope | `MANIFEST_VALID` | Eleven synthetic record descriptors exercise provenance, rights-purpose, support/time, missingness, qualified absence, domain, semantics and leakage gates; no real asset, production adapter or rights authority is executed |
-| Model-set adequacy | `MANIFEST_VALID` | The ten public development case families and expected dispositions are well-formed; no blind generator or independent custodian is provided |
+| Model-set adequacy | `MANIFEST_VALID` | Thirty public development variants (three per family) have known family dispositions and unique IDs; no blind generator or independent custodian is provided |
 | Decision value | `MANIFEST_VALID` | Twenty public development cases, the zero-EVSI counterexample, and the positive-EVSI worked arithmetic are coherent; the existing EVSI policy kernel is not executed by this validator |
 
 ## Dataset candidate register
@@ -131,4 +131,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 75 Rust unit tests across the accounting verifier, synthetic observation rules, the observation admission envelope, canopy manifest checks, model-set manifest checks, the headless cohort-canopy kernel and the rectangular observation support kernel, variable-aware aggregation kernel and consilience dependence evaluator. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 76 Rust unit tests across the accounting verifier, synthetic observation rules, the observation admission envelope, canopy manifest checks, model-set manifest checks, the headless cohort-canopy kernel the rectangular observation support kernel, variable-aware aggregation kernel and consilience dependence evaluator. They are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
