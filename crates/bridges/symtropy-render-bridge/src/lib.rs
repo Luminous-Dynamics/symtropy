@@ -14,6 +14,7 @@
 
 #[cfg(feature = "inspector")]
 pub mod inspector;
+pub mod large_world;
 pub mod material;
 pub mod projection;
 pub mod sync;
@@ -21,6 +22,10 @@ pub mod telemetry_ssbo;
 
 #[cfg(feature = "inspector")]
 pub use inspector::SymtropyInspectorPlugin;
+pub use large_world::{
+    CoordinateFrameId, GpuRelativePosition, LargeWorldError, LargeWorldPosition,
+    WORLD_CELL_SIZE_METERS,
+};
 pub use material::{
     NdSlicingMaterial, NdSlicingPlugin, NdSlicingSettings, TelemetryExtension, TelemetryMaterial,
     TelemetryMaterialPlugin, TelemetrySettings,
