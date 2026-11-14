@@ -1,0 +1,106 @@
+name: HDC Episode Threshold Calibration
+
+on:
+  push:
+    branches: ["research/vis-mem-threshold-calibration-v0-1"]
+    paths:
+      - "crates/domains/symtropy-hdc-physics/**"
+      - "crates/core/symtropy-hdc-core/**"
+      - "crates/domains/symtropy-physics/**"
+      - "crates/domains/symtropy-math/**"
+      - ".github/workflows/episode-threshold-calibration.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "crates/domains/symtropy-hdc-physics/**"
+      - "crates/core/symtropy-hdc-core/**"
+      - "crates/domains/symtropy-physics/**"
+      - "crates/domains/symtropy-math/**"
+      - ".github/workflows/episode-threshold-calibration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: episode-threshold-calibration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calibrate-episode-threshold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Test threshold calibration contracts
+        run: |
+          set -euo pipefail
+          cargo test --locked --package symtropy-hdc-physics --example episode_threshold_calibration
+
+      - name: Generate threshold sweep and held-out scorecard
+        run: |
+          set -euo pipefail
+          cargo run --locked --package symtropy-hdc-physics --example episode_threshold_calibration > episode-threshold-calibration.tsv
+          cargo run --locked --package symtropy-hdc-physics --example episode_threshold_calibration > episode-threshold-calibration-repeat.tsv
+          cmp episode-threshold-calibration.tsv episode-threshold-calibration-repeat.tsv
+          grep -Fq $'META\tformat\tHDC-THRESHOLD-CAL-001-v0.1' episode-threshold-calibration.tsv
+          grep -Fq $'META\tcurrent_threshold\t0.65' episode-threshold-calibration.tsv
+          grep -Fq $'META\tthreshold_selection\tcalibration labels only' episode-threshold-calibration.tsv
+          awk -F '\t' '
+            $1 == "THRESHOLD_HEADER" { if (NF != 10) bad=1; th++ }
+            $1 == "THRESHOLD" { if (NF != 10) bad=1; threshold_rows++; cost=$10+0; t=$2+0; if (!seen || cost < min_cost || (cost == min_cost && t > best_t)) { min_cost=cost; best_t=t; seen=1 } }
+            $1 == "META" && $2 == "selected_threshold" { selected=$3+0; sm++ }
+            $1 == "QUERY_HEADER" { if (NF != 13) bad=1; qh++ }
+            $1 == "QUERY" { if (NF != 13) bad=1; q++ }
+            $1 == "PAIR_HEADER" { if (NF != 9) bad=1; ph++ }
+            $1 == "PAIR" { if (NF != 9) bad=1; p++ }
+            $1 == "SUMMARY_HEADER" { if (NF != 12) bad=1; sh++ }
+            $1 == "SUMMARY" { if (NF != 12) bad=1; s++ }
+            END { if (bad || th != 1 || threshold_rows != 21 || sm != 1 || selected != best_t || qh != 1 || q != 40 || ph != 1 || p != 160 || sh != 1 || s != 4) exit 1 }
+          ' episode-threshold-calibration.tsv
+          sha256sum episode-threshold-calibration.tsv > episode-threshold-calibration.sha256
+          sha256sum -c episode-threshold-calibration.sha256
+
+      - name: Record exact-head calibration receipt
+        run: |
+          set -euo pipefail
+          {
+            printf 'META\tstatus\tpassed_only_if_all_steps_complete\n'
+            printf 'META\thead\t%s\n' "$(git rev-parse HEAD)"
+            printf 'META\tencoder_source_sha256\t%s\n' "$(sha256sum crates/domains/symtropy-hdc-physics/src/lib.rs | awk '{print $1}')"
+            printf 'META\tcalibration_example_sha256\t%s\n' "$(sha256sum crates/domains/symtropy-hdc-physics/examples/episode_threshold_calibration.rs | awk '{print $1}')"
+            printf 'META\treport_sha256\t%s\n' "$(sha256sum episode-threshold-calibration.tsv | awk '{print $1}')"
+            printf 'META\tdefault_threshold_changed\tno\n'
+            printf 'META\tperformance_scope\tphysical-scene encoder calibration only; no robot SOTA claim\n'
+          } > episode-threshold-calibration-receipt.tsv
+          sha256sum episode-threshold-calibration-receipt.tsv > episode-threshold-calibration-receipt.sha256
+          sha256sum -c episode-threshold-calibration-receipt.sha256
+
+      - name: Upload threshold calibration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: episode-threshold-calibration
+          path: |
+            episode-threshold-calibration.tsv
+            episode-threshold-calibration.sha256
+            episode-threshold-calibration-receipt.tsv
+            episode-threshold-calibration-receipt.sha256
+          if-no-files-found: error
