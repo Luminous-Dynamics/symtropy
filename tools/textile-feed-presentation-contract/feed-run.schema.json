@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/textile-feed-presentation-contract/feed-run.schema.json",
+  "title": "Textile feed presentation run v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "line_id",
+    "configuration_revision",
+    "incoming_items",
+    "attempts",
+    "terminal_dispositions"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "line_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "incoming_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "lot_id",
+          "intake_sequence",
+          "reference_destination"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lot_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "intake_sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reference_destination": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attempt_id",
+          "item_id",
+          "attempt_number",
+          "predecessor_attempt_id",
+          "state",
+          "started_at_ns",
+          "completed_at_ns",
+          "evidence"
+        ],
+        "properties": {
+          "attempt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attempt_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "predecessor_attempt_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "enum": [
+              "single_item_in_field_of_view",
+              "overlap",
+              "double_pick",
+              "occluded_or_folded",
+              "out_of_field",
+              "jammed_or_blocked",
+              "unknown"
+            ]
+          },
+          "started_at_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed_at_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      }
+    },
+    "terminal_dispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "outcome",
+          "actual_destination",
+          "completed_at_ns",
+          "evidence"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "enum": [
+              "routed",
+              "manual_review",
+              "held",
+              "rejected",
+              "not_recovered"
+            ]
+          },
+          "actual_destination": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "completed_at_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "sha256",
+        "method_ref"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "method_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
