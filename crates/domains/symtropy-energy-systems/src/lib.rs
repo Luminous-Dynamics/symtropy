@@ -16,6 +16,7 @@ use serde::Serialize;
 mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
+mod module_contract;
 
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
@@ -25,6 +26,12 @@ pub use duty_cycle::{
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
+};
+pub use module_contract::{
+    AcPort, CompatibilityAssessment, CompatibilityReason, CompatibilityStatus,
+    ConnectionEnvelope, DcPolarity, DcPort, ElectricalInterface, ElectricalInterfaceKind,
+    EvidenceClaim, EvidencePolicy, ModuleClass, ModuleEvidenceClass, ModuleIdentity,
+    ModulePort, PortContractError, PortDirection, PowerModule, QuantityRange,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
