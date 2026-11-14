@@ -518,6 +518,142 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
     }))
 }
 
+
+fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let expected: BTreeMap<&'static str, &'static str> = [
+        ("FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-001", "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"),
+        ("FOREST-MSA-RECRUITMENT-GROWTH-ALIASING-001", "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"),
+        ("FOREST-MSA-DELAYED-RESPONSE-001", "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"),
+        ("FOREST-MSA-SIZE-DEPENDENT-MORTALITY-001", "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"),
+        ("FOREST-MSA-SEED-LIMITATION-001", "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"),
+        ("FOREST-MSA-SPATIAL-CANOPY-TOPOLOGY-001", "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"),
+        ("FOREST-MSA-DISTURBANCE-CLIMATE-INTERACTION-001", "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"),
+        ("FOREST-MSA-OBSERVATION-PROCESS-SHIFT-001", "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"),
+        ("FOREST-MSA-CROSS-REGION-TRANSFER-001", "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"),
+        ("FOREST-MSA-COMMON-STRUCTURAL-OMISSION-001", "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"),
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let claim_ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let hidden_truth_published = at(manifest, &["hidden_truth_published"])?
+        .as_bool()
+        .ok_or_else(|| "hidden_truth_published must be boolean".to_string())?;
+    let blind_status = string_at(manifest, &["blind_test_status"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "MODEL-SET-CORPUS-VERSION-001",
+        version == "0.1.0",
+        format!("schema_version={version}"),
+    );
+    push_check(
+        &mut checks,
+        "MODEL-SET-CORPUS-IDENTITY-001",
+        benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-MODEL-SET-ADEQUACY-001",
+        format!("benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "MODEL-SET-PUBLIC-NOT-BLIND-001",
+        status == "PUBLIC_DEVELOPMENT_CASE_FAMILIES_NOT_BLIND"
+            && !hidden_truth_published
+            && blind_status == "NOT_CREATED_REQUIRES_INDEPENDENT_CUSTODY"
+            && claim_ceiling.contains("not a blind test"),
+        "public development corpus must not claim sealed/blind generator truth",
+    );
+
+    for (index, case) in cases.iter().enumerate() {
+        let id = case
+            .get("case_id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
+        let family = case
+            .get("family")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].family must be a string"))?;
+        let condition = case
+            .get("condition")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].condition must be a string"))?;
+        let disposition = case
+            .get("expected_disposition")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
+        let unique = seen.insert(id.to_string());
+        let known_case = expected.get(id).copied() == Some(disposition);
+        push_check(
+            &mut checks,
+            "MODEL-SET-CASE-SEMANTICS-001",
+            unique && known_case && !family.trim().is_empty() && !condition.trim().is_empty(),
+            format!(
+                "case={id}; expected={}; declared={disposition}; unique={unique}",
+                expected.get(id).copied().unwrap_or("UNKNOWN_CASE")
+            ),
+        );
+    }
+    push_check(
+        &mut checks,
+        "MODEL-SET-CASE-COVERAGE-001",
+        seen.len() == expected.len() && cases.len() == expected.len(),
+        format!("{} unique cases; {} required", seen.len(), expected.len()),
+    );
+
+    let runner = string_at(manifest, &["execution", "validator"])?;
+    let external_data = at(manifest, &["execution", "external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "external_data_ingested must be boolean".to_string())?;
+    let blind_generator = string_at(manifest, &["execution", "blind_generator_identity"])?;
+    let custodian = string_at(manifest, &["execution", "independent_custodian"])?;
+    let hidden_test = string_at(manifest, &["execution", "hidden_test"])?;
+    push_check(
+        &mut checks,
+        "MODEL-SET-NO-EXECUTION-CLAIM-001",
+        runner == "NOT_IMPLEMENTED_FOR_THIS_CORPUS"
+            && !external_data
+            && blind_generator == "NOT_PUBLISHED"
+            && custodian == "NOT_APPOINTED"
+            && hidden_test == "NOT_CREATED",
+        "public contract validation must not imply a blind experiment or external data execution",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "MANIFEST_VALID" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "blind_test_created": false,
+        "hidden_truth_published": false,
+        "empirical_model_set_adequacy": "NOT_ESTABLISHED"
+    }))
+}
+
 /// Dispatch a JSON fixture to its domain-specific verifier and return a deterministic receipt.
 ///
 /// This command verifies manifests and analytical/synthetic invariants only. It does not
@@ -525,8 +661,15 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
 pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     let manifest: Value = serde_json::from_slice(raw)
         .map_err(|error| format!("invalid JSON manifest: {error}"))?;
-    if manifest.get("corpus_id").is_some() {
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001")
+    {
         return validate_observation_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-MODEL-SET-ADEQUACY-001")
+    {
+        return validate_model_set_corpus(raw, &manifest);
     }
     if manifest.get("case_corpus_id").is_some() {
         return validate_canopy_fixture(raw, &manifest);
@@ -853,6 +996,8 @@ mod tests {
         include_str!("../../cases/forest-observation-operator-negative-controls-v0.1.json");
     const CANOPY_FIXTURE: &str =
         include_str!("../../cases/canopy-gap-representation-synthetic-v0.1.json");
+    const MODEL_SET_FIXTURE: &str =
+        include_str!("../../cases/forest-model-set-adequacy-development-v0.1.json");
 
     #[test]
     fn observation_corpus_manifest_has_nine_expected_dispositions() {
@@ -898,6 +1043,26 @@ mod tests {
         assert_eq!(receipt["result"], "FAIL");
     }
 
+
+
+    #[test]
+    fn model_set_public_manifest_has_ten_case_families_and_no_blind_claim() {
+        let receipt = evaluate(MODEL_SET_FIXTURE.as_bytes()).expect("model-set manifest parses");
+        assert_eq!(receipt["result"], "MANIFEST_VALID");
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["blind_test_created"], false);
+        assert_eq!(receipt["hidden_truth_published"], false);
+    }
+
+    #[test]
+    fn model_set_disposition_mutation_is_rejected() {
+        let mut manifest: Value =
+            serde_json::from_str(MODEL_SET_FIXTURE).expect("valid model-set manifest");
+        manifest["cases"][9]["expected_disposition"] = json!("THE_ENSEMBLE_IS_COMPLETE");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated manifest");
+        let receipt = evaluate(&bytes).expect("well-formed manifest returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn committed_fixture_passes_all_synthetic_contract_checks() {
