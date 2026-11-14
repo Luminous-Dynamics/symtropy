@@ -1,0 +1,1691 @@
+{
+  "schema_version": "water-barrier-assurance-f0-cases-v0.1",
+  "evidence_class": "synthetic_claim_compatibility_contract",
+  "evidence_ceiling": "synthetic_evidence_contract_only_no_filter_performance_potability_or_release_claim",
+  "policy": {
+    "max_source_profile_age_s": 86400,
+    "max_lab_sample_age_s": 86400,
+    "default_microbial_requirement": "COMPREHENSIVE_2_STAR",
+    "allow_release_authorization": false
+  },
+  "cases": [
+    {
+      "case_id": "WBA-F0-001-complete-2star-claims",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-002-virus-claim-missing",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-003-targeted-two-classes-only",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-004-arsenic-claim-missing",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-005-stale-source-profile",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 100000,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-006-unknown-contaminant-hazard",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            },
+            {
+              "hazard_id": "nitrate",
+              "status": "UNKNOWN",
+              "minimum_required_reduction_percent": 80
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-007-flow-outside-envelope",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 8,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-008-capacity-exhausted",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 0,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-009-treatment-bypass-open",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": true,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-010-storage-compromised",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "COMPROMISED"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-011-lab-verification-missing",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "MISSING",
+          "sampled_at_unix": null,
+          "laboratory_method_accredited": false,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-012-critical-measurement-invalid",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "INVALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-013-powered-module-without-power",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": false,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": true,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-014-configuration-mismatch",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": false,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-015-lab-sample-stale",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 100000,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    },
+    {
+      "case_id": "WBA-F0-016-three-star-required-only-two-star-claims",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        },
+        "policy_microbial_requirement": "COMPREHENSIVE_3_STAR"
+      }
+    },
+    {
+      "case_id": "WBA-F0-017-three-star-claims-all-groups",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "VALID",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 4,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 5,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 4,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        },
+        "policy_microbial_requirement": "COMPREHENSIVE_3_STAR"
+      }
+    },
+    {
+      "case_id": "WBA-F0-018-critical-measurement-unknown",
+      "input": {
+        "now_unix": 200000,
+        "source_profile": {
+          "sampled_at_unix": 199900,
+          "source_changed_since_sample": false,
+          "hazards": [
+            {
+              "hazard_id": "bacteria",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "viruses",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "protozoa",
+              "status": "DETECTED"
+            },
+            {
+              "hazard_id": "arsenic",
+              "status": "DETECTED",
+              "minimum_required_reduction_percent": 90
+            }
+          ]
+        },
+        "service_conditions": {
+          "flow_l_min": 2,
+          "pressure_bar": 2,
+          "temperature_c": 20,
+          "influent_turbidity_ntu": 1,
+          "critical_measurements_state": "UNKNOWN",
+          "power_available": true,
+          "bypass_open": false,
+          "storage_integrity": "INTACT"
+        },
+        "modules": [
+          {
+            "module_id": "SYN-MODULE-01",
+            "module_status": "IN_SERVICE",
+            "certificate_valid": true,
+            "exact_configuration_match": true,
+            "remaining_capacity_l": 1000,
+            "power_required": false,
+            "operating_envelope": {
+              "min_flow_l_min": 0.1,
+              "max_flow_l_min": 5,
+              "min_pressure_bar": 0.1,
+              "max_pressure_bar": 4,
+              "min_temperature_c": 5,
+              "max_temperature_c": 35,
+              "max_influent_turbidity_ntu": 5
+            },
+            "claims": [
+              {
+                "hazard_id": "bacteria",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-BACTERIA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "viruses",
+                "claim_value": 3,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-VIRUSES",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "protozoa",
+                "claim_value": 2,
+                "claim_unit": "log10",
+                "evidence_id": "SYN-PROTOZOA",
+                "independently_verified": true
+              },
+              {
+                "hazard_id": "arsenic",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction",
+                "evidence_id": "SYN-ARSENIC",
+                "independently_verified": true
+              }
+            ]
+          }
+        ],
+        "post_treatment_verification": {
+          "status": "PASS",
+          "sampled_at_unix": 199950,
+          "laboratory_method_accredited": true,
+          "sample_id": "SYN-LAB-001"
+        }
+      }
+    }
+  ]
+}
