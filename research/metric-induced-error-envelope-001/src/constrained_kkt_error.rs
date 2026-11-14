@@ -169,6 +169,10 @@ mod tests {
         );
     }
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct RebasedConstraintSpace;
+    impl CoordinateFrame for RebasedConstraintSpace {}
+
     fn diagonal_fixture() -> (
         Metric<CartesianQ, 2>,
         DelassusMetricV1<CartesianQ, ConstraintSpace, 2, 1>,
@@ -414,6 +418,129 @@ mod tests {
             receipt_q.combined_state_error_bound,
             receipt_y.combined_state_error_bound,
             2.0e-11,
+        );
+    }
+
+    #[test]
+    fn kkt_residual_certificate_is_invariant_under_independent_coordinate_and_constraint_rebases() {
+        let mass_q = Metric::<CartesianQ, 3>::admit(
+            [[2.0, 0.0, 0.0], [0.0, 4.0, 0.0], [0.0, 0.0, 8.0]],
+            profile(),
+        )
+        .unwrap();
+        let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
+        let delassus_q =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_q,
+                jacobian_q,
+                profile(),
+            )
+            .unwrap();
+
+        let exact_acceleration_q = Tangent::new([1.0, -2.0, 0.5]).unwrap();
+        let exact_multiplier = [0.25, -0.5];
+        let computed_acceleration_q = Tangent::new([1.1, -2.2, 0.8]).unwrap();
+        let computed_multiplier_q =
+            ConstraintMultiplierV1::<ConstraintSpace, 2>::new([0.3, -0.6]).unwrap();
+
+        let mass_force = mass_q.lower(&exact_acceleration_q).unwrap();
+        let mut force_components = [0.0; 3];
+        for dof in 0..3 {
+            force_components[dof] = mass_force.components()[dof]
+                + jacobian_q[0][dof] * exact_multiplier[0]
+                + jacobian_q[1][dof] * exact_multiplier[1];
+        }
+        let force_q = Cotangent::new(force_components).unwrap();
+        let target_q = ConstraintResidualV1::<ConstraintSpace, 2>::new([
+            crate::dot(&jacobian_q[0], exact_acceleration_q.components()),
+            crate::dot(&jacobian_q[1], exact_acceleration_q.components()),
+        ])
+        .unwrap();
+        let receipt_q = certify_linear_constrained_solution(
+            &delassus_q,
+            &force_q,
+            &target_q,
+            &computed_acceleration_q,
+            &computed_multiplier_q,
+        )
+        .unwrap();
+
+        // Generalized-coordinate rebasing q = S y.
+        let rebasis = Rebasis::<CartesianQ, DenseY, 3>::new(
+            [[1.0, 2.0, 1.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]],
+            profile(),
+        )
+        .unwrap();
+        let mass_y = rebasis.metric_to_to(&mass_q, profile()).unwrap();
+        let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
+        let force_y = rebasis.cotangent_to_to(&force_q).unwrap();
+        let computed_acceleration_y =
+            rebasis.tangent_to_to(&computed_acceleration_q).unwrap();
+
+        // Independent constraint-equation re-description r_new = T r_old,
+        // with T = [[1, 2], [0, 1]]. Therefore lambda_new = T^-T lambda_old.
+        let jacobian_y_t = [
+            std::array::from_fn(|dof| jacobian_y[0][dof] + 2.0 * jacobian_y[1][dof]),
+            jacobian_y[1],
+        ];
+        let target_y_t = ConstraintResidualV1::<RebasedConstraintSpace, 2>::new([
+            target_q.components()[0] + 2.0 * target_q.components()[1],
+            target_q.components()[1],
+        ])
+        .unwrap();
+        let computed_multiplier_y_t =
+            ConstraintMultiplierV1::<RebasedConstraintSpace, 2>::new([
+                computed_multiplier_q.components()[0],
+                computed_multiplier_q.components()[1]
+                    - 2.0 * computed_multiplier_q.components()[0],
+            ])
+            .unwrap();
+        let delassus_y_t = DelassusMetricV1::<
+            DenseY,
+            RebasedConstraintSpace,
+            3,
+            2,
+        >::from_mass_jacobian(&mass_y, jacobian_y_t, profile())
+        .unwrap();
+
+        let receipt_y_t = certify_linear_constrained_solution(
+            &delassus_y_t,
+            &force_y,
+            &target_y_t,
+            &computed_acceleration_y,
+            &computed_multiplier_y_t,
+        )
+        .unwrap();
+
+        close(
+            receipt_q.mass_residual_dual_norm,
+            receipt_y_t.mass_residual_dual_norm,
+            3.0e-11,
+        );
+        close(
+            receipt_q.constraint_residual_dual_norm,
+            receipt_y_t.constraint_residual_dual_norm,
+            3.0e-11,
+        );
+        close(
+            receipt_q.paired_residual_norm,
+            receipt_y_t.paired_residual_norm,
+            3.0e-11,
+        );
+        close(
+            receipt_q.acceleration_error_bound,
+            receipt_y_t.acceleration_error_bound,
+            3.0e-11,
+        );
+        close(
+            receipt_q.multiplier_error_bound,
+            receipt_y_t.multiplier_error_bound,
+            3.0e-11,
+        );
+        close(
+            receipt_q.combined_state_error_bound,
+            receipt_y_t.combined_state_error_bound,
+            3.0e-11,
         );
     }
 
