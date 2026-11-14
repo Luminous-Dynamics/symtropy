@@ -1,0 +1,56 @@
+{
+  "schema_version": "symtropy-marine-maintenance-effect-cases-v0.1",
+  "status": "synthetic_contract_cases_not_empirical_maintenance_data",
+  "cases": [
+    {
+      "case_id": "ME01",
+      "scenario": "Three predeclared load strata with known randomized repair assignment and paired hidden potential outcomes.",
+      "expected": "accepted_known_truth"
+    },
+    {
+      "case_id": "ME02",
+      "scenario": "Observational assignment is supplied to the P0 randomized estimator.",
+      "expected": "rejected_nonrandomized"
+    },
+    {
+      "case_id": "ME03",
+      "scenario": "One stratum has no control units, so positivity fails.",
+      "expected": "rejected_positivity"
+    },
+    {
+      "case_id": "ME04",
+      "scenario": "Pre-assignment baseline becomes available after assignment time.",
+      "expected": "rejected_future_baseline"
+    },
+    {
+      "case_id": "ME05",
+      "scenario": "Outcome is not available by the declared analysis as-of time.",
+      "expected": "rejected_future_outcome"
+    },
+    {
+      "case_id": "ME06",
+      "scenario": "Outcome is observed before the preregistered follow-up horizon.",
+      "expected": "rejected_early_followup"
+    },
+    {
+      "case_id": "ME07",
+      "scenario": "Oracle potential outcomes are altered after estimation; point estimate remains unchanged and oracle scoring detects inconsistency.",
+      "expected": "rejected_oracle_mismatch"
+    },
+    {
+      "case_id": "ME08",
+      "scenario": "Duplicate asset/engine randomization unit is included twice.",
+      "expected": "rejected_duplicate_unit"
+    },
+    {
+      "case_id": "ME09",
+      "scenario": "A stratum has fewer than two units in one arm and variance is not estimable.",
+      "expected": "rejected_insufficient_replication"
+    },
+    {
+      "case_id": "ME10",
+      "scenario": "Exact randomization enumeration exceeds the bounded v0.1 unit limit.",
+      "expected": "rejected_exact_test_bound"
+    }
+  ]
+}
