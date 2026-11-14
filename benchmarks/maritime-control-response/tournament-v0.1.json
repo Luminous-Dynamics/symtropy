@@ -652,7 +652,15 @@
       "mean_true_class_probability"
     ],
     "uncertainty_unit": "independent_recording_or_engine_run",
-    "claim_ceiling": "synthetic event-contract tests only until authoritative event labels, source data bytes and a frozen model run are audited"
+    "claim_ceiling": "synthetic event-contract tests only until authoritative event labels, source data bytes and a frozen model run are audited",
+    "temporal_uncertainty_status": "point_annotations_not_yet_interval_qualified",
+    "physical_latency_precision_claim_allowed": false,
+    "required_before_latency_precision_claim": [
+      "fault onset and offset annotation source identity",
+      "annotation timestamp uncertainty interval",
+      "same qualified timebase identity and qualification digest as observations",
+      "conservative event-to-alarm latency interval calculation"
+    ]
   },
   "shift_matrix": {
     "path": "shift-matrix-v0.1.json",
@@ -753,7 +761,8 @@
     "timebase_identity_bound": true,
     "overlap_rejected_before_model": true,
     "timebase_qualification_sha256_bound": true,
-    "timestamp_uncertainty_is_not_clock_sync": true
+    "timestamp_uncertainty_is_not_clock_sync": true,
+    "temporal_contract_version": "bounded-event-time-v0.1"
   },
   "literature_comparators": {
     "same_benchmark": "Jung et al., A fault diagnosis benchmark of technical systems with incomplete data — six solutions, Control Engineering Practice 164 (2025), 106427. https://doi.org/10.1016/j.conengprac.2025.106427",
