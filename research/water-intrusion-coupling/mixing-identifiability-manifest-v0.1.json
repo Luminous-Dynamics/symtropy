@@ -1,0 +1,42 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5216",
+  "status": "synthetic_identifiability_preflight_vectors",
+  "evidence_class": "synthetic_fixture_only",
+  "evidence_ceiling": "linear_excitation_rank_and_measurement_observability_checks_only_no_physical_mixing_qualification",
+  "input_file": "mixing-identifiability-t0-cases-v0.1.json",
+  "oracle_file": "mixing-identifiability-t0-oracle-v0.1.json",
+  "scenario_count": 10,
+  "scenario_ids": [
+    "MID-T0-001-two-inlet-orthogonal-excitation-full-rank",
+    "MID-T0-002-equal-simultaneous-excitation-rank-deficient",
+    "MID-T0-003-near-collinear-excitation-below-rank-threshold",
+    "MID-T0-004-missing-outlet-observation",
+    "MID-T0-005-inlet-tracer-mass-flux-not-measured",
+    "MID-T0-006-tank-input-waveform-not-measured",
+    "MID-T0-007-duplicate-outlet-sensor-index",
+    "MID-T0-008-negative-inlet-excitation",
+    "MID-T0-009-three-inlet-orthogonal-excitation",
+    "MID-T0-010-rank-deficient-excitation-with-more-repeats"
+  ],
+  "non_compensable_invariants": [
+    "full_transfer_matrix_identification_requires_full_row_rank_inlet_excitation_matrix",
+    "repeating_rank_deficient_proportional_excitation_does_not_restore_identifiability",
+    "every_outlet_requires_observation_for_physical_mass_recovery",
+    "inlet_excitation_is_measured_not_only_commanded",
+    "tank_rtd_requires_measured_input_waveform_and_timebase",
+    "rank_threshold_and_singular_spectrum_are_reported",
+    "identifiable_synthetic_design_is_not_physical_model_qualification"
+  ],
+  "evidence_status": {
+    "snapshot_date": "2026-11-14",
+    "synthetic_cases": 10,
+    "independent_fixture_oracle_cross_check": "pending",
+    "rust_unit_tests_authored": 6,
+    "native_rust_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "hosted_ci_exact_head": "pending",
+    "physical_tracer_tests": "not_performed",
+    "raw_physical_measurements": "none"
+  }
+}
