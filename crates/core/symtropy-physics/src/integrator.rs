@@ -29,8 +29,17 @@ pub fn nan_zeroed_count() -> u64 {
 
 /// Integrate a single rigid body forward by dt seconds.
 ///
-/// Semi-implicit Euler: update velocity first, then position.
-/// This is unconditionally stable for Hamiltonian systems (symplectic).
+/// Semi-implicit (symplectic) Euler: update velocity first, then position.
+///
+/// For separable Hamiltonian systems with conservative position-dependent
+/// forces, the idealized undamped and unclamped velocity-first update is
+/// symplectic. Symplecticity does **not** imply unconditional stability or
+/// accuracy for arbitrary timesteps and models; stability must be established
+/// for the problem being simulated. For example, linear stability of the
+/// velocity-first update for an undamped harmonic oscillator requires
+/// 0 < dt * omega < 2, where omega is the oscillator's natural angular
+/// frequency. Damping, velocity clamps, contacts, and other non-Hamiltonian
+/// effects require separate analysis.
 pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64, D>, dt: f64) {
     if !body.is_dynamic() {
         body.clear_accumulators();
