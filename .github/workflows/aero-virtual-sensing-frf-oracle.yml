@@ -1,0 +1,70 @@
+name: AER-01 virtual sensing FRF analytical oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-virtual-sensing-frf-oracle.yml"
+      - "tools/civil-aero-benchmark/virtual-sensing-frf-oracle/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-complex-frf-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/virtual-sensing-frf-oracle/Cargo.toml -- --check
+
+      - name: Run Rust analytical oracle and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/virtual-sensing-frf-oracle/Cargo.toml
+
+      - name: Generate Rust complex FRF result
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/virtual-sensing-frf-oracle/Cargo.toml > virtual-sensing-frf-rust-result.json
+
+      - name: Independently recompute and compare with Python
+        run: |
+          python3 tools/civil-aero-benchmark/virtual-sensing-frf-oracle/verify_independent.py \
+            --rust-output virtual-sensing-frf-rust-result.json > virtual-sensing-frf-python-audit.json
+
+      - name: Create source and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/virtual-sensing-frf-oracle/data/frf-corpus-v0.1.json > virtual-sensing-frf-source.sha256
+          sha256sum virtual-sensing-frf-rust-result.json > virtual-sensing-frf-rust-result.sha256
+          sha256sum virtual-sensing-frf-python-audit.json > virtual-sensing-frf-python-audit.sha256
+
+      - name: Retain corpus, Rust result, Python audit and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-virtual-sensing-frf-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/virtual-sensing-frf-oracle/Cargo.toml
+            tools/civil-aero-benchmark/virtual-sensing-frf-oracle/src/main.rs
+            tools/civil-aero-benchmark/virtual-sensing-frf-oracle/data/frf-corpus-v0.1.json
+            tools/civil-aero-benchmark/virtual-sensing-frf-oracle/verify_independent.py
+            virtual-sensing-frf-rust-result.json
+            virtual-sensing-frf-python-audit.json
+            virtual-sensing-frf-source.sha256
+            virtual-sensing-frf-rust-result.sha256
+            virtual-sensing-frf-python-audit.sha256
+          if-no-files-found: error
+          retention-days: 90
