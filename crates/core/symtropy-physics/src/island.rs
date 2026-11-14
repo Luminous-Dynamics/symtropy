@@ -3,27 +3,32 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Island detection: groups connected bodies into independent clusters.
 //!
-//! Bodies connected by contacts or constraints form an "island." Each island
-//! can be solved independently. If ALL bodies in an island are sleeping,
-//! the entire island is skipped — no broadphase, narrowphase, or solver cost.
+//! Dynamic bodies connected by dynamic-dynamic contacts or constraints form
+//! a solver island. Static and kinematic bodies are fixed endpoints: they do
+//! not merge otherwise independent dynamic islands. Kinematics remain wake
+//! sources, so an awake kinematic contact can reactivate a sleeping island.
+//! If all dynamic bodies sleep and no awake kinematic touches the island, the
+//! entire island is skipped by the solver.
 //!
 //! Uses Union-Find (disjoint set) for O(n * alpha(n)) grouping, effectively linear.
 
-use crate::body::{BodyHandle, RigidBody};
+use crate::body::{BodyHandle, BodyType, RigidBody};
 use crate::constraint::Constraint;
 use crate::contact::ContactManifold;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// A group of connected bodies that can be solved independently.
 #[derive(Debug)]
 pub struct Island {
-    /// Indices into the world's body array.
+    /// Indices of dynamic bodies owned by this solver island. Static and
+    /// kinematic bodies are read-only endpoints and are not island owners.
     pub body_indices: Vec<usize>,
     /// Indices into the world's contact array.
     pub contact_indices: Vec<usize>,
     /// Indices into the world's constraint array.
     pub constraint_indices: Vec<usize>,
-    /// Whether all bodies in this island are sleeping.
+    /// Whether all dynamic bodies sleep and no awake kinematic wake source
+    /// touches this island.
     pub sleeping: bool,
 }
 
@@ -90,7 +95,12 @@ pub fn build_islands<const D: usize>(
         if let (Some(&ia), Some(&ib)) = (
             handle_to_index.get(&contact.body_a),
             handle_to_index.get(&contact.body_b),
-        ) {
+        ) && bodies[ia].is_dynamic()
+            && bodies[ib].is_dynamic()
+        {
+            // Fixed bodies are read-only solver endpoints. Sharing a floor or
+            // kinematic platform must not merge otherwise independent dynamic
+            // solver islands.
             uf.union(ia, ib);
         }
     }
@@ -98,21 +108,31 @@ pub fn build_islands<const D: usize>(
     // Union bodies connected by constraints
     for constraint in constraints {
         let (ha, hb) = constraint.bodies();
-        if let (Some(&ia), Some(&ib)) = (handle_to_index.get(&ha), handle_to_index.get(&hb)) {
+        if let (Some(&ia), Some(&ib)) = (handle_to_index.get(&ha), handle_to_index.get(&hb))
+            && bodies[ia].is_dynamic()
+            && bodies[ib].is_dynamic()
+        {
             uf.union(ia, ib);
         }
     }
 
-    // Group bodies by their root
-    let mut island_map: HashMap<usize, Vec<usize>> = HashMap::new();
+    // Only dynamic bodies own solver islands. Static and kinematic bodies
+    // remain read-only endpoints: contacts/constraints to them are assigned
+    // to the dynamic island, but they cannot connect distinct dynamic islands.
+    let mut island_map: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     for i in 0..n {
+        if !bodies[i].is_dynamic() {
+            continue;
+        }
         let root = uf.find(i);
         island_map.entry(root).or_default().push(i);
     }
 
     // Build islands with contact and constraint indices
     let mut islands = Vec::new();
-    for (_, body_indices) in island_map {
+    for (_, mut body_indices) in island_map {
+        body_indices.sort_by_key(|&index| bodies[index].handle);
+
         // Collect contacts that belong to this island
         let body_set: std::collections::HashSet<usize> = body_indices.iter().copied().collect();
         let contact_indices: Vec<usize> = contacts
@@ -141,8 +161,29 @@ pub fn build_islands<const D: usize>(
             .map(|(i, _)| i)
             .collect();
 
-        // Check if all bodies in the island are sleeping
-        let sleeping = body_indices.iter().all(|&i| bodies[i].sleeping);
+        // Static endpoints do not wake dynamic bodies. An awake kinematic
+        // endpoint does: it is externally prescribed but can collide with or
+        // constrain a sleeping dynamic body. Keep this wake dependency separate
+        // from solver-island connectivity so one platform does not merge stacks.
+        let has_awake_kinematic_wake_source =
+            contact_indices.iter().any(|&contact_index| {
+                let contact = &contacts[contact_index];
+                [contact.body_a, contact.body_b].into_iter().any(|handle| {
+                    handle_to_index.get(&handle).is_some_and(|&index| {
+                        bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+                    })
+                })
+            }) || constraint_indices.iter().any(|&constraint_index| {
+                let (body_a, body_b) = constraints[constraint_index].bodies();
+                [body_a, body_b].into_iter().any(|handle| {
+                    handle_to_index.get(&handle).is_some_and(|&index| {
+                        bodies[index].body_type == BodyType::Kinematic && !bodies[index].sleeping
+                    })
+                })
+            });
+
+        let sleeping =
+            body_indices.iter().all(|&i| bodies[i].sleeping) && !has_awake_kinematic_wake_source;
 
         islands.push(Island {
             body_indices,
@@ -151,6 +192,18 @@ pub fn build_islands<const D: usize>(
             sleeping,
         });
     }
+
+    // Hash-map roots and insertion history are not part of simulation
+    // semantics. Canonicalize the emitted island list by its smallest stable
+    // dynamic BodyHandle before callers flatten work or serialize evidence.
+    islands.sort_by_key(|island| {
+        island
+            .body_indices
+            .iter()
+            .map(|&index| bodies[index].handle)
+            .min()
+            .expect("every solver island contains a dynamic body")
+    });
 
     islands
 }
@@ -272,5 +325,226 @@ mod tests {
     fn empty_world() {
         let islands = build_islands::<3>(&[], &[], &[], &HashMap::new());
         assert!(islands.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod fixed_body_island_tests {
+    use super::*;
+    use crate::body::BodyType;
+    use crate::contact::ContactManifold;
+    use nalgebra::SVector;
+    use symtropy_math::{Point, Shape, Sphere, Transform};
+
+    fn handles_for(bodies: &[RigidBody<3>]) -> HashMap<BodyHandle, usize> {
+        bodies
+            .iter()
+            .enumerate()
+            .map(|(index, body)| (body.handle, index))
+            .collect()
+    }
+
+    fn contact(a: usize, b: usize) -> ContactManifold<3> {
+        ContactManifold::single(
+            BodyHandle(a),
+            BodyHandle(b),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::zeros(),
+            0.01,
+        )
+    }
+
+    fn kinematic_body(handle: usize) -> RigidBody<3> {
+        let collider: Box<dyn Shape<3>> = Box::new(Sphere::<3>::unit());
+        RigidBody::new(
+            BodyHandle(handle),
+            BodyType::Kinematic,
+            Transform::from_translation(Point::origin()),
+            collider,
+            0.0,
+            SVector::zeros(),
+        )
+    }
+
+    #[test]
+    fn shared_static_floor_does_not_merge_independent_dynamic_islands() {
+        let bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([-2.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([2.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::static_body(
+                BodyHandle(2),
+                Point::origin(),
+                Box::new(Sphere::<3>::unit()),
+            ),
+        ];
+        let contacts = vec![contact(0, 2), contact(1, 2)];
+        let islands = build_islands(&bodies, &contacts, &[], &handles_for(&bodies));
+
+        assert_eq!(islands.len(), 2);
+        assert!(islands.iter().all(|island| island.body_indices.len() == 1));
+        assert!(islands.iter().all(|island| {
+            island
+                .body_indices
+                .iter()
+                .all(|&index| bodies[index].is_dynamic())
+        }));
+        let assigned: Vec<_> = islands
+            .iter()
+            .flat_map(|island| island.contact_indices.iter().copied())
+            .collect();
+        assert_eq!(assigned, vec![0, 1]);
+    }
+
+    #[test]
+    fn static_floor_does_not_wake_sleeping_dynamic_islands() {
+        let mut bodies = vec![
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(0),
+                Point::new([-2.0, 1.0, 0.0]),
+                0.5,
+                1.0,
+            ),
+            RigidBody::<3>::dynamic_sphere(
+                BodyHandle(1),
+                Point::new([2.0, 1.0, 0.0]),
+                0.5,
+                1.0,
+            ),
+            RigidBody::<3>::static_body(
+                BodyHandle(2),
+                Point::origin(),
+                Box::new(Sphere::<3>::unit()),
+            ),
+        ];
+        bodies[0].sleeping = true;
+        bodies[1].sleeping = true;
+        let contacts = vec![contact(0, 2), contact(1, 2)];
+        let islands = build_islands(&bodies, &contacts, &[], &handles_for(&bodies));
+
+        assert_eq!(islands.len(), 2);
+        assert!(islands.iter().all(|island| island.sleeping));
+    }
+
+    #[test]
+    fn shared_kinematic_platform_does_not_merge_dynamic_solver_islands() {
+        let mut bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([-1.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 1.0, 0.0]), 0.5, 1.0),
+            kinematic_body(2),
+        ];
+        bodies[0].sleeping = true;
+        bodies[1].sleeping = true;
+        let contacts = vec![contact(0, 2), contact(1, 2)];
+        let islands = build_islands(&bodies, &contacts, &[], &handles_for(&bodies));
+
+        assert_eq!(islands.len(), 2);
+        assert!(islands.iter().all(|island| !island.sleeping));
+        assert_eq!(
+            islands
+                .iter()
+                .flat_map(|island| island.contact_indices.iter().copied())
+                .collect::<Vec<_>>(),
+            vec![0, 1]
+        );
+    }
+
+    #[test]
+    fn static_only_world_has_no_solver_islands() {
+        let bodies = vec![
+            RigidBody::<3>::static_body(
+                BodyHandle(0),
+                Point::origin(),
+                Box::new(Sphere::<3>::unit()),
+            ),
+            RigidBody::<3>::static_body(
+                BodyHandle(1),
+                Point::new([2.0, 0.0, 0.0]),
+                Box::new(Sphere::<3>::unit()),
+            ),
+        ];
+        let islands = build_islands(&bodies, &[contact(0, 1)], &[], &handles_for(&bodies));
+        assert!(islands.is_empty());
+    }
+
+    #[test]
+    fn dynamic_contact_chains_remain_one_island_with_fixed_endpoints() {
+        let bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([0.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([1.0, 1.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::static_body(
+                BodyHandle(2),
+                Point::origin(),
+                Box::new(Sphere::<3>::unit()),
+            ),
+        ];
+        let contacts = vec![contact(0, 1), contact(1, 2)];
+        let islands = build_islands(&bodies, &contacts, &[], &handles_for(&bodies));
+
+        assert_eq!(islands.len(), 1);
+        assert_eq!(islands[0].body_indices.len(), 2);
+        assert_eq!(islands[0].contact_indices, vec![0, 1]);
+    }
+
+    #[test]
+    fn islands_are_canonicalized_by_smallest_dynamic_handle() {
+        let bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(10), Point::new([0.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(2), Point::new([10.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(6), Point::new([20.0, 0.0, 0.0]), 0.5, 1.0),
+        ];
+        let islands = build_islands(&bodies, &[], &[], &handles_for(&bodies));
+        let first_handles: Vec<_> = islands
+            .iter()
+            .map(|island| {
+                island
+                    .body_indices
+                    .iter()
+                    .map(|&index| bodies[index].handle)
+                    .min()
+                    .unwrap()
+            })
+            .collect();
+
+        assert_eq!(
+            first_handles,
+            vec![BodyHandle(2), BodyHandle(6), BodyHandle(10)]
+        );
+    }
+
+    #[test]
+    fn static_anchor_constraints_are_assigned_once_to_dynamic_islands() {
+        use crate::constraint::DistanceConstraint;
+
+        let bodies = vec![
+            RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::new([-2.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([2.0, 0.0, 0.0]), 0.5, 1.0),
+            RigidBody::<3>::static_body(
+                BodyHandle(2),
+                Point::origin(),
+                Box::new(Sphere::<3>::unit()),
+            ),
+        ];
+        let constraints: Vec<Box<dyn Constraint<3>>> = vec![
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(0),
+                body_b: BodyHandle(2),
+                rest_length: 2.0,
+                stiffness: 1.0,
+            }),
+            Box::new(DistanceConstraint {
+                body_a: BodyHandle(1),
+                body_b: BodyHandle(2),
+                rest_length: 2.0,
+                stiffness: 1.0,
+            }),
+        ];
+        let islands = build_islands(&bodies, &[], &constraints, &handles_for(&bodies));
+
+        assert_eq!(islands.len(), 2);
+        let assigned: Vec<_> = islands
+            .iter()
+            .flat_map(|island| island.constraint_indices.iter().copied())
+            .collect();
+        assert_eq!(assigned, vec![0, 1]);
     }
 }
