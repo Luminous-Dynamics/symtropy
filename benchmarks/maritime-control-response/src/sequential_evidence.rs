@@ -997,11 +997,11 @@ mod tests {
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(
-            protocol["protocol_constraints"]["one_input_one_receipt"],
+            protocol["protocol_constraints"]["one_block_one_receipt"],
             true
         );
         assert_eq!(
-            protocol["protocol_constraints"]["contiguous_sample_indices"],
+            protocol["protocol_constraints"]["contiguous_block_ordinals"],
             true
         );
         assert_eq!(
@@ -1026,7 +1026,7 @@ mod tests {
             protocol["validity_conditions"]["channel"]
                 .as_str()
                 .unwrap()
-                .contains("not supported")
+                .contains("unsupported")
         );
         assert_eq!(protocol["familywise_control"]["method"], "bonferroni");
         assert_eq!(
@@ -1034,7 +1034,7 @@ mod tests {
             4
         );
         assert!(
-            protocol["validity_conditions"]["block_independence"]
+            protocol["validity_conditions"]["observations"]
                 .as_str()
                 .unwrap()
                 .contains("not inferred from non-overlap alone")
@@ -1056,7 +1056,7 @@ mod tests {
             "non_overlapping_calibrated_block"
         );
         assert_eq!(
-            protocol["protocol_constraints"]["no_raw_sample_pseudoreplication"],
+            protocol["protocol_constraints"]["raw_sample_pseudoreplication_prohibited"],
             true
         );
         assert_eq!(
@@ -1071,7 +1071,7 @@ mod tests {
             protocol["validity_conditions"]["block_independence"]
                 .as_str()
                 .unwrap()
-                .contains("not proof of independence")
+                .contains("not inferred from non-overlap alone")
         );
         assert!(
             protocol["research_targets_not_achieved"]
