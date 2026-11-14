@@ -112,3 +112,8 @@ The 23-case input corpus now has a **separate expected-output oracle**. The Rust
 ## First clean-water pump test-cell design
 
 The parameterized PUMP-T1-CW-01 design basis is now in [PUMP_T1_CW_01_DESIGN_BASIS_V0_1.md](./PUMP_T1_CW_01_DESIGN_BASIS_V0_1.md), with a separate five-case [sizing input corpus](./pump-t1-cw-01-sizing-cases-v0.1.json), [known-answer oracle](./pump-t1-cw-01-sizing-oracle-v0.1.json), and [Draft 2020-12 schema](./pump-t1-cw-01-sizing.schema.json). Initial clean-water envelope: 0.2–1.0 L/s and 5–25 m TDH; 250 L usable reservoir; 40 mm actual-ID pipe candidate. These are design assumptions, not selected equipment or an approved pressure system.
+
+
+## Whole-system pump energy service M0
+
+The first pump-system energy benchmark is in [PUMP_SYSTEM_ENERGY_SERVICE_M0_V0_1.md](./PUMP_SYSTEM_ENERGY_SERVICE_M0_V0_1.md), with five [matched-duty synthetic cases](./pump-system-energy-matched-duty-cases-v0.1.json), separate [oracle](./pump-system-energy-matched-duty-oracle-v0.1.json), [schema](./pump-system-energy-matched-duty.schema.json) and [manifest](./pump-system-energy-manifest-v0.1.json). The Rust evaluator and CLI compare fixed-speed throttling with VFD operation at identical flow and system-required head. It includes a synthetic static-plus-friction system curve and an explicitly equal-efficiency assumption solely to isolate head-loss effects. This is arithmetic/logic only, not measured savings.
