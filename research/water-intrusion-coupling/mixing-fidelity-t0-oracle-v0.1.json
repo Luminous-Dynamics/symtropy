@@ -177,7 +177,7 @@
         "unrecovered_tracer_mass_mg": 0,
         "recovered_tracer_mass_mg": 100,
         "mean_residence_time_s": 150.5,
-        "variance_residence_time_s2": 50732.25,
+        "variance_residence_time_s2": 50792.25,
         "early_fraction": 0.1,
         "tail_fraction": 0.2
       }
