@@ -28,9 +28,15 @@ SPAN publicly describes:
 
 Crucially, SPAN's own app guidance says software control of a circuit is **not** a suitable OFF position for routine service or maintenance. This is an important safety distinction and a good human-interface precedent.
 
+Public product updates relevant to the comparison:
+- SPAN's 25 August 2026 app update adds breaker-level energy cost analysis for supported panel models: https://www.span.io/blog/a-new-span-home-app-experience
+- SPAN Home On-Premise is described as a local Wi-Fi/web access path for monitoring and circuit/backup-priority control; the support article was updated 12 November 2026: https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
+- SPAN's guidance explicitly warns that software circuit control is not an appropriate OFF position for routine service: https://support.span.io/hc/en-us/articles/4411214235159-Navigating-the-SPAN-Home-App
+
 Sources:
 - SPAN Home App: https://www.span.io/app
-- SPAN Home On-Premise (updated 12 Nov 2026): https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
+- SPAN 2026 app update: https://www.span.io/blog/a-new-span-home-app-experience
+- SPAN Home On-Premise: https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
 - SPAN app navigation and service caution: https://support.span.io/hc/en-us/articles/4411214235159-Navigating-the-SPAN-Home-App
 
 ### Commercial/industrial electrical digital twins — Schneider Electric / EcoStruxure
@@ -55,9 +61,12 @@ SANS 10142-1 requires correct and permanent marking/identification in its inspec
 
 This is a concrete opening for an as-built graph whose labels are derived from a verified asset/circuit relationship and invalidated when the installation changes.
 
+**Standards edition note:** ECA(SA) published a notice for a SANS 10142-1 Edition 3.3 webinar on 2 September 2026. This is evidence that Edition 3.3 was being discussed by the local industry association; it is not a substitute for confirming the exact current SABS publication, amendments, effective status and applicable clauses before encoding normative rules. The PR should not retain an earlier Edition 3.03 assumption as a definitive current-standard claim.
+
 Sources:
 - ECA(SA), correct and permanent marking/labelling: https://ecasa.co.za/member-support/wired-to-comply-understanding-the-standard-test-report-part-4/
 - ECA(SA), earth continuity verification (10 Nov 2026): https://ecasa.co.za/member-support/wired-to-comply-understanding-the-standard-test-report-part-6/
+- ECA(SA), SANS 10142-1 Edition 3.3 webinar notice (2 Sep 2026): https://ecasa.co.za/member-support/missed-the-sans-10142-1-edition-3-3-webinar-catch-up-with-the-recording/
 
 ### Human factors and maintainability
 
@@ -84,6 +93,18 @@ Sources:
 | AI/analytics | Predictive monitoring and decision support | Read-only diagnosis/proposals with independent physical checks and no protection authority |
 
 This is a proposed research advantage, not a claim that no competitor has any equivalent feature. Public product documentation is incomplete as a view of proprietary capabilities.
+
+### Solid-state protection benchmark update
+
+Solid-state DC breakers are not maintenance-free by definition. A December 2025 study reports more than three million opening cycles on a 1.2 kV low-voltage DC solid-state breaker, while identifying five failure modes and three operational issues spanning electrical design, mechanical structure, thermal management and cybersecurity. This is useful component-level durability evidence, not proof of field reliability for every breaker or installation.
+
+A June 2026 IEEE paper presents a prototype hybrid DC breaker/current-limiting branch. Its reported prototype clamps 4.5 kA for 100 microseconds and interrupts within 180 microseconds under its tested conditions. These results are research evidence for one prototype and test envelope, not a universal DC protection rating.
+
+Design implication: benchmark fault interruption, selectivity, on-state losses, surge/thermal stress, false trips, physical isolation, cyber failure and maintenance under identical declared test profiles. Do not simply score opening speed.
+
+Sources:
+- Liu et al., *Failure modes and remedies of a solid-state low voltage DC circuit breaker through 3,000,000+ operation cycles* (Dec 2025): https://doi.org/10.1016/j.pedc.2025.100119
+- IEEE, *A Novel Hybrid Circuit Breaker Architecture With Built-in Current Limiting Capability – I: Semiconductor Design* (June 2026): https://ieeexplore.ieee.org/document/11316411/
 
 ## 4. Differentiation hypothesis
 
