@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "WATER-FILTER-LIFECYCLE-F1-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5140",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5136",
+  "status": "synthetic_protocol_schedule_validation_only",
+  "protocol": {
+    "protocol_id": "WHO_HWT_FILTRATION",
+    "version": "4.0",
+    "primary_source": "https://cdn.who.int/media/docs/default-source/wash-documents/water-safety-and-quality/household-water-treatment/hwt_scheme_filtration_protocol_4.0.pdf"
+  },
+  "input_corpus": "research/water-service-engineering/water-filter-lifecycle-f1-cases-v0.1.json",
+  "oracle": "research/water-service-engineering/water-filter-lifecycle-f1-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/water-filter-lifecycle-f1.schema.json",
+  "case_count": 16,
+  "hard_rules": [
+    "3_distinct_production_unit_serials_required",
+    "GTW_and_technology_specific_CTW_required",
+    "4_day_sampling_schedule_required_D1_GTW_START_D2_GTW_END_D3_CTW_START_D4_CTW_END",
+    "at_least_10_void_volumes_or_1L_seed_volume_whichever_greater",
+    "minimum_3L_effluent_sample_for_flowing_systems",
+    "no_cleaning_or_backwash_during_seeding_or_sample_collection",
+    "microbiological_primary_component_must_not_be_replaced_during_test",
+    "daily_test_water_characteristics_and_sample_custody_required",
+    "end_test_schedule_complete_or_unrecoverable_gt75_percent_flow_drop",
+    "supplementary_extended_life_trajectory_is_not_WHO_scheme_reproduction"
+  ],
+  "evidence_ceiling": "protocol_schedule_and_record_integrity_only_no_filter_performance_or_WHO_certification_claim"
+}
