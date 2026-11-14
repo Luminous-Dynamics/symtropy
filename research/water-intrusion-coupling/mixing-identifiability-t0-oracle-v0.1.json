@@ -1,0 +1,144 @@
+{
+  "schema_version": "mixing-identifiability-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-FIDELITY-QUAL-001",
+  "evidence_class": "separate_frozen_synthetic_oracle",
+  "oracle_semantics": "linear algebra known answers and preflight refusal semantics only",
+  "cases": [
+    {
+      "case_id": "MID-T0-001-two-inlet-orthogonal-excitation-full-rank",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "IDENTIFIABLE_IN_T0_ARITHMETIC",
+        "input_rank": 2,
+        "required_input_rank": 2,
+        "all_outlets_observed": true,
+        "free_transfer_parameters": 2
+      }
+    },
+    {
+      "case_id": "MID-T0-002-equal-simultaneous-excitation-rank-deficient",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "UNIDENTIFIABLE",
+        "reason": "UNIDENTIFIABLE_EXCITATION_RANK",
+        "input_rank": 1,
+        "required_input_rank": 2,
+        "all_outlets_observed": true,
+        "free_transfer_parameters": 2
+      }
+    },
+    {
+      "case_id": "MID-T0-003-near-collinear-excitation-below-rank-threshold",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "UNIDENTIFIABLE",
+        "reason": "UNIDENTIFIABLE_EXCITATION_RANK",
+        "input_rank": 1,
+        "required_input_rank": 2,
+        "all_outlets_observed": true,
+        "free_transfer_parameters": 2
+      }
+    },
+    {
+      "case_id": "MID-T0-004-missing-outlet-observation",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "INDETERMINATE",
+        "reason": "OUTLET_OBSERVABILITY_INCOMPLETE",
+        "input_rank": 2,
+        "required_input_rank": 2,
+        "all_outlets_observed": false,
+        "free_transfer_parameters": 2
+      }
+    },
+    {
+      "case_id": "MID-T0-005-inlet-tracer-mass-flux-not-measured",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "INDETERMINATE",
+        "reason": "INLET_TRACER_MASS_FLUX_NOT_MEASURED",
+        "input_rank": 2,
+        "required_input_rank": 2,
+        "all_outlets_observed": true,
+        "free_transfer_parameters": 2
+      }
+    },
+    {
+      "case_id": "MID-T0-006-tank-input-waveform-not-measured",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "INDETERMINATE",
+        "reason": "RTD_INPUT_WAVEFORM_NOT_MEASURED"
+      }
+    },
+    {
+      "case_id": "MID-T0-007-duplicate-outlet-sensor-index",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "REJECTED_CONTRACT",
+        "reason": "DUPLICATE_OUTLET_SENSOR_INDEX"
+      }
+    },
+    {
+      "case_id": "MID-T0-008-negative-inlet-excitation",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "INVALID_INPUT",
+        "reason": "NEGATIVE_INLET_EXCITATION"
+      }
+    },
+    {
+      "case_id": "MID-T0-009-three-inlet-orthogonal-excitation",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "IDENTIFIABLE_IN_T0_ARITHMETIC",
+        "input_rank": 3,
+        "required_input_rank": 3,
+        "all_outlets_observed": true,
+        "free_transfer_parameters": 3
+      }
+    },
+    {
+      "case_id": "MID-T0-010-rank-deficient-excitation-with-more-repeats",
+      "expected": {
+        "qualification_status": "NotRun",
+        "physical_mixing_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "design_disposition": "UNIDENTIFIABLE",
+        "reason": "UNIDENTIFIABLE_EXCITATION_RANK",
+        "input_rank": 1,
+        "required_input_rank": 2,
+        "all_outlets_observed": true,
+        "free_transfer_parameters": 2
+      }
+    }
+  ]
+}
