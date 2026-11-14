@@ -338,12 +338,18 @@ fn compute(case: &Value) -> Result<Value, String> {
         .iter()
         .map(|stage| text(stage, "stage_id").map(str::to_owned))
         .collect::<Result<Vec<_>, _>>()?;
-    let expected_stage_order = REQUIRED_STAGES
-        .iter()
-        .map(|stage| stage.to_string())
-        .collect::<Vec<_>>();
-    if supplied_stage_order != expected_stage_order {
-        return Ok(rejected("MODEL_STAGE_ORDER_MISMATCH"));
+    let mut previous_position: Option<usize> = None;
+    for supplied_id in &supplied_stage_order {
+        let Some(position) = REQUIRED_STAGES
+            .iter()
+            .position(|expected| expected == supplied_id)
+        else {
+            return Ok(rejected("MODEL_STAGE_ORDER_MISMATCH"));
+        };
+        if previous_position.is_some_and(|previous| position <= previous) {
+            return Ok(rejected("MODEL_STAGE_ORDER_MISMATCH"));
+        }
+        previous_position = Some(position);
     }
     let observations = field(inputs, "observations")?
         .as_array()
