@@ -1,0 +1,139 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "synthetic_only",
+  "scope_id": "factory:sensor-line-A",
+  "functional_unit": "100 qualified sensor-service units over one fixed accounting horizon",
+  "demand_units": 100,
+  "virgin_material_g_per_unit": 100,
+  "embodied_ghg_gco2e_per_g": 5,
+  "evidence": [
+    {
+      "id": "ev-baseline",
+      "payload": "synthetic payload: evidence for baseline-v0-1",
+      "sha256": "2b523e34134b6250078352e8b5e43d0da6e2647af5f984ac8c834fe0fd5ca8ed",
+      "status": "valid",
+      "claim_id": "net_additionality_action_profile",
+      "scope_id": "factory:sensor-line-A",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-high-loop",
+      "payload": "synthetic payload: evidence for high-loop-v0-1",
+      "sha256": "a949bb2d968a21098b9f949d43838902d0c3941d049eaa8312952e725a70fb0b",
+      "status": "valid",
+      "claim_id": "net_additionality_action_profile",
+      "scope_id": "factory:sensor-line-A",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-verified-reuse",
+      "payload": "synthetic payload: evidence for verified-reuse-v0-1",
+      "sha256": "b0324102c1cbd690f343c610e45426eedea2a46900538803e382cf235e3f90b3",
+      "status": "valid",
+      "claim_id": "net_additionality_action_profile",
+      "scope_id": "factory:sensor-line-A",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-remanufacture",
+      "payload": "synthetic payload: evidence for remanufacture-v0-1",
+      "sha256": "b2eb35305ef129a622d6f8a7a7f279163aaee0afcb107407b9a9df0b90a35059",
+      "status": "valid",
+      "claim_id": "net_additionality_action_profile",
+      "scope_id": "factory:sensor-line-A",
+      "coverage": "complete"
+    },
+    {
+      "id": "ev-unverified",
+      "payload": "synthetic payload: evidence for unverified-high-loop-v0-1",
+      "sha256": "1b156f3e813c663fa0f5877cdb36f16a5a52ed45176c7cf9ac3344eb04dd672c",
+      "status": "unknown",
+      "claim_id": "net_additionality_action_profile",
+      "scope_id": "factory:sensor-line-A",
+      "coverage": "complete"
+    }
+  ],
+  "options": [
+    {
+      "id": "baseline-virgin",
+      "display_name": "Virgin-material baseline",
+      "evidence_id": "ev-baseline",
+      "gross_recovered_g_per_unit": 0,
+      "recovery_yield_bp": 10000,
+      "claimed_substitution_bp": 10000,
+      "rebound_sensitivity_bp": 0,
+      "process_ghg_gco2e_per_unit": 10,
+      "cost_cents_per_unit": 800
+    },
+    {
+      "id": "high-loop",
+      "display_name": "High gross-loop / high rebound exposure",
+      "evidence_id": "ev-high-loop",
+      "gross_recovered_g_per_unit": 95,
+      "recovery_yield_bp": 9000,
+      "claimed_substitution_bp": 10000,
+      "rebound_sensitivity_bp": 4000,
+      "process_ghg_gco2e_per_unit": 80,
+      "cost_cents_per_unit": 500
+    },
+    {
+      "id": "verified-reuse",
+      "display_name": "Evidence-complete, lower-rebound reuse",
+      "evidence_id": "ev-verified-reuse",
+      "gross_recovered_g_per_unit": 65,
+      "recovery_yield_bp": 9500,
+      "claimed_substitution_bp": 9000,
+      "rebound_sensitivity_bp": 800,
+      "process_ghg_gco2e_per_unit": 65,
+      "cost_cents_per_unit": 350
+    },
+    {
+      "id": "remanufacture",
+      "display_name": "Remanufacture with moderate recovery",
+      "evidence_id": "ev-remanufacture",
+      "gross_recovered_g_per_unit": 60,
+      "recovery_yield_bp": 9500,
+      "claimed_substitution_bp": 9000,
+      "rebound_sensitivity_bp": 1800,
+      "process_ghg_gco2e_per_unit": 50,
+      "cost_cents_per_unit": 600
+    },
+    {
+      "id": "unverified-loop",
+      "display_name": "Unverified high-loop claim",
+      "evidence_id": "ev-unverified",
+      "gross_recovered_g_per_unit": 100,
+      "recovery_yield_bp": 10000,
+      "claimed_substitution_bp": 10000,
+      "rebound_sensitivity_bp": 3000,
+      "process_ghg_gco2e_per_unit": 0,
+      "cost_cents_per_unit": 250
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "stable-supply",
+      "probability_bp": 5000,
+      "substitution_cap_bp": 9000,
+      "rebound_multiplier_bp": 2000,
+      "virgin_ghg_multiplier_bp": 10000,
+      "process_ghg_multiplier_bp": 10000
+    },
+    {
+      "id": "weak-displacement",
+      "probability_bp": 4000,
+      "substitution_cap_bp": 2500,
+      "rebound_multiplier_bp": 7000,
+      "virgin_ghg_multiplier_bp": 10000,
+      "process_ghg_multiplier_bp": 10000
+    },
+    {
+      "id": "carbon-stress",
+      "probability_bp": 1000,
+      "substitution_cap_bp": 7000,
+      "rebound_multiplier_bp": 10000,
+      "virgin_ghg_multiplier_bp": 15000,
+      "process_ghg_multiplier_bp": 12000
+    }
+  ]
+}
