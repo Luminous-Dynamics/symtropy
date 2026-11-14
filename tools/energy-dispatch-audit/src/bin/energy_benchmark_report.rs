@@ -1,0 +1,1652 @@
+//! Produce a digest-bound benchmark ledger from the end-to-end Energy Studio run.
+//!
+//! Only completed, passing independent audits enter the ledger. The report
+//! separates generation/validation/compilation/dispatch/audit timings from
+//! one-time binary build cost, and records exact byte digests for replay.
+
+use std::{
+    collections::BTreeSet,
+    env,
+    error::Error,
+    fs,
+    io,
+    path::{Path, PathBuf},
+};
+
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use symtropy_energy_dispatch_audit::DispatchObjective;
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, Box<dyn Error>> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, format!("missing string field {key}")).into())
+}
+
+fn required_u64(value: &Value, key: &str) -> Result<u64, Box<dyn Error>> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, format!("missing unsigned field {key}")).into())
+}
+
+fn required_bool(value: &Value, key: &str) -> Result<bool, Box<dyn Error>> {
+    value
+        .get(key)
+        .and_then(Value::as_bool)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, format!("missing bool field {key}")).into())
+}
+
+fn read_json(path: &Path) -> Result<(Vec<u8>, Value), Box<dyn Error>> {
+    let bytes = fs::read(path)?;
+    let value = serde_json::from_slice(&bytes)?;
+    Ok((bytes, value))
+}
+
+fn read_elapsed_ns(dir: &Path, phase: &str) -> Result<u64, Box<dyn Error>> {
+    let raw = fs::read_to_string(dir.join(format!("{phase}.elapsed_ns")))?;
+    Ok(raw.trim().parse::<u64>()?)
+}
+
+fn expected_candidate_ids() -> Vec<String> {
+    let mut ids = vec![
+        "synthetic-grid-only".to_owned(),
+        "synthetic-pv-grid".to_owned(),
+        "synthetic-pv-battery-grid".to_owned(),
+    ];
+    for pv in [1, 2, 3] {
+        for capacity in [1, 2, 3] {
+            for battery_power in [1, 2] {
+                for grid_power in [1, 2] {
+                    ids.push(format!(
+                        "synthetic-parametric-pv-{pv}kw-battery-{capacity}kwh-battery-power-{battery_power}kw-grid-{grid_power}kw"
+                    ));
+                }
+            }
+        }
+    }
+    ids
+}
+
+#[derive(Debug, Serialize)]
+struct PhaseTimings {
+    generation_ns: u64,
+    schema_validation_ns: u64,
+    compilation_ns: u64,
+    receipt_verification_ns: u64,
+    dispatch_ns: u64,
+    independent_audit_ns: u64,
+    measured_pipeline_total_ns: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct CandidateBenchmark {
+    candidate_id: String,
+    candidate_family: String,
+    generation_measurement_mode: String,
+    candidate_sha256: String,
+    mapping_config_sha256: String,
+    compilation_sha256: String,
+    dispatch_request_sha256: String,
+    dispatch_report_sha256: String,
+    independent_audit_sha256: String,
+    synthetic: bool,
+    case_id: String,
+    solver_reported_search_is_exact: bool,
+    solver_reported_frontier_complete: bool,
+    solver_evaluated_action_expansions: u64,
+    solver_feasible_complete_schedules: u64,
+    solver_pareto_frontier_count: u64,
+    independent_audit_status: String,
+    independent_reference_frontier_status: String,
+    independent_reference_expansions: u64,
+    independent_reference_feasible_complete_schedules: u64,
+    independent_objective_claim_status: String,
+    independently_recovered_frontier: Vec<Value>,
+    audit_check_count: usize,
+    timings: PhaseTimings,
+}
+
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct MappingConfigForLedger {
+    schema_version: String,
+    energy_quantum_kwh: f64,
+    max_candidate_expansions: u64,
+    grid_cost_units_per_quantum: u32,
+    grid_carbon_grams_per_quantum: u32,
+    factor_basis: String,
+    synthetic: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct ObjectiveContextBenchmark {
+    context_id: String,
+    candidate_id: String,
+    base_candidate_sha256: String,
+    transformed_candidate_sha256: String,
+    transform_receipt_sha256: String,
+    mapping_config_file_sha256: String,
+    mapping_config_sha256: String,
+    compilation_sha256: String,
+    dispatch_request_sha256: String,
+    dispatch_report_sha256: String,
+    independent_audit_sha256: String,
+    golden_known_answer_sha256: String,
+    grid_cost_units_per_quantum: u32,
+    grid_carbon_grams_per_quantum: u32,
+    solver_feasible_complete_schedules: u64,
+    solver_pareto_frontier: Vec<DispatchObjective>,
+    independent_reference_feasible_complete_schedules: u64,
+    independent_reference_frontier: Vec<DispatchObjective>,
+    objective_claim_status: String,
+    audit_check_count: usize,
+    timings: PhaseTimings,
+}
+
+#[derive(Debug, Serialize)]
+struct MultiIntervalBenchmark {
+    context_id: String,
+    case_id: String,
+    request_sha256: String,
+    dispatch_report_sha256: String,
+    independent_audit_sha256: String,
+    qualification_log_sha256: String,
+    known_answer_sha256: String,
+    solver_feasible_complete_schedules: u64,
+    solver_pareto_frontier: Vec<DispatchObjective>,
+    independent_reference_feasible_complete_schedules: u64,
+    independent_reference_frontier: Vec<DispatchObjective>,
+    independent_audit_status: String,
+    reference_frontier_status: String,
+    objective_claim_status: String,
+    audit_check_count: usize,
+    dispatch_ns: u64,
+    independent_audit_ns: u64,
+    known_answer_gate_ns: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct SouthAfricanTariffBenchmark {
+    context_id: String,
+    tariff_id: String,
+    tariff_schedule_sha256: String,
+    known_answer_fixture_sha256: String,
+    source_registry_sha256: String,
+    source_conflicts: Vec<String>,
+    calculator_report_sha256: String,
+    qualification_log_sha256: String,
+    source_receipts_sha256: String,
+    source_status: String,
+    account_verified: bool,
+    case_count: usize,
+    case_results: Vec<Value>,
+    unapplied_charge_ids: Vec<String>,
+    qualification_status: String,
+    claim_ceiling: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ScenarioPanelBenchmark {
+    panel_id: String,
+    manifest_sha256: String,
+    scenario_panel_report_sha256: String,
+    qualification_log_sha256: String,
+    source_receipts_sha256: String,
+    case_count: usize,
+    passing_case_count: usize,
+    all_passed: bool,
+    cases: Vec<Value>,
+}
+
+#[derive(Debug, Serialize)]
+struct CandidateScenarioMatrixBenchmark {
+    matrix_id: String,
+    scenario_profile_sha256: String,
+    matrix_report_sha256: String,
+    qualification_log_sha256: String,
+    source_receipts_sha256: String,
+    mapping_config_file_sha256: String,
+    mapping_config_typed_sha256: String,
+    expected_candidate_count: usize,
+    scenario_count: usize,
+    expected_row_count: usize,
+    passing_row_count: usize,
+    failed_or_unknown_row_count: usize,
+    all_passed: bool,
+    robustness_report_sha256: String,
+    robustness_qualification_log_sha256: String,
+    robustness_source_receipts_sha256: String,
+    robustness_source_matrix_sha256: String,
+    robustness_candidate_count: usize,
+    robustness_scenario_count: usize,
+    robustness_strict_dominance_pair_count: usize,
+    robustness_equal_envelope_pair_count: usize,
+    robustness_incomparable_pair_count: usize,
+    rows: Vec<Value>,
+}
+
+#[derive(Debug, Serialize)]
+struct SourceHeads {
+    symthaea: String,
+    symtropy_contract: String,
+    sol_atlas: String,
+    symtropy_auditor: String,
+}
+
+#[derive(Debug, Serialize)]
+struct BenchmarkSummary {
+    expected_candidate_count: usize,
+    audited_candidate_count: usize,
+    reference_template_count: usize,
+    parametric_variant_count: usize,
+    failed_or_unknown_candidate_count: usize,
+    shared_design_space_generation_ns: u64,
+    total_solver_action_expansions: u64,
+    total_independent_reference_expansions: u64,
+    total_generation_ns: u64,
+    total_schema_validation_ns: u64,
+    total_compilation_ns: u64,
+    total_receipt_verification_ns: u64,
+    total_dispatch_ns: u64,
+    total_independent_audit_ns: u64,
+    max_dispatch_ns: u64,
+    mean_dispatch_ns: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct EnergyStudioBenchmarkReport {
+    schema_version: &'static str,
+    benchmark_id: String,
+    created_by_workflow_run: String,
+    git_ref: String,
+    source_heads: SourceHeads,
+    host_os: &'static str,
+    host_arch: &'static str,
+    rust_toolchain: &'static str,
+    measurement_scope: &'static str,
+    design_space_manifest_sha256: String,
+    shared_candidate_schema_sha256: String,
+    mapping_config_fixture_sha256: String,
+    parametric_known_answers_sha256: String,
+    symthaea_cargo_lock_sha256: String,
+    sol_atlas_cargo_lock_sha256: String,
+    symtropy_audit_cargo_lock_sha256: String,
+    benchmark_summary: BenchmarkSummary,
+    objective_context: ObjectiveContextBenchmark,
+    multi_interval_context: MultiIntervalBenchmark,
+    south_african_tariff_context: SouthAfricanTariffBenchmark,
+    scenario_panel: ScenarioPanelBenchmark,
+    candidate_scenario_matrix: CandidateScenarioMatrixBenchmark,
+    candidates: Vec<CandidateBenchmark>,
+}
+
+fn require_sha_match(
+    label: &str,
+    actual: &str,
+    expected: &str,
+) -> Result<(), Box<dyn Error>> {
+    if actual != expected {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("{label} mismatch: reported {actual}, recomputed {expected}"),
+        )
+        .into());
+    }
+    Ok(())
+}
+
+fn benchmark_candidate(
+    root: &Path,
+    candidate_id: &str,
+) -> Result<CandidateBenchmark, Box<dyn Error>> {
+    let dir = root.join(candidate_id);
+    let (candidate_bytes, candidate) = read_json(&dir.join("candidate.json"))?;
+    let (compilation_bytes, compilation) = read_json(&dir.join("compilation.json"))?;
+    let (request_bytes, request) = read_json(&dir.join("dispatch-request.json"))?;
+    let (dispatch_bytes, dispatch) = read_json(&dir.join("dispatch-report.json"))?;
+    let (audit_bytes, audit) = read_json(&dir.join("independent-audit.json"))?;
+
+    if required_str(&candidate, "candidate_id")? != candidate_id {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate ID does not match output directory",
+        )
+        .into());
+    }
+    let candidate_is_synthetic = required_bool(&candidate, "synthetic")?;
+    let expected_case_id = format!("candidate:{candidate_id}");
+    if required_str(&compilation, "candidate_id")? != candidate_id
+        || required_str(&request, "case_id")? != expected_case_id.as_str()
+        || !candidate_is_synthetic
+        || candidate_is_synthetic != required_bool(&request, "synthetic")?
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate, compilation and dispatch-request identities disagree",
+        )
+        .into());
+    }
+    let receipt = dispatch.get("receipt").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "dispatch report has no receipt object")
+    })?;
+    let assessment = dispatch.get("assessment").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "dispatch report has no assessment object")
+    })?;
+
+    let candidate_digest = sha256_hex(&candidate_bytes);
+    let mapping_config_digest = required_str(&compilation, "mapping_config_sha256")?.to_owned();
+    let compilation_digest = sha256_hex(&compilation_bytes);
+    let request_digest = sha256_hex(&request_bytes);
+    let dispatch_digest = sha256_hex(&dispatch_bytes);
+    let audit_digest = sha256_hex(&audit_bytes);
+
+    require_sha_match(
+        "compilation candidate digest",
+        required_str(&compilation, "candidate_sha256")?,
+        &candidate_digest,
+    )?;
+    require_sha_match(
+        "compilation dispatch request digest",
+        required_str(&compilation, "dispatch_request_sha256")?,
+        &request_digest,
+    )?;
+    require_sha_match(
+        "dispatch receipt request digest",
+        required_str(receipt, "input_sha256")?,
+        &request_digest,
+    )?;
+    require_sha_match(
+        "audit request digest",
+        required_str(&audit, "request_sha256")?,
+        &request_digest,
+    )?;
+    require_sha_match(
+        "audit run-report digest",
+        required_str(&audit, "run_report_sha256")?,
+        &dispatch_digest,
+    )?;
+
+    let solver_is_exact = required_bool(assessment, "search_is_exact")?;
+    let solver_frontier_complete = required_bool(assessment, "pareto_frontier_complete")?;
+    let solver_expansions = required_u64(assessment, "evaluated_action_expansions")?;
+    let solver_feasible_schedules = required_u64(assessment, "feasible_complete_schedules")?;
+    let solver_frontier_count = required_u64(assessment, "pareto_frontier_count")?;
+    let audit_status = required_str(&audit, "status")?.to_owned();
+    let reference_status = required_str(&audit, "reference_frontier_status")?.to_owned();
+    let reference_expansions = audit
+        .get("reference_expansions")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "reference expansions are missing"))?;
+    let reference_schedules = audit
+        .get("reference_feasible_complete_schedules")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "reference feasible schedule count is missing"))?;
+    let objective_claim = required_str(&audit, "objective_claim_status")?.to_owned();
+    let frontier = audit
+        .get("reference_frontier_objectives")
+        .and_then(Value::as_array)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "independent frontier is missing"))?
+        .clone();
+    let audit_checks = audit
+        .get("checks")
+        .and_then(Value::as_array)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "audit checks are missing"))?;
+    let checks_all_pass = audit_checks.iter().all(|item| {
+        item.get("status").and_then(Value::as_str) == Some("pass")
+    });
+
+    if audit_status != "pass"
+        || reference_status != "pass"
+        || objective_claim != "verified_for_bounded_model_case"
+        || !checks_all_pass
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "candidate {candidate_id} failed independent qualification (audit={audit_status}, reference={reference_status}, objective={objective_claim})"
+            ),
+        )
+        .into());
+    }
+
+    let (generation_ns, generation_measurement_mode) =
+        if candidate_id.starts_with("synthetic-parametric-") {
+            let raw = fs::read_to_string(root.join("manifest-generation.elapsed_ns"))?;
+            (raw.trim().parse::<u64>()? / 36, "amortized_shared_manifest_export".to_owned())
+        } else {
+            (read_elapsed_ns(&dir, "generation")?, "individual_candidate_export".to_owned())
+        };
+    let timings = PhaseTimings {
+        generation_ns,
+        schema_validation_ns: read_elapsed_ns(&dir, "schema")?,
+        compilation_ns: read_elapsed_ns(&dir, "compilation")?,
+        receipt_verification_ns: read_elapsed_ns(&dir, "receipt")?,
+        dispatch_ns: read_elapsed_ns(&dir, "dispatch")?,
+        independent_audit_ns: read_elapsed_ns(&dir, "audit")?,
+        measured_pipeline_total_ns: 0,
+    };
+    let measured_total = timings.generation_ns
+        .saturating_add(timings.schema_validation_ns)
+        .saturating_add(timings.compilation_ns)
+        .saturating_add(timings.receipt_verification_ns)
+        .saturating_add(timings.dispatch_ns)
+        .saturating_add(timings.independent_audit_ns);
+    let timings = PhaseTimings {
+        measured_pipeline_total_ns: measured_total,
+        ..timings
+    };
+
+    let family = if candidate_id.starts_with("synthetic-parametric-") {
+        "parametric_sizing".to_owned()
+    } else {
+        "reference_topology".to_owned()
+    };
+    Ok(CandidateBenchmark {
+        candidate_id: candidate_id.to_owned(),
+        candidate_family: family,
+        generation_measurement_mode,
+        candidate_sha256: candidate_digest,
+        mapping_config_sha256: mapping_config_digest,
+        compilation_sha256: compilation_digest,
+        dispatch_request_sha256: request_digest,
+        dispatch_report_sha256: dispatch_digest,
+        independent_audit_sha256: audit_digest,
+        synthetic: required_bool(&candidate, "synthetic")?,
+        case_id: required_str(assessment, "case_id")?.to_owned(),
+        solver_reported_search_is_exact: solver_is_exact,
+        solver_reported_frontier_complete: solver_frontier_complete,
+        solver_evaluated_action_expansions: solver_expansions,
+        solver_feasible_complete_schedules: solver_feasible_schedules,
+        solver_pareto_frontier_count: solver_frontier_count,
+        independent_audit_status: audit_status,
+        independent_reference_frontier_status: reference_status,
+        independent_reference_expansions: reference_expansions,
+        independent_reference_feasible_complete_schedules: reference_schedules,
+        independent_objective_claim_status: objective_claim,
+        independently_recovered_frontier: frontier,
+        audit_check_count: audit_checks.len(),
+        timings,
+    })
+}
+
+fn sum_checked<F>(
+    candidates: &[CandidateBenchmark],
+    mut select: F,
+) -> Result<u64, Box<dyn Error>>
+where
+    F: FnMut(&CandidateBenchmark) -> u64,
+{
+    candidates.iter().try_fold(0_u64, |total, candidate| {
+        total.checked_add(select(candidate)).ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidData, "benchmark metric sum overflow").into()
+        })
+    })
+}
+
+
+fn benchmark_objective_context(root: &Path) -> Result<ObjectiveContextBenchmark, Box<dyn Error>> {
+    let dir = root.join("objective-context");
+    let (base_bytes, base_candidate) = read_json(&root.join("synthetic-pv-battery-grid/candidate.json"))?;
+    let (candidate_bytes, candidate) = read_json(&dir.join("candidate.json"))?;
+    let (transform_receipt_bytes, transform_receipt) = read_json(&dir.join("transform-receipt.json"))?;
+    let (config_bytes, config_value) = read_json(&dir.join("mapping-config.json"))?;
+    let config: MappingConfigForLedger = serde_json::from_value(config_value)?;
+    let (compilation_bytes, compilation) = read_json(&dir.join("compilation.json"))?;
+    let (request_bytes, request) = read_json(&dir.join("dispatch-request.json"))?;
+    let (dispatch_bytes, dispatch) = read_json(&dir.join("dispatch-report.json"))?;
+    let (audit_bytes, audit) = read_json(&dir.join("independent-audit.json"))?;
+
+    let base_digest = sha256_hex(&base_bytes);
+    let candidate_digest = sha256_hex(&candidate_bytes);
+    let transformation_digest = sha256_hex(&transform_receipt_bytes);
+    let config_digest = sha256_hex(&config_bytes);
+    let compilation_digest = sha256_hex(&compilation_bytes);
+    let request_digest = sha256_hex(&request_bytes);
+    let dispatch_digest = sha256_hex(&dispatch_bytes);
+    let audit_digest = sha256_hex(&audit_bytes);
+
+    let context_id = "synthetic-pv-derate-nonzero-economics";
+    let candidate_id = "synthetic-pv-limited-battery-grid";
+    if required_str(&base_candidate, "candidate_id")? != "synthetic-pv-battery-grid"
+        || required_str(&candidate, "candidate_id")? != candidate_id
+        || required_str(&transform_receipt, "base_candidate_sha256")? != base_digest
+        || required_str(&transform_receipt, "transformed_candidate_sha256")? != candidate_digest
+        || required_str(&transform_receipt, "transform_id")? != "pv-availability-50pct-one-interval"
+        || required_str(&compilation, "candidate_sha256")? != candidate_digest
+        || required_str(&compilation, "candidate_id")? != candidate_id
+        || required_str(&compilation, "dispatch_request_sha256")? != request_digest
+        || required_str(&dispatch["receipt"], "input_sha256")? != request_digest.as_str()
+        || required_str(&audit, "request_sha256")? != request_digest.as_str()
+        || required_str(&audit, "run_report_sha256")? != dispatch_digest.as_str()
+        || required_str(&request, "case_id")? != "candidate:synthetic-pv-limited-battery-grid"
+        || !required_bool(&candidate, "synthetic")?
+        || !required_bool(&request, "synthetic")?
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "objective-context chain of custody or candidate identity mismatch",
+        ).into());
+    }
+
+    let typed_config_bytes = serde_json::to_vec(&config)?;
+    require_sha_match(
+        "objective-context mapping config digest",
+        required_str(&compilation, "mapping_config_sha256")?,
+        &sha256_hex(&typed_config_bytes),
+    )?;
+    if !config.synthetic
+        || config.schema_version != "energy-dispatch-mapping-v0.1"
+        || config.energy_quantum_kwh != 1.0
+        || config.max_candidate_expansions != 100_000
+        || config.grid_cost_units_per_quantum != 5
+        || config.grid_carbon_grams_per_quantum != 100
+        || config.factor_basis.trim().is_empty()
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "non-zero objective-context mapping factors differ from the frozen context",
+        ).into());
+    }
+
+    let golden_bytes = include_bytes!("../../fixtures/energy-objective-context-known-answer-v0.1.json");
+    let golden: Value = serde_json::from_slice(golden_bytes)?;
+    if required_str(&golden, "context_id")? != context_id
+        || required_str(&golden, "candidate_id")? != candidate_id
+        || required_u64(&golden, "feasible_complete_schedules")? != 11
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "frozen objective-context known answer has the wrong identity/count",
+        ).into());
+    }
+    let expected_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(golden["pareto_frontier"].clone())?;
+    let solver_frontier: Vec<DispatchObjective> = dispatch["assessment"]["pareto_alternatives"]
+        .as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "objective-context solver frontier missing"))?
+        .iter()
+        .map(|alternative| serde_json::from_value(alternative["objective"].clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let independent_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(audit["reference_frontier_objectives"].clone())?;
+    let audit_checks = audit["checks"].as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "objective-context audit checks missing"))?;
+    if required_str(&audit, "status")? != "pass"
+        || required_str(&audit, "reference_frontier_status")? != "pass"
+        || required_str(&audit, "objective_claim_status")? != "verified_for_bounded_model_case"
+        || required_u64(&audit, "reference_feasible_complete_schedules")? != 11
+        || required_u64(&dispatch["assessment"], "feasible_complete_schedules")? != 11
+        || required_u64(&dispatch["assessment"], "pareto_frontier_count")? != expected_frontier.len() as u64
+        || solver_frontier != expected_frontier
+        || independent_frontier != expected_frontier
+        || audit_checks.iter().any(|item| item["status"].as_str() != Some("pass"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "objective-context dispatch/audit disagrees with the frozen non-zero economics Pareto answer",
+        ).into());
+    }
+
+    let timings = PhaseTimings {
+        generation_ns: read_elapsed_ns(&dir, "generation")?,
+        schema_validation_ns: read_elapsed_ns(&dir, "schema")?,
+        compilation_ns: read_elapsed_ns(&dir, "compilation")?,
+        receipt_verification_ns: read_elapsed_ns(&dir, "receipt")?,
+        dispatch_ns: read_elapsed_ns(&dir, "dispatch")?,
+        independent_audit_ns: read_elapsed_ns(&dir, "audit")?,
+        measured_pipeline_total_ns: 0,
+    };
+    let measured_total = timings.generation_ns
+        .saturating_add(timings.schema_validation_ns)
+        .saturating_add(timings.compilation_ns)
+        .saturating_add(timings.receipt_verification_ns)
+        .saturating_add(timings.dispatch_ns)
+        .saturating_add(timings.independent_audit_ns);
+    let timings = PhaseTimings {
+        measured_pipeline_total_ns: measured_total,
+        ..timings
+    };
+
+    Ok(ObjectiveContextBenchmark {
+        context_id: context_id.to_owned(),
+        candidate_id: candidate_id.to_owned(),
+        base_candidate_sha256: base_digest,
+        transformed_candidate_sha256: candidate_digest,
+        transform_receipt_sha256: transformation_digest,
+        mapping_config_file_sha256: config_digest,
+        mapping_config_sha256: sha256_hex(&typed_config_bytes),
+        compilation_sha256: compilation_digest,
+        dispatch_request_sha256: request_digest,
+        dispatch_report_sha256: dispatch_digest,
+        independent_audit_sha256: audit_digest,
+        golden_known_answer_sha256: sha256_hex(golden_bytes),
+        grid_cost_units_per_quantum: config.grid_cost_units_per_quantum,
+        grid_carbon_grams_per_quantum: config.grid_carbon_grams_per_quantum,
+        solver_feasible_complete_schedules: required_u64(&dispatch["assessment"], "feasible_complete_schedules")?,
+        solver_pareto_frontier: solver_frontier,
+        independent_reference_feasible_complete_schedules: required_u64(&audit, "reference_feasible_complete_schedules")?,
+        independent_reference_frontier: independent_frontier,
+        objective_claim_status: required_str(&audit, "objective_claim_status")?.to_owned(),
+        audit_check_count: audit_checks.len(),
+        timings,
+    })
+}
+
+fn benchmark_multi_interval_context(
+    root: &Path,
+) -> Result<MultiIntervalBenchmark, Box<dyn Error>> {
+    let dir = root.join("multi-interval-context");
+    let (request_bytes, request) = read_json(&dir.join("request.json"))?;
+    let (dispatch_bytes, dispatch) = read_json(&dir.join("dispatch-report.json"))?;
+    let (audit_bytes, audit) = read_json(&dir.join("independent-audit.json"))?;
+    let known_bytes = include_bytes!("../../fixtures/three-interval-stress-known-answer-v0.1.json");
+    let known: Value = serde_json::from_slice(known_bytes)?;
+    let qualification_log = fs::read(dir.join("qualification.log"))?;
+
+    let request_digest = sha256_hex(&request_bytes);
+    let dispatch_digest = sha256_hex(&dispatch_bytes);
+    let audit_digest = sha256_hex(&audit_bytes);
+    let known_digest = sha256_hex(known_bytes);
+    let qualification_digest = sha256_hex(&qualification_log);
+    let case_id = "synthetic-three-interval-storage-tradeoff";
+
+    if required_str(&request, "case_id")? != case_id
+        || required_str(&known, "case_id")? != case_id
+        || required_str(&dispatch["assessment"], "case_id")? != case_id
+        || required_str(&dispatch["receipt"], "case_id")? != case_id
+        || required_str(&audit, "case_id")? != case_id
+        || !required_bool(&request, "synthetic")?
+        || !required_bool(&dispatch["assessment"], "synthetic")?
+        || request["intervals"].as_array().map(Vec::len) != Some(3)
+        || required_str(&dispatch["receipt"], "input_sha256")? != request_digest
+        || required_u64(&dispatch["receipt"], "input_bytes")? != request_bytes.len() as u64
+        || required_str(&audit, "request_sha256")? != request_digest
+        || required_str(&audit, "run_report_sha256")? != dispatch_digest
+        || required_u64(&dispatch["assessment"], "feasible_complete_schedules")?
+            != required_u64(&known, "feasible_complete_schedules")?
+        || required_u64(&audit, "reference_feasible_complete_schedules")?
+            != required_u64(&known, "feasible_complete_schedules")?
+        || required_str(&audit, "status")? != "pass"
+        || required_str(&audit, "reference_frontier_status")? != "pass"
+        || required_str(&audit, "objective_claim_status")?
+            != "verified_for_bounded_model_case"
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval benchmark evidence chain or qualification status mismatch",
+        )
+        .into());
+    }
+
+    let alternatives = dispatch["assessment"]["pareto_alternatives"]
+        .as_array()
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                "multi-interval dispatch alternatives are missing",
+            )
+        })?;
+    let mut solver_frontier = alternatives
+        .iter()
+        .map(|item| serde_json::from_value::<DispatchObjective>(item["objective"].clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut independent_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(audit["reference_frontier_objectives"].clone())?;
+    let mut expected_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(known["pareto_frontier"].clone())?;
+    solver_frontier.sort();
+    independent_frontier.sort();
+    expected_frontier.sort();
+
+    if required_u64(&dispatch["assessment"], "pareto_frontier_count")?
+        != solver_frontier.len() as u64
+        || solver_frontier != expected_frontier
+        || independent_frontier != expected_frontier
+        || alternatives.iter().any(|alternative| {
+            alternative["schedule"].as_array().map(Vec::len) != Some(3)
+        })
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval solver/reference frontier differs from the frozen known answer",
+        )
+        .into());
+    }
+
+    let log_text = String::from_utf8(qualification_log)?;
+    if !log_text.contains("PASS: actual Sol-Atlas multi-interval dispatch")
+        || !log_text.contains(&format!("request_sha256={request_digest}"))
+        || !log_text.contains(&format!("dispatch_report_sha256={dispatch_digest}"))
+        || !log_text.contains(&format!("independent_audit_sha256={audit_digest}"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval qualification log does not bind the passing evidence digests",
+        )
+        .into());
+    }
+
+    let audit_checks = audit["checks"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "multi-interval audit checks are missing")
+    })?;
+    if audit_checks.iter().any(|item| item["status"].as_str() != Some("pass")) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "multi-interval audit contains a non-passing or unknown check",
+        )
+        .into());
+    }
+
+    Ok(MultiIntervalBenchmark {
+        context_id: "three-interval-storage-tradeoff-known-answer-v0.1".to_owned(),
+        case_id: case_id.to_owned(),
+        request_sha256: request_digest,
+        dispatch_report_sha256: dispatch_digest,
+        independent_audit_sha256: audit_digest,
+        qualification_log_sha256: qualification_digest,
+        known_answer_sha256: known_digest,
+        solver_feasible_complete_schedules: required_u64(
+            &dispatch["assessment"],
+            "feasible_complete_schedules",
+        )?,
+        solver_pareto_frontier: solver_frontier,
+        independent_reference_feasible_complete_schedules: required_u64(
+            &audit,
+            "reference_feasible_complete_schedules",
+        )?,
+        independent_reference_frontier: independent_frontier,
+        independent_audit_status: required_str(&audit, "status")?.to_owned(),
+        reference_frontier_status: required_str(&audit, "reference_frontier_status")?.to_owned(),
+        objective_claim_status: required_str(&audit, "objective_claim_status")?.to_owned(),
+        audit_check_count: audit_checks.len(),
+        dispatch_ns: read_elapsed_ns(&dir, "dispatch")?,
+        independent_audit_ns: read_elapsed_ns(&dir, "audit")?,
+        known_answer_gate_ns: read_elapsed_ns(&dir, "known-answer-gate")?,
+    })
+}
+
+fn benchmark_south_african_tariff_context(
+    root: &Path,
+) -> Result<SouthAfricanTariffBenchmark, Box<dyn Error>> {
+    let dir = root.join("sa-tariff-context");
+    let (schedule_bytes, schedule) = read_json(&dir.join("tariff-schedule.json"))?;
+    let (known_bytes, known) = read_json(&dir.join("known-answers.json"))?;
+    let (registry_bytes, registry) = read_json(&dir.join("source-registry.json"))?;
+    let (report_bytes, report) = read_json(&dir.join("report.json"))?;
+    let log_bytes = fs::read(dir.join("qualification.log"))?;
+    let receipt_bytes = fs::read(dir.join("source-receipts.sha256"))?;
+
+    let schedule_digest = sha256_hex(&schedule_bytes);
+    let known_digest = sha256_hex(&known_bytes);
+    let registry_digest = sha256_hex(&registry_bytes);
+    let report_digest = sha256_hex(&report_bytes);
+    let log_digest = sha256_hex(&log_bytes);
+    let receipt_digest = sha256_hex(&receipt_bytes);
+    let case_id_expected = [
+        "low-season-2600kwh-le-100kva",
+        "high-season-1200kwh-le-100kva",
+    ];
+    let registry_site = registry.get("site").ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "source registry site boundary is missing")
+    })?;
+    let registry_source_ids = registry["sources"]
+        .as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "source registry public source list is missing"))?
+        .iter()
+        .map(|item| required_str(item, "source_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let required_source_ids = [
+        "joburg-fy2026-27-business-tariff-schedule",
+        "city-of-joburg-approved-tariff-notice-2026-27",
+        "augos-city-power-business-conventional-2026-27",
+        "dffe-south-africa-2024-grid-emission-factors",
+        "ec-jrc-pvgis-v6",
+        "focal-energy-city-power-business-tariff-2026-27",
+    ];
+    let source_conflicts: Vec<String> =
+        serde_json::from_value(registry["benchmark_protocol"]["source_conflicts"].clone())?;
+    if source_conflicts.len() < 2
+        || !source_conflicts.iter().any(|item| item.contains("Augos") && item.contains("816.85"))
+        || !source_conflicts.iter().any(|item| item.contains("6 c/kWh"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "source registry must carry the unresolved fixed-charge and 6 c/kWh conflicts",
+        )
+        .into());
+    }
+
+    if required_str(&registry, "schema_version")?
+            != "energy-sa-benchmark-source-registry-v0.1"
+        || required_str(&registry, "registry_status")?
+            != "source_inventory_only_not_site_calibrated"
+        || registry_site.get("measured_load_profile").is_none()
+        || registry_site.get("customer_tariff_code").is_none()
+        || !registry_site["measured_load_profile"].is_null()
+        || !registry_site["customer_tariff_code"].is_null()
+        || required_source_ids.iter().any(|required| {
+            !registry_source_ids.iter().any(|observed| observed.as_str() == *required)
+        })
+        || required_str(&schedule, "schema_version")? != "energy-sa-tariff-schedule-v0.1"
+        || required_str(&schedule, "tariff_id")?
+            != "city-power-business-conventional-2026-27-candidate"
+        || required_str(&schedule, "source_status")?
+            != "candidate_schedule_not_account_verified"
+        || required_bool(&schedule, "account_verified")?
+        || required_str(&known, "schema_version")? != "energy-sa-tariff-known-answers-v0.1"
+        || required_str(&known, "schedule_id")? != required_str(&schedule, "tariff_id")?
+        || required_str(&report, "schema_version")?
+            != "energy-sa-tariff-reference-report-v0.1"
+        || required_str(&report, "tariff_id")? != required_str(&schedule, "tariff_id")?
+        || required_str(&report, "tariff_schedule_sha256")? != schedule_digest.as_str()
+        || required_str(&report, "known_answer_fixture_sha256")? != known_digest.as_str()
+        || required_bool(&report, "account_verified")?
+        || required_str(&report, "source_status")?
+            != "candidate_schedule_not_account_verified"
+        || required_u64(&report, "result_count")? != case_id_expected.len() as u64
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "South African tariff evidence chain, source status or candidate-only claim boundary mismatch",
+        )
+        .into());
+    }
+
+    let cases = known["cases"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "tariff known-answer cases missing")
+    })?;
+    let results = report["results"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "tariff reference results missing")
+    })?;
+    let expected_unapplied = schedule["deliberately_unapplied_charges"]
+        .as_array()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "unapplied-charge declarations missing"))?
+        .iter()
+        .map(|item| required_str(item, "charge_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if cases.len() != case_id_expected.len() || results.len() != cases.len() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "unexpected number of South African tariff known-answer cases/results",
+        )
+        .into());
+    }
+
+    for index in 0..case_id_expected.len() {
+        let case = &cases[index];
+        let result = &results[index];
+        if required_str(case, "case_id")? != case_id_expected[index]
+            || required_str(result, "case_id")? != case_id_expected[index]
+            || required_bool(result, "account_verified")?
+            || required_u64(result, "energy_charge_microzar")?
+                != required_u64(case, "expected_energy_charge_microzar")?
+            || required_u64(result, "service_charge_microzar")?
+                != required_u64(case, "expected_service_charge_microzar")?
+            || required_u64(result, "secondary_fixed_component_microzar")?
+                != required_u64(case, "expected_secondary_fixed_component_microzar")?
+            || required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")?
+                != required_u64(case, "expected_subtotal_excluding_unapplied_and_tax_microzar")?
+            || result["computed_block_use"] != case["expected_block_use"]
+            || result["unapplied_charge_ids"]
+                != Value::Array(expected_unapplied.iter().cloned().map(Value::String).collect())
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("tariff result does not match the frozen arithmetic answer for {}", case_id_expected[index]),
+            )
+            .into());
+        }
+        let sum = required_u64(result, "energy_charge_microzar")?
+            .checked_add(required_u64(result, "service_charge_microzar")?)
+            .and_then(|subtotal| subtotal.checked_add(required_u64(result, "secondary_fixed_component_microzar").ok()?))
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "tariff ledger subtotal overflow"))?;
+        if sum != required_u64(result, "subtotal_excluding_unapplied_and_tax_microzar")? {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "tariff subtotal is not the exact sum of represented energy and fixed-component charges",
+            )
+            .into());
+        }
+    }
+
+    let receipts = String::from_utf8(receipt_bytes)?;
+    let log = String::from_utf8(log_bytes)?;
+    for digest in [&schedule_digest, &known_digest, &registry_digest, &report_digest] {
+        if !receipts.contains(digest) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("tariff source receipt does not include digest {digest}"),
+            )
+            .into());
+        }
+    }
+    if !log.contains("PASS: computed 2 exact tariff-reference cases")
+        || !log.contains(&format!("tariff_schedule_sha256={schedule_digest}"))
+        || !log.contains(&format!("known_answer_fixture_sha256={known_digest}"))
+        || !log.contains(&format!("report_sha256={report_digest}"))
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "tariff qualification log does not bind the exact schedule, answers and calculator report",
+        )
+        .into());
+    }
+
+    Ok(SouthAfricanTariffBenchmark {
+        context_id: "south-africa-city-power-business-conventional-tariff-reference-v0.1".to_owned(),
+        tariff_id: required_str(&schedule, "tariff_id")?.to_owned(),
+        tariff_schedule_sha256: schedule_digest,
+        known_answer_fixture_sha256: known_digest,
+        source_registry_sha256: registry_digest,
+        source_conflicts,
+        calculator_report_sha256: report_digest,
+        qualification_log_sha256: log_digest,
+        source_receipts_sha256: receipt_digest,
+        source_status: required_str(&report, "source_status")?.to_owned(),
+        account_verified: required_bool(&report, "account_verified")?,
+        case_count: results.len(),
+        case_results: results.clone(),
+        unapplied_charge_ids: expected_unapplied,
+        qualification_status: "verified_exact_arithmetic_for_candidate_schedule_only".to_owned(),
+        claim_ceiling: "Not a customer bill, account tariff determination, tariff interpretation or savings claim; unresolved charges and taxes remain unapplied.".to_owned(),
+    })
+}
+
+fn benchmark_scenario_panel_context(
+    root: &Path,
+) -> Result<ScenarioPanelBenchmark, Box<dyn Error>> {
+    let dir = root.join("scenario-panel-context");
+    let (manifest_bytes, manifest) = read_json(&dir.join("panel-manifest.json"))?;
+    let (report_bytes, report) = read_json(&dir.join("scenario-panel-report.json"))?;
+    let log_bytes = fs::read(dir.join("panel-qualification.log"))?;
+    let receipt_bytes = fs::read(dir.join("panel-sha256sums.txt"))?;
+
+    let manifest_digest = sha256_hex(&manifest_bytes);
+    let report_digest = sha256_hex(&report_bytes);
+    let log_digest = sha256_hex(&log_bytes);
+    let receipt_digest = sha256_hex(&receipt_bytes);
+    let expected_ids = [
+        "synthetic-three-interval-storage-tradeoff",
+        "synthetic-three-interval-pv-loss",
+        "synthetic-three-interval-outage-late",
+        "synthetic-three-interval-demand-surge",
+        "synthetic-three-interval-reserve",
+    ];
+    let manifest_cases = manifest["cases"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "scenario panel manifest has no cases")
+    })?;
+    let report_cases = report["cases"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "scenario panel report has no cases")
+    })?;
+    let mut manifest_ids = manifest_cases
+        .iter()
+        .map(|item| required_str(item, "case_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut report_ids = report_cases
+        .iter()
+        .map(|item| required_str(item, "case_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    manifest_ids.sort();
+    report_ids.sort();
+    let mut expected_sorted = expected_ids.iter().map(|value| (*value).to_owned()).collect::<Vec<_>>();
+    expected_sorted.sort();
+
+    if required_str(&manifest, "schema_version")? != "energy-scenario-panel-v0.1"
+        || required_str(&report, "schema_version")? != "energy-scenario-panel-report-v0.1"
+        || required_str(&manifest, "panel_id")? != required_str(&report, "panel_id")?
+        || required_str(&report, "manifest_sha256")? != manifest_digest.as_str()
+        || manifest_ids != expected_sorted
+        || report_ids != expected_sorted
+        || manifest_cases.len() != 5
+        || report_cases.len() != 5
+        || required_u64(&manifest, "case_count")? != 5
+        || required_u64(&report, "case_count")? != 5
+        || required_u64(&report, "passing_case_count")? != 5
+        || report["all_passed"].as_bool() != Some(true)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "scenario panel manifest/report identity, coverage, or all-pass gate mismatch",
+        ).into());
+    }
+
+    for item in report_cases {
+        if required_str(item, "panel_manifest_sha256")? != manifest_digest.as_str()
+            || required_u64(item, "feasible_complete_schedules")? == 0
+            || required_u64(item, "pareto_frontier_count")? == 0
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("scenario panel row is unbound, infeasible, or missing a frontier: {}", required_str(item, "case_id")?),
+            ).into());
+        }
+    }
+
+    let log = String::from_utf8(log_bytes)?;
+    let receipts = String::from_utf8(receipt_bytes)?;
+    if !log.contains("PASS: scenario panel verified 5 actual Sol-Atlas dispatch/audit cases")
+        || !log.contains(&format!("manifest_sha256={manifest_digest}"))
+        || !log.contains(&format!("panel_report_sha256={report_digest}"))
+        || !receipts.contains(&manifest_digest)
+        || !receipts.contains(&report_digest)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "scenario panel qualification log or hash receipts do not bind the passing report",
+        ).into());
+    }
+
+    Ok(ScenarioPanelBenchmark {
+        panel_id: required_str(&report, "panel_id")?.to_owned(),
+        manifest_sha256: manifest_digest,
+        scenario_panel_report_sha256: report_digest,
+        qualification_log_sha256: log_digest,
+        source_receipts_sha256: receipt_digest,
+        case_count: report_cases.len(),
+        passing_case_count: required_u64(&report, "passing_case_count")? as usize,
+        all_passed: report["all_passed"].as_bool().unwrap_or(false),
+        cases: report_cases.clone(),
+    })
+}
+
+fn validate_matrix_frontier_vectors(row: &Value) -> Result<(), Box<dyn Error>> {
+    let mut solver_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(row["solver_frontier_objectives"].clone())?;
+    let mut independent_frontier: Vec<DispatchObjective> =
+        serde_json::from_value(row["independent_reference_frontier_objectives"].clone())?;
+    solver_frontier.sort();
+    independent_frontier.sort();
+    if solver_frontier != independent_frontier
+        || solver_frontier.len() as u64 != required_u64(row, "solver_frontier_count")?
+        || independent_frontier.len() as u64
+            != required_u64(row, "independent_reference_frontier_count")?
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "matrix row objective vectors are missing, disagree, or conflict with their counts",
+        ).into());
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+struct AxisBestForLedger {
+    essential_unserved_quanta: u64,
+    flexible_unserved_quanta: u64,
+    operating_cost_units: u64,
+    grid_carbon_grams: u64,
+    curtailed_pv_quanta: u64,
+    terminal_soc_quanta: u16,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RobustnessScenarioForLedger {
+    scenario_id: String,
+    frontier_count: usize,
+    frontier_objectives: Vec<DispatchObjective>,
+    axis_best: AxisBestForLedger,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RobustnessCandidateForLedger {
+    candidate_id: String,
+    scenario_profiles: Vec<RobustnessScenarioForLedger>,
+    worst_case_of_per_scenario_best_axis_value: AxisBestForLedger,
+    envelope_dominates: Vec<String>,
+    envelope_dominated_by: Vec<String>,
+    envelope_equal_to: Vec<String>,
+    envelope_incomparable_with: Vec<String>,
+}
+
+fn envelope_dominates_for_ledger(left: &AxisBestForLedger, right: &AxisBestForLedger) -> bool {
+    let no_worse = left.essential_unserved_quanta <= right.essential_unserved_quanta
+        && left.flexible_unserved_quanta <= right.flexible_unserved_quanta
+        && left.operating_cost_units <= right.operating_cost_units
+        && left.grid_carbon_grams <= right.grid_carbon_grams
+        && left.curtailed_pv_quanta <= right.curtailed_pv_quanta
+        && left.terminal_soc_quanta >= right.terminal_soc_quanta;
+    let strict = left.essential_unserved_quanta < right.essential_unserved_quanta
+        || left.flexible_unserved_quanta < right.flexible_unserved_quanta
+        || left.operating_cost_units < right.operating_cost_units
+        || left.grid_carbon_grams < right.grid_carbon_grams
+        || left.curtailed_pv_quanta < right.curtailed_pv_quanta
+        || left.terminal_soc_quanta > right.terminal_soc_quanta;
+    no_worse && strict
+}
+
+fn recompute_axis_best_for_ledger(frontier: &[DispatchObjective]) -> Result<AxisBestForLedger, Box<dyn Error>> {
+    if frontier.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness scenario frontier is empty").into());
+    }
+    Ok(AxisBestForLedger {
+        essential_unserved_quanta: frontier.iter().map(|x| x.essential_unserved_quanta).min().unwrap(),
+        flexible_unserved_quanta: frontier.iter().map(|x| x.flexible_unserved_quanta).min().unwrap(),
+        operating_cost_units: frontier.iter().map(|x| x.operating_cost_units).min().unwrap(),
+        grid_carbon_grams: frontier.iter().map(|x| x.grid_carbon_grams).min().unwrap(),
+        curtailed_pv_quanta: frontier.iter().map(|x| x.curtailed_pv_quanta).min().unwrap(),
+        terminal_soc_quanta: frontier.iter().map(|x| x.terminal_soc_quanta).max().unwrap(),
+    })
+}
+
+fn recompute_robust_envelope_for_ledger(
+    scenarios: &[RobustnessScenarioForLedger],
+) -> Result<AxisBestForLedger, Box<dyn Error>> {
+    if scenarios.len() != 5 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness candidate must contain five scenario profiles").into());
+    }
+    let mut result = scenarios[0].axis_best.clone();
+    for scenario in &scenarios[1..] {
+        result.essential_unserved_quanta = result.essential_unserved_quanta.max(scenario.axis_best.essential_unserved_quanta);
+        result.flexible_unserved_quanta = result.flexible_unserved_quanta.max(scenario.axis_best.flexible_unserved_quanta);
+        result.operating_cost_units = result.operating_cost_units.max(scenario.axis_best.operating_cost_units);
+        result.grid_carbon_grams = result.grid_carbon_grams.max(scenario.axis_best.grid_carbon_grams);
+        result.curtailed_pv_quanta = result.curtailed_pv_quanta.max(scenario.axis_best.curtailed_pv_quanta);
+        result.terminal_soc_quanta = result.terminal_soc_quanta.min(scenario.axis_best.terminal_soc_quanta);
+    }
+    Ok(result)
+}
+
+fn benchmark_candidate_scenario_matrix_context(
+    root: &Path,
+    design_manifest_bytes: &[u8],
+    mapping_config_bytes: &[u8],
+) -> Result<CandidateScenarioMatrixBenchmark, Box<dyn Error>> {
+    let dir = root.join("candidate-scenario-matrix-context");
+    let (profile_bytes, profile) = read_json(&dir.join("scenario-profile.json"))?;
+    let (report_bytes, report) = read_json(&dir.join("matrix-report.json"))?;
+    let log_bytes = fs::read(dir.join("matrix-qualification.log"))?;
+    let receipt_bytes = fs::read(dir.join("matrix-sha256sums.txt"))?;
+    let (robustness_bytes, robustness) = read_json(&dir.join("robustness-report.json"))?;
+    let robustness_log_bytes = fs::read(dir.join("robustness-qualification.log"))?;
+    let robustness_receipt_bytes = fs::read(dir.join("robustness-sha256sums.txt"))?;
+    let mapping_config: MappingConfigForLedger = serde_json::from_slice(mapping_config_bytes)?;
+    let typed_config_bytes = serde_json::to_vec(&mapping_config)?;
+
+    let profile_digest = sha256_hex(&profile_bytes);
+    let report_digest = sha256_hex(&report_bytes);
+    let log_digest = sha256_hex(&log_bytes);
+    let receipt_digest = sha256_hex(&receipt_bytes);
+    let robustness_digest = sha256_hex(&robustness_bytes);
+    let robustness_log_digest = sha256_hex(&robustness_log_bytes);
+    let robustness_receipt_digest = sha256_hex(&robustness_receipt_bytes);
+    let config_file_digest = sha256_hex(mapping_config_bytes);
+    let config_typed_digest = sha256_hex(&typed_config_bytes);
+    let design_manifest_digest = sha256_hex(design_manifest_bytes);
+
+    if profile_bytes.as_slice()
+            != include_bytes!("../../fixtures/energy-candidate-scenario-panel-v0.1.json")
+        || required_str(&profile, "schema_version")?
+            != "energy-candidate-scenario-panel-v0.1"
+        || required_str(&report, "schema_version")?
+            != "energy-candidate-scenario-matrix-report-v0.2"
+        || required_str(&profile, "panel_id")? != required_str(&report, "matrix_id")?
+        || required_str(&report, "scenario_profile_sha256")? != profile_digest.as_str()
+        || required_str(&report, "design_space_manifest_sha256")?
+            != design_manifest_digest.as_str()
+        || required_u64(&report, "expected_candidate_count")? != 39
+        || required_u64(&report, "scenario_count")? != 5
+        || required_u64(&report, "expected_row_count")? != 195
+        || required_u64(&report, "observed_row_count")? != 195
+        || required_u64(&report, "passing_row_count")? != 195
+        || required_u64(&report, "failed_or_unknown_row_count")? != 0
+        || report["all_passed"].as_bool() != Some(true)
+        || required_str(&robustness, "schema_version")? != "energy-candidate-robustness-report-v0.1"
+        || required_str(&robustness, "status")? != "pass"
+        || required_str(&robustness, "matrix_id")? != required_str(&report, "matrix_id")?
+        || required_str(&robustness, "source_matrix_sha256")? != report_digest.as_str()
+        || required_str(&robustness, "source_scenario_profile_sha256")? != profile_digest.as_str()
+        || required_str(&robustness, "source_design_space_manifest_sha256")? != design_manifest_digest.as_str()
+        || required_u64(&robustness, "candidate_count")? != 39
+        || required_u64(&robustness, "scenario_count")? != 5
+        || required_u64(&robustness, "expected_row_count")? != 195
+        || required_u64(&robustness, "observed_row_count")? != 195
+        || required_u64(&robustness, "passed_row_count")? != 195
+        || required_u64(&robustness, "failed_or_unknown_row_count")? != 0
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate-scenario matrix profile/report identity, coverage, or all-pass gate mismatch",
+        ).into());
+    }
+
+    let rows = report["rows"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "candidate-scenario matrix rows missing")
+    })?;
+    if rows.len() != 195 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "matrix report must contain exactly 195 row objects").into());
+    }
+
+    let mut expected_candidates = expected_candidate_ids();
+    expected_candidates.sort();
+    let scenario_ids = profile["required_scenarios"].as_array().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidData, "candidate-scenario profile rows missing")
+    })?.iter()
+        .map(|item| required_str(item, "scenario_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut pairs = BTreeSet::new();
+    let mut observed_candidates = BTreeSet::new();
+    let mut observed_scenarios = BTreeSet::new();
+    let mut matrix_frontiers = std::collections::BTreeMap::<(String, String), Vec<DispatchObjective>>::new();
+    for row in rows {
+        let candidate_id = required_str(row, "candidate_id")?;
+        let scenario_id = required_str(row, "scenario_id")?;
+        validate_matrix_frontier_vectors(row).map_err(|error| io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("candidate-scenario objective vectors failed ledger validation for {candidate_id}/{scenario_id}: {error}"),
+        ))?;
+        let mut solver_frontier: Vec<DispatchObjective> =
+            serde_json::from_value(row["solver_frontier_objectives"].clone())?;
+        solver_frontier.sort();
+        if required_str(row, "status")? != "pass"
+            || required_str(row, "mapping_config_file_sha256")? != config_file_digest.as_str()
+            || required_str(row, "mapping_config_typed_sha256")? != config_typed_digest.as_str()
+            || required_str(row, "independent_audit_status")? != "pass"
+            || required_str(row, "reference_frontier_status")? != "pass"
+            || required_str(row, "objective_claim_status")? != "verified_for_bounded_model_case"
+            || required_u64(row, "solver_feasible_complete_schedules")?
+                != required_u64(row, "independent_reference_feasible_complete_schedules")?
+            || required_u64(row, "solver_frontier_count")?
+                != required_u64(row, "independent_reference_frontier_count")?
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("candidate-scenario matrix row failed its ledger gate: {candidate_id}/{scenario_id}"),
+            ).into());
+        }
+        matrix_frontiers.insert((candidate_id.to_owned(), scenario_id.to_owned()), solver_frontier);
+        if !expected_candidates.iter().any(|expected| expected.as_str() == candidate_id)
+            || !scenario_ids.iter().any(|expected| expected.as_str() == scenario_id)
+            || !pairs.insert((candidate_id.to_owned(), scenario_id.to_owned()))
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("matrix contains an unexpected or duplicate candidate/scenario pair: {candidate_id}/{scenario_id}"),
+            ).into());
+        }
+        observed_candidates.insert(candidate_id.to_owned());
+        observed_scenarios.insert(scenario_id.to_owned());
+    }
+    if pairs.len() != 195
+        || observed_candidates.len() != 39
+        || observed_scenarios.len() != 5
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "matrix candidate/scenario Cartesian coverage is incomplete").into());
+    }
+
+    let expected_robust_candidates: BTreeSet<String> = expected_candidates.iter().cloned().collect();
+    let robustness_candidates: Vec<RobustnessCandidateForLedger> =
+        serde_json::from_value(robustness["candidates"].clone())?;
+    if robustness_candidates.len() != 39 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report must contain 39 candidate profiles").into());
+    }
+    let scenario_id_set: BTreeSet<String> = scenario_ids.iter().cloned().collect();
+    let mut seen_robust_candidates = BTreeSet::<String>::new();
+    let mut relations = std::collections::BTreeMap::<String, RobustnessCandidateForLedger>::new();
+    for mut candidate in robustness_candidates {
+        if !expected_robust_candidates.contains(&candidate.candidate_id)
+            || !seen_robust_candidates.insert(candidate.candidate_id.clone())
+            || candidate.scenario_profiles.len() != 5
+        {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report has an unexpected/duplicate candidate or incomplete scenario set").into());
+        }
+        let mut seen_scenario_ids = BTreeSet::new();
+        candidate.scenario_profiles.sort_by(|a, b| a.scenario_id.cmp(&b.scenario_id));
+        for scenario in &mut candidate.scenario_profiles {
+            if !scenario_id_set.contains(&scenario.scenario_id)
+                || !seen_scenario_ids.insert(scenario.scenario_id.clone())
+                || scenario.frontier_count != scenario.frontier_objectives.len()
+            {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report has an unexpected/duplicate scenario or wrong frontier count").into());
+            }
+            let expected_frontier = matrix_frontiers.get(&(candidate.candidate_id.clone(), scenario.scenario_id.clone()))
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "robustness frontier has no source matrix row"))?;
+            let mut observed_frontier = scenario.frontier_objectives.clone();
+            observed_frontier.sort();
+            if &observed_frontier != expected_frontier
+                || scenario.axis_best != recompute_axis_best_for_ledger(&observed_frontier)?
+            {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report frontier or per-scenario axis envelope differs from the source matrix").into());
+            }
+        }
+        if seen_scenario_ids != scenario_id_set
+            || candidate.worst_case_of_per_scenario_best_axis_value
+                != recompute_robust_envelope_for_ledger(&candidate.scenario_profiles)?
+        {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report scenario coverage or worst-case envelope is incorrect").into());
+        }
+        relations.insert(candidate.candidate_id.clone(), candidate);
+    }
+    if seen_robust_candidates != expected_robust_candidates {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness report candidate Cartesian coverage is incomplete").into());
+    }
+
+    let relation_names = |values: &[String]| -> Result<BTreeSet<String>, Box<dyn Error>> {
+        let unique = values.iter().cloned().collect::<BTreeSet<_>>();
+        if unique.len() != values.len() {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "duplicate candidate in robustness relation list").into());
+        }
+        Ok(unique)
+    };
+    let mut strict_dominance_pairs = 0_usize;
+    let mut equal_envelope_pairs_directed = 0_usize;
+    let mut incomparable_pairs_directed = 0_usize;
+    for (candidate_id, candidate) in &relations {
+        let dominates = relation_names(&candidate.envelope_dominates)?;
+        let dominated_by = relation_names(&candidate.envelope_dominated_by)?;
+        let equal_to = relation_names(&candidate.envelope_equal_to)?;
+        let incomparable = relation_names(&candidate.envelope_incomparable_with)?;
+        for set in [&dominates, &dominated_by, &equal_to, &incomparable] {
+            if set.contains(candidate_id) || set.iter().any(|other| !relations.contains_key(other)) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "invalid self/unknown candidate in robustness relation").into());
+            }
+        }
+        if dominates.iter().any(|other| !relations[other].envelope_dominated_by.contains(candidate_id))
+            || dominated_by.iter().any(|other| !relations[other].envelope_dominates.contains(candidate_id))
+            || equal_to.iter().any(|other| !relations[other].envelope_equal_to.contains(candidate_id))
+            || incomparable.iter().any(|other| !relations[other].envelope_incomparable_with.contains(candidate_id))
+        {
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness candidate relations are not reciprocal").into());
+        }
+        let mut all = BTreeSet::new();
+        for set in [&dominates, &dominated_by, &equal_to, &incomparable] {
+            if set.iter().any(|other| !all.insert(other.clone())) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "candidate appears in multiple robustness relation classes").into());
+            }
+        }
+        strict_dominance_pairs += dominates.len();
+        equal_envelope_pairs_directed += equal_to.len();
+        incomparable_pairs_directed += incomparable.len();
+    }
+
+    let relation_ids = relations.keys().cloned().collect::<Vec<_>>();
+    for left_index in 0..relation_ids.len() {
+        for right_index in (left_index + 1)..relation_ids.len() {
+            let left_id = &relation_ids[left_index];
+            let right_id = &relation_ids[right_index];
+            let left = &relations[left_id];
+            let right = &relations[right_id];
+            let left_envelope = &left.worst_case_of_per_scenario_best_axis_value;
+            let right_envelope = &right.worst_case_of_per_scenario_best_axis_value;
+            let left_dominates = envelope_dominates_for_ledger(left_envelope, right_envelope);
+            let right_dominates = envelope_dominates_for_ledger(right_envelope, left_envelope);
+            let equal = left_envelope == right_envelope;
+            let expected = if left_dominates {
+                ("dominates", "dominated_by")
+            } else if right_dominates {
+                ("dominated_by", "dominates")
+            } else if equal {
+                ("equal_to", "equal_to")
+            } else {
+                ("incomparable_with", "incomparable_with")
+            };
+            let left_has = |kind: &str| match kind {
+                "dominates" => left.envelope_dominates.contains(right_id),
+                "dominated_by" => left.envelope_dominated_by.contains(right_id),
+                "equal_to" => left.envelope_equal_to.contains(right_id),
+                _ => left.envelope_incomparable_with.contains(right_id),
+            };
+            let right_has = |kind: &str| match kind {
+                "dominates" => right.envelope_dominates.contains(left_id),
+                "dominated_by" => right.envelope_dominated_by.contains(left_id),
+                "equal_to" => right.envelope_equal_to.contains(left_id),
+                _ => right.envelope_incomparable_with.contains(left_id),
+            };
+            if !left_has(expected.0) || !right_has(expected.1) {
+                return Err(io::Error::new(io::ErrorKind::InvalidData, "reported envelope relation disagrees with independently recomputed objective comparison").into());
+            }
+        }
+    }
+
+    let robustness_log = String::from_utf8(robustness_log_bytes)?;
+    let robustness_receipts = String::from_utf8(robustness_receipt_bytes)?;
+    if !robustness_log.contains("PASS: derived robustness report for 39 candidates × 5 scenarios")
+        || !robustness_log.contains(&format!("source_matrix_sha256={report_digest}"))
+        || !robustness_log.contains(&format!("report_sha256={robustness_digest}"))
+        || !robustness_receipts.contains(&report_digest)
+        || !robustness_receipts.contains(&robustness_digest)
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "robustness qualification log/receipts do not bind the matrix and derived report").into());
+    }
+
+    let log = String::from_utf8(log_bytes)?;
+    let receipts = String::from_utf8(receipt_bytes)?;
+    if !log.contains("PASS: candidate-scenario matrix verified 195 of 195 rows")
+        || !log.contains(&format!("scenario_profile_sha256={profile_digest}"))
+        || !log.contains(&format!("report_sha256={report_digest}"))
+        || !receipts.contains(&profile_digest)
+        || !receipts.contains(&report_digest)
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "candidate-scenario matrix qualification log or source receipts do not bind the complete report",
+        ).into());
+    }
+
+    Ok(CandidateScenarioMatrixBenchmark {
+        matrix_id: required_str(&report, "matrix_id")?.to_owned(),
+        scenario_profile_sha256: profile_digest,
+        matrix_report_sha256: report_digest,
+        qualification_log_sha256: log_digest,
+        source_receipts_sha256: receipt_digest,
+        mapping_config_file_sha256: config_file_digest,
+        mapping_config_typed_sha256: config_typed_digest,
+        expected_candidate_count: required_u64(&report, "expected_candidate_count")? as usize,
+        scenario_count: required_u64(&report, "scenario_count")? as usize,
+        expected_row_count: required_u64(&report, "expected_row_count")? as usize,
+        passing_row_count: required_u64(&report, "passing_row_count")? as usize,
+        failed_or_unknown_row_count: required_u64(&report, "failed_or_unknown_row_count")? as usize,
+        all_passed: report["all_passed"].as_bool().unwrap_or(false),
+        robustness_report_sha256: robustness_digest,
+        robustness_qualification_log_sha256: robustness_log_digest,
+        robustness_source_receipts_sha256: robustness_receipt_digest,
+        robustness_source_matrix_sha256: required_str(&robustness, "source_matrix_sha256")?.to_owned(),
+        robustness_candidate_count: required_u64(&robustness, "candidate_count")? as usize,
+        robustness_scenario_count: required_u64(&robustness, "scenario_count")? as usize,
+        robustness_strict_dominance_pair_count: strict_dominance_pairs,
+        robustness_equal_envelope_pair_count: equal_envelope_pairs_directed / 2,
+        robustness_incomparable_pair_count: incomparable_pairs_directed / 2,
+        rows: rows.clone(),
+    })
+}
+
+fn run() -> Result<(), Box<dyn Error>> {
+    let args = env::args().collect::<Vec<_>>();
+    if args.len() != 3 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "usage: energy_benchmark_report <candidate-root-directory> <output-report.json>",
+        )
+        .into());
+    }
+    let root = PathBuf::from(&args[1]);
+    let output = PathBuf::from(&args[2]);
+    let expected_ids = expected_candidate_ids();
+    let expected_set = expected_ids.iter().cloned().collect::<BTreeSet<_>>();
+    let manifest_path = root.join("energy-design-space-manifest.json");
+    let (manifest_bytes, manifest) = read_json(&manifest_path)?;
+    let schema_bytes = fs::read(root.join("energy-system-candidate-v0.1.schema.json"))?;
+    let mapping_config_bytes = fs::read(
+        root.join("sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"),
+    )?;
+    let symthaea_lock_bytes = fs::read(root.join("symthaea.Cargo.lock"))?;
+    let sol_atlas_lock_bytes = fs::read(root.join("sol-atlas.Cargo.lock"))?;
+    let symtropy_audit_lock_bytes = fs::read(root.join("symtropy-energy-audit.Cargo.lock"))?;
+    if manifest.get("requested_candidate_count").and_then(Value::as_u64) != Some(36)
+        || manifest.get("candidates").and_then(Value::as_array).map(Vec::len) != Some(36)
+        || manifest.get("rejected_candidates").and_then(Value::as_array).map(Vec::len) != Some(0)
+    {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "design-space manifest is not the full 36-candidate sweep").into());
+    }
+
+    let mut observed_ids = fs::read_dir(&root)?
+        .filter_map(Result::ok)
+        .filter(|entry| entry.file_type().ok().is_some_and(|kind| kind.is_dir()))
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .filter(|name| name.starts_with("synthetic-"))
+        .collect::<Vec<_>>();
+    observed_ids.sort();
+    let mut expected_sorted = expected_ids.clone();
+    expected_sorted.sort();
+    if observed_ids != expected_sorted || observed_ids.len() != 39 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "candidate directory set does not match the frozen 39-case benchmark (observed {})",
+                observed_ids.len()
+            ),
+        )
+        .into());
+    }
+    if expected_set.len() != 39 {
+        return Err(io::Error::other("internal expected candidate list has duplicate IDs").into());
+    }
+
+    let mut candidates = expected_ids
+        .iter()
+        .map(|id| benchmark_candidate(&root, id))
+        .collect::<Result<Vec<_>, _>>()?;
+    candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
+    let solver_expansions = sum_checked(&candidates, |candidate| candidate.solver_evaluated_action_expansions)?;
+    let reference_expansions = sum_checked(&candidates, |candidate| candidate.independent_reference_expansions)?;
+    let total_generation = sum_checked(&candidates, |candidate| candidate.timings.generation_ns)?;
+    let shared_design_space_generation = fs::read_to_string(root.join("manifest-generation.elapsed_ns"))?
+        .trim()
+        .parse::<u64>()?;
+    let total_schema = sum_checked(&candidates, |candidate| candidate.timings.schema_validation_ns)?;
+    let total_compilation = sum_checked(&candidates, |candidate| candidate.timings.compilation_ns)?;
+    let total_receipt = sum_checked(&candidates, |candidate| candidate.timings.receipt_verification_ns)?;
+    let total_dispatch = sum_checked(&candidates, |candidate| candidate.timings.dispatch_ns)?;
+    let total_audit = sum_checked(&candidates, |candidate| candidate.timings.independent_audit_ns)?;
+    let max_dispatch = candidates.iter().map(|candidate| candidate.timings.dispatch_ns).max().unwrap_or(0);
+    let mean_dispatch = total_dispatch / candidates.len() as u64;
+
+    let objective_context = benchmark_objective_context(&root)?;
+    let multi_interval_context = benchmark_multi_interval_context(&root)?;
+    let south_african_tariff_context = benchmark_south_african_tariff_context(&root)?;
+    let scenario_panel = benchmark_scenario_panel_context(&root)?;
+    let candidate_scenario_matrix =
+        benchmark_candidate_scenario_matrix_context(&root, &manifest_bytes, &mapping_config_bytes)?;
+    let report = EnergyStudioBenchmarkReport {
+        schema_version: "energy-studio-benchmark-report-v0.6",
+        benchmark_id: "energy-studio-candidate-robustness-envelope-benchmark-v0.6".to_owned(),
+        created_by_workflow_run: env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned()),
+        git_ref: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
+        source_heads: SourceHeads {
+            symthaea: env::var("SYMTHAEA_PIN")?,
+            symtropy_contract: env::var("SYMTROPY_CONTRACT_PIN")?,
+            sol_atlas: env::var("SOL_ATLAS_PIN")?,
+            symtropy_auditor: env::var("GITHUB_SHA").unwrap_or_else(|_| "unknown".to_owned()),
+        },
+        host_os: env::consts::OS,
+        host_arch: env::consts::ARCH,
+        rust_toolchain: "1.96.0",
+        measurement_scope: "Per-candidate wall-clock process runtimes from a warmed build; excludes one-time dependency compilation and runner provisioning. These synthetic finite-case measurements are not a real-site or SOTA comparison.",
+        design_space_manifest_sha256: sha256_hex(&manifest_bytes),
+        shared_candidate_schema_sha256: sha256_hex(&schema_bytes),
+        mapping_config_fixture_sha256: sha256_hex(&mapping_config_bytes),
+        parametric_known_answers_sha256: sha256_hex(include_bytes!(
+            "../../fixtures/energy-parametric-known-answers-v0.1.json"
+        )),
+        symthaea_cargo_lock_sha256: sha256_hex(&symthaea_lock_bytes),
+        sol_atlas_cargo_lock_sha256: sha256_hex(&sol_atlas_lock_bytes),
+        symtropy_audit_cargo_lock_sha256: sha256_hex(&symtropy_audit_lock_bytes),
+        benchmark_summary: BenchmarkSummary {
+            expected_candidate_count: 39,
+            audited_candidate_count: candidates.len(),
+            reference_template_count: 3,
+            parametric_variant_count: 36,
+            failed_or_unknown_candidate_count: 0,
+            shared_design_space_generation_ns: shared_design_space_generation,
+            total_solver_action_expansions: solver_expansions,
+            total_independent_reference_expansions: reference_expansions,
+            total_generation_ns: total_generation,
+            total_schema_validation_ns: total_schema,
+            total_compilation_ns: total_compilation,
+            total_receipt_verification_ns: total_receipt,
+            total_dispatch_ns: total_dispatch,
+            total_independent_audit_ns: total_audit,
+            max_dispatch_ns: max_dispatch,
+            mean_dispatch_ns: mean_dispatch,
+        },
+        objective_context,
+        multi_interval_context,
+        south_african_tariff_context,
+        scenario_panel,
+        candidate_scenario_matrix,
+        candidates,
+    };
+    let output_bytes = serde_json::to_vec_pretty(&report)?;
+    fs::write(&output, &output_bytes)?;
+    println!(
+        "PASS: benchmark ledger recorded {} audited candidates; total dispatch={} ns; mean dispatch={} ns; max dispatch={} ns",
+        report.benchmark_summary.audited_candidate_count,
+        report.benchmark_summary.total_dispatch_ns,
+        report.benchmark_summary.mean_dispatch_ns,
+        report.benchmark_summary.max_dispatch_ns
+    );
+    println!("report_sha256={}", sha256_hex(&output_bytes));
+    Ok(())
+}
+
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("energy benchmark report failed: {error}");
+        std::process::exit(2);
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn objective_vector_row() -> Value {
+        let objective = serde_json::json!({
+            "essential_unserved_quanta": 0,
+            "flexible_unserved_quanta": 1,
+            "operating_cost_units": 2,
+            "grid_carbon_grams": 3,
+            "curtailed_pv_quanta": 4,
+            "terminal_soc_quanta": 5
+        });
+        serde_json::json!({
+            "solver_frontier_count": 1,
+            "solver_frontier_objectives": [objective.clone()],
+            "independent_reference_frontier_count": 1,
+            "independent_reference_frontier_objectives": [objective]
+        })
+    }
+
+    #[test]
+    fn matrix_ledger_accepts_matching_complete_objective_vectors() {
+        let row = objective_vector_row();
+        assert!(validate_matrix_frontier_vectors(&row).is_ok());
+    }
+
+    #[test]
+    fn matrix_ledger_rejects_resealed_count_only_or_mismatched_frontier_data() {
+        let mut mismatched = objective_vector_row();
+        mismatched["independent_reference_frontier_objectives"][0]["operating_cost_units"] =
+            serde_json::json!(99);
+        assert!(validate_matrix_frontier_vectors(&mismatched).is_err());
+
+        let mut missing = objective_vector_row();
+        missing.as_object_mut().unwrap().remove("solver_frontier_objectives");
+        assert!(validate_matrix_frontier_vectors(&missing).is_err());
+
+        let mut count_mismatch = objective_vector_row();
+        count_mismatch["solver_frontier_count"] = serde_json::json!(2);
+        assert!(validate_matrix_frontier_vectors(&count_mismatch).is_err());
+    }
+}

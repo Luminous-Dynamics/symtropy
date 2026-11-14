@@ -1,0 +1,9 @@
+{
+  "schema_version": "energy-dispatch-mapping-v0.1",
+  "energy_quantum_kwh": 1,
+  "max_candidate_expansions": 100000,
+  "grid_cost_units_per_quantum": 0,
+  "grid_carbon_grams_per_quantum": 0,
+  "factor_basis": "Explicit synthetic fixture factors only; not a real tariff or emissions factor.",
+  "synthetic": true
+}

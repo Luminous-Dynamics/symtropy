@@ -1,0 +1,28 @@
+{
+  "schema_version": "energy-candidate-scenario-panel-v0.1",
+  "panel_id": "energy-candidate-scenario-matrix-v0.1",
+  "status": "synthetic_candidate_robustness_panel_not_site_calibrated",
+  "required_scenarios": [
+    {
+      "scenario_id": "nominal",
+      "description": "Evaluate the exact candidate bytes without changing design or operation."
+    },
+    {
+      "scenario_id": "pv_total_loss",
+      "description": "Set all declared PV resource availability to zero while preserving candidate sizing."
+    },
+    {
+      "scenario_id": "outage_early",
+      "description": "Move the grid outage from the final interval to the first interval; restore grid availability in the second interval to the candidate's declared import-energy cap."
+    },
+    {
+      "scenario_id": "essential_demand_2x",
+      "description": "Double every explicitly requested essential-service quantity, with overflow and unknown quantities rejected."
+    },
+    {
+      "scenario_id": "terminal_reserve_1",
+      "description": "Require one kWh terminal reserve for battery architectures; mark no-battery architectures not applicable rather than silently changing their design."
+    }
+  ],
+  "claim_ceiling": "Two-interval, integer-quantized, synthetic model only. This panel measures candidate sensitivity under declared perturbations, not long-duration resilience, calibrated site performance, or real cost/emissions."
+}

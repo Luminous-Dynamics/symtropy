@@ -1,0 +1,75 @@
+{
+  "schema_version": "energy-multistage-causal-tree-v0.1",
+  "benchmark_id": "four-futures-three-interval-hidden-reveal",
+  "status": "frozen synthetic research fixture; reference oracle only until Rust port and independent dispatch qualification",
+  "claim_ceiling": "Finite abstract battery dispatch only. No real site, calibrated forecasting, electrical-network feasibility, lifecycle economics, controller safety certification, or industry superiority claim.",
+  "model": {
+    "initial_battery_soc_quanta": 2,
+    "battery_capacity_quanta": 2,
+    "max_battery_discharge_quanta_per_interval": 1,
+    "actions": ["hold", "serve_essential", "serve_flexible"],
+    "grid_rule": "When grid is available, grid serves all interval demand and only hold is an admissible battery action. During outage, hold preserves charge; a service action must match a positive demand and consumes one battery quantum.",
+    "objective_directions": {
+      "worst_case_essential_unserved_quanta": "minimize",
+      "worst_case_flexible_unserved_quanta": "minimize",
+      "total_essential_unserved_quanta_across_registered_scenarios": "minimize",
+      "total_flexible_unserved_quanta_across_registered_scenarios": "minimize"
+    }
+  },
+  "forecast_contract": {
+    "scenario_probabilities": null,
+    "note": "This deterministic stress panel has no evidence-backed probabilities. No expected-cost, EVPI, VSS, or CVaR result may be calculated.",
+    "unknown_forecasts_available_at_t0": {
+      "grid_state_at_t1": {"value": "unknown", "available_at_time_index": 0},
+      "grid_state_at_t2": {"value": "unknown", "available_at_time_index": 0}
+    },
+    "unknown_forecasts_available_at_t1": {
+      "grid_state_at_t2": {"value": "unknown", "available_at_time_index": 1}
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "early_outage_clears",
+      "intervals": [
+        {"time_index": 0, "observable_state": {"grid_available": false, "essential_demand_quanta": 0, "flexible_demand_quanta": 1}, "available_forecast": {"grid_state_at_t1": {"value": "unknown", "available_at_time_index": 0}, "grid_state_at_t2": {"value": "unknown", "available_at_time_index": 0}}},
+        {"time_index": 1, "observable_state": {"grid_available": false, "essential_demand_quanta": 1, "flexible_demand_quanta": 0}, "available_forecast": {"grid_state_at_t2": {"value": "unknown", "available_at_time_index": 1}}},
+        {"time_index": 2, "observable_state": {"grid_available": true, "essential_demand_quanta": 0, "flexible_demand_quanta": 0}}
+      ]
+    },
+    {
+      "scenario_id": "early_outage_persists",
+      "intervals": [
+        {"time_index": 0, "observable_state": {"grid_available": false, "essential_demand_quanta": 0, "flexible_demand_quanta": 1}, "available_forecast": {"grid_state_at_t1": {"value": "unknown", "available_at_time_index": 0}, "grid_state_at_t2": {"value": "unknown", "available_at_time_index": 0}}},
+        {"time_index": 1, "observable_state": {"grid_available": false, "essential_demand_quanta": 1, "flexible_demand_quanta": 0}, "available_forecast": {"grid_state_at_t2": {"value": "unknown", "available_at_time_index": 1}}},
+        {"time_index": 2, "observable_state": {"grid_available": false, "essential_demand_quanta": 1, "flexible_demand_quanta": 0}}
+      ]
+    },
+    {
+      "scenario_id": "late_outage",
+      "intervals": [
+        {"time_index": 0, "observable_state": {"grid_available": false, "essential_demand_quanta": 0, "flexible_demand_quanta": 1}, "available_forecast": {"grid_state_at_t1": {"value": "unknown", "available_at_time_index": 0}, "grid_state_at_t2": {"value": "unknown", "available_at_time_index": 0}}},
+        {"time_index": 1, "observable_state": {"grid_available": true, "essential_demand_quanta": 0, "flexible_demand_quanta": 0}, "available_forecast": {"grid_state_at_t2": {"value": "unknown", "available_at_time_index": 1}}},
+        {"time_index": 2, "observable_state": {"grid_available": false, "essential_demand_quanta": 1, "flexible_demand_quanta": 0}}
+      ]
+    },
+    {
+      "scenario_id": "no_late_outage",
+      "intervals": [
+        {"time_index": 0, "observable_state": {"grid_available": false, "essential_demand_quanta": 0, "flexible_demand_quanta": 1}, "available_forecast": {"grid_state_at_t1": {"value": "unknown", "available_at_time_index": 0}, "grid_state_at_t2": {"value": "unknown", "available_at_time_index": 0}}},
+        {"time_index": 1, "observable_state": {"grid_available": true, "essential_demand_quanta": 0, "flexible_demand_quanta": 0}, "available_forecast": {"grid_state_at_t2": {"value": "unknown", "available_at_time_index": 1}}},
+        {"time_index": 2, "observable_state": {"grid_available": true, "essential_demand_quanta": 0, "flexible_demand_quanta": 0}}
+      ]
+    }
+  ],
+  "required_checks": [
+    "shared_action_at_identical_observable_prefix",
+    "post_reveal_recourse_is_allowed",
+    "forecast_availability_time_is_not_after_decision_time",
+    "complete_scenario_time_coverage",
+    "battery_state_and_discharge_feasibility",
+    "exact_causal_and_wait_and_see_frontier_recovery",
+    "wait_and_see_reference_never_labeled_deployable",
+    "objective_wise_clairvoyance_gap_preserves_full_vectors",
+    "no_scenario_probabilities_or_expected_value_metrics"
+  ]
+}

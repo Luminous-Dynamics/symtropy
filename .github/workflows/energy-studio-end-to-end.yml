@@ -1,0 +1,638 @@
+name: Energy Studio End-to-End Bridge
+
+on:
+  pull_request:
+    paths:
+      - "tools/energy-dispatch-audit/**"
+      - ".github/workflows/energy-studio-end-to-end.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Exact source heads are intentional. Any upstream movement requires a reviewed pin update.
+env:
+  SYMTHAEA_BRANCH: research/energy-system-architect-v0-1
+  SYMTHAEA_PIN: f23cd4131d9b15133990b11c5306efdce245dd0b
+  SYMTROPY_CONTRACT_BRANCH: research/energy-system-studio-v0-1
+  SYMTROPY_CONTRACT_PIN: dccef7d158fa8b5e29c2db50196aa9e86c506e0a
+  SOL_ATLAS_BRANCH: research/energy-design-adapter-v0-1
+  SOL_ATLAS_PIN: 250b1ba91b91d92c10aeb5816fb13f37a296e3a5
+
+jobs:
+  bridge:
+    name: Full generated design space to independent dispatch audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Symtropy auditor revision
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+
+      - name: Test independent verifier and frozen analytical known answers first
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          mkdir -p "$work/targets/symtropy"
+          CARGO_TARGET_DIR="$work/targets/symtropy" cargo test \
+            --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml"
+
+      - name: Fetch exact upstream PR heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          mkdir -p "$work"
+
+          git clone --filter=blob:none --depth 1 --branch "$SYMTHAEA_BRANCH" \
+            https://github.com/Luminous-Dynamics/symthaea.git "$work/symthaea"
+          actual="$(git -C "$work/symthaea" rev-parse HEAD)"
+          test "$actual" = "$SYMTHAEA_PIN" || {
+            echo "Symthaea pin mismatch: expected $SYMTHAEA_PIN, got $actual" >&2
+            exit 2
+          }
+
+          git clone --filter=blob:none --depth 1 --branch "$SOL_ATLAS_BRANCH" \
+            https://github.com/Luminous-Dynamics/sol-atlas-leptos.git "$work/sol-atlas"
+          actual="$(git -C "$work/sol-atlas" rev-parse HEAD)"
+          test "$actual" = "$SOL_ATLAS_PIN" || {
+            echo "Sol-Atlas pin mismatch: expected $SOL_ATLAS_PIN, got $actual" >&2
+            exit 2
+          }
+
+          git fetch --no-tags --depth=1 origin "refs/heads/$SYMTROPY_CONTRACT_BRANCH"
+          actual="$(git rev-parse FETCH_HEAD)"
+          test "$actual" = "$SYMTROPY_CONTRACT_PIN" || {
+            echo "Symtropy schema pin mismatch: expected $SYMTROPY_CONTRACT_PIN, got $actual" >&2
+            exit 2
+          }
+          git show "$SYMTROPY_CONTRACT_PIN:schemas/energy-system-candidate-v0.1.schema.json" \
+            > "$work/energy-system-candidate-v0.1.schema.json"
+
+      - name: Build pinned Rust CLI binaries once
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          CARGO_TARGET_DIR="$work/targets/symthaea" cargo build --locked \
+            --manifest-path "$work/symthaea/crates/domains/symthaea-engineering/Cargo.toml" \
+            --bin energy_architecture_candidates
+          CARGO_TARGET_DIR="$work/targets/sol-atlas" cargo build --locked \
+            --manifest-path "$work/sol-atlas/sol-atlas-core/Cargo.toml" \
+            --bin energy_design_dispatch_compile --bin energy_dispatch_assess
+          CARGO_TARGET_DIR="$work/targets/symtropy" cargo build --locked \
+            --manifest-path "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.toml" \
+            --bins
+
+          # Capture the exact dependency resolutions used by the binaries.
+          # Upstream lockfiles are source-pinned and --locked above; the nested
+          # standalone audit crate resolves once and exports its generated lock.
+          test -f "$work/symthaea/Cargo.lock"
+          test -f "$work/sol-atlas/Cargo.lock"
+          test -f "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.lock"
+          cp "$work/symthaea/Cargo.lock" "$work/symthaea.Cargo.lock"
+          cp "$work/sol-atlas/Cargo.lock" "$work/sol-atlas.Cargo.lock"
+          cp "$GITHUB_WORKSPACE/tools/energy-dispatch-audit/Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
+          sha256sum "$work/symthaea.Cargo.lock" "$work/sol-atlas.Cargo.lock" "$work/symtropy-energy-audit.Cargo.lock"
+
+      - name: Qualify causal-policy versus wait-and-see information consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/nonanticipativity-context"
+          mkdir -p "$context"
+          source_fixture="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json"
+          cp "$source_fixture" "$context/counterexample.json"
+          gate="$work/targets/symtropy/debug/energy_nonanticipativity_gate"
+          "$gate" "$context/counterexample.json" "$context/report.json" > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context/counterexample.json" "$context/report.json" > "$context/receipts.sha256"
+          cat "$context/receipts.sha256"
+
+      - name: Qualify multi-stage causal-policy tree against exact known answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/nonanticipativity-context"
+          mkdir -p "$context"
+          source_fixture="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-multistage-causal-tree-v0.1.json"
+          cp "$source_fixture" "$context/multistage-causal-tree-fixture.json"
+          oracle="$work/targets/symtropy/debug/energy_multistage_causal_tree_oracle"
+          "$oracle" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-qualification.log"
+          cat "$context/multistage-causal-tree-qualification.log"
+          fixture_sha="$(sha256sum "$source_fixture" | cut -d' ' -f1)"
+          report_sha="$(jq -r .source_fixture_sha256 "$context/multistage-causal-tree-report.json")"
+          test "$fixture_sha" = "$report_sha"
+          sha256sum "$source_fixture" "$context/multistage-causal-tree-report.json" > "$context/multistage-causal-tree-receipts.sha256"
+          cat "$context/multistage-causal-tree-receipts.sha256"
+
+      - name: Verify published South African tariff arithmetic against hand-calculated answers
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/sa-tariff-context"
+          mkdir -p "$context"
+          schedule_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-schedule-2026-27.reference.json"
+          cases_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-known-answers-v0.1.json"
+          registry_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json"
+          cp "$schedule_source" "$context/tariff-schedule.json"
+          cp "$cases_source" "$context/known-answers.json"
+          cp "$registry_source" "$context/source-registry.json"
+          calculator="$work/targets/symtropy/debug/energy_sa_tariff_reference"
+          "$calculator" "$context/tariff-schedule.json" "$context/known-answers.json" "$context/report.json" \
+            > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context/tariff-schedule.json" "$context/known-answers.json" "$context/source-registry.json" "$context/report.json" \
+            > "$context/source-receipts.sha256"
+          cat "$context/source-receipts.sha256"
+
+      - name: Export references and materialize all 36 parametric candidates once
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          exporter="$work/targets/symthaea/debug/energy_architecture_candidates"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+
+          timed "$work/manifest-generation.elapsed_ns" "$exporter" --design-space \
+            --candidate-output-dir "$work" \
+            --output "$work/energy-design-space-manifest.json"
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            mkdir -p "$work/$candidate"
+            timed "$work/$candidate/generation.elapsed_ns" "$exporter" \
+              --candidate-id "$candidate" --output "$work/$candidate/candidate.json"
+            sha256sum "$work/$candidate/candidate.json"
+          done
+
+          manifest_gate="$work/targets/symtropy/debug/energy_design_space_manifest_gate"
+          "$manifest_gate" "$work/energy-design-space-manifest.json" "$work"
+
+      - name: Validate all 39 candidate documents against the pinned shared schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+          validator="$work/targets/symtropy/debug/energy_candidate_schema_validate"
+          schema="$work/energy-system-candidate-v0.1.schema.json"
+
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            timed "$work/$candidate/schema.elapsed_ns" "$validator" "$schema" "$work/$candidate/candidate.json"
+          done
+          for pv in 1 2 3; do
+            for capacity in 1 2 3; do
+              for battery_power in 1 2; do
+                for grid_power in 1 2; do
+                  candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
+                  timed "$work/$candidate/schema.elapsed_ns" "$validator" "$schema" "$work/$candidate/candidate.json"
+                done
+              done
+            done
+          done
+
+      - name: Compile every candidate into a bounded Sol-Atlas dispatch request
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+          compiler="$work/targets/sol-atlas/debug/energy_design_dispatch_compile"
+          config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            timed "$work/$candidate/compilation.elapsed_ns" "$compiler" "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
+          done
+          for pv in 1 2 3; do
+            for capacity in 1 2 3; do
+              for battery_power in 1 2; do
+                for grid_power in 1 2; do
+                  candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
+                  timed "$work/$candidate/compilation.elapsed_ns" "$compiler" "$work/$candidate/candidate.json" "$config" > "$work/$candidate/compilation.json"
+                done
+              done
+            done
+          done
+
+      - name: Verify receipts and preserve exact dispatch-request bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+          verifier="$work/targets/symtropy/debug/energy_compilation_receipt_verify"
+          config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            timed "$work/$candidate/receipt.elapsed_ns" "$verifier" "$work/$candidate/candidate.json" "$config" \
+              "$work/$candidate/compilation.json" "$work/$candidate/dispatch-request.json"
+          done
+          for pv in 1 2 3; do
+            for capacity in 1 2 3; do
+              for battery_power in 1 2; do
+                for grid_power in 1 2; do
+                  candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
+                  timed "$work/$candidate/receipt.elapsed_ns" "$verifier" "$work/$candidate/candidate.json" "$config" \
+                    "$work/$candidate/compilation.json" "$work/$candidate/dispatch-request.json"
+                done
+              done
+            done
+          done
+
+      - name: Execute the exact finite dispatch oracle for all candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            timed "$work/$candidate/dispatch.elapsed_ns" "$dispatch" "$work/$candidate/dispatch-request.json" > "$work/$candidate/dispatch-report.json"
+          done
+          for pv in 1 2 3; do
+            for capacity in 1 2 3; do
+              for battery_power in 1 2; do
+                for grid_power in 1 2; do
+                  candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
+                  timed "$work/$candidate/dispatch.elapsed_ns" "$dispatch" "$work/$candidate/dispatch-request.json" > "$work/$candidate/dispatch-report.json"
+                done
+              done
+            done
+          done
+
+      - name: Independently audit every solver report and gate the frozen baselines
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          gate="$work/targets/symtropy/debug/energy_audit_report_gate"
+
+          for candidate in synthetic-grid-only synthetic-pv-grid synthetic-pv-battery-grid; do
+            echo "Auditing frozen reference candidate: $candidate"
+            timed "$work/$candidate/audit.elapsed_ns" "$auditor" "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
+              > "$work/$candidate/independent-audit.json"
+            "$gate" "$work/$candidate/independent-audit.json" "$candidate"
+          done
+
+          for pv in 1 2 3; do
+            for capacity in 1 2 3; do
+              for battery_power in 1 2; do
+                for grid_power in 1 2; do
+                  candidate="synthetic-parametric-pv-${pv}kw-battery-${capacity}kwh-battery-power-${battery_power}kw-grid-${grid_power}kw"
+                  echo "Auditing generated sizing candidate: $candidate"
+                  timed "$work/$candidate/audit.elapsed_ns" "$auditor" "$work/$candidate/dispatch-request.json" "$work/$candidate/dispatch-report.json" \
+                    > "$work/$candidate/independent-audit.json"
+                  "$gate" "$work/$candidate/independent-audit.json" "$candidate"
+                done
+              done
+            done
+          done
+
+      - name: Evaluate every candidate under five candidate-level scenario transforms
+        shell: bash
+        run: |
+          set -uo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/candidate-scenario-matrix-context"
+          source_profile="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json"
+          mkdir -p "$context"
+          cp "$source_profile" "$context/scenario-profile.json"
+          profile="$context/scenario-profile.json"
+          transformer="$work/targets/symtropy/debug/energy_candidate_scenario_transform"
+          matrix_gate="$work/targets/symtropy/debug/energy_candidate_scenario_matrix_gate"
+          validator="$work/targets/symtropy/debug/energy_candidate_schema_validate"
+          compiler="$work/targets/sol-atlas/debug/energy_design_dispatch_compile"
+          verifier="$work/targets/symtropy/debug/energy_compilation_receipt_verify"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          schema="$work/energy-system-candidate-v0.1.schema.json"
+          config="$work/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json"
+
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished status
+            started="$(date +%s%N)"
+            if "$@"; then status=0; else status=$?; fi
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+            return "$status"
+          }
+
+          run_case() {
+            local candidate="$1"
+            local scenario="$2"
+            local dir="$context/$candidate/$scenario"
+            local failed_phase=""
+            local failure_detail=""
+            mkdir -p "$dir"
+
+            if ! timed "$dir/transform.elapsed_ns" "$transformer" "$work/$candidate/candidate.json" "$scenario" "$dir/candidate.json" "$dir/transform-receipt.json" > "$dir/transform.log" 2> "$dir/transform.stderr.log"; then
+              failed_phase="transform"
+              failure_detail="$(tail -n 20 "$dir/transform.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/schema-validation.elapsed_ns" "$validator" "$schema" "$dir/candidate.json" > "$dir/schema-validation.log" 2> "$dir/schema-validation.stderr.log"; then
+              failed_phase="schema_validation"
+              failure_detail="$(tail -n 20 "$dir/schema-validation.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/compile.elapsed_ns" "$compiler" "$dir/candidate.json" "$config" > "$dir/compilation.json" 2> "$dir/compile.stderr.log"; then
+              failed_phase="compile"
+              failure_detail="$(tail -n 20 "$dir/compile.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/receipt-verification.elapsed_ns" "$verifier" "$dir/candidate.json" "$config" "$dir/compilation.json" "$dir/dispatch-request.json" > "$dir/receipt-verification.log" 2> "$dir/receipt-verification.stderr.log"; then
+              failed_phase="receipt_verification"
+              failure_detail="$(tail -n 20 "$dir/receipt-verification.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/dispatch.elapsed_ns" "$dispatch" "$dir/dispatch-request.json" > "$dir/dispatch-report.json" 2> "$dir/dispatch.stderr.log"; then
+              failed_phase="dispatch"
+              failure_detail="$(tail -n 20 "$dir/dispatch.stderr.log" 2>/dev/null || true)"
+            fi
+            if [[ -z "$failed_phase" ]] && ! timed "$dir/audit.elapsed_ns" "$auditor" "$dir/dispatch-request.json" "$dir/dispatch-report.json" > "$dir/independent-audit.json" 2> "$dir/audit.stderr.log"; then
+              failed_phase="independent_audit"
+              failure_detail="$(tail -n 20 "$dir/audit.stderr.log" 2>/dev/null || true)"
+            fi
+
+            if [[ -z "$failed_phase" ]]; then
+              jq -n --arg candidate_id "$candidate" --arg scenario_id "$scenario" \
+                '{candidate_id:$candidate_id,scenario_id:$scenario_id,status:"pass",failed_phase:null,error:null}' > "$dir/row-status.json"
+            else
+              jq -n --arg candidate_id "$candidate" --arg scenario_id "$scenario" --arg failed_phase "$failed_phase" --arg error "$failure_detail" \
+                '{candidate_id:$candidate_id,scenario_id:$scenario_id,status:"failed",failed_phase:$failed_phase,error:$error}' > "$dir/row-status.json"
+              echo "FAILED $candidate / $scenario at $failed_phase" >&2
+            fi
+            find "$dir" -maxdepth 1 -type f ! -name 'sha256sums.txt' -print0 | sort -z | xargs -0 -r sha256sum > "$dir/sha256sums.txt"
+          }
+
+          mapfile -t scenario_ids < <(jq -r '.required_scenarios[].scenario_id' "$profile")
+          mapfile -t candidate_dirs < <(find "$work" -maxdepth 1 -mindepth 1 -type d -name 'synthetic-*' -printf '%f\n' | sort)
+          if [[ "${#candidate_dirs[@]}" -ne 39 || "${#scenario_ids[@]}" -ne 5 ]]; then
+            echo "Expected 39 candidates and 5 scenarios; found ${#candidate_dirs[@]} candidates and ${#scenario_ids[@]} scenarios" >&2
+            exit 2
+          fi
+
+          for candidate in "${candidate_dirs[@]}"; do
+            for scenario in "${scenario_ids[@]}"; do
+              run_case "$candidate" "$scenario"
+            done
+          done
+
+          # The gate always writes a 195-row coverage report. It exits nonzero if
+          # any row failed or is unknown; no failed row is silently dropped.
+          "$matrix_gate" "$work" "$context" "$profile" "$context/matrix-report.json" > "$context/matrix-qualification.log" || gate_status=$?
+          gate_status="${gate_status:-0}"
+          sha256sum "$profile" "$context/matrix-report.json" > "$context/matrix-sha256sums.txt"
+          cat "$context/matrix-qualification.log"
+          cat "$context/matrix-sha256sums.txt"
+          exit "$gate_status"
+
+      - name: Derive the digest-bound multi-scenario robustness envelope
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/candidate-scenario-matrix-context"
+          report="$work/targets/symtropy/debug/energy_candidate_robustness_report"
+          "$report" "$context/matrix-report.json" "$context/robustness-report.json" > "$context/robustness-qualification.log"
+          sha256sum "$context/matrix-report.json" "$context/robustness-report.json" > "$context/robustness-sha256sums.txt"
+          cat "$context/robustness-qualification.log"
+          cat "$context/robustness-sha256sums.txt"
+
+      - name: Exercise non-zero economics under a PV-availability stress case
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/objective-context"
+          mkdir -p "$context"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+
+          transformer="$work/targets/symtropy/debug/energy_candidate_pv_stress_transform"
+          validator="$work/targets/symtropy/debug/energy_candidate_schema_validate"
+          compiler="$work/targets/sol-atlas/debug/energy_design_dispatch_compile"
+          receipt_verifier="$work/targets/symtropy/debug/energy_compilation_receipt_verify"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          context_gate="$work/targets/symtropy/debug/energy_objective_context_gate"
+          base_candidate="$work/synthetic-pv-battery-grid/candidate.json"
+          transformed_candidate="$context/candidate.json"
+          transform_receipt="$context/transform-receipt.json"
+          config_source="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json"
+          config="$context/mapping-config.json"
+          cp "$config_source" "$config"
+
+          timed "$context/generation.elapsed_ns" "$transformer" \
+            "$base_candidate" "$transformed_candidate" "$transform_receipt"
+          timed "$context/schema.elapsed_ns" "$validator" \
+            "$work/energy-system-candidate-v0.1.schema.json" "$transformed_candidate"
+          timed "$context/compilation.elapsed_ns" "$compiler" \
+            "$transformed_candidate" "$config" > "$context/compilation.json"
+          timed "$context/receipt.elapsed_ns" "$receipt_verifier" \
+            "$transformed_candidate" "$config" "$context/compilation.json" "$context/dispatch-request.json"
+          timed "$context/dispatch.elapsed_ns" "$dispatch" \
+            "$context/dispatch-request.json" > "$context/dispatch-report.json"
+          timed "$context/audit.elapsed_ns" "$auditor" \
+            "$context/dispatch-request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
+          "$context_gate" \
+            "$base_candidate" "$transformed_candidate" "$transform_receipt" "$config" \
+            "$context/compilation.json" "$context/dispatch-request.json" \
+            "$context/dispatch-report.json" "$context/independent-audit.json" \
+            > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context"/*.json
+
+      - name: Run actual Sol-Atlas dispatch on three-interval known-answer case
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/multi-interval-context"
+          mkdir -p "$context"
+
+          request="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/three-interval-stress.request.json"
+          cp "$request" "$context/request.json"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          gate="$work/targets/symtropy/debug/energy_multi_interval_known_answer_gate"
+          known="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/three-interval-stress-known-answer-v0.1.json"
+          timed() {
+            local timing_path="$1"
+            shift
+            local started finished
+            started="$(date +%s%N)"
+            "$@"
+            finished="$(date +%s%N)"
+            printf '%s\n' "$((finished - started))" > "$timing_path"
+          }
+
+          timed "$context/dispatch.elapsed_ns" "$dispatch" "$context/request.json" > "$context/dispatch-report.json"
+          timed "$context/audit.elapsed_ns" "$auditor" "$context/request.json" "$context/dispatch-report.json" > "$context/independent-audit.json"
+          timed "$context/known-answer-gate.elapsed_ns" "$gate" "$context/request.json" "$context/dispatch-report.json" "$context/independent-audit.json" "$known" \
+            > "$context/qualification.log"
+          cat "$context/qualification.log"
+          sha256sum "$context"/*.json
+
+      - name: Run multi-scenario resilience panel through actual dispatch and independent audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/scenario-panel-context"
+          source_panel="$GITHUB_WORKSPACE/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json"
+          mkdir -p "$context"
+          cp "$source_panel" "$context/panel-manifest.json"
+          manifest="$context/panel-manifest.json"
+          dispatch="$work/targets/sol-atlas/debug/energy_dispatch_assess"
+          auditor="$work/targets/symtropy/debug/symtropy-energy-dispatch-audit"
+          case_gate="$work/targets/symtropy/debug/energy_multi_interval_known_answer_gate"
+          panel_gate="$work/targets/symtropy/debug/energy_scenario_panel_gate"
+
+          # The frozen manifest is the source of truth; requests and answers
+          # are materialized from it, not recalculated in shell arithmetic.
+          for case_id in $(jq -r '.cases[].case_id' "$manifest"); do
+            case_dir="$context/$case_id"
+            mkdir -p "$case_dir"
+            jq -c --arg id "$case_id" '.cases[] | select(.case_id == $id) | .request' "$manifest" > "$case_dir/request.json"
+            jq -c --arg id "$case_id" '.cases[] | select(.case_id == $id) | .known_answer' "$manifest" > "$case_dir/known-answer.json"
+            timed() {
+              local timing_path="$1"
+              shift
+              local started finished
+              started="$(date +%s%N)"
+              "$@"
+              finished="$(date +%s%N)"
+              printf '%s\n' "$((finished - started))" > "$timing_path"
+            }
+            timed "$case_dir/dispatch.elapsed_ns" "$dispatch" "$case_dir/request.json" > "$case_dir/dispatch-report.json"
+            timed "$case_dir/audit.elapsed_ns" "$auditor" "$case_dir/request.json" "$case_dir/dispatch-report.json" > "$case_dir/independent-audit.json"
+            timed "$case_dir/known-answer-gate.elapsed_ns" "$case_gate" "$case_dir/request.json" "$case_dir/dispatch-report.json" "$case_dir/independent-audit.json" "$case_dir/known-answer.json" > "$case_dir/qualification.log"
+            cat "$case_dir/qualification.log"
+            sha256sum "$case_dir"/*.json > "$case_dir/sha256sums.txt"
+          done
+
+          "$panel_gate" "$manifest" "$context" "$context/scenario-panel-report.json" > "$context/panel-qualification.log"
+          cat "$context/panel-qualification.log"
+          sha256sum "$manifest" "$context/scenario-panel-report.json" > "$context/panel-sha256sums.txt"
+          cat "$context/panel-sha256sums.txt"
+
+      - name: Build digest-bound benchmark ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          report="$work/targets/symtropy/debug/energy_benchmark_report"
+          "$report" "$work" "$work/energy-benchmark-report.json"
+          sha256sum "$work/energy-benchmark-report.json"
+
+      - name: Replay matched unique-candidate proposal budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/energy-studio"
+          context="$work/candidate-scenario-matrix-context"
+          replay="$work/targets/symtropy/debug/energy_search_policy_replay"
+          "$replay" "$work" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-qualification.log"
+          sha256sum "$work/energy-design-space-manifest.json" "$work/energy-benchmark-report.json" "$context/matrix-report.json" "$context/robustness-report.json" "$context/search-policy-replay-report.json" > "$context/search-policy-replay-sha256sums.txt"
+          cat "$context/search-policy-replay-qualification.log"
+          cat "$context/search-policy-replay-sha256sums.txt"
+
+      - name: Preserve exact generation, compilation, dispatch and audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: energy-studio-e2e-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/energy-studio/energy-design-space-manifest.json
+            ${{ runner.temp }}/energy-studio/energy-system-candidate-v0.1.schema.json
+            ${{ runner.temp }}/energy-studio/sol-atlas/schemas/examples/energy-dispatch-mapping-config.synthetic.json
+            ${{ runner.temp }}/energy-studio/manifest-generation.elapsed_ns
+            ${{ runner.temp }}/energy-studio/energy-benchmark-report.json
+            ${{ runner.temp }}/energy-studio/objective-context/*
+            ${{ runner.temp }}/energy-studio/multi-interval-context/*
+            ${{ runner.temp }}/energy-studio/scenario-panel-context/**/*
+            ${{ runner.temp }}/energy-studio/candidate-scenario-matrix-context/**/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-candidate-scenario-panel-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-scenario-panel-v0.1.json
+            ${{ runner.temp }}/energy-studio/nonanticipativity-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/NONANTICIPATIVE_POLICY_BENCHMARK_V0_1.md
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-nonanticipativity-counterexample-v0.1.json
+            ${{ runner.temp }}/energy-studio/sa-tariff-context/*
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/sa-facility-benchmark-source-registry-v0.1.json
+            ${{ runner.temp }}/energy-studio/*.Cargo.lock
+            ${{ runner.temp }}/energy-studio/synthetic-*/*.json
+            ${{ runner.temp }}/energy-studio/synthetic-*/*.elapsed_ns
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-parametric-known-answers-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-objective-context-known-answer-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/three-interval-stress.request.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/three-interval-stress-known-answer-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-schedule-2026-27.reference.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-sa-tariff-known-answers-v0.1.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic-economics.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate-v0.1.schema.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-system-candidate.synthetic.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/energy-dispatch-mapping-config.synthetic.json
+            ${{ github.workspace }}/tools/energy-dispatch-audit/fixtures/pv-outage.request.json
+          if-no-files-found: ignore
+          retention-days: 14

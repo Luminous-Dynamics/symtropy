@@ -1,0 +1,1060 @@
+//! Verify non-anticipativity for the frozen energy causal-policy counterexample.
+//!
+//! This gate checks only information consistency. It is not the physical dispatch
+//! auditor: a causal trace must still pass the independent Sol-Atlas feasibility
+//! audit before it can be used as qualified energy evidence.
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    env,
+    error::Error,
+    fs,
+    io,
+    path::Path,
+};
+
+use serde::Serialize;
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
+
+const FIXTURE_SCHEMA: &str = "energy-nonanticipativity-counterexample-v0.1";
+const REPORT_SCHEMA: &str = "energy-nonanticipativity-gate-report-v0.1";
+
+#[derive(Clone, Debug)]
+struct PrefixMeta {
+    time_index: u64,
+    information_set_id: String,
+    signature: String,
+    observable_history: Value,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct NonAnticipativityConflict {
+    time_index: u64,
+    information_set_id: String,
+    observable_prefix_sha256: String,
+    actions: Vec<String>,
+    scenarios: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct PolicyVerdict {
+    policy_id: String,
+    reference_only: bool,
+    expected_gate: String,
+    actual_gate: String,
+    scenario_count: usize,
+    step_count: usize,
+    non_anticipativity_violation_count: usize,
+    conflicts: Vec<NonAnticipativityConflict>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct ScenarioObjectiveDelta {
+    scenario_id: String,
+    essential_unserved_delta_vs_wait_and_see: i64,
+    flexible_unserved_delta_vs_wait_and_see: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct PolicyObjectiveReferenceComparison {
+    policy_id: String,
+    scenario_deltas: Vec<ScenarioObjectiveDelta>,
+    worst_case_positive_excess_essential_unserved_quanta: u64,
+    worst_case_positive_excess_flexible_unserved_quanta: u64,
+    semantics: &'static str,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct NegativeControlResult {
+    control_id: String,
+    scope: String,
+    status: String,
+    mutation_variants: usize,
+    detected_variants: usize,
+    note: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct GateReport {
+    schema_version: &'static str,
+    benchmark_id: &'static str,
+    status: &'static str,
+    source_fixture_sha256: String,
+    scenario_count: usize,
+    observable_prefix_count: usize,
+    policy_count: usize,
+    policy_verdicts: Vec<PolicyVerdict>,
+    objective_reference_comparison: Vec<PolicyObjectiveReferenceComparison>,
+    declared_negative_control_count: usize,
+    gate_owned_negative_control_count: usize,
+    gate_owned_negative_controls_detected: usize,
+    external_negative_control_ids: Vec<String>,
+    negative_control_results: Vec<NegativeControlResult>,
+    negative_controls_executed: bool,
+    physical_feasibility_audit: &'static str,
+    measurement_scope: &'static str,
+    claim_ceiling: &'static str,
+}
+
+fn invalid(message: impl Into<String>) -> Box<dyn Error> {
+    io::Error::new(io::ErrorKind::InvalidData, message.into()).into()
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn required_str<'a>(value: &'a Value, key: &str) -> Result<&'a str, Box<dyn Error>> {
+    value.get(key).and_then(Value::as_str)
+        .ok_or_else(|| invalid(format!("missing string field {key}")))
+}
+
+fn required_u64(value: &Value, key: &str) -> Result<u64, Box<dyn Error>> {
+    value.get(key).and_then(Value::as_u64)
+        .ok_or_else(|| invalid(format!("missing unsigned field {key}")))
+}
+
+fn validate_forecast_availability(
+    forecasts: &Value,
+    decision_time_index: u64,
+) -> Result<(), Box<dyn Error>> {
+    if forecasts.is_null() {
+        return Ok(());
+    }
+    let forecasts = forecasts.as_object()
+        .ok_or_else(|| invalid("available_forecast must be an object"))?;
+    for (forecast_name, forecast) in forecasts {
+        let available_at = required_u64(forecast, "available_at_time_index")?;
+        if available_at > decision_time_index {
+            return Err(invalid(format!(
+                "forecast {forecast_name} was not available at decision time {decision_time_index}"
+            )));
+        }
+        if forecast.get("value").is_none() {
+            return Err(invalid(format!("forecast {forecast_name} has no value")));
+        }
+    }
+    Ok(())
+}
+
+fn canonical_prefix_signature(prefix: &Value) -> Result<String, Box<dyn Error>> {
+    let time_index = required_u64(prefix, "time_index")?;
+    let observable_state = prefix.get("observable_state")
+        .ok_or_else(|| invalid("observable prefix has no observable_state"))?;
+    if !observable_state.is_object() {
+        return Err(invalid("observable_state must be an object"));
+    }
+    let available_forecast = prefix.get("available_forecast").cloned().unwrap_or(Value::Null);
+    validate_forecast_availability(&available_forecast, time_index)?;
+
+    let history = prefix.get("observable_history").and_then(Value::as_array)
+        .ok_or_else(|| invalid("observable_history must be an array"))?;
+    if history.len() != (time_index as usize).saturating_add(1) {
+        return Err(invalid("observable_history is incomplete for its time index"));
+    }
+    for (expected_time, entry) in history.iter().enumerate() {
+        let entry_time = required_u64(entry, "time_index")?;
+        if entry_time != expected_time as u64 || entry_time > time_index {
+            return Err(invalid("observable_history has a missing, duplicate, or future time index"));
+        }
+        let forecasts = entry.get("available_forecast").cloned().unwrap_or(Value::Null);
+        validate_forecast_availability(&forecasts, entry_time)?;
+    }
+    let last = history.last().ok_or_else(|| invalid("observable_history is empty"))?;
+    if last.get("observable_state") != Some(observable_state)
+        || last.get("available_forecast").cloned().unwrap_or(Value::Null) != available_forecast
+    {
+        return Err(invalid("current observable state/forecast does not match the end of observable_history"));
+    }
+
+    // Hash the full policy-visible history, including committed earlier actions,
+    // rather than only the current state. Prefix labels are deliberately excluded.
+    let canonical = json!({ "observable_history": history });
+    let bytes = serde_json::to_vec(&canonical)?;
+    Ok(sha256_hex(&bytes))
+}
+
+fn build_prefix_index(fixture: &Value) -> Result<BTreeMap<String, PrefixMeta>, Box<dyn Error>> {
+    let prefixes = fixture["observable_prefixes"].as_array()
+        .ok_or_else(|| invalid("observable_prefixes must be an array"))?;
+    if prefixes.is_empty() {
+        return Err(invalid("observable_prefixes must not be empty"));
+    }
+
+    let mut index = BTreeMap::<String, PrefixMeta>::new();
+    let mut signature_to_information_set = BTreeMap::<String, String>::new();
+    let mut information_set_to_signature = BTreeMap::<String, String>::new();
+
+    for prefix in prefixes {
+        let id = required_str(prefix, "prefix_id")?.to_owned();
+        let information_set_id = required_str(prefix, "expected_information_set")?.to_owned();
+        if id.is_empty() || information_set_id.is_empty() {
+            return Err(invalid("prefix and information-set IDs must be non-empty"));
+        }
+        let time_index = required_u64(prefix, "time_index")?;
+        let signature = canonical_prefix_signature(prefix)?;
+        let observable_history = prefix.get("observable_history")
+            .cloned().ok_or_else(|| invalid("observable_history is missing"))?;
+
+        if let Some(previous) = signature_to_information_set.get(&signature) {
+            if previous != &information_set_id {
+                return Err(invalid(format!(
+                    "equivalent observable prefixes map to different information sets: {previous} vs {information_set_id}"
+                )));
+            }
+        } else {
+            signature_to_information_set.insert(signature.clone(), information_set_id.clone());
+        }
+        if let Some(previous) = information_set_to_signature.get(&information_set_id) {
+            if previous != &signature {
+                return Err(invalid(format!(
+                    "information set {information_set_id} combines unequal observable prefixes"
+                )));
+            }
+        } else {
+            information_set_to_signature.insert(information_set_id.clone(), signature.clone());
+        }
+
+        if index.insert(id.clone(), PrefixMeta {
+            time_index,
+            information_set_id,
+            signature,
+            observable_history,
+        }).is_some() {
+            return Err(invalid(format!("duplicate observable prefix ID {id}")));
+        }
+    }
+    Ok(index)
+}
+
+fn expected_scenarios(fixture: &Value) -> Result<BTreeSet<String>, Box<dyn Error>> {
+    let scenarios = fixture["scenarios"].as_array()
+        .ok_or_else(|| invalid("scenarios must be an array"))?;
+    if scenarios.is_empty() {
+        return Err(invalid("scenarios must not be empty"));
+    }
+    let mut ids = BTreeSet::new();
+    for scenario in scenarios {
+        let id = required_str(scenario, "scenario_id")?.to_owned();
+        if id.is_empty() || !ids.insert(id.clone()) {
+            return Err(invalid(format!("empty or duplicate scenario ID {id}")));
+        }
+    }
+    Ok(ids)
+}
+
+fn evaluate_policy(
+    policy: &Value,
+    prefixes: &BTreeMap<String, PrefixMeta>,
+    expected_scenario_ids: &BTreeSet<String>,
+    known_actions: &BTreeSet<String>,
+    expected_time_indices: &BTreeSet<u64>,
+    expected_architecture_digest: &str,
+) -> Result<PolicyVerdict, Box<dyn Error>> {
+    let policy_id = required_str(policy, "policy_id")?.to_owned();
+    let reference_only = policy["reference_only"].as_bool()
+        .ok_or_else(|| invalid(format!("policy {policy_id} lacks reference_only boolean")))?;
+    let expected_gate = required_str(policy, "expected_nonanticipativity_gate")?.to_owned();
+    if !["pass", "reject_as_deployable_policy"].contains(&expected_gate.as_str()) {
+        return Err(invalid(format!("policy {policy_id} declares unsupported expected gate {expected_gate}")));
+    }
+    if (expected_gate == "reject_as_deployable_policy") != reference_only {
+        return Err(invalid(format!("policy {policy_id} reference_only and expected gate disagree")));
+    }
+
+    let traces = policy["traces"].as_array()
+        .ok_or_else(|| invalid(format!("policy {policy_id} traces must be an array")))?;
+    if traces.len() != expected_scenario_ids.len() {
+        return Err(invalid(format!("policy {policy_id} does not have one trace per registered scenario")));
+    }
+
+    // signature -> action -> scenarios where that action was selected
+    let mut actions_by_prefix = BTreeMap::<String, BTreeMap<String, BTreeSet<String>>>::new();
+    let mut info_by_prefix = BTreeMap::<String, (u64, String)>::new();
+    let mut seen_scenarios = BTreeSet::<String>::new();
+    let mut total_steps = 0_usize;
+
+    for trace in traces {
+        let architecture_digest = required_str(trace, "architecture_sha256")?;
+        if architecture_digest != expected_architecture_digest {
+            return Err(invalid(format!(
+                "policy {policy_id} has an architecture digest inconsistent with the frozen candidate"
+            )));
+        }
+        let scenario_id = required_str(trace, "scenario_id")?.to_owned();
+        if !expected_scenario_ids.contains(&scenario_id) || !seen_scenarios.insert(scenario_id.clone()) {
+            return Err(invalid(format!("policy {policy_id} has unknown or duplicate scenario trace {scenario_id}")));
+        }
+        let steps = trace["steps"].as_array()
+            .ok_or_else(|| invalid(format!("policy {policy_id}/{scenario_id} steps must be an array")))?;
+        if steps.len() != expected_time_indices.len() {
+            return Err(invalid(format!("policy {policy_id}/{scenario_id} has incomplete time coverage")));
+        }
+        let mut seen_times = BTreeSet::new();
+
+        for step in steps {
+            let time_index = required_u64(step, "time_index")?;
+            if !expected_time_indices.contains(&time_index) || !seen_times.insert(time_index) {
+                return Err(invalid(format!("policy {policy_id}/{scenario_id} has an unknown or duplicate time index {time_index}")));
+            }
+            let prefix_id = required_str(step, "observable_prefix_id")?;
+            let information_set_id = required_str(step, "information_set_id")?.to_owned();
+            let action = required_str(step, "action")?.to_owned();
+            if !known_actions.contains(&action) {
+                return Err(invalid(format!("policy {policy_id}/{scenario_id} uses unknown action {action}")));
+            }
+            let prefix = prefixes.get(prefix_id)
+                .ok_or_else(|| invalid(format!("policy {policy_id}/{scenario_id} references unknown prefix {prefix_id}")))?;
+            if prefix.time_index != time_index {
+                return Err(invalid(format!("prefix {prefix_id} time index disagrees with trace step")));
+            }
+            if prefix.information_set_id.as_str() != information_set_id.as_str() {
+                return Err(invalid(format!("forged information-set ID {information_set_id} for observable prefix {prefix_id}")));
+            }
+
+            let history = prefix.observable_history.as_array()
+                .ok_or_else(|| invalid("indexed observable_history is not an array"))?;
+            for historical_entry in history {
+                let historical_time = required_u64(historical_entry, "time_index")?;
+                if historical_time < time_index {
+                    let committed_action = required_str(historical_entry, "committed_action")?;
+                    let actual_step = steps.iter().find(|candidate| {
+                        candidate.get("time_index").and_then(Value::as_u64) == Some(historical_time)
+                    }).ok_or_else(|| invalid("observable history references an absent prior action"))?;
+                    if required_str(actual_step, "action")? != committed_action {
+                        return Err(invalid(format!(
+                            "observable history action at time {historical_time} disagrees with the policy trace"
+                        )));
+                    }
+                }
+            }
+
+            let entry = info_by_prefix.entry(prefix.signature.clone())
+                .or_insert((time_index, information_set_id.clone()));
+            if entry.0 != time_index || entry.1.as_str() != information_set_id.as_str() {
+                return Err(invalid("equivalent observable prefixes disagree on time or information set"));
+            }
+            actions_by_prefix.entry(prefix.signature.clone())
+                .or_default()
+                .entry(action)
+                .or_default()
+                .insert(scenario_id.clone());
+            total_steps += 1;
+        }
+        if &seen_times != expected_time_indices {
+            return Err(invalid(format!("policy {policy_id}/{scenario_id} does not cover each registered time exactly once")));
+        }
+    }
+
+    if &seen_scenarios != expected_scenario_ids {
+        return Err(invalid(format!("policy {policy_id} is missing registered scenarios")));
+    }
+
+    let mut conflicts = Vec::new();
+    for (signature, by_action) in actions_by_prefix {
+        if by_action.len() > 1 {
+            let (time_index, information_set_id) = info_by_prefix.get(&signature)
+                .ok_or_else(|| invalid("internal error: missing prefix information"))?;
+            let mut actions = by_action.keys().cloned().collect::<Vec<_>>();
+            actions.sort();
+            let mut scenarios = by_action.values()
+                .flat_map(|ids| ids.iter().cloned()).collect::<BTreeSet<_>>()
+                .into_iter().collect::<Vec<_>>();
+            scenarios.sort();
+            conflicts.push(NonAnticipativityConflict {
+                time_index: *time_index,
+                information_set_id: information_set_id.clone(),
+                observable_prefix_sha256: signature,
+                actions,
+                scenarios,
+            });
+        }
+    }
+
+    let actual_gate = if conflicts.is_empty() {
+        "pass"
+    } else if reference_only {
+        "reject_as_deployable_policy"
+    } else {
+        "fail"
+    }.to_owned();
+
+    if actual_gate != expected_gate {
+        return Err(invalid(format!(
+            "policy {policy_id} expected gate {expected_gate} but observed {actual_gate}"
+        )));
+    }
+
+    Ok(PolicyVerdict {
+        policy_id,
+        reference_only,
+        expected_gate,
+        actual_gate,
+        scenario_count: seen_scenarios.len(),
+        step_count: total_steps,
+        non_anticipativity_violation_count: conflicts.len(),
+        conflicts,
+    })
+}
+
+
+fn objective_value(trace: &Value, key: &str) -> Result<i64, Box<dyn Error>> {
+    let raw = trace.get("objective_vector")
+        .ok_or_else(|| invalid("trace objective_vector is missing"))?
+        .get(key).and_then(Value::as_u64)
+        .ok_or_else(|| invalid(format!("objective_vector.{key} must be an unsigned integer")))?;
+    i64::try_from(raw).map_err(|_| invalid(format!("objective_vector.{key} exceeds signed comparison range")))
+}
+
+fn objective_delta(
+    candidate_trace: &Value,
+    reference_trace: &Value,
+    key: &str,
+) -> Result<i64, Box<dyn Error>> {
+    let candidate = objective_value(candidate_trace, key)?;
+    let reference = objective_value(reference_trace, key)?;
+    candidate.checked_sub(reference)
+        .ok_or_else(|| invalid(format!("objective delta overflow for {key}")))
+}
+
+fn objective_reference_comparisons(
+    policies: &[Value],
+) -> Result<Vec<PolicyObjectiveReferenceComparison>, Box<dyn Error>> {
+    let reference = policies.iter()
+        .find(|policy| policy.get("policy_id").and_then(Value::as_str)
+            == Some("wait_and_see_oracle_noncausal_reference"))
+        .ok_or_else(|| invalid("missing wait-and-see objective reference policy"))?;
+    if reference.get("reference_only").and_then(Value::as_bool) != Some(true) {
+        return Err(invalid("wait-and-see objective reference must be non-deployable/reference-only"));
+    }
+    let reference_traces = reference["traces"].as_array()
+        .ok_or_else(|| invalid("wait-and-see reference traces must be an array"))?;
+    let mut reference_by_scenario = BTreeMap::<String, Value>::new();
+    for trace in reference_traces {
+        let scenario_id = required_str(trace, "scenario_id")?.to_owned();
+        if reference_by_scenario.insert(scenario_id.clone(), trace.clone()).is_some() {
+            return Err(invalid(format!("duplicate wait-and-see scenario trace {scenario_id}")));
+        }
+        // Ensure every named objective exists even if a policy happens to have a
+        // different objective vector later in the trace.
+        let _ = objective_value(trace, "essential_unserved_quanta")?;
+        let _ = objective_value(trace, "flexible_unserved_quanta")?;
+    }
+
+    let mut result = Vec::new();
+    for policy in policies {
+        if required_str(policy, "policy_id")? == "wait_and_see_oracle_noncausal_reference" {
+            continue;
+        }
+        let policy_id = required_str(policy, "policy_id")?.to_owned();
+        if policy["reference_only"].as_bool() != Some(false) {
+            return Err(invalid(format!("policy {policy_id} has an unknown reference_only classification")));
+        }
+        let traces = policy["traces"].as_array()
+            .ok_or_else(|| invalid(format!("policy {policy_id} traces must be an array")))?;
+        let mut scenario_deltas = Vec::new();
+        let mut worst_essential = 0_i64;
+        let mut worst_flexible = 0_i64;
+        let mut seen = BTreeSet::new();
+        for trace in traces {
+            let scenario_id = required_str(trace, "scenario_id")?.to_owned();
+            if !seen.insert(scenario_id.clone()) {
+                return Err(invalid(format!("duplicate scenario in objective comparison for {policy_id}")));
+            }
+            let reference_trace = reference_by_scenario.get(&scenario_id)
+                .ok_or_else(|| invalid(format!("no wait-and-see reference for scenario {scenario_id}")))?;
+            let essential_delta = objective_delta(trace, reference_trace, "essential_unserved_quanta")?;
+            let flexible_delta = objective_delta(trace, reference_trace, "flexible_unserved_quanta")?;
+            worst_essential = worst_essential.max(essential_delta);
+            worst_flexible = worst_flexible.max(flexible_delta);
+            scenario_deltas.push(ScenarioObjectiveDelta {
+                scenario_id,
+                essential_unserved_delta_vs_wait_and_see: essential_delta,
+                flexible_unserved_delta_vs_wait_and_see: flexible_delta,
+            });
+        }
+        if seen.len() != reference_by_scenario.len() {
+            return Err(invalid(format!("policy {policy_id} has incomplete scenario coverage for objective comparison")));
+        }
+        scenario_deltas.sort_by(|a,b| a.scenario_id.cmp(&b.scenario_id));
+        result.push(PolicyObjectiveReferenceComparison {
+            policy_id,
+            scenario_deltas,
+            worst_case_positive_excess_essential_unserved_quanta: worst_essential.max(0) as u64,
+            worst_case_positive_excess_flexible_unserved_quanta: worst_flexible.max(0) as u64,
+            semantics: "Signed per-objective difference from the selected wait-and-see reference schedule; positive means more unserved demand, negative means less for that objective. Positive-excess maxima preserve objective trade-offs. This is not an optimality gap to an exhaustive Pareto oracle, not one jointly attainable vector, and not a scalar score.",
+        });
+    }
+    Ok(result)
+}
+
+fn check_fixture_core(fixture: &Value, source_digest: String) -> Result<GateReport, Box<dyn Error>> {
+    if required_str(fixture, "schema_version")? != FIXTURE_SCHEMA {
+        return Err(invalid("unsupported non-anticipativity fixture schema"));
+    }
+    let claim_ceiling = required_str(fixture, "claim_ceiling")?;
+    if !claim_ceiling.contains("not site data") {
+        return Err(invalid("fixture is missing the synthetic-only claim ceiling"));
+    }
+
+    let model = fixture.get("model").ok_or_else(|| invalid("model object is missing"))?;
+    let architecture_manifest = model.get("architecture_manifest")
+        .ok_or_else(|| invalid("architecture_manifest is missing"))?;
+    if !architecture_manifest.is_object() {
+        return Err(invalid("architecture_manifest must be an object"));
+    }
+    let expected_architecture_digest = required_str(model, "architecture_sha256")?;
+    let computed_architecture_digest = sha256_hex(&serde_json::to_vec(architecture_manifest)?);
+    if expected_architecture_digest != computed_architecture_digest.as_str() {
+        return Err(invalid("architecture manifest SHA-256 mismatch"));
+    }
+
+    let scenario_ids = expected_scenarios(fixture)?;
+    let prefixes = build_prefix_index(fixture)?;
+    let expected_time_indices = prefixes.values().map(|prefix| prefix.time_index).collect::<BTreeSet<_>>();
+    if expected_time_indices.is_empty() {
+        return Err(invalid("fixture has no time indices"));
+    }
+    let known_actions = fixture["action_catalog"].as_object()
+        .ok_or_else(|| invalid("action_catalog must be an object"))?
+        .keys().cloned().collect::<BTreeSet<_>>();
+    if known_actions.is_empty() {
+        return Err(invalid("action catalog is empty"));
+    }
+
+    let policies = fixture["known_answer_traces"].as_array()
+        .ok_or_else(|| invalid("known_answer_traces must be an array"))?;
+    if policies.is_empty() {
+        return Err(invalid("fixture has no policy traces"));
+    }
+    let mut policy_verdicts = Vec::new();
+    let mut seen_policy_ids = BTreeSet::new();
+    for policy in policies {
+        let id = required_str(policy, "policy_id")?.to_owned();
+        if !seen_policy_ids.insert(id.clone()) {
+            return Err(invalid(format!("duplicate policy ID {id}")));
+        }
+        policy_verdicts.push(evaluate_policy(
+            policy, &prefixes, &scenario_ids, &known_actions, &expected_time_indices,
+            expected_architecture_digest,
+        )?);
+    }
+
+    let objective_reference_comparison = objective_reference_comparisons(policies)?;
+
+    let hold_policy = policy_verdicts.iter()
+        .find(|policy| policy.policy_id == "causal_policy_hold_for_critical")
+        .ok_or_else(|| invalid("fixture lacks causal hold policy"))?;
+    if hold_policy.actual_gate != "pass" {
+        return Err(invalid("causal hold policy did not pass"));
+    }
+
+    let declared_controls = fixture["required_negative_controls"].as_array()
+        .ok_or_else(|| invalid("required_negative_controls must be an array"))?;
+    let declared_negative_control_count = declared_controls.len();
+    if declared_negative_control_count < 8 {
+        return Err(invalid("fixture must declare at least eight negative controls"));
+    }
+
+    Ok(GateReport {
+        schema_version: REPORT_SCHEMA,
+        benchmark_id: "energy-causal-policy-vs-wait-and-see-v0.1",
+        status: "pass",
+        source_fixture_sha256: source_digest,
+        scenario_count: scenario_ids.len(),
+        observable_prefix_count: prefixes.len(),
+        policy_count: policy_verdicts.len(),
+        policy_verdicts,
+        objective_reference_comparison,
+        declared_negative_control_count,
+        gate_owned_negative_control_count: 0,
+        gate_owned_negative_controls_detected: 0,
+        external_negative_control_ids: Vec::new(),
+        negative_control_results: Vec::new(),
+        negative_controls_executed: false,
+        physical_feasibility_audit: "NOT_RUN_BY_THIS_BINARY; accepted causal traces require the independent dispatch audit",
+        measurement_scope: "Frozen synthetic information-consistency fixture. The binary executes seven gate-owned mutation controls across eight variants and verifies the causal traces plus rejection of the wait-and-see reference. Physical feasibility remains delegated to the independent dispatch audit.",
+        claim_ceiling: "Synthetic finite counterexample only. No site resilience, calibrated forecast skill, safety certification, or industry outperformance claim.",
+    })
+}
+
+
+const GATE_OWNED_NEGATIVE_CONTROLS: [&str; 7] = [
+    "change_one_t0_action_in_wait_and_see_trace_to_test_conflict_detection",
+    "assign_identical_observable_prefixes_different_information_set_ids",
+    "assign_different_observable_prefixes_same_information_set_id",
+    "insert_forecast_with_availability_time_after_action_time",
+    "omit_or_duplicate_a_time_step",
+    "change_architecture_digest_between_scenarios",
+    "tamper_with_trace_bytes_without_updating_receipt",
+];
+const EXTERNAL_NEGATIVE_CONTROL: &str =
+    "causal_but_physically_infeasible_trace_must_fail_dispatch_audit";
+
+fn position_by_string_field(
+    items: &[Value],
+    field: &str,
+    expected: &str,
+) -> Result<usize, Box<dyn Error>> {
+    items.iter().position(|item| item.get(field).and_then(Value::as_str) == Some(expected))
+        .ok_or_else(|| invalid(format!("missing {field}={expected}")))
+}
+
+fn find_policy_position(fixture: &Value, policy_id: &str) -> Result<usize, Box<dyn Error>> {
+    let policies = fixture["known_answer_traces"].as_array()
+        .ok_or_else(|| invalid("known_answer_traces must be an array"))?;
+    position_by_string_field(policies, "policy_id", policy_id)
+}
+
+fn find_trace_position(policy: &Value, scenario_id: &str) -> Result<usize, Box<dyn Error>> {
+    let traces = policy["traces"].as_array()
+        .ok_or_else(|| invalid("policy traces must be an array"))?;
+    position_by_string_field(traces, "scenario_id", scenario_id)
+}
+
+fn find_prefix_position(fixture: &Value, prefix_id: &str) -> Result<usize, Box<dyn Error>> {
+    let prefixes = fixture["observable_prefixes"].as_array()
+        .ok_or_else(|| invalid("observable_prefixes must be an array"))?;
+    position_by_string_field(prefixes, "prefix_id", prefix_id)
+}
+
+fn mutation_is_rejected(mutated: &Value) -> bool {
+    serde_json::to_vec(mutated)
+        .map(|bytes| check_fixture_core(mutated, sha256_hex(&bytes)).is_err())
+        .unwrap_or(true)
+}
+
+fn receipt_matches(bytes: &[u8], expected_sha256: &str) -> bool {
+    sha256_hex(bytes) == expected_sha256
+}
+
+fn run_negative_control_suite(
+    fixture: &Value,
+) -> Result<(Vec<NegativeControlResult>, Vec<String>), Box<dyn Error>> {
+    let declared = fixture["required_negative_controls"].as_array()
+        .ok_or_else(|| invalid("required_negative_controls must be an array"))?;
+    let declared_ids = declared.iter()
+        .map(|item| item.as_str().map(str::to_owned)
+            .ok_or_else(|| invalid("negative-control identifiers must be strings")))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let expected_ids = GATE_OWNED_NEGATIVE_CONTROLS.iter()
+        .map(|id| (*id).to_owned())
+        .chain(std::iter::once(EXTERNAL_NEGATIVE_CONTROL.to_owned()))
+        .collect::<BTreeSet<_>>();
+    if declared_ids != expected_ids || declared.len() != expected_ids.len() {
+        return Err(invalid("fixture negative-control registry differs from the exact v0.1 registered set"));
+    }
+
+    let mut results = Vec::new();
+
+    // Mutant 1: make the wait-and-see reference appear causal by forcing its two
+    // indistinguishable t=0 histories to use one action. Its frozen expected
+    // verdict must now disagree, so the golden gate must reject the mutation.
+    let mut mutant = fixture.clone();
+    let p = find_policy_position(&mutant, "wait_and_see_oracle_noncausal_reference")?;
+    let first_action = mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"].clone();
+    let second_action = mutant["known_answer_traces"][p]["traces"][1]["steps"][0]["action"].clone();
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][0]["action"] = second_action.clone();
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][1]["observable_prefix_id"] = Value::String("early-outage-revealed-soc0".to_owned());
+    mutant["known_answer_traces"][p]["traces"][0]["steps"][1]["information_set_id"] = Value::String("early-outage-revealed-soc0-t1".to_owned());
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[0].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: if detected { 1 } else { 0 },
+        note: format!("wait-and-see initial action was changed from {first_action} to {second_action}"),
+    });
+
+    // Mutant 2: alias the same observable history under a different information set.
+    let mut mutant = fixture.clone();
+    let common_idx = find_prefix_position(&mutant, "common-before-reveal")?;
+    let mut alias = mutant["observable_prefixes"][common_idx].clone();
+    alias["prefix_id"] = Value::String("negative-control-duplicate-common-prefix".to_owned());
+    alias["expected_information_set"] = Value::String("forged-split-information-set".to_owned());
+    mutant["observable_prefixes"].as_array_mut()
+        .ok_or_else(|| invalid("observable_prefixes must be an array"))?
+        .push(alias);
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[1].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: if detected { 1 } else { 0 },
+        note: "same policy-visible history assigned two information-set IDs".to_owned(),
+    });
+
+    // Mutant 3: merge distinct histories into the same information set.
+    let mut mutant = fixture.clone();
+    let early_idx = find_prefix_position(&mutant, "early-outage-revealed-soc1")?;
+    mutant["observable_prefixes"][early_idx]["expected_information_set"] = Value::String("shared-t0".to_owned());
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[2].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: if detected { 1 } else { 0 },
+        note: "different observable histories merged into one information set".to_owned(),
+    });
+
+    // Mutant 4: make a future forecast appear available before the action.
+    let mut mutant = fixture.clone();
+    let common_idx = find_prefix_position(&mutant, "common-before-reveal")?;
+    mutant["observable_prefixes"][common_idx]["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+    mutant["observable_prefixes"][common_idx]["observable_history"][0]["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[3].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: if detected { 1 } else { 0 },
+        note: "forecast availability moved past the t=0 action boundary".to_owned(),
+    });
+
+    // Mutant 5 exercises both omitted and duplicate time steps.
+    let mut variants_detected = 0_usize;
+    let mut omitted = fixture.clone();
+    let hold_p = find_policy_position(&omitted, "causal_policy_hold_for_critical")?;
+    let normal_t = find_trace_position(&omitted["known_answer_traces"][hold_p], "no_outage")?;
+    omitted["known_answer_traces"][hold_p]["traces"][normal_t]["steps"].as_array_mut()
+        .ok_or_else(|| invalid("steps must be an array"))?.pop();
+    variants_detected += if mutation_is_rejected(&omitted) { 1 } else { 0 };
+
+    let mut duplicated = fixture.clone();
+    let hold_p = find_policy_position(&duplicated, "causal_policy_hold_for_critical")?;
+    let normal_t = find_trace_position(&duplicated["known_answer_traces"][hold_p], "no_outage")?;
+    let repeated = duplicated["known_answer_traces"][hold_p]["traces"][normal_t]["steps"][0].clone();
+    duplicated["known_answer_traces"][hold_p]["traces"][normal_t]["steps"].as_array_mut()
+        .ok_or_else(|| invalid("steps must be an array"))?.push(repeated);
+    variants_detected += if mutation_is_rejected(&duplicated) { 1 } else { 0 };
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[4].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if variants_detected == 2 { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 2,
+        detected_variants: variants_detected,
+        note: "both omitted and duplicated time-step variants were run".to_owned(),
+    });
+
+    // Mutant 6: bind one scenario trace to a different architecture digest.
+    let mut mutant = fixture.clone();
+    let hold_p = find_policy_position(&mutant, "causal_policy_hold_for_critical")?;
+    mutant["known_answer_traces"][hold_p]["traces"][0]["architecture_sha256"] = Value::String("0".repeat(64));
+    let detected = mutation_is_rejected(&mutant);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[5].to_owned(),
+        scope: "nonanticipativity_gate".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: if detected { 1 } else { 0 },
+        note: "one scenario trace architecture digest was corrupted".to_owned(),
+    });
+
+    // Mutant 7: verify a receipt bound to original bytes rejects modified bytes.
+    let original_bytes = serde_json::to_vec(fixture)?;
+    let expected_receipt = sha256_hex(&original_bytes);
+    let mut tampered_bytes = original_bytes.clone();
+    tampered_bytes.push(b' ');
+    let detected = receipt_matches(&original_bytes, &expected_receipt)
+        && !receipt_matches(&tampered_bytes, &expected_receipt);
+    results.push(NegativeControlResult {
+        control_id: GATE_OWNED_NEGATIVE_CONTROLS[6].to_owned(),
+        scope: "sha256_receipt_primitive".to_owned(),
+        status: if detected { "detected".to_owned() } else { "missed".to_owned() },
+        mutation_variants: 1,
+        detected_variants: if detected { 1 } else { 0 },
+        note: "stale receipt was rejected after the exact input bytes changed".to_owned(),
+    });
+
+    // The physical-feasibility control deliberately remains out of scope here.
+    // This binary has no dispatcher model; the E2E workflow's independent audit
+    // remains the required owner of that control.
+    let external = vec![EXTERNAL_NEGATIVE_CONTROL.to_owned()];
+    Ok((results, external))
+}
+
+fn check_fixture(fixture: &Value, source_digest: String) -> Result<GateReport, Box<dyn Error>> {
+    let mut report = check_fixture_core(fixture, source_digest)?;
+    let (results, external_ids) = run_negative_control_suite(fixture)?;
+    let detected = results.iter()
+        .filter(|result| result.status == "detected")
+        .count();
+    let expected_gate_controls = GATE_OWNED_NEGATIVE_CONTROLS.len();
+    if results.len() != expected_gate_controls || detected != expected_gate_controls {
+        let missed = results.iter().filter(|result| result.status != "detected")
+            .map(|result| result.control_id.clone()).collect::<Vec<_>>();
+        return Err(invalid(format!("negative-control suite did not detect every gate-owned mutation: {missed:?}")));
+    }
+    report.gate_owned_negative_control_count = expected_gate_controls;
+    report.gate_owned_negative_controls_detected = detected;
+    report.external_negative_control_ids = external_ids;
+    report.negative_control_results = results;
+    report.negative_controls_executed = true;
+    Ok(report)
+}
+
+fn run_report(input: &Path, output: &Path) -> Result<GateReport, Box<dyn Error>> {
+    let input_bytes = fs::read(input)?;
+    let source_digest = sha256_hex(&input_bytes);
+    let fixture: Value = serde_json::from_slice(&input_bytes)?;
+    let report = check_fixture(&fixture, source_digest)?;
+    let output_bytes = serde_json::to_vec_pretty(&report)?;
+    fs::write(output, &output_bytes)?;
+    println!("PASS: qualified {} policy traces across {} scenarios and {} observable prefixes",
+        report.policy_count, report.scenario_count, report.observable_prefix_count);
+    println!("source_fixture_sha256={}", report.source_fixture_sha256);
+    for comparison in &report.objective_reference_comparison {
+        println!("objective_reference_delta policy={} worst_case_positive_excess_essential={} worst_case_positive_excess_flexible={}",
+            comparison.policy_id,
+            comparison.worst_case_positive_excess_essential_unserved_quanta,
+            comparison.worst_case_positive_excess_flexible_unserved_quanta);
+        for delta in &comparison.scenario_deltas {
+            println!("objective_reference_scenario policy={} scenario={} essential_delta={} flexible_delta={}",
+                comparison.policy_id,
+                delta.scenario_id,
+                delta.essential_unserved_delta_vs_wait_and_see,
+                delta.flexible_unserved_delta_vs_wait_and_see);
+        }
+    }
+    println!("declared_negative_control_count={}", report.declared_negative_control_count);
+    println!("gate_negative_controls={}/{}", report.gate_owned_negative_controls_detected, report.gate_owned_negative_control_count);
+    println!("negative_controls_executed={}", report.negative_controls_executed);
+    println!("external_negative_controls_delegated={}", report.external_negative_control_ids.len());
+    for control in &report.negative_control_results {
+        println!("negative_control={}: status={} variants={}/{} scope={}",
+            control.control_id, control.status, control.detected_variants, control.mutation_variants, control.scope);
+    }
+    for control_id in &report.external_negative_control_ids {
+        println!("negative_control={}: status=delegated_to_independent_dispatch_audit", control_id);
+    }
+    println!("physical_feasibility_audit=NOT_RUN_BY_THIS_BINARY");
+    println!("report_sha256={}", sha256_hex(&output_bytes));
+    Ok(report)
+}
+
+fn main() {
+    let args = env::args().collect::<Vec<_>>();
+    if args.len() != 3 {
+        eprintln!("usage: energy_nonanticipativity_gate <counterexample-fixture.json> <output-report.json>");
+        std::process::exit(2);
+    }
+    if let Err(error) = run_report(Path::new(&args[1]), Path::new(&args[2])) {
+        eprintln!("energy non-anticipativity gate failed: {error}");
+        std::process::exit(2);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIXTURE_BYTES: &[u8] = include_bytes!("../../fixtures/energy-nonanticipativity-counterexample-v0.1.json");
+
+    fn fixture() -> Value {
+        serde_json::from_slice(FIXTURE_BYTES).expect("frozen fixture must be valid JSON")
+    }
+
+    fn report_for(fixture: &Value) -> Result<GateReport, Box<dyn Error>> {
+        check_fixture(fixture, sha256_hex(&serde_json::to_vec(fixture)?))
+    }
+
+    fn policy_mut<'a>(fixture: &'a mut Value, id: &str) -> &'a mut Value {
+        fixture["known_answer_traces"].as_array_mut().unwrap()
+            .iter_mut()
+            .find(|policy| policy["policy_id"].as_str() == Some(id))
+            .unwrap()
+    }
+
+    #[test]
+    fn runtime_mutation_suite_executes_every_gate_owned_control() {
+        let f = fixture();
+        let (results, external) = run_negative_control_suite(&f).unwrap();
+        assert_eq!(results.len(), 7);
+        assert!(results.iter().all(|result| result.status == "detected"));
+        assert_eq!(results.iter().map(|result| result.mutation_variants).sum::<usize>(), 8);
+        assert_eq!(external, vec![EXTERNAL_NEGATIVE_CONTROL.to_owned()]);
+    }
+
+    #[test]
+    fn golden_fixture_passes_and_detects_wait_and_see_reference() {
+        let report = report_for(&fixture()).unwrap();
+        assert_eq!(report.status, "pass");
+        assert_eq!(report.scenario_count, 2);
+        assert_eq!(report.policy_count, 3);
+        assert_eq!(report.declared_negative_control_count, 8);
+        assert_eq!(report.gate_owned_negative_control_count, 7);
+        assert_eq!(report.gate_owned_negative_controls_detected, 7);
+        assert_eq!(report.negative_control_results.len(), 7);
+        assert_eq!(report.external_negative_control_ids, vec![EXTERNAL_NEGATIVE_CONTROL.to_owned()]);
+        assert!(report.negative_controls_executed);
+        assert!(report.negative_control_results.iter().all(|result| result.status == "detected"));
+        let oracle = report.policy_verdicts.iter()
+            .find(|policy| policy.policy_id == "wait_and_see_oracle_noncausal_reference").unwrap();
+        assert_eq!(oracle.actual_gate, "reject_as_deployable_policy");
+        assert_eq!(oracle.non_anticipativity_violation_count, 1);
+        assert_eq!(oracle.conflicts[0].time_index, 0);
+    }
+
+    #[test]
+    fn objective_comparison_preserves_tradeoffs_without_scalarizing() {
+        let report = report_for(&fixture()).unwrap();
+        assert_eq!(report.objective_reference_comparison.len(), 2);
+        let hold = report.objective_reference_comparison.iter()
+            .find(|entry| entry.policy_id == "causal_policy_hold_for_critical").unwrap();
+        assert_eq!(hold.worst_case_positive_excess_essential_unserved_quanta, 0);
+        assert_eq!(hold.worst_case_positive_excess_flexible_unserved_quanta, 1);
+        let discharge = report.objective_reference_comparison.iter()
+            .find(|entry| entry.policy_id == "causal_policy_discharge_to_flexible").unwrap();
+        assert_eq!(discharge.worst_case_positive_excess_essential_unserved_quanta, 1);
+        assert_eq!(discharge.worst_case_positive_excess_flexible_unserved_quanta, 0);
+        let early = discharge.scenario_deltas.iter()
+            .find(|delta| delta.scenario_id == "early_outage").unwrap();
+        assert_eq!(early.essential_unserved_delta_vs_wait_and_see, 1);
+        assert_eq!(early.flexible_unserved_delta_vs_wait_and_see, -1);
+        assert!(discharge.semantics.contains("not an optimality gap"));
+    }
+
+    #[test]
+    fn causal_policies_pass_and_can_react_after_observation_diverges() {
+        let report = report_for(&fixture()).unwrap();
+        for id in ["causal_policy_hold_for_critical", "causal_policy_discharge_to_flexible"] {
+            let policy = report.policy_verdicts.iter().find(|p| p.policy_id == id).unwrap();
+            assert_eq!(policy.actual_gate, "pass");
+            assert_eq!(policy.non_anticipativity_violation_count, 0);
+        }
+        let fixture = fixture();
+        let hold = fixture["known_answer_traces"].as_array().unwrap()
+            .iter().find(|p| p["policy_id"].as_str() == Some("causal_policy_hold_for_critical")).unwrap();
+        let early = hold["traces"].as_array().unwrap().iter()
+            .find(|t| t["scenario_id"].as_str() == Some("early_outage")).unwrap();
+        let normal = hold["traces"].as_array().unwrap().iter()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        assert_ne!(early["steps"][1]["action"], normal["steps"][1]["action"]);
+    }
+
+    #[test]
+    fn conflicting_t0_action_in_a_declared_causal_policy_fails() {
+        let mut f = fixture();
+        let policy = policy_mut(&mut f, "causal_policy_hold_for_critical");
+        let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        normal["steps"][0]["action"] = Value::String("discharge_to_flexible".to_owned());
+        // Re-point the later observable state to the state implied by discharge.
+        normal["steps"][1]["observable_prefix_id"] = Value::String("no-outage-revealed-soc0".to_owned());
+        normal["steps"][1]["information_set_id"] = Value::String("no-outage-revealed-soc0-t1".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn forged_information_set_label_fails_closed() {
+        let mut f = fixture();
+        let policy = policy_mut(&mut f, "causal_policy_hold_for_critical");
+        let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        normal["steps"][0]["information_set_id"] = Value::String("forged-future-aware-set".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn historical_committed_action_must_match_the_actual_trace() {
+        let mut f = fixture();
+        let policy = policy_mut(&mut f, "causal_policy_hold_for_critical");
+        let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        normal["steps"][1]["observable_prefix_id"] = Value::String("no-outage-revealed-soc0".to_owned());
+        normal["steps"][1]["information_set_id"] = Value::String("no-outage-revealed-soc0-t1".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn same_observable_prefix_cannot_be_split_into_two_information_sets() {
+        let mut f = fixture();
+        let mut alias = f["observable_prefixes"].as_array().unwrap()[0].clone();
+        alias["prefix_id"] = Value::String("forged-alias-of-common-prefix".to_owned());
+        alias["expected_information_set"] = Value::String("different-information-set".to_owned());
+        f["observable_prefixes"].as_array_mut().unwrap().push(alias);
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn unequal_observable_histories_cannot_share_an_information_set() {
+        let mut f = fixture();
+        let early = f["observable_prefixes"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["prefix_id"].as_str() == Some("early-outage-revealed-soc1")).unwrap();
+        early["expected_information_set"] = Value::String("shared-t0".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn missing_or_duplicate_time_steps_fail_closed() {
+        let mut missing = fixture();
+        let policy = policy_mut(&mut missing, "causal_policy_hold_for_critical");
+        let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        normal["steps"].as_array_mut().unwrap().pop();
+        assert!(report_for(&missing).is_err());
+
+        let mut duplicate = fixture();
+        let policy = policy_mut(&mut duplicate, "causal_policy_hold_for_critical");
+        let normal = policy["traces"].as_array_mut().unwrap().iter_mut()
+            .find(|t| t["scenario_id"].as_str() == Some("no_outage")).unwrap();
+        let first = normal["steps"][0].clone();
+        normal["steps"].as_array_mut().unwrap().push(first);
+        assert!(report_for(&duplicate).is_err());
+    }
+
+    #[test]
+    fn missing_or_duplicate_scenario_trace_fails_closed() {
+        let mut missing = fixture();
+        let policy = policy_mut(&mut missing, "causal_policy_hold_for_critical");
+        policy["traces"].as_array_mut().unwrap().pop();
+        assert!(report_for(&missing).is_err());
+
+        let mut duplicate = fixture();
+        let policy = policy_mut(&mut duplicate, "causal_policy_hold_for_critical");
+        let first = policy["traces"][0].clone();
+        policy["traces"].as_array_mut().unwrap().push(first);
+        assert!(report_for(&duplicate).is_err());
+    }
+
+    #[test]
+    fn a_noncausal_oracle_cannot_be_relabelled_as_a_passing_policy() {
+        let mut f = fixture();
+        let oracle = policy_mut(&mut f, "wait_and_see_oracle_noncausal_reference");
+        oracle["reference_only"] = Value::Bool(false);
+        oracle["expected_nonanticipativity_gate"] = Value::String("pass".to_owned());
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn architecture_digest_mismatch_fails_closed() {
+        let mut f = fixture();
+        let policy = policy_mut(&mut f, "causal_policy_hold_for_critical");
+        policy["traces"][0]["architecture_sha256"] = Value::String("0".repeat(64));
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn future_forecast_is_rejected_at_the_decision_boundary() {
+        let mut f = fixture();
+        let common = f["observable_prefixes"].as_array_mut().unwrap().iter_mut()
+            .find(|p| p["prefix_id"].as_str() == Some("common-before-reveal")).unwrap();
+        common["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+        common["observable_history"][0]["available_forecast"]["future_grid_state"]["available_at_time_index"] = Value::from(1);
+        assert!(report_for(&f).is_err());
+    }
+
+    #[test]
+    fn reported_source_digest_changes_when_fixture_bytes_change() {
+        let original = fixture();
+        let original_report = report_for(&original).unwrap();
+        let mut changed = original;
+        changed["status"] = Value::String("same schema, revised provenance note".to_owned());
+        let changed_report = report_for(&changed).unwrap();
+        assert_ne!(original_report.source_fixture_sha256, changed_report.source_fixture_sha256);
+    }
+}
