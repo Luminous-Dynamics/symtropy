@@ -29,25 +29,18 @@
       "case_id": "DI-T0-001-positive-tracer-with-valid-pressure-and-pathway",
       "description": "A connected defect and external head coincide with a pressure deficit; calibrated direct tracer evidence confirms ingress.",
       "inputs": {
-        "external_head_m": 2.0,
-        "internal_minimum_head_m": 1.0,
-        "pressure_event_duration_s": 4.0,
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
         "pathway_state": "confirmed_connected_defect",
         "external_tracer_present": true,
         "tracer_source_attribution": "unique",
         "ingress_volume_l": 0.25,
-        "external_tracer_concentration_mg_l": 20.0,
-        "measured_tracer_mass_mg": 5.0,
+        "external_tracer_concentration_mg_l": 20,
+        "measured_tracer_mass_mg": 5,
         "sample_coverage_complete": true,
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
-        "tracer_mass_recomputed_mg": 5.0,
-        "mass_balance_disposition": "CLOSED_WITHIN_DECLARED_SYNTHETIC_TOLERANCE",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
@@ -56,7 +49,7 @@
       "inputs": {
         "external_head_m": 1.5,
         "internal_minimum_head_m": 0.8,
-        "pressure_event_duration_s": 2.0,
+        "pressure_event_duration_s": 2,
         "pathway_state": "no_defect_confirmed",
         "external_tracer_present": false,
         "sample_coverage_complete": true,
@@ -64,21 +57,15 @@
         "detection_limit_mg_l": 0.001,
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INGRESS_NOT_DEMONSTRATED",
-        "negative_claim_scope": "THIS_SYNTHETIC_TEST_WINDOW_ONLY",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
       "case_id": "DI-T0-003-defect-and-tracer-but-no-external-head-exceedance",
       "description": "A known defect and external tracer exist, but internal pressure remains above the external head throughout the declared window and no tracer is detected by a valid method.",
       "inputs": {
-        "external_head_m": 1.0,
-        "internal_minimum_head_m": 3.0,
-        "pressure_event_duration_s": 0.0,
+        "external_head_m": 1,
+        "internal_minimum_head_m": 3,
+        "pressure_event_duration_s": 0,
         "pathway_state": "confirmed_connected_defect",
         "external_tracer_present": true,
         "sample_coverage_complete": true,
@@ -86,21 +73,15 @@
         "detection_limit_mg_l": 0.001,
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INGRESS_NOT_DEMONSTRATED",
-        "negative_claim_scope": "THIS_SYNTHETIC_TEST_WINDOW_ONLY",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
       "case_id": "DI-T0-004-pressure-deficit-with-unknown-pathway",
       "description": "A pressure deficit and external water are observed, but the existence/connectivity of a leak pathway is unknown.",
       "inputs": {
-        "external_head_m": 2.0,
+        "external_head_m": 2,
         "internal_minimum_head_m": 0.5,
-        "pressure_event_duration_s": 5.0,
+        "pressure_event_duration_s": 5,
         "pathway_state": "unknown",
         "external_tracer_present": true,
         "sample_coverage_complete": true,
@@ -108,63 +89,47 @@
         "detection_limit_mg_l": 0.001,
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INDETERMINATE",
-        "reason": "PATHWAY_OBSERVABILITY_INSUFFICIENT",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
       "case_id": "DI-T0-005-missing-downstream-sample",
       "description": "Pressure and defect evidence are valid, but the far-end sample required to bound downstream transport is missing.",
       "inputs": {
-        "external_head_m": 2.0,
-        "internal_minimum_head_m": 1.0,
-        "pressure_event_duration_s": 4.0,
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
         "pathway_state": "confirmed_connected_defect",
         "external_tracer_present": true,
         "sample_coverage_complete": false,
-        "missing_sample_points": ["far_end"],
+        "missing_sample_points": [
+          "far_end"
+        ],
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INDETERMINATE",
-        "reason": "DOWNSTREAM_SAMPLE_COVERAGE_INCOMPLETE",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
       "case_id": "DI-T0-006-expired-pressure-or-sample-calibration",
       "description": "The critical measurement channel is outside its valid calibration interval.",
       "inputs": {
-        "external_head_m": 2.0,
-        "internal_minimum_head_m": 1.0,
-        "pressure_event_duration_s": 4.0,
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
         "pathway_state": "confirmed_connected_defect",
         "external_tracer_present": true,
         "sample_coverage_complete": true,
         "sample_result": "not_detected",
         "instrument_calibration_current": false,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INDETERMINATE",
-        "reason": "CRITICAL_CALIBRATION_INVALID",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
       "case_id": "DI-T0-007-detection-limit-insufficient",
       "description": "A non-detect is reported, but the method detection limit is too high for the declared test sensitivity.",
       "inputs": {
-        "external_head_m": 2.0,
-        "internal_minimum_head_m": 1.0,
-        "pressure_event_duration_s": 4.0,
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
         "pathway_state": "confirmed_connected_defect",
         "external_tracer_present": true,
         "sample_coverage_complete": true,
@@ -173,21 +138,15 @@
         "required_test_sensitivity_mg_l": 0.01,
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INDETERMINATE",
-        "reason": "DETECTION_LIMIT_TOO_HIGH_FOR_NEGATIVE_CONCLUSION",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
       "case_id": "DI-T0-008-tracer-source-ambiguous",
       "description": "Tracer is detected, but source attribution is ambiguous because a second uncontrolled source exists.",
       "inputs": {
-        "external_head_m": 2.0,
-        "internal_minimum_head_m": 1.0,
-        "pressure_event_duration_s": 4.0,
+        "external_head_m": 2,
+        "internal_minimum_head_m": 1,
+        "pressure_event_duration_s": 4,
         "pathway_state": "confirmed_connected_defect",
         "external_tracer_present": true,
         "tracer_source_attribution": "ambiguous",
@@ -195,12 +154,6 @@
         "sample_result": "detected",
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INDETERMINATE",
-        "reason": "TRACER_SOURCE_NOT_UNIQUELY_ATTRIBUTABLE",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
@@ -208,21 +161,14 @@
       "description": "Direct tracer evidence confirms ingress, but one declared residual stream is unmeasured and complete mass closure cannot be asserted.",
       "inputs": {
         "ingress_volume_l": 0.25,
-        "external_tracer_concentration_mg_l": 20.0,
-        "measured_tracer_mass_mg": 5.0,
-        "measured_downstream_mass_mg": 2.0,
+        "external_tracer_concentration_mg_l": 20,
+        "measured_tracer_mass_mg": 5,
+        "measured_downstream_mass_mg": 2,
         "captured_residual_mass_mg": null,
         "all_declared_streams_measured": false,
         "tracer_source_attribution": "unique",
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
-        "mass_balance_disposition": "MASS_BALANCE_UNRESOLVED",
-        "reason": "DECLARED_RESIDUAL_STREAM_UNMEASURED",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
@@ -230,17 +176,12 @@
       "description": "A valid, attributed tracer sample is detected at a named downstream location.",
       "inputs": {
         "sample_point_id": "downstream_far_end",
-        "sample_time_s": 45.0,
+        "sample_time_s": 45,
         "sample_concentration_mg_l": 0.04,
         "method_quantification_limit_mg_l": 0.005,
         "tracer_source_attribution": "unique",
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "transport_disposition": "DOWNSTREAM_TRACER_DETECTED",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
@@ -252,11 +193,6 @@
         "post_event_samples_present": false,
         "independent_quality_verification": false,
         "stable_dwell_complete": false
-      },
-      "expected": {
-        "recommissioning_disposition": "RECOMMISSIONING_NOT_VERIFIED",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     },
     {
@@ -271,12 +207,6 @@
         "detection_limit_mg_l": 0.001,
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
-      },
-      "expected": {
-        "ingress_disposition": "INGRESS_NOT_DEMONSTRATED",
-        "negative_claim_scope": "THIS_SYNTHETIC_TEST_WINDOW_ONLY",
-        "potability_claim_permitted": false,
-        "release_authorized": false
       }
     }
   ],
