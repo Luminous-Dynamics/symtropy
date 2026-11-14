@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! # symtropy-bevy-scene
 //!
-//! Opinionated scene scaffolding for Bevy 0.18 apps. Adds a single plugin
+//! Opinionated scene scaffolding for Bevy 0.19 apps. Adds a single plugin
 //! that sets up sensible defaults so demos don't repeat the
 //! camera/light/clear-color boilerplate.
 //!
@@ -66,6 +66,8 @@ pub struct SymtropySceneConfig {
     pub sun_color: Color,
     /// Sun rotation as Euler angles (XYZ radians). Default upper-front-right.
     pub sun_euler: Vec3,
+    /// Whether the default sun casts shadow maps. Disable for low-power profiles or profiles that do not use real-time shadows.
+    pub sun_shadow_maps_enabled: bool,
 }
 
 impl Default for SymtropySceneConfig {
@@ -78,6 +80,8 @@ impl Default for SymtropySceneConfig {
             sun_illuminance: 8_000.0,
             sun_color: Color::linear_rgb(1.0, 0.98, 0.92),
             sun_euler: Vec3::new(-0.7, 0.5, 0.0),
+            // Quality-first default; constrained devices can opt out explicitly.
+            sun_shadow_maps_enabled: true,
         }
     }
 }
@@ -116,6 +120,7 @@ impl Plugin for SymtropyScenePlugin {
                 illuminance: cfg.sun_illuminance,
                 color: cfg.sun_color,
                 euler: cfg.sun_euler,
+                shadow_maps_enabled: cfg.sun_shadow_maps_enabled,
             };
             app.insert_resource(sun);
             app.add_systems(Startup, spawn_sun_system);
@@ -128,6 +133,7 @@ struct SunConfig {
     illuminance: f32,
     color: Color,
     euler: Vec3,
+    shadow_maps_enabled: bool,
 }
 
 fn spawn_sun_system(mut commands: Commands, sun: Res<SunConfig>) {
@@ -135,7 +141,7 @@ fn spawn_sun_system(mut commands: Commands, sun: Res<SunConfig>) {
         DirectionalLight {
             illuminance: sun.illuminance,
             color: sun.color,
-            shadow_maps_enabled: false,
+            shadow_maps_enabled: sun.shadow_maps_enabled,
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(
@@ -162,11 +168,24 @@ pub fn fixed_camera(position: Vec3, target: Vec3) -> impl Bundle {
 /// One-line directional light spawn for cases where you want a second sun
 /// (e.g., a fill light) on top of `SymtropyScenePlugin`'s default sun.
 pub fn fixed_light(illuminance: f32, color: Color, euler_xyz: Vec3) -> impl Bundle {
+    fixed_light_with_shadows(illuminance, color, euler_xyz, false)
+}
+
+/// Directional-light helper with explicit shadow-map control.
+///
+/// Prefer this helper in quality presets so shadow cost is a deliberate choice
+/// rather than an accidental global default.
+pub fn fixed_light_with_shadows(
+    illuminance: f32,
+    color: Color,
+    euler_xyz: Vec3,
+    shadow_maps_enabled: bool,
+) -> impl Bundle {
     (
         DirectionalLight {
             illuminance,
             color,
-            shadow_maps_enabled: false,
+            shadow_maps_enabled,
             ..default()
         },
         Transform::from_rotation(Quat::from_euler(
@@ -186,6 +205,7 @@ mod tests {
     fn config_default_is_sane() {
         let cfg = SymtropySceneConfig::default();
         assert!(cfg.spawn_sun);
+        assert!(cfg.sun_shadow_maps_enabled);
         assert!(cfg.sun_illuminance > 0.0);
         assert!(cfg.ambient_brightness > 0.0);
     }
@@ -222,6 +242,58 @@ mod tests {
             app.world()
                 .contains_resource::<bevy::light::GlobalAmbientLight>()
         );
+    }
+
+    #[test]
+    fn configured_shadow_setting_reaches_spawned_sun() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.add_plugins(bevy::asset::AssetPlugin::default());
+        app.add_plugins(SymtropyScenePlugin::with_config(SymtropySceneConfig {
+            sun_shadow_maps_enabled: false,
+            ..default()
+        }));
+        app.update();
+
+        let world = app.world_mut();
+        let mut query = world.query::<&DirectionalLight>();
+        let sun = query
+            .iter(world)
+            .next()
+            .expect("configured sun should spawn");
+        assert!(!sun.shadow_maps_enabled);
+    }
+
+    #[test]
+    fn fixed_light_shadow_helper_preserves_requested_mode() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins);
+        app.add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(fixed_light_with_shadows(
+                4_000.0,
+                Color::WHITE,
+                Vec3::ZERO,
+                true,
+            ));
+        });
+        app.update();
+
+        let world = app.world_mut();
+        let mut query = world.query::<&DirectionalLight>();
+        let light = query
+            .iter(world)
+            .next()
+            .expect("secondary light should spawn");
+        assert!(light.shadow_maps_enabled);
+    }
+
+    #[test]
+    fn explicit_low_power_profile_disables_sun_shadows() {
+        let cfg = SymtropySceneConfig {
+            sun_shadow_maps_enabled: false,
+            ..default()
+        };
+        assert!(!cfg.sun_shadow_maps_enabled);
     }
 
     #[test]
