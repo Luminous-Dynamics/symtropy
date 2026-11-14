@@ -163,7 +163,7 @@ mod tests{
     fn unlabeled_adaptation_is_not_automatically_leakage() {
         let evaluated = result();
         let p = item(&evaluated, "A2-component-holdout-sensor-shift-adapted");
-        assert_eq!(p["target_domain_access"], "UNLABELED_ADAPTATION");
+        assert_eq!(p.get("target_domain_access").and_then(Value::as_str), Some("UNLABELED_ADAPTATION"));
         assert_eq!(p["leakage_risk"], "LOW");
     }
     #[test]fn documented_concern_is_some_concerns(){assert_eq!(item(&result(),"A3-machine-holdout-with-concern")["leakage_risk"],"SOME_CONCERNS");}
@@ -176,7 +176,7 @@ mod tests{
         fixture["profiles"][3]["leakage_audit"]["documented_concerns"] = json!([]);
         let evaluated = evaluate(&fixture).unwrap();
         let p = item(&evaluated, "A3-machine-holdout-with-concern");
-        assert_eq!(p["target_domain_access"], "LABELED_ADAPTATION");
+        assert_eq!(p.get("target_domain_access").and_then(Value::as_str), Some("LABELED_ADAPTATION"));
         assert_eq!(p["leakage_risk"], "LOW");
     }
     #[test]fn test_tuning_is_high_leakage(){let mut v=fixture();v["profiles"][3]["leakage_audit"]["model_selection_data"]=json!("TEST_USED");assert_eq!(item(&evaluate(&v).unwrap(),"A3-machine-holdout-with-concern")["leakage_risk"],"HIGH");}
