@@ -108,7 +108,10 @@ fn compute(case: &Value) -> Result<Value, String> {
             require(closure >= 0.0, "closure duration must be non-negative")?;
             require(initial_pressure > 0.0, "initial absolute pressure must be positive")?;
             let ratio = closure / round_trip;
-            require(ratio < 1.0, "Joukowsky case requires closure shorter than round-trip wave time")?;
+            require(
+                ratio < 1.0,
+                "Joukowsky case requires closure shorter than round-trip wave time",
+            )?;
             let (pressure_change, head_change) = joukowsky(inputs)?;
             Ok(json!({
                 "disposition": "JOUKOWSKY_APPLICABLE_WITHIN_DECLARED_ASSUMPTIONS",
@@ -148,7 +151,10 @@ fn compute(case: &Value) -> Result<Value, String> {
         "WT-T0-004-slow-closure-outside-instantaneous-assumption" => {
             let (_, round_trip) = wave_times(inputs)?;
             let closure = number(inputs, "closure_duration_s")?;
-            require(closure > round_trip, "case requires closure longer than round-trip wave time")?;
+            require(
+                closure > round_trip,
+                "case requires closure longer than round-trip wave time",
+            )?;
             let ratio = closure / round_trip;
             Ok(json!({
                 "disposition": "JOUKOWSKY_INSTANTANEOUS_FORMULA_NOT_APPLICABLE",
@@ -159,7 +165,10 @@ fn compute(case: &Value) -> Result<Value, String> {
             }))
         }
         "WT-T0-005-wave-speed-missing" => {
-            require(field(inputs, "wave_speed_m_s")?.is_null(), "case requires missing wave speed")?;
+            require(
+                field(inputs, "wave_speed_m_s")?.is_null(),
+                "case requires missing wave speed",
+            )?;
             Ok(json!({
                 "disposition": "INDETERMINATE",
                 "reason": "WAVE_SPEED_UNAVAILABLE",
@@ -270,16 +279,34 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
 
     require(text(oracle, "schema_version")? == "0.1.0", "oracle schema mismatch")?;
     require(text(oracle, "programme")? == PROGRAMME, "oracle programme mismatch")?;
-    require(text(oracle, "evidence_class")? == "synthetic_expected_outputs_only", "oracle evidence class mismatch")?;
-    require(text(oracle, "evidence_ceiling")? == ORACLE_CEILING, "oracle evidence ceiling mismatch")?;
+    require(
+        text(oracle, "evidence_class")? == "synthetic_expected_outputs_only",
+        "oracle evidence class mismatch",
+    )?;
+    require(
+        text(oracle, "evidence_ceiling")? == ORACLE_CEILING,
+        "oracle evidence ceiling mismatch",
+    )?;
     require(text(oracle, "input_profile_id")? == PROFILE, "oracle profile mismatch")?;
 
     require(text(manifest, "schema_version")? == "0.1.0", "manifest schema mismatch")?;
     require(text(manifest, "programme_id")? == PROGRAMME, "manifest programme mismatch")?;
-    require(text(manifest, "evidence_class")? == "design_and_synthetic_only", "manifest evidence class mismatch")?;
-    require(text(manifest, "input_file")? == "water-transient-t0-cases-v0.1.json", "manifest input filename mismatch")?;
-    require(text(manifest, "oracle_file")? == "water-transient-t0-oracle-v0.1.json", "manifest oracle filename mismatch")?;
-    require(number(manifest, "scenario_count")? == CASE_COUNT as f64, "manifest case count mismatch")?;
+    require(
+        text(manifest, "evidence_class")? == "design_and_synthetic_only",
+        "manifest evidence class mismatch",
+    )?;
+    require(
+        text(manifest, "input_file")? == "water-transient-t0-cases-v0.1.json",
+        "manifest input filename mismatch",
+    )?;
+    require(
+        text(manifest, "oracle_file")? == "water-transient-t0-oracle-v0.1.json",
+        "manifest oracle filename mismatch",
+    )?;
+    require(
+        number(manifest, "scenario_count")? == CASE_COUNT as f64,
+        "manifest case count mismatch",
+    )?;
     require(
         text(manifest, "evidence_ceiling")?.contains("no_transient_solver"),
         "manifest evidence ceiling too permissive",
@@ -524,7 +551,7 @@ mod tests {
             .find(|row| row["case_id"] == "WT-T0-001-rapid-closure-joukowsky-known-answer")
             .unwrap();
         assert_eq!(row["computed"]["pressure_change_pa"], 500000.0);
-        assert_eq!(row["computed"]["solver_qualification_permitted"], false);
+        assert!(!row["computed"]["solver_qualification_permitted"].as_bool().unwrap());
     }
 
     #[test]
