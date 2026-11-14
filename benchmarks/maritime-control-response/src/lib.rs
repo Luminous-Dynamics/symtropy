@@ -19,6 +19,7 @@ pub mod published_baseline_audit;
 pub mod sequential_evidence;
 pub mod startup_adaptation;
 pub mod streaming_contract;
+pub mod temporal;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
