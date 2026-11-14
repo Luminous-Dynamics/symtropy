@@ -59,7 +59,8 @@
     "calibration": "Likelihoods are calibrated on disjoint independent episodes using the same block aggregation. A changed block length, overlap, minimum separation, sensor set or regime requires a new likelihood model and calibration.",
     "dependence": "Every accepted block binds an independent-unit ID, block manifest, minimum temporal separation and dependence-review receipt. Repeated rows, overlapping windows and multiple outcomes from the same predeclared episode do not count as separate evidence units.",
     "optional_stopping": "Under a valid nonnegative null e-process, Ville's inequality gives P(sup_t E_t >= 1/alpha_i) <= alpha_i, so users may inspect or stop at any accepted block without inflating the individual test's Type-I error.",
-    "multiple_faults": "Bonferroni allocation across the declared alternative count bounds the probability of any false fault alarm under the shared no-fault null by the family-wise alpha budget."
+    "multiple_faults": "Bonferroni allocation across the declared alternative count bounds the probability of any false fault alarm under the shared no-fault null by the family-wise alpha budget.",
+    "block_independence": "Every accepted block binds an independent-unit ID, block manifest, minimum temporal separation and a reviewed dependence assumption. Non-overlap alone is not proof of independence. Repeated rows, overlapping windows and multiple outcomes from the same predeclared episode do not count as separate evidence units."
   },
   "protocol_constraints": {
     "one_block_one_receipt": true,
