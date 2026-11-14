@@ -44,6 +44,24 @@ pub enum OutcomeDirection {
     LowerIsBetter,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MeasurementQuality {
+    Valid,
+    Missing,
+    Stale,
+    Rejected,
+    Conflicted,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CalibrationStatus {
+    Verified,
+    Unknown,
+    Expired,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct StratumAllocation {
@@ -66,11 +84,29 @@ pub struct RandomizedUnitObservation {
     pub baseline_observed_at_seconds: f64,
     pub baseline_available_at_seconds: f64,
     pub baseline_evidence_sha256: String,
+    pub baseline_source_id: String,
+    pub baseline_measurement_principle_id: String,
+    pub baseline_dependency_domain_id: String,
+    pub baseline_quality: MeasurementQuality,
+    pub baseline_calibration_status: CalibrationStatus,
+    pub baseline_calibration_record_sha256: String,
+    pub baseline_calibration_valid_until_seconds: f64,
+    pub baseline_uncertainty_abs: f64,
     pub observed_outcome_value: f64,
     pub outcome_unit: String,
     pub outcome_observed_at_seconds: f64,
     pub outcome_available_at_seconds: f64,
     pub outcome_evidence_sha256: String,
+    pub outcome_source_id: String,
+    pub outcome_measurement_principle_id: String,
+    pub outcome_dependency_domain_id: String,
+    pub outcome_quality: MeasurementQuality,
+    pub outcome_calibration_status: CalibrationStatus,
+    pub outcome_calibration_record_sha256: String,
+    pub outcome_calibration_valid_until_seconds: f64,
+    /// Deterministic absolute-error bound from the measurement/calibration contract,
+    /// not a standard deviation and not folded into the sampling standard error.
+    pub outcome_uncertainty_abs: f64,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -83,6 +119,7 @@ pub struct BlockedRandomizedMaintenanceTrial {
     pub control_label: String,
     pub outcome_metric_id: String,
     pub outcome_unit: String,
+    pub outcome_measurement_principle_id: String,
     pub outcome_direction: OutcomeDirection,
     pub assignment_at_seconds: f64,
     pub followup_horizon_seconds: f64,
@@ -132,6 +169,11 @@ pub struct RandomizedMaintenanceEffectEstimate {
     /// Normal-approximation interval; its small-sample limitations remain explicit.
     pub confidence_interval_treatment_minus_control: [f64; 2],
     pub confidence_interval_benefit_oriented: [f64; 2],
+    /// Weighted worst-case measurement error bound for the treatment-control contrast.
+    pub measurement_error_bound_abs: f64,
+    /// Sampling interval expanded by the deterministic measurement-error bound.
+    pub measurement_robust_interval_treatment_minus_control: [f64; 2],
+    pub measurement_robust_interval_benefit_oriented: [f64; 2],
     /// Two-sided exact Fisher randomization p-value under the sharp null.
     pub exact_randomization_p_value: f64,
     pub independent_randomization_units: usize,
@@ -373,16 +415,40 @@ impl BlockedRandomizedMaintenanceTrial {
             }
             if !is_sha256_hex(&observation.assignment_evidence_sha256)
                 || !is_sha256_hex(&observation.baseline_evidence_sha256)
+                || !is_sha256_hex(&observation.baseline_calibration_record_sha256)
                 || !is_sha256_hex(&observation.outcome_evidence_sha256)
+                || !is_sha256_hex(&observation.outcome_calibration_record_sha256)
+                || observation.baseline_source_id.trim().is_empty()
+                || observation.baseline_measurement_principle_id.trim().is_empty()
+                || observation.baseline_dependency_domain_id.trim().is_empty()
+                || observation.outcome_source_id.trim().is_empty()
+                || observation.outcome_measurement_principle_id.trim().is_empty()
+                || observation.outcome_dependency_domain_id.trim().is_empty()
                 || observation.baseline_unit.trim().is_empty()
                 || observation.outcome_unit.trim().is_empty()
                 || !observation.baseline_value.is_finite()
                 || !observation.observed_outcome_value.is_finite()
+                || !observation.baseline_uncertainty_abs.is_finite()
+                || observation.baseline_uncertainty_abs < 0.0
+                || !observation.outcome_uncertainty_abs.is_finite()
+                || observation.outcome_uncertainty_abs < 0.0
                 || !observation.assignment_available_at_seconds.is_finite()
                 || !observation.baseline_observed_at_seconds.is_finite()
                 || !observation.baseline_available_at_seconds.is_finite()
+                || !observation.baseline_calibration_valid_until_seconds.is_finite()
                 || !observation.outcome_observed_at_seconds.is_finite()
                 || !observation.outcome_available_at_seconds.is_finite()
+                || !observation.outcome_calibration_valid_until_seconds.is_finite()
+                || observation.baseline_quality != MeasurementQuality::Valid
+                || observation.outcome_quality != MeasurementQuality::Valid
+                || observation.baseline_calibration_status != CalibrationStatus::Verified
+                || observation.outcome_calibration_status != CalibrationStatus::Verified
+                || observation.baseline_calibration_valid_until_seconds
+                    < observation.baseline_available_at_seconds
+                || observation.outcome_calibration_valid_until_seconds
+                    < observation.outcome_available_at_seconds
+                || observation.outcome_measurement_principle_id
+                    != self.outcome_measurement_principle_id
             {
                 return Err(MaintenanceEffectError::InvalidObservation(
                     observation.unit_id.clone(),
@@ -602,6 +668,7 @@ pub fn estimate_blocked_randomized_maintenance_effect(
     let total_count = trial.observations.len() as f64;
     let mut ate = 0.0;
     let mut variance = 0.0;
+    let mut measurement_error_bound_abs = 0.0;
     for allocation in &trial.stratum_allocations {
         let treatment = trial
             .observations
@@ -635,6 +702,29 @@ pub fn estimate_blocked_randomized_maintenance_effect(
         variance += weight.powi(2)
             * (treatment_variance / treatment.len() as f64
                 + control_variance / control.len() as f64);
+
+        let treatment_measurement_bound = trial
+            .observations
+            .iter()
+            .filter(|item| {
+                item.stratum_id == allocation.stratum_id
+                    && item.assigned_arm == AssignedArm::Treatment
+            })
+            .map(|item| item.outcome_uncertainty_abs)
+            .sum::<f64>()
+            / treatment.len() as f64;
+        let control_measurement_bound = trial
+            .observations
+            .iter()
+            .filter(|item| {
+                item.stratum_id == allocation.stratum_id
+                    && item.assigned_arm == AssignedArm::Control
+            })
+            .map(|item| item.outcome_uncertainty_abs)
+            .sum::<f64>()
+            / control.len() as f64;
+        measurement_error_bound_abs +=
+            weight * (treatment_measurement_bound + control_measurement_bound);
     }
     let standard_error = variance.sqrt();
     let critical = confidence_critical_value(trial.confidence_level)?;
@@ -642,9 +732,17 @@ pub fn estimate_blocked_randomized_maintenance_effect(
         ate - critical * standard_error,
         ate + critical * standard_error,
     ];
+    let robust_interval = [
+        interval[0] - measurement_error_bound_abs,
+        interval[1] + measurement_error_bound_abs,
+    ];
     let benefit_interval = match trial.outcome_direction {
         OutcomeDirection::HigherIsBetter => interval,
         OutcomeDirection::LowerIsBetter => [-interval[1], -interval[0]],
+    };
+    let robust_benefit_interval = match trial.outcome_direction {
+        OutcomeDirection::HigherIsBetter => robust_interval,
+        OutcomeDirection::LowerIsBetter => [-robust_interval[1], -robust_interval[0]],
     };
     let benefit_oriented_effect = match trial.outcome_direction {
         OutcomeDirection::HigherIsBetter => ate,
@@ -682,6 +780,9 @@ pub fn estimate_blocked_randomized_maintenance_effect(
         confidence_level: trial.confidence_level,
         confidence_interval_treatment_minus_control: interval,
         confidence_interval_benefit_oriented: benefit_interval,
+        measurement_error_bound_abs,
+        measurement_robust_interval_treatment_minus_control: robust_interval,
+        measurement_robust_interval_benefit_oriented: robust_benefit_interval,
         exact_randomization_p_value: randomization_p,
         independent_randomization_units: trial.observations.len(),
         stratum_count: trial.stratum_allocations.len(),
@@ -714,6 +815,10 @@ pub fn score_synthetic_effect_against_oracle(
         || (estimate.standard_error - recomputed.standard_error).abs() > VARIANCE_TOLERANCE
         || estimate.confidence_interval_treatment_minus_control
             != recomputed.confidence_interval_treatment_minus_control
+        || (estimate.measurement_error_bound_abs - recomputed.measurement_error_bound_abs).abs()
+            > VARIANCE_TOLERANCE
+        || estimate.measurement_robust_interval_treatment_minus_control
+            != recomputed.measurement_robust_interval_treatment_minus_control
         || estimate.exact_randomization_p_value != recomputed.exact_randomization_p_value
     {
         return Err(MaintenanceEffectError::EstimateMismatch);
@@ -813,11 +918,27 @@ mod tests {
                     baseline_observed_at_seconds: 80.0,
                     baseline_available_at_seconds: 90.0,
                     baseline_evidence_sha256: baseline_digest,
+                    baseline_source_id: format!("baseline-source-{unit_id}"),
+                    baseline_measurement_principle_id: "calibrated_shaft_torque".into(),
+                    baseline_dependency_domain_id: format!("baseline-daq-{unit_id}"),
+                    baseline_quality: MeasurementQuality::Valid,
+                    baseline_calibration_status: CalibrationStatus::Verified,
+                    baseline_calibration_record_sha256: format!("{:064x}", digest_base + 4),
+                    baseline_calibration_valid_until_seconds: 1000.0,
+                    baseline_uncertainty_abs: 0.1,
                     observed_outcome_value: observed,
                     outcome_unit: "normalized_capability".into(),
                     outcome_observed_at_seconds: 210.0,
                     outcome_available_at_seconds: 220.0,
                     outcome_evidence_sha256: outcome_digest,
+                    outcome_source_id: format!("outcome-source-{unit_id}"),
+                    outcome_measurement_principle_id: "calibrated_shaft_torque".into(),
+                    outcome_dependency_domain_id: format!("outcome-daq-{unit_id}"),
+                    outcome_quality: MeasurementQuality::Valid,
+                    outcome_calibration_status: CalibrationStatus::Verified,
+                    outcome_calibration_record_sha256: format!("{:064x}", digest_base + 5),
+                    outcome_calibration_valid_until_seconds: 1000.0,
+                    outcome_uncertainty_abs: 0.25,
                 });
                 oracle.push(UnitPotentialOutcomes {
                     unit_id,
@@ -836,6 +957,7 @@ mod tests {
                 control_label: "matched_deferred_control".into(),
                 outcome_metric_id: "normalized_propulsion_capability".into(),
                 outcome_unit: "normalized_capability".into(),
+                outcome_measurement_principle_id: "calibrated_shaft_torque".into(),
                 outcome_direction: OutcomeDirection::HigherIsBetter,
                 assignment_at_seconds: 100.0,
                 followup_horizon_seconds: 100.0,
@@ -990,6 +1112,63 @@ mod tests {
             Err(MaintenanceEffectError::BaselineNotAvailableAtAssignment(
                 trial.observations[0].unit_id.clone()
             ))
+        );
+    }
+
+    #[test]
+    fn calibration_validity_and_outcome_quality_are_hard_gates() {
+        let (mut trial, _) = fixture();
+        trial.observations[0].outcome_calibration_valid_until_seconds = 219.0;
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&trial),
+            Err(MaintenanceEffectError::InvalidObservation(
+                trial.observations[0].unit_id.clone()
+            ))
+        );
+
+        let (mut stale_trial, _) = fixture();
+        stale_trial.observations[0].outcome_quality = MeasurementQuality::Stale;
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&stale_trial),
+            Err(MaintenanceEffectError::InvalidObservation(
+                stale_trial.observations[0].unit_id.clone()
+            ))
+        );
+    }
+
+    #[test]
+    fn outcome_measurement_principle_must_match_the_frozen_trial_contract() {
+        let (mut trial, _) = fixture();
+        trial.observations[0].outcome_measurement_principle_id =
+            "uncalibrated_alternate_principle".into();
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&trial),
+            Err(MaintenanceEffectError::InvalidObservation(
+                trial.observations[0].unit_id.clone()
+            ))
+        );
+    }
+
+    #[test]
+    fn deterministic_measurement_error_bound_expands_interval_without_inflating_sampling_se() {
+        let (mut trial, _) = fixture();
+        let with_measurement_bound =
+            estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
+        for observation in &mut trial.observations {
+            observation.outcome_uncertainty_abs = 0.0;
+        }
+        let without_measurement_bound =
+            estimate_blocked_randomized_maintenance_effect(&trial).unwrap();
+
+        assert!((with_measurement_bound.measurement_error_bound_abs - 0.5).abs() < 1e-12);
+        assert_eq!(with_measurement_bound.standard_error, without_measurement_bound.standard_error);
+        assert!(
+            with_measurement_bound.measurement_robust_interval_treatment_minus_control[0]
+                < with_measurement_bound.confidence_interval_treatment_minus_control[0]
+        );
+        assert!(
+            with_measurement_bound.measurement_robust_interval_treatment_minus_control[1]
+                > with_measurement_bound.confidence_interval_treatment_minus_control[1]
         );
     }
 
