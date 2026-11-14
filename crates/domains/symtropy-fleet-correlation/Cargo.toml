@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-fleet-correlation"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Evidence-bounded empirical cross-site workload and power correlation analysis."
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
