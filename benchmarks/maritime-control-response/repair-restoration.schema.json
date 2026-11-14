@@ -27,7 +27,10 @@
         "diagnostic_measurement_principle_ids",
         "diagnostic_dependency_domain_ids",
         "condition_tolerances",
-        "capability_envelopes"
+        "capability_envelopes",
+        "diagnostic_revision_receipt_sha256",
+        "acceptance_envelope_owner_ref",
+        "acceptance_envelope_sha256"
       ],
       "properties": {
         "asset_id": {
@@ -134,6 +137,18 @@
               }
             }
           }
+        },
+        "diagnostic_revision_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "acceptance_envelope_owner_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_envelope_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -147,7 +162,9 @@
         "authorization_record_ref",
         "repair_record_sha256",
         "started_at_seconds",
-        "completed_at_seconds"
+        "completed_at_seconds",
+        "intervention_kind",
+        "authorization_record_sha256"
       ],
       "properties": {
         "repair_id": {
@@ -177,6 +194,20 @@
         "completed_at_seconds": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "intervention_kind": {
+          "enum": [
+            "physical_component_repair",
+            "sensor_replacement_or_calibration",
+            "controller_or_configuration_change",
+            "inspection_only",
+            "sham_or_no_op",
+            "other"
+          ]
+        },
+        "authorization_record_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -258,7 +289,9 @@
               "source_id",
               "observed_at_seconds",
               "available_at_seconds",
-              "calibration_record_sha256"
+              "calibration_record_sha256",
+              "measurement_evidence_sha256",
+              "calibration_valid_until_seconds"
             ],
             "properties": {
               "measurement_id": {
@@ -321,6 +354,21 @@
                   {
                     "type": "string",
                     "pattern": "^[a-f0-9]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "measurement_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "calibration_valid_until_seconds": {
+                "oneOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0
                   },
                   {
                     "type": "null"
