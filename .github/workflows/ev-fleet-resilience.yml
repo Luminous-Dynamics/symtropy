@@ -1,0 +1,60 @@
+name: EV Fleet Charging Resilience Screen
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-fleet-resilience.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-fleet-resilience.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-fleet-resilience/Cargo.toml --all -- --check
+      - name: Check input schema and fixture are valid JSON
+        run: |
+          jq empty tools/ev-fleet-resilience/schemas/ev_fleet_resilience_v0_1.schema.json
+          jq empty tools/ev-fleet-resilience/fixtures/ev_fleet_resilience_v0_1.json
+      - name: Run evaluator tests
+        run: cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
+      - name: Run deterministic fleet-contingency screen
+        run: |
+          cargo run --quiet --manifest-path tools/ev-fleet-resilience/Cargo.toml --bin ev-fleet-resilience -- tools/ev-fleet-resilience/fixtures/ev_fleet_resilience_v0_1.json > ev-fleet-resilience-report.json
+          jq -e '.suite_id == "EV-CHARGE-RESILIENCE-001" and (.results | length == 18) and all(.results[]; .evidence_class == "synthetic" and .site_power_limit_respected and .individual_power_limits_respected and ((.energy_balance_residual_kwh | fabs) < 0.000001) and ((.jobs | length) == .job_count) and (([.jobs[].job_id] | unique | length) == .job_count))' ev-fleet-resilience-report.json
+          jq -e '[.results[] | select(.scenario_id == "deadline-policy-oracle" and .policy == "fcfs") | .missed_deadline_count] == [1]' ev-fleet-resilience-report.json
+          jq -e '[.results[] | select(.scenario_id == "deadline-policy-oracle" and .policy == "earliest_departure_first") | .missed_deadline_count] == [0]' ev-fleet-resilience-report.json
+          jq -e '[.results[] | select(.scenario_id == "port-release-optimistic") | .completed_by_deadline_count] == [2,2] and [.results[] | select(.scenario_id == "port-release-optimistic") | .site_input_energy_kwh] == [15,15]' ev-fleet-resilience-report.json
+          jq -e '[.results[] | select(.scenario_id == "port-hold-until-departure") | .completed_by_deadline_count] == [1,1] and [.results[] | select(.scenario_id == "port-hold-until-departure") | .missed_deadline_count] == [1,1] and [.results[] | select(.scenario_id == "port-hold-until-departure") | .site_input_energy_kwh] == [10,10] and all(.results[] | select(.scenario_id == "port-hold-until-departure"); .port_release_policy == "hold_until_departure" and .site_power_limit_respected and .individual_power_limits_respected)' ev-fleet-resilience-report.json
+          jq -e '.capacity_frontiers | length == 18 and all(.[]; (.points | length == 20) and .sample_spacing_percent == 5 and .minimum_deadline_completion_target == 0.95 and .minimum_energy_service_target == 0.95 and all(.points[]; .site_power_limit_respected and .individual_power_limits_respected))' ev-fleet-resilience-report.json
+      - name: Hash canonical report and all benchmark inputs
+        run: sha256sum ev-fleet-resilience-report.json tools/ev-fleet-resilience/Cargo.toml tools/ev-fleet-resilience/src/main.rs tools/ev-fleet-resilience/fixtures/ev_fleet_resilience_v0_1.json tools/ev-fleet-resilience/schemas/ev_fleet_resilience_v0_1.schema.json tools/ev-fleet-resilience/README.md > ev-fleet-resilience.sha256
+      - name: Upload reproducible reports and inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-fleet-resilience-${{ github.sha }}
+          path: |
+            ev-fleet-resilience-report.json
+            ev-fleet-resilience.sha256
+            tools/ev-fleet-resilience/Cargo.toml
+            tools/ev-fleet-resilience/src/main.rs
+            tools/ev-fleet-resilience/fixtures/ev_fleet_resilience_v0_1.json
+            tools/ev-fleet-resilience/schemas/ev_fleet_resilience_v0_1.schema.json
+            tools/ev-fleet-resilience/README.md
+          if-no-files-found: error
+          retention-days: 14

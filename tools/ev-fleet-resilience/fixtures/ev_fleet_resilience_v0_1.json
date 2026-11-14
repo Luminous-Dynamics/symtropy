@@ -1,0 +1,413 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "EV-CHARGE-RESILIENCE-001",
+  "claim_ceiling": "Every numeric input is synthetic. These deterministic scenarios test the software contract only and are not evidence of real fleet performance, grid reliability, battery capability, or deployment suitability.",
+  "vehicle_templates": [
+    {
+      "template_id": "compact-ev",
+      "label": "Compact passenger EV",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative 60 kWh pack with three SOC acceptance bands.",
+      "nominal_pack_capacity_kwh": 60,
+      "state_of_health_fraction": 0.95,
+      "temperature_capacity_fraction": 0.98,
+      "temperature_acceptance_fraction": 0.85,
+      "charging_efficiency_fraction": 0.92,
+      "maximum_port_input_power_kw": 11,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.5,
+          "max_battery_acceptance_kw": 60
+        },
+        {
+          "soc_lower_fraction": 0.5,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 38
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 18
+        }
+      ]
+    },
+    {
+      "template_id": "delivery-van",
+      "label": "Delivery van",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative 100 kWh pack; cold/temperature acceptance is static rather than a thermal transient.",
+      "nominal_pack_capacity_kwh": 100,
+      "state_of_health_fraction": 0.9,
+      "temperature_capacity_fraction": 0.95,
+      "temperature_acceptance_fraction": 0.8,
+      "charging_efficiency_fraction": 0.9,
+      "maximum_port_input_power_kw": 22,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.6,
+          "max_battery_acceptance_kw": 80
+        },
+        {
+          "soc_lower_fraction": 0.6,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 45
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 18
+        }
+      ]
+    },
+    {
+      "template_id": "service-truck",
+      "label": "Rural or municipal service truck",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative pack with a stronger temperature acceptance derate and high-power upper SOC taper.",
+      "nominal_pack_capacity_kwh": 180,
+      "state_of_health_fraction": 0.9,
+      "temperature_capacity_fraction": 0.9,
+      "temperature_acceptance_fraction": 0.6,
+      "charging_efficiency_fraction": 0.94,
+      "maximum_port_input_power_kw": 60,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 0.5,
+          "max_battery_acceptance_kw": 150
+        },
+        {
+          "soc_lower_fraction": 0.5,
+          "soc_upper_fraction": 0.8,
+          "max_battery_acceptance_kw": 90
+        },
+        {
+          "soc_lower_fraction": 0.8,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 35
+        }
+      ]
+    },
+    {
+      "template_id": "deadline-oracle",
+      "label": "Constant-power hand-computable oracle vehicle",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Deliberately simplified 100 kWh profile used only to isolate policy deadline semantics.",
+      "nominal_pack_capacity_kwh": 100,
+      "state_of_health_fraction": 1,
+      "temperature_capacity_fraction": 1,
+      "temperature_acceptance_fraction": 1,
+      "charging_efficiency_fraction": 1,
+      "maximum_port_input_power_kw": 10,
+      "acceptance_curve": [
+        {
+          "soc_lower_fraction": 0,
+          "soc_upper_fraction": 1,
+          "max_battery_acceptance_kw": 100
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "deadline-policy-oracle",
+      "label": "Hand-computable FCFS versus earliest-departure deadline case",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "One 10 kWh job due at minute 120 and one 3 kWh job due at minute 20 share a 10 kW port; equal arrival times are tie-broken by job ID.",
+      "charger_port_count": 1,
+      "site_power_budget_kw": 10,
+      "jobs": [
+        {
+          "job_id": "a-long",
+          "template_id": "deadline-oracle",
+          "arrival_minute": 0,
+          "departure_minute": 120,
+          "initial_soc_fraction": 0,
+          "target_soc_fraction": 0.1
+        },
+        {
+          "job_id": "b-short",
+          "template_id": "deadline-oracle",
+          "arrival_minute": 0,
+          "departure_minute": 20,
+          "initial_soc_fraction": 0,
+          "target_soc_fraction": 0.03
+        }
+      ],
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
+    },
+    {
+      "scenario_id": "depot-grid-baseline",
+      "label": "Matched no-curtailment baseline for depot-grid-curtailment",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Counterfactual baseline with identical vehicles, job arrivals/departures, initial/target SOC, installed ports and base site capacity as depot-grid-curtailment; all outage/curtailment events removed. All values remain synthetic.",
+      "charger_port_count": 3,
+      "site_power_budget_kw": 30,
+      "jobs": [
+        {
+          "job_id": "depot-compact-1",
+          "template_id": "compact-ev",
+          "arrival_minute": 0,
+          "departure_minute": 110,
+          "initial_soc_fraction": 0.25,
+          "target_soc_fraction": 0.8
+        },
+        {
+          "job_id": "depot-van-1",
+          "template_id": "delivery-van",
+          "arrival_minute": 0,
+          "departure_minute": 130,
+          "initial_soc_fraction": 0.22,
+          "target_soc_fraction": 0.82
+        },
+        {
+          "job_id": "depot-van-2",
+          "template_id": "delivery-van",
+          "arrival_minute": 20,
+          "departure_minute": 150,
+          "initial_soc_fraction": 0.4,
+          "target_soc_fraction": 0.88
+        },
+        {
+          "job_id": "depot-truck-1",
+          "template_id": "service-truck",
+          "arrival_minute": 30,
+          "departure_minute": 190,
+          "initial_soc_fraction": 0.35,
+          "target_soc_fraction": 0.72
+        }
+      ],
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
+    },
+    {
+      "scenario_id": "depot-grid-curtailment",
+      "label": "Depot fleet under a scheduled feeder power curtailment",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "The 45–75 minute interval reduces site input power; all jobs and load requests remain in the denominator.",
+      "charger_port_count": 3,
+      "site_power_budget_kw": 30,
+      "jobs": [
+        {
+          "job_id": "depot-compact-1",
+          "template_id": "compact-ev",
+          "arrival_minute": 0,
+          "departure_minute": 110,
+          "initial_soc_fraction": 0.25,
+          "target_soc_fraction": 0.8
+        },
+        {
+          "job_id": "depot-van-1",
+          "template_id": "delivery-van",
+          "arrival_minute": 0,
+          "departure_minute": 130,
+          "initial_soc_fraction": 0.22,
+          "target_soc_fraction": 0.82
+        },
+        {
+          "job_id": "depot-van-2",
+          "template_id": "delivery-van",
+          "arrival_minute": 20,
+          "departure_minute": 150,
+          "initial_soc_fraction": 0.4,
+          "target_soc_fraction": 0.88
+        },
+        {
+          "job_id": "depot-truck-1",
+          "template_id": "service-truck",
+          "arrival_minute": 30,
+          "departure_minute": 190,
+          "initial_soc_fraction": 0.35,
+          "target_soc_fraction": 0.72
+        }
+      ],
+      "capacity_events": [
+        {
+          "start_minute": 45,
+          "end_minute": 75,
+          "site_power_budget_kw": 8,
+          "available_port_count": 3
+        }
+      ],
+      "port_release_policy": "release_on_charge_completion"
+    },
+    {
+      "scenario_id": "port-loss-and-taper",
+      "label": "Dense depot with simultaneous charge taper and a temporary port outage",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "One available port and a reduced site cap from minute 20 through 45; SOC taper remains active in each job.",
+      "charger_port_count": 2,
+      "site_power_budget_kw": 22,
+      "jobs": [
+        {
+          "job_id": "taper-compact-1",
+          "template_id": "compact-ev",
+          "arrival_minute": 0,
+          "departure_minute": 80,
+          "initial_soc_fraction": 0.2,
+          "target_soc_fraction": 0.68
+        },
+        {
+          "job_id": "taper-van-1",
+          "template_id": "delivery-van",
+          "arrival_minute": 0,
+          "departure_minute": 115,
+          "initial_soc_fraction": 0.3,
+          "target_soc_fraction": 0.86
+        },
+        {
+          "job_id": "taper-compact-2",
+          "template_id": "compact-ev",
+          "arrival_minute": 15,
+          "departure_minute": 100,
+          "initial_soc_fraction": 0.32,
+          "target_soc_fraction": 0.76
+        }
+      ],
+      "capacity_events": [
+        {
+          "start_minute": 20,
+          "end_minute": 45,
+          "site_power_budget_kw": 12,
+          "available_port_count": 1
+        }
+      ],
+      "port_release_policy": "release_on_charge_completion"
+    },
+    {
+      "scenario_id": "port-stable-baseline",
+      "label": "Matched full-port-capacity baseline for port-loss-and-taper",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Counterfactual baseline with identical vehicles, job arrivals/departures, initial/target SOC, installed ports and base site capacity as port-loss-and-taper; all outage/curtailment events removed. All values remain synthetic.",
+      "charger_port_count": 2,
+      "site_power_budget_kw": 22,
+      "jobs": [
+        {
+          "job_id": "taper-compact-1",
+          "template_id": "compact-ev",
+          "arrival_minute": 0,
+          "departure_minute": 80,
+          "initial_soc_fraction": 0.2,
+          "target_soc_fraction": 0.68
+        },
+        {
+          "job_id": "taper-van-1",
+          "template_id": "delivery-van",
+          "arrival_minute": 0,
+          "departure_minute": 115,
+          "initial_soc_fraction": 0.3,
+          "target_soc_fraction": 0.86
+        },
+        {
+          "job_id": "taper-compact-2",
+          "template_id": "compact-ev",
+          "arrival_minute": 15,
+          "departure_minute": 100,
+          "initial_soc_fraction": 0.32,
+          "target_soc_fraction": 0.76
+        }
+      ],
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
+    },
+    {
+      "scenario_id": "rural-feeder-baseline",
+      "label": "Matched no-interruption baseline for rural-feeder-interruption",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Counterfactual baseline with identical vehicles, job arrivals/departures, initial/target SOC, installed ports and base site capacity as rural-feeder-interruption; all outage/curtailment events removed. All values remain synthetic.",
+      "charger_port_count": 2,
+      "site_power_budget_kw": 18,
+      "jobs": [
+        {
+          "job_id": "rural-compact-1",
+          "template_id": "compact-ev",
+          "arrival_minute": 0,
+          "departure_minute": 150,
+          "initial_soc_fraction": 0.3,
+          "target_soc_fraction": 0.74
+        },
+        {
+          "job_id": "rural-van-1",
+          "template_id": "delivery-van",
+          "arrival_minute": 10,
+          "departure_minute": 180,
+          "initial_soc_fraction": 0.2,
+          "target_soc_fraction": 0.78
+        },
+        {
+          "job_id": "rural-truck-1",
+          "template_id": "service-truck",
+          "arrival_minute": 5,
+          "departure_minute": 210,
+          "initial_soc_fraction": 0.38,
+          "target_soc_fraction": 0.7
+        }
+      ],
+      "capacity_events": [],
+      "port_release_policy": "release_on_charge_completion"
+    },
+    {
+      "scenario_id": "rural-feeder-interruption",
+      "label": "Rural mixed fleet with a complete feeder interruption and reduced-power recovery",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "A 35–70 minute supply outage is followed by a temporary 6 kW/one-port recovery limit.",
+      "charger_port_count": 2,
+      "site_power_budget_kw": 18,
+      "jobs": [
+        {
+          "job_id": "rural-compact-1",
+          "template_id": "compact-ev",
+          "arrival_minute": 0,
+          "departure_minute": 150,
+          "initial_soc_fraction": 0.3,
+          "target_soc_fraction": 0.74
+        },
+        {
+          "job_id": "rural-van-1",
+          "template_id": "delivery-van",
+          "arrival_minute": 10,
+          "departure_minute": 180,
+          "initial_soc_fraction": 0.2,
+          "target_soc_fraction": 0.78
+        },
+        {
+          "job_id": "rural-truck-1",
+          "template_id": "service-truck",
+          "arrival_minute": 5,
+          "departure_minute": 210,
+          "initial_soc_fraction": 0.38,
+          "target_soc_fraction": 0.7
+        }
+      ],
+      "capacity_events": [
+        {
+          "start_minute": 35,
+          "end_minute": 70,
+          "site_power_budget_kw": 0,
+          "available_port_count": 0
+        },
+        {
+          "start_minute": 100,
+          "end_minute": 130,
+          "site_power_budget_kw": 6,
+          "available_port_count": 1
+        }
+      ],
+      "port_release_policy": "release_on_charge_completion"
+    }
+  ]
+}
