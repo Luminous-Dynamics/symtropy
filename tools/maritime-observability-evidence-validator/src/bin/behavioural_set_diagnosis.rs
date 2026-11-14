@@ -47,7 +47,7 @@ fn witness(a:&[InnerRegion],b:&[InnerRegion])->Option<Value>{
  for l in a.iter().filter(|r|r.verified){for r in b.iter().filter(|r|r.verified){
   let mut point=Vec::new();let mut good=true;
   for ((ll,lu),(rl,ru)) in l.bounds.lower.iter().zip(&l.bounds.upper).zip(r.bounds.lower.iter().zip(&r.bounds.upper)){
-   let low=ll.max(rl);let high=lu.min(ru);if low>high{good=false;break;}point.push(low+(high-low)/2.0);
+   let low=ll.max(*rl);let high=lu.min(*ru);if low>high{good=false;break;}point.push(low+(high-low)/2.0);
   }
   if good{return Some(json!({"fault_a_inner_region_id":l.id,"fault_b_inner_region_id":r.id,"trajectory_witness":point,"witness_semantics":"COMMON_POINT_IN_TWO_VERIFIED_INNER_REGIONS"}));}
  }}None
