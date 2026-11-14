@@ -269,3 +269,42 @@ physical model or all model/transform uncertainty.
 No exact-head Rust execution result has been established by this authoring
 session. The test definitions and workflow are present; they are not claimed
 as passed evidence.
+
+
+## 13. Benchmark data admission and matched industry comparators
+
+AeroWeft must maintain two separate evaluation tracks:
+
+### 13.1 Deterministic bounded-set track
+
+For a frozen, declared model domain, evaluate conservative outer-set containment and conflict-screen false negatives. The acceptance target is zero under-approximation against the independent, bounded reference oracle. This is a statement about the declared mathematical domain, not a claim that the model covers all real aircraft behaviour.
+
+### 13.2 Probabilistic prediction/conformance track
+
+Where a qualified probabilistic error model exists, separately evaluate empirical coverage at 90%, 95% and 99%, calibration, sharpness, alert lead time and shift degradation. EASA U-space guidance discusses authorised 4D volumes that account for UAS performance, operator proficiency and weather, with 95% containment as an expected level in the cited guidance. Its conformance-monitoring guidance also specifies alerts within five seconds for 99% of detected non-conformance events. These are jurisdiction- and service-scoped comparison points, not universal AeroWeft requirements, not deterministic reachable-set guarantees, and not interchangeable with worst-case outer-enclosure soundness.
+
+Never combine deterministic containment and probabilistic coverage into one score. A system may be highly calibrated while still having tail failures; a worst-case box may be sound but too inflated to be operationally useful. Report both the assurance claim and its efficiency cost.
+
+### 13.3 Data-source admission
+
+Start with synthetic golden cases and independently generated analytic/interval oracles. For real or archived traffic:
+- OpenSky Network provides scientific and historical air-traffic datasets, but full historical access is described as available to university-affiliated researchers, government organisations and aviation authorities; private/commercial use requires a licence. The public API and each scientific dataset have separate access/terms. Do not use it as unrestricted commercial training or redistribution material.
+- EUROCONTROL's Demand Data Repository is a restricted/licensed stakeholder service; access conditions apply to ANSPs and airline operators, and some API endpoints have narrower eligibility. Do not assume it is a public benchmark feed.
+- FAA UTM Field Test publications provide useful real-world validation context and report focus areas such as planning/coordination, priority of operational intent, data correlation, identity and access management. A published report is not equivalent to access to the underlying raw operational dataset.
+- Any South African airspace, aerodrome, NOTAM, weather or aircraft data must be admitted only after the exact publisher, edition, rights, effective period, coverage, transformations, vertical datum and intended research/commercial use are reviewed.
+
+Every admitted dataset needs immutable source/version/digest records, rights status, time and geography coverage, aircraft/equipage coverage, missingness, calibration, truth/adjudication process, clock quality and leakage-safe group identifiers. Split by flight, aircraft/session, receiver/site, day, region and environmental regime as applicable. A random row-level split is not confirmatory evidence when correlated samples from the same flight or sensor can appear on both sides.
+
+### 13.4 Matched baseline matrix
+
+| Baseline | Matched question |
+|---|---|
+| Current Symtropy piecewise-linear audit (#2285) | What is gained by model-derived occupancy versus supplied centreline paths? |
+| Current Mycelix constant-velocity toy model (PR #5024) | What does explicit interval lineage add beyond synthetic constant-velocity conflict/restriction coordination? |
+| Point-estimate performance model | How much does set-valued reachability change false-negative rate, false-positive rate and compute cost? |
+| Interval/Taylor/zonotope methods | Which outer-enclosure method gives the best soundness/conservatism/runtime trade-off on the same equations and inputs? |
+| Fixed 4D volume reservations | How much capacity is recovered by model-qualified time-dependent occupancy, without relaxing safety constraints? |
+| FIFO, shortest-feasible and rolling-horizon capacity-aware planners | How do throughput, delay, stability, fairness and recovery compare on exactly the same network/scenarios? |
+| EUROCONTROL trajectory-prediction requirements and NASA formal-methods work | Do our model/intent separation, independent verification, scope, failure semantics and evidence traceability meet the relevant research/practice expectations? These are reference specifications and research programmes, not drop-in numerical baselines. |
+
+For every performance comparison freeze the inputs, horizon, aircraft models, uncertainty assumptions, source vintage, candidate search space, objective, hard constraints, hardware, toolchain and implementation revision. Report p50/p95/p99 end-to-end latency and memory, but also prediction error, coverage, tube inflation, false alarms, missed conflicts, abstention, throughput and community outcomes. Candidate-generation latency alone must never be presented as full conflict-management performance.
