@@ -63,6 +63,36 @@ Primary supplier/company sources:
 
 These figures have different denominators and evidence levels: garments/hour, clipping kg/hour and annual facility tonnes are not directly comparable. Record rated capacity, measured throughput, uptime and accepted downstream output separately. Company announcements and supplier brochures do not replace matched-lot or independent receiver evidence.
 
+## 1.1 Commercial baseline landscape (November 2026)
+
+The incumbent is not one machine. The comparison should include a configurable chain of feed preparation, recognition, picking/routing, trim separation and downstream fibre preparation.
+
+| Commercial system | Publicly described capability | What must be independently measured |
+|---|---|---|
+| Valvan Fibersort | Fibre composition, colour and woven/knitted construction sorting; the official product page states 1 piece/s. Siemens describes automated picking at roughly 2,000 garments/hour using delta + robotic handling, with a reported 1.8 s pick cycle in its latest controller configuration. | Input presentation quality, singulation rate, double picks, overlap/mis-picks, class confusion, false accepts, output purity, uptime and actual accepted kg/h. The piece rate is not a mass throughput guarantee. |
+| Valvan Trimclean | Camera + metal-sensor detection and pneumatic separation of trim-bearing 20–100 mm clippings after cutting. | Residual trim by type, textile loss in trim stream, clipping-size distribution, fines, energy/air demand, purity and downstream acceptance. |
+| STADLER + TOMRA at IGERS (Italy) | STADLER reports a facility inaugurated 21 September 2026 with two dosing units, two TOMRA NIR sorters and 16 conveyors; stated capacity is 4 t/h and authorization up to 19,200 t/year. The line buffers pure fractions and recirculates material through a second NIR sort to separate fibre types. | Distinguish design capacity and authorized annual capacity from observed sustained throughput. Measure feed stability, buffer occupancy, recirculation fraction, stoppages, per-stage yield/purity and receiver acceptance. |
+| Specim RETEX | Supplier-marketed hyperspectral + AI textile recognition and automated material separation; advertised coverage includes common fibres, blends, elastane, impurities and colour. | Independently reproduce across held-out physical specimens, instruments, dyes, contamination and multilayer garments. Measure false-accept risk, abstention, calibration, latency, sorting purity and accepted downstream grade. |
+
+Primary sources:
+- Fibersort capabilities: https://www.fibersort.com/
+- Siemens / Valvan automation and reported picker cycle: https://www.siemens.com/en-gb/company/insights/valvan-fibersort/
+- STADLER / IGERS installation: https://stadler-engineering.com/company/news/detail/from-textile-waste-to-spinning-grade-fiber-stadler-group-engineers-integrated-sorting-solution-for-igers-in-italy
+- Specim RETEX: https://www.specim.com/retex/
+- Trimclean technical process: https://www.valvan.com/uploads/general/VALVAN_trimclean_leaflet-A4_08_lowres.pdf?v=1685433923
+
+Supplier product pages and partner announcements establish commercial availability and supplier-stated configurations; they are not independent comparative performance trials. Treat the 4 t/h and 2,000 pieces/hour figures as stated design/operating claims with their own denominators, not as directly comparable measurements.
+
+### Paradigm shift: flow-aware sensing
+
+A sensor sees a textile only when feeding has presented a measurable surface. Bulk textile handling creates its own failure modes: overlapping items, double picks, folds, entanglement, variable mass, orientation, buffer overflow and re-circulation. The benchmark must therefore separate:
+1. **feed presentation:** fraction of items presented singly, flat enough and within sensor field-of-view;
+2. **recognition conditional on a valid presentation:** per-class and open-set performance;
+3. **pick/route execution:** whether the physical item actually enters the commanded stream;
+4. **output quality:** purity, damage, mass conservation and accepted downstream grade.
+
+Report both end-to-end correct-route rate per incoming item and conditional sensor accuracy on successfully presented items. A model must not gain apparent accuracy by dropping hard-to-present items from the denominator.
+
 ## 2. Matched process arms
 
 ### Arm A — incumbent Fibersort + Trimclean line
@@ -115,6 +145,7 @@ Use independent incoming-lot allocation or randomized matched sublots where prac
 
 | Domain | Per-run/per-item observations |
 |---|---|
+| Feed presentation | single-item presentation rate, double/missed pick rate, overlap, fold/occlusion, conveyor occupancy, orientation, singulation latency and recirculation |
 | Throughput | items/min, kg/h, total elapsed time, active time and downtime, with the measurement boundary |
 | Routing | predicted route, actual route, reject, abstain, remeasurement and manual override |
 | Composition | reference method, per-fibre error, blend error, unknown fraction, instrument and calibration |
@@ -178,6 +209,7 @@ For scheduling policies, additionally report feasibility rate, makespan, tardine
 After the first incumbent dataset and measurement repeatability study, set preregistered improvement thresholds. Initial stretch objectives to test—not current achievements—include:
 
 - no increase in false acceptance of unknown/out-of-domain material;
+- higher end-to-end correct-stream yield per incoming item after accounting for singulation, dropped/overlapped items and actuator misroutes;
 - equal or higher downstream accepted kg per input tonne;
 - lower residual trim and textile damage while preserving longer textile fractions or reusable components at matched accepted throughput;
 - lower manual intervention burden without unsafe automation;
