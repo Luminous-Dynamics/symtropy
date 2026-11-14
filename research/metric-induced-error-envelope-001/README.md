@@ -104,7 +104,14 @@ The derivation whitens the KKT system into [I B; B^T 0] with B^T B = I. The acce
 
 The implementation does not form M^-1 or W^-1. It recomputes both residual blocks from the retained metric/Jacobian and candidate state, then measures them using the mass and Delassus dual norms. Redundant constraints are rejected because W is not SPD.
 
-A deterministic dense-rebasing example reports residuals and bounds across five basis shears:
+The residual and all three bounds are checked under two independent representation changes:
+
+- generalized-coordinate re-basing q = S y, with M_y = S^T M_q S, J_y = J_q S, force covectors pulled back by S^T, and accelerations transformed by S^-1;
+- constraint-equation re-description r_new = T r_old, with J_new = T J_old, b_new = T b_old, and lambda_new = T^-T lambda_old.
+
+The example runs a 5-by-4 combined S/T ladder. Constraint-space basis changes use a distinct Rust frame type, so old and rebased multiplier/residual coordinates cannot be accidentally passed to the same typed API.
+
+A deterministic example reports residuals and bounds across five generalized-coordinate shears and four independent constraint-equation shears:
 
     cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constrained_kkt_residual_ladder
 
