@@ -587,6 +587,106 @@ mod tests {
     }
 
     #[test]
+    fn different_brokers_republishing_one_observation_are_not_independent() {
+        let primary = primary();
+        let mut mirrored = record(
+            "broker-b-copy",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "broker-b",
+            "gateway-b",
+            "trust-root-b",
+        );
+        mirrored.dependencies.observation_root_id =
+            primary.dependencies.observation_root_id.clone();
+
+        let decision = triage_observation_integrity(&policy(), &[primary, mirrored]).unwrap();
+        assert_eq!(
+            decision.disposition,
+            CandidateDisposition::AbstainObservationalEquivalence
+        );
+        assert!(decision.reason_codes.iter().any(|code| code == "broker-b-copy:shared_dependency"));
+    }
+
+    #[test]
+    fn distinct_observations_from_one_upstream_dataset_remain_correlated() {
+        let primary = primary();
+        let mut republished = record(
+            "national-gateway-copy",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "gateway-source-b",
+            "gateway-b",
+            "trust-root-b",
+        );
+        republished.dependencies.upstream_dataset_id =
+            primary.dependencies.upstream_dataset_id.clone();
+
+        let decision = triage_observation_integrity(&policy(), &[primary, republished]).unwrap();
+        assert_eq!(
+            decision.disposition,
+            CandidateDisposition::AbstainObservationalEquivalence
+        );
+        assert!(decision
+            .reason_codes
+            .iter()
+            .any(|code| code == "national-gateway-copy:shared_dependency"));
+    }
+
+    #[test]
+    fn unknown_dependency_lineage_never_upgrades_to_independence() {
+        let primary = primary();
+        let mut unknown = record(
+            "unknown-upstream",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "sensor-b",
+            "gateway-b",
+            "trust-root-b",
+        );
+        unknown.dependencies.upstream_dataset_id = None;
+
+        let decision = triage_observation_integrity(&policy(), &[primary, unknown]).unwrap();
+        assert_eq!(
+            decision.disposition,
+            CandidateDisposition::AbstainObservationalEquivalence
+        );
+        assert!(decision
+            .reason_codes
+            .iter()
+            .any(|code| code == "unknown-upstream:dependency_unknown"));
+    }
+
+    #[test]
+    fn shared_processing_lineage_is_a_common_cause_even_with_different_sources() {
+        let primary = primary();
+        let mut model_b = record(
+            "model-b",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "sensor-b",
+            "gateway-b",
+            "trust-root-b",
+        );
+        model_b.dependencies.processing_lineage_id =
+            primary.dependencies.processing_lineage_id.clone();
+
+        let decision = triage_observation_integrity(&policy(), &[primary, model_b]).unwrap();
+        assert_eq!(
+            decision.disposition,
+            CandidateDisposition::AbstainObservationalEquivalence
+        );
+        assert!(decision
+            .reason_codes
+            .iter()
+            .any(|code| code == "model-b:shared_dependency"));
+    }
+
+    #[test]
     fn independent_physical_measurement_can_corroborate_but_not_attribute_cause() {
         let mut e = vec![primary()];
         e.push(record(
