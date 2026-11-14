@@ -11,7 +11,9 @@ interop / resource-time index -> accepted-floor ledger -> space-time occupancy -
 
 The observation planner in #5107 chooses one action. A floor often needs a campaign of multiple scans or surveys. Individually feasible actions can conflict when combined because they may occupy the same workface, access corridor, hoist or instrument resource.
 
-This crate performs bounded exact search over up to 20 candidate actions. Every include branch clones the current planning books and uses the existing space-time/resource admission owner. It therefore checks the candidate campaign against already active work and against previously selected campaign actions without mutating the caller's live books.
+This crate provides both a deterministic greedy multi-action baseline and bounded exact search over up to 20 candidate actions. Every include branch clones the current planning books and uses the existing space-time/resource admission owner. It therefore checks the candidate campaign against already active work and against previously selected campaign actions without mutating the caller's live books.
+
+The exact solver is checked against a tiny independent subset oracle whose expected incompatibility pairs are authored in the frozen fixtures rather than derived from the production overlap/capacity code.
 
 ## Objective
 
@@ -28,6 +30,8 @@ It does not combine unlike units into an arbitrary weighted scalar. It does not 
 
 ## Search evidence
 
+The greedy baseline chooses the feasible action with the greatest marginal coverage, then minimizes crew minutes, cost, energy, duration and action ID. It is a heuristic and never claims optimality. A frozen counterexample demonstrates why largest-coverage-first can be more expensive than the exact set-cover optimum.
+
 The result always carries:
 - best complete or partial campaign found;
 - covered and uncovered work units;
@@ -39,11 +43,14 @@ The result always carries:
 
 A node-budget-exhausted search is explicitly incomplete. It is neither optimal nor proof of infeasibility.
 
+The Linux CI benchmark compares exact and greedy planning over 8, 12, 16 and 20 actions, five repetitions per size. It reports median and p95 runtime, exact search nodes, crew totals and selected action counts. These are synthetic runner measurements, not field or deployment SLOs.
+
 ## Local validation commands
 
 - cargo fmt --manifest-path research/construction-observation-portfolio-v0-1/Cargo.toml -- --check
 - cargo test --manifest-path research/construction-observation-portfolio-v0-1/Cargo.toml --locked
 - cargo clippy --manifest-path research/construction-observation-portfolio-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+- cargo bench --manifest-path research/construction-observation-portfolio-v0-1/Cargo.toml --locked --bench campaign_scale
 
 ## Claim ceiling
 
