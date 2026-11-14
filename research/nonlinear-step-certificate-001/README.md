@@ -36,7 +36,11 @@ This is a small reference implementation. Its arithmetic assumptions, host/compi
 
 ## Tests
 
-- outward-rounded interval addition, division-by-zero and overflow controls;
+- outward-rounded interval addition, subtraction, multiplication and division checked against an exact dyadic-rational oracle;
+- a 17-value signed dense-shear ladder with invariant physical root enclosure and metric error radius;
+- exact binary64 input binding and bit-exact receipt replay with changed-system/frame/box/profile negative controls;
+- frame integers outside binary64's exact-integer range rejected before interval evaluation;
+- division-by-zero and overflow controls;
 - canonical quadratic root enclosure;
 - dense non-orthogonal coordinate re-basing with invariant metric error radius, contraction and residual-dual norm;
 - bit-exact receipt replay and rejection after changing a single system coefficient, frame identifier, box endpoint or profile threshold;
