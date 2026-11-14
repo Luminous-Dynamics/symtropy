@@ -512,7 +512,9 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
             && (measurement.calibration_record_sha256.is_none()
                 || measurement
                     .calibration_valid_until_seconds
-                    .is_none_or(|valid_until| !valid_until.is_finite() || valid_until < measurement.available_at_seconds));
+                    .is_none_or(|valid_until| {
+                        !valid_until.is_finite() || valid_until < measurement.available_at_seconds
+                    }));
         let invalid_calibration_expiry = measurement
             .calibration_valid_until_seconds
             .is_some_and(|valid_until| !valid_until.is_finite());
@@ -841,11 +843,11 @@ pub fn evaluate_repair_restoration(
             }
             _ => {
                 return Ok(not_evaluable_report(
-                case,
-                NotEvaluableReason::NoPreRepairDeficitObserved,
-                matched_condition_ids,
-                case_sha256.clone(),
-            ));
+                    case,
+                    NotEvaluableReason::NoPreRepairDeficitObserved,
+                    matched_condition_ids,
+                    case_sha256.clone(),
+                ));
             }
         };
 
@@ -1338,7 +1340,9 @@ mod tests {
         case.post_repair_episode.measurements[0].calibration_valid_until_seconds = Some(19.0);
         assert_eq!(
             evaluate_repair_restoration(&case),
-            Err(RepairVerificationError::InvalidMeasurement("m-torque".into()))
+            Err(RepairVerificationError::InvalidMeasurement(
+                "m-torque".into()
+            ))
         );
     }
 
