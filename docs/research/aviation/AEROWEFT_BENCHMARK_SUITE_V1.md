@@ -2,7 +2,7 @@
 
 **Programme:** AeroWeft — federated intelligence and infrastructure for shared skies  
 **Status:** research benchmark contract; synthetic-first  
-**Owners:** Symtropy (physics/simulation), Symthaea (advisory reasoning), Sol-Atlas (spatial context), Mycelix (provenance/federation)  
+**Owners:** Symthaea (aircraft physical models and engineering evidence), Symtropy (independent reachability/enclosure math and simulation), Sol-Atlas (source-qualified spatial context), Mycelix (provenance/federation)  
 **Related:** AIRSPACE-OPS-001 #2279, AIRSPACE-OPS-002 #2297, AEROWEFT-KINEMATICS-001 #5163, trajectory-audit PR #2285, Mycelix airspace PR #5024  
 **Claim ceiling:** no operational ATC/UTM, clearance, dispatch, aircraft-control, separation-assurance, airworthiness or certification authority.
 
@@ -257,3 +257,17 @@ rather than introducing a parallel graph or mission engine.
 - U.S. OIRA, RIN 2120-AL82 status: https://www.reginfo.gov/public/do/eoReviewSearch?rin=2120-AL82
 - South African Government, Gazette 55226 / Notice 7844 (Thirty-Third Amendment, 21 August 2026): https://www.gov.za/sites/default/files/gcis_document/202608/55226gon7844.pdf
 - The cited Part 101 amendment appears at the Gazette's printed pages 121–122 (PDF pages 67–68). It changes regulation 101.01.2's private-operation provision. The benchmark does not interpret the legal applicability of any particular real mission.
+
+
+### Aircraft-model ownership alignment — 2026-11-14
+
+The fixed-wing physical model is owned by Symthaea
+[TRANSPORT-FIXED-WING-001 #6249](https://github.com/Luminous-Dynamics/symthaea/issues/6249),
+composed with candidate-specific mass-coupled mission inputs (#7729) and
+adaptive engineering evidence orchestration (#10902). Symtropy
+[AEROWEFT-KINEMATICS-001 #5163](https://github.com/Luminous-Dynamics/symtropy/issues/5163)
+owns independent set-enclosure/reachability mathematics and trajectory-tube
+verification. Do not duplicate fixed-wing equations or physical model
+parameters in Symtropy. The model/profile adapter must preserve exact profile
+revision, operating regime, units, frames, vertical datum, state/control/
+disturbance domain, dependency lineage and evidence scope.
