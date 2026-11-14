@@ -136,6 +136,8 @@ pub struct PhysicsWorld<const D: usize> {
     pub collision_events: Vec<CollisionEvent<D>>,
     /// Sensor overlap events from the last step.
     pub sensor_events: Vec<crate::contact::SensorEvent>,
+    /// CCD queries from the last step that could not produce a trustworthy result.
+    pub ccd_query_diagnostics: Vec<ccd::CcdQueryDiagnostic>,
     /// Contact cache for warm-starting (previous frame's impulses).
     contact_cache: ContactCache<D>,
     /// Warm-starting from the previous frame (swapped at frame boundaries).
@@ -209,6 +211,7 @@ impl<const D: usize> PhysicsWorld<D> {
             contacts: Vec::new(),
             collision_events: Vec::new(),
             sensor_events: Vec::new(),
+            ccd_query_diagnostics: Vec::new(),
             contact_cache: ContactCache::new(),
             prev_cache: ContactCache::new(),
             solver_iterations: 4,
@@ -784,6 +787,7 @@ impl<const D: usize> PhysicsWorld<D> {
     fn run_ccd_pass(&mut self, pre_integration_positions: &[SVector<f64, D>], dt: f64) {
         let n = self.bodies.len();
         debug_assert_eq!(n, pre_integration_positions.len());
+        self.ccd_query_diagnostics.clear();
 
         for i in 0..n {
             if !self.bodies[i].is_dynamic() || self.bodies[i].sleeping || self.bodies[i].is_sensor {
@@ -799,33 +803,46 @@ impl<const D: usize> PhysicsWorld<D> {
             };
             let radius_i = sphere_i.radius;
             let pos_i0 = pre_integration_positions[i];
+            let handle_i = self.bodies[i].handle;
 
             let mut earliest: Option<ccd::CcdHit<D>> = None;
 
-            // `j` indexes two parallel collections (`self.bodies` and
-            // `pre_integration_positions`) plus is compared against `i` for
-            // self-exclusion — not expressible as a single `.iter().enumerate()`.
+            // j indexes bodies and the parallel pre-integration-position vector.
             #[allow(clippy::needless_range_loop)]
             for j in 0..n {
                 if j == i || self.bodies[j].is_sensor {
                     continue;
                 }
+                let handle_j = self.bodies[j].handle;
 
                 if let Some(halfspace) = self.bodies[j]
                     .collider
                     .as_any()
                     .downcast_ref::<HalfSpace<D>>()
                 {
-                    if let Some(hit) = ccd::sphere_halfspace(
+                    match ccd::sphere_halfspace_checked(
                         &pos_i0,
                         &vel_i,
                         radius_i,
                         &halfspace.normal,
                         halfspace.offset,
                         dt,
-                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
-                    {
-                        earliest = Some(hit);
+                    ) {
+                        Ok(Some(hit)) => {
+                            if earliest
+                                .as_ref()
+                                .is_none_or(|current| hit.toi < current.toi)
+                            {
+                                earliest = Some(hit);
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(error) => self.ccd_query_diagnostics.push(ccd::CcdQueryDiagnostic {
+                            body_a: handle_i,
+                            body_b: handle_j,
+                            kind: ccd::CcdQueryKind::SphereHalfspace,
+                            error,
+                        }),
                     }
                     continue;
                 }
@@ -838,7 +855,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     } else {
                         SVector::zeros()
                     };
-                    if let Some(hit) = ccd::sphere_sphere(
+                    match ccd::sphere_sphere_checked(
                         &pos_i0,
                         &vel_i,
                         radius_i,
@@ -846,9 +863,22 @@ impl<const D: usize> PhysicsWorld<D> {
                         &vel_j,
                         sphere_j.radius,
                         dt,
-                    ) && earliest.as_ref().is_none_or(|e| hit.toi < e.toi)
-                    {
-                        earliest = Some(hit);
+                    ) {
+                        Ok(Some(hit)) => {
+                            if earliest
+                                .as_ref()
+                                .is_none_or(|current| hit.toi < current.toi)
+                            {
+                                earliest = Some(hit);
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(error) => self.ccd_query_diagnostics.push(ccd::CcdQueryDiagnostic {
+                            body_a: handle_i,
+                            body_b: handle_j,
+                            kind: ccd::CcdQueryKind::SphereSphere,
+                            error,
+                        }),
                     }
                 }
             }
@@ -2559,5 +2589,37 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+#[cfg(test)]
+mod ccd_query_diagnostic_tests {
+    use super::*;
+    use crate::body::{BodyHandle, RigidBody};
+    use symtropy_math::Sphere;
+
+    #[test]
+    fn world_records_invalid_ccd_query_instead_of_treating_it_as_a_miss() {
+        let mut world = PhysicsWorld::<3>::default();
+        let mut moving = RigidBody::dynamic_sphere(BodyHandle(0), Point::origin(), f64::NAN, 1.0);
+        moving.linear_velocity = SVector::from([10.0, 0.0, 0.0]);
+        let moving_handle = world.add_body(moving);
+
+        let target = RigidBody::static_body(
+            BodyHandle(1),
+            Point::new([5.0, 0.0, 0.0]),
+            Box::new(Sphere::new(Point::origin(), 0.5)),
+        );
+        let target_handle = world.add_body(target);
+        let initial_positions: Vec<_> = world.bodies.iter().map(|body| body.position()).collect();
+
+        world.run_ccd_pass(&initial_positions, 1.0);
+
+        assert_eq!(world.ccd_query_diagnostics.len(), 1);
+        let diagnostic = world.ccd_query_diagnostics[0];
+        assert_eq!(diagnostic.body_a, moving_handle);
+        assert_eq!(diagnostic.body_b, target_handle);
+        assert_eq!(diagnostic.kind, ccd::CcdQueryKind::SphereSphere);
+        assert_eq!(diagnostic.error, ccd::CcdQueryError::NonFiniteInput);
     }
 }
