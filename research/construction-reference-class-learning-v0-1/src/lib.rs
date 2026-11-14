@@ -283,7 +283,7 @@ pub struct PartitionAssignment {
     pub partition: DataPartition,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticKind {
     PreInterventionTrend,
     PlaceboOutcome,
@@ -368,6 +368,10 @@ pub enum StudyDesign {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EffectEstimate {
+    pub functional_contract_digest: String,
+    /// Exact case set summarized by this effect report. This must equal the
+    /// declared treatment/control or pre/post study population for v0.1.
+    pub comparison_case_ids: Vec<String>,
     pub metric_id: String,
     pub unit_symbol: String,
     /// Fixed-point divisor: actual value = stored integer / scale.
@@ -385,7 +389,31 @@ pub struct EffectEstimate {
 }
 
 impl EffectEstimate {
-    fn validate(&self) -> Result<(), LearningError> {
+    fn validate(
+        &self,
+        functional_contract_digest: &str,
+        expected_case_ids: &BTreeSet<String>,
+    ) -> Result<(), LearningError> {
+        require_non_empty("effect_functional_contract_digest", &self.functional_contract_digest)?;
+        if self.functional_contract_digest != functional_contract_digest {
+            return Err(LearningError::EffectContractMismatch(self.metric_id.clone()));
+        }
+        if self.comparison_case_ids.is_empty() {
+            return Err(LearningError::EmptyEffectCaseSet(self.metric_id.clone()));
+        }
+        let mut comparison_cases = BTreeSet::new();
+        for case_id in &self.comparison_case_ids {
+            require_non_empty("effect_comparison_case_id", case_id)?;
+            if !comparison_cases.insert(case_id.clone()) {
+                return Err(LearningError::DuplicateEffectCase(
+                    self.metric_id.clone(),
+                    case_id.clone(),
+                ));
+            }
+        }
+        if &comparison_cases != expected_case_ids {
+            return Err(LearningError::EffectCaseSetMismatch(self.metric_id.clone()));
+        }
         require_non_empty("effect_metric_id", &self.metric_id)?;
         require_non_empty("effect_unit_symbol", &self.unit_symbol)?;
         require_non_empty("estimate_method_ref", &self.estimate_method_ref)?;
@@ -558,6 +586,12 @@ pub enum LearningError {
     MissingEffectDenominator(String),
     InvalidClusterCount(String),
     DuplicateEffectMetric(String),
+    DuplicateEffectCase(String, String),
+    EmptyEffectCaseSet(String),
+    EffectCaseSetMismatch(String),
+    EffectContractMismatch(String),
+    DuplicateDiagnostic(DiagnosticKind),
+    DuplicateMatchingVariable(String),
     EffectContextMismatch(String),
     EmptyReplicationSet,
     DuplicateReplicationCase(String),
@@ -621,9 +655,13 @@ pub fn evaluate_comparison(
     }
 
     let design = assess_study_design(&manifest.study_design, &cases)?;
+    let expected_effect_case_ids = declared_effect_case_ids(&manifest.study_design, &cases)?;
     let mut metric_ids = BTreeSet::new();
     for effect in &manifest.effects {
-        effect.validate()?;
+        effect.validate(
+            &manifest.functional_unit.contract_digest,
+            &expected_effect_case_ids,
+        )?;
         if !metric_ids.insert(effect.metric_id.as_str()) {
             return Err(LearningError::DuplicateEffectMetric(effect.metric_id.clone()));
         }
@@ -772,6 +810,42 @@ fn validate_partitions(
     })
 }
 
+fn declared_effect_case_ids(
+    design: &StudyDesign,
+    cases: &BTreeMap<&str, &CaseRecord>,
+) -> Result<BTreeSet<String>, LearningError> {
+    let mut ids = BTreeSet::new();
+    let groups: Vec<&[String]> = match design {
+        StudyDesign::Descriptive { .. } => {
+            return Ok(cases.keys().map(|case_id| (*case_id).to_owned()).collect());
+        }
+        StudyDesign::MatchedObservational {
+            treatment_case_ids,
+            control_case_ids,
+            ..
+        } => vec![treatment_case_ids, control_case_ids],
+        StudyDesign::QuasiExperimental {
+            pre_case_ids,
+            post_case_ids,
+            ..
+        } => vec![pre_case_ids, post_case_ids],
+        StudyDesign::Randomized {
+            treatment_case_ids,
+            control_case_ids,
+            ..
+        } => vec![treatment_case_ids, control_case_ids],
+    };
+    for group in groups {
+        for case_id in group {
+            if !cases.contains_key(case_id.as_str()) {
+                return Err(LearningError::UnknownDesignCase(case_id.clone()));
+            }
+            ids.insert(case_id.clone());
+        }
+    }
+    Ok(ids)
+}
+
 fn assess_study_design(
     design: &StudyDesign,
     cases: &BTreeMap<&str, &CaseRecord>,
@@ -804,24 +878,26 @@ fn assess_study_design(
             for variable in matching_variable_ids {
                 require_non_empty("matching_variable_id", variable)?;
                 if !matching.insert(variable.as_str()) {
-                    return Err(LearningError::DuplicateEffectMetric(variable.clone()));
+                    return Err(LearningError::DuplicateMatchingVariable(variable.clone()));
                 }
             }
             validate_case_group(treatment_case_ids, cases, CaseRole::Treatment)?;
             validate_case_group(control_case_ids, cases, CaseRole::Control)?;
             ensure_disjoint_groups(treatment_case_ids, control_case_ids)?;
             let quarantined = *balance_disposition == DiagnosticDisposition::Failed;
-            if *balance_disposition == DiagnosticDisposition::NotEvaluated {
-                return Err(LearningError::MatchedBalanceNotEstablished);
-            }
+            let promotion = match balance_disposition {
+                DiagnosticDisposition::Passed => {
+                    PromotionDisposition::MatchedReferenceCandidate
+                }
+                DiagnosticDisposition::Failed => PromotionDisposition::Quarantined,
+                DiagnosticDisposition::NotEvaluated => {
+                    PromotionDisposition::LocalDescriptiveOnly
+                }
+            };
             Ok(DesignAssessment {
                 evidence_class: EvidenceClass::MatchedObservational,
                 causal_claim: CausalClaimDisposition::NotSupported,
-                promotion: if quarantined {
-                    PromotionDisposition::Quarantined
-                } else {
-                    PromotionDisposition::MatchedReferenceCandidate
-                },
+                promotion,
                 quarantined,
             })
         }
@@ -1158,6 +1234,8 @@ mod tests {
                 balance_disposition: DiagnosticDisposition::Passed,
             },
             effects: vec![EffectEstimate {
+                functional_contract_digest: unit().contract_digest,
+                comparison_case_ids: vec!["treated-1".to_owned(), "control-1".to_owned()],
                 metric_id: "total-workflow-crew-minutes-per-accepted-m2".to_owned(),
                 unit_symbol: "crew-min/m2".to_owned(),
                 scale: 1,
