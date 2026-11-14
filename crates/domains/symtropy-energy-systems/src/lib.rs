@@ -19,6 +19,7 @@ mod duty_cycle;
 mod diagnostics;
 mod fuel;
 mod infrastructure_ir;
+mod ir_graph_bridge;
 mod module_contract;
 mod resilience;
 mod service_graph;
@@ -36,6 +37,11 @@ pub use diagnostics::{
 pub use duty_cycle::{
     DurationSeconds, DutyCycle, DutyCycleError, DutyCycleResult, DutyCycleSegment, EnergyJoules,
     FuelMassKg,
+};
+pub use ir_graph_bridge::{
+    compile_ir_to_service_graph, EvidenceGap, EvidenceGapReason, GraphBridgeError,
+    GraphCompileContext, IrGraphCompilation, IrGraphCompilationReport,
+    IrGraphMappingProfile, ObjectMappingReceipt, RelationshipMappingReceipt,
 };
 pub use infrastructure_ir::{
     ClaimDomain, ClaimProvenance, ClaimState, ExtensionOwner, IrError, IrObject,
