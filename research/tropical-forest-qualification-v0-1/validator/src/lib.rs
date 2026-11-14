@@ -1020,6 +1020,256 @@ fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, Stri
     }))
 }
 
+
+fn validate_observation_admission_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
+    let expected: BTreeMap<&'static str, &'static str> = [
+        ("FOREST-OBS-ADMIT-VALID-001", "ADMIT_SYNTHETIC_ONLY"),
+        ("FOREST-OBS-CLOUD-AS-ZERO-001", "REJECT_MISSINGNESS_PROMOTED_TO_ZERO"),
+        ("FOREST-OBS-RIGHTS-UNCLEARED-001", "BLOCK_RIGHTS_NOT_CLEARED"),
+        ("FOREST-OBS-ABSENCE-UNQUALIFIED-001", "REJECT_UNQUALIFIED_ABSENCE"),
+        ("FOREST-OBS-ABSENCE-QUALIFIED-001", "ADMIT_NEGATIVE_WITHIN_QUALIFIED_ENVELOPE"),
+        ("FOREST-OBS-PROVENANCE-INCOMPLETE-001", "REJECT_INCOMPLETE_PROVENANCE"),
+        ("FOREST-OBS-SPLIT-LEAKAGE-001", "REJECT_SPLIT_LEAKAGE"),
+        ("FOREST-OBS-LONGITUDINAL-OVERCLAIM-001", "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"),
+        ("FOREST-OBS-OUT-OF-DOMAIN-001", "OUT_OF_DOMAIN"),
+        ("FOREST-OBS-NO-ACQUISITION-001", "PRESERVE_UNOBSERVED"),
+        ("FOREST-OBS-TARGET-SEMANTIC-MISMATCH-001", "REJECT_TARGET_VARIABLE_SEMANTIC_MISMATCH"),
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "OBS-ADMISSION-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-OBSERVATION-ADMISSION-CONTRACT-001",
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "OBS-ADMISSION-CLAIM-CEILING-001",
+        status == "PUBLIC_SYNTHETIC_ADMISSION_CONTRACT_NOT_PRODUCTION"
+            && ceiling.contains("synthetic examples")
+            && ceiling.contains("No real source data ingested"),
+        "record-level rules must remain synthetic and must not claim a production adapter or real-data authority",
+    );
+
+    for (index, case) in cases.iter().enumerate() {
+        let id = case
+            .get("case_id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
+        let declared = case
+            .get("expected_disposition")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
+        let observation = at(case, &["observation"])?;
+
+        let observation_id = string_at(observation, &["observation_id"])?;
+        let subject_id = string_at(observation, &["subject_id"])?;
+        let provider = string_at(observation, &["source", "provider"])?;
+        let product_id = string_at(observation, &["source", "product_id"])?;
+        let product_version = string_at(observation, &["source", "product_version"])?;
+        let asset_digest = string_at(observation, &["source", "asset_sha256"])?;
+        let operator_id = string_at(observation, &["operator", "operator_id"])?;
+        let operator_version = string_at(observation, &["operator", "operator_version"])?;
+        let geometry_id = string_at(observation, &["support", "geometry_id"])?;
+        let crs = string_at(observation, &["support", "crs"])?;
+        let valid_from = string_at(observation, &["support", "valid_from"])?;
+        let valid_to = string_at(observation, &["support", "valid_to"])?;
+        let area = number_at(observation, &["support", "area_m2"])?;
+        let variable = string_at(observation, &["measurement", "variable"])?;
+        let unit = string_at(observation, &["measurement", "unit"])?;
+        let validity = string_at(observation, &["measurement", "validity_state"])?;
+        let target_variable = string_at(observation, &["claim", "target_variable"])?;
+        let intended_purpose = string_at(observation, &["rights", "intended_purpose"])?;
+        let rights_status = string_at(observation, &["rights", "status"])?;
+        let group_key = string_at(observation, &["split", "group_key"])?;
+        let partition = string_at(observation, &["split", "partition"])?;
+        let source_domain = string_at(observation, &["support", "source_domain"])?;
+        let target_domain = string_at(observation, &["support", "target_domain"])?;
+        let domain_transfer_qualified = at(
+            observation,
+            &["support", "domain_transfer_qualified"],
+        )?
+        .as_bool()
+        .ok_or_else(|| "support.domain_transfer_qualified must be boolean".to_string())?;
+        let detection_qualified = at(
+            observation,
+            &["measurement", "detection_qualified"],
+        )?
+        .as_bool()
+        .ok_or_else(|| "measurement.detection_qualified must be boolean".to_string())?;
+        let coverage_qualified = at(
+            observation,
+            &["measurement", "coverage_qualified"],
+        )?
+        .as_bool()
+        .ok_or_else(|| "measurement.coverage_qualified must be boolean".to_string())?;
+        let longitudinal_rate = at(observation, &["claim", "longitudinal_rate"])?
+            .as_bool()
+            .ok_or_else(|| "claim.longitudinal_rate must be boolean".to_string())?;
+        let matched_repeats = at(
+            observation,
+            &["support", "matched_repeat_measurements"],
+        )?
+        .as_bool()
+        .ok_or_else(|| "support.matched_repeat_measurements must be boolean".to_string())?;
+        let repeat_count = usize_at(observation, &["support", "repeat_measurement_count"])?;
+        let measurement_value = at(observation, &["measurement", "value"])?;
+        let has_value = !measurement_value.is_null();
+        let related_partition = observation
+            .get("split")
+            .and_then(|split| split.get("related_partition"))
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let purposes = at(observation, &["rights", "allowed_purposes"])?
+            .as_array()
+            .ok_or_else(|| "rights.allowed_purposes must be an array".to_string())?;
+        let purpose_allowed = purposes
+            .iter()
+            .any(|purpose| purpose.as_str() == Some(intended_purpose.as_str()));
+
+        let digest_valid = asset_digest.len() == 64
+            && asset_digest.bytes().all(|byte| byte.is_ascii_hexdigit());
+        let provenance_complete = !observation_id.trim().is_empty()
+            && !subject_id.trim().is_empty()
+            && !provider.trim().is_empty()
+            && !product_id.trim().is_empty()
+            && !product_version.trim().is_empty()
+            && digest_valid
+            && !operator_id.trim().is_empty()
+            && !operator_version.trim().is_empty()
+            && !geometry_id.trim().is_empty()
+            && !crs.trim().is_empty()
+            && !valid_from.trim().is_empty()
+            && !valid_to.trim().is_empty()
+            && valid_from <= valid_to
+            && area.is_finite()
+            && area > 0.0
+            && !variable.trim().is_empty()
+            && !unit.trim().is_empty()
+            && !group_key.trim().is_empty()
+            && !partition.trim().is_empty();
+        let rights_cleared = rights_status == "cleared_for_declared_use" && purpose_allowed;
+        let missingness_state = matches!(
+            validity.as_str(),
+            "cloud_masked" | "no_acquisition" | "no_data" | "qa_invalid" | "below_detection"
+        );
+        let split_leakage = !related_partition.is_empty()
+            && related_partition != partition
+            && !group_key.trim().is_empty();
+        let derived = if !provenance_complete {
+            "REJECT_INCOMPLETE_PROVENANCE"
+        } else if !rights_cleared {
+            "BLOCK_RIGHTS_NOT_CLEARED"
+        } else if (missingness_state || validity == "observed_absence") && has_value {
+            "REJECT_MISSINGNESS_PROMOTED_TO_ZERO"
+        } else if source_domain != target_domain && !domain_transfer_qualified {
+            "OUT_OF_DOMAIN"
+        } else if variable != target_variable {
+            "REJECT_TARGET_VARIABLE_SEMANTIC_MISMATCH"
+        } else if validity == "observed_absence" && !(detection_qualified && coverage_qualified) {
+            "REJECT_UNQUALIFIED_ABSENCE"
+        } else if validity == "observed_absence" {
+            "ADMIT_NEGATIVE_WITHIN_QUALIFIED_ENVELOPE"
+        } else if longitudinal_rate && (repeat_count < 2 || !matched_repeats) {
+            "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"
+        } else if split_leakage {
+            "REJECT_SPLIT_LEAKAGE"
+        } else if missingness_state {
+            "PRESERVE_UNOBSERVED"
+        } else if validity == "observed_valid" && measurement_value.as_f64().is_some() {
+            "ADMIT_SYNTHETIC_ONLY"
+        } else {
+            "REJECT_UNSUPPORTED_VALIDITY_STATE"
+        };
+
+        let known_expected = expected
+            .iter()
+            .find_map(|(case_id, disposition)| (*case_id == id).then_some(*disposition));
+        let unique = seen.insert(id.to_string());
+        let disposition_matches = known_expected == Some(declared) && derived == declared;
+        push_check(
+            &mut checks,
+            "OBS-ADMISSION-CASE-DISPOSITION-001",
+            unique && disposition_matches,
+            format!(
+                "case={id}; derived={derived}; expected={}; declared={declared}; unique={unique}",
+                known_expected.unwrap_or("UNKNOWN_CASE")
+            ),
+        );
+    }
+
+    push_check(
+        &mut checks,
+        "OBS-ADMISSION-CASE-COVERAGE-001",
+        seen.len() == expected.len() && cases.len() == expected.len(),
+        format!("{} unique cases; {} required", seen.len(), expected.len()),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let adapter = string_at(execution, &["production_adapter"])?;
+    let external_data = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "external_data_ingested must be boolean".to_string())?;
+    let rights_execution = string_at(execution, &["rights_authority_execution"])?;
+    let blind_cases = at(execution, &["blind_cases_created"])?
+        .as_bool()
+        .ok_or_else(|| "blind_cases_created must be boolean".to_string())?;
+    push_check(
+        &mut checks,
+        "OBS-ADMISSION-EXECUTION-BOUNDARY-001",
+        runner == "SYNTHETIC_OBSERVATION_ADMISSION_RULES"
+            && adapter == "NOT_IMPLEMENTED"
+            && !external_data
+            && rights_execution == "NOT_RUN"
+            && !blind_cases,
+        "synthetic record rules only; production adapters, real data, rights authority and blind custody remain unexecuted",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "MANIFEST_VALID" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "public_case_count": seen.len(),
+        "production_adapter_execution": "NOT_RUN",
+        "external_data_ingested": false,
+        "rights_authority_execution": "NOT_RUN",
+        "empirical_observation_admission": "NOT_ESTABLISHED"
+    }))
+}
+
 /// Dispatch a JSON fixture to its domain-specific verifier and return a deterministic receipt.
 ///
 /// This command verifies manifests and analytical/synthetic invariants only. It does not
@@ -1031,6 +1281,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001")
     {
         return validate_observation_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-OBSERVATION-ADMISSION-CONTRACT-001")
+    {
+        return validate_observation_admission_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
@@ -1371,6 +1626,41 @@ mod tests {
         include_str!("../../cases/forest-model-set-adequacy-development-v0.1.json");
     const DECISION_VALUE_FIXTURE: &str =
         include_str!("../../cases/forest-decision-value-development-v0.1.json");
+    const OBSERVATION_ADMISSION_FIXTURE: &str =
+        include_str!("../../cases/forest-observation-admission-contract-synthetic-v0.1.json");
+
+
+    #[test]
+    fn observation_admission_contract_executes_eleven_synthetic_cases() {
+        let receipt = evaluate(OBSERVATION_ADMISSION_FIXTURE.as_bytes())
+            .expect("observation admission contract parses");
+        assert_eq!(receipt["result"], "MANIFEST_VALID");
+        assert_eq!(receipt["public_case_count"], 11);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["production_adapter_execution"], "NOT_RUN");
+        assert_eq!(receipt["external_data_ingested"], false);
+        assert_eq!(receipt["rights_authority_execution"], "NOT_RUN");
+    }
+
+    #[test]
+    fn observation_admission_contract_rejects_rights_mutation() {
+        let mut manifest: Value = serde_json::from_str(OBSERVATION_ADMISSION_FIXTURE)
+            .expect("valid observation admission contract");
+        manifest["cases"][0]["observation"]["rights"]["status"] = json!("unknown");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated contract");
+        let receipt = evaluate(&bytes).expect("well-formed contract returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn observation_admission_contract_rejects_unqualified_absence_promotion() {
+        let mut manifest: Value = serde_json::from_str(OBSERVATION_ADMISSION_FIXTURE)
+            .expect("valid observation admission contract");
+        manifest["cases"][3]["observation"]["measurement"]["detection_qualified"] = json!(true);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated contract");
+        let receipt = evaluate(&bytes).expect("well-formed contract returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn observation_corpus_executes_nine_synthetic_rule_cases() {
