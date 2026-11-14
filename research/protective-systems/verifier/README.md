@@ -33,6 +33,12 @@ It is a synthetic binary decision fixture, not evidence of improved materials
 discovery. Its known-answer negative controls include an anti-correlated proxy
 and a cheapest experiment that is worse than doing nothing.
 
+The library also exposes `damage`, a synthetic claim-state transition oracle.
+It invalidates directly affected claims, moves claims with unresolved dependency
+scope to review, and requires new independent evidence bound to the exact
+current configuration revision before requalification. A repair record alone
+cannot restore a claim.
+
 ## Claim ceiling
 
 The only positive decision is `ACCEPT_RECORD_ONLY`. This means the required
