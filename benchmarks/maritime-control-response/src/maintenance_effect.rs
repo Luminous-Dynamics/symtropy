@@ -444,10 +444,16 @@ impl BlockedRandomizedMaintenanceTrial {
                 || !observation.baseline_observed_at_seconds.is_finite()
                 || !observation.baseline_available_at_seconds.is_finite()
                 || !observation
+                    .baseline_calibration_valid_from_seconds
+                    .is_finite()
+                || !observation
                     .baseline_calibration_valid_until_seconds
                     .is_finite()
                 || !observation.outcome_observed_at_seconds.is_finite()
                 || !observation.outcome_available_at_seconds.is_finite()
+                || !observation
+                    .outcome_calibration_valid_from_seconds
+                    .is_finite()
                 || !observation
                     .outcome_calibration_valid_until_seconds
                     .is_finite()
@@ -455,6 +461,8 @@ impl BlockedRandomizedMaintenanceTrial {
                 || observation.outcome_quality != MeasurementQuality::Valid
                 || observation.baseline_calibration_status != CalibrationStatus::Verified
                 || observation.outcome_calibration_status != CalibrationStatus::Verified
+                || observation.baseline_calibration_valid_from_seconds < 0.0
+                || observation.outcome_calibration_valid_from_seconds < 0.0
                 || observation.baseline_calibration_valid_from_seconds
                     > observation.baseline_observed_at_seconds + TIME_TOLERANCE_SECONDS
                 || observation.baseline_calibration_valid_until_seconds
@@ -1150,6 +1158,18 @@ mod tests {
             estimate_blocked_randomized_maintenance_effect(&stale_trial),
             Err(MaintenanceEffectError::InvalidObservation(
                 stale_trial.observations[0].unit_id.clone()
+            ))
+        );
+    }
+
+    #[test]
+    fn non_finite_calibration_valid_from_is_rejected_by_rust_validator() {
+        let (mut trial, _) = fixture();
+        trial.observations[0].outcome_calibration_valid_from_seconds = f64::NAN;
+        assert_eq!(
+            estimate_blocked_randomized_maintenance_effect(&trial),
+            Err(MaintenanceEffectError::InvalidObservation(
+                trial.observations[0].unit_id.clone()
             ))
         );
     }
