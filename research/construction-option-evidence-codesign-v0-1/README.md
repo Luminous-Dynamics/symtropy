@@ -41,7 +41,10 @@ Construction elapsed minutes, observation duration minutes and observation sched
 cargo fmt --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml -- --check
 cargo test --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked
 cargo clippy --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+cargo bench --manifest-path research/construction-option-evidence-codesign-v0-1/Cargo.toml --locked --bench joint_scale
 ```
+
+The hosted benchmark measures composition p50/p95/p99 across 2/4/8/16 alternatives with 25 repetitions each. It reports campaign search nodes and joint frontier size separately. These are runner-specific measurements, not a construction productivity claim or field SLO.
 
 ## Claim ceiling
 
