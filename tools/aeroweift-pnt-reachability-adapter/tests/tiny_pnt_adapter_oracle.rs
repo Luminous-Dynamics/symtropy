@@ -64,6 +64,7 @@ fn input(state: PntServiceState) -> AdapterInput {
         assessment_time_upper_utc_ms: 3_010,
         assessment_time_scale_id: "SYNTHETIC-UTC-LIKE".to_owned(),
         assessment_clock_qualification: ClockQualification::Qualified,
+        assessment_clock_correlation_id: Some("synthetic-evaluation-clock-correlation".to_owned()),
         assessment_clock_correlation_sha256: Some("f".repeat(64)),
         service_state_receipt_sha256: "c".repeat(64),
         policy: policy(),
@@ -113,6 +114,34 @@ fn golden_fixture_identity_and_claim_ceiling_are_bound() {
     assert!(GOLDEN_FIXTURE.contains("statistical-95-percent-envelope-only"));
     assert!(GOLDEN_FIXTURE.contains("contradictory-independent-witnesses"));
     assert!(GOLDEN_FIXTURE.contains("NOT_ASSESSABLE_FOR_HARD_BOUND") || GOLDEN_FIXTURE.contains("STATISTICAL_ENVELOPE_NOT_HARD_BOUND"));
+}
+
+
+#[test]
+fn accepted_receipt_preserves_source_profile_clock_and_dependency_lineage() {
+    match evaluate(&input(PntServiceState::Normal)) {
+        AdapterOutcome::AcceptedPrimary { lineage, .. } => {
+            assert_eq!(lineage.source_id, "synthetic-nav-primary");
+            assert_eq!(lineage.profile_id, "synthetic-fixed-wing-profile-v0");
+            assert_eq!(lineage.horizontal_frame_id, "SYNTHETIC-ENU-01");
+            assert_eq!(lineage.vertical_datum_id, "SYNTHETIC-UP-01");
+            assert_eq!(
+                lineage.clock_correlation_id,
+                "synthetic-clock-correlation-a"
+            );
+            assert_eq!(
+                lineage.assessment_clock_correlation_id,
+                "synthetic-evaluation-clock-correlation"
+            );
+            assert_eq!(lineage.sample_time_interval_utc_ms, [900, 1_100]);
+            assert_eq!(lineage.assessment_time_interval_utc_ms, [2_990, 3_010]);
+            assert_eq!(
+                lineage.dependency_snapshot_id,
+                "synthetic-dependency-snapshot-a"
+            );
+        }
+        other => panic!("expected primary receipt, got {other:?}"),
+    }
 }
 
 #[test]
@@ -167,11 +196,11 @@ fn degraded_state_uses_only_qualified_fallback_claim() {
 
     match evaluate(&degraded) {
         AdapterOutcome::AcceptedFallback {
-            source_id,
+            lineage,
             position,
             ..
         } => {
-            assert_eq!(source_id, "synthetic-independent-fallback");
+            assert_eq!(lineage.source_id, "synthetic-independent-fallback");
             assert_contains(position.east_m, 195.78, 207.33);
             assert_contains(position.north_m, -22.11, -16.89);
             assert_contains(position.up_m, 5.0, 8.11);
