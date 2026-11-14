@@ -7,6 +7,12 @@ on:
     paths:
       - "research/construction-spacetime-occupancy-v0-1/**"
       - ".github/workflows/construction-spacetime-occupancy-v0-1.yml"
+  push:
+    branches:
+      - "research/construction-spacetime-occupancy-stacked-v0-1"
+    paths:
+      - "research/construction-spacetime-occupancy-v0-1/**"
+      - ".github/workflows/construction-spacetime-occupancy-v0-1.yml"
 
 permissions:
   contents: read
