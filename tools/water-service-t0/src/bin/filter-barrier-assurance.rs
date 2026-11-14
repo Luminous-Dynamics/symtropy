@@ -86,7 +86,9 @@ fn run() -> Result<i32, String> {
         .as_array()
         .is_some_and(|rows| {
             rows.iter().all(|row| {
-                row["computed"]["potability_or_compliance_claim_allowed"] == false
+                !row["computed"]["potability_or_compliance_claim_allowed"]
+                    .as_bool()
+                    .unwrap_or(true)
             })
         });
     let success = total == 8 && matched == 8 && no_mismatches && all_non_authorizing;
