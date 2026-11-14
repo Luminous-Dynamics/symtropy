@@ -500,10 +500,10 @@ mod tests {
     }
 
 
-    fn build_metadata(standard_edition: &str) -> BuildMetadata {
+    fn build_metadata(include_amd1: bool) -> BuildMetadata {
         let standard = StandardReference::new(
-            "IEC 60364-8-82", Some("8-82".into()), standard_edition,
-            if standard_edition == "2022" { vec!["AMD1:2026".into()] } else { Vec::new() },
+            "IEC 60364-8-82", Some("8-82".into()), "2022",
+            if include_amd1 { vec!["AMD1:2026".into()] } else { Vec::new() },
             StandardPublicationStatus::Published, None,
         ).unwrap();
         let standard_pin = StandardProfilePin::new(
@@ -539,7 +539,7 @@ mod tests {
         let first = compile_ir_to_service_graph_reproducibly(
             &document, &mapping_profile,
             ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
-            build_metadata("2022"),
+            build_metadata(true),
         ).unwrap();
         let second = compile_ir_to_service_graph_reproducibly(
             &document, &mapping_profile,
@@ -563,7 +563,7 @@ mod tests {
     }
 
     #[test]
-    fn changed_standard_edition_changes_build_lock_digest() {
+    fn changed_standard_profile_changes_build_lock_digest() {
         let document = doc(RelationshipDirection::Directed);
         let mapping_profile = profile();
         let a = compile_ir_to_service_graph_reproducibly(
@@ -574,7 +574,7 @@ mod tests {
         let b = compile_ir_to_service_graph_reproducibly(
             &document, &mapping_profile,
             ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
-            build_metadata("2026"),
+            build_metadata(false),
         ).unwrap();
         assert_ne!(a.receipt().build_lock_digest(), b.receipt().build_lock_digest());
     }
