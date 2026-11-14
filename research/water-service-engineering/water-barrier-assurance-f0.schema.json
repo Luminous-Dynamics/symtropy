@@ -100,7 +100,8 @@
                         "hazard_id",
                         "status",
                         "required_protocol_id",
-                        "required_protocol_version"
+                        "required_protocol_version",
+                        "required_claim_basis"
                       ],
                       "properties": {
                         "hazard_id": {
@@ -126,6 +127,13 @@
                         "required_protocol_version": {
                           "type": "string",
                           "minLength": 1
+                        },
+                        "required_claim_basis": {
+                          "enum": [
+                            "DIRECT_CHALLENGE_TEST",
+                            "WHO_SCHEME_DECISION",
+                            "CERTIFICATE_CLAIM"
+                          ]
                         }
                       }
                     }
