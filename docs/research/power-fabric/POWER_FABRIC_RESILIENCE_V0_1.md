@@ -25,7 +25,7 @@ Node-disjoint paths, equipment capacity, direction-dependent operating modes, vo
 
 ## 3. Structural cut candidates
 
-Bridge edges and articulation nodes are computed over the undirected projection of declared PowerPath topology. These are graph structural indicators, not validated protection devices, physical isolation points, or probabilistic failure cut sets. Directed edge-disjoint path count remains the separate directed metric.
+Bridge edges and articulation nodes are computed over the undirected projection of declared PowerPath topology. Shared non-terminal nodes across edge-disjoint paths are reported separately; parallel distinct edges may allow two edge-disjoint paths to pass through one common intermediate bus. These are graph structural indicators, not validated protection devices, physical isolation points, or probabilistic failure cut sets. Directed edge-disjoint path count remains the separate directed metric.
 
 ## 4. Failure-domain records
 
@@ -48,7 +48,7 @@ The inventory itself is declared CompleteWithinDeclaredScope, Incomplete, or Unk
 | SharedModeledFailureDomainAcrossPaths | At least two computed disjoint routes intersect one declared failure-domain record |
 | NoSharedModeledIntermediateDependencyDetected | No shared modeled intermediate dependency was found in a declared-complete inventory; the source/load terminals remain shared by construction |
 
-NoSharedModeledIntermediateDependencyDetected does not prove physical or probabilistic independence. The same source and load terminals are shared by construction; those endpoints are explicitly reported. The result means only that the model found no shared non-terminal nodes or declared common-cause domain membership in a supplied, declared-complete inventory. An unknown failure-domain evidence record makes the inventory insufficient for a clean no-shared result.
+NoSharedModeledIntermediateDependencyDetected does not prove physical or probabilistic independence. The same source and load terminals are shared by construction; those endpoints are explicitly reported. Shared non-terminal nodes are separately listed, even where distinct parallel edges keep the paths edge-disjoint. The result means only that the model found no shared non-terminal nodes or declared common-cause domain membership in a supplied, declared-complete inventory. An unknown failure-domain evidence record makes the inventory insufficient for a clean no-shared result.
 
 ## 6. Frozen benchmark targets
 

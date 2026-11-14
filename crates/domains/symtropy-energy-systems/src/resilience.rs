@@ -627,6 +627,31 @@ mod tests {
         assert_eq!(result.independence_assessment(), IndependenceAssessment::SharedModeledFailureDomainAcrossPaths);
     }
 
+
+    #[test]
+    fn shared_intermediate_node_is_reported_even_when_edges_are_disjoint() {
+        let graph = graph(
+            vec![
+                ("source", ServiceNodeKind::UtilitySource),
+                ("shared-bus", ServiceNodeKind::AcBus),
+                ("load", ServiceNodeKind::Load),
+            ],
+            vec![
+                ("source-a", "source", "shared-bus"),
+                ("source-b", "source", "shared-bus"),
+                ("load-a", "shared-bus", "load"),
+                ("load-b", "shared-bus", "load"),
+            ],
+        );
+        let result = assess_resilience(
+            &graph, "source", "load", &[],
+            FailureDomainInventoryStatus::CompleteWithinDeclaredScope,
+        ).unwrap();
+        assert_eq!(result.edge_disjoint_path_count(), 2);
+        assert_eq!(result.shared_intermediate_node_ids(), &["shared-bus".to_owned()]);
+        assert_eq!(result.independence_assessment(), IndependenceAssessment::SharedModeledFailureDomainAcrossPaths);
+    }
+
     #[test]
     fn shared_upstream_domain_is_exposed_across_both_paths() {
         let domain = FailureDomain::new(
