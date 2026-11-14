@@ -1,0 +1,39 @@
+{
+  "graph_id": "fixture:diamond-microgrid",
+  "revision_id": "revision:2026-11-14:001",
+  "nodes": [
+    { "node_id": "source", "kind": "utility_source" },
+    { "node_id": "converter-left", "kind": "converter" },
+    { "node_id": "converter-right", "kind": "converter" },
+    { "node_id": "load", "kind": "load" }
+  ],
+  "power_edges": [
+    { "edge_id": "path-1a", "from": "source", "to": "converter-left" },
+    { "edge_id": "path-1b", "from": "converter-left", "to": "load" },
+    { "edge_id": "path-2a", "from": "source", "to": "converter-right" },
+    { "edge_id": "path-2b", "from": "converter-right", "to": "load" }
+  ],
+  "failure_domains": [
+    {
+      "domain_id": "shared-upstream-source",
+      "kind": "upstream_supply",
+      "node_ids": ["source"],
+      "edge_ids": [],
+      "evidence": { "state": "design_declared", "evidence_id": "fixture:domain-map:001" }
+    },
+    {
+      "domain_id": "left-route-enclosure",
+      "kind": "enclosure",
+      "node_ids": ["converter-left"],
+      "edge_ids": [],
+      "evidence": { "state": "unknown", "evidence_id": null }
+    }
+  ],
+  "inventory_status": "complete_within_declared_scope",
+  "expected": {
+    "edge_disjoint_path_count": 2,
+    "shared_upstream_domain_paths_affected": 2,
+    "left_route_domain_paths_affected": 1,
+    "independence_assessment": "shared_modeled_failure_domain_across_paths"
+  }
+}

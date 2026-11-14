@@ -20,6 +20,7 @@ mod diagnostics;
 mod fuel;
 mod infrastructure_ir;
 mod module_contract;
+mod resilience;
 mod service_graph;
 
 pub use change_impact::{
@@ -43,6 +44,11 @@ pub use infrastructure_ir::{
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
+};
+pub use resilience::{
+    assess_resilience, DisjointPath, FailureDomain, FailureDomainExposure,
+    FailureDomainInventoryStatus, FailureDomainKind, IndependenceAssessment,
+    ResilienceAssessment, ResilienceError,
 };
 pub use module_contract::{
     AcPort, CompatibilityAssessment, CompatibilityReason, CompatibilityStatus,
