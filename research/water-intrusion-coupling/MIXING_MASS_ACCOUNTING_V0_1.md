@@ -96,7 +96,7 @@ Delayed recovery is represented as a separately identified stream. It is not mer
 
 ## 5. Frozen T0 negative controls
 
-The v0.1 corpus contains 17 cases:
+The v0.1 corpus contains 18 cases:
 
 - complete measured boundary with exact mass closure;
 - truncated time window with 40% unresolved;
