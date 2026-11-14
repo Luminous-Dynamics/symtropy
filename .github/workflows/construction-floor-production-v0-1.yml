@@ -7,7 +7,7 @@ on:
       - ".github/workflows/construction-floor-production-v0-1.yml"
   push:
     branches:
-      - "research/construction-floor-production-v0-1"
+      - "research/construction-floor-production-time-index-stack-v0-1"
     paths:
       - "research/construction-floor-production-v0-1/**"
       - ".github/workflows/construction-floor-production-v0-1.yml"
