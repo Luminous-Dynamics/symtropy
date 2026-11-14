@@ -1,0 +1,26 @@
+# id|family|cargo|demand_tpd|candidate_capacity_tpd|baseline_capacity_tpd|candidate_fixed_annual_minor|baseline_fixed_annual_minor|candidate_variable_minor_per_t|baseline_variable_minor_per_t|candidate_transit_min|baseline_transit_min|candidate_energy_wh_per_t|baseline_energy_wh_per_t|candidate_emissions_gco2e_per_t|baseline_emissions_gco2e_per_t|rights|geotechnical|fire_egress|environmental|cargo_compatibility|fault_capacity_pct|expected
+port_yard_magrail_high|magrail_retrofit|containers|600|900|650|200000|120000|45|70|35|55|110|160|9000|18000|pass|pass|pass|pass|pass|70|eligible
+port_yard_lim_pod_capacity_short|automated_freight_pod|containers|600|500|650|180000|120000|40|70|30|55|100|160|8500|18000|pass|pass|pass|pass|pass|50|insufficient_capacity
+regional_rail_upgrade|existing_rail_upgrade|mixed|2500|2800|2300|900000|1000000|18|22|80|95|250|290|22000|28000|pass|pass|pass|pass|pass|85|eligible
+tunnel_geotechnical_unknown|conventional_tunnel_rail|containers|1600|2200|2000|1500000|1100000|22|24|90|110|310|320|28000|32000|pass|unknown|pass|pass|pass|90|needs_evidence
+dedicated_maglev_high_flow|dedicated_underground_maglev|containers|3000|4500|2500|7000000|1800000|12|45|50|120|170|240|11000|26000|pass|pass|pass|pass|pass|80|eligible
+dedicated_maglev_low_utilisation|dedicated_underground_maglev|containers|250|4500|600|7000000|1200000|12|45|50|120|170|240|11000|26000|pass|pass|pass|pass|pass|80|eligible
+pod_fire_egress_fail|automated_freight_pod|containers|400|700|500|200000|400000|15|55|20|70|90|190|8000|22000|pass|pass|fail|pass|pass|80|ineligible
+magrail_rights_unknown|magrail_retrofit|containers|300|650|500|180000|260000|30|58|40|65|115|185|12000|24000|unknown|pass|pass|pass|pass|80|needs_evidence
+new_tunnel_geology_fail|conventional_tunnel_rail|mixed|1100|1600|1200|2200000|1000000|20|40|105|130|340|270|26000|32000|pass|fail|pass|unknown|pass|90|ineligible
+inland_waterway_environment_unknown|inland_waterway|bulk|1800|2400|2000|700000|600000|12|16|150|170|90|105|12000|15000|pass|pass|pass|unknown|pass|75|needs_evidence
+bulk_conveyor_high_flow|conveyor|bulk|10000|12000|6000|1800000|2400000|4|15|95|180|35|90|3500|12000|pass|pass|pass|pass|pass|85|eligible
+liquid_pipeline|pipeline|liquid|5000|7000|6000|2400000|2200000|5|9|65|95|80|120|5000|9000|pass|pass|pass|pass|pass|90|eligible
+electric_road_feeder|electric_road|mixed|700|1000|1000|300000|250000|42|45|75|80|330|360|22000|26000|pass|pass|pass|pass|pass|60|eligible
+no_build_capacity_short|no_build|mixed|1200|800|800|0|0|60|60|180|180|500|500|40000|40000|pass|pass|pass|pass|pass|0|insufficient_capacity
+maglev_shared_grid_outage|dedicated_underground_maglev|containers|2500|3000|2600|5200000|1800000|14|42|60|125|185|250|13000|29000|pass|pass|pass|pass|pass|20|eligible
+capacity_exactly_demand|magrail_retrofit|containers|500|500|500|250000|250000|35|35|50|50|150|150|15000|15000|pass|pass|pass|pass|pass|100|eligible
+overcapacity_low_demand|automated_freight_pod|containers|200|4000|500|3000000|500000|12|52|25|85|75|210|7000|25000|pass|pass|pass|pass|pass|90|eligible
+long_haul_existing_rail|existing_rail_upgrade|containers|4200|5000|3800|1300000|1700000|25|35|240|290|360|420|30000|38000|pass|pass|pass|pass|pass|80|eligible
+long_haul_partial_tunnel|conventional_tunnel_rail|containers|4200|4600|3800|4000000|1700000|20|35|185|290|320|420|24000|38000|pass|pass|pass|pass|pass|70|eligible
+mixed_cargo_pipeline_incompatible|pipeline|mixed|900|1800|1200|600000|500000|8|14|80|130|90|120|7000|12000|pass|pass|pass|pass|fail|90|ineligible
+waterway_rights_fail|inland_waterway|bulk|3000|4500|3200|1500000|1200000|8|12|190|210|80|95|9000|11000|fail|pass|pass|pass|pass|65|ineligible
+maglev_environment_unknown|dedicated_underground_maglev|containers|1800|2300|1500|4000000|1700000|16|38|80|135|190|260|15000|30000|pass|pass|pass|unknown|pass|75|needs_evidence
+rail_capacity_recovery|existing_rail_upgrade|mixed|1800|2500|1000|700000|800000|24|48|110|150|280|430|25000|39000|pass|pass|pass|pass|pass|60|eligible
+conveyor_cargo_mismatch|conveyor|containers|750|1000|900|800000|700000|9|35|70|100|60|260|6000|28000|pass|pass|pass|pass|fail|90|ineligible
+magrail_control_fault|magrail_retrofit|containers|1000|1400|1100|500000|650000|28|52|55|90|120|200|12000|26000|pass|pass|pass|pass|pass|0|eligible
