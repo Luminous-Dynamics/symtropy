@@ -462,6 +462,10 @@ fn validate_contract(
         text(contract, "interface_contract_id")? == "LUMINOUS-WATER-INTRUSION-CHAIN-0.1",
         "interface contract identity mismatch",
     )?;
+    require(
+        text(contract, "evidence_ceiling")?.contains("not_solver_qualification"),
+        "interface contract evidence ceiling too permissive",
+    )?;
     let stage_ids = read_ids(contract, "required_stage_order")?;
     require(
         stage_ids == REQUIRED_STAGES.iter().map(|v| v.to_string()).collect::<Vec<_>>(),
@@ -476,12 +480,44 @@ fn validate_contract(
                 .collect::<Vec<_>>(),
         "required observation kinds mismatch",
     )?;
+    let dependency_contract = field(contract, "required_dependencies")?
+        .as_object()
+        .ok_or_else(|| "required_dependencies must be an object".to_owned())?;
+    for stage_id in REQUIRED_STAGES {
+        let declared = dependency_contract
+            .get(stage_id)
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("missing dependency declaration for {stage_id}"))?;
+        let declared_ids = declared
+            .iter()
+            .map(|entry| {
+                entry
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| "dependency ID must be a string".to_owned())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let expected_ids = expected_dependencies(stage_id)
+            .ok_or_else(|| format!("no expected dependencies for {stage_id}"))?
+            .iter()
+            .map(|dependency| dependency.to_string())
+            .collect::<Vec<_>>();
+        require(
+            declared_ids == expected_ids,
+            &format!("dependency contract mismatch for {stage_id}"),
+        )?;
+    }
 
     require(text(manifest, "schema_version")? == "0.1.0", "manifest schema mismatch")?;
     require(text(manifest, "programme_id")? == PROGRAMME, "manifest programme mismatch")?;
     require(
         text(manifest, "evidence_class")? == "design_and_synthetic_only",
         "manifest evidence class mismatch",
+    )?;
+    require(
+        text(manifest, "evidence_ceiling")?
+            .contains("no_physical_model_qualification"),
+        "manifest evidence ceiling too permissive",
     )?;
     require(
         text(manifest, "evidence_ceiling")?
