@@ -59,9 +59,9 @@ jobs:
           assert protocol["algorithm"]["max_units"] == 10000
           assert protocol["algorithm"]["max_draws"] == 2000000
           assert protocol["algorithm"]["max_total_unit_draws"] == 100000000
-          assert len(protocol["hard_gates"]) >= 27
-          assert len(corpus["cases"]) == 12
-          assert len({case["case_id"] for case in corpus["cases"]}) == 12
+          assert len(protocol["hard_gates"]) >= 28
+          assert len(corpus["cases"]) == 13
+          assert len({case["case_id"] for case in corpus["cases"]}) == 13
           assert config_schema["additionalProperties"] is False
           assert result_schema["additionalProperties"] is False
           assert "randomization_frame_sha256" in result_schema["required"]
