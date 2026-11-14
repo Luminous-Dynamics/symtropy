@@ -326,6 +326,36 @@ fn widening_sample_time_interval_cannot_shrink_the_position_enclosure() {
     assert!(wide.north_m.upper() >= narrow.north_m.upper());
 }
 
+
+#[test]
+fn widening_evaluation_time_interval_cannot_shrink_the_position_enclosure() {
+    let mut narrow_input = input(PntServiceState::Normal);
+    narrow_input.assessment_time_lower_utc_ms = 2_995;
+    narrow_input.assessment_time_upper_utc_ms = 3_005;
+    let (_, narrow) = accepted(evaluate(&narrow_input));
+
+    let mut wide_input = input(PntServiceState::Normal);
+    wide_input.assessment_time_lower_utc_ms = 2_990;
+    wide_input.assessment_time_upper_utc_ms = 3_010;
+    let (_, wide) = accepted(evaluate(&wide_input));
+
+    assert!(wide.east_m.lower() <= narrow.east_m.lower());
+    assert!(wide.east_m.upper() >= narrow.east_m.upper());
+    assert!(wide.north_m.lower() <= narrow.north_m.lower());
+    assert!(wide.north_m.upper() >= narrow.north_m.upper());
+}
+
+#[test]
+fn reversed_evaluation_time_interval_is_rejected() {
+    let mut sample = input(PntServiceState::Normal);
+    sample.assessment_time_lower_utc_ms = 3_010;
+    sample.assessment_time_upper_utc_ms = 2_990;
+    assert_rejected(
+        evaluate(&sample),
+        NotAssessableReason::InvalidAssessmentTimeInterval,
+    );
+}
+
 #[test]
 fn widening_velocity_bounds_cannot_shrink_the_position_enclosure() {
     let mut narrow_input = input(PntServiceState::Normal);
