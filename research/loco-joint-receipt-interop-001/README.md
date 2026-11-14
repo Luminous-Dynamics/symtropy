@@ -130,3 +130,32 @@ Run:
 The golden fixture must produce SHA-256 \`cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8\`. The test corpus also verifies duplicate-key rejection, float / unsafe-integer rejection, UTF-16 property ordering, digest tampering, integrity-member exclusion and no-actuation-authority behavior.
 
 This remains synthetic wire-integrity qualification; it does not serialize the live \`AdapterReport\`, consume the receipt in Symthaea, authenticate the producer, validate measurements, or establish a physical joint result.
+
+
+## 7. Versioned measurement-uncertainty sidecar (v0.1)
+
+The original joint receipt packet remains **unchanged**. A separate sidecar is introduced at:
+
+- \`fixtures/joint_uq_sidecar_v0_1.schema.json\`
+- \`fixtures/joint_uq_sidecar_v0_1_complete.json\`
+- \`fixtures/joint_uq_mutations_v0_1.json\`
+
+Protocol: \`LOCO-JOINT-UQ-SIDECAR-001\`, schema version \`0.1.0\`.
+
+The sidecar binds itself to the exact parent joint receipt payload SHA-256. It binds common mission, robot, actuator, controller, scenario, clock/boot epoch, physical boundary and physical-state predecessor/result identities. Every per-channel uncertainty receipt binds the common scope digest and the exact measurement artifact, instrument configuration, calibration, units and scale.
+
+The synthetic packet contains:
+- shaft torque and bus-voltage measurements with separate uncertainty receipts;
+- a shared calibration-source artifact represented by the same dependence group and the same joint-model receipt across both channels;
+- channel-local repeatability components with separately declared independence evidence;
+- a derived electrical-energy result with the exact torque/voltage input measurement IDs and input uncertainty receipt IDs;
+- an explicit Monte Carlo coverage receipt and convergence receipt for the derived energy result;
+- literal \`actuation_authorized: false\` and \`conformity_certified: false\`.
+
+The Rust reference now exposes \`validate_uq_sidecar(sidecar, parent)\`. It checks duplicate-key-free parsing, the sidecar JCS/SHA-256 digest, exact parent packet digest, physical scope equality, per-measurement uncertainty identity/scope bindings, and derived input/output receipt-set lineage. The Python Draft 2020-12 preflight separately checks the closed sidecar schema, full measurement-window calibration/UQ coverage, exact dependence component sets, cross-channel shared-source consistency, Monte Carlo convergence, and the known-answer digest.
+
+The 10-case mutation inventory includes parent digest drift, actuator scope drift, source dependence group split, shared-model receipt mismatch, derived input-UQ omission, calibration expiry, missing Monte Carlo convergence, actuation authority escalation, duplicate JSON keys, and payload digest tampering.
+
+### Claim boundary
+
+This is synthetic sidecar interoperability and evidence-lineage qualification. It does not authenticate instruments, calculate covariance or nonlinear uncertainty, validate calibration truth, prove the physical state, or demonstrate a hardware result. The UQ auditor (#5062 / PR #5067) remains the owner of receipt-completeness semantics; this sidecar transports those receipts and binds them to the parent causal trace.
