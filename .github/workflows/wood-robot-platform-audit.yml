@@ -1,0 +1,67 @@
+name: Wood Robotics Platform Contract Audit
+
+on:
+  push:
+    branches: ["docs/wood-robot-platform-portfolio-v0-1"]
+    paths:
+      - "docs/tech/wood-robot-platform-corpus-v0.1.json"
+      - "tools/wood-robot-platform-audit/**"
+      - ".github/workflows/wood-robot-platform-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/WOOD_ROBOT_PLATFORM_PORTFOLIO_V0_1.md"
+      - "docs/tech/wood-robot-platform-corpus-v0.1.json"
+      - "tools/wood-robot-platform-audit/**"
+      - ".github/workflows/wood-robot-platform-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wood-robot-platform-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Test independent contract checker
+        run: cargo test --manifest-path tools/wood-robot-platform-audit/Cargo.toml
+      - name: Audit frozen corpus on the exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/wood-robot-platform-audit/Cargo.toml -- \
+            docs/tech/wood-robot-platform-corpus-v0.1.json \
+            --source-commit "$source_commit" > wood-robot-platform-audit-receipt.json
+          jq -e '
+            .result == "pass"
+            and .scenario_count == 29
+            and .aerial_scenario_count == 13
+            and .salvage_scenario_count == 7
+            and (.decision_counts | has("blocked"))
+            and (.decision_counts | has("eligible_for_simulated_plan"))
+            and .all_plan_only == true
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+          ' wood-robot-platform-audit-receipt.json
+      - name: Upload exact-input audit receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: wood-robot-platform-audit-receipt
+          path: wood-robot-platform-audit-receipt.json
+          if-no-files-found: error
