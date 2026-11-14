@@ -1,0 +1,27 @@
+name: Exact reduced-Coulomb FBF reference
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/tests/fbf_exact_reduced_coulomb_reference.rs"
+      - ".github/workflows/fbf-exact-reduced-coulomb-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fbf-exact-reduced-coulomb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check FBF reference formatting
+        run: rustfmt --edition 2024 --check crates/core/symtropy-physics/tests/fbf_exact_reduced_coulomb_reference.rs
+      - name: Verify FBF sticking and sliding responses
+        run: cargo test -p symtropy-physics --test fbf_exact_reduced_coulomb_reference --locked
+      - name: Compile production physics library
+        run: cargo check -p symtropy-physics --lib --locked
