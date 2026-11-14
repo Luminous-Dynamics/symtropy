@@ -86,3 +86,6 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT exact temporal service-feasibility oracle
+      run: cargo test --locked -p wpt-exact-service-oracle
