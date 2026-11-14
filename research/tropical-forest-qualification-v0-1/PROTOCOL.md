@@ -163,7 +163,7 @@ A collection of models is not adequate merely because its members agree. Use the
 3. **Omitted mechanism:** all registered models agree, but a blinded generating process contains a mechanism absent from every candidate model.
 4. **Observation-process shift:** the ecological state is unchanged but sensor, sampling geometry, cloud, detection threshold or processing changes.
 
-For each, score forecast calibration, decision regret, out-of-domain detection, false alarms and abstention. A high internal ensemble agreement must not increase confidence when residuals or held-out mechanism challenges indicate model-set inadequacy. Select the next observation or experiment to discriminate the hypotheses under the same time, cost, access and ecological-disturbance budgets. The system recommends; the benchmark does not authorize real-world intervention.
+For each, score forecast calibration, decision regret, out-of-domain detection, false alarms and abstention. A high internal ensemble agreement must not increase confidence when residuals or held-out mechanism challenges indicate model-set inadequacy. Select the next observation or experiment to discriminate the hypotheses under the same time, cost, access and ecological-disturbance budgets. Use the forest-specific [decision-value tournament #5223](https://github.com/Luminous-Dynamics/symtropy/issues/5223) and [its worked examples](FOREST_DECISION_VALUE_V0_1.md) to compare information gain with actual decision value, reusing #2171 rather than implementing a duplicate EVSI kernel. The system recommends; the benchmark does not authorize real-world intervention.
 
 ## Evaluation protocol
 
