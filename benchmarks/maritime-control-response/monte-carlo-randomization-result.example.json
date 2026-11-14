@@ -1,0 +1,24 @@
+{
+  "schema_version": "symtropy-marine-monte-carlo-randomization-v0.1",
+  "trial_id": "synthetic-example-only",
+  "assignment_plan_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "randomization_frame_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "algorithm": "splitmix64_v1",
+  "seed_u64": 1311768467463790300,
+  "draw_count": 1000,
+  "observed_treatment_minus_control": 2.5,
+  "exceedance_count": 24,
+  "p_value_plus_one": 0.024975024975024976,
+  "tail_probability_estimate": 0.024,
+  "monte_carlo_standard_error": 0.004839834707921336,
+  "tail_probability_wilson_95": [
+    0.016,
+    0.036
+  ],
+  "sampled_assignments_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "allocation_constraint_violations": 0,
+  "exact_enumeration_used": false,
+  "maintenance_authorized": false,
+  "physical_restoration_authorized": false,
+  "operating_restriction_clearance_authorized": false
+}
