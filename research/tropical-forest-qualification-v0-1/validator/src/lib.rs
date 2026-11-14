@@ -1312,6 +1312,10 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
         "SUPPORT-DEGENERATE-GEOMETRY-001",
         "SUPPORT-EDGE-TOUCH-001",
         "SUPPORT-EMPTY-EVIDENCE-001",
+        "SUPPORT-REGISTRATION-BOUNDS-ZERO-001",
+        "SUPPORT-REGISTRATION-BOUNDS-SYMMETRIC-001",
+        "SUPPORT-REGISTRATION-BOUNDS-EDGE-001",
+        "SUPPORT-REGISTRATION-BOUNDS-WIDE-001",
     ]
     .into_iter()
     .collect();
@@ -1453,6 +1457,80 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
             case_passed,
             detail,
         );
+
+        if let Some(shift_value) = case.get("registration_shift_bounds") {
+            let expected_bounds = at(case, &["expected_registration_bounds"])?;
+            let shift = support_kernel::RegistrationShiftBounds {
+                min_dx: number_at(shift_value, &["min_dx"])?,
+                max_dx: number_at(shift_value, &["max_dx"])?,
+                min_dy: number_at(shift_value, &["min_dy"])?,
+                max_dy: number_at(shift_value, &["max_dy"])?,
+            };
+            let reference_sample = samples.first().ok_or_else(|| {
+                format!("cases[{index}] registration bounds require one reference source rectangle")
+            })?;
+            let registration_result = support_kernel::bound_rect_overlap_under_translation(
+                target_rect,
+                reference_sample.bounds,
+                shift,
+            );
+            match registration_result {
+                Ok(registration) => {
+                    let minimum_area = number_at(expected_bounds, &["minimum_overlap_area_m2"])?;
+                    let maximum_area = number_at(expected_bounds, &["maximum_overlap_area_m2"])?;
+                    let minimum_fraction = number_at(expected_bounds, &["minimum_coverage_fraction"])?;
+                    let maximum_fraction = number_at(expected_bounds, &["maximum_coverage_fraction"])?;
+                    let registration_passed = unique
+                        && close_enough(
+                            registration.minimum_overlap_area_m2,
+                            minimum_area,
+                            1e-9,
+                        )
+                        && close_enough(
+                            registration.maximum_overlap_area_m2,
+                            maximum_area,
+                            1e-9,
+                        )
+                        && close_enough(
+                            registration.minimum_coverage_fraction,
+                            minimum_fraction,
+                            1e-12,
+                        )
+                        && close_enough(
+                            registration.maximum_coverage_fraction,
+                            maximum_fraction,
+                            1e-12,
+                        );
+                    push_check(
+                        &mut checks,
+                        "SUPPORT-REGISTRATION-BOUNDS-ORACLE-001",
+                        registration_passed,
+                        format!(
+                            "case={case_id}; min_area={}; max_area={}; min_fraction={}; max_fraction={}; expected_min_area={minimum_area}; expected_max_area={maximum_area}",
+                            registration.minimum_overlap_area_m2,
+                            registration.maximum_overlap_area_m2,
+                            registration.minimum_coverage_fraction,
+                            registration.maximum_coverage_fraction
+                        ),
+                    );
+                    result_rows.push(json!({
+                        "case_id": case_id,
+                        "registration_minimum_overlap_area_m2": registration.minimum_overlap_area_m2,
+                        "registration_maximum_overlap_area_m2": registration.maximum_overlap_area_m2,
+                        "registration_minimum_coverage_fraction": registration.minimum_coverage_fraction,
+                        "registration_maximum_coverage_fraction": registration.maximum_coverage_fraction
+                    }));
+                }
+                Err(error) => {
+                    push_check(
+                        &mut checks,
+                        "SUPPORT-REGISTRATION-BOUNDS-ORACLE-001",
+                        false,
+                        format!("case={case_id}; registration_bound_error={error}"),
+                    );
+                }
+            }
+        }
         result_rows.push(row);
     }
 
@@ -1480,8 +1558,8 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
             && !external
             && transform == "NOT_IMPLEMENTED"
             && arbitrary == "NOT_IMPLEMENTED"
-            && uncertainty == "NOT_IMPLEMENTED",
-        "pre-transformed axis-aligned synthetic rectangles only; no external data or unimplemented geometry/uncertainty capability is claimed",
+            && uncertainty == "PROBABILISTIC_REGISTRATION_MODEL_NOT_IMPLEMENTED",
+        "pre-transformed axis-aligned synthetic rectangles and deterministic translation bounds only; no external data, arbitrary geometry, CRS transform or probabilistic registration model is claimed",
     );
 
     let passed = checks.iter().all(|check| check.passed);
@@ -1509,7 +1587,9 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
         "support_kernel": "AXIS_ALIGNED_RECTANGLES_SAME_DECLARED_CRS",
         "arbitrary_polygon_support": "NOT_IMPLEMENTED",
         "crs_transform": "NOT_IMPLEMENTED",
-        "positional_uncertainty": "NOT_IMPLEMENTED",
+        "positional_uncertainty": "DETERMINISTIC_TRANSLATION_BOUNDS_ONLY",
+        "probabilistic_registration_model": "NOT_IMPLEMENTED",
+        "registration_bounds_case_count": cases.iter().filter(|case| case.get("registration_shift_bounds").is_some()).count(),
         "external_data_ingested": false
     }))
 }
