@@ -133,10 +133,11 @@
       }
     },
     {
-      "case_id": "WBA-F0-003-targeted-two-classes-only",
+      "case_id": "WBA-F0-003-filter-v4-does-not-cover-protozoa",
       "expected": {
         "status": "GAP",
         "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa",
           "NO_VERIFIED_IN_ENVELOPE_CLAIM:viruses"
         ],
         "coverage": [
@@ -172,15 +173,8 @@
             "hazard_id": "protozoa",
             "minimum_required": 2,
             "claim_unit": "log10",
-            "covered": true,
-            "evidence": [
-              {
-                "module_id": "SYN-MODULE-01",
-                "evidence_id": "SYN-PROTOZOA",
-                "claim_value": 2,
-                "claim_unit": "log10"
-              }
-            ]
+            "covered": false,
+            "evidence": []
           },
           {
             "hazard_id": "viruses",
@@ -1085,6 +1079,68 @@
                 "claim_unit": "log10"
               }
             ]
+          },
+          {
+            "hazard_id": "viruses",
+            "minimum_required": 3,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-VIRUSES",
+                "claim_value": 3,
+                "claim_unit": "log10"
+              }
+            ]
+          }
+        ],
+        "release_authorized": false,
+        "potability_claim_permitted": false
+      }
+    },
+    {
+      "case_id": "WBA-F0-019-filter-v4-claim-misapplied-to-protozoa",
+      "expected": {
+        "status": "GAP",
+        "reasons": [
+          "NO_VERIFIED_IN_ENVELOPE_CLAIM:protozoa"
+        ],
+        "coverage": [
+          {
+            "hazard_id": "arsenic",
+            "minimum_required": 90,
+            "claim_unit": "percent_reduction",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-ARSENIC",
+                "claim_value": 95,
+                "claim_unit": "percent_reduction"
+              }
+            ]
+          },
+          {
+            "hazard_id": "bacteria",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": true,
+            "evidence": [
+              {
+                "module_id": "SYN-MODULE-01",
+                "evidence_id": "SYN-BACTERIA",
+                "claim_value": 2,
+                "claim_unit": "log10"
+              }
+            ]
+          },
+          {
+            "hazard_id": "protozoa",
+            "minimum_required": 2,
+            "claim_unit": "log10",
+            "covered": false,
+            "evidence": []
           },
           {
             "hazard_id": "viruses",
