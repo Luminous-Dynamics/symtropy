@@ -995,6 +995,111 @@ mod tests {
         assert_eq!(forward, reverse);
     }
 
+    fn independent_frontier_oracle(
+        profiles: &BTreeMap<String, BTreeMap<MetricKey, u64>>,
+    ) -> Vec<String> {
+        let mut frontier = Vec::new();
+        for (candidate_id, candidate) in profiles {
+            let mut dominated = false;
+            for (other_id, other) in profiles {
+                if candidate_id == other_id {
+                    continue;
+                }
+                let mut no_worse_on_all = true;
+                let mut strictly_better_on_one = false;
+                for (metric, candidate_value) in candidate {
+                    let other_value = other[metric];
+                    match metric.lower_is_better() {
+                        true if other_value <= *candidate_value => {
+                            strictly_better_on_one |= other_value < *candidate_value;
+                        }
+                        false if other_value >= *candidate_value => {
+                            strictly_better_on_one |= other_value > *candidate_value;
+                        }
+                        _ => {
+                            no_worse_on_all = false;
+                            break;
+                        }
+                    }
+                }
+                if no_worse_on_all && strictly_better_on_one {
+                    dominated = true;
+                    break;
+                }
+            }
+            if !dominated {
+                frontier.push(candidate_id.clone());
+            }
+        }
+        frontier.sort();
+        frontier
+    }
+
+    #[test]
+    fn robust_frontier_matches_independent_oracle_on_generated_catalogue() {
+        let mut options = Vec::new();
+        for index in 0_u64..48 {
+            let a = (index * 17 + 13) % 101 + 1;
+            let b = (index * 29 + 5) % 89 + 1;
+            let c0 = (index * 7 + 19) % 97 + 1;
+            let d = (index * 31 + 3) % 113 + 1;
+            let e = (index * 11 + 23) % 79 + 1;
+            let r = (index * 19 + 7) % 100 + 1;
+            let mut candidate = option(
+                &format!("generated-{index:02}"),
+                match index % 3 {
+                    0 => OptionTier::Avoid,
+                    1 => OptionTier::Switch,
+                    _ => OptionTier::Improve,
+                },
+                [
+                    [a, b, c0, d, e, r],
+                    [a + (index % 5), b + (index % 7), c0 + 2, d + 3, e + 4, r],
+                    [a + 2, b + 3, c0 + 5, d + 1, e + 2, r.saturating_sub(1)],
+                ],
+            );
+            candidate.assumptions_ref = format!("generated-assumptions-{index}");
+            options.push(candidate);
+        }
+
+        let report = evaluate_options(&brief(), &options).expect("generated catalogue");
+        let oracle = independent_frontier_oracle(&report.worst_case_metrics);
+        assert_eq!(report.pareto_option_ids, oracle);
+    }
+
+    #[test]
+    fn currency_and_metric_schema_are_explicit_and_validated() {
+        assert_eq!(MetricKey::WholeLifeCostMinorUnits.unit(), "currency_minor_units");
+        assert_eq!(MetricKey::EmbodiedCarbonGramsCo2e.unit(), "gCO2e");
+        assert_eq!(MetricKey::RepairabilityBasisPoints.unit(), "basis_points");
+
+        let mut invalid_currency = brief();
+        invalid_currency.currency_code = "US".to_owned();
+        assert_eq!(
+            evaluate_options(
+                &invalid_currency,
+                &[option("currency-error", OptionTier::Avoid, [[1, 2, 3, 4, 5, 6]; 3])]
+            ),
+            Err(OptioningError::InvalidCurrencyCode)
+        );
+
+        let mut inconsistent = option(
+            "inconsistent-schema",
+            OptionTier::Switch,
+            [[1, 2, 3, 4, 5, 6]; 3],
+        );
+        inconsistent
+            .scenario_metrics
+            .get_mut("supply-delay")
+            .expect("scenario exists")
+            .values
+            .remove(&MetricKey::RepairabilityBasisPoints);
+        assert!(matches!(
+            evaluate_options(&brief(), &[inconsistent]),
+            Err(OptioningError::InconsistentMetricSchema { .. })
+        ));
+    }
+
     #[test]
     fn report_carries_analysis_horizon_and_exact_provenance() {
         let one = option("avoid", OptionTier::Avoid, [[1, 2, 3, 4, 5, 6]; 3]);
