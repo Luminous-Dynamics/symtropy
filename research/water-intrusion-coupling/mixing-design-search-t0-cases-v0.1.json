@@ -1,0 +1,223 @@
+{
+  "schema_version": "mixing-design-search-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-DESIGN-SEARCH-001",
+  "parameter_count": 4,
+  "target_parameter_count": 2,
+  "rank_relative_tolerance": 1e-8,
+  "cost_budget": 4,
+  "sensor_budget": 4,
+  "duration_budget_minutes": 40,
+  "calibration_budget": 4,
+  "maximum_condition_number": 100,
+  "minimum_model_separation": 0.35,
+  "random_seed": 20261114,
+  "random_trials": 64,
+  "model_pair_ids": [
+    "EPANET-vs-geometry-regression"
+  ],
+  "blocks": [
+    {
+      "block_id": "A-inlet-one",
+      "information_matrix": [
+        [
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "model_separation_squared": {
+        "EPANET-vs-geometry-regression": 0.04
+      },
+      "cost_units": 1,
+      "duration_minutes": 10,
+      "calibration_units": 1,
+      "sensor_ids": [
+        "sensor-common"
+      ],
+      "cross_block_noise_contract": "independent",
+      "information_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "block_id": "B-inlet-two",
+      "information_matrix": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          1
+        ]
+      ],
+      "model_separation_squared": {
+        "EPANET-vs-geometry-regression": 0.04
+      },
+      "cost_units": 1,
+      "duration_minutes": 10,
+      "calibration_units": 1,
+      "sensor_ids": [
+        "sensor-common"
+      ],
+      "cross_block_noise_contract": "independent",
+      "information_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "block_id": "C-nuisance-one-calibration",
+      "information_matrix": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "model_separation_squared": {
+        "EPANET-vs-geometry-regression": 0.04
+      },
+      "cost_units": 1,
+      "duration_minutes": 5,
+      "calibration_units": 1,
+      "sensor_ids": [
+        "sensor-cal-1"
+      ],
+      "cross_block_noise_contract": "independent",
+      "information_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "block_id": "D-nuisance-two-calibration",
+      "information_matrix": [
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "model_separation_squared": {
+        "EPANET-vs-geometry-regression": 0.04
+      },
+      "cost_units": 1,
+      "duration_minutes": 5,
+      "calibration_units": 1,
+      "sensor_ids": [
+        "sensor-cal-2"
+      ],
+      "cross_block_noise_contract": "independent",
+      "information_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "block_id": "E-high-information-low-discrimination",
+      "information_matrix": [
+        [
+          8,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          8,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          8,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          8
+        ]
+      ],
+      "model_separation_squared": {
+        "EPANET-vs-geometry-regression": 0.04
+      },
+      "cost_units": 4,
+      "duration_minutes": 20,
+      "calibration_units": 4,
+      "sensor_ids": [
+        "sensor-e1",
+        "sensor-e2",
+        "sensor-e3",
+        "sensor-e4"
+      ],
+      "cross_block_noise_contract": "independent",
+      "information_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ]
+}
