@@ -604,7 +604,7 @@ mod tests {
 
     #[test]
     fn widening_model_and_control_contributions_cannot_shrink_tube() {
-        let mut narrow = axis(interval(10.0, 10.0), interval(0.0, 0.0), interval(0.0, 0.0));
+        let narrow = axis(interval(10.0, 10.0), interval(0.0, 0.0), interval(0.0, 0.0));
         let mut wide = narrow;
         wide.model_uncertainty_mps = interval(-1.0, 1.0);
         wide.control_mps = interval(-2.0, 2.0);
