@@ -154,7 +154,7 @@ pub struct VelocityStep {
     pub velocity: VelocityEnvelope,
 }
 
-/// Identity and applicability metadata for the caller's model profile.
+/// Identity and reference metadata for the caller's model profile.
 ///
 /// A SHA-256 string is syntax-checked only. This crate does not verify the
 /// source bytes, signature, publisher, physical validity, or regulatory scope.
