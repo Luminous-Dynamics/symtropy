@@ -1,0 +1,980 @@
+{
+  "$schema": "./experiment.schema.v0.1.json",
+  "protocol_id": "CIVBENCH-JHB-WATER-EXPERIMENT-001",
+  "version": "0.1.0",
+  "date": "2026-11-02",
+  "status": "design_only_pre_registration_pending",
+  "scope": {
+    "geography": "City of Johannesburg, South Africa",
+    "domain": "urban drinking-water service resilience, asset maintenance and institutional coordination",
+    "claim_ceiling": "source-bounded synthetic research; not a calibrated hydraulic model or causal field-impact estimate",
+    "reference_sources": [
+      {
+        "source_id": "JOHANNESBURG_WATER_AR_2024_25",
+        "uri": "https://www.johannesburgwater.co.za/wp-content/uploads/2026/05/Annual-Report-2425.pdf",
+        "period": "FY2024/25",
+        "evidence_class": "published_aggregate_reported",
+        "assurance": "NRW described as unaudited in service-delivery section",
+        "snapshot_status": "not_snapshotted",
+        "render_verification": "not_completed"
+      },
+      {
+        "source_id": "DWS_MUNICIPAL_WATER_BALANCE_2022_23",
+        "uri": "https://www.dws.gov.za/Projects/wueew/documents/webinfo/2023%20Benchmarking%20Report.pdf",
+        "period": "FY2022/23",
+        "evidence_class": "published_aggregate_reported",
+        "assurance": "national benchmarking dataset with mixed reported confidence; no Johannesburg-specific confidence inferred",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "JOHANNESBURG_WATER_AR_2023_24",
+        "uri": "https://www.johannesburgwater.co.za/wp-content/uploads/2025/02/FINAL-JOHANNESBURG-WATER-ANNUAL-REPORT-23_2024-20-02-2025.pdf",
+        "period": "FY2023/24",
+        "evidence_class": "published_audited_financial_statement_and_annual_report",
+        "assurance": "financial statement water-balance components reported as audited",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "CROZIER_WEIJS_WARATA_2026",
+        "uri": "https://doi.org/10.3390/w18121458",
+        "period": "2026-06-13",
+        "evidence_class": "published_theoretical_framework",
+        "assurance": "performance-based WARATA quantification approach; future real-world case-study validation explicitly pending",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "NIST_LIFELINE_RESILIENCE_2026",
+        "uri": "https://www.nist.gov/publications/advancing-resilience-across-lifeline-infrastructure-systems-need-consistent-guidance",
+        "period": "2026-09-29",
+        "evidence_class": "published_system_level_review",
+        "assurance": "review identifies interdependence and guidance gap; not a municipal water observation",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "JOURNAL_HYDROINFORMATICS_HIERARCHICAL_LEAK_REVIEW_2026",
+        "uri": "https://doi.org/10.2166/hydro.2026.069",
+        "period": "2026",
+        "evidence_class": "published_systematic_review_86_studies",
+        "assurance": "review-level synthesis and deployment recommendations; not an independent benchmark result",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WATER_2026_XAI_DIGITAL_TWIN_REVIEW_48_RECORDS",
+        "uri": "https://www.mdpi.com/2073-4441/18/19/2443",
+        "period": "2026",
+        "evidence_class": "published_systematic_review",
+        "assurance": "48-record review corpus; maturity counts and gaps reflect the review's own inclusion/classification, not an exhaustive deployment census",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "AWWA_MODEL_OR_DIGITAL_TWIN_SURVEY_2026",
+        "uri": "https://doi.org/10.1002/awwa.70075",
+        "period": "published_2026-04-15_survey_fieldwork_2024",
+        "evidence_class": "published_utility_survey_analysis",
+        "assurance": "survey findings about 2024 utility practices and implementation planning; not current 2026 installed-base measurement",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "JOURNAL_HYDROLOGY_PROBABILISTIC_SENSOR_PLACEMENT_2026",
+        "uri": "https://doi.org/10.1016/j.jhydrol.2026.136514",
+        "period": "2026-11_listing",
+        "evidence_class": "published_method_paper",
+        "assurance": "reported 91.4% accuracy and 4.2% false positives are specific to the article's own setup; exact cross-paper comparability not established",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "KIOS_LEAKDB_OFFICIAL_REPOSITORY",
+        "uri": "https://github.com/KIOS-Research/LeakDB",
+        "period": "dataset_release_2018_and_subsequent_expansion",
+        "evidence_class": "public_synthetic_benchmark_dataset",
+        "assurance": "repository describes synthetic leakage scenarios and links the complete dataset on Zenodo; preserve archive/version digest",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WATERBENCHMARKHUB_KIOS_LEAKDB",
+        "uri": "https://waterfutures.github.io/WaterBenchmarkHub/benchmarks/KIOS-LeakDB.html",
+        "period": "accessed_2026-11-03",
+        "evidence_class": "public_benchmark_catalogue_record",
+        "assurance": "catalogue describes 1000 scenarios each for Net1 and Hanoi, time-step labels, topology/configuration and 30-minute steps",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "DAMONTI_BERNASCONI_UNCERTAINTY_AWARE_2026",
+        "uri": "https://doi.org/10.1007/s00477-026-03239-6",
+        "period": "published_2026-05-02",
+        "evidence_class": "paper_reported_500_scenario_Hanoi_benchmark",
+        "assurance": "reports 93.60% accuracy, 91.58% sensitivity, 0/120 false positives, ROC AUC 0.975 and PR AUC 0.993; threshold selection on same corpus and independent holdout not established by accessible methods; implementation not publicly hosted",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "FARAH_SHAHRUR_LEAK_BENCHMARK_REVIEW_2026",
+        "uri": "https://doi.org/10.3390/w18182267",
+        "period": "published_2026-09-11",
+        "evidence_class": "systematic_review_90_studies",
+        "assurance": "reports 32 random splits, 9 temporal/independent holdouts, 7 cross-validation and 42 absent/insufficient validation descriptions",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "TARAWNEH_DEEP_LEARNING_LEAK_BENCHMARK_REVIEW_2026",
+        "uri": "https://doi.org/10.2166/wpt.2026.485",
+        "period": "published_2026-10-30",
+        "evidence_class": "systematic_review_and_benchmark_244_records_71_DL_studies",
+        "assurance": "review and paper-specific benchmark; treat reported results by task/split, not as one universal leaderboard",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "LI_GAO_INTEGRATED_LEAK_PRESSURE_TWIN_2026",
+        "uri": "https://doi.org/10.1038/s41598-026-73010-y",
+        "period": "published_2026-10-24",
+        "evidence_class": "published_integrated_digital_twin_case_study",
+        "assurance": "Reports pooled in-house F1 0.916 and Top-5 hit rate 0.816; independent BattLeDIM validation retains F1 0.818 with approximately 20 percentage-point Top-5 hit-rate loss; results are paper-specific and not a matched CivBench leaderboard result",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "BABELA_MUNK_MUNKOVA_SLOVAK_WDN_DATASET_2026",
+        "uri": "https://doi.org/10.1038/s41597-026-07203-5",
+        "period": "published_2026-04-17_data_year_2022",
+        "evidence_class": "published_real_utility_anonymized_temporal_dataset",
+        "assurance": "One anonymized distribution zone and 8,737 hourly records; 18 precomputed anomaly-score features and OIS fault labels within +/-7-day windows; unlabelled periods are not proven leak-free; public release does not include raw telemetry or source code, and label-associated feature selection cannot be assumed split-safe",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "BATTLEDIM_OFFICIAL_L_TOWN_DATA_2018_2019",
+        "uri": "https://battledim.ucy.ac.cy/?page_id=33",
+        "period": "2018_training_and_2019_evaluation",
+        "evidence_class": "public_historical_external_benchmark_dataset",
+        "assurance": "Official BattLeDIM L-Town SCADA and EPANET benchmark: 5-minute measurements, 1 tank-level sensor, 3 flow sensors, 33 pressure sensors and 82 Area C AMRs; 2019 evaluation data are historically public, so this is external transfer evidence but not a secret holdout",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WDSEVENTDB_REALTIME_TESTBED_DATASET_2025",
+        "uri": "https://zenodo.org/records/17547955",
+        "period": "published_2025-11-06",
+        "evidence_class": "public_hardware_in_the_loop_testbed_dataset",
+        "assurance": "Real-time sensor-instrumented water-system testbed dataset with cyberattack, leakage and sensor-failure events; testbed evidence, not a municipal utility deployment",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "ACG_WATER_TESTBED_2026",
+        "uri": "https://zenodo.org/records/21814947",
+        "period": "published_2026-08-06",
+        "evidence_class": "public_controlled_cyber_physical_testbed",
+        "assurance": "Reproducible research testbed for simulated remote-access, IT/OT traversal, PLC/controller, sensor, pump and storage compromise propagation; no interaction with production utilities or live PLCs",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "PEREZ_PEREZ_WDT_CYBER_RESILIENCE_2026",
+        "uri": "https://doi.org/10.3390/eng7100564",
+        "period": "published_2026-10-15",
+        "evidence_class": "published_review_and_testbed_case_study",
+        "assurance": "Maps 50 water cyber-physical studies and reports a chronological WDT testbed case; its five-run alarm-policy result shows higher sample recall can coexist with fewer detected event onsets and sustained alarms; protocol-specific, not a universal model ranking",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WDN_CYBERSECURITY_AI_REVIEW_2026",
+        "uri": "https://doi.org/10.3390/w18040519",
+        "period": "published_2026",
+        "evidence_class": "systematic_review_32_peer_reviewed_studies",
+        "assurance": "Reports strong concentration on a small set of synthetic/testbed datasets and no observed cross-dataset validation in the reviewed studies; review scope and search period limit generalization",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WDS_CYBER_RELIABILITY_RISK_TRADEOFF_2026",
+        "uri": "https://doi.org/10.1016/j.ress.2026.112667",
+        "period": "published_2026",
+        "evidence_class": "published_cyber_physical_risk_optimization_study",
+        "assurance": "Quantifies trade-offs between cyber-network reliability redundancy and increased cyber-physical attack exposure on two WDS case studies; results depend on network topology and security assumptions",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WEINSTEIN_NEVO_MISSPECIFIED_INTERFERENCE_2026",
+        "uri": "https://doi.org/10.1093/biomtc/ujag023",
+        "period": "published_2026-01-06",
+        "evidence_class": "published_causal_inference_method_paper",
+        "assurance": "Derives bias bounds for misspecified interference networks and proposes a multiple-network estimator unbiased if at least one candidate network is correct; method demonstrated in simulations and a social-network field experiment, not water infrastructure",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "SCHRODER_OPRESCU_FEUERRIEGEL_KALLUS_PARTIAL_ID_2026",
+        "uri": "https://arxiv.org/abs/2602.03459",
+        "period": "preprint_2026-02-03",
+        "evidence_class": "preprint_partial_identification_method",
+        "assurance": "Derives sharp bounds for direct and spillover effects under misspecified exposure mappings; methods include weighted-neighborhood, threshold and truncated-neighborhood settings; preprint rather than peer-reviewed infrastructure application",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "AUERBACH_LOCAL_CAUSAL_NETWORK_INTERFERENCE_2026",
+        "uri": "https://doi.org/10.3982/QE2484",
+        "period": "published_2026",
+        "evidence_class": "published_causal_inference_method_paper",
+        "assurance": "Uses rooted-network-valued exposure to reduce misspecification risk from a fixed low-dimensional exposure map; computational and statistical costs of rich rooted-network support remain",
+        "snapshot_status": "not_snapshotted"
+      },
+      {
+        "source_id": "WILKINS_REEVES_SINGLE_NETWORK_PARTIAL_DATA_UAI_2026",
+        "uri": "https://proceedings.mlr.press/v337/wilkins-reeves26a.html",
+        "period": "published_2026_UAI",
+        "evidence_class": "peer_reviewed_conference_method_paper",
+        "assurance": "Develops single-network causal inference with partial network observations and feasible proxy exposures over plausible network completions; not a water-network application",
+        "snapshot_status": "not_snapshotted"
+      }
+    ],
+    "evidence_classes": [
+      "observed_reported",
+      "derived",
+      "assumption",
+      "synthetic_truth"
+    ],
+    "prohibited_inference": [
+      "No pipe-level age, material, roughness, condition or failure hazard inferred from city aggregates",
+      "No system-input volume inferred from annual consumption",
+      "No causal savings inferred from sensor installation, expenditure or potential minimum-night-flow savings",
+      "No service continuity inferred from IVRS bulk storage",
+      "No audited trend inferred by directly comparing FY2024/25 unaudited NRW with FY2023/24 audited NRW"
+    ]
+  },
+  "factors": {
+    "G": {
+      "name": "allocation_governance",
+      "kind": "intervention",
+      "levels": [
+        "independent_local_allocation",
+        "fixed_central_allocation",
+        "negotiated_federation_current_observations",
+        "negotiated_federation_stale_conflicting_missing_observations"
+      ]
+    },
+    "M": {
+      "name": "maintenance_renewal",
+      "kind": "intervention",
+      "levels": [
+        "reactive_only",
+        "uniform_renewal",
+        "risk_prioritised_renewal",
+        "leak_detection_independently_verified_repair",
+        "hybrid_maintenance_renewal_metering"
+      ]
+    },
+    "I": {
+      "name": "information_quality_observability",
+      "kind": "intervention",
+      "levels": [
+        "complete_current_positive_control",
+        "realistic_missing_stale_delayed",
+        "biased_adversarial_reporting_hidden_truth",
+        "metering_telemetry_investment_no_automatic_quality_promotion"
+      ]
+    },
+    "H": {
+      "name": "physical_network_conditions",
+      "kind": "blocking_strata_not_policy_benefit",
+      "levels": [
+        "frozen_topology_and_boundary_conditions",
+        "declared_pressure_demand_regime",
+        "water_energy_common_cause_shock",
+        "water_event_order_sensitivity"
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "S0",
+      "name": "protocol_lock_source_qualification",
+      "confirmatory": false
+    },
+    {
+      "id": "S1",
+      "name": "physical_accounting_qualification",
+      "confirmatory": false
+    },
+    {
+      "id": "S2",
+      "name": "isolated_main_effects",
+      "confirmatory": true,
+      "comparisons": [
+        "G_vs_reference_at_fixed_M_I",
+        "M_vs_reference_at_fixed_G_I",
+        "I_vs_reference_at_fixed_G_M"
+      ]
+    },
+    {
+      "id": "S3",
+      "name": "pre_registered_interactions",
+      "confirmatory": true,
+      "comparisons": [
+        "GxM",
+        "GxI",
+        "MxI"
+      ],
+      "three_way_interaction": "only_if_pilot_power_and_compute_budget_support"
+    },
+    {
+      "id": "S4",
+      "name": "held_out_stress_and_robustness",
+      "confirmatory": true
+    },
+    {
+      "id": "S5",
+      "name": "reference_and_field_transfer",
+      "confirmatory": true,
+      "domains": [
+        "EPANET_supported_cases",
+        "laboratory_if_available",
+        "field_if_governed_and_available"
+      ]
+    }
+  ],
+  "matching_contract": {
+    "pairing": "paired scenario blocks with common random numbers for exogenous shocks where meaningful",
+    "fixed_between_arms": [
+      "initial_state",
+      "topology_within_block",
+      "exogenous_shock_schedule",
+      "time_grid",
+      "scenario_family",
+      "evaluation_horizon",
+      "compute_budget",
+      "whole_life_resource_envelope_unless_the_factor_is_the_registered_treatment"
+    ],
+    "resource_ledgers": [
+      "capital_budget",
+      "operating_budget",
+      "crew_skill_hours",
+      "parts_inventory",
+      "contractor_capacity",
+      "energy",
+      "sensor_and_telemetry_budget"
+    ],
+    "no_double_spend": true,
+    "endogenous_failures": "may diverge after common exogenous schedule as a consequence of the policy"
+  },
+  "estimands": [
+    {
+      "id": "E1",
+      "name": "essential_water_shortfall",
+      "unit": "declared_volume_and_duration",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E2",
+      "name": "service_interruption_hours",
+      "unit": "hours_per_declared_service_unit",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E3",
+      "name": "worst_group_service_floor",
+      "unit": "declared_service_metric",
+      "direction": "higher_is_better",
+      "distributional": true
+    },
+    {
+      "id": "E4",
+      "name": "physical_water_loss",
+      "unit": "source_qualified_volume_or_rate",
+      "direction": "lower_is_better",
+      "requires_water_balance": true
+    },
+    {
+      "id": "E5",
+      "name": "nrw_components",
+      "unit": "source_qualified_percent_or_volume",
+      "direction": "report_components_separately",
+      "components": [
+        "physical_loss",
+        "commercial_loss",
+        "unbilled_authorised_consumption"
+      ]
+    },
+    {
+      "id": "E6",
+      "name": "asset_failure_and_survival",
+      "unit": "failure_rate_per_exposure_and_cohort_survival",
+      "direction": "lower_failure_higher_survival"
+    },
+    {
+      "id": "E7",
+      "name": "maintenance_completion",
+      "unit": "cycle_time_and_independently_verified_completion",
+      "direction": "lower_cycle_time_higher_verified_completion"
+    },
+    {
+      "id": "E8",
+      "name": "whole_life_cost",
+      "unit": "declared_currency_and_price_year",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E9",
+      "name": "resilience_recovery",
+      "unit": "recovery_time_and_service_deficit_area",
+      "direction": "lower_is_better"
+    },
+    {
+      "id": "E10",
+      "name": "institutional_agency",
+      "unit": "provider_concentration_portability_exit_cost_appeal_access",
+      "direction": "report_vector_no_composite"
+    },
+    {
+      "id": "E11",
+      "name": "node_level_fail_safe_safe_fail_thresholds",
+      "unit": "time_to_threshold_and_service_deficit_curve",
+      "direction": "report_per_node_and_group_no_composite",
+      "distributional": true
+    },
+    {
+      "id": "E12",
+      "name": "decision_to_service_evidence_closure",
+      "unit": "event_chain_latency_and_verified_linkage_rates",
+      "direction": "report_each_transition_separately_no_composite"
+    }
+  ],
+  "hard_gates": [
+    "essential_service_floor",
+    "water_quality_and_public_health_where_qualified",
+    "physical_conservation_and_capacity",
+    "no_negative_inventory",
+    "no_duplicate_or_double_spent_resources",
+    "independent_verification_before_repair_or_restoration_promotion",
+    "privacy_and_critical_infrastructure_information_boundary",
+    "no_automated_physical_operational_authority_or_social_credit"
+  ],
+  "statistical_plan": {
+    "unit_of_analysis": "paired scenario block",
+    "pilot_use": "estimate variance, runtime and feasible sample size only",
+    "minimum_detectable_effect": "must be frozen after pilot and before confirmatory run",
+    "sample_count": "must be justified by power analysis; not specified in v0.1",
+    "interval": "95_percent_uncertainty_interval",
+    "multiple_testing": "Holm family-wise correction within each pre-declared primary-outcome family",
+    "confirmatory_holdout": "must remain unavailable to policy tuning and threshold selection",
+    "uncertainty_types": [
+      "measurement",
+      "parameter",
+      "stochastic",
+      "model_structure"
+    ]
+  },
+  "benchmark_targets": {
+    "accounting_correctness": "all known-truth positive and negative controls recover expected results; no silent invariant violation",
+    "hydraulic_fidelity": "differential comparison only on aligned supported EPANET cases and pinned versions",
+    "leak_detection": "Reconstruct 2026 500-scenario Hanoi baselines separately: uncertainty-aware SVR + rolling RF tree variance (93.60% accuracy, 91.58% sensitivity, 0/120 FPs, ROC AUC 0.975, PR AUC 0.993 reported; independent threshold holdout not established in accessible methods and code not public) and Dynamic Residual Masking (91.60% five-sensor, 93.80% 31-sensor reported; paper-specific). Then evaluate full LeakDB by frozen scenario-held-out and cross-topology lanes. Thresholds fit only on a calibration partition; report exact binomial uncertainty, sensitivity, specificity, precision, F1, MCC, balanced accuracy, PR/ROC AUC, calibration and detection delay.",
+    "leak_localization": "exact pipe/node Top-1 and Top-3, graph/metric distance p50/p90, calibration and abstention",
+    "competitive_improvement": "aspirational plus_5_percentage_points_top_1_on_exactly_matched_held_out_task_without_regression_in_p90_false_dispatch_calibration_or_worst_stratum",
+    "sensor_placement": "Compare existing/reference, seeded-random, topology-only shortest-path, hydraulic-sensitivity/observability, published topology+sensitivity hybrid, probabilistic Dynamic Residual Masking / game-theoretic pseudo-Jacobian placement, cascading-aware placement, and decision-aware placement at matched sensor count and whole-life cost. Reconstruct exact source task/split before numeric SOTA claims. Include telemetry uptime, false-dispatch load, crew/parts/contractor queues, independently verified repair, service shortfall and worst-group outcome.",
+    "robustness": "report Pareto sets and minimax regret across held-out model families; do not use a single weighted score Include controlled cyber-physical testbed cases as a separate robustness track: distinguish leaks, sensor failures and cyber events; report event-onset and false-alarm episodes, attack-to-physical propagation, safety/service consequence and recovery. Evaluate availability/redundancy gains against added cyber-physical attack surface; never pool attack labels with leak labels. Include explicit network-interference qualification: DMA boundaries do not imply no interference; estimate direct, spillover, direct-spillover interaction, system total and displaced-harm effects under multiple plausible exposure maps, and use partial-identification bounds when map uncertainty prevents point identification.",
+    "resilience_performance_curves": "Report node/group service trajectories, first fail-safe and safe-fail threshold crossings, time below threshold, service deficit volume, recovery and recurrence. Model piped and qualified fallback service separately with finite water, quality, staff, vehicle, fuel/energy, access and replenishment capacity. Keep available, remaining and realized response capacity distinct. Thresholds must be sourced or stakeholder/rights-declared; otherwise threshold analysis is indeterminate.",
+    "hierarchical_hydroinformatics": "Compare monolithic, per-tier and hierarchical cascade systems across network-level risk/budget prioritization, DMA-level SCADA early warning and in-situ last-mile confirmation. Report per-tier calibration/abstention and end-to-end missed events, false escalation/dispatch, time-to-confirmation, unnecessary field visits/excavation, crew queues, compute/energy/bandwidth, lifecycle cost and verified service outcomes.",
+    "digital_twin_maturity": "Assess M0 conceptual, M1 offline/retrospective, M2 connected pilot, M3 operational decision support and M4 independently audited decision-to-service closure. M4 requires linked observation, state estimate, calibrated uncertainty, recommendation, human authorization, action/work order, independent verification, measured and persistent service outcome, safety gates, rollback and post-event model discrepancy review. M4 does not imply autonomous actuation.",
+    "leak_validation_integrity": "Separate paper-matched 500-scenario Hanoi reproduction, full 1000-scenario Hanoi/1000-scenario Net1 scenario-held-out evaluation, and bidirectional cross-topology transfer. Group split by entire scenario and related seed/config family before windows/features; fit transforms/model/threshold only on train/calibration, evaluate once on sealed test. Publish frozen split membership and SHA-256 digests. Report event, timestep/delay, localization and operational metrics separately. Require source archive/version digest and blind evaluator isolation. Keep BattLeDIM L3 external network/time-period results and Slovak L4 weak-label temporal results as separate non-pooled lanes; neither is a secret blind holdout in its current public form."
+  },
+  "provenance_receipt": {
+    "required_digests": [
+      "protocol",
+      "schema",
+      "source_inventory",
+      "source_snapshots_if_available",
+      "model",
+      "topology",
+      "scenario_generator",
+      "scenario",
+      "policy",
+      "evaluator",
+      "output"
+    ],
+    "required_versions": [
+      "solver",
+      "model",
+      "code_commit",
+      "runtime_environment"
+    ],
+    "missing_digest_behavior": "fail_closed",
+    "replay": "deterministic replay must bind exact versions and inputs"
+  },
+  "promotion_gates": [
+    "L0_specification",
+    "L1_deterministic_correctness",
+    "L2_synthetic_comparative_evidence",
+    "L3_reference_model_validation",
+    "L4_independent_empirical_transfer",
+    "L5_causal_pilot_evidence"
+  ],
+  "limitations": [
+    "The protocol is a design specification, not an executed experiment.",
+    "It is not an externally timestamped pre-registration.",
+    "No fixed sample count or minimum detectable effect is asserted until pilot variance and a confirmatory power analysis are available.",
+    "No synthetic success is evidence of municipal field impact.",
+    "Public FY2024/25 annual report source-byte snapshot and page-render verification remain incomplete."
+  ],
+  "outcome_contract": {
+    "metric_evidence_statuses": [
+      "observed",
+      "derived",
+      "modelled",
+      "not_measured",
+      "unsupported",
+      "withheld",
+      "not_applicable"
+    ],
+    "numeric_value_required_for": [
+      "observed",
+      "derived",
+      "modelled"
+    ],
+    "numeric_value_absent_for": [
+      "not_measured",
+      "unsupported",
+      "withheld",
+      "not_applicable"
+    ],
+    "missing_value_behavior": "no_zero_fill",
+    "paired_difference": "defined_only_when_both_arms_have_valid_numeric_values_with_exactly_the_same_evidence_status; otherwise delta is indeterminate with explicit missingness or evidence_status_mismatch",
+    "worst_group_service_ppm_max": 1000000,
+    "cross_status_comparison": "disallowed_by_default; requires a separately named, versioned, preregistered and validated bridge"
+  },
+  "leak_benchmark_contract": {
+    "version": "0.1.0",
+    "dataset_inventory": [
+      {
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "topology": "Hanoi",
+        "scenario_count": 500,
+        "label_resolution": "scenario_and_30_minute_time_step",
+        "role": "paper_specific_reproduction_only",
+        "subset_identity": "paper_specific_scenario_IDs_not_yet_reconciled_between_papers",
+        "source_refs": [
+          "DAMONTI_BERNASCONI_UNCERTAINTY_AWARE_2026",
+          "JOURNAL_HYDROLOGY_PROBABILISTIC_SENSOR_PLACEMENT_2026"
+        ]
+      },
+      {
+        "dataset_id": "LEAKDB_HANOI_1000",
+        "topology": "Hanoi",
+        "scenario_count": 1000,
+        "label_resolution": "scenario_and_30_minute_time_step",
+        "role": "full_corpus_scenario_holdout",
+        "source_refs": [
+          "KIOS_LEAKDB_OFFICIAL_REPOSITORY",
+          "WATERBENCHMARKHUB_KIOS_LEAKDB"
+        ]
+      },
+      {
+        "dataset_id": "LEAKDB_NET1_1000",
+        "topology": "Net1",
+        "scenario_count": 1000,
+        "label_resolution": "scenario_and_30_minute_time_step",
+        "role": "full_corpus_scenario_holdout_and_cross_topology_transfer",
+        "source_refs": [
+          "KIOS_LEAKDB_OFFICIAL_REPOSITORY",
+          "WATERBENCHMARKHUB_KIOS_LEAKDB"
+        ]
+      }
+    ],
+    "evaluation_lanes": {
+      "L0_paper_reproduction": {
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "rule": "reproduce paper-specific scenarios, sensors, preprocessing, labels and operating threshold where artifacts permit",
+        "comparison_claim": "numeric replication only if exact scenario IDs, sensor assumptions, split and metrics match"
+      },
+      "L1_full_corpus_scenario_holdout": {
+        "dataset_ids": [
+          "LEAKDB_HANOI_1000",
+          "LEAKDB_NET1_1000"
+        ],
+        "rule": "split on complete scenario identities before any windows, augmentation or feature generation"
+      },
+      "L2_cross_topology_transfer": {
+        "topology_pairs": [
+          [
+            "Hanoi",
+            "Net1"
+          ],
+          [
+            "Net1",
+            "Hanoi"
+          ]
+        ],
+        "rule": "train and calibrate on one topology, test on the other, then reverse",
+        "claim_limit": "two-topology synthetic transfer only; not multi-utility or field generalization"
+      }
+    },
+    "split_contract": {
+      "unit_of_split": "complete_scenario",
+      "group_related_scenario_families": true,
+      "related_fields": [
+        "scenario_id",
+        "parent_configuration_id",
+        "random_seed",
+        "topology_variant",
+        "leak_location_family",
+        "leak_profile_family"
+      ],
+      "split_before": [
+        "rolling_window_generation",
+        "feature_extraction",
+        "augmentation",
+        "normalization_fit",
+        "sensor_placement_optimization",
+        "hyperparameter_search",
+        "threshold_selection"
+      ],
+      "partitions": [
+        "train",
+        "validation",
+        "calibration",
+        "sealed_test"
+      ],
+      "fit_rules": {
+        "transforms": "fit_on_train_only",
+        "hyperparameters": "nested_selection_within_train_only",
+        "probability_calibration": "calibration_partition_only",
+        "operating_threshold": "calibration_partition_only",
+        "sensor_placement": "train_partition_only",
+        "sealed_test": "single_frozen_evaluation_after_all_choices_locked"
+      },
+      "test_label_access": "independent_evaluator_only",
+      "frozen_split_manifest_required": true,
+      "source_archive_digest_required": true,
+      "adaptive_submission_budget": "fixed_and_audited"
+    },
+    "metrics": {
+      "scenario_event_detection": [
+        "sensitivity",
+        "specificity",
+        "precision",
+        "F1",
+        "balanced_accuracy",
+        "MCC",
+        "PR_AUC",
+        "ROC_AUC",
+        "Brier_score",
+        "log_loss",
+        "false_positive_count",
+        "confidence_interval"
+      ],
+      "time_series": [
+        "detection_delay_from_onset",
+        "time_to_sustained_alert",
+        "false_alarm_episodes_per_node_day",
+        "missed_event_duration",
+        "event_fragmentation"
+      ],
+      "localization": [
+        "pipe_node_top1",
+        "pipe_node_top3",
+        "graph_distance_p50",
+        "graph_distance_p90",
+        "metric_distance_p50",
+        "metric_distance_p90",
+        "abstention_coverage",
+        "localization_calibration"
+      ],
+      "operations": [
+        "false_dispatches",
+        "unnecessary_field_visits",
+        "latency",
+        "compute",
+        "sensor_uptime",
+        "telemetry_uptime",
+        "bandwidth",
+        "energy",
+        "whole_life_cost",
+        "verified_service_outcome"
+      ]
+    },
+    "published_baselines": [
+      {
+        "paper_id": "DAMONTI_BERNASCONI_UNCERTAINTY_AWARE_2026",
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "reported": {
+          "leak_scenarios": 380,
+          "non_leak_scenarios": 120,
+          "accuracy_percent": 93.6,
+          "sensitivity_percent": 91.58,
+          "false_positives": 0,
+          "false_positive_rate_percent": 0,
+          "roc_auc": 0.975,
+          "pr_auc": 0.993
+        },
+        "threshold_calibration_status": "independent_sealed_threshold_holdout_not_established_in_accessible_methods; paper describes cutoff selected to ensure zero FPs on the same 120 negatives",
+        "code_status": "specific_python_implementation_not_publicly_hosted",
+        "comparability_limit": "paper-reported result on a 500-scenario subset; not independently reproduced or proven to be an unseen-scenario generalization result"
+      },
+      {
+        "paper_id": "JOURNAL_HYDROLOGY_PROBABILISTIC_SENSOR_PLACEMENT_2026",
+        "dataset_id": "LEAKDB_PAPER_HANOI_500",
+        "reported": {
+          "five_sensor_accuracy_percent_abstract": 91.6,
+          "five_sensor_accuracy_percent_highlight": 91.4,
+          "full_coverage_31_sensor_accuracy_percent": 93.8,
+          "false_positive_reduction_vs_explicit_jacobian_percent": 2.5,
+          "highlight_false_positive_rate_percent": 4.2
+        },
+        "threshold_calibration_status": "exact_train_validation_test_and_threshold_partition_not_established_in_accessible_abstract",
+        "code_status": "not_confirmed_public",
+        "comparability_limit": "paper-reported sensor-placement/detection result; exact subset identity relative to other 500-case Hanoi studies is not confirmed"
+      },
+      {
+        "paper_id": "LI_GAO_INTEGRATED_LEAK_PRESSURE_TWIN_2026",
+        "dataset_id": "MULTI_NETWORK_IN_HOUSE_PLUS_BATTLEDIM_EXTERNAL",
+        "reported": {
+          "pooled_in_house_f1": 0.916,
+          "pooled_in_house_top5_hit_rate": 0.816,
+          "strongest_baseline_f1": 0.836,
+          "strongest_baseline_top5_hit_rate": 0.573,
+          "battledim_2019_external_f1": 0.818,
+          "battledim_top5_hit_rate_degradation_percentage_points_approx": 20,
+          "c_town_leakage_reduction_percent": 37.5,
+          "uniform_depressurization_leakage_reduction_percent": 24.6,
+          "c_town_service_compliance_percent": 99.4
+        },
+        "threshold_calibration_status": "paper-specific; reconstruct calibration and holdout partitions before direct numerical comparison",
+        "code_status": "reproducible_artifacts_not_yet_independently_verified",
+        "comparability_limit": "integrated multi-network paper baseline; in-house pooled results and public BattLeDIM 2019 external validation must remain distinct; not a matched CivBench leaderboard result"
+      }
+    ],
+    "confidence_contract": {
+      "zero_false_positive_interpretation": "zero observed false positives does not imply zero population false-positive rate",
+      "example_0_of_120_one_sided_95_percent_exact_upper_bound_percent": 2.4655401056,
+      "report_exact_binomial_interval": true,
+      "independent_negative_scenarios_for_one_sided_95_upper_bound_below_1_percent": 299,
+      "example_0_of_299_one_sided_95_percent_exact_upper_bound_percent": 0.9969146793
+    },
+    "external_evaluation_lanes": {
+      "L3_BATTLEDIM_L_TOWN_EXTERNAL_SCADA": {
+        "dataset_id": "BATTLEDIM_L_TOWN_2018_2019",
+        "network": "L-Town hypothetical network derived from a real Cyprus water-distribution network",
+        "training_period": "2018-01-01T00:00/2018-12-31T23:55",
+        "evaluation_period": "2019-01-01T00:00/2019-12-31T23:55",
+        "time_step_minutes": 5,
+        "sensor_inventory": {
+          "tank_level": 1,
+          "flow": 3,
+          "pressure": 33,
+          "area_c_amr": 82
+        },
+        "task": "event_detection_and_leak_localization_with_operational_costs",
+        "holdout_status": "public_historical_external_evaluation_not_secret_or_blind",
+        "source_refs": [
+          "BATTLEDIM_OFFICIAL_L_TOWN_DATA_2018_2019",
+          "LI_GAO_INTEGRATED_LEAK_PRESSURE_TWIN_2026"
+        ]
+      },
+      "L4_SLOVAK_WEAK_LABEL_TEMPORAL_ANOMALY": {
+        "dataset_id": "SLOVAK_2022_ONE_ZONE_HOURLY_ANOMALY_SCORES",
+        "network": "one anonymized Slovak utility distribution zone",
+        "data_coverage": "2021-12-31T23:00/2022-12-30T23:00",
+        "record_count": 8737,
+        "time_step_minutes": 60,
+        "timezone": "Europe/Bratislava",
+        "feature_count": 18,
+        "feature_representation": "precomputed standardized anomaly scores; raw telemetry and preprocessing code are not included in the public release",
+        "label": "fault_d7: confirmed operational-system fault within a plus-or-minus seven-day window",
+        "label_window_days": 7,
+        "task": "weak_label_temporal_anomaly_and_lead_time_only",
+        "pipe_localization_supported": false,
+        "negative_semantics": "absence_of_confirmed_fault_in_label_window_is_not_proof_of_leak_free_state",
+        "holdout_status": "public_single_zone_processed_dataset_not_blind_holdout",
+        "leakage_risk": "published feature selection used association with fault labels; preprocessing and feature selection cannot be independently refit from the derived public release",
+        "source_refs": [
+          "BABELA_MUNK_MUNKOVA_SLOVAK_WDN_DATASET_2026"
+        ]
+      }
+    }
+  },
+  "cyberphysical_resilience_contract": {
+    "version": "0.1.0",
+    "benchmark_resources": [
+      {
+        "resource_id": "WDSEventDB",
+        "source_id": "WDSEVENTDB_REALTIME_TESTBED_DATASET_2025",
+        "evidence_class": "hardware_in_the_loop_testbed_dataset",
+        "claim_limit": "controlled sensor-instrumented testbed evidence, not utility deployment",
+        "event_classes": [
+          "cyberattack",
+          "leakage",
+          "sensor_failure"
+        ]
+      },
+      {
+        "resource_id": "ACG_Water_Testbed_2026",
+        "source_id": "ACG_WATER_TESTBED_2026",
+        "evidence_class": "controlled_cyber_physical_testbed",
+        "claim_limit": "offline controlled cyber-to-physical simulation only; no production PLC or utility access",
+        "event_classes": [
+          "cyberattack",
+          "communication_anomaly",
+          "process_deviation"
+        ]
+      },
+      {
+        "resource_id": "WDT_Chronological_Benchmark_2026",
+        "source_id": "PEREZ_PEREZ_WDT_CYBER_RESILIENCE_2026",
+        "evidence_class": "paper_specific_chronological_testbed_case",
+        "claim_limit": "five-run paper-specific alarm-policy observation, not a universal model ranking",
+        "event_classes": [
+          "normal_operation",
+          "cyber_event",
+          "process_anomaly"
+        ]
+      }
+    ],
+    "evaluation_lanes": {
+      "C1_event_discrimination": {
+        "resource_ids": [
+          "WDSEventDB",
+          "WDT_Chronological_Benchmark_2026"
+        ],
+        "task": "separately discriminate leakage, sensor failure, communication anomaly, cyber event and normal operation where labels permit; preserve unknown/ambiguous events"
+      },
+      "C2_cyber_to_physical_propagation": {
+        "resource_ids": [
+          "ACG_Water_Testbed_2026"
+        ],
+        "task": "measure whether controlled cyber events propagate into process deviation, unsafe state, service deficit and water-quality excursion where modeled; never connect to live systems"
+      },
+      "C3_control_and_resilience_comparison": {
+        "resource_ids": [
+          "WDSEventDB",
+          "ACG_Water_Testbed_2026",
+          "WDT_Chronological_Benchmark_2026"
+        ],
+        "task": "compare nominal-only, cyber-only monitoring, process-aware detection, segmentation/least privilege and recovery policies under identical testbed event schedules"
+      }
+    },
+    "event_classes": [
+      "leak",
+      "sensor_failure",
+      "communication_anomaly",
+      "cyberattack",
+      "process_drift",
+      "unknown"
+    ],
+    "metrics": [
+      "event_precision_recall",
+      "event_onset_delay",
+      "false_alarm_episodes_per_system_day",
+      "calibration_and_abstention",
+      "physical_consequence_exposure",
+      "time_to_safe_state",
+      "recovery_time",
+      "service_deficit"
+    ],
+    "hard_gates": {
+      "no_live_plc_or_production_scada": true,
+      "human_authorization_required_for_operational_actions": true,
+      "keep_leak_sensor_failure_and_attack_labels_distinct": true,
+      "do_not_infer_malicious_intent_from_anomaly_alone": true,
+      "benchmark_score_never_grants_actuation_authority": true,
+      "independent_safety_interlocks_and_rollback_required": true
+    }
+  },
+  "network_interference_contract": {
+    "version": "0.1.0",
+    "claim_boundary": "network causal effects are not identified by DMA labels alone; every treatment assignment and outcome must be paired with a frozen, versioned exposure mapping or an explicit set of plausible mappings",
+    "assignment_units": [
+      "district_metered_area",
+      "hydraulic_pressure_zone",
+      "network_subgraph",
+      "whole_network"
+    ],
+    "exposure_mappings": [
+      {
+        "mapping_id": "topological_adjacency",
+        "description": "adjacent DMA/node/pipe graph exposure; use as a baseline, not assumed hydraulically sufficient"
+      },
+      {
+        "mapping_id": "hydraulic_influence",
+        "description": "pressure/flow sensitivity and feasible hydraulic response paths under a frozen calibrated model"
+      },
+      {
+        "mapping_id": "directed_flow_paths",
+        "description": "upstream/downstream and time-resolved feasible flow-path exposure under declared operating regime"
+      },
+      {
+        "mapping_id": "shared_supply_storage",
+        "description": "common reservoir, pump, pressure-zone and supply-boundary exposure"
+      },
+      {
+        "mapping_id": "rooted_local_network",
+        "description": "rooted local network neighborhood retaining graph context rather than collapsing to one neighbor count"
+      }
+    ],
+    "uncertainty_contract": {
+      "candidate_networks_required": true,
+      "network_mapping_digest_required": true,
+      "plausible_network_completions_required_when_partial": true,
+      "at_least_one_candidate_network_correct_not_assumed": true,
+      "if_exposure_mapping_unsupported": "report_partial_identification_bounds_or_indeterminate_effect; do_not_report_point_identified_direct_or_spillover_effect"
+    },
+    "estimands": [
+      "direct_effect",
+      "spillover_effect",
+      "direct_spillover_interaction",
+      "total_network_effect",
+      "displacement_harm",
+      "whole_system_service_effect"
+    ],
+    "assignment_designs": [
+      "known_truth_randomized_node_assignment_for_method_testing_only",
+      "graph_clustered_assignment_with_registered_buffer_and_residual_exposure",
+      "two_stage_randomized_treatment_saturation_for_direct_and_spillover_estimands",
+      "randomized_rollout_timing_when_service_safe_and_authorized",
+      "matched_whole_network_scenario_pairs_for_simulation"
+    ],
+    "comparison_methods": [
+      "oracle_true_exposure_mapping",
+      "topology_only_exposure",
+      "hydraulic_influence_exposure",
+      "directed_flow_path_exposure",
+      "rooted_local_network_exposure",
+      "multiple_candidate_network_robust_estimator",
+      "partial_identification_under_mapping_uncertainty",
+      "naive_no_interference_estimator_as_negative_control"
+    ],
+    "perturbations": [
+      "edge_addition_or_deletion",
+      "unknown_or_reversed_flow_direction",
+      "pressure_zone_and_valve_boundary_uncertainty",
+      "roughness_and_demand_parameter_uncertainty",
+      "missing_or_aggregated_network_map",
+      "time_varying_pump_and_reservoir_state",
+      "cross_DMA_displacement_and_carryover"
+    ],
+    "metrics": [
+      "direct_effect_bias",
+      "spillover_effect_bias",
+      "total_effect_bias",
+      "nominal_interval_coverage",
+      "partial_identification_coverage",
+      "identified_interval_width",
+      "type_i_error",
+      "exposure_mapping_sensitivity",
+      "displacement_harm",
+      "worst_group_service_effect",
+      "system_level_service_effect"
+    ],
+    "aspirational_targets": {
+      "correctly_specified_network_absolute_standardized_bias_at_most": 0.1,
+      "nominal_95_percent_interval_coverage_minimum": 0.93,
+      "nominal_95_percent_interval_coverage_maximum": 0.97,
+      "null_type_i_error_maximum": 0.05,
+      "misspecified_mapping_bounds_target": "at least 95% empirical truth coverage with width reported; no claim of useful precision without a pre-registered maximum width"
+    },
+    "hard_gates": {
+      "dma_boundaries_not_assumed_to_eliminate_interference": true,
+      "exposure_map_and_network_digest_frozen_before_outcome_inspection": true,
+      "multiple_plausible_mappings_tested_when_network_uncertain": true,
+      "report_direct_spillover_total_and_displacement_separately": true,
+      "no_point_identification_when_exposure_is_unsupported": true,
+      "no_randomized_withholding_of_known_necessary_essential_water_or_safety_maintenance": true,
+      "essential_service_and_water_quality_floors_remain_hard_constraints": true
+    },
+    "source_refs": [
+      "WEINSTEIN_NEVO_MISSPECIFIED_INTERFERENCE_2026",
+      "SCHRODER_OPRESCU_FEUERRIEGEL_KALLUS_PARTIAL_ID_2026",
+      "AUERBACH_LOCAL_CAUSAL_NETWORK_INTERFERENCE_2026",
+      "WILKINS_REEVES_SINGLE_NETWORK_PARTIAL_DATA_UAI_2026"
+    ]
+  }
+}
