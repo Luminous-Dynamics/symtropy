@@ -71,7 +71,9 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
         "https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index",
     )?;
 
-    let acquisition = profile.get("acquisition").ok_or("acquisition is required")?;
+    let acquisition = profile
+        .get("acquisition")
+        .ok_or("acquisition is required")?;
     require_bool(acquisition, "download_link_published", true)?;
     require_str(acquisition, "archive_status", "linked_not_downloaded")?;
     require_bool(acquisition, "archive_bytes_acquired", false)?;
@@ -81,7 +83,9 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
         "not_verified_from_archive_or_download_terms",
     )?;
     require_bool(acquisition, "redistribution_permission_verified", false)?;
-    if !acquisition.get("archive_sha256").is_some_and(Value::is_null)
+    if !acquisition
+        .get("archive_sha256")
+        .is_some_and(Value::is_null)
         || !acquisition
             .get("recording_manifest_sha256")
             .is_some_and(Value::is_null)
@@ -255,14 +259,17 @@ pub fn validate_profile(profile: &Value) -> Result<(), String> {
         "fault-label-aliases",
         "submission-language",
     ] {
-        if !ambiguities.iter().any(|item| {
-            item.get("id").and_then(Value::as_str) == Some(required)
-        }) {
+        if !ambiguities
+            .iter()
+            .any(|item| item.get("id").and_then(Value::as_str) == Some(required))
+        {
             return Err(format!("source ambiguity {required} must remain explicit"));
         }
     }
 
-    let claims = profile.get("claim_ceiling").ok_or("claim_ceiling is required")?;
+    let claims = profile
+        .get("claim_ceiling")
+        .ok_or("claim_ceiling is required")?;
     require_bool(claims, "source_metadata_audited", true)?;
     for key in [
         "archive_bytes_audited",
@@ -358,7 +365,8 @@ mod tests {
             7
         );
         assert_eq!(
-            profile["calibration_feasibility"]["required_independent_episodes_for_split_conformal_coverage"]["0.90"],
+            profile["calibration_feasibility"]["required_independent_episodes_for_split_conformal_coverage"]
+                ["0.90"],
             9
         );
         assert_eq!(
