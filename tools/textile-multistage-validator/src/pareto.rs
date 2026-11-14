@@ -385,6 +385,7 @@ fn validate_objectives(
     candidate: &Candidate,
     findings: &mut Vec<CandidateFinding>,
 ) -> BTreeMap<ObjectiveMetric, u64> {
+    let required_metrics = ObjectiveMetric::for_scenario(candidate.requires_disruption_replay);
     let mut observations = BTreeMap::new();
     for observation in &candidate.objectives {
         if !required_metrics.contains(&observation.metric) {
@@ -407,7 +408,6 @@ fn validate_objectives(
             );
         }
     }
-    let required_metrics = ObjectiveMetric::for_scenario(candidate.requires_disruption_replay);
     for metric in required_metrics {
         let Some(observation) = observations.get(&metric) else {
             add(
@@ -477,7 +477,7 @@ fn validate_objectives(
                 ),
             );
         }
-        if metric == ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm
+        if *metric == ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm
             && observation.value > 1_000_000
         {
             add(
