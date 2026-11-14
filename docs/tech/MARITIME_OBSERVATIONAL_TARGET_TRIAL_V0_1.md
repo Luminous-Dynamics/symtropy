@@ -40,7 +40,7 @@ This prevents immortal-time and guarantee-time errors without incorrectly requir
 
 ### Treatment versions and baseline-only features
 
-Treatment and comparator strategies have distinct version IDs. Every unit's assigned arm must match its recorded strategy version, and that version is bound to a source-record reference and digest. This v0.1 does not collapse partial, temporary, failed and complete repair into one generic treatment.
+Treatment and comparator strategies have distinct version IDs. Every unit's assigned arm must match its recorded strategy version, and that version is bound to a source-record reference and digest. A mismatch is preserved as a NOT_IDENTIFIED reason. This v0.1 does not collapse partial, temporary, failed and complete repair into one generic treatment.
 
 The propensity model's fit-covariate IDs must exactly equal the declared baseline covariate set. Propensity scores may be estimated retrospectively from those baseline covariates; the score itself need not have existed at treatment time. What is prohibited is using post-treatment telemetry, post-repair diagnosis or future work-order information as a baseline feature. Model and fit-data digests are bound in the protocol, but their issuers and provenance are not authenticated by this module.
 
@@ -90,7 +90,7 @@ This is a deliberate sign-reversal demonstration of confounding by indication. T
 
 ## Frozen falsification suite
 
-The 14 machine-readable scenarios cover:
+The 15 machine-readable scenarios cover:
 1. structurally eligible synthetic cohort with valid per-unit time zero;
 2. crude association sign reversal under confounding by indication;
 3. within-unit time-zero misalignment;
@@ -104,9 +104,10 @@ The 14 machine-readable scenarios cover:
 11. missing baseline covariate;
 12. strategy-version mismatch;
 13. propensity model includes a post-treatment covariate;
-14. treatment strategy label lacks its bound work-order/strategy record digest.
+14. treatment strategy label lacks its bound work-order/strategy record digest;
+15. an independent exchangeability review reference is missing.
 
-The Rust suite currently contains 12 tests. It exercises the structural validator, the synthetic oracle/association separation, sign reversal, per-unit time-zero logic, leakage, overlap, censoring, concurrent actions and protocol/corpus binding.
+The Rust suite currently contains 16 tests. It exercises the structural validator, the synthetic oracle/association separation, sign reversal, per-unit time-zero logic, leakage, overlap, censoring, concurrent actions and protocol/corpus binding.
 
 ## What this P0 does not identify
 
