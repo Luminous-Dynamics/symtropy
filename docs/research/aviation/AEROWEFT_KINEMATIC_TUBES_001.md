@@ -111,7 +111,7 @@ A tube consists of ordered time slices. Every slice must bind:
 - coordinate frame, vertical datum, axes, units and transformation lineage;
 - outer-set representation and its numeric enclosure bound;
 - initial-state, parameter, control and disturbance dependencies;
-- separately reported sensor, model, disturbance and numerical contributions;
+- separately reported initial-position, velocity-estimation, model-parameter, control, environmental-disturbance and numerical contributions;
 - input, scenario, source and toolchain digests;
 - deterministic ordering and stable slice identity;
 - terminal disposition: `Enclosed`, `UnsupportedModel`, `InvalidInput`, `BudgetExhausted` or `NotAssessable`.
