@@ -9,7 +9,7 @@ on:
       - ".github/workflows/construction-observation-planning-v0-1.yml"
   push:
     branches:
-      - "research/construction-observation-planning-stack-v0-3"
+      - "research/construction-observation-planning-time-index-stack-v0-1"
     paths:
       - "research/construction-observation-planning-v0-1/**"
       - ".github/workflows/construction-observation-planning-v0-1.yml"
