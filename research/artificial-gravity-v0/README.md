@@ -38,9 +38,9 @@ Rotational kinetic energy is ½ Iω²: stored spin-up energy, **not** continuous
 
 For a uniformly accelerating vehicle frame, the local apparent-acceleration vector is the negative of the frame acceleration:
 
-\`\`\`text
+```text
 a_apparent = -a_frame
-\`\`\`
+```
 
 The Rust reference function translating_frame_apparent_acceleration tests this sign convention. This is the local kinematic equivalence-principle baseline. It does not model propulsion, propellant, trajectory, finite vehicle geometry, tidal curvature, or a global gravity field.
 
