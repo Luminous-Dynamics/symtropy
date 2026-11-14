@@ -153,7 +153,7 @@ The competitive aim is to outperform on a declared task and evidence class: e.g.
 
 ## Key paradigm shift: model-set criticism, not just model fitting
 
-A collection of models is not adequate merely because its members agree. Use the existing structural-uncertainty and model-set-adequacy owners (#2244 and #2334) to run four distinct tests:
+A collection of models is not adequate merely because its members agree. Use the existing structural-uncertainty and model-set-adequacy owners (#2244 and #2334), specialized in [forest model-set adequacy issue #5198](https://github.com/Luminous-Dynamics/symtropy/issues/5198) and [its v0.1 challenge spec](FOREST_MODEL_SET_ADEQUACY_V0_1.md), to run four distinct tests:
 
 1. **Parameter uncertainty:** the same equations, different plausible parameter sets.
 2. **Structural disagreement:** plausible models fit history but imply different future or intervention responses.
