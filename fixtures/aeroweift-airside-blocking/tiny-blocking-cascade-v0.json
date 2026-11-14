@@ -184,13 +184,6 @@
   ],
   "derived_events": [
     {
-      "id": "event-b-stand-acquire",
-      "aircraft_id": "aircraft-b",
-      "kind": "acquire",
-      "resource_id": "stand-1",
-      "tick": 0
-    },
-    {
       "id": "event-b-charge-acquire",
       "aircraft_id": "aircraft-b",
       "kind": "acquire",
@@ -198,12 +191,11 @@
       "tick": 0
     },
     {
-      "id": "event-b-charge-release",
+      "id": "event-b-stand-acquire",
       "aircraft_id": "aircraft-b",
-      "kind": "release",
-      "resource_id": "charger-1",
-      "tick": 8,
-      "predecessor": "event-b-charge-acquire"
+      "kind": "acquire",
+      "resource_id": "stand-1",
+      "tick": 0
     },
     {
       "id": "event-a-tlof-acquire",
@@ -211,14 +203,6 @@
       "kind": "acquire",
       "resource_id": "tlof-1",
       "tick": 2
-    },
-    {
-      "id": "event-a-service-complete",
-      "aircraft_id": "aircraft-a",
-      "kind": "service-complete",
-      "resource_id": "tlof-1",
-      "tick": 5,
-      "predecessor": "event-a-tlof-acquire"
     },
     {
       "id": "event-a-downstream-blocked",
@@ -230,12 +214,27 @@
       "blocker_aircraft_id": "aircraft-b"
     },
     {
-      "id": "event-b-stand-release",
+      "id": "event-a-service-complete",
+      "aircraft_id": "aircraft-a",
+      "kind": "service-complete",
+      "resource_id": "tlof-1",
+      "tick": 5,
+      "predecessor": "event-a-tlof-acquire"
+    },
+    {
+      "id": "event-c-hold-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "terminal-hold-1",
+      "tick": 6
+    },
+    {
+      "id": "event-b-charge-release",
       "aircraft_id": "aircraft-b",
       "kind": "release",
-      "resource_id": "stand-1",
-      "tick": 10,
-      "predecessor": "event-b-stand-acquire"
+      "resource_id": "charger-1",
+      "tick": 8,
+      "predecessor": "event-b-charge-acquire"
     },
     {
       "id": "event-a-taxi-acquire",
@@ -253,19 +252,12 @@
       "predecessor": "event-a-taxi-acquire"
     },
     {
-      "id": "event-a-stand-acquire",
-      "aircraft_id": "aircraft-a",
-      "kind": "acquire",
+      "id": "event-b-stand-release",
+      "aircraft_id": "aircraft-b",
+      "kind": "release",
       "resource_id": "stand-1",
-      "tick": 11,
-      "predecessor": "event-a-taxi-acquire"
-    },
-    {
-      "id": "event-c-hold-acquire",
-      "aircraft_id": "aircraft-c",
-      "kind": "acquire",
-      "resource_id": "terminal-hold-1",
-      "tick": 6
+      "tick": 10,
+      "predecessor": "event-b-stand-acquire"
     },
     {
       "id": "event-c-hold-release",
@@ -284,12 +276,20 @@
       "predecessor": "event-a-tlof-release"
     },
     {
-      "id": "event-c-service-complete",
-      "aircraft_id": "aircraft-c",
-      "kind": "service-complete",
-      "resource_id": "tlof-1",
-      "tick": 13,
-      "predecessor": "event-c-tlof-acquire"
+      "id": "event-a-stand-acquire",
+      "aircraft_id": "aircraft-a",
+      "kind": "acquire",
+      "resource_id": "stand-1",
+      "tick": 11,
+      "predecessor": "event-a-taxi-release"
+    },
+    {
+      "id": "event-a-taxi-release",
+      "aircraft_id": "aircraft-a",
+      "kind": "release",
+      "resource_id": "taxi-link-1",
+      "tick": 11,
+      "predecessor": "event-a-taxi-acquire"
     },
     {
       "id": "event-c-downstream-blocked",
@@ -299,6 +299,14 @@
       "tick": 13,
       "predecessor": "event-c-service-complete",
       "blocker_aircraft_id": "aircraft-a"
+    },
+    {
+      "id": "event-c-service-complete",
+      "aircraft_id": "aircraft-c",
+      "kind": "service-complete",
+      "resource_id": "tlof-1",
+      "tick": 13,
+      "predecessor": "event-c-tlof-acquire"
     },
     {
       "id": "event-a-stand-release",
@@ -324,19 +332,27 @@
       "predecessor": "event-c-taxi-acquire"
     },
     {
-      "id": "event-c-stand-acquire",
-      "aircraft_id": "aircraft-c",
-      "kind": "acquire",
-      "resource_id": "stand-1",
-      "tick": 20,
-      "predecessor": "event-c-taxi-acquire"
-    },
-    {
       "id": "event-c-charge-acquire",
       "aircraft_id": "aircraft-c",
       "kind": "acquire",
       "resource_id": "charger-1",
       "tick": 20
+    },
+    {
+      "id": "event-c-stand-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "stand-1",
+      "tick": 20,
+      "predecessor": "event-c-taxi-release"
+    },
+    {
+      "id": "event-c-taxi-release",
+      "aircraft_id": "aircraft-c",
+      "kind": "release",
+      "resource_id": "taxi-link-1",
+      "tick": 20,
+      "predecessor": "event-c-taxi-acquire"
     },
     {
       "id": "event-c-charge-release",
