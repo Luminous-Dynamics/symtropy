@@ -1068,7 +1068,7 @@ mod tests {
             true
         );
         assert!(
-            protocol["validity_conditions"]["block_independence"]
+            protocol["validity_conditions"]["observations"]
                 .as_str()
                 .unwrap()
                 .contains("not inferred from non-overlap alone")
