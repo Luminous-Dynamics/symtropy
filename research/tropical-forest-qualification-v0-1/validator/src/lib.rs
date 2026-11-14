@@ -7,6 +7,7 @@
 
 pub mod canopy_kernel;
 pub mod support_kernel;
+pub mod aggregation_kernel;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -1505,6 +1506,379 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
     }))
 }
 
+
+fn parse_support_sample(value: &Value, label: &str) -> Result<support_kernel::SupportSample, String> {
+    let sample_id = string_at(value, &["sample_id"])?;
+    let crs = string_at(value, &["crs"])?;
+    let bounds = rect_from_json(at(value, &["bounds"])?)
+        .map_err(|error| format!("{label}.bounds: {error}"))?;
+    let valid = at(value, &["valid"])?
+        .as_bool()
+        .ok_or_else(|| format!("{label}.valid must be boolean"))?;
+    Ok(support_kernel::SupportSample {
+        sample_id,
+        crs,
+        bounds,
+        valid,
+    })
+}
+
+fn validate_variable_aggregation_corpus(
+    raw: &[u8],
+    manifest: &Value,
+) -> Result<Value, String> {
+    let expected_ids: BTreeSet<&'static str> = [
+        "AGG-INTENSIVE-WEIGHTED-MEAN-001",
+        "AGG-INTENSIVE-PARTIAL-NO-EXTRAPOLATION-001",
+        "AGG-INTENSIVE-ALL-MASKED-001",
+        "AGG-INTENSIVE-UNIT-MISMATCH-001",
+        "AGG-STOCK-DENSITY-INTEGRAL-001",
+        "AGG-STOCK-PARTIAL-NO-EXTRAPOLATION-001",
+        "AGG-COUNT-HORVITZ-THOMPSON-001",
+        "AGG-COUNT-ZERO-INCLUSION-PROBABILITY-001",
+        "AGG-COUNT-NONPROBABILITY-DESIGN-001",
+        "AGG-CATEGORICAL-FRACTIONS-001",
+        "AGG-CATEGORICAL-MASKED-PRESERVES-GAP-001",
+        "AGG-CATEGORICAL-EMPTY-CLASS-001",
+    ]
+    .into_iter()
+    .collect();
+
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let cases = at(manifest, &["cases"])?
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
+
+    let mut seen = BTreeSet::new();
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "AGG-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-VARIABLE-AWARE-AGGREGATION-001"
+            && status == "PUBLIC_SYNTHETIC_VARIABLE_AGGREGATION_CASES"
+            && ceiling.contains("Synthetic known-truth cases only")
+            && ceiling.contains("No production raster"),
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"),
+    );
+
+    let mut result_rows = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let case_id = string_at(case, &["case_id"])?;
+        let kind = string_at(case, &["kind"])?;
+        let unique = seen.insert(case_id.clone());
+        let expected_error = case.get("expected_error").and_then(Value::as_str);
+        let sample_values = at(case, &["samples"])?
+            .as_array()
+            .ok_or_else(|| format!("cases[{index}].samples must be an array"))?;
+
+        let evaluation: Result<Value, String> = match kind.as_str() {
+            "intensive_mean" => {
+                let target_crs = string_at(case, &["target_crs"])?;
+                let target = rect_from_json(at(case, &["target_bounds"])?)
+                    .map_err(|error| format!("cases[{index}].target_bounds: {error}"))?;
+                let mut samples = Vec::with_capacity(sample_values.len());
+                for (sample_index, sample) in sample_values.iter().enumerate() {
+                    samples.push(aggregation_kernel::IntensiveSample {
+                        support: parse_support_sample(
+                            at(sample, &["support"])?,
+                            &format!("cases[{index}].samples[{sample_index}].support"),
+                        )?,
+                        value: number_at(sample, &["value"])?,
+                        unit: string_at(sample, &["unit"])?,
+                    });
+                }
+                let expected_unit = case
+                    .get("expected")
+                    .and_then(|expected| expected.get("unit"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("Mg/ha");
+                aggregation_kernel::aggregate_intensive_mean(
+                    &target_crs,
+                    target,
+                    &samples,
+                    expected_unit,
+                )
+                .map(|result| json!({
+                    "observed_mean": result.observed_mean,
+                    "unit": result.unit,
+                    "target_area_m2": result.target_area_m2,
+                    "geometric_coverage_fraction": result.geometric_coverage_fraction,
+                    "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
+                    "valid_observed_area_m2": result.valid_observed_area_m2,
+                    "disposition": result.disposition.as_str()
+                }))
+                .map_err(|error| format!("{error:?}"))
+            }
+            "stock_integral" => {
+                let target_crs = string_at(case, &["target_crs"])?;
+                let target = rect_from_json(at(case, &["target_bounds"])?)
+                    .map_err(|error| format!("cases[{index}].target_bounds: {error}"))?;
+                let mut samples = Vec::with_capacity(sample_values.len());
+                for (sample_index, sample) in sample_values.iter().enumerate() {
+                    samples.push(aggregation_kernel::DensitySample {
+                        support: parse_support_sample(
+                            at(sample, &["support"])?,
+                            &format!("cases[{index}].samples[{sample_index}].support"),
+                        )?,
+                        value_mg_per_ha: number_at(sample, &["value_mg_per_ha"])?,
+                    });
+                }
+                aggregation_kernel::integrate_density_to_observed_stock(
+                    &target_crs,
+                    target,
+                    &samples,
+                )
+                .map(|result| json!({
+                    "observed_stock_mg": result.observed_stock_mg,
+                    "target_area_m2": result.target_area_m2,
+                    "geometric_coverage_fraction": result.geometric_coverage_fraction,
+                    "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
+                    "valid_observed_area_m2": result.valid_observed_area_m2,
+                    "disposition": result.disposition.as_str()
+                }))
+                .map_err(|error| format!("{error:?}"))
+            }
+            "count_total" => {
+                let mut samples = Vec::with_capacity(sample_values.len());
+                for sample in sample_values {
+                    samples.push(aggregation_kernel::CountSample {
+                        sample_unit_id: string_at(sample, &["sample_unit_id"])?,
+                        sampling_frame_id: string_at(sample, &["sampling_frame_id"])?,
+                        sampling_design_id: string_at(sample, &["sampling_design_id"])?,
+                        design_kind: string_at(sample, &["design_kind"])?,
+                        observed_count: usize_at(sample, &["observed_count"])? as u64,
+                        inclusion_probability: number_at(sample, &["inclusion_probability"])?,
+                    });
+                }
+                let frame = string_at(case, &["sampling_frame_id"])?;
+                let design = string_at(case, &["sampling_design_id"])?;
+                let frame_count = usize_at(case, &["population_unit_count"])?;
+                aggregation_kernel::estimate_probability_sample_count_total(
+                    &frame,
+                    &design,
+                    frame_count,
+                    &samples,
+                )
+                .map(|result| json!({
+                    "horvitz_thompson_total": result.horvitz_thompson_total,
+                    "sampling_frame_id": result.sampling_frame_id,
+                    "sampling_design_id": result.sampling_design_id,
+                    "population_unit_count": result.population_unit_count,
+                    "sampled_unit_count": result.sampled_unit_count,
+                    "uncertainty_status": result.uncertainty_status
+                }))
+                .map_err(|error| format!("{error:?}"))
+            }
+            "categorical_areas" => {
+                let target_crs = string_at(case, &["target_crs"])?;
+                let target = rect_from_json(at(case, &["target_bounds"])?)
+                    .map_err(|error| format!("cases[{index}].target_bounds: {error}"))?;
+                let mut samples = Vec::with_capacity(sample_values.len());
+                for (sample_index, sample) in sample_values.iter().enumerate() {
+                    samples.push(aggregation_kernel::CategoricalSample {
+                        support: parse_support_sample(
+                            at(sample, &["support"])?,
+                            &format!("cases[{index}].samples[{sample_index}].support"),
+                        )?,
+                        class_id: string_at(sample, &["class_id"])?,
+                    });
+                }
+                aggregation_kernel::aggregate_categorical_areas(
+                    &target_crs,
+                    target,
+                    &samples,
+                )
+                .map(|result| json!({
+                    "target_area_m2": result.target_area_m2,
+                    "geometric_coverage_fraction": result.geometric_coverage_fraction,
+                    "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
+                    "valid_observed_area_m2": result.valid_observed_area_m2,
+                    "disposition": result.disposition.as_str(),
+                    "classes": result.classes.iter().map(|class| json!({
+                        "class_id": class.class_id,
+                        "valid_area_m2": class.valid_area_m2,
+                        "fraction_of_valid_observed_area": class.fraction_of_valid_observed_area
+                    })).collect::<Vec<Value>>()
+                }))
+                .map_err(|error| format!("{error:?}"))
+            }
+            _ => Err(format!("unsupported aggregation kind: {kind}")),
+        };
+
+        let (passed, detail, row) = if let Some(expected_error) = expected_error {
+            match evaluation {
+                Err(actual_error) => {
+                    let actual_name = actual_error
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default()
+                        .to_string();
+                    let passed = unique
+                        && expected_ids.contains(case_id.as_str())
+                        && actual_name == expected_error;
+                    (
+                        passed,
+                        format!("case={case_id}; actual_error={actual_name}; expected_error={expected_error}; unique={unique}"),
+                        json!({"case_id":case_id,"error":actual_name}),
+                    )
+                }
+                Ok(actual) => (
+                    false,
+                    format!("case={case_id}; expected_error={expected_error}; got={actual}"),
+                    json!({"case_id":case_id,"unexpected_result":actual}),
+                ),
+            }
+        } else {
+            let actual = evaluation?;
+            let expected = at(case, &["expected"])?;
+            let mut passed = true;
+            let numeric_fields = match kind.as_str() {
+                "intensive_mean" => vec![
+                    ("geometric_coverage_fraction", "geometric_coverage_fraction"),
+                    ("valid_data_coverage_fraction", "valid_data_coverage_fraction"),
+                    ("valid_observed_area_m2", "valid_observed_area_m2"),
+                ],
+                "stock_integral" => vec![
+                    ("observed_stock_mg", "observed_stock_mg"),
+                    ("geometric_coverage_fraction", "geometric_coverage_fraction"),
+                    ("valid_data_coverage_fraction", "valid_data_coverage_fraction"),
+                    ("valid_observed_area_m2", "valid_observed_area_m2"),
+                ],
+                "count_total" => vec![("horvitz_thompson_total", "horvitz_thompson_total")],
+                "categorical_areas" => vec![
+                    ("geometric_coverage_fraction", "geometric_coverage_fraction"),
+                    ("valid_data_coverage_fraction", "valid_data_coverage_fraction"),
+                    ("valid_observed_area_m2", "valid_observed_area_m2"),
+                ],
+                _ => Vec::new(),
+            };
+            for (field, actual_field) in numeric_fields {
+                let wanted = number_at(expected, &[field])?;
+                let got = number_at(&actual, &[actual_field])?;
+                passed &= close_enough(got, wanted, 1e-9);
+            }
+            match kind.as_str() {
+                "intensive_mean" => {
+                    let wanted = expected.get("observed_mean").unwrap_or(&Value::Null);
+                    let got = actual.get("observed_mean").unwrap_or(&Value::Null);
+                    passed &= wanted == got;
+                    passed &= string_at(expected, &["unit"])? == string_at(&actual, &["unit"])?;
+                }
+                "count_total" => {
+                    passed &= string_at(expected, &["uncertainty_status"])?
+                        == string_at(&actual, &["uncertainty_status"])?;
+                    passed &= usize_at(expected, &["sampled_unit_count"])?
+                        == usize_at(&actual, &["sampled_unit_count"])?;
+                }
+                "categorical_areas" => {
+                    let expected_classes = at(expected, &["classes"])?
+                        .as_array()
+                        .ok_or_else(|| "expected.classes must be an array".to_string())?;
+                    let actual_classes = at(&actual, &["classes"])?
+                        .as_array()
+                        .ok_or_else(|| "actual.classes must be an array".to_string())?;
+                    if expected_classes.len() != actual_classes.len() {
+                        passed = false;
+                    } else {
+                        for expected_class in expected_classes {
+                            let id = string_at(expected_class, &["class_id"])?;
+                            let actual_class = actual_classes
+                                .iter()
+                                .find(|candidate| candidate.get("class_id").and_then(Value::as_str) == Some(id.as_str()));
+                            if let Some(actual_class) = actual_class {
+                                passed &= close_enough(
+                                    number_at(actual_class, &["valid_area_m2"])?,
+                                    number_at(expected_class, &["valid_area_m2"])?,
+                                    1e-9,
+                                );
+                                passed &= close_enough(
+                                    number_at(actual_class, &["fraction_of_valid_observed_area"])?,
+                                    number_at(expected_class, &["fraction_of_valid_observed_area"])?,
+                                    1e-12,
+                                );
+                            } else {
+                                passed = false;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            (
+                unique && expected_ids.contains(case_id.as_str()) && passed,
+                format!("case={case_id}; kind={kind}; expected_fields_match={passed}; unique={unique}"),
+                json!({"case_id":case_id,"actual":actual}),
+            )
+        };
+
+        push_check(
+            &mut checks,
+            "AGG-CASE-ORACLE-AGREEMENT-001",
+            passed,
+            detail,
+        );
+        result_rows.push(row);
+    }
+
+    push_check(
+        &mut checks,
+        "AGG-CASE-COVERAGE-001",
+        seen.len() == expected_ids.len()
+            && cases.len() == expected_ids.len()
+            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let variance = string_at(execution, &["survey_design_variance"])?;
+    let affine = string_at(execution, &["raster_affine_transform"])?;
+    let polygons = string_at(execution, &["arbitrary_polygon_support"])?;
+    push_check(
+        &mut checks,
+        "AGG-EXECUTION-BOUNDARY-001",
+        runner == "VARIABLE_AWARE_AGGREGATION_KERNEL"
+            && !external
+            && variance == "NOT_IMPLEMENTED"
+            && affine == "NOT_IMPLEMENTED"
+            && polygons == "NOT_IMPLEMENTED",
+        "bounded synthetic aggregation only; no survey-design variance, raster affine transform or arbitrary polygon is claimed",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| json!({
+            "id": check.id,
+            "passed": check.passed,
+            "detail": check.detail
+        }))
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_AGGREGATION" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "case_count": seen.len(),
+        "uncertainty_status": "NO_UNSUPPORTED_VARIANCE_ESTIMATORS",
+        "external_data_ingested": false
+    }))
+}
+
 /// Dispatch a JSON fixture to its domain-specific verifier and return a deterministic receipt.
 ///
 /// This command verifies manifests and analytical/synthetic invariants only. It does not
@@ -1526,6 +1900,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-SUPPORT-INTERSECTION-001")
     {
         return validate_support_intersection_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-VARIABLE-AWARE-AGGREGATION-001")
+    {
+        return validate_variable_aggregation_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-ADEQUACY-001")
@@ -1870,8 +2249,42 @@ mod tests {
         include_str!("../../cases/forest-observation-admission-contract-synthetic-v0.1.json");
     const SUPPORT_INTERSECTION_FIXTURE: &str =
         include_str!("../../cases/forest-support-intersection-synthetic-v0.1.json");
+    const VARIABLE_AGGREGATION_FIXTURE: &str =
+        include_str!("../../cases/forest-variable-aware-aggregation-synthetic-v0.1.json");
 
 
+
+
+    #[test]
+    fn variable_aggregation_corpus_matches_twelve_synthetic_cases() {
+        let receipt = evaluate(VARIABLE_AGGREGATION_FIXTURE.as_bytes())
+            .expect("variable aggregation corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_AGGREGATION");
+        assert_eq!(receipt["case_count"], 12);
+        assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
+        assert_eq!(receipt["uncertainty_status"], "NO_UNSUPPORTED_VARIANCE_ESTIMATORS");
+        assert_eq!(receipt["external_data_ingested"], false);
+    }
+
+    #[test]
+    fn variable_aggregation_corpus_rejects_changed_intensive_mean() {
+        let mut manifest: Value = serde_json::from_str(VARIABLE_AGGREGATION_FIXTURE)
+            .expect("valid variable aggregation corpus");
+        manifest["cases"][0]["expected"]["observed_mean"] = json!(999.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn variable_aggregation_corpus_rejects_category_code_as_class_identity_change() {
+        let mut manifest: Value = serde_json::from_str(VARIABLE_AGGREGATION_FIXTURE)
+            .expect("valid variable aggregation corpus");
+        manifest["cases"][9]["samples"][0]["class_id"] = json!("forest-999");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn support_intersection_corpus_matches_fourteen_analytic_cases() {
