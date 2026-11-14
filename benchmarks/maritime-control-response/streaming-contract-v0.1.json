@@ -144,5 +144,12 @@
   "claim_ceiling": "Rust source contract and synthetic tests only until exact-head compile/tests, public dataset audit, trained model run, and a compliant Python/MATLAB adapter are independently verified.",
   "evidence_boundaries": {
     "timestamp_uncertainty": "The software consumes a declared timebase qualification digest; it does not implement clock synchronization, authenticate the issuer, measure drift or prove a vessel's acquisition network."
+  },
+  "temporal_contract_version": "bounded-event-time-v0.1",
+  "event_time_claim_boundary": {
+    "streaming_samples": "bounded_intervals_and_qualified_timebase_required",
+    "event_annotations": "point_timestamps_only_not_interval_qualified",
+    "event_latency_claim": "must remain limited until fault-onset/offset annotation uncertainty and timebase provenance are bound",
+    "clock_qualification": "consumed as declared evidence; issuer authentication, clock drift measurement and physical synchronization are upstream responsibilities"
   }
 }
