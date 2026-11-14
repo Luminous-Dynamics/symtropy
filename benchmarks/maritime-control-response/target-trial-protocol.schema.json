@@ -54,8 +54,7 @@
       "pattern": "^[a-f0-9]{64}$"
     },
     "cluster_group_key": {
-      "type": "string",
-      "minLength": 1
+      "const": "asset_id"
     },
     "cluster_grouping_rule_sha256": {
       "type": "string",
