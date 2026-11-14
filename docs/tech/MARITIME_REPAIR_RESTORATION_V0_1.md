@@ -88,7 +88,7 @@ Causal repair-effect claims require an appropriate controlled or counterfactual 
 
 ## Synthetic known-answer contract
 
-The evaluator currently contains 22 Rust tests and an 8-case machine-readable challenge manifest. The cases cover:
+The evaluator currently contains 22 Rust tests and a 12-case machine-readable challenge manifest. The cases cover:
 - verified restoration under matched conditions and a consistent independent reference measurement path;
 - pre/post measurement-path changes and diagnostic-dependency reuse;
 - time-of-observation/availability and calibration-record completeness;
@@ -103,6 +103,7 @@ The evaluator currently contains 22 Rust tests and an 8-case machine-readable ch
 - repair chronology;
 - missing/stale evidence;
 - protocol/corpus integrity;
+- four additional negative cases for sensor-only interventions, expired calibration, envelope-digest mismatch and pre/post measurement-path substitution;
 - sensor-only intervention rejection;
 - calibration expiry and calibration-record binding;
 - envelope-owner/content digest mismatch;
