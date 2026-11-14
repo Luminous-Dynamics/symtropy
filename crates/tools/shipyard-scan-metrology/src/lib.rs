@@ -47,6 +47,8 @@ pub struct RegistrationReceipt {
     pub sha256: String,
     pub before_scan_sha256: String,
     pub after_scan_sha256: String,
+    pub source_frame: String,
+    pub target_frame: String,
     pub transform_type: String,
     pub fit_region: String,
     pub stable_datum_verified: bool,
@@ -90,6 +92,7 @@ pub struct ProfilePairInput {
     pub pair_id: String,
     pub before_scan: ScanIdentity,
     pub after_scan: ScanIdentity,
+    pub comparison_frame: String,
     pub calibration_receipt: CalibrationReceipt,
     pub registration_receipt: RegistrationReceipt,
     pub surface_compatibility: SurfaceCompatibilityReceipt,
@@ -112,7 +115,8 @@ pub enum RejectReason {
     DifferentJointRevision,
     DifferentLayer,
     DifferentProfileStation,
-    DifferentCoordinateFrame,
+    RegistrationSourceFrameMismatch,
+    RegistrationTargetFrameMismatch,
     DifferentInstrument,
     DifferentCalibrationRevision,
     InvalidCaptureOrder,
@@ -192,7 +196,7 @@ fn integer_sqrt(value: u128) -> u128 {
         return value;
     }
     let mut current = value;
-    let mut next = (current + 1) / 2;
+    let mut next = current / 2 + 1;
     while next < current {
         current = next;
         next = (current + value / current) / 2;
@@ -272,9 +276,6 @@ fn validate_identity(input: &ProfilePairInput) -> Result<(), RejectReason> {
     if input.before_scan.profile_station_id != input.after_scan.profile_station_id {
         return Err(RejectReason::DifferentProfileStation);
     }
-    if input.before_scan.coordinate_frame != input.after_scan.coordinate_frame {
-        return Err(RejectReason::DifferentCoordinateFrame);
-    }
     if input.before_scan.instrument_id != input.after_scan.instrument_id {
         return Err(RejectReason::DifferentInstrument);
     }
@@ -317,6 +318,14 @@ fn validate_registration(input: &ProfilePairInput) -> Result<(), RejectReason> {
     {
         return Err(RejectReason::RegistrationReceiptMismatch);
     }
+    if registration.source_frame != input.after_scan.coordinate_frame {
+        return Err(RejectReason::RegistrationSourceFrameMismatch);
+    }
+    if registration.target_frame != input.comparison_frame
+        || input.comparison_frame != input.before_scan.coordinate_frame
+    {
+        return Err(RejectReason::RegistrationTargetFrameMismatch);
+    }
     if registration.transform_type != "rigid_2d" {
         return Err(RejectReason::NonRigidTransform);
     }
@@ -346,6 +355,9 @@ fn validate_registration(input: &ProfilePairInput) -> Result<(), RejectReason> {
 }
 
 fn validate_profile(input: &ProfilePairInput) -> Result<(), RejectReason> {
+    if is_empty(&input.surface_compatibility.surface_condition) || is_empty(&input.comparison_frame) {
+        return Err(RejectReason::EmptyIdentity);
+    }
     if !input.surface_compatibility.within_qualified_surface_range {
         return Err(RejectReason::SurfaceOutsideQualifiedRange);
     }
@@ -555,11 +567,12 @@ mod tests {
                 joint_revision: "JOINT-R1".to_owned(),
                 layer_id: "LAYER-02".to_owned(),
                 profile_station_id: "STATION-001".to_owned(),
-                coordinate_frame: "WELDING-FRAME-R1".to_owned(),
+                coordinate_frame: "SCANNER-NATIVE-AFTER-R1".to_owned(),
                 instrument_id: "SCANNER-SYNTH-01".to_owned(),
                 calibration_revision: "CAL-R1".to_owned(),
                 captured_at_ms: 2_000,
             },
+            comparison_frame: "WELDING-FRAME-R1".to_owned(),
             calibration_receipt: CalibrationReceipt {
                 sha256: digest('3'),
                 instrument_id: "SCANNER-SYNTH-01".to_owned(),
@@ -574,6 +587,8 @@ mod tests {
                 sha256: digest('4'),
                 before_scan_sha256: before_hash,
                 after_scan_sha256: after_hash,
+                source_frame: "SCANNER-NATIVE-AFTER-R1".to_owned(),
+                target_frame: "WELDING-FRAME-R1".to_owned(),
                 transform_type: "rigid_2d".to_owned(),
                 fit_region: "stable_datum".to_owned(),
                 stable_datum_verified: true,
@@ -777,12 +792,28 @@ mod tests {
     }
 
     #[test]
-    fn different_coordinate_frames_are_rejected() {
+    fn different_native_frames_are_accepted_with_a_bound_transform() {
+        let input = base_input();
+        assert!(evaluate_profile_pair(&input).is_ok());
+    }
+
+    #[test]
+    fn wrong_registration_source_frame_is_rejected() {
         let mut input = base_input();
-        input.after_scan.coordinate_frame = "OTHER-FRAME".to_owned();
+        input.registration_receipt.source_frame = "OTHER-NATIVE-FRAME".to_owned();
         assert_eq!(
             evaluate_profile_pair(&input),
-            Err(RejectReason::DifferentCoordinateFrame)
+            Err(RejectReason::RegistrationSourceFrameMismatch)
+        );
+    }
+
+    #[test]
+    fn wrong_registration_target_frame_is_rejected() {
+        let mut input = base_input();
+        input.registration_receipt.target_frame = "WRONG-WELDING-FRAME".to_owned();
+        assert_eq!(
+            evaluate_profile_pair(&input),
+            Err(RejectReason::RegistrationTargetFrameMismatch)
         );
     }
 
