@@ -85,6 +85,33 @@ Power Fabric implication:
 Source:
 - IEC 62351 series catalogue (2026 package): https://webstore.iec.ch/en/publication/6912
 
+
+### 2.5 Prosumer installations and South African applicability
+
+**IEC 60364-8-82:2022 + AMD1:2026** is a high-priority profile for Power Fabric's PV, battery and grid-connected residential/industrial use cases. The consolidated edition 1.1 covers prosumer low-voltage installations with local generation and/or storage, whether connected or not to a distribution network. Its scope includes grid interaction and islanded/stand-alone aspects; the 2026 amendment clarifies earthing-system transition sequencing and conditions for connection/disconnection from the distribution network, and adds requirements including a normative annex for single-dwelling or similar islandable PEIs.
+
+Power Fabric implication:
+- represent GridConnected, Islanded and Standalone as distinct operating-mode claims;
+- keep local generation, local storage, grid boundary and mode-transition records explicit;
+- preserve the earthing arrangement before and after a mode transition, with the required source-specific evidence and unresolved state;
+- represent DSO connection/disconnection preconditions as qualified external requirements, not software actuation authority;
+- do not infer black-start, grid-forming, islanding stability, correct earthing or permission to reconnect from a generic inverter or battery label.
+
+**South African jurisdiction profile update:** ECA(SA) announced availability of **SANS 10142-1:2026 Ed 3.03** on 2026-06-26, superseding the previously referenced 2024 Ed 3.2 snapshot. The current normative text, amendments, Electrical Installation Regulations and utility-specific requirements must be verified from authoritative sources and reviewed by competent registered South African electrical practitioners before clause-level rules are encoded. The ECA availability notice is not itself the normative standard.
+
+Power Fabric implication:
+- maintain SANS 10142-1:2026 Ed 3.03 as a separate South African jurisdiction profile;
+- never infer SANS conformity from an IEC 60364-8-82 mapping result;
+- require professional inspection, tests and applicable CoC evidence to be supplied from the statutory process;
+- do not issue or automate a CoC.
+
+Sources:
+- IEC 60364-8-82:2022 + AMD1:2026 consolidated edition: https://webstore.iec.ch/en/publication/113148
+- IEC 60364-8-82:2022/AMD1:2026 amendment record: https://webstore.iec.ch/en/publication/96654
+- IEC 60364-1:2025: https://webstore.iec.ch/en/publication/63699
+- ECA(SA) SANS 10142-1:2026 Ed 3.03 availability notice, 2026-06-26: https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/
+- South African Department of Employment and Labour CoC notice, 2025-10-22: https://www.gov.za/news/media-statements/employment-and-labour-electrical-installation-laws-and-certificate-compliance
+
 ## 3. Canonical mapping architecture
 
 ```
@@ -167,6 +194,7 @@ A new edition must not silently change the interpretation of an existing design.
 | Power-system communications security | Applicable IEC 62351 parts | Reference alone does not prove an implementation is secure |
 | Module electrical/thermal/control ports | Power Fabric Module Contract | New Luminous contract; must interoperate with source standards without pretending to be an IEC standard |
 | Human roles, safe actions and explanations | Power Fabric human views | Human-computer interface, not an alternate safety procedure |
+| Prosumer operating modes and transitions | IEC 60364-8-82:2022 + AMD1:2026 | Mode claims, earthing transitions and DSO interfaces need exact jurisdictional and professional evidence; no autonomous switching |
 | Evidence, module revision and as-built change impact | Power Fabric evidence layer | Must preserve source records and not issue certification |
 
 ## 6. Loss-aware adapter result
@@ -222,13 +250,14 @@ Generate labels, single-line diagrams and source maps from the canonical graph. 
 
 ## 8. Implementation sequence
 
-1. Build a standards applicability registry with editions/status and official source URLs.
+1. Maintain the dated standards applicability registry with editions/status and official source URLs.
 2. Add IEC 81346 reference-designation binding to ServiceNode and the human-facing graph.
-3. Freeze a narrow CIM distribution fixture profile and map only in-scope source/bus/feeder/switching/measurement objects.
-4. Freeze a narrow IEC 61850 SCL IED-configuration fixture and map IED identity/configuration relationships.
-5. Add explicit loss-aware import/export receipts and opaque extension preservation.
-6. Add round-trip, edition mismatch, stale source, ambiguous relation and unsupported extension tests.
-7. Obtain independent standards/interoperability review before making claims about conformance or vendor exchange.
+3. Prioritize a theme-level prosumer profile for IEC 60364-8-82:2022 + AMD1:2026 and the separate SANS 10142-1:2026 Ed 3.03 jurisdiction profile; obtain normative texts and professional review before clause rules.
+4. Freeze a narrow CIM distribution fixture profile and map only in-scope source/bus/feeder/switching/measurement objects.
+5. Freeze a narrow IEC 61850 SCL IED-configuration fixture and map IED identity/configuration relationships.
+6. Add explicit loss-aware import/export receipts and opaque extension preservation.
+7. Add round-trip, edition mismatch, stale source, ambiguous relation and unsupported extension tests.
+8. Obtain independent standards/interoperability review before making claims about conformance or vendor exchange.
 
 ## 9. Non-goals
 
