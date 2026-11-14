@@ -67,7 +67,7 @@ The source layers measure different constructs. They are complementary, not inte
 | UMD / Global Nature Watch (formerly Global Forest Watch) tree-cover loss | Landsat, 30 m, annual (2001–2025) | Disturbance-event screening / change context | Loss includes natural events, harvest and plantations; it is not synonymous with permanent deforestation; preserve methodology-era boundaries |
 | MapBiomas Collection 11 (Brazil) | Annual land cover and use, 30 m, 1985–2025; collection notice updated August 2026 | Brazil / Amazon regional transition context | Brazil coverage is not full Amazon / Congo / New Guinea coverage; preserve class/year accuracy information and collection-specific semantics |
 | NASA GEDI L4A V2.1 | Footprint-level model estimates of aboveground biomass density (Mg/ha) and prediction standard error; nominal coverage 2019-04-18 to 2025-07-09 | Biomass / canopy-structure constraints and calibration checks | Approx. 25 m footprints sampled along sparse tracks, not wall-to-wall truth. Retain beam, orbit, algorithm group, input waveform metrics and all quality flags. There were no acquisitions while the instrument was stored from March 2023 to April 2024; do not interpret that interval as ecological absence |
-| ForestPlots.net and partner networks (including RAINFOR, AfriTRON, GEM, ForestGEO, etc.) | Plot / stem censuses with species, size, demography, traits and soil metadata | Growth, mortality, recruitment, species/trait and process calibration | Access is tiered, contributor governed and may be non-redistributable; request permission before use or derived publication |
+| ForestPlots.net, RAINFOR, AfriTRON, ForestGEO, GEM and other plot networks | Plot / stem censuses with species, size, demography, traits and soil metadata | Growth, mortality, recruitment, species/trait and process calibration | Each network has its own access and contributor rules; some records are restricted or non-redistributable. Do not imply that these networks are one consortium or share a single licence; request the applicable permission before use or derived publication |
 | Papua New Guinea National Forest Inventory (FAO FAM Catalogue) | Nationally representative multipurpose inventory published to the FAO Food and Agriculture Microdata Catalogue in March 2026 | Independent New Guinea / PNG regional evidence and sampling-frame context | Catalogue publication does not automatically grant unrestricted row-level access or derivative rights; confirm the exact download, variables, design weights, spatial disclosure, and licensing with PNGFA / FAO before ingestion |
 
 Reference pages:
@@ -106,6 +106,9 @@ Important current naming distinction: Global Forest Watch was renamed **Global N
 There is no single direct competitor or universal benchmark across these products. The programme must report task-specific comparisons and never compare a remote-sensing estimate product directly with a process-based ecology model without a declared observation operator and common target.
 
 ## Strong external comparators
+
+See the companion [Industry and SOTA Landscape v0.1](INDUSTRY_AND_SOTA_LANDSCAPE_V0_1.md) for the broader comparison across process models, biodiversity digital twins, EO products, disturbance monitoring and wildlife-observation AI.
+
 
 ### Process-based tropical forest dynamics
 
