@@ -1,0 +1,12 @@
+{
+  "source_kind": "SyntheticFixture",
+  "source_format": "BevyScene",
+  "fidelity": "SyntheticGeometry",
+  "source_linear_unit": "Metre",
+  "coordinate_frame_id": "synthetic-room:local-metres",
+  "known_limitations": [
+    "Synthetic proportions; not a measured or approved home.",
+    "No IFC/glTF import, collision or clearance assessment.",
+    "No structural, fire, energy, daylight, acoustic, cost or legal validation."
+  ]
+}

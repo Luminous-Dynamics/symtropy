@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 //! # symtropy-bevy-scene
 //!
-//! Opinionated scene scaffolding for Bevy 0.18 apps. Adds a single plugin
+//! Opinionated scene scaffolding for Bevy 0.19 apps. Adds a single plugin
 //! that sets up sensible defaults so demos don't repeat the
 //! camera/light/clear-color boilerplate.
 //!
@@ -95,14 +95,49 @@ impl SymtropyScenePlugin {
     }
 }
 
+pub mod architectural_review;
+pub mod design_intent;
 pub mod loader;
 
+pub use architectural_review::{
+    ArchitecturalReviewRoute, DESIGN_REVIEW_SESSION_SCHEMA_VERSION, DesignReviewMode,
+    DesignReviewSession, DesignReviewSessionIssue, FeedbackResolutionDisposition,
+    FeedbackResolutionIssue, FeedbackResolutionRecord, OccupantFeedbackCategory,
+    OccupantFeedbackIssue, OccupantFeedbackLifecycle, OccupantFeedbackPriority,
+    OccupantFeedbackShareScope, OccupantReviewFeedback, ReviewAnnotation, ReviewAnnotationIssue,
+    ReviewAnnotationKind, ReviewAnnotationState, ReviewComfortProfile, ReviewComfortProfileIssue,
+    ReviewFreeCameraController, ReviewJurisdictionContext, ReviewJurisdictionContextIssue,
+    ReviewLinearUnit, ReviewModelContext, ReviewModelContextIssue, ReviewModelFidelity,
+    ReviewModelFormat, ReviewModelSourceKind, ReviewPlaybackSetupIssue, ReviewRig,
+    ReviewRouteIssue, ReviewRoutePlayback, ReviewRouteStartPolicy, ReviewSourceRef, ReviewWaypoint,
+    advance_architectural_review_routes, drive_free_review_camera,
+    manage_architectural_review_controls, review_session_manifest_bytes, review_waypoint_transform,
+    sample_review_route, scale_point_to_review_metres, validate_design_review_session,
+    validate_feedback_resolutions_for_revision, validate_occupant_feedback_for_review,
+    validate_review_annotations_for_revision, validate_review_route,
+};
+pub use design_intent::{
+    AlternativeDisposition, DesignAlternative, DesignComparison, DesignIntent, DesignIntentClass,
+    DesignIntentIssue, FrontierExclusion, FrontierExclusionReason, IntentEvaluation,
+    IntentEvaluationOutcome, IntentOrigin, IntentPriority, PreferenceFrontierReport,
+    PreferencePairComparison, PreferencePairRelation, compute_owner_preference_frontier,
+    validate_design_comparison, validate_design_comparison_snapshot,
+};
 pub use loader::{SymtropyScene, SymtropySceneLoader};
 
 impl Plugin for SymtropyScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<SymtropyScene>()
-            .init_asset_loader::<SymtropySceneLoader>();
+            .init_asset_loader::<SymtropySceneLoader>()
+            .add_systems(
+                Update,
+                (
+                    manage_architectural_review_controls,
+                    advance_architectural_review_routes,
+                    drive_free_review_camera,
+                )
+                    .chain(),
+            );
 
         let cfg = self.config.clone();
         app.insert_resource(ClearColor(cfg.clear_color))
