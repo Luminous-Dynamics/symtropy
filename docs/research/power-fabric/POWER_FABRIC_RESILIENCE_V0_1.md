@@ -37,7 +37,7 @@ A failure domain has:
 
 Memberships must resolve to actual nodes or PowerPath edges in the exact service graph revision. Unknown evidence is retained as unknown. Multiple computed disjoint paths touching one declared failure-domain record produce a potential shared common-cause exposure.
 
-The inventory itself is declared CompleteWithinDeclaredScope, Incomplete, or Unknown. A non-complete inventory can never produce a positive no-shared-domain conclusion.
+The inventory itself is declared CompleteWithinDeclaredScope, Incomplete, or Unknown. A non-complete inventory, or any failure-domain record with Unknown evidence, can never produce a no-shared conclusion.
 
 ## 5. Independence result semantics
 
@@ -46,9 +46,9 @@ The inventory itself is declared CompleteWithinDeclaredScope, Incomplete, or Unk
 | FewerThanTwoEdgeDisjointPaths | The declared graph does not contain two directed edge-disjoint routes |
 | FailureDomainInventoryIncomplete | Two routes may exist, but failure-domain coverage is incomplete or unknown |
 | SharedModeledFailureDomainAcrossPaths | At least two computed disjoint routes intersect one declared failure-domain record |
-| NoSharedModeledFailureDomainDetected | No shared domain was found in a declared-complete inventory across computed routes |
+| NoSharedModeledIntermediateDependencyDetected | No shared modeled intermediate dependency was found in a declared-complete inventory; the source/load terminals remain shared by construction |
 
-NoSharedModeledFailureDomainDetected does not prove physical or probabilistic independence. It means only that the model found no shared membership in the supplied, declared-complete inventory.
+NoSharedModeledIntermediateDependencyDetected does not prove physical or probabilistic independence. The same source and load terminals are shared by construction; those endpoints are explicitly reported. The result means only that the model found no shared non-terminal nodes or declared common-cause domain membership in a supplied, declared-complete inventory. An unknown failure-domain evidence record makes the inventory insufficient for a clean no-shared result.
 
 ## 6. Frozen benchmark targets
 

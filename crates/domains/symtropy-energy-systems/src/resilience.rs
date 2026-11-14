@@ -10,7 +10,7 @@
 use crate::{
     GraphEvidence, GraphEvidenceState, ServiceEdgeKind, ServiceGraph, ServiceNodeKind,
 };
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -42,6 +42,7 @@ pub struct FailureDomain {
     kind: FailureDomainKind,
     node_ids: Vec<String>,
     edge_ids: Vec<String>,
+    #[serde(serialize_with = "serialize_graph_evidence")]
     evidence: GraphEvidence,
 }
 
@@ -96,6 +97,7 @@ pub struct FailureDomainExposure {
     domain_id: String,
     kind: FailureDomainKind,
     disjoint_paths_affected: usize,
+    #[serde(serialize_with = "serialize_evidence_state")]
     evidence_state: GraphEvidenceState,
     evidence_id: Option<String>,
 }
@@ -114,7 +116,7 @@ pub enum IndependenceAssessment {
     FewerThanTwoEdgeDisjointPaths,
     FailureDomainInventoryIncomplete,
     SharedModeledFailureDomainAcrossPaths,
-    NoSharedModeledFailureDomainDetected,
+    NoSharedModeledIntermediateDependencyDetected,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -125,6 +127,8 @@ pub struct ResilienceAssessment {
     load_id: String,
     edge_disjoint_path_count: usize,
     edge_disjoint_paths: Vec<DisjointPath>,
+    shared_source_terminal_across_paths: bool,
+    shared_intermediate_node_ids: Vec<String>,
     undirected_power_path_bridge_edge_ids: Vec<String>,
     undirected_power_path_articulation_node_ids: Vec<String>,
     failure_domain_exposures: Vec<FailureDomainExposure>,
@@ -139,6 +143,8 @@ impl ResilienceAssessment {
     pub fn load_id(&self) -> &str { &self.load_id }
     pub const fn edge_disjoint_path_count(&self) -> usize { self.edge_disjoint_path_count }
     pub fn edge_disjoint_paths(&self) -> &[DisjointPath] { &self.edge_disjoint_paths }
+    pub const fn shared_source_terminal_across_paths(&self) -> bool { self.shared_source_terminal_across_paths }
+    pub fn shared_intermediate_node_ids(&self) -> &[String] { &self.shared_intermediate_node_ids }
     pub fn undirected_power_path_bridge_edge_ids(&self) -> &[String] { &self.undirected_power_path_bridge_edge_ids }
     pub fn undirected_power_path_articulation_node_ids(&self) -> &[String] { &self.undirected_power_path_articulation_node_ids }
     pub fn failure_domain_exposures(&self) -> &[FailureDomainExposure] { &self.failure_domain_exposures }
@@ -181,7 +187,7 @@ pub fn assess_resilience(
     let power_edges: Vec<_> = graph.edges().iter()
         .filter(|edge| edge.kind() == ServiceEdgeKind::PowerPath)
         .collect();
-    let edge_ids: BTreeSet<String> = power_edges.iter().map(|edge| edge.edge_id().to_owned()).collect();
+    let edge_ids: BTreeSet<String> = graph.edges().iter().map(|edge| edge.edge_id().to_owned()).collect();
     let graph_node_ids: BTreeSet<String> = node_ids.iter().cloned().collect();
 
     let mut domain_ids = BTreeSet::new();
@@ -206,6 +212,17 @@ pub fn assess_resilience(
     let (edge_disjoint_path_count, edge_disjoint_paths) =
         max_edge_disjoint_paths(&node_ids, &node_index, &power_edges, source_index, load_index)?;
 
+    let mut shared_intermediate_nodes = BTreeSet::new();
+    if edge_disjoint_paths.len() >= 2 {
+        for node_id in &node_ids {
+            if node_id == source_id || node_id == load_id { continue; }
+            let affected = edge_disjoint_paths.iter()
+                .filter(|path| path.node_ids.binary_search(node_id).is_ok())
+                .count();
+            if affected >= 2 { shared_intermediate_nodes.insert(node_id.clone()); }
+        }
+    }
+
     let mut exposures = Vec::new();
     for domain in failure_domains {
         let affected = edge_disjoint_paths.iter().filter(|path| {
@@ -224,16 +241,23 @@ pub fn assess_resilience(
     }
     exposures.sort_by(|left, right| left.domain_id.cmp(&right.domain_id));
 
-    let inventory_incomplete = inventory_status != FailureDomainInventoryStatus::CompleteWithinDeclaredScope;
-    let shared_domain = exposures.iter().any(|exposure| exposure.disjoint_paths_affected >= 2);
+    let unknown_domain_evidence = failure_domains.iter()
+        .any(|domain| domain.evidence.state() == GraphEvidenceState::Unknown);
+    let inventory_incomplete = inventory_status != FailureDomainInventoryStatus::CompleteWithinDeclaredScope
+        || unknown_domain_evidence;
+    let shared_domain = exposures.iter().any(|exposure| {
+        exposure.disjoint_paths_affected >= 2
+            && exposure.evidence_state != GraphEvidenceState::Unknown
+    });
+    let shared_intermediate_dependency = !shared_intermediate_nodes.is_empty();
     let independence_assessment = if edge_disjoint_path_count < 2 {
         IndependenceAssessment::FewerThanTwoEdgeDisjointPaths
+    } else if shared_domain || shared_intermediate_dependency {
+        IndependenceAssessment::SharedModeledFailureDomainAcrossPaths
     } else if inventory_incomplete {
         IndependenceAssessment::FailureDomainInventoryIncomplete
-    } else if shared_domain {
-        IndependenceAssessment::SharedModeledFailureDomainAcrossPaths
     } else {
-        IndependenceAssessment::NoSharedModeledFailureDomainDetected
+        IndependenceAssessment::NoSharedModeledIntermediateDependencyDetected
     };
 
     let (bridges, articulations) = undirected_cut_candidates(&node_ids, &node_index, &power_edges);
@@ -245,6 +269,8 @@ pub fn assess_resilience(
         load_id: load_id.to_owned(),
         edge_disjoint_path_count,
         edge_disjoint_paths,
+        shared_source_terminal_across_paths: edge_disjoint_path_count >= 2,
+        shared_intermediate_node_ids: shared_intermediate_nodes.into_iter().collect(),
         undirected_power_path_bridge_edge_ids: bridges,
         undirected_power_path_articulation_node_ids: articulations,
         failure_domain_exposures: exposures,
@@ -466,6 +492,34 @@ fn tarjan_visit(
     }
 }
 
+#[derive(Serialize)]
+struct GraphEvidenceView<'a> {
+    state: &'static str,
+    evidence_id: Option<&'a str>,
+}
+
+fn serialize_graph_evidence<S>(evidence: &GraphEvidence, serializer: S) -> Result<S::Ok, S::Error>
+where S: Serializer {
+    GraphEvidenceView {
+        state: evidence_state_name(evidence.state()),
+        evidence_id: evidence.evidence_id(),
+    }.serialize(serializer)
+}
+
+fn serialize_evidence_state<S>(state: &GraphEvidenceState, serializer: S) -> Result<S::Ok, S::Error>
+where S: Serializer {
+    serializer.serialize_str(evidence_state_name(*state))
+}
+
+fn evidence_state_name(state: GraphEvidenceState) -> &'static str {
+    match state {
+        GraphEvidenceState::Unknown => "unknown",
+        GraphEvidenceState::DesignDeclared => "design_declared",
+        GraphEvidenceState::FieldObserved => "field_observed",
+        GraphEvidenceState::IndependentlyReviewed => "independently_reviewed",
+    }
+}
+
 fn require_non_empty(field: &'static str, value: &str) -> Result<(), ResilienceError> {
     if value.trim().is_empty() { return Err(ResilienceError::EmptyField { field }); }
     Ok(())
@@ -540,7 +594,9 @@ mod tests {
         ).unwrap();
         assert_eq!(result.edge_disjoint_path_count(), 2);
         assert_eq!(result.edge_disjoint_paths().len(), 2);
-        assert_eq!(result.independence_assessment(), IndependenceAssessment::NoSharedModeledFailureDomainDetected);
+        assert_eq!(result.independence_assessment(), IndependenceAssessment::NoSharedModeledIntermediateDependencyDetected);
+        assert!(result.shared_source_terminal_across_paths());
+        assert!(result.shared_intermediate_node_ids().is_empty());
     }
 
     #[test]
@@ -646,7 +702,8 @@ mod tests {
         ).unwrap();
         let result = assess_resilience(&diamond(), "source", "load", &[domain], FailureDomainInventoryStatus::CompleteWithinDeclaredScope).unwrap();
         assert_eq!(result.failure_domain_exposures()[0].disjoint_paths_affected(), 1);
-        assert_eq!(result.independence_assessment(), IndependenceAssessment::NoSharedModeledFailureDomainDetected);
+        assert!(result.shared_intermediate_node_ids().is_empty());
+        assert_eq!(result.independence_assessment(), IndependenceAssessment::NoSharedModeledIntermediateDependencyDetected);
     }
 
     #[test]
@@ -658,6 +715,7 @@ mod tests {
         let result = assess_resilience(&diamond(), "source", "load", &[domain], FailureDomainInventoryStatus::CompleteWithinDeclaredScope).unwrap();
         assert_eq!(result.failure_domain_exposures()[0].evidence_state(), GraphEvidenceState::Unknown);
         assert_eq!(result.failure_domain_exposures()[0].evidence_id(), None);
+        assert_eq!(result.independence_assessment(), IndependenceAssessment::FailureDomainInventoryIncomplete);
     }
 
     #[test]
