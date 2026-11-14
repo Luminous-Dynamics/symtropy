@@ -69,7 +69,7 @@ The deterministic seed makes a run reproducible; it does **not** prove that an e
 
 ## Falsification and benchmark suite
 
-The protocol and external manifest are synchronized at seventeen scenarios:
+The protocol and external manifest are synchronized at twenty scenarios:
 1. byte-identical replay for identical seed and inputs;
 2. different seed changes the sampled-assignment digest;
 3. plus-one correction never returns zero;
@@ -91,7 +91,7 @@ The protocol and external manifest are synchronized at seventeen scenarios:
 19. a mismatched seed-commitment digest is rejected;
 20. the output binds analysis-plan, preregistration and configuration digests.
 
-The Rust suite currently contains twenty tests. The `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL timing/throughput/replay records. The exact-head workflow runs the harness and uploads the JSONL output together with Rust and runner/CPU metadata. The JSONL records include algorithm ID, seed, draw budget, observed statistic, exceedance count, raw and corrected p-values, Monte Carlo uncertainty, frame digest and sampled-assignment digest. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials. The v0.1 harness measures elapsed time, draws/second and unit-draws/second; it does not yet measure peak memory.
+The Rust suite currently contains twenty tests. The `cargo bench --bench monte_carlo_randomization` harness sweeps 16, 32, 64, 128, 256, 1,000 and 10,000 units with 1,000 fixed draws and emits JSONL timing/throughput/replay records. The exact-head workflow runs the harness and uploads the JSONL output together with Rust and runner/CPU metadata. The JSONL records include algorithm ID, seed, draw budget, analysis-plan and preregistration references, seed commitment, configuration digest, observed statistic, exceedance count, raw and corrected p-values, Monte Carlo uncertainty, frame digest and sampled-assignment digest. It includes a 30,000-draw differential example against the exact 12-unit/three-stratum reference. The Wilson interval must contain the exact tail probability in that frozen seed case. This is a deterministic regression test, not a claim of 95% global coverage; global coverage needs many independently generated trials. The v0.1 harness measures elapsed time, draws/second and unit-draws/second; it does not yet measure peak memory.
 
 ## SOTA comparison and next benchmarks
 
