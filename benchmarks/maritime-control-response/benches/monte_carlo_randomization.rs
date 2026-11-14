@@ -118,13 +118,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             "{}",
             serde_json::json!({
                 "unit_count": unit_count,
-                "draw_count": DRAW_COUNT,
+                "draw_count": result.draw_count,
+                "seed_u64": result.seed_u64,
+                "algorithm": result.algorithm,
                 "unit_draws": unit_draws,
                 "elapsed_micros": elapsed.as_micros(),
                 "draws_per_second": DRAW_COUNT as f64 / seconds,
                 "unit_draws_per_second": unit_draws as f64 / seconds,
-                "monte_carlo_p_value": result.p_value_plus_one,
+                "observed_treatment_minus_control": result.observed_treatment_minus_control,
+                "exceedance_count": result.exceedance_count,
+                "monte_carlo_p_value_plus_one": result.p_value_plus_one,
+                "tail_probability_estimate": result.tail_probability_estimate,
                 "monte_carlo_standard_error": result.monte_carlo_standard_error,
+                "tail_probability_wilson_95": result.tail_probability_wilson_95,
                 "randomization_frame_sha256": result.randomization_frame_sha256,
                 "sampled_assignments_sha256": result.sampled_assignments_sha256
             })
