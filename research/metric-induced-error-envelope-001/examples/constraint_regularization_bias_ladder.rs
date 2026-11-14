@@ -1,7 +1,6 @@
 use metric_induced_error_envelope_reference::{
-    CartesianQ, ConstraintQuotientProfileV1, ConstraintResidualV1,
-    CoordinateFrame, Metric, MetricProfileV1, RankDeficientDelassusQuotientV1,
-    Tangent,
+    CartesianQ, ConstraintQuotientProfileV1, ConstraintResidualV1, CoordinateFrame, Metric,
+    MetricProfileV1, RankDeficientDelassusQuotientV1, Tangent,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,7 +49,9 @@ fn symmetric_eigenvalues_3(mut matrix: [[f64; 3]; 3]) -> [f64; 3] {
                 largest = matrix[row][column].abs();
             }
         }
-        if largest <= 32.0 * f64::EPSILON * matrix.iter().flatten().map(|x| x.abs()).fold(0.0, f64::max) {
+        if largest
+            <= 32.0 * f64::EPSILON * matrix.iter().flatten().map(|x| x.abs()).fold(0.0, f64::max)
+        {
             break;
         }
 
@@ -88,7 +89,9 @@ fn symmetric_eigenvalues_3(mut matrix: [[f64; 3]; 3]) -> [f64; 3] {
 
 fn mat_vec(matrix: &[[f64; 3]; 3], vector: &[f64; 3]) -> [f64; 3] {
     std::array::from_fn(|row| {
-        (0..3).map(|column| matrix[row][column] * vector[column]).sum()
+        (0..3)
+            .map(|column| matrix[row][column] * vector[column])
+            .sum()
     })
 }
 
@@ -109,15 +112,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     let jacobian = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 0.0, 1.0]];
     let residual = [0.4, -0.7, 0.4];
-    let quotient = RankDeficientDelassusQuotientV1::<
-        CartesianQ,
-        ConstraintRows,
-        3,
-        3,
-    >::new(&mass, jacobian, &residual_metric, quotient_profile)?;
-    let hard = quotient.solve_residual(
-        &ConstraintResidualV1::<ConstraintRows, 3>::new(residual)?,
+    let quotient = RankDeficientDelassusQuotientV1::<CartesianQ, ConstraintRows, 3, 3>::new(
+        &mass,
+        jacobian,
+        &residual_metric,
+        quotient_profile,
     )?;
+    let hard =
+        quotient.solve_residual(&ConstraintResidualV1::<ConstraintRows, 3>::new(residual)?)?;
     let hard_correction = hard
         .minimum_kinetic_correction()
         .ok_or("hard quotient solve did not return a correction")?;
@@ -142,26 +144,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for epsilon in [1.0e-2, 1.0e-3, 1.0e-4, 1.0e-5, 1.0e-6, 1.0e-8, 1.0e-10] {
         let regularized = std::array::from_fn(|row| {
             std::array::from_fn(|column| {
-                quotient.matrix()[row][column]
-                    + if row == column { epsilon } else { 0.0 }
+                quotient.matrix()[row][column] + if row == column { epsilon } else { 0.0 }
             })
         });
         let condition = (largest + epsilon) / (smallest + epsilon);
         let multiplier = solve3(regularized, residual);
-        let generalized_force: [f64; 3] = std::array::from_fn(|dof| {
-            (0..3)
-                .map(|row| jacobian[row][dof] * multiplier[row])
-                .sum()
-        });
-        let correction = mass.raise(
-            &metric_induced_error_envelope_reference::Cotangent::<CartesianQ, 3>::new(
-                generalized_force,
-            )?,
-        )?;
+        let generalized_force: [f64; 3] =
+            std::array::from_fn(|dof| (0..3).map(|row| jacobian[row][dof] * multiplier[row]).sum());
+        let correction = mass.raise(&metric_induced_error_envelope_reference::Cotangent::<
+            CartesianQ,
+            3,
+        >::new(generalized_force)?)?;
         let reconstructed = mat_vec(&jacobian, correction.components());
         let residual_defect: [f64; 3] =
             std::array::from_fn(|row| reconstructed[row] - residual[row]);
-        let residual_norm = residual_defect.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let residual_norm = residual_defect
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
         let correction_error = Tangent::<CartesianQ, 3>::new(std::array::from_fn(|index| {
             correction.components()[index] - hard_correction.components()[index]
         }))?;
