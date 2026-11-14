@@ -344,18 +344,26 @@ fn symmetric_min_eigenvalue<const K: usize>(
     if scale == 0.0 {
         return Ok(0.0);
     }
-    for row in 0..K {
-        for column in (row + 1)..K {
-            let asymmetry = (a[row][column] - a[column][row]).abs();
-            if asymmetry > 128.0 * f64::EPSILON * scale {
-                return Err(RobustConstraintErrorV1::NonSymmetricDelassus { row, column });
+    let original = a;
+    let mut normalized = [[0.0_f64; K]; K];
+    for (row, (target_row, source_row)) in normalized.iter_mut().zip(original.iter()).enumerate() {
+        for (column, (target, source_value)) in
+            target_row.iter_mut().zip(source_row.iter()).enumerate()
+        {
+            if row == column {
+                *target = *source_value / scale;
+            } else {
+                let transposed_value = original[column][row];
+                let asymmetry = (*source_value - transposed_value).abs();
+                if asymmetry > 128.0 * f64::EPSILON * scale {
+                    return Err(RobustConstraintErrorV1::NonSymmetricDelassus { row, column });
+                }
+                let average = 0.5 * *source_value + 0.5 * transposed_value;
+                *target = average / scale;
             }
-            let average = 0.5 * a[row][column] + 0.5 * a[column][row];
-            a[row][column] = average / scale;
-            a[column][row] = average / scale;
         }
-        a[row][row] /= scale;
     }
+    a = normalized;
     if K == 1 {
         return Ok(a[0][0] * scale);
     }
@@ -369,9 +377,9 @@ fn symmetric_min_eigenvalue<const K: usize>(
         let mut p = 0usize;
         let mut q = 1usize;
         let mut largest = 0.0_f64;
-        for row in 0..K {
-            for column in (row + 1)..K {
-                let candidate = a[row][column].abs();
+        for (row, row_values) in a.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate().skip(row + 1) {
+                let candidate = value.abs();
                 if candidate > largest {
                     largest = candidate;
                     p = row;
@@ -400,18 +408,32 @@ fn symmetric_min_eigenvalue<const K: usize>(
         a[p][q] = 0.0;
         a[q][p] = 0.0;
 
-        for index in 0..K {
+        let mut rotated_p = [0.0_f64; K];
+        let mut rotated_q = [0.0_f64; K];
+        for (index, row_values) in a.iter().enumerate() {
             if index == p || index == q {
                 continue;
             }
-            let aip = a[index][p];
-            let aiq = a[index][q];
-            let new_ip = c * aip - s * aiq;
-            let new_iq = s * aip + c * aiq;
-            a[index][p] = new_ip;
-            a[p][index] = new_ip;
-            a[index][q] = new_iq;
-            a[q][index] = new_iq;
+            let aip = row_values[p];
+            let aiq = row_values[q];
+            rotated_p[index] = c * aip - s * aiq;
+            rotated_q[index] = s * aip + c * aiq;
+        }
+        for (index, row_values) in a.iter_mut().enumerate() {
+            if index != p && index != q {
+                row_values[p] = rotated_p[index];
+                row_values[q] = rotated_q[index];
+            }
+        }
+        for (index, value) in a[p].iter_mut().enumerate() {
+            if index != p && index != q {
+                *value = rotated_p[index];
+            }
+        }
+        for (index, value) in a[q].iter_mut().enumerate() {
+            if index != p && index != q {
+                *value = rotated_q[index];
+            }
         }
     }
 
@@ -731,9 +753,7 @@ impl<Frame, const N: usize> Metric<Frame, N> {
         for row in 0..N {
             let rhs = std::array::from_fn(|column| left_whitened[row][column]);
             let solved = solve_lower(&self.lower, &rhs)?;
-            for column in 0..N {
-                result[row][column] = solved[column];
-            }
+            result[row][..N].copy_from_slice(&solved[..N]);
         }
         if result.iter().flatten().any(|value| !value.is_finite()) {
             return Err(RobustConstraintErrorV1::NonFiniteIntermediate);
