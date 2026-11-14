@@ -1,0 +1,12 @@
+[package]
+name = "bh-pt-domain-audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Pöschl-Teller pole and causal-domain analytic controls"
+
+[dependencies]
+num-complex = "0.4"
+
+[workspace]
