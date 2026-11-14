@@ -337,3 +337,8 @@ This is a contract over upstream clock qualification evidence. It does not imple
 
 
 **Event-latency claim boundary:** streaming sample event times now carry bounded uncertainty and qualified timebase identity. The fault-event onset/offset annotations in the event scorer remain point-valued and are not yet interval-qualified. Until their source, uncertainty interval and timebase are bound, event-latency values are benchmark protocol measurements—not precision-qualified physical latencies.
+
+
+### Command-conditioned residual timing
+
+The command-conditioned response evaluator now uses the same bounded event-time primitive as the append-only stream. It binds a timebase ID and qualification digest, command/prediction/response uncertainty half-widths, and records conservative bounds in the evaluation output. It requires the latest possible command availability to be no later than the earliest possible prediction; the earliest possible physical response must be strictly after the latest possible prediction. Command age and response horizon use worst-case intervals. Overlap is NOT_EVALUABLE, not midpoint-ordered and not converted into an actuator diagnosis.
