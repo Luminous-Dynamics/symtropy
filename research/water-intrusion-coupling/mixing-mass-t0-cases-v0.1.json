@@ -1,0 +1,746 @@
+{
+  "schema_version": "mixing-mass-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-MASS-ACCOUNTING-QUAL-001",
+  "cases": [
+    {
+      "case_id": "MMA-T0-001-full-boundary-exact-closure",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 60,
+            "mass_unit": "mg"
+          },
+          {
+            "stream_id": "stream-out-2",
+            "stream_kind": "outlet",
+            "outlet_id": "out-2",
+            "mass": 40,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            0.04,
+            0,
+            0
+          ],
+          [
+            0,
+            0.04,
+            0
+          ],
+          [
+            0,
+            0,
+            0.04
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-002-truncated-window-forty-percent-unresolved",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "truncated",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 60,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-003-measured-physical-inventory-closes",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 60,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "measured",
+          "kind": "physical_inventory",
+          "mass": 40,
+          "mass_unit": "mg"
+        },
+        "mass_balance_covariance": [
+          [
+            0.25,
+            0,
+            0
+          ],
+          [
+            0,
+            0.25,
+            0
+          ],
+          [
+            0,
+            0,
+            0.25
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-004-delayed-tail-recovery",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 70,
+            "mass_unit": "mg"
+          },
+          {
+            "stream_id": "tail-1",
+            "stream_kind": "delayed_tail",
+            "mass": 30,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            0.25,
+            0,
+            0
+          ],
+          [
+            0,
+            0.25,
+            0
+          ],
+          [
+            0,
+            0,
+            0.25
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-005-missing-outlet",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": false,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 60,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-006-sample-line-loss-is-not-inventory",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 60,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "measured",
+          "kind": "measurement_system_loss"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-007-correlated-measurement-covariance",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 50,
+            "mass_unit": "mg"
+          },
+          {
+            "stream_id": "stream-out-2",
+            "stream_kind": "outlet",
+            "outlet_id": "out-2",
+            "mass": 50,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0.1,
+            0.1
+          ],
+          [
+            0.1,
+            0.5,
+            0.2
+          ],
+          [
+            0.1,
+            0.2,
+            0.5
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-008-open-positive-residual",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 90,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            0.01,
+            0
+          ],
+          [
+            0,
+            0.01
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-009-residual-within-uncertainty",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 99.5,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            0.25,
+            0
+          ],
+          [
+            0,
+            0.25
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-010-unit-mismatch",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 100,
+            "mass_unit": "g"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-011-uncalibrated-measurement",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "uncalibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 100,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-012-unbound-provenance",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "unbound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 100,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-013-positive-scale-metamorphic-control",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 1000,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 600,
+            "mass_unit": "mg"
+          },
+          {
+            "stream_id": "stream-out-2",
+            "stream_kind": "outlet",
+            "outlet_id": "out-2",
+            "mass": 400,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            4,
+            0,
+            0
+          ],
+          [
+            0,
+            4,
+            0
+          ],
+          [
+            0,
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-014-negative-recovery-mass",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": -1,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-015-duplicate-stream-identity",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 50,
+            "mass_unit": "mg"
+          },
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-2",
+            "mass": 50,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-016-non_positive_definite_covariance",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 50,
+            "mass_unit": "mg"
+          },
+          {
+            "stream_id": "stream-out-2",
+            "stream_kind": "outlet",
+            "outlet_id": "out-2",
+            "mass": 50,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            0.25,
+            1,
+            0.25
+          ],
+          [
+            1,
+            0.25,
+            0.25
+          ],
+          [
+            0.25,
+            0.25,
+            0.25
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-017-declared-outlet-set-contradiction",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 100,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "MMA-T0-018-over_recovery-negative-residual",
+      "inputs": {
+        "mass_unit": "mg",
+        "expected_outlet_count": 2,
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "calibration_state": "calibrated",
+        "provenance_state": "bound",
+        "closure_sigma_limit": 3,
+        "injected_mass": 100,
+        "recovery_streams": [
+          {
+            "stream_id": "stream-out-1",
+            "stream_kind": "outlet",
+            "outlet_id": "out-1",
+            "mass": 105,
+            "mass_unit": "mg"
+          }
+        ],
+        "inventory": {
+          "state": "not_measured",
+          "kind": "none"
+        },
+        "mass_balance_covariance": [
+          [
+            0.01,
+            0
+          ],
+          [
+            0,
+            0.01
+          ]
+        ]
+      }
+    }
+  ]
+}
