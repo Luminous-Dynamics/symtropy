@@ -28,6 +28,10 @@ The map is therefore globally invertible and preserves the zero set without intr
 
 The code independently computes the Hessian of each composed constraint and checks the acceleration chain rule. It also checks generalized-force and virtual-work invariance. Finite residual-value pairing is explicitly not treated as a covector invariant.
 
+## Projection chart dependence
+
+A separate unit-circle/plane fixture computes a metric-normal Gauss-Newton projection step. The first displacement changes with the nonlinear constraint chart, as expected for a residual-linearized method away from the manifold. Both chart-specific iterations are checked against the same exact Euclidean nearest point on the circle-plane intersection. The oracle is exact only for the identity mass metric.
+
 ## Dense coordinate axis
 
 The test fixture also applies q=S y and M_y=S^T M_q S, J_y=J_q S. The Delassus operator and the nonlinear constraint-chart laws must commute with this independent coordinate re-basing.
