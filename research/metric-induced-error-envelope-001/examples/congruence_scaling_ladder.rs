@@ -46,17 +46,16 @@ fn reference_congruence<const N: usize>(
     profile: MetricProfileV1,
 ) -> Metric<DenseY, N> {
     let mut result = [[0.0; N]; N];
-    for row in 0..N {
-        for column in 0..N {
+    for (row, result_row) in result.iter_mut().enumerate() {
+        for (column, output) in result_row.iter_mut().enumerate() {
             let mut value = 0.0;
-            for left in 0..N {
-                for right in 0..N {
-                    value += rebasis.matrix()[left][row]
-                        * metric.matrix()[left][right]
-                        * rebasis.matrix()[right][column];
+            for (basis_left, mass_row) in rebasis.matrix().iter().zip(metric.matrix().iter()) {
+                let left_factor = basis_left[row];
+                for (mass_value, basis_right) in mass_row.iter().zip(rebasis.matrix().iter()) {
+                    value += left_factor * mass_value * basis_right[column];
                 }
             }
-            result[row][column] = value;
+            *output = value;
         }
     }
     Metric::<DenseY, N>::admit(result, profile).unwrap()
@@ -91,7 +90,7 @@ where
 fn run<const N: usize>(iterations: usize) {
     let profile = MetricProfileV1::default();
     let (metric, rebasis) = fixture::<N>(profile);
-    let samples =  nine();
+    let samples = 9;
     let optimized = median_ns(samples, iterations, || {
         let result = rebasis
             .metric_to_to(black_box(&metric), profile)
@@ -106,14 +105,6 @@ fn run<const N: usize>(iterations: usize) {
         "{N},{iterations},{optimized:.3},{reference:.3},{:.3}",
         reference / optimized
     );
-}
-
-const fn nine() -> usize {
-     nine_value()
-}
-
-const fn nine_value() -> usize {
-    9
 }
 
 fn main() {
