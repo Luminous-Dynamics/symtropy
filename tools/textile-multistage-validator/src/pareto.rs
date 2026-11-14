@@ -196,6 +196,8 @@ pub struct Candidate {
     pub input_mass_mg: u64,
     pub output_lot_id: String,
     pub process_trial_evidence_id: String,
+    /// Producer/process operator identity from the physical trial evidence.
+    pub process_issuer_id: String,
     pub receiving_specification_id: String,
     pub receiving_specification_version: String,
     pub utility_tick_unit: String,
@@ -343,6 +345,8 @@ fn validate_receiver(candidate: &Candidate, findings: &mut Vec<CandidateFinding>
     if !nonempty(&acceptance.issuer_id)
         || !nonempty(&acceptance.verifier_id)
         || acceptance.issuer_id == acceptance.verifier_id
+        || acceptance.issuer_id == candidate.process_issuer_id
+        || acceptance.verifier_id == candidate.process_issuer_id
         || !nonempty(&acceptance.evidence_id)
         || !valid_sha256(&acceptance.evidence_sha256)
     {
@@ -399,18 +403,18 @@ fn validate_objectives(
                 format!("objective {:?} lacks a valid evidence reference/method", metric),
             );
         }
-        let lot_bound_metric = matches!(
-            metric,
+        let expected_lot = match metric {
+            ObjectiveMetric::DamageAreaMm2 => Some(candidate.input_lot_id.as_str()),
             ObjectiveMetric::AcceptedOutputMassMg
-                | ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm
-                | ObjectiveMetric::ResidualTrimMassMg
-                | ObjectiveMetric::DamageAreaMm2
-        );
-        if lot_bound_metric
-            && (observation.evidence.lot_id != candidate.output_lot_id
+            | ObjectiveMetric::FibreLengthQualifiedOutputPerInputPpm
+            | ObjectiveMetric::ResidualTrimMassMg => Some(candidate.output_lot_id.as_str()),
+            _ => None,
+        };
+        if expected_lot.is_some_and(|lot_id| {
+            observation.evidence.lot_id != lot_id
                 || observation.evidence.process_trial_evidence_id
-                    != candidate.process_trial_evidence_id)
-        {
+                    != candidate.process_trial_evidence_id
+        }) {
             add(
                 findings,
                 "OBJECTIVE_LOT_TRIAL_BINDING_MISMATCH",
@@ -469,6 +473,7 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         || candidate.input_mass_mg == 0
         || !nonempty(&candidate.output_lot_id)
         || !nonempty(&candidate.process_trial_evidence_id)
+        || !nonempty(&candidate.process_issuer_id)
         || !nonempty(&candidate.receiving_specification_id)
         || !nonempty(&candidate.receiving_specification_version)
         || !nonempty(&candidate.utility_tick_unit)
@@ -503,6 +508,19 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
         );
         insufficient = true;
     }
+    let unique_route_receipts: BTreeSet<&str> = candidate
+        .route_receipt_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    if unique_route_receipts.len() != candidate.route_receipt_ids.len() {
+        add(
+            &mut findings,
+            "ROUTE_RECEIPT_DUPLICATE",
+            "candidate route receipt IDs must be unique",
+        );
+        hard_reject = true;
+    }
     if !candidate.route_findings.is_empty() {
         add(
             &mut findings,
@@ -525,6 +543,7 @@ fn assess_candidate(candidate: &Candidate, reference: &Candidate) -> CandidateAs
             if !report.valid
                 || report.problem_name != candidate.problem_name
                 || report.tick_unit != candidate.utility_tick_unit
+                || report.operation_consumers != candidate.schedule_validation.supplied_assignments
             {
                 add(
                     &mut findings,
@@ -962,6 +981,7 @@ mod tests {
             input_mass_mg: 10_000_000,
             output_lot_id: format!("output-{id}"),
             process_trial_evidence_id: format!("trial-{id}"),
+            process_issuer_id: format!("process-operator-{id}"),
             receiving_specification_id: "ring-spinning-spec".to_owned(),
             receiving_specification_version: "2.0".to_owned(),
             utility_tick_unit: "minute".to_owned(),
@@ -1072,6 +1092,62 @@ mod tests {
         let report = evaluate_tournament(&[conditional]);
         assert!(report.pareto_fronts.is_empty());
         assert_eq!(report.assessments[0].eligibility, CandidateEligibility::InsufficientEvidence);
+    }
+
+    #[test]
+    fn receiver_must_be_independent_of_the_process_issuer() {
+        let mut same_issuer = candidate("same-issuer", 9_000_000, 80, 10);
+        same_issuer.receiver_acceptance.issuer_id = same_issuer.process_issuer_id.clone();
+        let report = evaluate_tournament(&[same_issuer]);
+        assert!(report.pareto_fronts.is_empty());
+        assert!(report.assessments[0].findings.iter().any(|item| item.code == "RECEIVER_PROVENANCE_INVALID"));
+
+        let mut same_verifier = candidate("same-verifier", 9_000_000, 80, 10);
+        same_verifier.receiver_acceptance.verifier_id = same_verifier.process_issuer_id.clone();
+        let report = evaluate_tournament(&[same_verifier]);
+        assert!(report.pareto_fronts.is_empty());
+        assert!(report.assessments[0].findings.iter().any(|item| item.code == "RECEIVER_PROVENANCE_INVALID"));
+    }
+
+    #[test]
+    fn damage_metric_binds_to_input_lot_not_recovered_output_lot() {
+        let mut candidate = candidate("damage-lot", 8_000_000, 100, 12);
+        let damage = candidate.objectives
+            .iter_mut()
+            .find(|item| item.metric == ObjectiveMetric::DamageAreaMm2)
+            .unwrap();
+        damage.evidence.lot_id = candidate.input_lot_id.clone();
+        let report = evaluate_tournament(&[candidate.clone()]);
+        assert!(report.pareto_fronts.len() == 1, "{:?}", report.assessments[0].findings);
+
+        let mut bad = candidate;
+        bad.objectives
+            .iter_mut()
+            .find(|item| item.metric == ObjectiveMetric::DamageAreaMm2)
+            .unwrap()
+            .evidence.lot_id = "unrelated-lot".to_owned();
+        let report = evaluate_tournament(&[bad]);
+        assert!(report.pareto_fronts.is_empty());
+        assert!(report.assessments[0].findings.iter().any(|item| item.code == "OBJECTIVE_LOT_TRIAL_BINDING_MISMATCH"));
+    }
+
+    #[test]
+    fn duplicate_route_receipt_identity_is_rejected() {
+        let mut candidate = candidate("route-duplicate", 8_000_000, 100, 12);
+        candidate.route_receipt_ids.push(candidate.route_receipt_ids[0].clone());
+        let report = evaluate_tournament(&[candidate]);
+        assert!(report.pareto_fronts.is_empty());
+        assert!(report.assessments[0].findings.iter().any(|item| item.code == "ROUTE_RECEIPT_DUPLICATE"));
+    }
+
+    #[test]
+    fn duplicate_candidate_ids_invalidate_tournament() {
+        let a = candidate("duplicate", 8_000_000, 100, 12);
+        let b = candidate("duplicate", 7_000_000, 90, 13);
+        let report = evaluate_tournament(&[a, b]);
+        assert!(!report.valid);
+        assert!(report.pareto_fronts.is_empty());
+        assert!(report.findings.iter().any(|item| item.code == "CANDIDATE_ID_DUPLICATE"));
     }
 
     #[test]
