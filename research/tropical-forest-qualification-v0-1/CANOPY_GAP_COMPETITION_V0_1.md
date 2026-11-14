@@ -3,7 +3,7 @@
 **Tracking:** [FOREST-CANOPY-GAP-TOURNAMENT-001 #5196](https://github.com/Luminous-Dynamics/symtropy/issues/5196)  
 **Parent:** [TROPICAL-FOREST-ECO-QUAL-001 #5173](https://github.com/Luminous-Dynamics/symtropy/issues/5173)  
 **Canonical plant / ecological integration:** [Living World Cell #252](https://github.com/Luminous-Dynamics/symtropy/issues/252)  
-**Status:** analytical synthetic benchmark design; not an implemented canopy model
+**Status:** analytical synthetic benchmark design plus a bounded headless cohort-support kernel; not a calibrated canopy or forest model
 
 ## 1. The hypothesis
 
