@@ -42,7 +42,8 @@
     "clock_uncertainty_ms",
     "validity_state",
     "uncertainty_state",
-    "uncertainty_coverage_percent"
+    "uncertainty_coverage_percent",
+    "digest_origin"
   ],
   "observation_contract_fields": [
     "observation_id",
@@ -51,11 +52,13 @@
     "timebase_id",
     "evidence_class",
     "calibration_state",
-    "method_state"
+    "method_state",
+    "observation_origin",
+    "digest_origin"
   ],
-  "digest_contract": "lowercase hexadecimal SHA-256 content digest, 64 characters",
+  "digest_contract": "T0 uses deterministic 64-character lowercase-hex synthetic_fixture_marker values only; production interfaces must use SHA-256 of exact serialized stage outputs and raw observation bytes, with custody/rights metadata.",
   "timebase_contract": "all time-dependent stages and measured observations share one declared timebase_id; clock_uncertainty_ms must be explicit",
-  "evidence_contract": "modelled outputs never substitute for measured pressure, signed defect-flow or laboratory tracer observations",
+  "evidence_contract": "T0 fixture evidence_class is synthetic_fixture; observation_origin describes the represented source type (measured or modelled) but no fixture row is actual acquired measurement data. Production measured observations require actual raw-data SHA-256, calibration, method and custody.",
   "uncertainty_contract": "each stage declares bounded or unbounded uncertainty; unbounded upstream uncertainty prevents a bounded chain acceptance",
   "noncompensable_invariants": [
     "missing_chemical_fate_model_is_not_assumed_inert",
@@ -65,6 +68,9 @@
     "measured_observation_requires_raw_digest_calibration_and_valid_method",
     "a_model_output_is_never_relabelled_as_a_sensor_or_lab_observation",
     "a_valid_chain_contract_is_not_a_qualified_physical_model",
-    "no_chain_result_authorizes_potability_or_release"
+    "no_chain_result_authorizes_potability_or_release",
+    "synthetic_fixture_marker_is_not_a_raw_data_or_model_output_SHA256",
+    "synthetic_fixture_evidence_class_never_claims_physical_measurement_acquisition",
+    "observation_origin_modelled_never_satisfies_a_measured_observation_requirement"
   ]
 }
