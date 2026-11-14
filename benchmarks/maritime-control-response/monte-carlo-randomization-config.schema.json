@@ -6,18 +6,33 @@
   "additionalProperties": false,
   "required": [
     "seed_u64",
-    "draw_count"
+    "draw_count",
+    "analysis_plan_sha256",
+    "preregistration_record_ref",
+    "seed_commitment_sha256"
   ],
   "properties": {
     "seed_u64": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 18446744073709551615
+      "maximum": 18446744073709552000
     },
     "draw_count": {
       "type": "integer",
       "minimum": 100,
       "maximum": 2000000
+    },
+    "analysis_plan_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "preregistration_record_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "seed_commitment_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     }
   }
 }
