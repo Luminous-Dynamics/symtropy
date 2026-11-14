@@ -226,7 +226,8 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "case requires a closed conserved-moiety ledger",
             )?;
             Ok(json!({
-                "mass_balance_disposition": "MOIETY_BALANCE_CLOSED_WITHIN_DECLARED_ARITHMETIC_TOLERANCE",
+                "mass_balance_disposition":
+                "MOIETY_BALANCE_CLOSED_WITHIN_DECLARED_ARITHMETIC_TOLERANCE",
                 "initial_moiety_mass_mg": initial,
                 "recovered_moiety_mass_mg": recovered,
                 "residual_moiety_mass_mg": residual,
@@ -280,7 +281,10 @@ fn compute(case: &Value) -> Result<Value, String> {
         "CF-T0-009-wall-species-requested-in-mixed-tank" => {
             require(text(inputs, "model_id")? == "EPANET-MSX-2.0", "case requires EPANET-MSX")?;
             require(text(inputs, "species_phase")? == "wall", "case requires a wall species")?;
-            require(text(inputs, "process_domain")? == "storage_tank", "case requires storage tank")?;
+            require(
+                text(inputs, "process_domain")? == "storage_tank",
+                "case requires storage tank",
+            )?;
             Ok(unsupported(
                 "EPANET_MSX_WALL_SPECIES_NOT_DEFINED_IN_STORAGE_TANKS",
             ))
@@ -309,7 +313,10 @@ fn compute(case: &Value) -> Result<Value, String> {
         }
         "CF-T0-011-dispersion-required-but-disabled" => {
             require(bool_field(inputs, "dispersion_required")?, "case requires dispersion")?;
-            require(!bool_field(inputs, "dispersion_enabled")?, "case requires dispersion disabled")?;
+            require(
+                !bool_field(inputs, "dispersion_enabled")?,
+                "case requires dispersion disabled",
+            )?;
             Ok(unsupported("REQUIRED_DISPERSION_OPTION_DISABLED"))
         }
         "CF-T0-012-negative-concentration-or-rate" => {
@@ -736,7 +743,10 @@ mod tests {
         ] {
             let row = result["results"].as_array().unwrap()
                 .iter().find(|row| row["case_id"] == id).unwrap();
-            assert!((row["computed"]["conserved_moiety_total_mg_l"].as_f64().unwrap() - 1.0).abs() < 1.0e-9);
+            let conserved_total = row["computed"]["conserved_moiety_total_mg_l"]
+                .as_f64()
+                .unwrap();
+            assert!((conserved_total - 1.0).abs() < 1.0e-9);
         }
     }
 
@@ -753,7 +763,10 @@ mod tests {
     fn missing_residual_stream_is_not_replaced_with_zero() {
         let result = evaluated();
         let row = result["results"].as_array().unwrap()
-            .iter().find(|row| row["case_id"] == "CF-T0-006-missing-residual-stream-does-not-force-closure")
+            .iter()
+            .find(|row| {
+                row["case_id"] == "CF-T0-006-missing-residual-stream-does-not-force-closure"
+            })
             .unwrap();
         assert_eq!(row["computed"]["mass_balance_disposition"], "MASS_BALANCE_UNRESOLVED");
         assert_eq!(row["computed"]["unresolved_moiety_mass_mg"], 0.5);
@@ -763,7 +776,10 @@ mod tests {
     fn missing_matrix_and_reaction_parameter_remain_indeterminate() {
         let result = evaluated();
         for (id, reason) in [
-            ("CF-T0-007-missing-water-matrix-temperature-and-ph", "WATER_MATRIX_TEMPERATURE_AND_PH_REQUIRED"),
+            (
+                "CF-T0-007-missing-water-matrix-temperature-and-ph",
+                "WATER_MATRIX_TEMPERATURE_AND_PH_REQUIRED",
+            ),
             ("CF-T0-008-missing-reaction-kinetic-parameter", "REACTION_PARAMETER_UNAVAILABLE"),
         ] {
             let row = result["results"].as_array().unwrap()
@@ -829,6 +845,13 @@ mod tests {
         assert_eq!(row["computed"]["product_B_mass_mg_l"], 20.0);
         assert_eq!(row["computed"]["product_C_mass_mg_l"], 20.0);
         assert_eq!(row["computed"]["mass_residual_mg_l"], 0.0);
+    }
+
+    #[test]
+    fn sequential_reaction_rejects_missing_conserved_moiety_basis() {
+        let mut inputs = load("inputs");
+        inputs["cases"][1]["inputs"]["concentration_basis"] = json!("compound_mass");
+        assert!(evaluate(&inputs, &load("oracle"), &load("manifest")).is_err());
     }
 
     #[test]
