@@ -138,3 +138,16 @@ The CLI emits CSV design points for Moon-, Mars-, and Earth-equivalent gravity a
 - Aegis Station, Gradient One Rev B (Sep 2026; accessed 14 Nov 2026). https://aegisstation.com/gradientone.html
 - Jones (2020), ICES-2020-216, NASA NTRS. https://ntrs.nasa.gov/citations/20205005156
 - Tensentric habitat architecture (2026), Acta Astronautica. https://doi.org/10.1016/j.actaastro.2026.04.071
+
+
+## Research work packages
+
+- [Rotating-frame reference implementation](src/lib.rs) and [CSV design-point executable](src/main.rs): analytic kinematics, radial gravity gradient, centrifugal/Coriolis/Euler terms, and unit tests.
+- [Matched architecture comparison protocol](ARCHITECTURE_COMPARISON.md): monolithic/segmented rings, counter-rotating rings, tethered and tension-dominated topologies under one mission envelope.
+- [Sol-Atlas habitat layout handoff](SOL_ATLAS_HABITAT_HANDOFF.md): spatial interface, coordinate conventions, mass/geometry exchange, occupancy and lifecycle constraints.
+- [ARTGRAV-KIN-001 draft PR](https://github.com/Luminous-Dynamics/symtropy/pull/5279).
+- [ARTGRAV-STRUCT-001 follow-on](https://github.com/Luminous-Dynamics/symtropy/issues/5280).
+- [Symthaea settlement-system scenario owner](https://github.com/Luminous-Dynamics/symthaea/issues/7687).
+- [Mycelix evidence-profile integration](https://github.com/Luminous-Dynamics/mycelix/issues/6204).
+
+The kinematics crate is deliberately a stand-alone nested Cargo workspace. Its analytic model does not qualify structural dynamics, a physical rotor, human exposure, or a flight system.
