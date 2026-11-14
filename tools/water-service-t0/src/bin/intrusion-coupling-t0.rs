@@ -897,13 +897,14 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .push(duplicate);
-        assert!(evaluate(
+        let evaluation = evaluate(
             &inputs,
             &load("oracle"),
             &load("contract"),
-            &load("manifest")
+            &load("manifest"),
         )
-        .is_err());
+        .expect("malformed stage order should yield a rejected case");
+        assert_eq!(evaluation["verification_state"], "OracleMismatch");
     }
 
     #[test]
