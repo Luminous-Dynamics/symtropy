@@ -146,6 +146,30 @@ A later end-to-end benchmark should include:
 
 The 2026 literature's transfer and standardization gaps create an opportunity, but only a properly grouped, independent, rights-cleared tournament can establish whether the evidence-composition layer materially reduces them.
 
+### G. Digital-twin forestry and nature-technology integration (2026)
+
+The 2026 literature makes the current competitive baseline more demanding—and also clarifies what is not yet solved:
+
+- The October 2026 systematic review of 57 EO–ecosystem-model–data-assimilation studies describes digital-twin forestry as a developing integration paradigm. It reports uneven biome representation, with tropical and boreal forests underrepresented, and says most reviewed forestry digital twins remain at prototype or early operational stages. This is a review of a defined 2016–2025 literature corpus, not a market census: https://link.springer.com/article/10.1007/s44564-026-00029-8
+- The August 2026 nature-technology integration perspective identifies six workflows: survey design, tip-and-cue, validation, consilience, interpolation/extrapolation and data fusion. Consilience appeared in all seven case studies and often provided a lower-barrier step before quantitative fusion. It highlights timing/scale/resolution mismatches, sparse coincident multimodal datasets, missing reference libraries and the need for rights, metadata, rigour and utility: https://doi.org/10.1002/rse2.70100
+- The July 2026 forest computer-vision review covers 190 peer-reviewed studies. It reports 73% lacked standardized benchmarking, only 23% reported consistent splits or confidence intervals, and cross-biome transfer degradation of 20–45% in the reviewed literature. It also reports a high pooled ViT species-classification result, but notes risk-of-bias and reproducibility problems; this cannot be treated as proof of equivalent biomass or ecological-dynamics accuracy: https://link.springer.com/article/10.1007/s10531-026-03412-x
+- The 2026 tree-crown segmentation review catalogs benchmark resources including NEON Tree Crown, BAMFORESTS, VHRTrees, FOR-instance and OAM-TCD. It emphasizes cross-site/cross-sensor evaluation and measuring how segmentation error propagates to ecological indicators: https://link.springer.com/article/10.1007/s42452-026-09721-8
+
+**Luminous differentiation to test:** do not compete by calling the stack another generic “digital twin.” Compete on the scientific composition contract:
+1. admission before ingestion/calibration;
+2. variable-aware support conversion and aggregation;
+3. source lineage and dependence-aware consilience before fusion;
+4. model-set adequacy and uncertainty-aware forecasts;
+5. decision-value sampling and governance-preserving action boundaries.
+
+Concrete artifacts now started on this PR branch:
+- [Observation admission envelope](OBSERVATION_ADMISSION_CONTRACT_V0_1.md);
+- [Variable-aware aggregation contract](VARIABLE_AWARE_AGGREGATION_V0_1.md);
+- [cross-scale support conversion issue #5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237);
+- [cross-modal consilience/dependence issue #5257](https://github.com/Luminous-Dynamics/symtropy/issues/5257).
+
+The crucial distinction is that **multiple streams are not necessarily multiple independent pieces of evidence**. Two satellite products may share the same upstream imagery, algorithm family or validation data. The new consilience benchmark will preserve those dependencies and require source-by-source support/validity before any fusion score is allowed.
+
 ## 5. Fair benchmark tournament
 
 For each declared task, freeze:
