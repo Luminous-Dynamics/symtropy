@@ -11,7 +11,12 @@
     "evaluation_time_ms": 3000,
     "sample_time_is_interval": true,
     "time_conversion_owner": "Mycelix #435",
-    "adapter_performs_clock_conversion": false
+    "adapter_performs_clock_conversion": false,
+    "evaluation_time_interval_ms": [
+      2990,
+      3010
+    ],
+    "evaluation_clock_correlation_owner": "Mycelix #435"
   },
   "policy": {
     "reachability_profile_id": "synthetic-fixed-wing-profile-v0",
@@ -41,7 +46,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-a",
@@ -85,23 +89,32 @@
       "expected": {
         "disposition": "ACCEPTED_PRIMARY_BOUND",
         "elapsed_seconds": [
-          1.9,
-          2.1
+          1.89,
+          2.11
         ],
         "position_bounds_m": {
           "east": [
-            107.6,
-            111.5
+            107.56,
+            111.55
           ],
           "north": [
-            -24.2,
-            -20.9
+            -24.22,
+            -20.89
           ],
           "up": [
-            5.95,
-            8.1
+            5.945,
+            8.11
           ]
         }
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -117,7 +130,6 @@
         1000,
         1000
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-b",
@@ -161,24 +173,33 @@
       "expected": {
         "disposition": "ACCEPTED_PRIMARY_BOUND",
         "elapsed_seconds": [
-          2,
-          2
+          1.99,
+          2.01
         ],
         "position_bounds_m": {
           "east": [
-            108,
-            111
+            107.96,
+            111.05
           ],
           "north": [
-            -24,
-            -21
+            -24.02,
+            -20.99
           ],
           "up": [
-            6,
-            8
+            5.995,
+            8.01
           ]
         },
         "relation_to_case_1": "no_wider_than_case_1"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -194,7 +215,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-c",
@@ -238,23 +258,32 @@
       "expected": {
         "disposition": "ACCEPTED_FALLBACK_BOUND",
         "elapsed_seconds": [
-          1.9,
-          2.1
+          1.89,
+          2.11
         ],
         "position_bounds_m": {
           "east": [
-            195.8,
-            207.3
+            195.78,
+            207.33
           ],
           "north": [
-            -22.1,
-            -16.9
+            -22.11,
+            -16.89
           ],
           "up": [
             5,
-            8.1
+            8.11
           ]
         }
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -278,7 +307,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-d",
@@ -295,6 +323,15 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "NO_QUALIFIED_INDEPENDENT_FALLBACK"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -311,7 +348,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-e",
@@ -327,6 +363,15 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "STATISTICAL_ENVELOPE_NOT_HARD_BOUND"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -342,7 +387,6 @@
         300,
         500
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-f",
@@ -358,6 +402,15 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "SAMPLE_AGE_EXCEEDS_PROFILE_LIMIT"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -370,10 +423,9 @@
       "frame_id": "SYNTHETIC-ENU-01",
       "vertical_datum_id": "SYNTHETIC-UP-01",
       "sample_time_interval_ms": [
-        2900,
-        3100
+        3000,
+        3200
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-g",
@@ -389,6 +441,15 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "SAMPLE_TIME_INTERVAL_OVERLAPS_EVALUATION_EPOCH"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -404,7 +465,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-h",
@@ -421,6 +481,15 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "UPSTREAM_SERVICE_STILL_RECOVERING"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
@@ -436,7 +505,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "unknown",
         "correlation_id": null,
@@ -452,11 +520,20 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "CLOCK_OR_DEPENDENCY_QUALIFICATION_UNKNOWN"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     },
     {
       "id": "contradictory-independent-witnesses",
-      "service_state": "INTEGRITY_UNCERTAIN",
+      "service_state": "NORMAL",
       "bound_kind": "deterministic-hard-bound",
       "claim_role": "primary",
       "source_id": "synthetic-contradictory-primary",
@@ -467,7 +544,6 @@
         900,
         1100
       ],
-      "assessment_time_ms": 3000,
       "clock_correlation": {
         "status": "qualified",
         "correlation_id": "synthetic-clock-correlation-i",
@@ -484,6 +560,15 @@
       "expected": {
         "disposition": "NOT_ASSESSABLE",
         "reason": "CONTRADICTORY_INDEPENDENT_EVIDENCE"
+      },
+      "assessment_time_interval_ms": [
+        2990,
+        3010
+      ],
+      "assessment_clock_correlation": {
+        "status": "qualified",
+        "correlation_id": "synthetic-evaluation-clock-correlation-v0",
+        "correlation_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     }
   ],
@@ -497,7 +582,8 @@
     "DEGRADED, INTEGRITY_UNCERTAIN, and UNAVAILABLE primary inputs require a separately qualified fallback under the declared profile.",
     "RECOVERING and INDETERMINATE states are not accepted as NORMAL.",
     "A NOT_ASSESSABLE result is not an empty occupancy set and cannot clear a conflict.",
-    "No output constitutes a flight authorization, navigation certification, or aircraft safety claim."
+    "No output constitutes a flight authorization, navigation certification, or aircraft safety claim.",
+    "Evaluation-time uncertainty is propagated together with sample-time uncertainty."
   ],
   "required_mutations": [
     "Widen the sample-time interval while keeping all other inputs fixed; the resulting reachable enclosure must not shrink.",
@@ -507,6 +593,7 @@
     "Change a deterministic hard-bound label to statistical-prediction without changing numeric values; the adapter must reject hard-bound admission.",
     "Remove the qualified clock-correlation reference; the adapter must reject the source.",
     "Change the frame or vertical datum; the adapter must reject the source.",
-    "Change RECOVERING to NORMAL without a new upstream service-state receipt; the adapter must not infer requalification."
+    "Change RECOVERING to NORMAL without a new upstream service-state receipt; the adapter must not infer requalification.",
+    "Widen the evaluation-time interval while keeping the sample interval fixed; the resulting elapsed-time and position intervals must not shrink."
   ]
 }
