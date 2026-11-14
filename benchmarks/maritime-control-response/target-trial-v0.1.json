@@ -1,0 +1,214 @@
+{
+  "schema_version": "symtropy-marine-observational-target-trial-v0.1",
+  "status": "protocol_only_not_executed",
+  "title": "Observational maritime maintenance target-trial specification and identification gate",
+  "parent_issue": 5113,
+  "parent_effect_issue": 5108,
+  "randomized_reference_pr": 5111,
+  "scope": {
+    "owns": [
+      "target-trial protocol completeness",
+      "treatment-version identity",
+      "eligibility/assignment/follow-up time-zero alignment",
+      "baseline-covariate temporal admissibility",
+      "asset/cluster identity and cluster-robust uncertainty declaration",
+      "assumption assessment completeness",
+      "overlap/effective-sample-size/balance/weight diagnostics",
+      "follow-up and negative-control gates",
+      "NOT_IDENTIFIED disposition"
+    ],
+    "does_not_own": [
+      "causal effect estimation",
+      "RUL forecasting",
+      "repair restoration acceptance",
+      "maintenance policy optimization",
+      "work-order execution",
+      "maintenance authorization",
+      "operating-domain clearance"
+    ]
+  },
+  "paradigm": {
+    "primary_question": "Among units eligible at the same decision time, what would the outcome trajectory have been under each precisely defined maintenance strategy?",
+    "design_first": "The hypothetical trial is specified before outcome-driven model selection. The observational emulation is evaluated against the protocol, not retrofitted to a preferred estimator.",
+    "time_zero": "Eligibility, strategy assignment and follow-up start must share the same time zero for every emulation entry.",
+    "temporal_leakage": "Only covariates observed and available before time zero may enter the baseline confounder set. Post-treatment variables cannot be relabeled as baseline confounders.",
+    "identification_abstention": "Missing or violated exchangeability, consistency, positivity, interference, censoring or measurement assumptions force NOT_IDENTIFIED.",
+    "cluster_unit": "Repeated entries and telemetry rows are not independent assets. Cluster key and cluster-robust uncertainty must be explicitly declared."
+  },
+  "required_assumptions": [
+    "consistency_and_treatment_version_clarity",
+    "conditional_exchangeability_or_explicitly_qualified_identification_strategy",
+    "positivity_and_common_support",
+    "no_interference_or_cluster-aware design",
+    "censoring_exchangeability_and_competing-event handling",
+    "measurement_validity_and_outcome_provenance"
+  ],
+  "hard_gates": [
+    "The target-trial schema version and all trial/population identities must be valid.",
+    "Eligibility, assignment, causal graph and analysis plan each bind a SHA-256 digest.",
+    "At least two explicit treatment strategies must be declared.",
+    "Every strategy binds a version digest and definition digest.",
+    "Physical repair, alternative repair, sensor-only correction, deferred/usual care and dynamic strategies remain separate strategy versions.",
+    "A non-zero treatment grace period requires an explicit clone-censor-weight design.",
+    "At least one primary outcome with metric, unit and definition digest must be declared.",
+    "Baseline covariates must be explicitly defined and carry definition digests.",
+    "Post-treatment or unknown-timing covariates cannot be declared as baseline adjustment variables.",
+    "Eligibility, strategy assignment and follow-up start must be aligned at time zero.",
+    "Every emulation entry has a unique entry ID and a non-empty asset cluster ID.",
+    "The cluster key and grouping rule digest must be declared.",
+    "Cluster-robust uncertainty must be declared for all observational estimands.",
+    "A parallel-group emulation cannot place the same physical asset in more than one strategy arm.",
+    "Sequential-trial and clone-censor-weight designs may reuse assets only as distinct emulation entries and must preserve cluster identity.",
+    "Every emulation entry is assigned to a declared strategy.",
+    "Declared strategy-arm entry counts must match the timeline records exactly and must not be duplicated.",
+    "Every declared baseline covariate has source evidence for each emulation entry.",
+    "Baseline covariate evidence must be available no later than time zero.",
+    "Eligibility, assignment, follow-up and treatment-start timestamps must be finite, non-negative and temporally consistent.",
+    "A treatment start must fall within the strategy's declared grace period and before follow-up ends.",
+    "A deferred/usual-care strategy must not contain a physical treatment-start record.",
+    "Administrative follow-up cannot terminate before the preregistered horizon; early termination must be represented as censoring, outcome or a competing event.",
+    "All six required identifying assumptions must have one evidence-bound assessment and reviewer reference.",
+    "Any unknown, violated or missing identifying assumption forces NOT_IDENTIFIED.",
+    "Common support, effective sample size, standardized balance and stabilized-weight diagnostics must meet the preregistered thresholds.",
+    "Follow-up completeness must meet the preregistered threshold.",
+    "Negative-control status must be supported; unknown or violated controls force NOT_IDENTIFIED.",
+    "The diagnostic snapshot digest and its emulation-entry/cluster counts must match the declared data snapshot.",
+    "The report must distinguish protocol_incomplete, not_identified and design_qualified_for_estimator.",
+    "The validator never estimates a causal effect and all maintenance/restoration/operating authorizations remain false.",
+    "The declared cluster key must resolve to the physical asset identity represented in each timeline row.",
+    "Sensitivity-analysis status must be supported before the design can qualify for an estimator.",
+    "Negative-control disposition must bind an evidence digest and reviewer reference.",
+    "Sensitivity-analysis disposition must bind an evidence digest and reviewer reference."
+  ],
+  "diagnostics": {
+    "minimum_common_support_fraction_default": 0.8,
+    "minimum_arm_effective_sample_size_default": 20,
+    "maximum_absolute_standardized_mean_difference_default": 0.1,
+    "maximum_stabilized_weight_default": 10,
+    "minimum_followup_completeness_fraction_default": 0.9,
+    "note": "Defaults are synthetic benchmark thresholds only. A real emulation must preregister justified thresholds for its target population and strategy."
+  },
+  "estimators_not_yet_implemented": [
+    "unadjusted pre/post and standard regression as association-only baselines",
+    "standardization or g-computation for static baseline strategies",
+    "inverse-probability weighting and marginal structural models for longitudinal treatment",
+    "augmented inverse-probability weighting and TMLE where assumptions apply",
+    "clone-censor-weight for dynamic strategies and grace periods",
+    "longitudinal g-formula for time-varying confounding affected by prior treatment",
+    "partial identification and quantitative sensitivity analysis"
+  ],
+  "metrics": [
+    "time_zero_misalignment_rejection_rate",
+    "post_treatment_covariate_leakage_rejection_rate",
+    "unknown_assumption_abstention_rate",
+    "positivity_failure_abstention_rate",
+    "common_support_fraction",
+    "minimum_arm_effective_sample_size",
+    "maximum_absolute_standardized_mean_difference",
+    "maximum_stabilized_weight",
+    "followup_completeness_fraction",
+    "cluster_grouping_completeness",
+    "negative_control_violation_rate",
+    "protocol_incomplete_rate",
+    "not_identified_rate",
+    "design_qualified_for_estimator_rate"
+  ],
+  "cases": [
+    {
+      "case_id": "TT01",
+      "scenario": "Complete protocol, aligned time zero, pre-treatment covariates, supported assumptions and overlap.",
+      "expected": "design_qualified_for_estimator"
+    },
+    {
+      "case_id": "TT02",
+      "scenario": "Eligibility, assignment and follow-up start are not aligned.",
+      "expected": "not_identified_time_zero"
+    },
+    {
+      "case_id": "TT03",
+      "scenario": "Baseline covariate becomes available after time zero.",
+      "expected": "not_identified_temporal_leakage"
+    },
+    {
+      "case_id": "TT04",
+      "scenario": "Post-treatment variable is declared as a baseline adjustment covariate.",
+      "expected": "protocol_incomplete_covariate_timing"
+    },
+    {
+      "case_id": "TT05",
+      "scenario": "Conditional exchangeability is unknown or violated.",
+      "expected": "not_identified_exchangeability"
+    },
+    {
+      "case_id": "TT06",
+      "scenario": "Common support and effective sample size fall below preregistered thresholds.",
+      "expected": "not_identified_overlap"
+    },
+    {
+      "case_id": "TT07",
+      "scenario": "Treatment grace period is present but clone-censor-weight design is not declared.",
+      "expected": "protocol_incomplete_grace_period"
+    },
+    {
+      "case_id": "TT08",
+      "scenario": "Negative-control status is unknown or violated.",
+      "expected": "not_identified_negative_control"
+    },
+    {
+      "case_id": "TT09",
+      "scenario": "Follow-up completeness falls below the target-trial threshold.",
+      "expected": "not_identified_followup"
+    },
+    {
+      "case_id": "TT10",
+      "scenario": "Sequential trial reuses the same asset under distinct emulation-entry IDs and cluster-robust design.",
+      "expected": "design_qualified_clustered_sequential"
+    },
+    {
+      "case_id": "TT11",
+      "scenario": "Parallel-group emulation places one physical asset in both strategy arms.",
+      "expected": "not_identified_cluster_interference"
+    },
+    {
+      "case_id": "TT12",
+      "scenario": "Administrative end truncates follow-up before the preregistered horizon.",
+      "expected": "not_identified_premature_administrative_end"
+    },
+    {
+      "case_id": "TT13",
+      "scenario": "Cluster-robust uncertainty is not declared.",
+      "expected": "protocol_incomplete_cluster_uncertainty"
+    },
+    {
+      "case_id": "TT14",
+      "scenario": "A deferred/usual-care strategy is recorded with a physical treatment start.",
+      "expected": "not_identified_strategy_inconsistency"
+    },
+    {
+      "case_id": "TT15",
+      "scenario": "Duplicate or unknown strategy-arm count metadata is supplied.",
+      "expected": "not_identified_arm_count_mismatch"
+    },
+    {
+      "case_id": "TT16",
+      "scenario": "Missing or duplicated baseline covariate evidence or invalid evidence digest.",
+      "expected": "not_identified_baseline_evidence"
+    },
+    {
+      "case_id": "TT17",
+      "scenario": "The declared cluster key is a telemetry row identity rather than the physical asset key.",
+      "expected": "protocol_incomplete_cluster_key"
+    },
+    {
+      "case_id": "TT18",
+      "scenario": "No reviewed sensitivity analysis is attached to the emulation diagnostic snapshot.",
+      "expected": "not_identified_sensitivity"
+    },
+    {
+      "case_id": "TT19",
+      "scenario": "Negative-control and sensitivity statuses are marked supported but their evidence digests/reviewer receipts are absent or invalid.",
+      "expected": "not_identified_missing_review_receipts"
+    }
+  ],
+  "claim_ceiling": "A design_qualified_for_estimator result means only that the declared protocol and available diagnostics passed this structural gate. It is not a causal effect estimate, proof of unmeasured-confounding absence, a marine-engine validation or permission to operate."
+}

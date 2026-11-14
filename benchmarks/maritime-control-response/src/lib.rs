@@ -22,6 +22,7 @@ pub mod repair_restoration;
 pub mod sequential_evidence;
 pub mod startup_adaptation;
 pub mod streaming_contract;
+pub mod target_trial_contract;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

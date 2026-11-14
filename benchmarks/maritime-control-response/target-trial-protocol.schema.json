@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-observational-target-trial-protocol-v0.1.json",
+  "title": "Observational maritime maintenance target-trial protocol",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trial_id",
+    "target_population_id",
+    "eligibility_rule_sha256",
+    "assignment_rule_sha256",
+    "causal_graph_sha256",
+    "analysis_plan_sha256",
+    "cluster_group_key",
+    "cluster_grouping_rule_sha256",
+    "cluster_robust_inference_declared",
+    "emulation_design",
+    "causal_contrast",
+    "align_eligibility_assignment_followup_at_time_zero",
+    "followup_horizon_seconds",
+    "followup_exposure_unit",
+    "treatment_strategies",
+    "baseline_covariates",
+    "primary_outcomes",
+    "thresholds"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "symtropy-marine-observational-target-trial-v0.1"
+    },
+    "trial_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_population_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "eligibility_rule_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "assignment_rule_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "causal_graph_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "analysis_plan_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "cluster_group_key": {
+      "const": "asset_id"
+    },
+    "cluster_grouping_rule_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "cluster_robust_inference_declared": {
+      "const": true
+    },
+    "emulation_design": {
+      "enum": [
+        "parallel_group",
+        "sequential_trial",
+        "clone_censor_weight"
+      ]
+    },
+    "causal_contrast": {
+      "enum": [
+        "assignment_effect",
+        "per_protocol_effect",
+        "treatment_policy_effect"
+      ]
+    },
+    "align_eligibility_assignment_followup_at_time_zero": {
+      "const": true
+    },
+    "followup_horizon_seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "followup_exposure_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "treatment_strategies": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "strategy_id",
+          "strategy_version_sha256",
+          "intervention_kind",
+          "strategy_definition_sha256",
+          "grace_period_seconds"
+        ],
+        "properties": {
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_version_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "intervention_kind": {
+            "enum": [
+              "physical_component_repair",
+              "alternative_repair",
+              "sensor_only_correction",
+              "deferred_or_usual_care",
+              "dynamic_maintenance_strategy"
+            ]
+          },
+          "strategy_definition_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "grace_period_seconds": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "baseline_covariates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "covariate_id",
+          "definition_sha256",
+          "timing"
+        ],
+        "properties": {
+          "covariate_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "definition_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "timing": {
+            "enum": [
+              "baseline_pre_treatment",
+              "time_varying_pre_treatment",
+              "post_treatment",
+              "unknown"
+            ]
+          }
+        }
+      }
+    },
+    "primary_outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "outcome_id",
+          "metric_id",
+          "unit",
+          "definition_sha256"
+        ],
+        "properties": {
+          "outcome_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "definition_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_common_support_fraction",
+        "minimum_arm_effective_sample_size",
+        "maximum_absolute_standardized_mean_difference",
+        "maximum_stabilized_weight",
+        "minimum_followup_completeness_fraction"
+      ],
+      "properties": {
+        "minimum_common_support_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_arm_effective_sample_size": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_absolute_standardized_mean_difference": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_stabilized_weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_followup_completeness_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

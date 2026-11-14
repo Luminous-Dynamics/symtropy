@@ -1,0 +1,101 @@
+{
+  "schema_version": "symtropy-marine-observational-target-trial-cases-v0.1",
+  "status": "synthetic_contract_cases_not_observational_maintenance_data",
+  "cases": [
+    {
+      "case_id": "TT01",
+      "scenario": "Complete protocol, aligned time zero, pre-treatment covariates, supported assumptions and overlap.",
+      "expected": "design_qualified_for_estimator"
+    },
+    {
+      "case_id": "TT02",
+      "scenario": "Eligibility, assignment and follow-up start are not aligned.",
+      "expected": "not_identified_time_zero"
+    },
+    {
+      "case_id": "TT03",
+      "scenario": "Baseline covariate becomes available after time zero.",
+      "expected": "not_identified_temporal_leakage"
+    },
+    {
+      "case_id": "TT04",
+      "scenario": "Post-treatment variable is declared as a baseline adjustment covariate.",
+      "expected": "protocol_incomplete_covariate_timing"
+    },
+    {
+      "case_id": "TT05",
+      "scenario": "Conditional exchangeability is unknown or violated.",
+      "expected": "not_identified_exchangeability"
+    },
+    {
+      "case_id": "TT06",
+      "scenario": "Common support and effective sample size fall below preregistered thresholds.",
+      "expected": "not_identified_overlap"
+    },
+    {
+      "case_id": "TT07",
+      "scenario": "Treatment grace period is present but clone-censor-weight design is not declared.",
+      "expected": "protocol_incomplete_grace_period"
+    },
+    {
+      "case_id": "TT08",
+      "scenario": "Negative-control status is unknown or violated.",
+      "expected": "not_identified_negative_control"
+    },
+    {
+      "case_id": "TT09",
+      "scenario": "Follow-up completeness falls below the target-trial threshold.",
+      "expected": "not_identified_followup"
+    },
+    {
+      "case_id": "TT10",
+      "scenario": "Sequential trial reuses the same asset under distinct emulation-entry IDs and cluster-robust design.",
+      "expected": "design_qualified_clustered_sequential"
+    },
+    {
+      "case_id": "TT11",
+      "scenario": "Parallel-group emulation places one physical asset in both strategy arms.",
+      "expected": "not_identified_cluster_interference"
+    },
+    {
+      "case_id": "TT12",
+      "scenario": "Administrative end truncates follow-up before the preregistered horizon.",
+      "expected": "not_identified_premature_administrative_end"
+    },
+    {
+      "case_id": "TT13",
+      "scenario": "Cluster-robust uncertainty is not declared.",
+      "expected": "protocol_incomplete_cluster_uncertainty"
+    },
+    {
+      "case_id": "TT14",
+      "scenario": "A deferred/usual-care strategy is recorded with a physical treatment start.",
+      "expected": "not_identified_strategy_inconsistency"
+    },
+    {
+      "case_id": "TT15",
+      "scenario": "Duplicate or unknown strategy-arm count metadata is supplied.",
+      "expected": "not_identified_arm_count_mismatch"
+    },
+    {
+      "case_id": "TT16",
+      "scenario": "Missing or duplicated baseline covariate evidence or invalid evidence digest.",
+      "expected": "not_identified_baseline_evidence"
+    },
+    {
+      "case_id": "TT17",
+      "scenario": "The declared cluster key is a telemetry row identity rather than the physical asset key.",
+      "expected": "protocol_incomplete_cluster_key"
+    },
+    {
+      "case_id": "TT18",
+      "scenario": "No reviewed sensitivity analysis is attached to the emulation diagnostic snapshot.",
+      "expected": "not_identified_sensitivity"
+    },
+    {
+      "case_id": "TT19",
+      "scenario": "Negative-control and sensitivity statuses are marked supported but their evidence digests/reviewer receipts are absent or invalid.",
+      "expected": "not_identified_missing_review_receipts"
+    }
+  ]
+}
