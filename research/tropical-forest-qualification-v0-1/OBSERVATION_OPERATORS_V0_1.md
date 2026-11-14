@@ -55,6 +55,38 @@ This is an admission and comparison contract, not a claim that the operators are
 
 **Scoring:** integrate the latent model AGBD over the exact footprint support and compare to the L4A estimate using the L4A observation uncertainty. Do not compare one plot mean to a single footprint without a declared support conversion. Do not interpolate sparse footprints into wall-to-wall truth. The March 2023–April 2024 acquisition gap is `UNOBSERVED`, never zero biomass or no change.
 
+### C. Amazon RAINFOR / EIDC 2017–2019 plot census dataset
+
+The official NERC Environmental Information Data Centre record (DOI 10.5285/63d4b774-4e03-4db2-95ad-dcca18f0d681) lists the Open Government Licence. It describes 8,729 trees across 29 RAINFOR permanent plots in Acre, Pará and Mato Grosso, all terra-firme non-flooded lowland forest, with measurements collected during 2017–2019. The record identifies diameter, alive/dead state and recruited stems at DBH ≥10 cm.
+
+**Appropriate role:** first rights-cleared Amazon structural / stand-state reference, subject to its exact per-plot protocol, fields, geometry and citation terms.
+
+**Critical limitation:** the catalogue record describes the 2017–2019 census campaign; it does not by itself give us a matched earlier baseline census for every plot. Do not call it a temporal growth / mortality panel until earlier census rows are separately admitted and stem identity / protocol equivalence verified. The Open Government Licence does not waive the duty to cite the dataset and respect its stated spatial support.
+
+### D. NASA / ORNL DAAC Sustainable Landscapes Brazil inventory (2009–2018)
+
+NASA's public catalogue lists DOI 10.3334/ORNLDAAC/2007, point data from selected Brazilian Amazon research sites, 2009–2018. Variables include DBH, commercial and total tree height, taxa, coordinates, canopy position, crown radius, dead-tree decomposition status and aboveground biomass at selected sites. The NASA record reports public access and a USA-government-works license.
+
+**Appropriate role:** complementary structural allometry, canopy position / crown radius and dead-tree condition reference, potentially valuable for canopy-gap model observation operators.
+
+**Critical limitation:** temporal frequency varies by site; some sites were sampled once while others were resampled. The dataset must be partitioned by exact site/year/method record. It is not a uniform 2009–2018 annual panel.
+
+### E. DRC National Forest Inventory 2017–2021
+
+FAO FAM reference COD_2017-2021_NFI_v01_M_v01_A_ESS; primary producer DIAF. Its national sample design used 321 planned sampling units, each a 400m × 400m square containing four 75m × 75m plots (1,284 plots planned). Nested subplots have different DBH thresholds: 5 cm, 10 cm and 20 cm. The survey reports 300/321 units (93%) surveyed; 21 units were not surveyed due to inaccessibility, including conflict-affected areas.
+
+**Appropriate role:** DRC-specific national forest strata, structure and inventory-design context, and an important missingness / access adversarial benchmark.
+
+**Critical limitation:** DRC is not the entire Congo Basin. The 21 unsurveyed units must be UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED, not forest absence or zero biomass. FAM states that the raw NFI database is housed at DIAF and requires an authorization request approved by the Secretary General for the Environment and Sustainable Development; published content on the national SNSF portal is the exception. The FAM metadata says the NFI assessment was to enable permanent plots for future monitoring; this record alone does not establish a repeated census panel.
+
+### F. Papua New Guinea Multipurpose NFI 2016–2019
+
+FAO FAM reference PNG_2019_MNFI_v01_M_v01_A_ESS; producer PNG Forest Authority. The national two-phase stratified design began from 4 km × 4 km grid cells (with a denser 2 km grid in three provinces); 1,000 sampling points were selected. Each selected cluster comprises four circular plots 300 m apart, with nested radii and DBH thresholds of 1, 10, 20 and 40 cm plus regeneration quadrats. Some clusters were not surveyed for security/logistics, and the FAM record says precision/bias information is limited.
+
+**Appropriate role:** PNG-specific forest structure, regeneration sampling-frame and region-stratified validation context.
+
+**Critical limitation:** PNG is not the entire island of New Guinea. The actual microdata live in a country-owned external repository; confidentiality and access conditions are set by that repository. A catalogue record or public method description is not permission to use row-level data. The listed 5–10 year inventory cycle is not proof that a compatible follow-up census has been completed and admitted.
+
 ### C. JRC Tropical Moist Forest v2025
 
 **Observed:** 30 m Landsat Collection 2 wall-to-wall annual change layers for 1990–2025, including tropical moist forest extent, degradation, deforestation and post-disturbance regrowth. The product deliberately distinguishes temporary disturbance while forest remains forested from transition to non-forest.
@@ -68,7 +100,7 @@ This is an admission and comparison contract, not a claim that the operators are
 
 **Scoring:** compare predicted disturbance state and transition timing through the TMF class operator. TMF degradation is not tree mortality, nor is it automatically permanent conversion. Keep TMF class metrics separate from stem mortality and biomass metrics.
 
-### D. MapBiomas Collection 11 (Brazil)
+### G. MapBiomas Collection 11 (Brazil)
 
 **Observed:** annual Brazil land-cover / land-use classes at 30 m for 1985–2025, with collection- and class/year-specific accuracy information. It is a Brazil product, not a pan-Amazon, Congo or New Guinea forest truth layer.
 
@@ -126,6 +158,7 @@ Only the final state can support a negative ecological claim, and only when the 
 Split by the unit of independent evidence, not by convenient rows or pixels:
 
 - plot / permanent plot network;
+- NFI sampling unit / cluster (never split the four within-cluster plots as independent regional tests);
 - site / landscape;
 - census campaign and time interval;
 - disturbance event;
@@ -134,7 +167,7 @@ Split by the unit of independent evidence, not by convenient rows or pixels:
 
 Where multiple products refer to the same event or plot, keep their dependent views in the same split. Spatial adjacency and temporal autocorrelation must be accounted for. Report how many independent sites, plots, events and campaigns actually contribute to each metric.
 
-## 6. Negative-control corpus
+## 7. Negative-control corpus
 
 The companion JSON file defines synthetic cases for:
 1. plot-mean versus GEDI-footprint support mismatch;
@@ -142,11 +175,14 @@ The companion JSON file defines synthetic cases for:
 3. TMF degradation mislabelled as tree mortality;
 4. MapBiomas Brazil model transfer to Congo or Papua New Guinea;
 5. cloud / no-acquisition converted into no-change;
-6. plot/campaign leakage across train and blind test.
+6. plot/campaign leakage across train and blind test;
+7. the DRC 21 inaccessible/conflict-affected sampling units promoted to forest absence;
+8. the PNG security/logistics omissions promoted to healthy/absent forest;
+9. a single NFI / plot census treated as a longitudinal growth or mortality panel without a matched prior census.
 
 These cases currently define expected dispositions; they are not yet wired into the Rust accounting verifier. The accounting verifier's PASS must not be represented as passing these observation-operator cases.
 
-## 7. Ownership
+## 8. Ownership
 
 - Sol-Atlas owns canonical source asset identity, geospatial geometry, CRS/time, EO product semantics, source rights references and observation evidence.
 - Symtropy owns latent ecological process state and the model-to-observation operator adapters for its own prediction outputs.
