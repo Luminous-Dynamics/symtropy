@@ -1,0 +1,13 @@
+{
+  "schema_version": "mixing-design-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-EXPERIMENT-DESIGN-QUAL-001",
+  "scenario_count": 6,
+  "design_ids": [
+    "MDT-T0-001-balanced-orthogonal",
+    "MDT-T0-002-ill-conditioned",
+    "MDT-T0-003-rank-deficient",
+    "MDT-T0-004-robust-two-strata",
+    "MDT-T0-005-nuisance-confounded",
+    "MDT-T0-006-nuisance-unresolved"
+  ]
+}
