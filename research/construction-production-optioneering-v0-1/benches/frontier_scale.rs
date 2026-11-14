@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use construction_production_optioneering_core::{
     evaluate_option_set, EvidenceDisposition, FunctionalOutcomeContract, OptionCandidate,
-    OptionTier, PerformanceRequirement, ScenarioCase, ScenarioResult, StageDisposition,
+    MeasurementBasis, OptionTier, PerformanceRequirement, ScenarioCase, ScenarioResult, StageDisposition,
     StageGateDecision,
 };
 
@@ -47,6 +47,7 @@ fn scenario_result(
     let design = format!("design-option-{index:05}");
     ScenarioResult {
         scenario_id: scenario_id.to_owned(),
+        measurement_basis: MeasurementBasis::FullRequiredQuantity,
         option_design_digest: design.clone(),
         assessment_horizon_months: 240,
         acceptance_contract_digest: "fixture:synthetic-partition-contract-v1".to_owned(),
