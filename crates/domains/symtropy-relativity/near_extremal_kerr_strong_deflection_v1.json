@@ -1,7 +1,7 @@
 {
   "schema": "luminous.symtropy.kerr.near_extremal_strong_deflection.v1",
-  "status": "analytic_prograde_photon_orbit_helper_and_known_answer_tests_authored; numerical_deflection_integration_comparison_pending",
-  "claim_ceiling": "Analytic critical-orbit helper and leading uniform asymptotic reference for equatorial prograde Kerr null scattering. This does not yet constitute a validated numerical strong-deflection solver, image-branch catalogue, caustic map, or wave-optics calculation. The cited 2026 result is an arXiv preprint, not assumed peer-reviewed.",
+  "status": "analytic_critical_orbit_and_turning_point_regular_finite_spin_deflection_source_authored; 20_case_scipy_reference_grid_tests_pending_rust_validation; 55_trajectory_matched_nlo_paper_reproduction_pending",
+  "claim_ceiling": "Source-authored finite-spin equatorial prograde Kerr scattering-deflection quadrature and independent 20-case equation-level SciPy comparison grid. The exact-head Rust workflow must pass before calling the numerical solver validated. This does not reproduce the paper's pinned 55-trajectory matched-NLO study, provide an image-branch catalogue/caustic map, or implement wave optics. The cited 2026 result is an arXiv preprint, not assumed peer-reviewed.",
   "reference": {
     "title": "Uniform Strong-Deflection Lensing in Near-Extremal Kerr",
     "author": "Shakibul Chowdhury",
@@ -24,19 +24,22 @@
     "crossover_function": "F(chi) = ln(1 + 2*sqrt(3)/chi), so kappa*Phi_LO = F(chi)"
   },
   "implementation": {
-    "source_api": "KerrEquatorialProgradePhotonOrbit::from_spin(spin)",
-    "source_path": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+    "source_api": "integrate_equatorial_prograde_strong_deflection(spin, scaled_offset_chi, options)",
+    "source_path": "crates/domains/symtropy-relativity/src/near_extremal_deflection.rs",
     "APIs": [
       "KerrEquatorialProgradePhotonOrbit::from_spin",
       "KerrEquatorialProgradePhotonOrbit::impact_parameter_for_scaled_offset",
       "KerrEquatorialProgradePhotonOrbit::null_constants_for_scaled_offset",
-      "KerrEquatorialProgradePhotonOrbit::leading_uniform_deflection_phase"
+      "KerrEquatorialProgradePhotonOrbit::leading_uniform_deflection_phase",
+      "integrate_equatorial_prograde_strong_deflection",
+      "KerrStrongDeflectionOptions::validate"
     ],
     "properties": [
-      "Use kappa = sqrt((1-a)*(1+a)) to avoid 1-a^2 cancellation.",
-      "Use r_ph/M = 1 + 2*sin(delta/2)^2 + sqrt(3)*sin(delta) to avoid subtracting nearly equal terms in the trigonometric photon-orbit formula.",
-      "Use Delta_ph/M^2 = (r_ph/M - 1)^2 - kappa^2 for the near-horizon orbit.",
-      "Handle the exactly extremal endpoint as the analytic limit; do not divide by kappa=0."
+      "Rescale r/M=1+kappa*y before evaluating near-horizon radial potential, avoiding direct subtraction of O(1) terms that leaves O(kappa^2) residuals.",
+      "Use the depressed-cubic radial potential factorization to bracket the outer turning point from the radial-potential minimum.",
+      "Use a compact coordinate with finite analytic limits at both the square-root turning point and infinity.",
+      "Report the leading uniform phase as an asymptotic comparison only; it is not substituted for the finite-spin numerical integral.",
+      "Reject exact extremality in the finite-kappa routine; the exactly extremal normal form is a separate method."
     ],
     "tests_authored": [
       "Schwarzschild r_ph/M=3 and b_c/M=3*sqrt(3)",
@@ -44,9 +47,33 @@
       "exact extremal a=1 gives r_ph/M=1 and b_c/M=2",
       "near-extremal (b_c/M-2)/kappa converges monotonically toward sqrt(3) across kappa={0.1,0.03,0.01,0.003,0.001}",
       "scaled-offset impact parameter, equatorial Q=0 constants, and leading phase identity",
-      "negative spin branch, nonpositive/nonfinite chi and extremal scaled-offset misuse are rejected"
+      "negative spin branch, nonpositive/nonfinite chi and extremal scaled-offset misuse are rejected",
+      "near_extremal_deflection_matches_independent_rescaled_quadrature_grid (20 fixed-spin/chi cases)",
+      "near_extremal_scaled_deflection_phase_converges_to_uniform_crossover",
+      "near_extremal_deflection_rejects_invalid_options_offsets_and_exact_extremality",
+      "near_extremal_deflection_fails_closed_when_quadrature_budget_is_exhausted"
     ],
-    "limitation": "The helper supplies analytic critical-orbit and asymptotic reference data. The Kerr ray integrator has not yet reproduced the high-precision 55-trajectory numerical deflection comparison."
+    "limitation": "The Rust numerical quadrature implements finite-spin equatorial prograde scattering and is compared to independent SciPy equation-level reference values. It does not yet reproduce the paper's matched-NLO formula or its exact 55 trajectory catalogue.",
+    "numerical_method": {
+      "parameterization": "kappa=sqrt(1-a^2), y=(r/M-1)/kappa",
+      "scaled_radial_potential": "R/kappa^2 evaluated from P/kappa and y^2-1, with P/kappa reconstructed relative to the analytic critical orbit.",
+      "outer_turning_point": "Use the local minimum r_min=sqrt((b^2-a^2)/3) of the equatorial radial-potential cubic as the left bracket; bracket and bisect the outer scattering root to avoid mistaking the inner branch or photon-orbit-radius sign for the outer turning point.",
+      "integral": "Delta phi = 2*integral_(r_turn)^infinity [(b-a)+a*P/Delta]/sqrt(R) dr; compactify y=y_turn+S*x^2/(1-x^2), x in [0,1], with analytic endpoint limits.",
+      "quadrature": "Adaptive Simpson with explicit relative/absolute tolerances, recursion-depth and evaluation budgets.",
+      "output_receipts": [
+        "outer turning radius",
+        "scaled radial-potential residual",
+        "positive derivative at outer turn",
+        "azimuthal change",
+        "deflection angle",
+        "leading uniform phase",
+        "scaled leading-phase residual",
+        "adaptive quadrature error estimate",
+        "evaluation count",
+        "root iteration count"
+      ]
+    },
+    "status": "source_authored_runner_pending"
   },
   "analytic_cases": [
     {
@@ -98,7 +125,7 @@
   },
   "high_value_numerical_benchmark": {
     "id": "NEK-55",
-    "goal": "Reproduce the source paper's 55 high-precision subextremal/near-extremal prograde equatorial scattering trajectories after pinning its version and exact initial conditions.",
+    "goal": "After the finite-spin quadrature passes NEK-20, reproduce the paper's 55 high-precision subextremal/near-extremal prograde equatorial scattering trajectories after pinning arXiv version, NLO expression, exact trajectory inputs and all coordinate conventions.",
     "required_comparison": [
       "exact Kerr radial-potential turning point and high-precision quadrature/reference trajectory",
       "leading uniform crossover phase Phi_LO",
@@ -122,7 +149,9 @@
       "asymptotic_convergence": "For each fixed chi>0, kappa*Phi_numeric must converge toward ln(1+2*sqrt(3)/chi) as kappa decreases; estimate and report the observed order instead of imposing an unmeasured universal rate.",
       "matched_NLO": "Must improve aggregate phase error against the leading formula on the pinned 55-trajectory set; report all individual cases and any exceptions.",
       "no_unresolved_cases_hidden": true
-    }
+    },
+    "status": "future_paper_reproduction",
+    "claim_ceiling": "The 20-case SciPy grid is not a reproduction of the paper's 55 trajectories. The paper's matched-NLO expression must be transcribed from a pinned version before the NLO comparison can be claimed."
   },
   "image_branch_and_timing_target": {
     "branch_order_crossover_scale": "O(kappa^-1)",
@@ -136,7 +165,12 @@
     "evaluate the finite-kappa scaled-offset formula at kappa=0",
     "treat the leading crossover phase as an exact finite-spin deflection",
     "claim reproduction of 55 trajectories without pinning the reference version and individual trajectory inputs",
-    "compare phase values after mixing affine, Boyer-Lindquist coordinate-time and azimuthal conventions"
+    "compare phase values after mixing affine, Boyer-Lindquist coordinate-time and azimuthal conventions",
+    "bracket first positive radial potential value at the photon-orbit radius instead of the outer scattering root",
+    "mix the inner radial turning root with the outer scattering root",
+    "evaluate R(r) as an unscaled difference of O(1) near-horizon terms",
+    "replace the finite-spin deflection integral with the leading uniform asymptotic phase",
+    "report a converged integral when the adaptive evaluation/depth budget was exhausted"
   ],
   "required_receipt_fields": [
     "source_sha",
@@ -156,6 +190,132 @@
     "coordinate_time_delay",
     "refinement_history",
     "runtime",
-    "peak_memory"
-  ]
+    "peak_memory",
+    "outer_turning_radius_over_m",
+    "scaled_radial_potential_residual",
+    "scaled_radial_potential_derivative_at_turn",
+    "azimuthal_change_rad",
+    "deflection_angle_rad",
+    "leading_uniform_phase_rad",
+    "scaled_leading_uniform_residual",
+    "quadrature_error_estimate",
+    "quadrature_evaluations",
+    "root_iterations",
+    "quadrature_options_sha"
+  ],
+  "numerical_reference_grid": {
+    "id": "NEK-20",
+    "reference_method": "Independent SciPy adaptive quadrature of the exact equatorial Kerr radial-potential integral using a separately derived turning-point-regular coordinate. Equation-level reference; not a claimed Rust result or the paper's 55-trajectory dataset.",
+    "unit_convention": "M=1, E=1, Q=0; b=b_c+kappa*chi; deflection=2*integral(dphi/dr)-pi.",
+    "cases": [
+      {
+        "kappa": 0.1,
+        "chi": 0.1,
+        "deflection_angle_rad": 37.6586115105
+      },
+      {
+        "kappa": 0.1,
+        "chi": 0.5,
+        "deflection_angle_rad": 22.0478216592
+      },
+      {
+        "kappa": 0.1,
+        "chi": 1,
+        "deflection_angle_rad": 16.0551522612
+      },
+      {
+        "kappa": 0.1,
+        "chi": 2,
+        "deflection_angle_rad": 10.8992412449
+      },
+      {
+        "kappa": 0.03,
+        "chi": 0.1,
+        "deflection_angle_rad": 121.865648309
+      },
+      {
+        "kappa": 0.03,
+        "chi": 0.5,
+        "deflection_angle_rad": 71.1325771382
+      },
+      {
+        "kappa": 0.03,
+        "chi": 1,
+        "deflection_angle_rad": 51.7006648057
+      },
+      {
+        "kappa": 0.03,
+        "chi": 2,
+        "deflection_angle_rad": 35.0321564605
+      },
+      {
+        "kappa": 0.01,
+        "chi": 0.1,
+        "deflection_angle_rad": 360.902017816
+      },
+      {
+        "kappa": 0.01,
+        "chi": 0.5,
+        "deflection_angle_rad": 209.945986421
+      },
+      {
+        "kappa": 0.01,
+        "chi": 1,
+        "deflection_angle_rad": 152.20819191
+      },
+      {
+        "kappa": 0.01,
+        "chi": 2,
+        "deflection_angle_rad": 102.780381134
+      },
+      {
+        "kappa": 0.003,
+        "chi": 0.1,
+        "deflection_angle_rad": 1195.62533306
+      },
+      {
+        "kappa": 0.003,
+        "chi": 0.5,
+        "deflection_angle_rad": 693.945276525
+      },
+      {
+        "kappa": 0.003,
+        "chi": 1,
+        "deflection_angle_rad": 502.183721671
+      },
+      {
+        "kappa": 0.003,
+        "chi": 2,
+        "deflection_angle_rad": 338.174027408
+      },
+      {
+        "kappa": 0.001,
+        "chi": 0.1,
+        "deflection_angle_rad": 3578.79551117
+      },
+      {
+        "kappa": 0.001,
+        "chi": 0.5,
+        "deflection_angle_rad": 2075.06586417
+      },
+      {
+        "kappa": 0.001,
+        "chi": 1,
+        "deflection_angle_rad": 1500.39634395
+      },
+      {
+        "kappa": 0.001,
+        "chi": 2,
+        "deflection_angle_rad": 1009.0388997
+      }
+    ],
+    "acceptance": {
+      "finite_spin_deflection_relative_error_against_scipy": "<=2e-7 for each of the 20 frozen points",
+      "scaled_radial_turning_point_residual": "<=1e-10",
+      "derivative_at_outer_turn": "strictly positive",
+      "quadrature_error": "finite, nonnegative, and below the requested tolerance",
+      "uniform_crossover": "For fixed chi=0.5, abs(kappa*deflection-F(chi)) decreases monotonically across kappa={0.1,0.03,0.01,0.003,0.001}; no equality is asserted at finite kappa."
+    },
+    "status": "source_authored_runner_pending"
+  }
 }
