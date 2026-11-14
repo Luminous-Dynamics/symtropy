@@ -25,6 +25,7 @@ fn claim(
         end_tick: 10,
         coverage_qualified: true,
         environment_qualified: true,
+        upstream_degraded: false,
         pnt_time_qualified: true,
         dependency_inventory_complete: true,
         independent_family_id: family,
@@ -321,6 +322,32 @@ fn unknown_tdoa_time_dependency_is_indeterminate_not_independent() {
     );
     assert_eq!(result.coverage_status, CoverageStatus::Indeterminate);
     assert_eq!(result.independent_family_count, 0);
+    assert!(result.unresolved_possible_occupancy);
+}
+
+
+#[test]
+fn explicitly_degraded_sensor_service_is_not_full_coverage() {
+    let mut degraded = claim(
+        "degraded-adsb",
+        "receiver-degraded",
+        SensorModality::Adsb,
+        TrafficClass::CooperativeCrewed,
+        "cell-degraded",
+        Some("family-degraded"),
+    );
+    degraded.upstream_degraded = true;
+
+    let result = assessment(
+        &[degraded],
+        None,
+        TrafficClass::CooperativeCrewed,
+        "cell-degraded",
+        5,
+        1,
+    );
+    assert_eq!(result.coverage_status, CoverageStatus::Degraded);
+    assert_eq!(result.observation_status, ObservationStatus::NoObservation);
     assert!(result.unresolved_possible_occupancy);
 }
 
