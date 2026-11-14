@@ -145,6 +145,40 @@ fn missing_report_outside_coverage_is_not_empty_airspace() {
     assert!(result.unresolved_possible_occupancy);
 }
 
+
+#[test]
+fn no_report_even_inside_qualified_coverage_is_not_an_empty_sky() {
+    let claims = [
+        claim(
+            "receiver-a",
+            "rx-a",
+            SensorModality::Adsb,
+            TrafficClass::CooperativeCrewed,
+            "cell-a",
+            Some("family-a"),
+        ),
+        claim(
+            "receiver-b",
+            "rx-b",
+            SensorModality::Adsb,
+            TrafficClass::CooperativeCrewed,
+            "cell-a",
+            Some("family-b"),
+        ),
+    ];
+    let result = assessment(
+        &claims,
+        None,
+        TrafficClass::CooperativeCrewed,
+        "cell-a",
+        5,
+        2,
+    );
+    assert_eq!(result.coverage_status, CoverageStatus::QualifiedCoverage);
+    assert_eq!(result.observation_status, ObservationStatus::NoObservation);
+    assert!(result.unresolved_possible_occupancy);
+}
+
 #[test]
 fn adsb_only_claim_never_qualifies_noncooperative_traffic() {
     let claims = [claim(
@@ -457,15 +491,15 @@ fn insufficient_families_and_unknown_dependency_cannot_promote_to_qualified() {
 }
 
 #[test]
-fn invalid_policy_and_unknown_class_are_rejected() {
+fn invalid_policy_is_rejected_and_unknown_class_remains_unresolved() {
     assert_eq!(
         evaluate(&[], None, TrafficClass::CooperativeCrewed, "cell-a", 1, 0),
         Err(ObservabilityError::InvalidMinimumIndependentFamilies)
     );
-    assert_eq!(
-        evaluate(&[], None, TrafficClass::Unknown, "cell-a", 1, 1),
-        Err(ObservabilityError::UnknownTrafficClass)
-    );
+    let unknown = assessment(&[], None, TrafficClass::Unknown, "cell-a", 1, 1);
+    assert_eq!(unknown.coverage_status, CoverageStatus::NotQualified);
+    assert_eq!(unknown.observation_status, ObservationStatus::NoObservation);
+    assert!(unknown.unresolved_possible_occupancy);
 }
 
 #[test]
