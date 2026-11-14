@@ -179,6 +179,10 @@ pub enum WireError {
     InvalidIntegrityField(&'static str),
     /// Claimed and recomputed payload digests differ.
     DigestMismatch { expected: String, observed: String },
+    /// A UQ sidecar does not bind to its exact parent receipt or scope.
+    UqSidecarBindingMismatch(&'static str),
+    /// A UQ sidecar has an invalid measurement/uncertainty/derived-result join.
+    UqSidecarLineageMismatch(&'static str),
 }
 
 impl fmt::Display for WireError {
@@ -389,6 +393,389 @@ pub fn validate_receipt(input: &[u8]) -> Result<ValidatedReceipt, WireError> {
         schema_version: schema_version.to_owned(),
         payload_sha256: observed,
         actuation_authorized: false,
+    })
+}
+
+const UQ_SIDECAR_PROTOCOL_ID: &str = "LOCO-JOINT-UQ-SIDECAR-001";
+
+/// Verified cross-packet measurement-uncertainty sidecar summary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ValidatedUqSidecar {
+    /// Sidecar protocol identity.
+    pub protocol_id: String,
+    /// UQ sidecar schema version.
+    pub schema_version: String,
+    /// Canonical sidecar payload digest.
+    pub payload_sha256: String,
+    /// Exact parent causal-receipt payload digest.
+    pub parent_receipt_payload_sha256: String,
+    /// Number of instrument-backed or derived measurements.
+    pub measurement_count: usize,
+    /// Number of uncertainty budget / coverage receipts.
+    pub uncertainty_receipt_count: usize,
+    /// Number of derived-result lineage receipts.
+    pub derived_result_count: usize,
+    /// Always false; evidence packets do not authorize actuation.
+    pub actuation_authorized: bool,
+    /// Always false; evidence packets do not certify conformity.
+    pub conformity_certified: bool,
+}
+
+fn object_field<'a>(
+    object: &'a [(String, JsonValue)],
+    field: &'static str,
+) -> Result<&'a [(String, JsonValue)], WireError> {
+    match get_member(object, field) {
+        Some(JsonValue::Object(value)) => Ok(value),
+        Some(_) => Err(WireError::InvalidField(field)),
+        None => Err(WireError::MissingField(field)),
+    }
+}
+
+fn array_field<'a>(
+    object: &'a [(String, JsonValue)],
+    field: &'static str,
+) -> Result<&'a [JsonValue], WireError> {
+    match get_member(object, field) {
+        Some(JsonValue::Array(value)) => Ok(value),
+        Some(_) => Err(WireError::InvalidField(field)),
+        None => Err(WireError::MissingField(field)),
+    }
+}
+
+fn require_false(
+    object: &[(String, JsonValue)],
+    field: &'static str,
+) -> Result<(), WireError> {
+    match get_member(object, field) {
+        Some(JsonValue::Bool(false)) => Ok(()),
+        Some(_) => Err(WireError::InvalidField(field)),
+        None => Err(WireError::MissingField(field)),
+    }
+}
+
+fn canonical_value_sha256(value: &JsonValue) -> String {
+    let mut canonical = String::new();
+    write_jcs_value(value, &mut canonical);
+    lowercase_hex(&Sha256::digest(canonical.as_bytes()))
+}
+
+fn require_equal_string_fields(
+    left: &[(String, JsonValue)],
+    left_field: &'static str,
+    right: &[(String, JsonValue)],
+    right_field: &'static str,
+    binding: &'static str,
+) -> Result<(), WireError> {
+    if require_string(left, left_field)? != require_string(right, right_field)? {
+        return Err(WireError::UqSidecarBindingMismatch(binding));
+    }
+    Ok(())
+}
+
+fn required_array_strings(
+    object: &[(String, JsonValue)],
+    field: &'static str,
+) -> Result<BTreeSet<String>, WireError> {
+    let values = array_field(object, field)?;
+    let mut output = BTreeSet::new();
+    for value in values {
+        let JsonValue::String(value) = value else {
+            return Err(WireError::InvalidField(field));
+        };
+        if !output.insert(value.clone()) {
+            return Err(WireError::UqSidecarLineageMismatch(field));
+        }
+    }
+    Ok(output)
+}
+
+/// Verify a UQ sidecar against the exact v0.1 parent causal packet.
+///
+/// The strict Draft 2020-12 schema and detailed coverage/dependence semantics
+/// remain separately checked by the sidecar preflight and the UQ auditor. This
+/// Rust join independently verifies duplicate-key-free JCS/SHA-256 integrity,
+/// exact parent payload identity, common physical scope, measurement-to-UQ
+/// identities, and derived input/output receipt sets.
+pub fn validate_uq_sidecar(
+    sidecar_input: &[u8],
+    parent_input: &[u8],
+) -> Result<ValidatedUqSidecar, WireError> {
+    let parent_report = validate_receipt(parent_input)?;
+    let parent_value = parse_strict_json(parent_input)?;
+    let JsonValue::Object(parent_fields) = &parent_value else {
+        return Err(WireError::RootMustBeObject);
+    };
+
+    let sidecar_value = parse_strict_json(sidecar_input)?;
+    let JsonValue::Object(sidecar_fields) = &sidecar_value else {
+        return Err(WireError::RootMustBeObject);
+    };
+
+    let protocol_id = require_string(sidecar_fields, "protocol_id")?;
+    if protocol_id != UQ_SIDECAR_PROTOCOL_ID {
+        return Err(WireError::InvalidField("protocol_id"));
+    }
+    let schema_version = require_string(sidecar_fields, "schema_version")?;
+    if schema_version != SCHEMA_VERSION {
+        return Err(WireError::InvalidField("schema_version"));
+    }
+    require_false(sidecar_fields, "actuation_authorized")?;
+    require_false(sidecar_fields, "conformity_certified")?;
+
+    let integrity = object_field(sidecar_fields, "integrity")?;
+    if require_string(integrity, "canonicalization")
+        .map_err(|_| WireError::InvalidIntegrityField("canonicalization"))?
+        != CANONICALIZATION
+    {
+        return Err(WireError::InvalidIntegrityField("canonicalization"));
+    }
+    if require_string(integrity, "digest_scope")
+        .map_err(|_| WireError::InvalidIntegrityField("digest_scope"))?
+        != DIGEST_SCOPE
+    {
+        return Err(WireError::InvalidIntegrityField("digest_scope"));
+    }
+    let expected_digest = integrity_digest(integrity)?.to_owned();
+    let sidecar_payload = canonical_payload_bytes(&sidecar_value)?;
+    let observed_digest = lowercase_hex(&Sha256::digest(sidecar_payload));
+    if observed_digest != expected_digest {
+        return Err(WireError::DigestMismatch {
+            expected: expected_digest,
+            observed: observed_digest,
+        });
+    }
+
+    let parent_binding = object_field(sidecar_fields, "parent_binding")?;
+    if require_string(parent_binding, "protocol_id")? != PROTOCOL_ID
+        || require_string(parent_binding, "schema_version")? != SCHEMA_VERSION
+    {
+        return Err(WireError::UqSidecarBindingMismatch("parent protocol/version"));
+    }
+    if require_string(parent_binding, "payload_sha256")? != parent_report.payload_sha256 {
+        return Err(WireError::UqSidecarBindingMismatch("parent payload digest"));
+    }
+
+    let scope = object_field(sidecar_fields, "scope")?;
+    let parent_scope = object_field(parent_fields, "scope")?;
+    let parent_configuration = object_field(parent_fields, "configuration")?;
+    let parent_events = object_field(parent_fields, "events")?;
+    let parent_physical = object_field(parent_events, "physical_transition")?;
+
+    for (sidecar_field, parent_field, label) in [
+        ("mission_id", "mission_id", "mission identity"),
+        ("robot_id", "robot_id", "robot identity"),
+        ("actuator_id", "actuator_id", "actuator identity"),
+        (
+            "scenario_manifest_digest",
+            "scenario_manifest_digest",
+            "scenario manifest",
+        ),
+        ("monotonic_clock_id", "clock_id", "clock identity"),
+        ("boot_epoch", "boot_epoch", "boot epoch"),
+    ] {
+        require_equal_string_fields(
+            scope,
+            sidecar_field,
+            parent_scope,
+            parent_field,
+            label,
+        )?;
+    }
+    for (sidecar_field, parent_field, label) in [
+        (
+            "actuator_configuration_digest",
+            "actuator_configuration_digest",
+            "actuator configuration",
+        ),
+        (
+            "controller_configuration_digest",
+            "controller_configuration_digest",
+            "controller configuration",
+        ),
+        (
+            "physical_boundary_manifest_digest",
+            "energy_boundary_manifest_digest",
+            "physical boundary",
+        ),
+    ] {
+        require_equal_string_fields(
+            scope,
+            sidecar_field,
+            parent_configuration,
+            parent_field,
+            label,
+        )?;
+    }
+    require_equal_string_fields(
+        scope,
+        "physical_state_predecessor_digest",
+        parent_physical,
+        "reserve_predecessor_digest",
+        "physical-state predecessor",
+    )?;
+    require_equal_string_fields(
+        scope,
+        "physical_state_result_digest",
+        parent_physical,
+        "reserve_result_digest",
+        "physical-state result",
+    )?;
+
+    let scope_value = get_member(sidecar_fields, "scope")
+        .ok_or(WireError::MissingField("scope"))?;
+    let scope_digest = canonical_value_sha256(scope_value);
+
+    let measurements = array_field(sidecar_fields, "measurements")?;
+    let receipts = array_field(sidecar_fields, "uncertainty_receipts")?;
+    let derived_results = array_field(sidecar_fields, "derived_results")?;
+    if measurements.is_empty() || receipts.is_empty() {
+        return Err(WireError::UqSidecarLineageMismatch(
+            "empty measurements or uncertainty receipts",
+        ));
+    }
+
+    let mut measurements_by_id: BTreeMap<String, &[(String, JsonValue)]> = BTreeMap::new();
+    for measurement_value in measurements {
+        let JsonValue::Object(measurement) = measurement_value else {
+            return Err(WireError::InvalidField("measurements"));
+        };
+        let measurement_id = require_string(measurement, "measurement_id")?.to_owned();
+        if measurements_by_id.insert(measurement_id, measurement).is_some() {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "duplicate measurement identity",
+            ));
+        }
+    }
+
+    let mut receipts_by_id: BTreeMap<String, &[(String, JsonValue)]> = BTreeMap::new();
+    for receipt_value in receipts {
+        let JsonValue::Object(receipt) = receipt_value else {
+            return Err(WireError::InvalidField("uncertainty_receipts"));
+        };
+        let receipt_id = require_string(receipt, "receipt_id")?.to_owned();
+        if receipts_by_id.insert(receipt_id, receipt).is_some() {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "duplicate uncertainty receipt identity",
+            ));
+        }
+        if require_string(receipt, "scope_digest")? != scope_digest {
+            return Err(WireError::UqSidecarBindingMismatch(
+                "uncertainty receipt common scope digest",
+            ));
+        }
+    }
+
+    for (measurement_id, measurement) in &measurements_by_id {
+        let receipt_id = require_string(measurement, "uncertainty_receipt_id")?;
+        let receipt = receipts_by_id
+            .get(receipt_id)
+            .ok_or(WireError::UqSidecarLineageMismatch(
+                "measurement uncertainty receipt missing",
+            ))?;
+        if require_string(receipt, "measurement_id")? != measurement_id {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "measurement/uncertainty identity mismatch",
+            ));
+        }
+        for field in [
+            "measurement_artifact_digest",
+            "instrument_configuration_digest",
+            "calibration_receipt_digest",
+            "unit_code",
+        ] {
+            require_equal_string_fields(
+                measurement,
+                field,
+                receipt,
+                field,
+                "measurement/uncertainty receipt binding",
+            )?;
+        }
+        match (get_member(measurement, "decimal_exponent"), get_member(receipt, "decimal_exponent")) {
+            (Some(JsonValue::Integer(left)), Some(JsonValue::Integer(right))) if left == right => {}
+            _ => {
+                return Err(WireError::UqSidecarBindingMismatch(
+                    "measurement/uncertainty decimal scale",
+                ));
+            }
+        }
+    }
+
+    for derived_value in derived_results {
+        let JsonValue::Object(derived) = derived_value else {
+            return Err(WireError::InvalidField("derived_results"));
+        };
+        let result_id = require_string(derived, "result_id")?;
+        let output_id = require_string(derived, "output_measurement_id")?;
+        if result_id != output_id {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "derived result/output measurement identity",
+            ));
+        }
+        let output = measurements_by_id
+            .get(output_id)
+            .ok_or(WireError::UqSidecarLineageMismatch(
+                "derived output measurement missing",
+            ))?;
+        require_equal_string_fields(
+            derived,
+            "output_result_digest",
+            output,
+            "measurement_artifact_digest",
+            "derived output artifact digest",
+        )?;
+        require_equal_string_fields(
+            derived,
+            "output_uncertainty_receipt_id",
+            output,
+            "uncertainty_receipt_id",
+            "derived output uncertainty receipt",
+        )?;
+        let input_measurements = required_array_strings(derived, "input_measurement_ids")?;
+        let supplied_input_receipts =
+            required_array_strings(derived, "input_uncertainty_receipt_ids")?;
+        let mut expected_input_receipts = BTreeSet::new();
+        for input_id in input_measurements {
+            let input = measurements_by_id
+                .get(&input_id)
+                .ok_or(WireError::UqSidecarLineageMismatch(
+                    "derived input measurement missing",
+                ))?;
+            expected_input_receipts
+                .insert(require_string(input, "uncertainty_receipt_id")?.to_owned());
+        }
+        if supplied_input_receipts != expected_input_receipts {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "derived input uncertainty receipt set",
+            ));
+        }
+        if supplied_input_receipts
+            .iter()
+            .any(|receipt_id| !receipts_by_id.contains_key(receipt_id))
+        {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "derived input uncertainty receipt missing",
+            ));
+        }
+        let output_receipt = require_string(derived, "output_uncertainty_receipt_id")?;
+        if !receipts_by_id.contains_key(output_receipt) {
+            return Err(WireError::UqSidecarLineageMismatch(
+                "derived output uncertainty receipt missing",
+            ));
+        }
+    }
+
+    Ok(ValidatedUqSidecar {
+        protocol_id: protocol_id.to_owned(),
+        schema_version: schema_version.to_owned(),
+        payload_sha256: observed_digest,
+        parent_receipt_payload_sha256: parent_report.payload_sha256,
+        measurement_count: measurements.len(),
+        uncertainty_receipt_count: receipts.len(),
+        derived_result_count: derived_results.len(),
+        actuation_authorized: false,
+        conformity_certified: false,
     })
 }
 
