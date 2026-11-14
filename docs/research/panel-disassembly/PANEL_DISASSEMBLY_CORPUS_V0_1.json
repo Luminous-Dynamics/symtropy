@@ -1,0 +1,2175 @@
+{
+  "schema_id": "org.luminousdynamics.panel-disassembly.synthetic-corpus",
+  "schema_version": "0.1.0",
+  "corpus_id": "PANEL-DISASSEMBLY-CORPUS-V0.1",
+  "classification": "synthetic_fixture_only",
+  "policy_note": "This corpus checks non-load-bearing panel connection removal and component requalification semantics. It does not calculate tool trajectories, removal forces, structural stability, safety interlocks, material properties, or physical reuse eligibility.",
+  "semantics": {
+    "removal": "Requires current panel/as-built/component, sequence, tool and calibration evidence, observed accessible connection, compatible tool, qualified release process, removal force at or below the declared fixture limit, and required support.",
+    "component": "Intact/requalified components may proceed. Single-use, damaged, failed-dimension or wear-exceeded components cannot be reused. Repair must pass its own qualified process and independent requalification.",
+    "reassembly": "Accepted only after current fastening, torque, geometry and functional evidence; unknown function remains Unknown.",
+    "resource": "Shared fixture uses are summed; overbooking blocks the work package.",
+    "claim_ceiling": "Synthetic conformance only."
+  },
+  "cases": [
+    {
+      "case_id": "PD-001",
+      "description": "Visible, correctly identified fastener with a calibrated compatible tool and fully passed requalification/reassembly.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-001",
+        "disposition": "Evaluated",
+        "reason_codes": [],
+        "removal": "Feasible",
+        "component": "ReusableCandidate",
+        "reassembly": "Accepted",
+        "shared_resource": "Feasible",
+        "final_state": "AcceptedReusableAssembly"
+      }
+    },
+    {
+      "case_id": "PD-002",
+      "description": "Connection is occluded; removal must abstain pending further observation.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "occluded",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-002",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "CONNECTION_NOT_OBSERVED"
+        ],
+        "removal": "Unknown",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-003",
+      "description": "The selected tool is incompatible with the declared connection.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "saw",
+          "compatible_types": [
+            "wood_cut"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-003",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "TOOL_CONNECTION_INCOMPATIBLE"
+        ],
+        "removal": "Blocked",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Blocked"
+      }
+    },
+    {
+      "case_id": "PD-004",
+      "description": "As-built connection type differs from the released design.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "adhesive_bond",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-004",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "AS_BUILT_CONNECTION_TYPE_MISMATCH",
+          "TOOL_CONNECTION_INCOMPATIBLE"
+        ],
+        "removal": "Blocked",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Blocked"
+      }
+    },
+    {
+      "case_id": "PD-005",
+      "description": "Stripped fastener head has a separately qualified alternate removal process.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120,
+          "removal_process_variant": "approved_extractor"
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-005",
+        "disposition": "Evaluated",
+        "reason_codes": [],
+        "removal": "Feasible",
+        "component": "ReusableCandidate",
+        "reassembly": "Accepted",
+        "shared_resource": "Feasible",
+        "final_state": "AcceptedReusableAssembly"
+      }
+    },
+    {
+      "case_id": "PD-006",
+      "description": "Corrosion/removal force exceeds the declared non-damaging limit.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 160,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-006",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REMOVAL_LIMIT_EXCEEDED"
+        ],
+        "removal": "Blocked",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Blocked"
+      }
+    },
+    {
+      "case_id": "PD-007",
+      "description": "Adhesive connection lacks a qualified release process.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "adhesive_bond",
+          "observed_type": "adhesive_bond",
+          "access_state": "clear",
+          "release_process_state": "unknown",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-007",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "CONNECTION_RELEASE_PROCESS_NOT_QUALIFIED",
+          "TOOL_CONNECTION_INCOMPATIBLE"
+        ],
+        "removal": "Unknown",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-008",
+      "description": "Connection-sequence evidence is stale.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "stale",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-008",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REMOVAL_PREREQUISITE_EVIDENCE_UNKNOWN"
+        ],
+        "removal": "Unknown",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-009",
+      "description": "Removal force exceeds the declared support/stability envelope.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 160,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-009",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REMOVAL_LIMIT_EXCEEDED"
+        ],
+        "removal": "Blocked",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Blocked"
+      }
+    },
+    {
+      "case_id": "PD-010",
+      "description": "Temporary support is required but its evidence is absent.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "required_missing",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-010",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REQUIRED_TEMPORARY_SUPPORT_MISSING"
+        ],
+        "removal": "Blocked",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Blocked"
+      }
+    },
+    {
+      "case_id": "PD-011",
+      "description": "Component ID does not match the released bill of materials.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "unmapped-component",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-011",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "COMPONENT_ID_NOT_IN_RELEASED_BOM"
+        ],
+        "removal": "NotComparable",
+        "component": "NotEvaluated",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "NotComparable"
+      }
+    },
+    {
+      "case_id": "PD-012",
+      "description": "Panel/as-built registration is stale.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "stale",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-012",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REMOVAL_PREREQUISITE_EVIDENCE_UNKNOWN"
+        ],
+        "removal": "Unknown",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-013",
+      "description": "Sensor coverage is occluded at the connection required by the work instruction.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "occluded",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-013",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "CONNECTION_NOT_OBSERVED"
+        ],
+        "removal": "Unknown",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-014",
+      "description": "Removal damages an adjacent component.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "adjacent_damage",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-014",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "COMPONENT_CONDITION_FAILED"
+        ],
+        "removal": "Feasible",
+        "component": "Rejected",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Rejected"
+      }
+    },
+    {
+      "case_id": "PD-015",
+      "description": "Removed component fails dimensional requalification despite an accepted host panel.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "dimensions_failed",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-015",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "COMPONENT_CONDITION_FAILED"
+        ],
+        "removal": "Feasible",
+        "component": "Rejected",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Rejected"
+      }
+    },
+    {
+      "case_id": "PD-016",
+      "description": "Component condition evidence is unknown.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "unknown",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-016",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REMOVAL_PREREQUISITE_EVIDENCE_UNKNOWN"
+        ],
+        "removal": "Unknown",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-017",
+      "description": "A designated single-use fastener is incorrectly proposed for reuse.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": true,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-017",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "SINGLE_USE_COMPONENT_REUSE_PROHIBITED"
+        ],
+        "removal": "Feasible",
+        "component": "Rejected",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Rejected"
+      }
+    },
+    {
+      "case_id": "PD-018",
+      "description": "Recovered component requires a qualified repair before requalification.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": true,
+          "process_state": "qualified",
+          "evidence_state": "current",
+          "result": "passed"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "pending",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-018",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REQUALIFICATION_PENDING_OR_UNKNOWN"
+        ],
+        "removal": "Feasible",
+        "component": "Unknown",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-019",
+      "description": "A repaired component passes independent requalification and post-reassembly function tests.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": true,
+          "process_state": "qualified",
+          "evidence_state": "current",
+          "result": "passed"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-019",
+        "disposition": "Evaluated",
+        "reason_codes": [],
+        "removal": "Feasible",
+        "component": "ReusableCandidate",
+        "reassembly": "Accepted",
+        "shared_resource": "Feasible",
+        "final_state": "AcceptedReusableAssembly"
+      }
+    },
+    {
+      "case_id": "PD-020",
+      "description": "Repair fails its independent acceptance check.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": true,
+          "process_state": "qualified",
+          "evidence_state": "current",
+          "result": "failed"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-020",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REPAIR_ACCEPTANCE_FAILED"
+        ],
+        "removal": "Feasible",
+        "component": "Rejected",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Rejected"
+      }
+    },
+    {
+      "case_id": "PD-021",
+      "description": "Reassembly torque evidence is missing.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "unknown",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-021",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REASSEMBLY_TORQUE_OUT_OF_RANGE_UNKNOWN"
+        ],
+        "removal": "Feasible",
+        "component": "ReusableCandidate",
+        "reassembly": "Unknown",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-022",
+      "description": "Geometry passes but the declared water/air/acoustic function remains untested.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "unknown"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-022",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "REASSEMBLY_FUNCTION_FAILED_UNKNOWN"
+        ],
+        "removal": "Feasible",
+        "component": "ReusableCandidate",
+        "reassembly": "Unknown",
+        "shared_resource": "Feasible",
+        "final_state": "Unknown"
+      }
+    },
+    {
+      "case_id": "PD-023",
+      "description": "Repeated disassembly cycles exceed the declared wear limit.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "wear_limit_exceeded",
+          "single_use": false,
+          "intended_reuse": true,
+          "cycle_count": 6,
+          "max_qualified_cycles": 5
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 1
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 1
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-023",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "COMPONENT_CONDITION_FAILED"
+        ],
+        "removal": "Feasible",
+        "component": "Rejected",
+        "reassembly": "NotEvaluated",
+        "shared_resource": "Feasible",
+        "final_state": "Rejected"
+      }
+    },
+    {
+      "case_id": "PD-024",
+      "description": "Two panel operations overbook the shared fixture resource.",
+      "input": {
+        "scope_digest": "panel-disassembly-scope:synthetic-v0.1",
+        "panel": {
+          "panel_id": "panel-01",
+          "design_revision": "D1",
+          "bom_digest": "bom-1",
+          "as_built_revision": "A1",
+          "evidence_state": "current",
+          "component_ids": [
+            "trim-01"
+          ]
+        },
+        "connection": {
+          "connection_id": "conn-01",
+          "type": "mechanical_fastener",
+          "observed_type": "mechanical_fastener",
+          "access_state": "clear",
+          "release_process_state": "qualified",
+          "sequence_state": "current",
+          "support_state": "not_required",
+          "removal_force_n": 80,
+          "declared_limit_n": 120
+        },
+        "tool": {
+          "tool_id": "driver-01",
+          "tool_type": "torque_driver",
+          "compatible_types": [
+            "mechanical_fastener"
+          ],
+          "evidence_state": "current",
+          "calibration_state": "current"
+        },
+        "component": {
+          "component_id": "trim-01",
+          "panel_revision": "D1",
+          "condition_evidence_state": "current",
+          "after_removal_condition": "intact",
+          "single_use": false,
+          "intended_reuse": true
+        },
+        "repair": {
+          "required": false,
+          "process_state": "not_required",
+          "evidence_state": "current",
+          "result": "not_required"
+        },
+        "requalification": {
+          "evidence_state": "current",
+          "result": "passed",
+          "test_id": "dimension-and-fit-v1"
+        },
+        "reassembly": {
+          "evidence_state": "current",
+          "fastening_state": "passed",
+          "torque_state": "in_range",
+          "geometry_state": "passed",
+          "function_state": "passed"
+        },
+        "shared_resources": {
+          "resource_id": "fixture-01",
+          "claims": [
+            {
+              "claim_id": "claim-01",
+              "use": 2
+            },
+            {
+              "claim_id": "claim-02",
+              "use": 2
+            }
+          ],
+          "capacity": 3,
+          "evidence_state": "current"
+        }
+      },
+      "expected": {
+        "case_id": "PD-024",
+        "disposition": "Evaluated",
+        "reason_codes": [
+          "SHARED_RESOURCE_OVERBOOKED"
+        ],
+        "removal": "Feasible",
+        "component": "ReusableCandidate",
+        "reassembly": "Blocked",
+        "shared_resource": "Blocked",
+        "final_state": "Blocked"
+      }
+    }
+  ]
+}
