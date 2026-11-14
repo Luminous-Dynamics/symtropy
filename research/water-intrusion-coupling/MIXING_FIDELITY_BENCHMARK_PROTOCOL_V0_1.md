@@ -138,7 +138,7 @@ Conservative tracer qualification precedes reactive chemistry. This separates tr
 
 ## 8. Identifiability and cost-aware experiment design
 
-The accompanying [Mixing Experiment Identifiability and Sensor Design note](MIXING_EXPERIMENT_DESIGN_V0_1.md) defines the preflight rank test for inlet excitation, all-outlet observation requirements, D-/E-optimal information criteria, model discrimination and cost frontiers. The critical negative control is a rank-deficient equal-excitation test: repeated measurements of the same input pattern cannot identify a full mixing operator. This is a design contract only; executable rank/conditioning fixtures are a subsequent increment.
+The accompanying [Mixing Experiment Identifiability and Sensor Design note](MIXING_EXPERIMENT_DESIGN_V0_1.md) defines the preflight rank test for inlet excitation, all-outlet observation requirements, D-/E-optimal information criteria, model discrimination and cost frontiers. The executable `mixing-identifiability-t0` adds 10 synthetic rank/observability cases, including an equal-excitation negative control and a repeated rank-deficient excitation showing that repeats do not restore missing rank. An independent JS replay matched 10/10; the Rust evaluator and ten tests are authored but not natively executed. Full condition-number/Fisher-information optimization is a later increment.
 
 ## 9. Nonclaims
 
