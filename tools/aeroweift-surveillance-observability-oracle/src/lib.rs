@@ -64,6 +64,21 @@ pub enum ObservationStatus {
     InvalidOrStaleTrack,
 }
 
+/// Evidence class attached to one coverage claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageEvidenceClass {
+    /// Captured from a declared measurement campaign.
+    Measured,
+    /// Admitted under an external qualification/certification scope.
+    Certified,
+    /// Derived from a documented model with declared applicability.
+    Modelled,
+    /// Fictional data used only for deterministic tests.
+    Synthetic,
+    /// Evidence method is absent or unresolved.
+    Unknown,
+}
+
 /// A finite coverage claim for one traffic class, cell and half-open validity interval.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CoverageClaim {
@@ -73,6 +88,12 @@ pub struct CoverageClaim {
     pub source_id: &'static str,
     /// Sensor modality.
     pub modality: SensorModality,
+    /// Exact evidence method/class.
+    pub evidence_class: CoverageEvidenceClass,
+    /// Sensor/coverage profile revision identifier.
+    pub profile_id: &'static str,
+    /// Environmental operating profile for which the claim applies.
+    pub environment_profile: &'static str,
     /// Traffic class the claim explicitly supports.
     pub traffic_class: TrafficClass,
     /// Synthetic spatial cell identity.
@@ -115,7 +136,7 @@ pub struct Observation {
 }
 
 /// Result of the scoped surveillance-observability evaluation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservabilityAssessment {
     /// Coverage status for the requested class/cell/time.
     pub coverage_status: CoverageStatus,
@@ -123,6 +144,10 @@ pub struct ObservabilityAssessment {
     pub observation_status: ObservationStatus,
     /// Number of distinct, fully qualified failure-domain families.
     pub independent_family_count: usize,
+    /// Stable claim IDs that contributed to the admitted family set.
+    pub qualified_claim_ids: Vec<&'static str>,
+    /// Distinct failure-domain family IDs counted for this assessment.
+    pub independent_family_ids: Vec<&'static str>,
     /// Whether possible traffic occupancy remains unresolved for downstream planning.
     pub unresolved_possible_occupancy: bool,
 }
@@ -162,6 +187,8 @@ pub fn evaluate(
                 ObservationStatus::NoObservation
             },
             independent_family_count: 0,
+            qualified_claim_ids: Vec::new(),
+            independent_family_ids: Vec::new(),
             unresolved_possible_occupancy: true,
         });
     }
@@ -177,6 +204,7 @@ pub fn evaluate(
         .collect();
 
     let mut independent_families = BTreeSet::new();
+    let mut qualified_claim_ids = Vec::new();
     let mut unknown_dependency = false;
     let mut upstream_degraded = false;
 
@@ -201,9 +229,13 @@ pub fn evaluate(
             continue;
         }
         independent_families.insert(family_id);
+        qualified_claim_ids.push(claim.claim_id);
     }
 
-    let independent_family_count = independent_families.len();
+    qualified_claim_ids.sort_unstable();
+    qualified_claim_ids.dedup();
+    let independent_family_ids: Vec<_> = independent_families.iter().copied().collect();
+    let independent_family_count = independent_family_ids.len();
 
     let coverage_status = if independent_family_count >= minimum_independent_families {
         CoverageStatus::QualifiedCoverage
@@ -252,6 +284,8 @@ pub fn evaluate(
         coverage_status,
         observation_status,
         independent_family_count,
+        qualified_claim_ids,
+        independent_family_ids,
         unresolved_possible_occupancy,
     })
 }
