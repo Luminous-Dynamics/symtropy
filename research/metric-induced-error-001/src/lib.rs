@@ -681,6 +681,52 @@ mod tests {
     }
 
     #[test]
+    fn condition_ladder_preserves_metric_norms_through_dense_shear() {
+        let metric_q = cartesian_metric();
+        let tangent_y =
+            Tangent::<DenseGeneralizedFrame, 3>::new([0.5, -1.0, 2.0]).unwrap();
+        let force_q = Covector::<CartesianFrame, 3>::new([3.0, -2.0, 4.0]).unwrap();
+        let tangent_norm_reference = {
+            let identity =
+                CoordinateRebasis::<CartesianFrame, DenseGeneralizedFrame, 3>::new(
+                    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+                    profile(),
+                )
+                .unwrap();
+            let tangent_q = identity.push_tangent_to_from(&tangent_y).unwrap();
+            metric_q.tangent_norm(&tangent_q, profile()).unwrap()
+        };
+        let covector_norm_reference = metric_q.cotangent_norm(&force_q, profile()).unwrap();
+
+        for shear in [1.0, 10.0, 100.0, 1_000.0] {
+            let basis = CoordinateRebasis::<CartesianFrame, DenseGeneralizedFrame, 3>::new(
+                [[1.0, shear, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+                profile(),
+            )
+            .unwrap();
+            let metric_y = basis.pull_metric_to_to(&metric_q, profile()).unwrap();
+            let tangent_q = basis.push_tangent_to_from(&tangent_y).unwrap();
+            let covector_y = basis.pull_covector_to_to(&force_q).unwrap();
+            let tangent_norm = metric_y.tangent_norm(&tangent_y, profile()).unwrap();
+            let covector_norm = metric_y.cotangent_norm(&covector_y, profile()).unwrap();
+            let tangent_relative_defect =
+                (tangent_norm - tangent_norm_reference).abs() / tangent_norm_reference;
+            let covector_relative_defect =
+                (covector_norm - covector_norm_reference).abs() / covector_norm_reference;
+
+            assert!(
+                tangent_relative_defect < 2.0e-8,
+                "tangent norm drift at shear {shear}: {tangent_relative_defect}"
+            );
+            assert!(
+                covector_relative_defect < 2.0e-8,
+                "cotangent norm drift at shear {shear}: {covector_relative_defect}"
+            );
+            assert!(basis.condition_inf_estimate() >= 1.0);
+        }
+    }
+
+    #[test]
     fn nonsymmetric_and_indefinite_metrics_fail_closed() {
         assert_eq!(
             Metric::<CartesianFrame, 2>::new([[2.0, 0.1], [0.0, 3.0]], profile()).unwrap_err(),
