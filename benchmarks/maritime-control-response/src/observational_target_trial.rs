@@ -578,6 +578,10 @@ impl ObservationalTargetTrialDataset {
             .sort();
         canonical
             .protocol
+            .propensity_fit_covariate_ids
+            .sort();
+        canonical
+            .protocol
             .strata
             .sort_by(|left, right| left.stratum_id.cmp(&right.stratum_id));
         sha256_serializable(
@@ -1233,6 +1237,43 @@ mod tests {
     }
 
     #[test]
+    fn calibration_expiring_before_outcome_availability_is_not_identified() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0]
+            .outcome
+            .as_mut()
+            .unwrap()
+            .calibration_valid_until_seconds = 219.0;
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::OutcomeEvidenceUnavailable
+        ));
+    }
+
+    #[test]
+    fn treatment_version_mismatch_is_rejected_by_dataset_contract() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0].strategy_version_id = "temporary-repair-v0".into();
+        assert!(matches!(
+            dataset.validate(),
+            Err(TargetTrialValidationError::InvalidProtocol(_))
+        ));
+    }
+
+    #[test]
+    fn complete_followup_cannot_also_claim_a_censoring_time() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0].censoring_at_seconds = Some(180.0);
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::FollowupIncomplete
+        ));
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::CensoringRequiresModel
+        ));
+    }
+
+    #[test]
     fn concurrent_intervention_blocks_single_repair_attribution() {
         let (mut dataset, _) = fixture();
         dataset.units[0].concurrent_intervention_ids.push("controller-tune".into());
@@ -1252,6 +1293,8 @@ mod tests {
         assert_eq!(protocol["schema_version"], OBSERVATIONAL_TARGET_TRIAL_SCHEMA);
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["scope"]["causal_estimates_enabled"], false);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
+        assert_eq!(protocol["cases"].as_array().unwrap().len(), 14);
         assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
     }
 }
