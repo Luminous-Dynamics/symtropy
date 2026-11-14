@@ -1062,6 +1062,6 @@ mod tests {
         let corpus: serde_json::Value =
             serde_json::from_str(include_str!("../target-trial-cases-v0.1.json")).unwrap();
         assert_eq!(schema["additionalProperties"], false);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 18);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 19);
     }
 }
