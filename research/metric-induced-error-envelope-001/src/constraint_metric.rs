@@ -14,8 +14,8 @@
 use core::marker::PhantomData;
 
 use crate::{
-    CoordinateFrame, Cotangent, Metric, MetricAdmissionReceiptV1, MetricErrorV1, MetricProfileV1,
-    Rebasis, Tangent,
+    Cometric, CoordinateFrame, Cotangent, MetricAdmissionReceiptV1, MetricErrorV1,
+    MetricProfileV1, Rebasis, Tangent,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -68,8 +68,8 @@ impl<Space: CoordinateFrame, const K: usize> ConstraintResidualV1<Space, K> {
     }
 }
 
-/// W = J M^-1 J^T, retaining the exact admitted mass metric and Jacobian
-/// that generated the constraint-space metric.
+/// W = J M^-1 J^T is a cometric from constraint covectors to constraint
+/// vectors. It is retained with its Cholesky factor, mass metric, and Jacobian.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DelassusMetricV1<
     Frame: CoordinateFrame,
@@ -80,7 +80,7 @@ pub struct DelassusMetricV1<
     mass: Metric<Frame, N>,
     jacobian: [[f64; N]; K],
     whitened_jacobian: [[f64; N]; K],
-    metric: Metric<Space, K>,
+    cometric: Cometric<Space, K>,
     _spaces: PhantomData<(Frame, Space)>,
 }
 
@@ -120,22 +120,22 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             }
         }
 
-        let metric = Metric::<Space, K>::admit(delassus, profile)?;
+        let cometric = Cometric::<Space, K>::admit(delassus, profile)?;
         Ok(Self {
             mass: *mass,
             jacobian,
             whitened_jacobian,
-            metric,
+            cometric,
             _spaces: PhantomData,
         })
     }
 
     pub fn matrix(&self) -> &[[f64; K]; K] {
-        self.metric.matrix()
+        self.cometric.matrix()
     }
 
     pub fn admission_receipt(&self) -> MetricAdmissionReceiptV1 {
-        self.metric.admission_receipt()
+        self.cometric.admission_receipt()
     }
 
     pub fn jacobian(&self) -> &[[f64; N]; K] {
@@ -154,8 +154,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         &self,
         multiplier: &ConstraintMultiplierV1<Space, K>,
     ) -> Result<f64, MetricErrorV1> {
-        let multiplier_coordinates = Tangent::<Space, K>::new(multiplier.components)?;
-        self.metric.tangent_norm(&multiplier_coordinates)
+        let multiplier_covector = Cotangent::<Space, K>::new(multiplier.components)?;
+        self.cometric.covector_norm(&multiplier_covector)
     }
 
     /// ||r||_(W^-1) = sqrt(r^T W^-1 r).
@@ -164,8 +164,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         &self,
         residual: &ConstraintResidualV1<Space, K>,
     ) -> Result<f64, MetricErrorV1> {
-        let residual_coordinates = Cotangent::<Space, K>::new(residual.components)?;
-        self.metric.cotangent_norm(&residual_coordinates)
+        let residual_vector = Tangent::<Space, K>::new(residual.components)?;
+        self.cometric.vector_norm(&residual_vector)
     }
 
     /// delta_v = M^-1 J^T lambda.
@@ -211,8 +211,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         &self,
         residual: &ConstraintResidualV1<Space, K>,
     ) -> Result<Tangent<Frame, N>, MetricErrorV1> {
-        let residual_as_covector = Cotangent::<Space, K>::new(residual.components)?;
-        let multiplier = self.metric.raise(&residual_as_covector)?;
+        let residual_vector = Tangent::<Space, K>::new(residual.components)?;
+        let multiplier = self.cometric.solve(&residual_vector)?;
         let multiplier = ConstraintMultiplierV1::<Space, K>::new(*multiplier.components())?;
         self.induced_velocity_correction(&multiplier)
     }
