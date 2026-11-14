@@ -226,10 +226,20 @@ impl fmt::Display for SequentialEvidenceError {
                 formatter,
                 "sequential evidence stream skipped one or more block ordinals"
             ),
-            Self::InvalidEvidenceBlock => write!(formatter, "sequential evidence unit is not a valid calibrated block"),
-            Self::DuplicateEvidenceUnit(id) => write!(formatter, "duplicate sequential evidence unit: {id}"),
-            Self::OverlappingEvidenceBlock => write!(formatter, "sequential evidence blocks overlap"),
-            Self::InsufficientBlockSeparation => write!(formatter, "sequential evidence blocks violate the frozen minimum separation"),
+            Self::InvalidEvidenceBlock => write!(
+                formatter,
+                "sequential evidence unit is not a valid calibrated block"
+            ),
+            Self::DuplicateEvidenceUnit(id) => {
+                write!(formatter, "duplicate sequential evidence unit: {id}")
+            }
+            Self::OverlappingEvidenceBlock => {
+                write!(formatter, "sequential evidence blocks overlap")
+            }
+            Self::InsufficientBlockSeparation => write!(
+                formatter,
+                "sequential evidence blocks violate the frozen minimum separation"
+            ),
             Self::UnknownOutcome(id) => write!(
                 formatter,
                 "observation is outside the frozen likelihood support: {id}"
@@ -427,7 +437,10 @@ impl SequentialEvidenceSession {
         {
             return Err(SequentialEvidenceError::ModelBindingMismatch);
         }
-        if self.evidence_unit_ids.contains(&observation.evidence_unit_id) {
+        if self
+            .evidence_unit_ids
+            .contains(&observation.evidence_unit_id)
+        {
             return Err(SequentialEvidenceError::DuplicateEvidenceUnit(
                 observation.evidence_unit_id.clone(),
             ));
@@ -436,8 +449,7 @@ impl SequentialEvidenceSession {
             if observation.block_start_seconds < previous_end - 1e-9 {
                 return Err(SequentialEvidenceError::OverlappingEvidenceBlock);
             }
-            if observation.block_start_seconds - previous_end
-                + 1e-9
+            if observation.block_start_seconds - previous_end + 1e-9
                 < self.model.minimum_block_separation_seconds
             {
                 return Err(SequentialEvidenceError::InsufficientBlockSeparation);
@@ -512,7 +524,8 @@ impl SequentialEvidenceSession {
         self.previous_sample_index = Some(observation.sample_index);
         self.previous_time_seconds = Some(observation.time_seconds);
         self.previous_block_end_seconds = Some(observation.block_end_seconds);
-        self.evidence_unit_ids.insert(observation.evidence_unit_id.clone());
+        self.evidence_unit_ids
+            .insert(observation.evidence_unit_id.clone());
         self.previous_receipt_sha256 = Some(receipt.receipt_sha256.clone());
         self.observation_count += 1;
         self.threshold_crossed = crossed;
@@ -929,9 +942,7 @@ mod tests {
     fn adjacent_sample_windows_are_not_counted_as_independent_evidence_blocks() {
         let model = model();
         let mut session = SequentialEvidenceSession::new(model, config(), "run-1").unwrap();
-        session
-            .append(&observation(0, "fault_signature"))
-            .unwrap();
+        session.append(&observation(0, "fault_signature")).unwrap();
 
         let mut adjacent = observation(1, "fault_signature");
         adjacent.block_start_seconds = 10.05;
@@ -1056,10 +1067,12 @@ mod tests {
             protocol["protocol_constraints"]["dependence_review_bound_to_model"],
             true
         );
-        assert!(protocol["validity_conditions"]["block_independence"]
-            .as_str()
-            .unwrap()
-            .contains("not proof of independence"));
+        assert!(
+            protocol["validity_conditions"]["block_independence"]
+                .as_str()
+                .unwrap()
+                .contains("not proof of independence")
+        );
         assert!(
             protocol["research_targets_not_achieved"]
                 .as_array()
