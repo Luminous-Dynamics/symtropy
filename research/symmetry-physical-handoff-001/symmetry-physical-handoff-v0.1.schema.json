@@ -262,7 +262,8 @@
         "checker_version",
         "profile_id",
         "status",
-        "obligations"
+        "obligations",
+        "receiver_receipt_sha256"
       ],
       "properties": {
         "repository": {
