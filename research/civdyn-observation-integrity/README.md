@@ -19,7 +19,7 @@ The sweep covers:
 - telemetry-only observational equivalence and correct abstention;
 - independent physical agreement and disagreement;
 - shared source, gateway and trust-root common causes;
-- stale observations, calibration mismatch and unauthenticated primary telemetry;
+- excessive event-to-ingestion lag, calibration mismatch and unauthenticated primary telemetry;
 - derived reconstruction, instrument self-test and forensic-integrity evidence;
 - duplicate IDs, missing primary telemetry and inverted event/ingestion time;
 - evidence-order invariance.
@@ -32,6 +32,7 @@ This package consumes already-constructed `EvidenceRecord` and `AdmissionPolicy`
 
 - `authenticated` is an upstream boolean assertion; this crate does not verify signatures or source keys.
 - `source_digest` is required to be non-empty; this crate does not fetch bytes or verify a content digest.
+- The current `fresh` predicate compares `ingestion_tick - event_tick` with `maximum_age_ticks`. It bounds event-to-ingestion lag; it does **not** calculate observation age at a later decision cutoff. The CLI names this quantity accordingly.
 - Independence is conservatively screened using source, gateway and trust-root identifiers only. It does not prove organizational, software, calibration, operator, upstream-data or physical-measurement independence.
 - Ticks, the integer `service_index`, tolerance and synthetic identity strings are fixture units, not calibrated physical quantities.
 - A disposition is a software triage result, not physical truth, cyber attribution, instrument qualification, safety authority or permission to act.
