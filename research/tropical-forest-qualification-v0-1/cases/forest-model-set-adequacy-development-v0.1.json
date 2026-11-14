@@ -1,0 +1,78 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-MODEL-SET-ADEQUACY-001",
+  "status": "PUBLIC_DEVELOPMENT_CASE_FAMILIES_NOT_BLIND",
+  "claim_ceiling": "This manifest exposes case families and expected dispositions only. It contains no blind generator equations or parameters; no hidden-test claim is made.",
+  "hidden_truth_published": false,
+  "blind_test_status": "NOT_CREATED_REQUIRES_INDEPENDENT_CUSTODY",
+  "cases": [
+    {
+      "case_id": "FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-001",
+      "family": "growth_mortality_compensation",
+      "condition": "Different growth and mortality processes yield similar net historical biomass but diverge in future stock and size structure.",
+      "expected_disposition": "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-RECRUITMENT-GROWTH-ALIASING-001",
+      "family": "recruitment_growth_aliasing",
+      "condition": "A recruitment pulse and faster growth of existing cohorts produce similar aggregate biomass but different cohort distributions.",
+      "expected_disposition": "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"
+    },
+    {
+      "case_id": "FOREST-MSA-DELAYED-RESPONSE-001",
+      "family": "delayed_response",
+      "condition": "Historical response is fit by instantaneous models while the evaluator's synthetic generator contains a delayed response.",
+      "expected_disposition": "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"
+    },
+    {
+      "case_id": "FOREST-MSA-SIZE-DEPENDENT-MORTALITY-001",
+      "family": "size_dependent_mortality",
+      "condition": "Aggregate mortality fit hides a size-stratified mortality mechanism absent from every registered competitor.",
+      "expected_disposition": "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"
+    },
+    {
+      "case_id": "FOREST-MSA-SEED-LIMITATION-001",
+      "family": "seed_or_propagule_limitation",
+      "condition": "Candidate models attribute recruitment entirely to local gap light while the synthetic generator includes a separate propagule constraint.",
+      "expected_disposition": "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-SPATIAL-CANOPY-TOPOLOGY-001",
+      "family": "spatial_canopy_topology",
+      "condition": "Models with equal mean LAI cannot distinguish different spatial gap topology and local understory light.",
+      "expected_disposition": "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"
+    },
+    {
+      "case_id": "FOREST-MSA-DISTURBANCE-CLIMATE-INTERACTION-001",
+      "family": "disturbance_climate_interaction",
+      "condition": "Separate disturbance and climate response models fit individual shocks but omit their joint interaction.",
+      "expected_disposition": "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"
+    },
+    {
+      "case_id": "FOREST-MSA-OBSERVATION-PROCESS-SHIFT-001",
+      "family": "observation_process_shift",
+      "condition": "The latent forest state is unchanged while the census threshold, sensor, sampling geometry or missingness mechanism changes.",
+      "expected_disposition": "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"
+    },
+    {
+      "case_id": "FOREST-MSA-CROSS-REGION-TRANSFER-001",
+      "family": "cross_region_parameter_transfer",
+      "condition": "A model fitted in a source region is applied to a target regime outside the declared parameter and observation domain.",
+      "expected_disposition": "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"
+    },
+    {
+      "case_id": "FOREST-MSA-COMMON-STRUCTURAL-OMISSION-001",
+      "family": "common_structural_omission",
+      "condition": "All registered models agree and fit historical observations, but the independent evaluator's generator contains a process absent from every registered model.",
+      "expected_disposition": "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"
+    }
+  ],
+  "execution": {
+    "validator": "NOT_IMPLEMENTED_FOR_THIS_CORPUS",
+    "external_data_ingested": false,
+    "blind_generator_identity": "NOT_PUBLISHED",
+    "independent_custodian": "NOT_APPOINTED",
+    "hidden_test": "NOT_CREATED"
+  }
+}
