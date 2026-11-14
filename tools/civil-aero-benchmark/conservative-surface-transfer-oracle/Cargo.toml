@@ -1,0 +1,9 @@
+[package]
+name = "aero-conservative-surface-transfer-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Bounded 3-D surface load-transfer verification cases for AER-01"
+
+[workspace]
