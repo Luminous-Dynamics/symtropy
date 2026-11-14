@@ -4,7 +4,7 @@
   "assignment_plan_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "randomization_frame_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "algorithm": "splitmix64_v1",
-  "seed_u64": 1311768467463790300,
+  "seed_u64": 1311768467463790,
   "draw_count": 1000,
   "observed_treatment_minus_control": 2.5,
   "exceedance_count": 24,
