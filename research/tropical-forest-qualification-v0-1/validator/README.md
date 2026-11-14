@@ -30,7 +30,11 @@ Exit status is 0 for a successful fixture-specific verification, 1 for a semanti
 |---|---|---|
 | Biomass accounting | `PASS` | The synthetic live/deadwood transitions, declared transfers, total stocks and disconnected-control invariants are internally consistent |
 | Canopy geometry | `PASS_SYNTHETIC_GEOMETRY` | The 8×8 analytical grid matches its declared LAI, four-neighbour gap topology and uncalibrated synthetic transmittance equations |
-| Observation operators | `MANIFEST_VALID` | The six expected dispositions, source-specific claim boundaries and non-execution metadata are well-formed; the negative controls themselves have **not** been run against a production observation adapter |
+| Observation operators | `MANIFEST_VALID` | The nine expected dispositions, source-specific claim boundaries and non-execution metadata are well-formed; the negative controls themselves have **not** been run against a production observation adapter |
+
+## Dataset candidate register
+
+See [DATASET_CANDIDATE_REGISTER_V0_1.json](../DATASET_CANDIDATE_REGISTER_V0_1.json) for five metadata-only source candidates: Amazon RAINFOR / EIDC (OGL), NASA / ORNL DAAC Brazil, DRC NFI, PNG NFI and Brazil NFI. It records spatial/temporal support, access state, permitted use and the next admission gate. No source data have been ingested by committing this register.
 
 ## Covered checks
 
@@ -48,7 +52,7 @@ These results are deliberately narrow:
 
 - Biomass fixture PASS does not validate ecological growth or mortality equations.
 - Canopy geometry PASS does not validate radiative transfer, crown allometry, tree physiology or recruitment.
-- Observation `MANIFEST_VALID` does not mean an observation adapter rejected the six negative controls at runtime.
+- Observation `MANIFEST_VALID` does not mean an observation adapter rejected the nine negative controls at runtime.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
 The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
