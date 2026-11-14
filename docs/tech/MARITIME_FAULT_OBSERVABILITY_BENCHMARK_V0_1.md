@@ -209,6 +209,8 @@ No weighted aggregate may compensate for a false-healthy, false-independent, fal
 10. A simulator-only signature is presented as a measured physical result.
 11. An LLM/classifier emits a fault without a source-bound measurement/signature path.
 12. A diagnostic recommendation silently becomes an inspection order, maintenance authorization, restriction release or ODD/mode transition.
+13. The same physical sensor ID is assigned multiple independence groups or is presented as additional independent corroboration through duplicated channel aliases.
+14. A channel marked not installed contributes a signature to the current configuration's observability claim.
 13. Two fault signatures are strongly separated but were measured at materially different load, speed, ambient or transient conditions; the adapter must withhold pairwise identifiability until matched windows or an independently qualified context-normalization model exist.
 14. A measurement-window timestamp uncertainty is as large as its duration, or two fault windows overlap on the common timebase; the evaluator must not treat the interval as a valid independent operating episode.
 15. The recording artifact, independent-episode definition or comparison-tolerance profile is absent or malformed; the evaluator must expose the missing provenance rather than silently assuming equivalence.
@@ -447,3 +449,10 @@ Source-artifact SHA-256 values are provenance references. The executable validat
 
 
 Configuration changes, a different episode-definition version, or conflicting recording-ID/artifact-digest mappings now withdraw pairwise comparison. This avoids transferring a fault-signature claim across a hardware revision or silently changing the statistical unit used to count independent episodes.
+
+
+### Physical sensor identity and independence admission
+
+The maritime adapter now enforces that one physical `sensor_id` maps to exactly one declared measurement principle and one independence-group reference within an asset configuration. Multiple channel aliases from that same transducer are permitted only if they retain the same mapping; the reusable kernel still counts that group once. This blocks a duplicated register/tag from being represented as a second independent measurement principle.
+
+A channel with `installed=false` cannot contribute even to a synthetic conformance pair. Synthetic fixtures may exercise the logic, but the current-configuration inventory remains binding. These checks are structural admission controls; they do not independently verify the physical sensor register or wiring diagram.
