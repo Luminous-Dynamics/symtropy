@@ -833,17 +833,19 @@ fn validate_shared_source_dependencies(
                 .find(|item| item.dependence_group_id == component.dependence_group_id)
             {
                 Some(DependenceDeclaration {
-                    disposition: DependenceDisposition::JointModel {
-                        joint_model_receipt_digest,
-                    },
+                    disposition:
+                        DependenceDisposition::JointModel {
+                            joint_model_receipt_digest,
+                        },
                     ..
                 }) if nonempty(joint_model_receipt_digest) => {
                     Decision::JointModel(joint_model_receipt_digest.clone())
                 }
                 Some(DependenceDeclaration {
-                    disposition: DependenceDisposition::IndependenceSupported {
-                        independence_receipt_digest,
-                    },
+                    disposition:
+                        DependenceDisposition::IndependenceSupported {
+                            independence_receipt_digest,
+                        },
                     ..
                 }) if nonempty(independence_receipt_digest) => {
                     Decision::Independence(independence_receipt_digest.clone())
@@ -1058,7 +1060,8 @@ pub fn audit_measurement_uncertainty(profile: &UncertaintyProfile) -> Uncertaint
     for requirement in &profile.measurement_requirements {
         match &requirement.applicability {
             MeasurementApplicability::Required => {
-                if let Some(measurement) = measurement_map.get(requirement.measurement_id.as_str()) {
+                if let Some(measurement) = measurement_map.get(requirement.measurement_id.as_str())
+                {
                     if measurement.kind != requirement.kind {
                         push(
                             &mut report,
@@ -1070,9 +1073,11 @@ pub fn audit_measurement_uncertainty(profile: &UncertaintyProfile) -> Uncertaint
                 }
             }
             MeasurementApplicability::NotApplicable { .. } => {
-                if profile.measurements.iter().any(|measurement| {
-                    measurement.kind == requirement.kind
-                }) {
+                if profile
+                    .measurements
+                    .iter()
+                    .any(|measurement| measurement.kind == requirement.kind)
+                {
                     push(
                         &mut report,
                         EvidenceDisposition::Rejected,
@@ -1115,7 +1120,9 @@ pub fn audit_measurement_uncertainty(profile: &UncertaintyProfile) -> Uncertaint
                 id,
             );
         }
-        let measurement = measurement_map.get(receipt.measurement_id.as_str()).copied();
+        let measurement = measurement_map
+            .get(receipt.measurement_id.as_str())
+            .copied();
         validate_uncertainty_receipt(receipt, measurement, profile, &mut report);
     }
 
@@ -1302,9 +1309,12 @@ mod tests {
         audit.measurements.clear();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "REQUIRED_MEASUREMENT_MISSING"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "REQUIRED_MEASUREMENT_MISSING" })
+        );
     }
 
     #[test]
@@ -1314,9 +1324,11 @@ mod tests {
         audit.uncertainty_receipts.clear();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "REQUIRED_MEASUREMENT_HAS_NO_UNCERTAINTY_RECEIPT"
-        }));
+        assert!(
+            report.findings.iter().any(|finding| {
+                finding.code == "REQUIRED_MEASUREMENT_HAS_NO_UNCERTAINTY_RECEIPT"
+            })
+        );
     }
 
     #[test]
@@ -1325,9 +1337,12 @@ mod tests {
         audit.uncertainty_receipts[0].calibration_receipt_digest = "other-calibration".into();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "UNCERTAINTY_MEASUREMENT_BINDING_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "UNCERTAINTY_MEASUREMENT_BINDING_MISMATCH" })
+        );
     }
 
     #[test]
@@ -1336,9 +1351,12 @@ mod tests {
         audit.uncertainty_receipts[0].valid_through_tick = 149;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "UNCERTAINTY_RECEIPT_STALE_OR_NOT_YET_VALID"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "UNCERTAINTY_RECEIPT_STALE_OR_NOT_YET_VALID" })
+        );
     }
 
     #[test]
@@ -1347,9 +1365,12 @@ mod tests {
         audit.uncertainty_receipts[0].dependence[0].disposition = DependenceDisposition::Unknown;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "DEPENDENCE_UNRESOLVED"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "DEPENDENCE_UNRESOLVED" })
+        );
     }
 
     #[test]
@@ -1358,9 +1379,12 @@ mod tests {
         audit.uncertainty_receipts[0].dependence.clear();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "DEPENDENCE_DECLARATION_MISSING"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "DEPENDENCE_DECLARATION_MISSING" })
+        );
     }
 
     #[test]
@@ -1388,9 +1412,12 @@ mod tests {
         }
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Inconclusive);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "MONTE_CARLO_CONVERGENCE_RECEIPT_MISSING"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "MONTE_CARLO_CONVERGENCE_RECEIPT_MISSING" })
+        );
     }
 
     #[test]
@@ -1459,14 +1486,16 @@ mod tests {
             MeasurementKind::ElectricalVoltage,
             Some("uq-voltage-001"),
         ));
-        audit.uncertainty_receipts
+        audit
+            .uncertainty_receipts
             .push(uncertainty("uq-voltage-001", "voltage-001"));
         audit.measurements.push(measurement(
             "energy-001",
             MeasurementKind::DerivedElectricalEnergy,
             Some("uq-energy-001"),
         ));
-        audit.uncertainty_receipts
+        audit
+            .uncertainty_receipts
             .push(uncertainty("uq-energy-001", "energy-001"));
         audit.derived_results.push(DerivedResultReceipt {
             result_id: "energy-result-001".into(),
@@ -1479,9 +1508,12 @@ mod tests {
         });
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "DERIVED_INPUT_UNCERTAINTY_SET_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "DERIVED_INPUT_UNCERTAINTY_SET_MISMATCH" })
+        );
     }
 
     #[test]
@@ -1493,22 +1525,28 @@ mod tests {
             };
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "INDEPENDENCE_EVIDENCE_RECEIPT_EMPTY"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "INDEPENDENCE_EVIDENCE_RECEIPT_EMPTY")
+        );
     }
 
     #[test]
     fn dependence_receipt_must_bind_the_exact_component_set() {
         let mut audit = profile();
-        audit.uncertainty_receipts[0].dependence[0].component_ids.clear();
+        audit.uncertainty_receipts[0].dependence[0]
+            .component_ids
+            .clear();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "DEPENDENCE_COMPONENT_SET_MISMATCH"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "DEPENDENCE_COMPONENT_SET_MISMATCH")
+        );
     }
 
     #[test]
@@ -1576,9 +1614,12 @@ mod tests {
 
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "SHARED_SOURCE_DEPENDENCE_UNRESOLVED"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "SHARED_SOURCE_DEPENDENCE_UNRESOLVED" })
+        );
     }
 
     #[test]
@@ -1607,10 +1648,9 @@ mod tests {
         voltage.components[0].source_receipt_digest = source.into();
         voltage.components[0].dependence_group_id = group.into();
         voltage.dependence[0].dependence_group_id = group.into();
-        voltage.dependence[0].disposition =
-            DependenceDisposition::IndependenceSupported {
-                independence_receipt_digest: "joint-scope-independence-review".into(),
-            };
+        voltage.dependence[0].disposition = DependenceDisposition::IndependenceSupported {
+            independence_receipt_digest: "joint-scope-independence-review".into(),
+        };
         audit.uncertainty_receipts.push(voltage);
 
         let report = audit_measurement_uncertainty(&audit);
@@ -1627,9 +1667,12 @@ mod tests {
         }
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "PROBABILISTIC_INTERVAL_HAS_BOUND_ONLY_METHOD"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "PROBABILISTIC_INTERVAL_HAS_BOUND_ONLY_METHOD" })
+        );
     }
 
     #[test]
@@ -1666,9 +1709,12 @@ mod tests {
 
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "SHARED_SOURCE_GROUP_ID_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "SHARED_SOURCE_GROUP_ID_MISMATCH" })
+        );
     }
 
     #[test]
@@ -1704,9 +1750,12 @@ mod tests {
 
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "SHARED_SOURCE_DEPENDENCE_DECISION_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "SHARED_SOURCE_DEPENDENCE_DECISION_MISMATCH" })
+        );
     }
 
     #[test]
@@ -1715,10 +1764,12 @@ mod tests {
         audit.measurements[0].kind = MeasurementKind::AngularVelocity;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "MEASUREMENT_KIND_MISMATCH"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "MEASUREMENT_KIND_MISMATCH")
+        );
     }
 
     #[test]
@@ -1730,10 +1781,12 @@ mod tests {
         ));
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "REQUIRED_MEASUREMENT_MISSING"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "REQUIRED_MEASUREMENT_MISSING")
+        );
     }
 
     #[test]
@@ -1744,10 +1797,12 @@ mod tests {
         audit.uncertainty_receipts[0].valid_through_tick = 250;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Unknown);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "CALIBRATION_STALE_OR_NOT_YET_VALID"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "CALIBRATION_STALE_OR_NOT_YET_VALID")
+        );
     }
 
     #[test]
@@ -1756,9 +1811,12 @@ mod tests {
         audit.measurements[0].calibration_valid_through_tick = 199;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "CALIBRATION_NOT_VALID_FOR_MEASUREMENT_WINDOW"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "CALIBRATION_NOT_VALID_FOR_MEASUREMENT_WINDOW" })
+        );
     }
 
     #[test]
@@ -1775,14 +1833,17 @@ mod tests {
     #[test]
     fn physical_state_reset_changes_the_measurement_scope_identity() {
         let mut audit = profile();
-        audit.measurements[0].scope.physical_state_predecessor_digest =
-            "unexpected-reset-state".into();
+        audit.measurements[0]
+            .scope
+            .physical_state_predecessor_digest = "unexpected-reset-state".into();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "MEASUREMENT_SCOPE_MISMATCH"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "MEASUREMENT_SCOPE_MISMATCH")
+        );
     }
 
     #[test]
@@ -1791,9 +1852,12 @@ mod tests {
         audit.measurements[0].measurement_artifact_digest = "mutated-raw-artifact".into();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "UNCERTAINTY_MEASUREMENT_BINDING_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "UNCERTAINTY_MEASUREMENT_BINDING_MISMATCH" })
+        );
     }
 
     #[test]
@@ -1802,10 +1866,12 @@ mod tests {
         audit.uncertainty_receipts[0].disposition = EvidenceDisposition::Rejected;
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report
-            .findings
-            .iter()
-            .any(|finding| finding.code == "UPSTREAM_UNCERTAINTY_REJECTED"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.code == "UPSTREAM_UNCERTAINTY_REJECTED")
+        );
     }
 
     #[test]
@@ -1822,9 +1888,12 @@ mod tests {
         audit.measurements.push(audit.measurements[0].clone());
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "DUPLICATE_MEASUREMENT_ID"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "DUPLICATE_MEASUREMENT_ID" })
+        );
     }
 
     #[test]
@@ -1833,9 +1902,12 @@ mod tests {
         audit.measurements[0].scope.measurement_window_id = "different-window".into();
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "MEASUREMENT_SCOPE_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "MEASUREMENT_SCOPE_MISMATCH" })
+        );
     }
 
     #[test]
@@ -1848,9 +1920,12 @@ mod tests {
         }
         let report = audit_measurement_uncertainty(&audit);
         assert_eq!(report.disposition, EvidenceDisposition::Rejected);
-        assert!(report.findings.iter().any(|finding| {
-            finding.code == "UNCERTAINTY_UNIT_OR_SCALE_MISMATCH"
-        }));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| { finding.code == "UNCERTAINTY_UNIT_OR_SCALE_MISMATCH" })
+        );
     }
 
     #[test]
