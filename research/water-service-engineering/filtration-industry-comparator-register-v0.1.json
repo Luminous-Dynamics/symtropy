@@ -1,0 +1,198 @@
+{
+  "schema_version": "filtration-industry-comparator-register-v0.1",
+  "snapshot_date": "2026-11-14",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5090",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+  "use_restriction": "internal research baseline design only; WHO product list is explicitly not for commercial or promotional use and is not WHO endorsement",
+  "evidence_ceiling": "published_standard_scope_and_public_listing_metadata_only_no_independent_product_test_or_Luminous_performance_claim",
+  "who_hwt": {
+    "source": "https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies/products-evaluated",
+    "product_list_last_checked": "2026-11-14",
+    "classification": {
+      "three_star": {
+        "bacteria_log10_min": 4,
+        "viruses_log10_min": 5,
+        "protozoa_log10_min": 4
+      },
+      "two_star": {
+        "bacteria_log10_min": 2,
+        "viruses_log10_min": 3,
+        "protozoa_log10_min": 2
+      },
+      "one_star": "meets at least two-star target for only two pathogen classes"
+    },
+    "comparator_examples": [
+      {
+        "name": "LifeStraw Community",
+        "manufacturer": "LifeStraw SA / Vestergaard Group",
+        "technology": "membrane filtration",
+        "who_performance": "three_star",
+        "evaluation_round": "I"
+      },
+      {
+        "name": "ORISA",
+        "manufacturer": "Fonto De Vivo",
+        "technology": "membrane filtration",
+        "who_performance": "three_star",
+        "evaluation_round": "III"
+      },
+      {
+        "name": "Drop2Drink Unit",
+        "manufacturer": "D2D Water Solutions BV",
+        "technology": "UV disinfection and membrane filtration",
+        "who_performance": "two_star",
+        "evaluation_round": "III"
+      },
+      {
+        "name": "Grifaid Family Filter",
+        "manufacturer": "The Safe Water Trust Ltd",
+        "technology": "membrane filtration",
+        "who_performance": "two_star",
+        "evaluation_round": "IV"
+      },
+      {
+        "name": "Katadyn First Response BeFree",
+        "manufacturer": "Katadyn Products Inc.",
+        "technology": "membrane filtration",
+        "who_performance": "one_star_targeted_bacteria_and_protozoa",
+        "evaluation_round": "III"
+      },
+      {
+        "name": "Nazava Water Filters",
+        "manufacturer": "PT Holland for Water / Nazava",
+        "technology": "ceramic filtration",
+        "who_performance": "one_star_targeted_bacteria_and_protozoa",
+        "evaluation_round": "II"
+      }
+    ],
+    "caveats": [
+      "performance level reflects product testing at evaluation time",
+      "correct and consistent use is important",
+      "WHO list says inclusion is not approval or endorsement",
+      "WHO list says not to use it for commercial or promotional purposes",
+      "the list is not exhaustive and does not imply regulatory approval in any country",
+      "microbial star rating is not a chemical contaminant claim"
+    ]
+  },
+  "nsf_standard_families": {
+    "source": "https://www.nsf.org/consumer-resources/articles/standards-water-treatment-systems",
+    "standards": [
+      {
+        "standard": "NSF/ANSI 42",
+        "edition": "2025",
+        "scope": "aesthetic effects and specific product claims"
+      },
+      {
+        "standard": "NSF/ANSI 53",
+        "edition": "2025",
+        "scope": "specific health-effects contaminant reduction claims"
+      },
+      {
+        "standard": "NSF/ANSI 55",
+        "edition": "2026",
+        "scope": "UV microbiological water treatment systems"
+      },
+      {
+        "standard": "NSF/ANSI 58",
+        "edition": "2025",
+        "scope": "reverse-osmosis drinking-water treatment systems"
+      },
+      {
+        "standard": "NSF/ANSI 244",
+        "edition": "2026",
+        "scope": "supplemental filtration for otherwise microbiologically safe water; end-of-life indicator requirement"
+      },
+      {
+        "standard": "NSF/ANSI 401",
+        "edition": "2026",
+        "scope": "specific emerging-compound/incidental-contaminant claims"
+      }
+    ],
+    "note": "Edition year and current listing must be reconfirmed at each benchmark freeze; a standard family does not confer every possible contaminant claim."
+  },
+  "nsf_p549": {
+    "source": "https://www.nsf.org/in/en/news/nsf-launches-protocol-549-for-glyphosate-reduction-claims",
+    "launch_date": "2026-10-14",
+    "type": "NSF protocol (not a blanket certification for all products)",
+    "claim": "independent verification of glyphosate reduction",
+    "stated_effluent_benchmark_mg_l": 0.28,
+    "possible_treatment_methods_in_announcement": [
+      "activated carbon adsorption",
+      "reverse osmosis"
+    ],
+    "alignment": [
+      "NSF/ANSI 53",
+      "NSF/ANSI 58"
+    ],
+    "details_not_present_in_public_announcement": [
+      "full challenge-water recipe",
+      "influent glyphosate concentration",
+      "sampling schedule",
+      "rated flow/capacity and end-of-life protocol",
+      "test laboratory precision and uncertainty",
+      "AMPA co-removal claim"
+    ],
+    "nonclaims": [
+      "0.28 mg/L is a P549 protocol benchmark, not a South African legal limit or universal water-quality limit",
+      "glyphosate reduction does not imply AMPA reduction unless separately tested",
+      "no product is independently tested by Luminous under P549"
+    ]
+  },
+  "nsf_uv_poe_listing_snapshot": {
+    "source": "https://info.nsf.org/Certified/DWTU/Listings.asp?ProductType=Point-of-Entry&Standard=055",
+    "listing_as_of": "2026-11-01T00:15:00-05:00",
+    "manufacturer": "Applied Membranes, Inc.",
+    "examples": [
+      {
+        "model": "UV-SPNSFA-5.4M-HP",
+        "standard": "NSF/ANSI 55",
+        "class": "A",
+        "flow_us_gpm": 5.4,
+        "flow_l_min": 20.441214
+      },
+      {
+        "model": "UV-SPNSFA-18M-HP",
+        "standard": "NSF/ANSI 55",
+        "class": "A",
+        "flow_us_gpm": 18,
+        "flow_l_min": 68.13738
+      },
+      {
+        "model": "UV-SPNSFB-13",
+        "standard": "NSF/ANSI 55",
+        "class": "B",
+        "flow_us_gpm": 13,
+        "flow_l_min": 49.21033
+      }
+    ],
+    "conversion": "1 US gallon per minute = 3.78541 L/min",
+    "caveats": [
+      "examples are exact listed model configurations; verify live listing before comparison",
+      "Class A and Class B claims are not interchangeable",
+      "UV product flow listing is not a measured filter pressure-drop or household cartridge capacity result"
+    ]
+  },
+  "south_africa": {
+    "gazette": "Government Gazette No. 52814, 6 June 2025, Revised Compulsory National Water and Sanitation Services Standards",
+    "source": "https://www.gov.za/sites/default/files/gcis_document/202506/52814gon6292.pdf",
+    "applicable_standard": "SANS 241, exact in-force edition to be confirmed at deployment/benchmark freeze",
+    "obligations": [
+      "distributed drinking water must be fit for human consumption under applicable SANS 241 prescripts",
+      "water safety plan for each water supply system",
+      "annual or risk-triggered water safety plan review",
+      "monitoring programme states sampling points, frequency and parameters",
+      "ISO 17025 accredited analytical methodologies or another demonstrably credible/reliable lab arrangement",
+      "results reported to DWS IRIS within 30 days",
+      "records retained for at least five years"
+    ],
+    "caveat": "This register does not itself establish compliance with SANS 241 or the 2025 Gazette."
+  },
+  "comparison_rules": [
+    "match exact product revision, contaminant claim, flow, pressure, source profile and test method",
+    "do not compare WHO microbial stars with NSF chemical reduction claims as a single score",
+    "separate product certification from local regulatory approval and field service",
+    "include end-of-life and post-capacity performance, not only run-in results",
+    "compare delivered profile-conforming water and lifecycle burden, not raw removal percentage alone",
+    "WHO listed examples are internal scientific references only, not for commercial or promotional reuse"
+  ]
+}
