@@ -72,9 +72,9 @@ jobs:
         working-directory: benchmarks/maritime-control-response
         run: cargo fmt -- --check
 
-      - name: Run diagnostic revision unit tests
+      - name: Run complete library test suite
         working-directory: benchmarks/maritime-control-response
-        run: cargo test --locked --lib diagnosis_revision::tests
+        run: cargo test --locked --lib
 
       - name: Run strict library Clippy
         working-directory: benchmarks/maritime-control-response
