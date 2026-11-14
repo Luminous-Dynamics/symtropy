@@ -1,0 +1,20 @@
+[package]
+name = "circ-mfg-audit"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic, fail-closed contract evaluator for circular construction/manufacturing benchmark fixtures"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+
+[workspace]

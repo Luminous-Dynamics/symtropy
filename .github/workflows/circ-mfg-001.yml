@@ -1,0 +1,41 @@
+name: CIRC-MFG-001 Contract
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/circ-mfg-001/**"
+      - ".github/workflows/circ-mfg-001.yml"
+      - "rust-toolchain.toml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/circ-mfg-001/**"
+      - ".github/workflows/circ-mfg-001.yml"
+      - "rust-toolchain.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: circ-mfg-001-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Format, test and lint the standalone contract evaluator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/circ-mfg-001/Cargo.toml -- --check
+      - name: Run contract and adversarial tests
+        run: cargo test --manifest-path tools/circ-mfg-001/Cargo.toml
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/circ-mfg-001/Cargo.toml --all-targets -- -D warnings
