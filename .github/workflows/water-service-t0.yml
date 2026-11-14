@@ -15,6 +15,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "research/water-service-engineering/**"
+      - "research/distribution-intrusion-transient/**"
       - ".github/workflows/water-service-t0.yml"
   workflow_dispatch:
 
@@ -76,6 +77,7 @@ jobs:
             research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json
             research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json
             research/distribution-intrusion-transient/manifest-v0.1.json
+            research/distribution-intrusion-transient/REVERSE_FLOW_BOUNDARY_T0_V0_1.md
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
           if-no-files-found: warn

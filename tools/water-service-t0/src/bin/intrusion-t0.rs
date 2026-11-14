@@ -12,7 +12,7 @@ const INPUT_CEILING: &str =
     "state_semantics_and_declared_tracer_arithmetic_only_no_physical_or_health_claim";
 const ORACLE_CEILING: &str =
     "expected_contract_dispositions_not_physical_or_health_evidence";
-const CASE_COUNT: usize = 12;
+const CASE_COUNT: usize = 15;
 
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
     value.get(key).ok_or_else(|| format!("missing JSON field: {key}"))
@@ -363,6 +363,174 @@ fn compute(case: &Value) -> Result<Value, String> {
             require(sample_evidence_valid, "sample evidence must be valid")?;
             Ok(negative_result())
         }
+        "DI-T0-013-model-zero-demand-and-leak-but-direct-tracer-confirms-reverse-ingress" => {
+            require(
+                pressure_deficit(inputs)?,
+                "case requires a pressure deficit",
+            )?;
+            require(
+                number(inputs, "pressure_event_duration_s")? > 0.0,
+                "case requires a non-zero pressure event",
+            )?;
+            require(
+                text(inputs, "pathway_state")? == "confirmed_connected_defect",
+                "case requires a confirmed connected defect",
+            )?;
+            require(
+                bool_field(inputs, "external_tracer_present")?,
+                "case requires external tracer",
+            )?;
+            require(
+                text(inputs, "physical_backflow_preventer_state")? == "absent",
+                "case requires no physical backflow preventer",
+            )?;
+            require(
+                close(number(inputs, "pdd_customer_demand_lps")?, 0.0),
+                "PDD customer demand must be zero in this case",
+            )?;
+            require(
+                close(number(inputs, "model_leak_emitter_discharge_lps")?, 0.0),
+                "model leak-emitter discharge must be zero in this case",
+            )?;
+            require(
+                number(inputs, "physical_signed_defect_flow_lps")? > 0.0,
+                "physical defect flow must be positive into the main",
+            )?;
+            require(
+                text(inputs, "flow_sign_convention")? == "positive_into_main",
+                "signed flow convention mismatch",
+            )?;
+            require(
+                bool_field(inputs, "sample_coverage_complete")?,
+                "case requires complete sample coverage",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "detected",
+                "case requires a direct tracer detection",
+            )?;
+            let concentration = number(inputs, "sample_concentration_mg_l")?;
+            let quantification = number(inputs, "method_quantification_limit_mg_l")?;
+            require(
+                concentration > quantification && quantification > 0.0,
+                "tracer concentration must exceed a positive quantification limit",
+            )?;
+            require(
+                text(inputs, "tracer_source_attribution")? == "unique",
+                "tracer source must be uniquely attributable",
+            )?;
+            let sample_evidence_valid = bool_field(inputs, "instrument_calibration_current")?
+                && bool_field(inputs, "method_valid_for_tracer")?;
+            require(sample_evidence_valid, "direct tracer evidence must be valid")?;
+            Ok(json!({
+                "model_boundary_disposition": "MODEL_ZERO_DEMAND_AND_ZERO_LEAK_DO_NOT_REPRESENT_BIDIRECTIONAL_INGRESS",
+                "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
+                "confirmation_basis": "DIRECT_TRACER_DETECTION_AND_SIGNED_REVERSE_FLOW",
+                "pdd_customer_demand_lps": 0.0,
+                "model_leak_emitter_discharge_lps": 0.0,
+                "physical_reverse_flow_into_main_lps": number(inputs, "physical_signed_defect_flow_lps")?,
+                "potability_claim_permitted": false,
+                "release_authorized": false
+            }))
+        }
+        "DI-T0-014-model-zero-demand-and-leak-without-physical-observation" => {
+            require(
+                pressure_deficit(inputs)?,
+                "case requires a pressure deficit",
+            )?;
+            require(
+                text(inputs, "pathway_state")? == "confirmed_connected_defect",
+                "case requires a confirmed connected defect",
+            )?;
+            require(
+                bool_field(inputs, "external_tracer_present")?,
+                "case requires an external tracer source",
+            )?;
+            require(
+                text(inputs, "physical_backflow_preventer_state")? == "unknown",
+                "case requires unknown backflow-preventer state",
+            )?;
+            require(
+                close(number(inputs, "pdd_customer_demand_lps")?, 0.0),
+                "PDD customer demand must be zero",
+            )?;
+            require(
+                close(number(inputs, "model_leak_emitter_discharge_lps")?, 0.0),
+                "model leak-emitter discharge must be zero",
+            )?;
+            require(
+                field(inputs, "physical_signed_defect_flow_lps")?.is_null(),
+                "physical signed defect flow must be unavailable",
+            )?;
+            require(
+                !bool_field(inputs, "sample_coverage_complete")?,
+                "case requires incomplete sample coverage",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "not_sampled",
+                "case requires no tracer sample",
+            )?;
+            Ok(json!({
+                "model_boundary_disposition": "MODEL_ZERO_FLOW_IS_NOT_A_NEGATIVE_INGRESS_OBSERVATION",
+                "ingress_disposition": "INDETERMINATE",
+                "reason": "PHYSICAL_REVERSE_FLOW_AND_TRACER_OBSERVATIONS_UNAVAILABLE",
+                "potability_claim_permitted": false,
+                "release_authorized": false
+            }))
+        }
+        "DI-T0-015-reverse-flow-observed-but-downstream-tracer-sample-missing" => {
+            require(
+                pressure_deficit(inputs)?,
+                "case requires a pressure deficit",
+            )?;
+            require(
+                text(inputs, "pathway_state")? == "confirmed_connected_defect",
+                "case requires a confirmed connected defect",
+            )?;
+            require(
+                text(inputs, "physical_backflow_preventer_state")? == "absent",
+                "case requires no physical backflow preventer",
+            )?;
+            require(
+                close(number(inputs, "pdd_customer_demand_lps")?, 0.0),
+                "PDD customer demand must be zero",
+            )?;
+            require(
+                close(number(inputs, "model_leak_emitter_discharge_lps")?, 0.0),
+                "model leak-emitter discharge must be zero",
+            )?;
+            let reverse_flow = number(inputs, "physical_signed_defect_flow_lps")?;
+            require(
+                reverse_flow > 0.0,
+                "physical defect flow must be positive into the main",
+            )?;
+            require(
+                text(inputs, "flow_sign_convention")? == "positive_into_main",
+                "signed flow convention mismatch",
+            )?;
+            require(
+                !bool_field(inputs, "sample_coverage_complete")?,
+                "case requires incomplete sample coverage",
+            )?;
+            let missing = field(inputs, "missing_sample_points")?
+                .as_array()
+                .ok_or_else(|| "missing_sample_points must be an array".to_owned())?;
+            require(
+                missing.iter().any(|point| point.as_str() == Some("far_end")),
+                "case requires missing far-end tracer sample",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "not_sampled",
+                "case requires an unobserved tracer sample",
+            )?;
+            Ok(json!({
+                "model_boundary_disposition": "MODEL_ZERO_LEAK_DISCHARGE_DOES_NOT_REPRESENT_REVERSE_FLOW",
+                "ingress_disposition": "INDETERMINATE",
+                "reason": "REVERSE_FLOW_OBSERVED_BUT_DOWNSTREAM_TRACER_EVIDENCE_INCOMPLETE",
+                "physical_reverse_flow_into_main_lps": reverse_flow,
+                "potability_claim_permitted": false,
+                "release_authorized": false
+            }))
+        }
         _ => Err(format!("unrecognized intrusion case: {id}")),
     }
 }
@@ -432,7 +600,7 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
     )?;
     let profile = field(inputs, "profile")?;
     require(text(profile, "profile_id")? == PROFILE, "input profile mismatch")?;
-    require(text(profile, "revision")? == "0.1", "input profile revision mismatch")?;
+    require(text(profile, "revision")? == "0.2", "input profile revision mismatch")?;
     require(
         bool_field(profile, "all_values_are_fictional")?,
         "input values must be declared fictional",
@@ -445,6 +613,8 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
         ("concentration", "mg/L"),
         ("mass", "mg"),
         ("time", "s"),
+        ("flow", "L/s"),
+        ("signed_flow", "L/s"),
     ];
     let units = field(&field(inputs, "profile")?, "units")?;
     for (key, expected) in expected_units {
@@ -480,6 +650,14 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
     require(
         number(manifest, "scenario_count")? == CASE_COUNT as f64,
         "manifest scenario count mismatch",
+    )?;
+    require(
+        text(manifest, "profile_revision")? == "0.2",
+        "manifest profile revision mismatch",
+    )?;
+    require(
+        text(manifest, "profile_revision")? == "0.2",
+        "manifest profile revision mismatch",
     )?;
     require(
         text(manifest, "evidence_ceiling")?.contains("no_potability"),
@@ -717,7 +895,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twelve_cases_match_the_separate_frozen_oracle() {
+    fn all_fifteen_cases_match_the_separate_frozen_oracle() {
         let result = evaluated();
         assert_eq!(result["result_count"], CASE_COUNT);
         assert_eq!(result["matched_case_count"], CASE_COUNT);
@@ -795,6 +973,77 @@ mod tests {
             .unwrap();
         assert_eq!(row["computed"]["recommissioning_disposition"], "RECOMMISSIONING_NOT_VERIFIED");
         assert!(!row["computed"]["release_authorized"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn model_zero_demand_and_emitter_discharge_do_not_override_direct_ingress() {
+        let result = evaluated();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| {
+                row["case_id"]
+                    == "DI-T0-013-model-zero-demand-and-leak-but-direct-tracer-confirms-reverse-ingress"
+            })
+            .unwrap();
+        assert_eq!(
+            row["computed"]["ingress_disposition"],
+            "INGRESS_CONFIRMED_IN_TEST"
+        );
+        assert_eq!(
+            row["computed"]["model_boundary_disposition"],
+            "MODEL_ZERO_DEMAND_AND_ZERO_LEAK_DO_NOT_REPRESENT_BIDIRECTIONAL_INGRESS"
+        );
+        assert_eq!(row["computed"]["physical_reverse_flow_into_main_lps"], 0.2);
+        assert!(!row["computed"]["release_authorized"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn zero_model_demand_without_physical_observation_is_indeterminate() {
+        let result = evaluated();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| {
+                row["case_id"]
+                    == "DI-T0-014-model-zero-demand-and-leak-without-physical-observation"
+            })
+            .unwrap();
+        assert_eq!(row["computed"]["ingress_disposition"], "INDETERMINATE");
+        assert_eq!(
+            row["computed"]["reason"],
+            "PHYSICAL_REVERSE_FLOW_AND_TRACER_OBSERVATIONS_UNAVAILABLE"
+        );
+    }
+
+    #[test]
+    fn observed_reverse_flow_without_far_end_sample_is_indeterminate() {
+        let result = evaluated();
+        let row = result["results"]
+            .as_array()
+            .unwrap()
+            .unwrap();
+        let result_row = row
+            .iter()
+            .find(|row| {
+                row["case_id"]
+                    == "DI-T0-015-reverse-flow-observed-but-downstream-tracer-sample-missing"
+            })
+            .unwrap();
+        assert_eq!(
+            result_row["computed"]["ingress_disposition"],
+            "INDETERMINATE"
+        );
+        assert_eq!(
+            result_row["computed"]["reason"],
+            "REVERSE_FLOW_OBSERVED_BUT_DOWNSTREAM_TRACER_EVIDENCE_INCOMPLETE"
+        );
+        assert_eq!(
+            result_row["computed"]["physical_reverse_flow_into_main_lps"],
+            0.2
+        );
     }
 
     #[test]

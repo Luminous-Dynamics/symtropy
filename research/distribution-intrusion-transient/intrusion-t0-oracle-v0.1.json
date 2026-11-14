@@ -112,6 +112,40 @@
         "potability_claim_permitted": false,
         "release_authorized": false
       }
+    },
+    {
+      "case_id": "DI-T0-013-model-zero-demand-and-leak-but-direct-tracer-confirms-reverse-ingress",
+      "expected": {
+        "model_boundary_disposition": "MODEL_ZERO_DEMAND_AND_ZERO_LEAK_DO_NOT_REPRESENT_BIDIRECTIONAL_INGRESS",
+        "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
+        "confirmation_basis": "DIRECT_TRACER_DETECTION_AND_SIGNED_REVERSE_FLOW",
+        "pdd_customer_demand_lps": 0,
+        "model_leak_emitter_discharge_lps": 0,
+        "physical_reverse_flow_into_main_lps": 0.2,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-014-model-zero-demand-and-leak-without-physical-observation",
+      "expected": {
+        "model_boundary_disposition": "MODEL_ZERO_FLOW_IS_NOT_A_NEGATIVE_INGRESS_OBSERVATION",
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "PHYSICAL_REVERSE_FLOW_AND_TRACER_OBSERVATIONS_UNAVAILABLE",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-015-reverse-flow-observed-but-downstream-tracer-sample-missing",
+      "expected": {
+        "model_boundary_disposition": "MODEL_ZERO_LEAK_DISCHARGE_DOES_NOT_REPRESENT_REVERSE_FLOW",
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "REVERSE_FLOW_OBSERVED_BUT_DOWNSTREAM_TRACER_EVIDENCE_INCOMPLETE",
+        "physical_reverse_flow_into_main_lps": 0.2,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
     }
   ]
 }

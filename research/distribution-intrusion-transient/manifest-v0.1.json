@@ -2,7 +2,7 @@
   "schema_version": "0.1.0",
   "programme_id": "DISTRIBUTION-INTRUSION-TRANSIENT-QUAL-001",
   "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5145",
-  "status": "research_design_and_proposed_synthetic_vectors",
+  "status": "research_design_and_proposed_fifteen_case_synthetic_vectors",
   "snapshot_date": "2026-11-14",
   "evidence_class": "design_and_synthetic_only",
   "evidence_ceiling": "no_physical_ingress_measurement_no_pathogen_or_health_claim_no_potability_no_regulatory_or_field_qualification",
@@ -49,7 +49,7 @@
     "T4": "independent multi-site and multi-condition replication"
   },
   "scenario_file": "intrusion-t0-scenarios-v0.1.json",
-  "scenario_count": 12,
+  "scenario_count": 15,
   "scenario_ids": [
     "DI-T0-001-positive-tracer-with-valid-pressure-and-pathway",
     "DI-T0-002-transient-with-no-defect-and-complete-negative-samples",
@@ -62,7 +62,10 @@
     "DI-T0-009-ingress-known-but-mass-balance-incomplete",
     "DI-T0-010-downstream-tracer-arrival",
     "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence",
-    "DI-T0-012-similar-pressure-event-no-ingress-pathway"
+    "DI-T0-012-similar-pressure-event-no-ingress-pathway",
+    "DI-T0-013-model-zero-demand-and-leak-but-direct-tracer-confirms-reverse-ingress",
+    "DI-T0-014-model-zero-demand-and-leak-without-physical-observation",
+    "DI-T0-015-reverse-flow-observed-but-downstream-tracer-sample-missing"
   ],
   "non_compensable_invariants": [
     "pressure_event_alone_never_confirms_ingress",
@@ -73,15 +76,33 @@
     "unmeasured_declared_stream_never_counts_as_zero_mass",
     "potability_claim_never_permitted_by_T0_or_T1",
     "release_authority_never_minted_by_T0_or_T1",
-    "steady_state_EPANET_never_substitutes_for_transient_qualification"
+    "steady_state_EPANET_never_substitutes_for_transient_qualification",
+    "zero_pressure_dependent_customer_demand_does_not_prove_zero_reverse_flow",
+    "zero_leak_emitter_discharge_under_assumed_backflow_prevention_does_not_prove_zero_defect_ingress",
+    "positive_signed_reverse_flow_and_direct_tracer_detection_override_model_side_zero_demand_or_leak_outputs",
+    "reverse_flow_without_complete_tracer_evidence_never_confirms_downstream_contaminant_transport",
+    "missing_physical_reverse_flow_or_tracer_observation_never_becomes_no_ingress"
   ],
   "proposed_next_steps": [
     "validate scenario IDs and arithmetic with a separate known-answer oracle",
     "freeze pressure and sensor bandwidth requirements from the physical test envelope",
     "select a qualified transient reference method without creating a competing solver",
     "design the external-head defect spool and containment with competent reviewers",
-    "reproduce a published intrusion experiment before new-model comparisons"
+    "reproduce a published intrusion experiment before new-model comparisons",
+    "implement_separate_signed_reverse_flow_and_model_boundary_semantics_evaluator_cases",
+    "validate_bidirectional_defect_flow_and_tracer_transport_in_a_non_potable_T1_rig"
   ],
   "input_file": "intrusion-t0-scenarios-v0.1.json",
-  "oracle_file": "intrusion-t0-oracle-v0.1.json"
+  "oracle_file": "intrusion-t0-oracle-v0.1.json",
+  "profile_revision": "0.2",
+  "reverse_flow_boundary_design_file": "REVERSE_FLOW_BOUNDARY_T0_V0_1.md",
+  "evidence_status_snapshot": {
+    "snapshot_date": "2026-11-14",
+    "synthetic_t0_case_count": 15,
+    "source_level_oracle_replay": "pending_final_independent_replay",
+    "native_rust_build_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "physical_t1_reverse_flow_measurement": "not_performed",
+    "physical_t1_tracer_transport": "not_performed",
+    "potable_water_or_health_qualification": "not_performed"
+  }
 }
