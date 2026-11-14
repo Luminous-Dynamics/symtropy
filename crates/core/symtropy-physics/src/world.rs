@@ -45,8 +45,10 @@ const MAX_BIAS_VELOCITY: f64 = 10.0;
 
 /// Quantize a float to Q16.16 fixed-point (range ±32768, resolution 1/65536).
 ///
-/// Used by the `deterministic-net` feature to guarantee bit-identical simulation
-/// across heterogeneous hardware for P2P multiplayer and replay files.
+/// Used by the `deterministic-net` feature to quantize selected state at step
+/// boundaries. This can reduce replay drift, but does not by itself guarantee
+/// bit-identical results across heterogeneous hardware; that remains an
+/// explicit, separately validated property.
 #[cfg(feature = "deterministic-net")]
 #[inline]
 fn quantize_q16_16(v: f64) -> f64 {
@@ -889,8 +891,8 @@ impl<const D: usize> PhysicsWorld<D> {
         for pt in &mut self.contacts[ci].points {
             let r_a = pt.position - com_a;
             let r_b = pt.position - com_b;
-            let v_point_a = va + wa.apply_to_vector(&r_a);
-            let v_point_b = vb + wb.apply_to_vector(&r_b);
+            let v_point_a = va + integrator::angular_point_velocity(&wa, &r_a);
+            let v_point_b = vb + integrator::angular_point_velocity(&wb, &r_b);
             let v_rel_n = (v_point_b - v_point_a).dot(&normal);
 
             pt.restitution_bias = if restitution > 1e-9 && v_rel_n < -RESTITUTION_VELOCITY_THRESHOLD
@@ -994,11 +996,6 @@ impl<const D: usize> PhysicsWorld<D> {
             return contact;
         }
 
-        // Isotropic (mean-of-axes) inverse inertia — see the TODO in
-        // `integrator.rs` (`integrate` / `apply_angular_impulse`) for why
-        // this is only exact for spheres.
-        let inv_i_avg_a = self.bodies[a].inv_inertia.sum() / D as f64;
-        let inv_i_avg_b = self.bodies[b].inv_inertia.sum() / D as f64;
         let com_a = self.bodies[a].position();
         let com_b = self.bodies[b].position();
 
@@ -1058,9 +1055,9 @@ impl<const D: usize> PhysicsWorld<D> {
 
             let v_rel_n = {
                 let va = self.bodies[a].linear_velocity
-                    + self.bodies[a].angular_velocity.apply_to_vector(&r_a);
+                    + integrator::angular_point_velocity(&self.bodies[a].angular_velocity, &r_a);
                 let vb = self.bodies[b].linear_velocity
-                    + self.bodies[b].angular_velocity.apply_to_vector(&r_b);
+                    + integrator::angular_point_velocity(&self.bodies[b].angular_velocity, &r_b);
                 (vb - va).dot(&contact.normal)
             };
 
@@ -1073,16 +1070,19 @@ impl<const D: usize> PhysicsWorld<D> {
                 ((bias_depth - slop).max(0.0) * baumgarte / safe_dt).min(MAX_BIAS_VELOCITY);
             let bias = position_bias.max(pt.restitution_bias);
 
-            // Lever-arm effective-mass term: inv_I * |r_perp|^2, where r_perp
-            // is the component of r orthogonal to the contact normal. This is
-            // the dimension-agnostic generalisation of the classic 3D
-            // "(r × n)² / I" rotational contact term (derivable directly from
-            // `Bivector::from_wedge` + `apply_to_vector`; see
-            // `wedge_matches_3d_lever_arm_identity` in symtropy-math).
-            let n_dot_ra = r_a.dot(&contact.normal);
-            let n_dot_rb = r_b.dot(&contact.normal);
-            let ang_term_a = inv_i_avg_a * (r_a.norm_squared() - n_dot_ra * n_dot_ra);
-            let ang_term_b = inv_i_avg_b * (r_b.norm_squared() - n_dot_rb * n_dot_rb);
+            // Rotational inverse effective mass uses the same body/world
+            // inertia operator as angular impulse application. Bodies without
+            // authoritative mass properties retain the legacy isotropic term.
+            let ang_term_a = integrator::rotational_inverse_effective_mass(
+                &self.bodies[a],
+                &r_a,
+                &contact.normal,
+            );
+            let ang_term_b = integrator::rotational_inverse_effective_mass(
+                &self.bodies[b],
+                &r_b,
+                &contact.normal,
+            );
 
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
             let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
@@ -1162,9 +1162,15 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let v_rel = {
                     let va = self.bodies[a].linear_velocity
-                        + self.bodies[a].angular_velocity.apply_to_vector(&r_a);
+                        + integrator::angular_point_velocity(
+                            &self.bodies[a].angular_velocity,
+                            &r_a,
+                        );
                     let vb = self.bodies[b].linear_velocity
-                        + self.bodies[b].angular_velocity.apply_to_vector(&r_b);
+                        + integrator::angular_point_velocity(
+                            &self.bodies[b].angular_velocity,
+                            &r_b,
+                        );
                     vb - va
                 };
                 let v_n = contact.normal * v_rel.dot(&contact.normal);
@@ -1178,13 +1184,18 @@ impl<const D: usize> PhysicsWorld<D> {
                     // ═══ HARMONY FIELD FRICTION MODULATION ═══
                     mu *= callback.friction_multiplier(&pt.position, contact.body_a);
 
-                    // Lever-arm effective mass for the tangential direction,
-                    // so friction at an offset from the COM can induce spin
-                    // instead of only ever damping linear velocity.
-                    let t_dot_ra = r_a.dot(&tangent);
-                    let t_dot_rb = r_b.dot(&tangent);
-                    let ang_term_a_t = inv_i_avg_a * (r_a.norm_squared() - t_dot_ra * t_dot_ra);
-                    let ang_term_b_t = inv_i_avg_b * (r_b.norm_squared() - t_dot_rb * t_dot_rb);
+                    // Use the same full rotational effective-mass operator
+                    // for tangential friction as for the normal impulse.
+                    let ang_term_a_t = integrator::rotational_inverse_effective_mass(
+                        &self.bodies[a],
+                        &r_a,
+                        &tangent,
+                    );
+                    let ang_term_b_t = integrator::rotational_inverse_effective_mass(
+                        &self.bodies[b],
+                        &r_b,
+                        &tangent,
+                    );
                     let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
 
                     let j_t_desired = -v_t_mag / denom_t;
