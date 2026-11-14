@@ -1,0 +1,106 @@
+{
+  "schema_version": "luminous.metric_physics_benchmark_result.v0.1",
+  "record_kind": "synthetic_contract_example",
+  "run_id": "synthetic-not-run-contract-example",
+  "case_binding": {
+    "case_id": "DUMBBELL-DENSE-REBASIS-001",
+    "repository": "Luminous-Dynamics/symtropy",
+    "commit_sha": "b9fcf688b502d602eac91297880bf3a3e484545f",
+    "path": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.json",
+    "git_blob_sha": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284",
+    "coordinate_family": {
+      "family": 0,
+      "basis_condition_2": 387.32736441766446,
+      "transformed_mass_condition_2": 206371.94480768955
+    }
+  },
+  "implementation": {
+    "backend_id": "drake",
+    "implementation_name": "Drake adapter",
+    "version": "not-run",
+    "source_commit_sha": null
+  },
+  "model_mapping": {
+    "status": "NOT_VERIFIED",
+    "physical_model": "two-point-mass fixed-link",
+    "coordinate_order": "not verified",
+    "velocity_convention": "not verified",
+    "force_covector_convention": "not verified",
+    "constraint_equations": "not verified",
+    "initial_state": "pinned case reference; adapter not executed",
+    "time_step_seconds": null,
+    "integration_method": "not verified",
+    "units": "SI",
+    "solver_tolerances": "not verified",
+    "notes": [
+      "Synthetic schema fixture only; no Drake execution or timing is claimed."
+    ],
+    "comparison_scope": "mass_metric_riesz_solve_kernel_only"
+  },
+  "execution": {
+    "status": "NOT_RUN",
+    "cpu_model": "not-run",
+    "os": "not-run",
+    "architecture": "not-run",
+    "compiler": "not-run",
+    "floating_point_mode": "unknown",
+    "thread_count": null,
+    "warmup_steps": null,
+    "repetitions": null,
+    "random_seed": null
+  },
+  "metrics": {
+    "coordinate_invariance": {
+      "tangent_norm_relative_drift": null,
+      "cotangent_norm_relative_drift": null,
+      "canonical_pairing_relative_drift": null,
+      "mass_congruence_relative_defect": null,
+      "constraint_jacobian_relative_defect": null,
+      "raw_coordinate_inf_norm_change": null
+    },
+    "numerical_quality": {
+      "coordinate_condition_2": null,
+      "metric_induced_operator_condition": null,
+      "normwise_backward_error": null,
+      "componentwise_backward_error": null,
+      "metric_residual_norm": null,
+      "forward_error_bound": null,
+      "observed_high_precision_forward_error": null,
+      "forward_bound_covers_observed": null
+    },
+    "physical_fidelity": {
+      "lifted_position_l2_error": null,
+      "lifted_velocity_l2_error": null,
+      "momentum_l2_error": null,
+      "constraint_residual": null,
+      "energy_work_defect_j": null,
+      "discrete_step_equivariance_defect": null,
+      "lifted_acceleration_relative_error": null
+    },
+    "decision_quality": {
+      "negative_controls_run": null,
+      "false_accept_count": null,
+      "false_reject_count": null,
+      "inconclusive_case_count": null,
+      "wrong_law_negative_control_relative_error": null
+    },
+    "systems_cost": {
+      "solve_median_ns": null,
+      "solve_p95_ns": null,
+      "solve_p99_ns": null,
+      "factorization_median_ns": null,
+      "evidence_overhead_median_ns": null,
+      "peak_memory_bytes": null
+    }
+  },
+  "decision": {
+    "acceptance": "INCONCLUSIVE",
+    "comparison_status": "NOT_COMPARABLE",
+    "reason": "Synthetic NOT_RUN example demonstrates fail-closed schema semantics; no adapter execution has occurred."
+  },
+  "claim_boundary": [
+    "This is a synthetic schema fixture, not a measured result.",
+    "It must never be included in solver rankings or performance summaries.",
+    "No implementation superiority or physical equivalence claim is made."
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/metric-benchmark-comparison-001/mujoco-operator-capture-v0.1.schema.json",
+  "title": "MuJoCo 4.0.1 matched Delassus operator capture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_case_id",
+    "engine_version",
+    "engine_release_tag",
+    "engine_release_commit",
+    "comparison_scope",
+    "nv",
+    "nq",
+    "nefc",
+    "ncon",
+    "neq",
+    "ntendon",
+    "solver",
+    "diagexact_enabled",
+    "jacobian_storage",
+    "jacobian_row_nnz",
+    "whitened_row_nnz",
+    "mass_matrix",
+    "constraint_jacobian",
+    "whitened_jacobian",
+    "force_covector",
+    "direct_delassus",
+    "whitened_delassus",
+    "native_exact_diagA",
+    "native_efc_R",
+    "native_constraint_force",
+    "constraint_position_residual",
+    "direct_whitened_relative_defect",
+    "mass_1_site_world_position",
+    "mass_2_site_world_position",
+    "model_state_qpos",
+    "model_state_qvel",
+    "engine_archive_sha256",
+    "model_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.mujoco_operator_capture.v0.1"
+    },
+    "benchmark_case_id": {
+      "const": "DUMBBELL-DENSE-REBASIS-001"
+    },
+    "engine_version": {
+      "type": "string",
+      "pattern": "^4\\.0\\.1"
+    },
+    "engine_release_tag": {
+      "const": "4.0.1"
+    },
+    "engine_release_commit": {
+      "const": "4ed093a9f06b170bd1564942fa37e1bb907d93e3"
+    },
+    "comparison_scope": {
+      "const": "mass-jacobian-delassus-operator-only"
+    },
+    "nv": {
+      "const": 6
+    },
+    "nq": {
+      "const": 6
+    },
+    "nefc": {
+      "const": 1
+    },
+    "ncon": {
+      "const": 0
+    },
+    "neq": {
+      "const": 1
+    },
+    "ntendon": {
+      "const": 1
+    },
+    "solver": {
+      "const": "PGS"
+    },
+    "diagexact_enabled": {
+      "const": true
+    },
+    "jacobian_storage": {
+      "const": "sparse-csr"
+    },
+    "jacobian_row_nnz": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6
+    },
+    "whitened_row_nnz": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6
+    },
+    "mass_matrix": {
+      "type": "array",
+      "minItems": 36,
+      "maxItems": 36,
+      "items": {
+        "type": "number"
+      }
+    },
+    "constraint_jacobian": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "number"
+      }
+    },
+    "whitened_jacobian": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "number"
+      }
+    },
+    "force_covector": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "direct_delassus": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "whitened_delassus": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "native_exact_diagA": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "native_efc_R": {
+      "type": "number",
+      "minimum": 0
+    },
+    "native_constraint_force": {
+      "type": "number"
+    },
+    "constraint_position_residual": {
+      "type": "number"
+    },
+    "direct_whitened_relative_defect": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1e-10
+    },
+    "model_state_qpos": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "number"
+      }
+    },
+    "model_state_qvel": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "number"
+      }
+    },
+    "mass_1_site_world_position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "mass_2_site_world_position": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "engine_archive_sha256": {
+      "const": "8df1308b2900a4ed6c18717ebbc9d66d53ab3fe7a4da860a7d5b21f94607299d"
+    },
+    "model_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/metric-benchmark-comparison-001/benchmark-case-v0.1.schema.json",
+  "title": "Luminous matched metric-physics benchmark case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "case_id",
+    "source_case",
+    "physical_model",
+    "step_contract",
+    "coordinate_families",
+    "comparator_contract",
+    "required_metric_groups",
+    "acceptance_policy",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.metric_physics_benchmark_case.v0.1"
+    },
+    "benchmark_id": {
+      "const": "metric-physics-matched-comparison-v0.1"
+    },
+    "case_id": {
+      "const": "DUMBBELL-DENSE-REBASIS-001"
+    },
+    "source_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit_sha",
+        "path",
+        "git_blob_sha",
+        "schema_path",
+        "schema_git_blob_sha"
+      ],
+      "properties": {
+        "repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "commit_sha": {
+          "const": "b9fcf688b502d602eac91297880bf3a3e484545f"
+        },
+        "path": {
+          "const": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.json"
+        },
+        "git_blob_sha": {
+          "const": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284"
+        },
+        "schema_path": {
+          "const": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.schema.json"
+        },
+        "schema_git_blob_sha": {
+          "const": "33de0297be846f0e6b9d2e3b019d1f3d3e979297"
+        }
+      }
+    },
+    "physical_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "spatial_dimension",
+        "generalized_velocity_dof",
+        "masses_kg",
+        "link_length_m",
+        "constraint_kind",
+        "massless_link"
+      ],
+      "properties": {
+        "kind": {
+          "const": "two_point_mass_fixed_link"
+        },
+        "spatial_dimension": {
+          "const": 3
+        },
+        "generalized_velocity_dof": {
+          "const": 6
+        },
+        "masses_kg": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "link_length_m": {
+          "const": 1.2
+        },
+        "constraint_kind": {
+          "const": "holonomic_fixed_distance"
+        },
+        "massless_link": {
+          "const": true
+        }
+      }
+    },
+    "step_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "time_step_seconds",
+        "force_covector_semantics",
+        "force_newton",
+        "constraint_reaction_required",
+        "newton_max_iterations",
+        "normalized_constraint_tolerance"
+      ],
+      "properties": {
+        "method": {
+          "const": "semi_explicit_midpoint_constrained_step"
+        },
+        "time_step_seconds": {
+          "const": 0.02
+        },
+        "force_covector_semantics": {
+          "const": "generalized_force_covector_in_canonical_coordinates"
+        },
+        "force_newton": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "constraint_reaction_required": {
+          "const": true
+        },
+        "newton_max_iterations": {
+          "const": 32
+        },
+        "normalized_constraint_tolerance": {
+          "const": 1e-12
+        }
+      }
+    },
+    "coordinate_families": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "family",
+          "exact_determinant",
+          "basis_condition_2",
+          "transformed_mass_condition_2"
+        ],
+        "properties": {
+          "family": {
+            "enum": [
+              0,
+              2
+            ]
+          },
+          "exact_determinant": {
+            "const": 1
+          },
+          "basis_condition_2": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "transformed_mass_condition_2": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "comparator_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_backends",
+        "matching_fields",
+        "strict_matching",
+        "nonmatching_result_policy"
+      ],
+      "properties": {
+        "required_backends": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "symtropy_reference_lu",
+              "symtropy_reference_cholesky",
+              "drake",
+              "mujoco",
+              "pinocchio",
+              "independent_high_precision"
+            ]
+          },
+          "maxItems": 6
+        },
+        "matching_fields": {
+          "type": "array",
+          "minItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "physical_model",
+              "generalized_coordinate_order",
+              "velocity_convention",
+              "force_covector_convention",
+              "constraint_equations",
+              "initial_state",
+              "time_step",
+              "integration_method",
+              "units",
+              "solver_tolerances"
+            ]
+          },
+          "maxItems": 10
+        },
+        "strict_matching": {
+          "const": true
+        },
+        "nonmatching_result_policy": {
+          "const": "NOT_COMPARABLE"
+        }
+      }
+    },
+    "required_metric_groups": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "semantic_mapping",
+          "coordinate_invariance",
+          "numerical_quality",
+          "physical_fidelity",
+          "decision_quality",
+          "systems_cost"
+        ]
+      },
+      "maxItems": 6
+    },
+    "acceptance_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_independent_high_precision_reference",
+        "zero_false_accept_target",
+        "abstain_on_unverified_mapping",
+        "no_sota_claim_without_matched_case"
+      ],
+      "properties": {
+        "require_independent_high_precision_reference": {
+          "const": true
+        },
+        "zero_false_accept_target": {
+          "const": true
+        },
+        "abstain_on_unverified_mapping": {
+          "const": true
+        },
+        "no_sota_claim_without_matched_case": {
+          "const": true
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
