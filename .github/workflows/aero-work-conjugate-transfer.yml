@@ -1,0 +1,62 @@
+name: AER-01 work-conjugate surface transfer
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-work-conjugate-transfer.yml"
+      - "tools/civil-aero-benchmark/work-conjugate-transfer/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-work-conjugate-transfer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/work-conjugate-transfer/Cargo.toml -- --check
+
+      - name: Run Rust surface-transfer known-answer and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/work-conjugate-transfer/Cargo.toml
+
+      - name: Run Rust transfer executable
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/work-conjugate-transfer/Cargo.toml > work-conjugate-transfer-result.json
+
+      - name: Independently recompute force, moment and work in Python
+        run: python3 tools/civil-aero-benchmark/work-conjugate-transfer/verify_independent.py --rust-output work-conjugate-transfer-result.json
+
+      - name: Create source and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/work-conjugate-transfer/data/nonmatching-planar-patch-v0.1.json > work-conjugate-transfer-source.sha256
+          sha256sum work-conjugate-transfer-result.json > work-conjugate-transfer-result.sha256
+
+      - name: Retain fixture, result and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-work-conjugate-transfer-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/work-conjugate-transfer/data/nonmatching-planar-patch-v0.1.json
+            work-conjugate-transfer-result.json
+            work-conjugate-transfer-source.sha256
+            work-conjugate-transfer-result.sha256
+          if-no-files-found: error
+          retention-days: 90
