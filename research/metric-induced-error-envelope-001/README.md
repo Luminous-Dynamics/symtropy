@@ -181,6 +181,21 @@ The example uses F(x)=1/8 + x + x^2 on X=[-0.2,-0.05], with outward-enclosed F(x
 
     cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example scalar_krawczyk_quadratic
 
+
+## Interval-derived eta/gamma and independent root checks
+
+The `scalar_quadratic_bounds` module derives Newton-Kantorovich inputs from a supplied exact-binary64 scalar quadratic
+
+    F(x) = c0 + c1*x + c2*x^2/2
+
+at a declared center x0. It outward-encloses F(x0), F'(x0), the reciprocal of F'(x0), the preconditioned residual |F(x0)/F'(x0)|, and the preconditioned second derivative |c2/F'(x0)|. For this quadratic, the second derivative is constant, so the latter is a global Lipschitz upper bound for the preconditioned derivative. A derivative interval containing zero is rejected.
+
+The new end-to-end example uses F(x)=1/8+x+x^2 at x0=-1/8. The exact source values are F(x0)=1/64, F'(x0)=3/4, eta=1/48 and gamma=8/3; the generated intervals must contain those values. The resulting bound records are passed to the conditional Newton-Kantorovich calculator and independently to a scalar Krawczyk inclusion over a separate box.
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example derived_quadratic_root
+
+This closes the scalar polynomial provenance loop only. The coefficients are the model. It does not establish that a physical constrained midpoint residual is this polynomial, nor does it yet derive multivariate Hessian/inverse-operator enclosures.
+
 ## Reproducible microbenchmark v0.1
 
 The `metric-induced-microbenchmark` binary uses one frozen 6-DOF diagonal-mass / dense unit-triangular rebasing fixture. It reports per-operation median, p95 and p99 nanoseconds plus a numerical checksum for:
