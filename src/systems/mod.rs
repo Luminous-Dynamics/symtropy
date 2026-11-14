@@ -20,6 +20,7 @@ pub mod engine_physics;
 pub mod fep_behavior;
 pub mod four_d_rendering;
 pub mod harmonies;
+pub mod industrial_workcell;
 pub mod input;
 pub mod leviathan;
 pub mod living_dungeon;
