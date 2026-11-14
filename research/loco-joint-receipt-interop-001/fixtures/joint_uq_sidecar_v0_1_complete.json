@@ -1,0 +1,264 @@
+{
+  "protocol_id": "LOCO-JOINT-UQ-SIDECAR-001",
+  "schema_version": "0.1.0",
+  "parent_binding": {
+    "protocol_id": "LOCO-JOINT-RECEIPT-INTEROP-001",
+    "schema_version": "0.1.0",
+    "payload_sha256": "cb19e0327c2f47c895eae4e49a89c9f8f9c9918e080d52b201d98b1a794823b8"
+  },
+  "scope": {
+    "mission_id": "jm-golden-001",
+    "robot_id": "robot-a1-synthetic-01",
+    "actuator_id": "hip-flexion-left",
+    "actuator_configuration_digest": "bb9d5f30ef68e558e7affcdd8019015f87919bcdba8d83a647c2ac2e1b012652",
+    "controller_configuration_digest": "207c289a728e85048549c0a433bf0b9906434abfb26c8e5d16866d16f503cc80",
+    "scenario_manifest_digest": "0847b718dd88d7bd411762979a147b08c6eb0db9b16fb17ab8b0bea727aa8d5b",
+    "test_manifest_digest": "d64eeeb2a29b2d49d3c4085f70314e7831b6f2df403ef799d3b7834d1efa494f",
+    "measurement_window_id": "joint-bench-window-001",
+    "physical_boundary_manifest_digest": "8c08208dfc991c1c16be2c658f2663f81b98f7f81240266a7bd44bfb5f1b7ea5",
+    "physical_state_predecessor_digest": "6af5552cd30ac3a4aa8a44ccb39d502d5294aff2e59777793a69e51b302feb32",
+    "physical_state_result_digest": "29ef64593ee29aea4f75999f99aef939d4090ba9288103bd9092cb87bf7fb6d4",
+    "monotonic_clock_id": "joint-bench-clock-0",
+    "boot_epoch": "7"
+  },
+  "measurements": [
+    {
+      "measurement_id": "torque-001",
+      "kind": "shaft_torque",
+      "measurement_artifact_digest": "98134ec5203d4c75386c1088adea2e4fe960c3ef935076c840c7a1749c953527",
+      "instrument_configuration_digest": "839ae203640ca6e52bf9f705bab05bc7585a6f9a4eea97c2c811269ea9b6fb1e",
+      "calibration_receipt_digest": "ffb9cd3c15750c2a08a463c94715c280e369681cc5fa49ca1785529819e8d2e1",
+      "unit_code": "N*m",
+      "decimal_exponent": -3,
+      "start_tick": "90",
+      "end_tick": "110",
+      "calibration_valid_from_tick": "50",
+      "calibration_valid_through_tick": "250",
+      "disposition": "qualified",
+      "uncertainty_receipt_id": "uq-torque-001"
+    },
+    {
+      "measurement_id": "bus-voltage-001",
+      "kind": "electrical_voltage",
+      "measurement_artifact_digest": "8071a2fe0e849d39e18efe7fcd298a1edc21c163d1252779d55ba5f257601041",
+      "instrument_configuration_digest": "5341d56b9e9c803b87d7020f4f37b83894727a249860349ebff63ed1d1c07331",
+      "calibration_receipt_digest": "9f32e1aa3871dbc5396d52fa11d8930691d336cc078b37a682b2955a5337fd1f",
+      "unit_code": "V",
+      "decimal_exponent": -3,
+      "start_tick": "90",
+      "end_tick": "110",
+      "calibration_valid_from_tick": "50",
+      "calibration_valid_through_tick": "250",
+      "disposition": "qualified",
+      "uncertainty_receipt_id": "uq-voltage-001"
+    },
+    {
+      "measurement_id": "electrical-energy-001",
+      "kind": "derived_electrical_energy",
+      "measurement_artifact_digest": "ee2159be0ac659f801fd3f660aec144861dddb1332c4d894dd10752d7624fa1b",
+      "instrument_configuration_digest": "06084d16ee293a7291670818f4f5be6131df4a18d755f541a9c4271b6f921bb7",
+      "calibration_receipt_digest": "6e577f01d6e4d66291fb31edc0535b155beb3acdc98f670a5f388d7a5ae1403a",
+      "unit_code": "J",
+      "decimal_exponent": -3,
+      "start_tick": "90",
+      "end_tick": "110",
+      "calibration_valid_from_tick": "50",
+      "calibration_valid_through_tick": "250",
+      "disposition": "qualified",
+      "uncertainty_receipt_id": "uq-energy-001"
+    }
+  ],
+  "uncertainty_receipts": [
+    {
+      "receipt_id": "uq-torque-001",
+      "measurement_id": "torque-001",
+      "scope_digest": "4d8cb5d18f77532cda4014cf71fc3240190765efe5710b0a80d536a4a5928a88",
+      "measurement_artifact_digest": "98134ec5203d4c75386c1088adea2e4fe960c3ef935076c840c7a1749c953527",
+      "instrument_configuration_digest": "839ae203640ca6e52bf9f705bab05bc7585a6f9a4eea97c2c811269ea9b6fb1e",
+      "calibration_receipt_digest": "ffb9cd3c15750c2a08a463c94715c280e369681cc5fa49ca1785529819e8d2e1",
+      "unit_code": "N*m",
+      "decimal_exponent": -3,
+      "coverage": {
+        "kind": "probability_interval",
+        "lower_scaled": "-5",
+        "upper_scaled": "5",
+        "coverage_probability_ppm": 950000,
+        "unit_code": "N*m",
+        "decimal_exponent": -3,
+        "method": "first_order_gum",
+        "coverage_receipt_digest": "2a4b6486a49f4e6517d889d1af906169a0e7926c0771107f4ad5b78e9ec1cdc8",
+        "convergence_receipt_digest": null
+      },
+      "components": [
+        {
+          "component_id": "torque-shared-cal",
+          "kind": "calibration_reference",
+          "source_receipt_digest": "47350dc787167b6bccbd5a2efd968e41cbf0abe357339a79a9aab1bfa13f707e",
+          "dependence_group_id": "cross-channel-calibration"
+        },
+        {
+          "component_id": "torque-repeatability",
+          "kind": "repeatability",
+          "source_receipt_digest": "d881867907083e58fcee133173c89c249f5e56886ac6978765a09aca56f3d670",
+          "dependence_group_id": "torque-local-noise"
+        }
+      ],
+      "dependence": [
+        {
+          "dependence_group_id": "cross-channel-calibration",
+          "component_ids": [
+            "torque-shared-cal"
+          ],
+          "decision": {
+            "kind": "joint_model",
+            "receipt_digest": "0784d035aebad8e436eb6b30bccbb4b3a94746ebf3c3c8a123d8d4900fd9601d"
+          }
+        },
+        {
+          "dependence_group_id": "torque-local-noise",
+          "component_ids": [
+            "torque-repeatability"
+          ],
+          "decision": {
+            "kind": "independence_supported",
+            "receipt_digest": "c9d702dc82b0c969ea2d67be09011a660290494d8fbe3607d24657f108796aca"
+          }
+        }
+      ],
+      "budget_result_receipt_digest": "6374d38b2d0ac2875cd81e2d6ea03e5b08698c54ebccf72e1d99c0be5ddd3d36",
+      "disposition": "qualified",
+      "valid_from_tick": "50",
+      "valid_through_tick": "250"
+    },
+    {
+      "receipt_id": "uq-voltage-001",
+      "measurement_id": "bus-voltage-001",
+      "scope_digest": "4d8cb5d18f77532cda4014cf71fc3240190765efe5710b0a80d536a4a5928a88",
+      "measurement_artifact_digest": "8071a2fe0e849d39e18efe7fcd298a1edc21c163d1252779d55ba5f257601041",
+      "instrument_configuration_digest": "5341d56b9e9c803b87d7020f4f37b83894727a249860349ebff63ed1d1c07331",
+      "calibration_receipt_digest": "9f32e1aa3871dbc5396d52fa11d8930691d336cc078b37a682b2955a5337fd1f",
+      "unit_code": "V",
+      "decimal_exponent": -3,
+      "coverage": {
+        "kind": "probability_interval",
+        "lower_scaled": "-10",
+        "upper_scaled": "10",
+        "coverage_probability_ppm": 950000,
+        "unit_code": "V",
+        "decimal_exponent": -3,
+        "method": "first_order_gum",
+        "coverage_receipt_digest": "57f3fc500cad617860d0bd90317fbb7dc4ddc9c4a66cd2482a8a7d7cc5715a1a",
+        "convergence_receipt_digest": null
+      },
+      "components": [
+        {
+          "component_id": "voltage-shared-cal",
+          "kind": "calibration_reference",
+          "source_receipt_digest": "47350dc787167b6bccbd5a2efd968e41cbf0abe357339a79a9aab1bfa13f707e",
+          "dependence_group_id": "cross-channel-calibration"
+        },
+        {
+          "component_id": "voltage-repeatability",
+          "kind": "repeatability",
+          "source_receipt_digest": "0da40d9d91fe6407d51f6d922d4f012390f85f3520347b511d5ca39be479da01",
+          "dependence_group_id": "voltage-local-noise"
+        }
+      ],
+      "dependence": [
+        {
+          "dependence_group_id": "cross-channel-calibration",
+          "component_ids": [
+            "voltage-shared-cal"
+          ],
+          "decision": {
+            "kind": "joint_model",
+            "receipt_digest": "0784d035aebad8e436eb6b30bccbb4b3a94746ebf3c3c8a123d8d4900fd9601d"
+          }
+        },
+        {
+          "dependence_group_id": "voltage-local-noise",
+          "component_ids": [
+            "voltage-repeatability"
+          ],
+          "decision": {
+            "kind": "independence_supported",
+            "receipt_digest": "15b40fcf119f0d52f455b0fbe7a2a880beced837d4f9d2b05fc6c14961a340dd"
+          }
+        }
+      ],
+      "budget_result_receipt_digest": "fd5faad4b177250eb45e1fc31c3a8505a44d068f03cd0aacec72e7e041f2595b",
+      "disposition": "qualified",
+      "valid_from_tick": "50",
+      "valid_through_tick": "250"
+    },
+    {
+      "receipt_id": "uq-energy-001",
+      "measurement_id": "electrical-energy-001",
+      "scope_digest": "4d8cb5d18f77532cda4014cf71fc3240190765efe5710b0a80d536a4a5928a88",
+      "measurement_artifact_digest": "ee2159be0ac659f801fd3f660aec144861dddb1332c4d894dd10752d7624fa1b",
+      "instrument_configuration_digest": "06084d16ee293a7291670818f4f5be6131df4a18d755f541a9c4271b6f921bb7",
+      "calibration_receipt_digest": "6e577f01d6e4d66291fb31edc0535b155beb3acdc98f670a5f388d7a5ae1403a",
+      "unit_code": "J",
+      "decimal_exponent": -3,
+      "coverage": {
+        "kind": "probability_interval",
+        "lower_scaled": "1200",
+        "upper_scaled": "1450",
+        "coverage_probability_ppm": 950000,
+        "unit_code": "J",
+        "decimal_exponent": -3,
+        "method": "monte_carlo_distribution",
+        "coverage_receipt_digest": "6e05d3346485718b91abcf2fe7df3cae6e91391d3eba48849df111316f3c2987",
+        "convergence_receipt_digest": "d1b9eb1b9fa00ec65141d9ab71c1a488d38d1a7f53ef1af42fa3f6a94b8985fa"
+      },
+      "components": [
+        {
+          "component_id": "energy-propagation",
+          "kind": "model_discrepancy",
+          "source_receipt_digest": "d6800242be7b0a4872c3cd78c3c3fdf2abdb04d87560428ca85636eff6bab62c",
+          "dependence_group_id": "energy-propagation"
+        }
+      ],
+      "dependence": [
+        {
+          "dependence_group_id": "energy-propagation",
+          "component_ids": [
+            "energy-propagation"
+          ],
+          "decision": {
+            "kind": "joint_model",
+            "receipt_digest": "118971eb1a6b77cdee878aac30575733f43ed81afab47b15091b9d2c645ea82c"
+          }
+        }
+      ],
+      "budget_result_receipt_digest": "f8ea33fe53d2dab89694c9434e49c0a5106c92464f6bd7237674ee40c20f19e7",
+      "disposition": "qualified",
+      "valid_from_tick": "50",
+      "valid_through_tick": "250"
+    }
+  ],
+  "derived_results": [
+    {
+      "result_id": "electrical-energy-001",
+      "output_measurement_id": "electrical-energy-001",
+      "input_measurement_ids": [
+        "torque-001",
+        "bus-voltage-001"
+      ],
+      "input_uncertainty_receipt_ids": [
+        "uq-torque-001",
+        "uq-voltage-001"
+      ],
+      "output_result_digest": "ee2159be0ac659f801fd3f660aec144861dddb1332c4d894dd10752d7624fa1b",
+      "output_uncertainty_receipt_id": "uq-energy-001",
+      "upstream_disposition": "qualified"
+    }
+  ],
+  "actuation_authorized": false,
+  "conformity_certified": false,
+  "integrity": {
+    "canonicalization": "RFC8785-JCS-UTF8",
+    "digest_scope": "top_level_without_integrity",
+    "payload_sha256": "caca630c5fbd91cd3afe917ad1deade3fa860be876403f4652e6179c52073e3e"
+  }
+}
