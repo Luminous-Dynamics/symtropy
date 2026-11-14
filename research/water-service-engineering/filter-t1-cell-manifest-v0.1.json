@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "FILTER-T1-CELL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5087",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+  "filter_eli_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5084",
+  "pump_design_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4994",
+  "status": "parametric_design_basis_and_synthetic_flow_arithmetic_only",
+  "protocol": "research/water-service-engineering/FILTER_T1_CELL_DESIGN_BASIS_V0_1.md",
+  "profiles": "research/water-service-engineering/filter-t1-cell-flow-profiles-v0.1.json",
+  "oracle": "research/water-service-engineering/filter-t1-cell-flow-oracle-v0.1.json",
+  "schema": "research/water-service-engineering/filter-t1-cell-flow.schema.json",
+  "case_count": 4,
+  "critical_compatibility_result": "household_flow_0.1_to_10_lpm_does_not_overlap_existing_pump_t1_12_to_60_lpm",
+  "evidence_ceiling": "flow_range_compatibility_and_ideal_hydraulic_arithmetic_only_no_filter_or_pressure_system_qualification",
+  "nonclaims": [
+    "no_filter_selected",
+    "no_hardware_procured",
+    "no_pressure_class_or_relief_setpoint_qualified",
+    "no_contaminant_challenge_or_water_quality_claim",
+    "no_safe_to_energize_or_construction_release"
+  ]
+}
