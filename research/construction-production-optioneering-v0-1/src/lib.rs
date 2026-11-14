@@ -246,6 +246,8 @@ pub struct OptionCandidate {
     pub method_profile_digest: String,
     pub scheduler_profile_digest: String,
     pub fleet_profile_digest: String,
+    /// Explicit matched control; comparisons are emitted only for declared pairs.
+    pub matched_reference_option_id: Option<String>,
     pub scenario_results: BTreeMap<String, ScenarioResult>,
 }
 
@@ -260,6 +262,9 @@ impl OptionCandidate {
         require_non_empty("method_profile_digest", &self.method_profile_digest)?;
         require_non_empty("scheduler_profile_digest", &self.scheduler_profile_digest)?;
         require_non_empty("fleet_profile_digest", &self.fleet_profile_digest)?;
+        if let Some(reference_id) = self.matched_reference_option_id.as_deref() {
+            require_non_empty("matched_reference_option_id", reference_id)?;
+        }
         if self.functional_contract_id != contract.contract_id
             || self.functional_contract_digest != contract.contract_digest
         {
@@ -542,6 +547,10 @@ pub enum OptioneeringError {
     AcceptanceContractMismatch(String, String),
     AssessmentHorizonMismatch(String, String),
     ArithmeticOverflow(String),
+    MissingMatchedReference(String, String),
+    MatchedReferenceTierMismatch(String, String),
+    MatchedReferenceIsNotBaseline(String, String),
+    MatchedPairHasNoChangedDimension(String, String),
 }
 
 impl OptioneeringError {
@@ -714,6 +723,42 @@ pub fn evaluate_option_set(
         });
     }
 
+    for candidate in options.iter().filter(|option| option.tier == tier) {
+        if let Some(reference_id) = candidate.matched_reference_option_id.as_deref() {
+            let reference = options
+                .iter()
+                .find(|option| option.option_id == reference_id)
+                .ok_or_else(|| {
+                    OptioneeringError::MissingMatchedReference(
+                        candidate.option_id.clone(),
+                        reference_id.to_owned(),
+                    )
+                })?;
+            if reference.tier != candidate.tier {
+                return Err(OptioneeringError::MatchedReferenceTierMismatch(
+                    candidate.option_id.clone(),
+                    reference_id.to_owned(),
+                ));
+            }
+            if reference.matched_reference_option_id.is_some() {
+                return Err(OptioneeringError::MatchedReferenceIsNotBaseline(
+                    candidate.option_id.clone(),
+                    reference_id.to_owned(),
+                ));
+            }
+            let changed = reference.option_design_digest != candidate.option_design_digest
+                || reference.method_profile_digest != candidate.method_profile_digest
+                || reference.scheduler_profile_digest != candidate.scheduler_profile_digest
+                || reference.fleet_profile_digest != candidate.fleet_profile_digest;
+            if !changed {
+                return Err(OptioneeringError::MatchedPairHasNoChangedDimension(
+                    candidate.option_id.clone(),
+                    reference_id.to_owned(),
+                ));
+            }
+        }
+    }
+
     let mut evaluations = Vec::new();
     for option in options.iter().filter(|option| option.tier == tier) {
         let mut scenario_failures = Vec::new();
@@ -834,50 +879,58 @@ fn matched_option_comparisons(
         })
         .collect();
 
-    let mut feasible_options: Vec<&OptionCandidate> = options
+    let options_by_id: BTreeMap<&str, &OptionCandidate> = options
         .iter()
-        .filter(|option| objectives.contains_key(option.option_id.as_str()))
+        .map(|option| (option.option_id.as_str(), option))
         .collect();
-    feasible_options.sort_by(|left, right| left.option_id.cmp(&right.option_id));
 
     let mut comparisons = Vec::new();
-    for left_index in 0..feasible_options.len() {
-        for right_index in (left_index + 1)..feasible_options.len() {
-            let left = feasible_options[left_index];
-            let right = feasible_options[right_index];
+    for candidate in options {
+        let Some(reference_id) = candidate.matched_reference_option_id.as_deref() else {
+            continue;
+        };
+        let Some(reference) = options_by_id.get(reference_id).copied() else {
+            continue;
+        };
+        let Some(reference_objectives) = objectives.get(reference_id).copied() else {
+            continue;
+        };
+        let Some(candidate_objectives) = objectives.get(candidate.option_id.as_str()).copied()
+        else {
+            continue;
+        };
 
-            let mut changed_axes = Vec::new();
-            if left.option_design_digest != right.option_design_digest {
-                changed_axes.push(InterventionAxis::Design);
-            }
-            if left.method_profile_digest != right.method_profile_digest {
-                changed_axes.push(InterventionAxis::Method);
-            }
-            if left.scheduler_profile_digest != right.scheduler_profile_digest {
-                changed_axes.push(InterventionAxis::Scheduler);
-            }
-            if left.fleet_profile_digest != right.fleet_profile_digest {
-                changed_axes.push(InterventionAxis::Fleet);
-            }
-            if changed_axes.is_empty() {
-                continue;
-            }
-
-            let reference = objectives[left.option_id.as_str()];
-            let candidate = objectives[right.option_id.as_str()];
-            comparisons.push(MatchedOptionComparison {
-                reference_option_id: left.option_id.clone(),
-                candidate_option_id: right.option_id.clone(),
-                single_factor_controlled: changed_axes.len() == 1,
-                changed_axes,
-                delta_candidate_minus_reference: RobustObjectiveDelta::between(
-                    reference,
-                    candidate,
-                ),
-            });
+        let mut changed_axes = Vec::new();
+        if reference.option_design_digest != candidate.option_design_digest {
+            changed_axes.push(InterventionAxis::Design);
         }
+        if reference.method_profile_digest != candidate.method_profile_digest {
+            changed_axes.push(InterventionAxis::Method);
+        }
+        if reference.scheduler_profile_digest != candidate.scheduler_profile_digest {
+            changed_axes.push(InterventionAxis::Scheduler);
+        }
+        if reference.fleet_profile_digest != candidate.fleet_profile_digest {
+            changed_axes.push(InterventionAxis::Fleet);
+        }
+
+        comparisons.push(MatchedOptionComparison {
+            reference_option_id: reference.option_id.clone(),
+            candidate_option_id: candidate.option_id.clone(),
+            single_factor_controlled: changed_axes.len() == 1,
+            changed_axes,
+            delta_candidate_minus_reference: RobustObjectiveDelta::between(
+                reference_objectives,
+                candidate_objectives,
+            ),
+        });
     }
 
+    comparisons.sort_by(|left, right| {
+        left.reference_option_id
+            .cmp(&right.reference_option_id)
+            .then_with(|| left.candidate_option_id.cmp(&right.candidate_option_id))
+    });
     comparisons
 }
 
@@ -1003,6 +1056,7 @@ mod tests {
             method_profile_digest: format!("method:{design}"),
             scheduler_profile_digest: "scheduler:reference-v1".to_owned(),
             fleet_profile_digest: "fleet:reference-v1".to_owned(),
+            matched_reference_option_id: None,
             scenario_results: scenarios
                 .into_iter()
                 .map(|scenario| (scenario.scenario_id.clone(), scenario))
