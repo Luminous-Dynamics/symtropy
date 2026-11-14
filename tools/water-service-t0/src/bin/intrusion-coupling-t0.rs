@@ -334,6 +334,17 @@ fn compute(case: &Value) -> Result<Value, String> {
     let stages = field(inputs, "stages")?
         .as_array()
         .ok_or_else(|| "stages must be an array".to_owned())?;
+    let supplied_stage_order = stages
+        .iter()
+        .map(|stage| text(stage, "stage_id").map(str::to_owned))
+        .collect::<Result<Vec<_>, _>>()?;
+    let expected_stage_order = REQUIRED_STAGES
+        .iter()
+        .map(|stage| stage.to_string())
+        .collect::<Vec<_>>();
+    if supplied_stage_order != expected_stage_order {
+        return Ok(rejected("MODEL_STAGE_ORDER_MISMATCH"));
+    }
     let observations = field(inputs, "observations")?
         .as_array()
         .ok_or_else(|| "observations must be an array".to_owned())?;
@@ -462,6 +473,33 @@ fn validate_contract(
 
     require(text(manifest, "schema_version")? == "0.1.0", "manifest schema mismatch")?;
     require(text(manifest, "programme_id")? == PROGRAMME, "manifest programme mismatch")?;
+    require(
+        text(manifest, "evidence_class")? == "design_and_synthetic_only",
+        "manifest evidence class mismatch",
+    )?;
+    require(
+        text(manifest, "evidence_ceiling")?
+            .contains("no_physical_model_qualification"),
+        "manifest evidence ceiling too permissive",
+    )?;
+    let manifest_stage_order = read_ids(manifest, "required_stage_order")?;
+    let expected_stage_order = REQUIRED_STAGES
+        .iter()
+        .map(|stage| stage.to_string())
+        .collect::<Vec<_>>();
+    require(
+        manifest_stage_order == expected_stage_order,
+        "manifest required stage order mismatch",
+    )?;
+    let manifest_observations = read_ids(manifest, "required_observation_kinds")?;
+    let expected_observations = REQUIRED_OBSERVATIONS
+        .iter()
+        .map(|kind| kind.to_string())
+        .collect::<Vec<_>>();
+    require(
+        manifest_observations == expected_observations,
+        "manifest required observation kinds mismatch",
+    )?;
     require(
         text(manifest, "input_file")? == "coupling-t0-cases-v0.1.json",
         "manifest input filename mismatch",
@@ -849,6 +887,38 @@ mod tests {
             row["computed"]["reason"],
             "OBSERVATION_PROVENANCE_INCOMPLETE"
         );
+    }
+
+    #[test]
+    fn duplicate_model_stage_is_rejected() {
+        let mut inputs = load("inputs");
+        let duplicate = inputs["cases"][0]["inputs"]["stages"][0].clone();
+        inputs["cases"][0]["inputs"]["stages"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(evaluate(
+            &inputs,
+            &load("oracle"),
+            &load("contract"),
+            &load("manifest")
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn reordered_model_stages_are_not_silently_accepted() {
+        let mut inputs = load("inputs");
+        inputs["cases"][0]["inputs"]["stages"]
+            .as_array_mut()
+            .unwrap()
+            .swap(0, 1);
+        let row = compute(&inputs["cases"][0]).unwrap();
+        assert_eq!(
+            row["interface_disposition"],
+            "REJECTED_CONTRACT"
+        );
+        assert_eq!(row["reason"], "MODEL_STAGE_ORDER_MISMATCH");
     }
 
     #[test]
