@@ -48,6 +48,7 @@ fn base(disposition: &str, reason: Option<&str>) -> Value {
 fn disposition(state: &str, reason: Option<&str>) -> Value {
     base(state, reason)
 }
+#[allow(clippy::needless_range_loop)]
 fn covariance_cholesky(a: &Matrix) -> Result<Matrix, String> {
     let n = a.len();
     if n == 0 || a.iter().any(|row| row.len() != n) {
@@ -86,11 +87,11 @@ fn residual_variance(covariance: &Matrix) -> Result<f64, String> {
     let _ = covariance_cholesky(covariance)?;
     let n = covariance.len();
     let mut variance = 0.0;
-    for i in 0..n {
+    for (i, row) in covariance.iter().enumerate() {
         let ci = if i == 0 { 1.0 } else { -1.0 };
-        for j in 0..n {
+        for (j, value) in row.iter().enumerate() {
             let cj = if j == 0 { 1.0 } else { -1.0 };
-            variance += ci * covariance[i][j] * cj;
+            variance += ci * value * cj;
         }
     }
     if !variance.is_finite() || variance <= 0.0 {
@@ -100,6 +101,9 @@ fn residual_variance(covariance: &Matrix) -> Result<f64, String> {
 }
 fn compute(inputs: &Value) -> Result<Value, String> {
     let mass_unit = text(inputs, "mass_unit")?;
+    if mass_unit.trim().is_empty() {
+        return Ok(disposition("INVALID_INPUT", Some("MASS_UNIT_EMPTY")));
+    }
     let injected = number(inputs, "injected_mass")?;
     if injected <= 0.0 { return Ok(disposition("INVALID_INPUT", Some("INJECTED_MASS_NOT_POSITIVE"))); }
     let expected_outlets = usize_value(inputs, "expected_outlet_count")?;
