@@ -187,6 +187,46 @@
           "EMPTY_REFERENCE_DESTINATION"
         ]
       }
+    },
+    {
+      "case_id": "FEED-019-INVALID-RUN-INTERVAL",
+      "mutation": "Run start and end do not form a positive wall-clock measurement interval",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "INVALID_RUN_INTERVAL"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-020-INTAKE-OUTSIDE-RUN",
+      "mutation": "An item's intake timestamp is outside the run measurement window",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "INTAKE_OUTSIDE_RUN"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-021-ATTEMPT-BEFORE-INTAKE",
+      "mutation": "A presentation attempt begins before the item was recorded as physically entering the line",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ATTEMPT_BEFORE_INTAKE"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-022-TERMINAL-OUTSIDE-RUN",
+      "mutation": "A terminal disposition falls outside the run measurement window",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "TERMINAL_OUTSIDE_RUN"
+        ]
+      }
     }
   ]
 }
