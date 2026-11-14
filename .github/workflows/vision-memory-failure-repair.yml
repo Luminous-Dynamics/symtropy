@@ -1,0 +1,76 @@
+name: VIS-MEM-013 Failure Memory and Replay-Gated Repair
+
+on:
+  push:
+    branches: ["research/vis-mem-failure-repair-v0-1"]
+    paths:
+      - "tools/vision-memory-failure-repair.rs"
+      - ".github/workflows/vision-memory-failure-repair.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-failure-repair.rs"
+      - ".github/workflows/vision-memory-failure-repair.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-013-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-failure-memory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run deterministic tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-failure-repair.rs -o /tmp/vis-mem-failure-tests
+          /tmp/vis-mem-failure-tests
+
+      - name: Replay report and validate repair gates
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-failure-repair.rs -o /tmp/vis-mem-failure
+          /tmp/vis-mem-failure > vis-mem-failure.tsv
+          /tmp/vis-mem-failure > vis-mem-failure-repeat.tsv
+          cmp vis-mem-failure.tsv vis-mem-failure-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-013-v0.1' vis-mem-failure.tsv
+          grep -Fq $'GATE\tglobal_action\t0' vis-mem-failure.tsv
+          grep -Fq $'GATE\texact_task_object_context\t1\t0' vis-mem-failure.tsv
+          grep -Fq $'CASE\tpersistent_blocker_same_context\tconditional_repair' vis-mem-failure.tsv
+          grep -Fq $'CASE\tstale_failure_superseded_by_success\tconditional_repair' vis-mem-failure.tsv
+          awk -F '\t' '$1 == "CASE_HEADER" { if (NF != 13) exit 1; ch++ } $1 == "CASE" { if (NF != 13) exit 1; c++ } $1 == "SUMMARY_HEADER" { if (NF != 9) exit 1; sh++ } $1 == "SUMMARY" { if (NF != 9) exit 1; s++ } $1 == "GATE" { if (NF != 4) exit 1; g++ } END { if (ch != 1 || c != 40 || sh != 1 || s != 5 || g != 2) exit 1 }' vis-mem-failure.tsv
+          sha256sum vis-mem-failure.tsv > vis-mem-failure.sha256
+          sha256sum -c vis-mem-failure.sha256
+
+      - name: Upload exact-head failure memory diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-013-failure-repair
+          path: |
+            vis-mem-failure.tsv
+            vis-mem-failure.sha256
+          if-no-files-found: error
