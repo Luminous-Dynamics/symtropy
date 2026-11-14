@@ -130,7 +130,8 @@ Primary source URLs:
 - ISO 13506-1:2024: https://www.iso.org/standard/75863.html
 - NFPA 1970: https://www.nfpa.org/codes-and-standards/nfpa-1970-standard-development/1970
 - NFPA 1850: https://www.nfpa.org/codes-and-standards/nfpa-1850-standard-development/1850
-- ASTM D7136/D7136M: https://store.astm.org/d7136_d7136m-15.html
+- NFPA 1850 TIA 26-4: https://docinfofiles.nfpa.org/files/AboutTheCodes/1850/TIA_1850_26_4.pdf
+- ASTM D7136/D7136M: https://store.astm.org/d7136_d7136m-25.html
 - IIHS protocols: https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information
 - NHTSA NCAP: https://www.nhtsa.gov/ratings/resources-related-nhtsas-new-car-assessment-program
 - ICC 500-2023: https://shop.iccsafe.org/ansi-icc-500-2023-icc-nssa-standard-for-the-design-and-construction-of-storm-shelters.html
@@ -138,6 +139,7 @@ Primary source URLs:
 - ISO 11925-2:2026: https://www.iso.org/standard/89109.html
 - ASTM E84-26a: https://store.astm.org/standards/e84/
 - ASHRAE 55: https://www.ashrae.org/technical-resources/bookstore/standard-55-thermal-environmental-conditions-for-human-occupancy
+- ASHRAE 62.2-2025 scope: https://www.ashrae.org/technical-resources/standards-and-guidelines/titles-purposes-and-scopes
 - ASHRAE standards scope: https://www.ashrae.org/technical-resources/standards-and-guidelines/titles-purposes-and-scopes
 - CSIR GreenBook: https://greenbook.co.za/
 
