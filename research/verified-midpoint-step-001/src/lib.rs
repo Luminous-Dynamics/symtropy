@@ -29,6 +29,7 @@ pub type Matrix3 = [[f64; 3]; 3];
 pub type Vector6 = [f64; 6];
 pub type Matrix6 = [[f64; 6]; 6];
 pub type Matrix6x3 = [[f64; 3]; 6];
+pub type Matrix3x6 = [[f64; 6]; 3];
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct IntervalV1 {
@@ -171,6 +172,7 @@ pub struct MidpointProblemV1 {
     pub initial_relative_position: Vector3,
     pub free_relative_position: Vector3,
     pub delassus: Matrix3,
+    pub constraint_jacobian: Matrix3x6,
     pub initial_position: Vector6,
     pub initial_velocity: Vector6,
     pub free_midpoint_velocity: Vector6,
@@ -186,6 +188,9 @@ pub enum ProblemErrorV1 {
     DelassusNotPositiveDefinite,
     MassMetricNotSymmetric,
     MassMetricNotPositiveDefinite,
+    MassInverseConstraintTransposeMismatch,
+    DelassusOperatorMismatch,
+    ExactProvenanceArithmeticOverflow,
 }
 
 impl fmt::Display for ProblemErrorV1 {
@@ -195,6 +200,167 @@ impl fmt::Display for ProblemErrorV1 {
 }
 
 impl std::error::Error for ProblemErrorV1 {}
+
+/// Exact signed dyadic value: significand * 2^exponent.
+///
+/// All finite binary64 inputs are dyadic rationals. This bounded i128
+/// implementation verifies the fixture's M*B=J^T and J*B=W identities
+/// without accepting a floating tolerance as proof. Excessive exponent
+/// spreads or integer overflow are rejected rather than rounded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ExactDyadicV1 {
+    significand: i128,
+    exponent: i32,
+}
+
+impl ExactDyadicV1 {
+    fn zero() -> Self {
+        Self {
+            significand: 0,
+            exponent: 0,
+        }
+    }
+
+    fn from_f64(value: f64) -> Result<Self, ProblemErrorV1> {
+        if !value.is_finite() {
+            return Err(ProblemErrorV1::NonFiniteInput);
+        }
+        let bits = value.to_bits();
+        let negative = (bits >> 63) != 0;
+        let exponent_bits = ((bits >> 52) & 0x7ff) as i32;
+        let fraction = bits & ((1_u64 << 52) - 1);
+        let (significand, exponent) = if exponent_bits == 0 {
+            (i128::from(fraction), -1074)
+        } else {
+            (
+                i128::from((1_u64 << 52) | fraction),
+                exponent_bits - 1023 - 52,
+            )
+        };
+        let significand = if negative {
+            -significand
+        } else {
+            significand
+        };
+        Self::normalize(significand, exponent)
+    }
+
+    fn normalize(
+        significand: i128,
+        exponent: i32,
+    ) -> Result<Self, ProblemErrorV1> {
+        if significand == 0 {
+            return Ok(Self::zero());
+        }
+        let trailing_zeros = significand.unsigned_abs().trailing_zeros();
+        let divisor = 1_i128
+            .checked_shl(trailing_zeros)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        let reduced = significand
+            .checked_div(divisor)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        let exponent = exponent
+            .checked_add(trailing_zeros as i32)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        Ok(Self {
+            significand: reduced,
+            exponent,
+        })
+    }
+
+    fn checked_shift(value: i128, shift: u32) -> Result<i128, ProblemErrorV1> {
+        if shift >= 127 {
+            return Err(ProblemErrorV1::ExactProvenanceArithmeticOverflow);
+        }
+        let factor = 1_i128
+            .checked_shl(shift)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        value
+            .checked_mul(factor)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)
+    }
+
+    fn checked_add(self, rhs: Self) -> Result<Self, ProblemErrorV1> {
+        let common_exponent = self.exponent.min(rhs.exponent);
+        let left = Self::checked_shift(
+            self.significand,
+            (self.exponent - common_exponent) as u32,
+        )?;
+        let right = Self::checked_shift(
+            rhs.significand,
+            (rhs.exponent - common_exponent) as u32,
+        )?;
+        let sum = left
+            .checked_add(right)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        Self::normalize(sum, common_exponent)
+    }
+
+    fn checked_mul(self, rhs: Self) -> Result<Self, ProblemErrorV1> {
+        let significand = self
+            .significand
+            .checked_mul(rhs.significand)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        let exponent = self
+            .exponent
+            .checked_add(rhs.exponent)
+            .ok_or(ProblemErrorV1::ExactProvenanceArithmeticOverflow)?;
+        Self::normalize(significand, exponent)
+    }
+}
+
+fn exact_dot_equals<const N: usize>(
+    left: &[f64; N],
+    right: &[f64; N],
+    expected: f64,
+) -> Result<bool, ProblemErrorV1> {
+    let mut sum = ExactDyadicV1::zero();
+    for index in 0..N {
+        let product = ExactDyadicV1::from_f64(left[index])?
+            .checked_mul(ExactDyadicV1::from_f64(right[index])?)?;
+        sum = sum.checked_add(product)?;
+    }
+    Ok(sum == ExactDyadicV1::from_f64(expected)?)
+}
+
+fn verify_reduced_operator_provenance(
+    problem: &MidpointProblemV1,
+) -> Result<(), ProblemErrorV1> {
+    // M B = J^T establishes B = M^-1 J^T because M is independently
+    // required to be symmetric positive definite by the caller.
+    for row in 0..6 {
+        let mass_row = problem.mass_metric[row];
+        for constraint in 0..3 {
+            let b_column = std::array::from_fn(|index| {
+                problem.mass_inverse_jacobian_transpose[index][constraint]
+            });
+            if !exact_dot_equals(
+                &mass_row,
+                &b_column,
+                problem.constraint_jacobian[constraint][row],
+            )? {
+                return Err(ProblemErrorV1::MassInverseConstraintTransposeMismatch);
+            }
+        }
+    }
+
+    for constraint_row in 0..3 {
+        let j_row = problem.constraint_jacobian[constraint_row];
+        for constraint_column in 0..3 {
+            let b_column = std::array::from_fn(|index| {
+                problem.mass_inverse_jacobian_transpose[index][constraint_column]
+            });
+            if !exact_dot_equals(
+                &j_row,
+                &b_column,
+                problem.delassus[constraint_row][constraint_column],
+            )? {
+                return Err(ProblemErrorV1::DelassusOperatorMismatch);
+            }
+        }
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InconclusiveReasonV1 {
@@ -536,6 +702,7 @@ impl MidpointProblemV1 {
         let all_finite = self.initial_relative_position.iter().all(|x| x.is_finite())
             && self.free_relative_position.iter().all(|x| x.is_finite())
             && self.delassus.iter().flatten().all(|x| x.is_finite())
+            && self.constraint_jacobian.iter().flatten().all(|x| x.is_finite())
             && self.initial_position.iter().all(|x| x.is_finite())
             && self.initial_velocity.iter().all(|x| x.is_finite())
             && self.free_midpoint_velocity.iter().all(|x| x.is_finite())
@@ -554,6 +721,7 @@ impl MidpointProblemV1 {
         if !cholesky_check(&self.mass_metric, 1.0e-13) {
             return Err(ProblemErrorV1::MassMetricNotPositiveDefinite);
         }
+        verify_reduced_operator_provenance(self)?;
         Ok(())
     }
 }
@@ -898,6 +1066,11 @@ mod tests {
             initial_relative_position: [1.0, 0.0, 0.0],
             free_relative_position: [1.1, 0.0, 0.0],
             delassus: [[1.5, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.5]],
+            constraint_jacobian: [
+                [-1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, -1.0, 0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0, 0.0, 1.0],
+            ],
             initial_position: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             initial_velocity: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             free_midpoint_velocity: [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
@@ -911,6 +1084,62 @@ mod tests {
             ],
             mass_metric: mass,
         }
+    }
+
+    #[test]
+    fn exact_dyadic_arithmetic_reconstructs_finite_binary64_values() {
+        let half = ExactDyadicV1::from_f64(0.5).unwrap();
+        let quarter = ExactDyadicV1::from_f64(0.25).unwrap();
+        let three_quarters = ExactDyadicV1::from_f64(0.75).unwrap();
+        assert_eq!(half.checked_add(quarter).unwrap(), three_quarters);
+        assert_eq!(
+            ExactDyadicV1::from_f64(1.5)
+                .unwrap()
+                .checked_mul(ExactDyadicV1::from_f64(2.0).unwrap())
+                .unwrap(),
+            ExactDyadicV1::from_f64(3.0).unwrap()
+        );
+        assert_eq!(
+            ExactDyadicV1::from_f64(-0.0).unwrap(),
+            ExactDyadicV1::zero()
+        );
+    }
+
+    #[test]
+    fn supplied_mass_inverse_jacobian_transpose_and_delassus_have_exact_provenance() {
+        let problem = fixture();
+        assert_eq!(problem.validate(), Ok(()));
+        verify_reduced_operator_provenance(&problem).unwrap();
+    }
+
+    #[test]
+    fn wrong_mass_inverse_constraint_transpose_is_rejected() {
+        let mut problem = fixture();
+        problem.mass_inverse_jacobian_transpose[0][0] = -0.75;
+        assert_eq!(
+            problem.validate(),
+            Err(ProblemErrorV1::MassInverseConstraintTransposeMismatch)
+        );
+    }
+
+    #[test]
+    fn wrong_constraint_jacobian_is_rejected_by_mass_inverse_identity() {
+        let mut problem = fixture();
+        problem.constraint_jacobian[0][0] = -0.5;
+        assert_eq!(
+            problem.validate(),
+            Err(ProblemErrorV1::MassInverseConstraintTransposeMismatch)
+        );
+    }
+
+    #[test]
+    fn wrong_delassus_is_rejected_by_j_b_identity() {
+        let mut problem = fixture();
+        problem.delassus[0][0] = 1.25;
+        assert_eq!(
+            problem.validate(),
+            Err(ProblemErrorV1::DelassusOperatorMismatch)
+        );
     }
 
     #[test]
