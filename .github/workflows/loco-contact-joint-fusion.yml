@@ -1,0 +1,31 @@
+name: LOCO Joint Contact Fusion Verification
+
+on:
+  pull_request:
+    paths:
+      - 'research/loco-contact-joint-fusion-v0/**'
+      - '.github/workflows/loco-contact-joint-fusion.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'research/loco-contact-joint-fusion-v0/**'
+      - '.github/workflows/loco-contact-joint-fusion.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-contact-joint-fusion-v0/Cargo.toml -- --check
+      - name: Run exact correlated posterior and information tests
+        run: cargo test --manifest-path research/loco-contact-joint-fusion-v0/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/loco-contact-joint-fusion-v0/Cargo.toml --locked --all-targets -- -D warnings
