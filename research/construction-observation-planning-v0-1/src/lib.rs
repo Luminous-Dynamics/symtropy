@@ -250,6 +250,7 @@ pub fn choose_targeted_observation(
             duration_minutes: action.duration_minutes,
             crew_minutes: action.crew_minutes,
             cost_minor_units: action.cost_minor_units,
+            cost_currency_code: action.cost_currency_code.clone(),
             energy_wh: action.energy_wh,
         });
 
@@ -343,6 +344,8 @@ pub struct ScenarioActionResult {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScenarioOracle {
     pub scenario_id: String,
+    /// Currency for no-observation and residual scenario losses.
+    pub loss_currency_code: String,
     /// Hidden truth identity belongs to the independent test/evaluation oracle.
     /// It is never passed to the observation-selection policy.
     pub hidden_state_ref: String,
@@ -354,6 +357,7 @@ pub struct ScenarioOracle {
 impl ScenarioOracle {
     fn validate(&self) -> Result<(), ObservationPlanError> {
         require_non_empty("scenario_id", &self.scenario_id)?;
+        require_non_empty("loss_currency_code", &self.loss_currency_code)?;
         require_non_empty("hidden_state_ref", &self.hidden_state_ref)?;
         Ok(())
     }
@@ -362,6 +366,7 @@ impl ScenarioOracle {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ObservationEvaluation {
     pub scenario_id: String,
+    pub loss_currency_code: String,
     pub action_id: Option<String>,
     pub outcome: Option<ObservationOutcome>,
     pub work_disposition: WorkDisposition,
@@ -384,6 +389,7 @@ pub fn evaluate_no_observation(
     scenario.validate()?;
     Ok(ObservationEvaluation {
         scenario_id: scenario.scenario_id.clone(),
+        loss_currency_code: scenario.loss_currency_code.clone(),
         action_id: None,
         outcome: None,
         work_disposition: WorkDisposition::HeldUnknown,
@@ -414,6 +420,12 @@ pub fn evaluate_observation(
             ObservationPlanError::MissingScenarioActionResult(action.action_id.clone())
         })?;
     result.outcome.validate()?;
+    if scenario.loss_currency_code != action.cost_currency_code {
+        return Err(ObservationPlanError::MixedCostCurrency {
+            expected: scenario.loss_currency_code.clone(),
+            received: action.cost_currency_code.clone(),
+        });
+    }
 
     let work_disposition = match &result.outcome {
         ObservationOutcome::QualifiedClear { .. } => WorkDisposition::ReadyForIndependentAcceptance,
@@ -429,6 +441,7 @@ pub fn evaluate_observation(
 
     Ok(ObservationEvaluation {
         scenario_id: scenario.scenario_id.clone(),
+        loss_currency_code: scenario.loss_currency_code.clone(),
         action_id: Some(action.action_id.clone()),
         outcome: Some(result.outcome.clone()),
         work_disposition,
@@ -563,6 +576,7 @@ mod tests {
     ) -> ScenarioOracle {
         ScenarioOracle {
             scenario_id: "hidden-embed-offset-01".to_owned(),
+            loss_currency_code: "USD".to_owned(),
             hidden_state_ref: "oracle-only:hidden-embed-offset-01".to_owned(),
             no_observation_loss_minor_units: no_observation_loss,
             results_by_action: BTreeMap::from([(
@@ -628,6 +642,7 @@ mod tests {
             .expect("targeted observation plan");
         let selected = plan.selected.expect("a feasible action is selected");
         assert_eq!(selected.action_id, "survey-b");
+        assert_eq!(selected.cost_currency_code, "USD");
         assert_eq!(
             selected.covered_work_unit_ids,
             vec!["embed-b", "mep-c", "rebar-a"]
@@ -890,9 +905,34 @@ mod tests {
         );
         assert_eq!(result.net_voi_minor_units, 1_650);
         assert_eq!(result.action_id.as_deref(), Some("scan-clear"));
+        assert_eq!(result.loss_currency_code, "USD");
+        assert_eq!(result.observation_cost_currency_code.as_deref(), Some("USD"));
         assert_eq!(result.observation_duration_minutes, 10);
         assert_eq!(result.observation_crew_minutes, 5);
         assert_eq!(result.observation_energy_wh, 50);
+    }
+
+    #[test]
+    fn scenario_loss_and_observation_cost_must_use_the_same_currency() {
+        let scan = action(
+            "scan-eur",
+            &["region-a"],
+            bounds([0, 0, 0], [1_000, 1_000, 1_000]),
+            0,
+            100,
+            5,
+            250,
+        );
+        let mut scenario = scenario("scan-eur", qualified_clear(), 2_000, 100);
+        scenario.loss_currency_code = "EUR".to_owned();
+
+        assert_eq!(
+            evaluate_observation(&scan, &scenario),
+            Err(ObservationPlanError::MixedCostCurrency {
+                expected: "EUR".to_owned(),
+                received: "USD".to_owned(),
+            })
+        );
     }
 
     #[test]
@@ -1027,6 +1067,7 @@ mod tests {
         );
         let base = ScenarioOracle {
             scenario_id: "scenario-1".to_owned(),
+            loss_currency_code: "USD".to_owned(),
             hidden_state_ref: "oracle-only:scenario-1".to_owned(),
             no_observation_loss_minor_units: 1_000,
             results_by_action: BTreeMap::new(),
