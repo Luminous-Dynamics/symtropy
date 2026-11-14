@@ -1,0 +1,9 @@
+[package]
+name = "fusion-equilibrium-interop-contract"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed Grad-Shafranov equilibrium field interoperability contract"
+
+[workspace]
