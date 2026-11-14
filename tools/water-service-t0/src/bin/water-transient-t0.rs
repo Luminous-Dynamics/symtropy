@@ -598,10 +598,9 @@ mod tests {
             .find(|row| row["case_id"] == "WT-T0-006-single-phase-formula-crosses-vapour-pressure")
             .unwrap();
         assert_eq!(row["computed"]["disposition"], "OUT_OF_DOMAIN");
-        assert_eq!(
-            row["computed"]["candidate_is_not_a_physical_prediction"],
-            true
-        );
+        assert!(row["computed"]["candidate_is_not_a_physical_prediction"]
+            .as_bool()
+            .unwrap());
     }
 
     #[test]
