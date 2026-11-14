@@ -1713,6 +1713,281 @@ mod tests {
     }
 
     #[test]
+    fn matched_pairs_separate_scheduler_only_method_only_and_combined_changes() {
+        let baseline = option(
+            "baseline",
+            OptionTier::Switch,
+            "design-in-situ-v1",
+            vec![
+                result(
+                    "nominal",
+                    "design-in-situ-v1",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 10_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 1_000,
+                        workflow_crew_minutes: 600,
+                        energy_wh: 2_000,
+                        carbon_gco2e: 1_500,
+                        rework_units: 2,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-in-situ-v1",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 11_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 1_200,
+                        workflow_crew_minutes: 700,
+                        energy_wh: 2_200,
+                        carbon_gco2e: 1_600,
+                        rework_units: 3,
+                    },
+                ),
+            ],
+        );
+
+        let mut scheduler_only = option(
+            "scheduler-only",
+            OptionTier::Switch,
+            "design-in-situ-v1",
+            vec![
+                result(
+                    "nominal",
+                    "design-in-situ-v1",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 10_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 800,
+                        workflow_crew_minutes: 500,
+                        energy_wh: 1_900,
+                        carbon_gco2e: 1_450,
+                        rework_units: 2,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-in-situ-v1",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 11_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 950,
+                        workflow_crew_minutes: 580,
+                        energy_wh: 2_000,
+                        carbon_gco2e: 1_500,
+                        rework_units: 2,
+                    },
+                ),
+            ],
+        );
+        scheduler_only.scheduler_profile_digest = "scheduler-optimized-v1".to_owned();
+        scheduler_only.matched_reference_option_id = Some("baseline".to_owned());
+
+        let mut method_only = option(
+            "method-only",
+            OptionTier::Switch,
+            "design-prefab-v1",
+            vec![
+                result(
+                    "nominal",
+                    "design-prefab-v1",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 8_000,
+                        shared_cost_minor_units: 250,
+                        maintenance_cost_minor_units: 80,
+                        elapsed_minutes: 700,
+                        workflow_crew_minutes: 450,
+                        energy_wh: 1_600,
+                        carbon_gco2e: 1_100,
+                        rework_units: 1,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-prefab-v1",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 9_000,
+                        shared_cost_minor_units: 250,
+                        maintenance_cost_minor_units: 80,
+                        elapsed_minutes: 850,
+                        workflow_crew_minutes: 500,
+                        energy_wh: 1_700,
+                        carbon_gco2e: 1_150,
+                        rework_units: 1,
+                    },
+                ),
+            ],
+        );
+        method_only.method_profile_digest = "method-prefab-v1".to_owned();
+        method_only.matched_reference_option_id = Some("baseline".to_owned());
+
+        let mut combined = option(
+            "combined",
+            OptionTier::Switch,
+            "design-modular-v2",
+            vec![
+                result(
+                    "nominal",
+                    "design-modular-v2",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 7_500,
+                        shared_cost_minor_units: 250,
+                        maintenance_cost_minor_units: 75,
+                        elapsed_minutes: 600,
+                        workflow_crew_minutes: 400,
+                        energy_wh: 1_400,
+                        carbon_gco2e: 1_000,
+                        rework_units: 1,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-modular-v2",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 8_200,
+                        shared_cost_minor_units: 250,
+                        maintenance_cost_minor_units: 75,
+                        elapsed_minutes: 750,
+                        workflow_crew_minutes: 450,
+                        energy_wh: 1_500,
+                        carbon_gco2e: 1_050,
+                        rework_units: 1,
+                    },
+                ),
+            ],
+        );
+        combined.method_profile_digest = "method-modular-v2".to_owned();
+        combined.scheduler_profile_digest = "scheduler-optimized-v1".to_owned();
+        combined.fleet_profile_digest = "fleet-modular-v2".to_owned();
+        combined.matched_reference_option_id = Some("baseline".to_owned());
+
+        let report = evaluate_option_set(
+            &contract(),
+            &[
+                stage(
+                    OptionTier::Avoid,
+                    StageDisposition::ClosedNoViableAlternative,
+                ),
+                stage(OptionTier::Switch, StageDisposition::OpenForEvaluation),
+            ],
+            &scenarios(),
+            &[baseline, scheduler_only, method_only, combined],
+        )
+        .expect("matched comparison report");
+
+        assert_eq!(report.matched_option_comparisons.len(), 3);
+        let scheduler = report
+            .matched_option_comparisons
+            .iter()
+            .find(|item| item.candidate_option_id == "scheduler-only")
+            .expect("scheduler-only comparison");
+        assert_eq!(scheduler.changed_axes, vec![InterventionAxis::Scheduler]);
+        assert!(scheduler.single_factor_controlled);
+        assert_eq!(
+            scheduler.delta_candidate_minus_reference.elapsed_minutes,
+            -250
+        );
+        assert_eq!(
+            scheduler.delta_candidate_minus_reference.workflow_crew_minutes,
+            -120
+        );
+
+        let method = report
+            .matched_option_comparisons
+            .iter()
+            .find(|item| item.candidate_option_id == "method-only")
+            .expect("method-only comparison");
+        assert_eq!(
+            method.changed_axes,
+            vec![InterventionAxis::Design, InterventionAxis::Method]
+        );
+        assert!(!method.single_factor_controlled);
+        assert_eq!(
+            method.delta_candidate_minus_reference.lifecycle_cost_minor_units,
+            -2_250
+        );
+
+        let combined = report
+            .matched_option_comparisons
+            .iter()
+            .find(|item| item.candidate_option_id == "combined")
+            .expect("combined comparison");
+        assert_eq!(
+            combined.changed_axes,
+            vec![
+                InterventionAxis::Design,
+                InterventionAxis::Method,
+                InterventionAxis::Scheduler,
+                InterventionAxis::Fleet
+            ]
+        );
+        assert!(!combined.single_factor_controlled);
+    }
+
+    #[test]
+    fn matched_option_reference_must_exist_and_be_an_unmatched_baseline() {
+        let mut candidate = option(
+            "candidate",
+            OptionTier::Switch,
+            "design-candidate",
+            vec![
+                result(
+                    "nominal",
+                    "design-candidate",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 10_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 1_000,
+                        workflow_crew_minutes: 600,
+                        energy_wh: 2_000,
+                        carbon_gco2e: 1_500,
+                        rework_units: 2,
+                    },
+                ),
+                result(
+                    "outage-rework",
+                    "design-candidate",
+                    ScenarioMetrics {
+                        direct_cost_minor_units: 11_000,
+                        shared_cost_minor_units: 300,
+                        maintenance_cost_minor_units: 100,
+                        elapsed_minutes: 1_200,
+                        workflow_crew_minutes: 700,
+                        energy_wh: 2_200,
+                        carbon_gco2e: 1_600,
+                        rework_units: 3,
+                    },
+                ),
+            ],
+        );
+        candidate.matched_reference_option_id = Some("missing-baseline".to_owned());
+        assert_eq!(
+            evaluate_option_set(
+                &contract(),
+                &[
+                    stage(
+                        OptionTier::Avoid,
+                        StageDisposition::ClosedNoViableAlternative,
+                    ),
+                    stage(OptionTier::Switch, StageDisposition::OpenForEvaluation),
+                ],
+                &scenarios(),
+                &[candidate]
+            ),
+            Err(OptioneeringError::MissingMatchedReference(
+                "candidate".to_owned(),
+                "missing-baseline".to_owned()
+            ))
+        );
+    }
+
+    #[test]
     fn closed_and_not_applicable_stages_must_be_a_prefix() {
         assert_eq!(
             evaluate_option_set(
