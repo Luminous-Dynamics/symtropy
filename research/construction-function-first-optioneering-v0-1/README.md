@@ -15,8 +15,8 @@ The tier is descriptive, not an automatic preference. An option only enters the 
 
 ## Implemented v0.1
 
-- Functional brief pins exact revision, required hard gates, explicit scenarios, analysis horizon, discount-rate assumption, profile/fixture references and claim ceiling.
-- Every option binds to the same functional brief and design revision.
+- Functional brief pins exact revision, required hard gates, explicit scenarios, analysis horizon, discount-rate assumption, ISO 4217 currency code, profile/fixture references and claim ceiling.
+- Every option binds to the same functional-brief revision, but has its own exact design/model revision; alternative design revisions are expected and are not confused with a stale brief.
 - Hard gate results are `QualifiedPass`, `QualifiedFail`, `Unknown` or `Stale`.
 - Failed options are `Infeasible`; unknown/stale options are `NotEvaluable`; only all-pass options are `QualifiedFeasible`.
 - Required gates must be complete and no undeclared gate is silently ignored.
@@ -25,7 +25,7 @@ The tier is descriptive, not an automatic preference. An option only enters the 
 - Worst-case values are computed across all scenarios: maximum for lower-is-better metrics and minimum for higher-is-better metrics.
 - Robust Pareto dominance compares the whole worst-case metric vector. No probabilities, scalar weights or hidden objective score are introduced.
 - Dominated options list their exact robust dominators; equal options remain tied on the frontier.
-- Reports preserve brief/profile/fixture identity and claim ceiling.
+- Reports preserve brief/profile/fixture identity, analysis horizon, discount-rate assumption, currency, gate evidence references, raw per-scenario vectors and claim ceiling.
 
 ## Local commands
 
