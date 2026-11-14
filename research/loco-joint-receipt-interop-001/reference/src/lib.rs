@@ -1296,6 +1296,22 @@ mod tests {
         provisional.replace(placeholder, &digest)
     }
 
+    fn mutate_uq_receipt_section(
+        input: &str,
+        start_marker: &str,
+        end_marker: &str,
+        from: &str,
+        to: &str,
+    ) -> String {
+        let start = input.find(start_marker).unwrap();
+        let end = input[start..]
+            .find(end_marker)
+            .map(|offset| start + offset)
+            .unwrap();
+        let section = input[start..end].replace(from, to);
+        format!("{}{}{}", &input[..start], section, &input[end..])
+    }
+
     #[test]
     fn synthetic_uq_sidecar_is_integrity_verified_and_parent_bound() {
         let report =
@@ -1380,6 +1396,89 @@ mod tests {
             validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
             Err(WireError::UqSidecarIncompleteEvidence(
                 "calibration not valid at evaluation tick"
+            ))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_monte_carlo_without_convergence_is_inconclusive() {
+        let changed = GOLDEN_UQ_SIDECAR.replace(
+            "\"convergence_receipt_digest\": \"d1b9eb1b9fa00ec65141d9ab71c1a488d38d1a7f53ef1af42fa3f6a94b8985fa\"",
+            "\"convergence_receipt_digest\": null",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        let report =
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()).unwrap();
+        assert_eq!(
+            report.evidence_disposition,
+            UqEvidenceDisposition::Inconclusive
+        );
+    }
+
+    #[test]
+    fn uq_sidecar_upstream_unknown_is_not_promoted_to_qualified() {
+        let changed = GOLDEN_UQ_SIDECAR.replacen(
+            "\"disposition\": \"qualified\"",
+            "\"disposition\": \"unknown\"",
+            1,
+        );
+        let changed = resign_uq_sidecar(&changed);
+        let report =
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()).unwrap();
+        assert_eq!(
+            report.evidence_disposition,
+            UqEvidenceDisposition::Unknown
+        );
+    }
+
+    #[test]
+    fn uq_sidecar_shared_source_cannot_split_dependence_groups() {
+        let changed = mutate_uq_receipt_section(
+            GOLDEN_UQ_SIDECAR,
+            "\"receipt_id\": \"uq-torque-001\"",
+            "\"receipt_id\": \"uq-voltage-001\"",
+            "cross-channel-calibration",
+            "torque-private-calibration",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarLineageMismatch(
+                "shared source dependence group differs across measurements"
+            ))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_shared_source_requires_the_same_joint_model_receipt() {
+        let changed = mutate_uq_receipt_section(
+            GOLDEN_UQ_SIDECAR,
+            "\"receipt_id\": \"uq-torque-001\"",
+            "\"receipt_id\": \"uq-voltage-001\"",
+            "0784d035aebad8e436eb6b30bccbb4b3a94746ebf3c3c8a123d8d4900fd9601d",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarLineageMismatch(
+                "shared source dependence decision differs across measurements"
+            ))
+        ));
+    }
+
+    #[test]
+    fn uq_sidecar_rejects_inverted_uncertainty_coverage_interval() {
+        let changed = GOLDEN_UQ_SIDECAR.replacen(
+            "\"lower_scaled\": \"-5\",\n          \"upper_scaled\": \"5\"",
+            "\"lower_scaled\": \"6\",\n          \"upper_scaled\": \"5\"",
+            1,
+        );
+        let changed = resign_uq_sidecar(&changed);
+        assert!(matches!(
+            validate_uq_sidecar(changed.as_bytes(), GOLDEN_PACKET.as_bytes()),
+            Err(WireError::UqSidecarLineageMismatch(
+                "uncertainty coverage interval inverted"
             ))
         ));
     }
