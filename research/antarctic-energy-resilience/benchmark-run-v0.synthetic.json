@@ -1,0 +1,67 @@
+{
+  "schema_version": "antarctic-benchmark-run-v0.1",
+  "run_id": "synthetic-contract-plan-v0",
+  "status": "planned",
+  "evidence_tier": "S0_synthetic",
+  "case_manifest": {
+    "case_id": "antarctic-station-synthetic-four-regime",
+    "case_sha256": null,
+    "physical_data": false,
+    "station_scope": "unspecified_synthetic_station",
+    "system_boundary": "Synthetic software arithmetic only; excludes real station loads, fuel curves, water/communications dynamics and validated equipment models.",
+    "model_applicability_reference": null
+  },
+  "source_artifacts": [],
+  "split_plan": {
+    "method": "synthetic_only",
+    "tuning_periods": [],
+    "validation_periods": [],
+    "locked_test_periods": [],
+    "leakage_policy": "Synthetic fixtures are software negative controls only and must not be mixed into field-performance estimates.",
+    "locked_before_tuning": true
+  },
+  "methods": [
+    {
+      "method_id": "synthetic-rule-reference",
+      "family": "rule_based",
+      "version": "not_implemented",
+      "configuration_sha256": null,
+      "same_information": true,
+      "same_evaluation_budget": true,
+      "notes": "Planned only; no policy performance is asserted by this receipt."
+    }
+  ],
+  "budget": {
+    "primary_budget_unit": "synthetic_fixture_only",
+    "max_evaluations_per_method": 0,
+    "actual_evaluations_by_method": {
+      "synthetic-rule-reference": 0
+    },
+    "wall_time_seconds_by_method": {
+      "synthetic-rule-reference": 0
+    },
+    "hardware_manifest": "No hardware performance claim; not a physical dispatch evaluation.",
+    "training_or_calibration_cost_disclosed": true
+  },
+  "hard_gates": {
+    "electric_balance": "unknown",
+    "thermal_balance": "unknown",
+    "storage_bounds": "unknown",
+    "critical_service": "unknown",
+    "process_safety": "unknown",
+    "environmental_constraints": "unknown",
+    "independent_verifier_id": "not_run",
+    "gate_notes": "This plan file is not a result. Scenario arithmetic checks are separately tested; no physical safety/environmental pass is implied."
+  },
+  "metrics": [],
+  "validation": {
+    "source_validation": "not_started",
+    "model_validation": "not_started",
+    "independent_audit": "not_started",
+    "ci_status": "not_run",
+    "exact_head_sha": null,
+    "reproducible_command": "bash scripts/check-antarctic-energy-profile.sh",
+    "artifact_manifest_sha256": null
+  },
+  "claim_ceiling": "software_accounting_only"
+}

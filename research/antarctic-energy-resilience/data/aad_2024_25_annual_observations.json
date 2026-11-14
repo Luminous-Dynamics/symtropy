@@ -1,0 +1,117 @@
+{
+  "schema_version": "antarctic-operational-energy-observations-v0.1",
+  "evidence_class": "published_aggregate_observations",
+  "source": {
+    "publisher": "Australian Government Department of Climate Change, Energy, the Environment and Water",
+    "document": "Annual Report 2024–25",
+    "table": "Table 73: Environmental impact of operations, AAD stations",
+    "url": "https://www.dcceew.gov.au/sites/default/files/documents/annual-report-2024-25.pdf",
+    "reporting_period": "2024–25 financial year",
+    "accessed_on": "2026-10-22",
+    "license_status": "Check the report's exact reuse terms before redistributing the PDF; this file records limited factual values with citations.",
+    "limitations": [
+      "Australian Antarctic Division reporting scope, not all Antarctic nations or all Antarctic operations.",
+      "Annual aggregates cannot reconstruct hourly dispatch, polar-night sequences, outages or coincident weather.",
+      "Electricity generation, operational diesel, marine fuel and aviation fuel are different boundaries and must not be indiscriminately summed or substituted.",
+      "Station fuel is a combined operations category covering electricity generation, vehicles, plant, incinerators and boilers.",
+      "Water value is reported through 1 April 2025, not a complete financial-year measurement."
+    ]
+  },
+  "observations": [
+    {
+      "id": "aad-fy2024-25-diesel-electricity",
+      "metric": "electricity_generated_by_diesel",
+      "value": 5612426,
+      "unit": "kWh_e",
+      "aggregation": "annual published aggregate",
+      "site_scope": "Australian Antarctic Division station operations",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "comparability_note": "Electricity generation only; not total fuel energy or useful heat."
+    },
+    {
+      "id": "aad-fy2024-25-renewable-electricity",
+      "metric": "renewable_electricity_generated",
+      "value": 1004020,
+      "unit": "kWh_e",
+      "aggregation": "annual published aggregate",
+      "site_scope": "Mawson wind and Casey solar",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "comparability_note": "Named renewable sources only within the reporting row; not an Antarctica-wide renewable total."
+    },
+    {
+      "id": "aad-fy2024-25-operational-diesel",
+      "metric": "operational_diesel_fuel",
+      "value": 2500150,
+      "unit": "L",
+      "fuel_type": "Special Antarctic Blend (SAB)",
+      "aggregation": "annual published aggregate",
+      "site_scope": "Australian Antarctic Division operations",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "boundary": "Electricity generation, vehicles, plant, incinerators and boilers.",
+      "comparability_note": "Not an electricity-generator-only consumption value. Do not derive generator efficiency from this combined fuel figure."
+    },
+    {
+      "id": "aad-fy2024-25-marine-fuel",
+      "metric": "shipping_fuel",
+      "value": 8264800,
+      "unit": "L",
+      "fuel_type": "Distillate Marine Fuel (DMA)",
+      "aggregation": "annual published aggregate",
+      "site_scope": "Australian Antarctic Division shipping",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "comparability_note": "Separate mission-logistics boundary; not station energy."
+    },
+    {
+      "id": "aad-fy2024-25-aviation-fuel",
+      "metric": "aviation_fuel",
+      "value": 1391142,
+      "unit": "L",
+      "fuel_type": "Aviation turbine kerosene (ATK)",
+      "aggregation": "annual published aggregate",
+      "site_scope": "Australian Antarctic Division aviation operations",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "comparability_note": "Separate mission-logistics boundary; not station energy."
+    },
+    {
+      "id": "aad-fy2024-25-icecore-aviation-fuel",
+      "metric": "ice_core_aviation_fuel",
+      "value": 150350,
+      "unit": "L",
+      "fuel_type": "Aviation turbine kerosene (ATK)",
+      "aggregation": "annual published aggregate",
+      "site_scope": "Million Year Ice Core (MYIC)",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "comparability_note": "Report's separately listed MYIC aviation fuel. Keep separate from general aviation unless the accounting boundary explicitly combines them."
+    },
+    {
+      "id": "aad-fy2024-25-water-through-2025-04-01",
+      "metric": "total_water_use",
+      "value": 3293,
+      "unit": "kL",
+      "aggregation": "partial-year published aggregate",
+      "site_scope": "Australian Antarctic Division operations",
+      "source_table": "Table 73",
+      "directly_measured_or_derived": "reported",
+      "data_cutoff": "2025-04-01",
+      "comparability_note": "Not a full-year value; must not be compared as if complete."
+    }
+  ],
+  "derived_metrics": [
+    {
+      "id": "aad-fy2024-25-renewable-electricity-share-of-listed-generation",
+      "metric": "renewable_share_of_diesel_plus_listed_renewable_generation",
+      "value": 0.15174611868667862,
+      "unit": "fraction",
+      "calculation": "1004020 / (5612426 + 1004020)",
+      "rounding": "approximately 15.2%",
+      "status": "derived_from_reported_aggregates",
+      "caveat": "Only the two listed electricity-generation rows. Not the share of total Antarctic energy, all Australian mission energy, delivered useful heat or all nations' operations."
+    }
+  ]
+}
