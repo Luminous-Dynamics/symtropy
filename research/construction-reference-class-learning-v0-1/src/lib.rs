@@ -128,7 +128,7 @@ impl OutcomeAccounting {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CaseRole {
     Descriptive,
     Treatment,
@@ -437,13 +437,25 @@ impl EffectEstimate {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReplicationEvidence {
+    /// Distinct from the primary study digest; this identifies a separate replication.
+    pub replication_study_digest: String,
     pub replication_protocol_ref: String,
     pub included_case_ids: Vec<String>,
     pub independent_assessor_refs: Vec<String>,
 }
 
 impl ReplicationEvidence {
-    fn validate(&self, cases: &BTreeMap<&str, &CaseRecord>) -> Result<(), LearningError> {
+    fn validate(
+        &self,
+        primary_study_digest: &str,
+        primary_case_ids: &BTreeSet<String>,
+        expected_roles: &BTreeSet<CaseRole>,
+        cases: &BTreeMap<&str, &CaseRecord>,
+    ) -> Result<(), LearningError> {
+        require_non_empty("replication_study_digest", &self.replication_study_digest)?;
+        if self.replication_study_digest == primary_study_digest {
+            return Err(LearningError::ReplicationStudyDigestNotIndependent);
+        }
         require_non_empty("replication_protocol_ref", &self.replication_protocol_ref)?;
         if self.included_case_ids.is_empty() {
             return Err(LearningError::EmptyReplicationSet);
@@ -451,19 +463,29 @@ impl ReplicationEvidence {
         let mut site_ids = BTreeSet::new();
         let mut project_ids = BTreeSet::new();
         let mut case_ids = BTreeSet::new();
+        let mut replication_roles = BTreeSet::new();
         for case_id in &self.included_case_ids {
             require_non_empty("replication_case_id", case_id)?;
             if !case_ids.insert(case_id.as_str()) {
                 return Err(LearningError::DuplicateReplicationCase(case_id.clone()));
+            }
+            if primary_case_ids.contains(case_id) {
+                return Err(LearningError::ReplicationReusesPrimaryCase(
+                    case_id.clone(),
+                ));
             }
             let case = cases
                 .get(case_id.as_str())
                 .ok_or_else(|| LearningError::UnknownReplicationCase(case_id.clone()))?;
             site_ids.insert(case.context.site_id.as_str());
             project_ids.insert(case.context.project_id.as_str());
+            replication_roles.insert(case.role);
         }
         if site_ids.len() < 2 || project_ids.len() < 2 {
             return Err(LearningError::InsufficientIndependentSites);
+        }
+        if &replication_roles != expected_roles {
+            return Err(LearningError::ReplicationRoleSetMismatch);
         }
         let mut assessors = BTreeSet::new();
         for assessor in &self.independent_assessor_refs {
@@ -599,6 +621,9 @@ pub enum LearningError {
     InsufficientIndependentSites,
     DuplicateIndependentAssessor(String),
     InsufficientIndependentAssessors,
+    ReplicationStudyDigestNotIndependent,
+    ReplicationReusesPrimaryCase(String),
+    ReplicationRoleSetMismatch,
     ArithmeticOverflow,
 }
 
@@ -656,6 +681,10 @@ pub fn evaluate_comparison(
 
     let design = assess_study_design(&manifest.study_design, &cases)?;
     let expected_effect_case_ids = declared_effect_case_ids(&manifest.study_design, &cases)?;
+    let expected_roles: BTreeSet<CaseRole> = expected_effect_case_ids
+        .iter()
+        .filter_map(|case_id| cases.get(case_id.as_str()).map(|case| case.role))
+        .collect();
     let mut metric_ids = BTreeSet::new();
     for effect in &manifest.effects {
         effect.validate(
@@ -671,6 +700,20 @@ pub fn evaluate_comparison(
     let mut promotion = design.promotion;
     let mut causal_claim = design.causal_claim;
     let mut quarantined = design.quarantined;
+    let effects_present = !manifest.effects.is_empty();
+
+    if !effects_present
+        && matches!(
+            design.evidence_class,
+            EvidenceClass::MatchedObservational
+                | EvidenceClass::QuasiExperimental
+                | EvidenceClass::Randomized
+        )
+    {
+        promotion = PromotionDisposition::LocalDescriptiveOnly;
+        causal_claim = CausalClaimDisposition::NotSupported;
+        reasons.push("no effect estimate is attached; study design alone is not an effect claim".to_owned());
+    }
 
     if uncertain_sources {
         quarantined = true;
@@ -686,7 +729,12 @@ pub fn evaluate_comparison(
 
     let applicability = ApplicabilityDisposition::WithinDeclaredEnvelope;
     let replication = if let Some(replication) = &manifest.replication {
-        match replication.validate(&cases) {
+        match replication.validate(
+            &manifest.study_digest,
+            &expected_effect_case_ids,
+            &expected_roles,
+            &cases,
+        ) {
             Ok(()) => ReplicationDisposition::IndependentCrossSiteReplication,
             Err(error) => {
                 reasons.push(format!("replication not established: {error:?}"));
@@ -701,6 +749,8 @@ pub fn evaluate_comparison(
         promotion = PromotionDisposition::Quarantined;
         causal_claim = CausalClaimDisposition::Rejected;
     } else if unresolved_units == 0
+        && effects_present
+        && promotion != PromotionDisposition::LocalDescriptiveOnly
         && replication == ReplicationDisposition::IndependentCrossSiteReplication
     {
         promotion = match design.evidence_class {
