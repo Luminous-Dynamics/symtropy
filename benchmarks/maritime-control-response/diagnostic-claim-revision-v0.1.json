@@ -1,0 +1,169 @@
+{
+  "schema_version": "symtropy-diagnostic-revision-v0.1",
+  "status": "protocol_only_not_executed",
+  "title": "Append-only diagnosis history with evidence-driven current-state revision",
+  "parent_workstreams": [
+    "LiU-ICE streaming receipts",
+    "behavioral-set diagnosis",
+    "sequential evidence",
+    "LiU-ICE DX2027 profile"
+  ],
+  "core_distinction": {
+    "historical_integrity": "An emitted revision and its evidence history are append-only and replayable.",
+    "epistemic_revisability": "New evidence available at a later decision time may create a new current disposition without rewriting the prior receipt."
+  },
+  "ownership": {
+    "this_contract": [
+      "revision ordering",
+      "evidence chronology",
+      "active and invalidated evidence set",
+      "declared disposition-transition consistency",
+      "receipt chain and replay"
+    ],
+    "upstream_required": [
+      "issuer authentication",
+      "evidence quality appraisal",
+      "calibration verification",
+      "physical model validation",
+      "engineering authority and maintenance approval"
+    ]
+  },
+  "binding": {
+    "identity": [
+      "run_id",
+      "recording_id",
+      "asset_id"
+    ],
+    "immutable_digests": [
+      "configuration_sha256",
+      "model_sha256",
+      "hypothesis_catalogue_sha256"
+    ],
+    "catalogue_semantics": "Hypothesis IDs are canonical, sorted and unique. A singleton means unique only within this declared catalogue."
+  },
+  "time_semantics": {
+    "observed_at": "Time the measurement or record refers to.",
+    "available_at": "Time the diagnostic process could actually consume the evidence.",
+    "issued_at": "Time the current disposition was emitted.",
+    "hard_rule": "observed_at <= available_at <= issued_at; late-arriving evidence can only affect a later revision."
+  },
+  "revision_kinds": {
+    "initial_assessment": "First disposition in a lineage; requires evidence and has no invalidation.",
+    "corroboration": "Adds support while preserving the current disposition.",
+    "reassessment": "Changes the disposition because newly available evidence contradicts, narrows, expands, or changes the operating context.",
+    "evidence_retraction": "Explicitly invalidates one or more previously active evidence items using a new invalidation-basis evidence reference."
+  },
+  "dispositions": [
+    "no_fault",
+    "known_hypotheses",
+    "unknown_or_out_of_support",
+    "not_evaluable",
+    "withdrawn"
+  ],
+  "evidence_effects": [
+    "supports_current",
+    "contradicts_current",
+    "narrows_hypothesis_set",
+    "expands_ambiguity",
+    "context_shift",
+    "invalidates_prior_evidence"
+  ],
+  "invariants": [
+    "Each revision has the next contiguous ordinal and a strictly increasing issued_at time.",
+    "Every revision adds at least one previously unseen evidence digest.",
+    "Evidence cannot be used before available_at.",
+    "Duplicate evidence digests are rejected even if source wrapper identifiers differ.",
+    "An invalidation target must be active in the immediately preceding evidence state.",
+    "An invalidation basis must be new evidence with declared effect invalidates_prior_evidence.",
+    "Invalidated evidence is a permanent tombstone and cannot be resurrected.",
+    "Corroboration preserves the disposition and adds support.",
+    "Reassessment changes the disposition and requires an effect that justifies the transition.",
+    "Withdrawal requires an explicit evidence retraction; missingness, time passing or model failure cannot withdraw a claim.",
+    "A withdrawn lineage is closed; a later assessment starts a new lineage.",
+    "Changed model or configuration identity starts a new binding lineage.",
+    "Receipts preserve every old disposition, including claims that are later retracted."
+  ],
+  "hard_gates": [
+    "No historical receipt mutation or deletion.",
+    "No receipt-chain fork or ordinal gap.",
+    "No duplicate evidence digest.",
+    "No evidence whose available_at exceeds the revision issued_at.",
+    "No invalidation of evidence that is not currently active.",
+    "No invalidation without a new basis digest.",
+    "No resurrection of invalidated evidence.",
+    "No disposition change without evidence additions.",
+    "No corroboration that silently changes the disposition.",
+    "No reassessment unsupported by a declared contradiction, narrowing, expansion or context shift.",
+    "No withdrawal based solely on missing or stale sensors.",
+    "No unsupported promotion of an ambiguous set to a singleton.",
+    "No cross-model or cross-configuration revision in one lineage.",
+    "No post-withdrawal continuation in the same lineage."
+  ],
+  "comparators": [
+    {
+      "id": "mutable_current_state_overwrite",
+      "status": "baseline_to_implement",
+      "description": "Only the latest diagnosis is stored; historical changes cannot be reconstructed."
+    },
+    {
+      "id": "immutable_one_shot_diagnosis",
+      "status": "baseline_to_implement",
+      "description": "Predictions are immutable but later contradictory evidence cannot revise the current disposition."
+    },
+    {
+      "id": "append_only_revision_ledger",
+      "status": "implemented_source_contract_ci_pending",
+      "description": "The ledger retains immutable history and appends qualified evidence-driven revisions."
+    }
+  ],
+  "metrics": [
+    "valid_revision_acceptance_rate",
+    "invalid_revision_rejection_rate_by_gate",
+    "historical_receipt_mutation_count",
+    "receipt_chain_replay_mismatch_count",
+    "duplicate_or_resurrected_evidence_acceptance_count",
+    "future_available_evidence_acceptance_count",
+    "unsupported_singleton_transition_count",
+    "unsupported_withdrawal_count",
+    "time_from_new_evidence_availability_to_current_disposition_update",
+    "revision_validation_latency_p50_p95_p99"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "complete_replay",
+      "target": "100% of valid histories replay to identical receipts",
+      "status": "aspirational"
+    },
+    {
+      "id": "false_revision",
+      "target": "0 current-disposition changes without evidence-bearing revisions",
+      "status": "aspirational"
+    },
+    {
+      "id": "history_integrity",
+      "target": "0 historical receipt mutations or forked chains",
+      "status": "aspirational"
+    },
+    {
+      "id": "singleton_grounding",
+      "target": "100% of singleton transitions identify the evidence that removed alternatives",
+      "status": "aspirational"
+    },
+    {
+      "id": "withdrawal_grounding",
+      "target": "100% of withdrawals have explicit evidence invalidation",
+      "status": "aspirational"
+    },
+    {
+      "id": "no_resurrection",
+      "target": "0 accepted evidence resurrection events",
+      "status": "aspirational"
+    },
+    {
+      "id": "latency",
+      "target": "p95 validation below 1 ms for 10000 references on pinned hardware",
+      "status": "aspirational"
+    }
+  ],
+  "claim_ceiling": "Structural and temporal consistency of declared evidence and revisions only. Hashes establish byte identity, not source authenticity or physical truth. No diagnosis performance, calibration, physical validation, maintenance benefit or actuation authority is established."
+}
