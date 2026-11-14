@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_OBSERVABILITY_ADAPTER_CLOCK_V0_1.schema.json",
+  "title": "Maritime observability adapter clock qualification v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "qualification_id",
+    "evidence_class",
+    "timebase_id",
+    "clock_domain",
+    "declared_timestamp_uncertainty_ms",
+    "layout_maximum_timestamp_uncertainty_ms",
+    "uncertainty_source",
+    "mapping_method",
+    "hardware_clock_measurements_present",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "qualification_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "SYNTHETIC_CONFORMANCE_FIXTURE",
+        "MEASURED"
+      ]
+    },
+    "timebase_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clock_domain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "declared_timestamp_uncertainty_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "layout_maximum_timestamp_uncertainty_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "uncertainty_source": {
+      "enum": [
+        "synthetic_fixture",
+        "measured_offset_bound",
+        "instrument_specification",
+        "vendor_specification"
+      ]
+    },
+    "mapping_method": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hardware_clock_measurements_present": {
+      "type": "boolean"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    }
+  }
+}

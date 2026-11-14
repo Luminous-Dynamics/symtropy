@@ -1,0 +1,1318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_OBSERVABILITY_ADAPTER_REPORT_V0_1.schema.json",
+  "title": "Maritime observability adapter report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "generated_at",
+    "asset",
+    "operating_domain",
+    "evidence_digests",
+    "sensor_inventory",
+    "fault_assessments",
+    "ambiguity_classes",
+    "pair_assessments",
+    "sensor_loss_scenarios",
+    "metrics",
+    "authority_boundary",
+    "claim_ceiling",
+    "execution",
+    "measurement_window_assessments",
+    "trajectory_pair_assessments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "assessment_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "asset_class",
+        "vessel_id",
+        "engine_id",
+        "configuration_revision",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "asset_class": {
+          "type": "string"
+        },
+        "vessel_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engine_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_revision": {
+          "$ref": "#/$defs/ref"
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "operating_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regime_id",
+        "description",
+        "qualification_state",
+        "load_percent",
+        "speed_rpm",
+        "transient_state",
+        "measurement_timebase_id",
+        "maximum_timestamp_uncertainty_ms"
+      ],
+      "properties": {
+        "regime_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "description": {
+          "type": "string"
+        },
+        "qualification_state": {
+          "enum": [
+            "qualified",
+            "unsupported",
+            "not_evaluated"
+          ]
+        },
+        "load_percent": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "speed_rpm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "transient_state": {
+          "enum": [
+            "steady",
+            "transient",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "measurement_timebase_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "maximum_timestamp_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "evidence_digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_topology_sha256",
+        "fault_model_sha256",
+        "evaluator_sha256",
+        "dataset_sha256",
+        "split_manifest_sha256",
+        "model_sha256"
+      ],
+      "properties": {
+        "sensor_topology_sha256": {
+          "type": "null"
+        },
+        "fault_model_sha256": {
+          "type": "null"
+        },
+        "evaluator_sha256": {
+          "type": "null"
+        },
+        "dataset_sha256": {
+          "type": "null"
+        },
+        "split_manifest_sha256": {
+          "type": "null"
+        },
+        "model_sha256": {
+          "type": "null"
+        }
+      }
+    },
+    "sensor_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sensor_id",
+          "channel_id",
+          "installed",
+          "measurement_principle",
+          "unit",
+          "source_role",
+          "quality_state",
+          "calibration_state",
+          "dependency_groups",
+          "derived_from_channel_ids",
+          "clock_domain",
+          "timebase_id",
+          "timestamp_uncertainty_ms",
+          "timestamp_uncertainty_source",
+          "timebase_qualification_state",
+          "timebase_qualification_artifact_id",
+          "timebase_qualification_sha256",
+          "dependency_review_state",
+          "dependency_review_record_id",
+          "dependency_review_record_sha256"
+        ],
+        "properties": {
+          "sensor_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "channel_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "measurement_principle": {
+            "$ref": "#/$defs/ref"
+          },
+          "unit": {
+            "$ref": "#/$defs/ref"
+          },
+          "source_role": {
+            "enum": [
+              "measured",
+              "derived",
+              "reconstructed",
+              "simulated",
+              "synthetic"
+            ]
+          },
+          "quality_state": {
+            "enum": [
+              "current",
+              "missing",
+              "stale",
+              "rejected",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "calibration_state": {
+            "enum": [
+              "current",
+              "expired",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "dependency_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "derived_from_channel_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "physical_location": {
+            "$ref": "#/$defs/ref"
+          },
+          "clock_domain": {
+            "$ref": "#/$defs/ref"
+          },
+          "timebase_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "timestamp_uncertainty_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "timestamp_uncertainty_source": {
+            "enum": [
+              "measured_offset_bound",
+              "instrument_specification",
+              "vendor_specification",
+              "estimated",
+              "unknown",
+              "synthetic_fixture"
+            ]
+          },
+          "timebase_qualification_state": {
+            "enum": [
+              "qualified",
+              "synthetic_conformance",
+              "unqualified",
+              "unknown"
+            ]
+          },
+          "timebase_qualification_artifact_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "timebase_qualification_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dependency_review_state": {
+            "enum": [
+              "synthetic_conformance",
+              "independently_reviewed",
+              "unreviewed",
+              "unknown"
+            ]
+          },
+          "dependency_review_record_id": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dependency_review_record_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "timebase_qualification_state": {
+                  "enum": [
+                    "qualified",
+                    "synthetic_conformance"
+                  ]
+                }
+              },
+              "required": [
+                "timebase_qualification_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "timestamp_uncertainty_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "timebase_qualification_artifact_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "timebase_qualification_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "timebase_id",
+                "timestamp_uncertainty_ms",
+                "timebase_qualification_artifact_id",
+                "timebase_qualification_sha256"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "fault_assessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fault_id",
+          "state",
+          "ambiguity_class_id",
+          "ambiguity_class_ids",
+          "candidate_fault_ids",
+          "signature_evidence",
+          "review_state"
+        ],
+        "properties": {
+          "fault_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "state": {
+            "enum": [
+              "observable_and_isolable",
+              "detectable_not_isolable",
+              "ambiguity_class",
+              "unobservable",
+              "unsupported_regime",
+              "evidence_conflict",
+              "not_evaluated"
+            ]
+          },
+          "ambiguity_class_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "candidate_fault_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "signature_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "evidence_role",
+                "channel_ids"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "evidence_role": {
+                  "enum": [
+                    "measured",
+                    "synthetic",
+                    "derived",
+                    "reconstructed",
+                    "simulated",
+                    "expert_authored",
+                    "operator_reported",
+                    "model_estimate"
+                  ]
+                },
+                "channel_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                }
+              }
+            }
+          },
+          "review_state": {
+            "enum": [
+              "not_reviewed",
+              "human_review_required",
+              "independently_reviewed"
+            ]
+          },
+          "ambiguity_class_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "pair_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fault_a",
+          "fault_b",
+          "state",
+          "method",
+          "evidence_refs"
+        ],
+        "properties": {
+          "fault_a": {
+            "$ref": "#/$defs/ref"
+          },
+          "fault_b": {
+            "$ref": "#/$defs/ref"
+          },
+          "state": {
+            "enum": [
+              "isolable",
+              "non_isolable",
+              "not_evaluated"
+            ]
+          },
+          "method": {
+            "const": "structural"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "evidence_role",
+                "channel_ids"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "evidence_role": {
+                  "enum": [
+                    "measured",
+                    "synthetic",
+                    "derived",
+                    "reconstructed",
+                    "simulated",
+                    "expert_authored",
+                    "operator_reported",
+                    "model_estimate"
+                  ]
+                },
+                "channel_ids": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sensor_loss_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "removed_sensor_ids",
+          "removed_dependency_groups",
+          "assessment_state",
+          "lost_isolability_pairs",
+          "measurement_window_assessments"
+        ],
+        "properties": {
+          "scenario_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "removed_sensor_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "removed_dependency_groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "assessment_state": {
+            "const": "recomputed"
+          },
+          "lost_isolability_pairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fault_a",
+                "fault_b"
+              ],
+              "properties": {
+                "fault_a": {
+                  "$ref": "#/$defs/ref"
+                },
+                "fault_b": {
+                  "$ref": "#/$defs/ref"
+                }
+              }
+            }
+          },
+          "measurement_window_assessments": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state_id",
+                "measurement_window_ref",
+                "status",
+                "eligible_channel_ids",
+                "required_common_overlap_ms",
+                "guaranteed_common_start_ms",
+                "guaranteed_common_end_ms",
+                "guaranteed_common_overlap_ms"
+              ],
+              "properties": {
+                "state_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "measurement_window_ref": {
+                  "$ref": "#/$defs/ref"
+                },
+                "status": {
+                  "enum": [
+                    "qualified",
+                    "not_evaluated"
+                  ]
+                },
+                "eligible_channel_ids": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                },
+                "required_common_overlap_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "guaranteed_common_start_ms": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "guaranteed_common_end_ms": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "guaranteed_common_overlap_ms": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "value",
+          "unit",
+          "stratum",
+          "sample_count"
+        ],
+        "properties": {
+          "metric_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "$ref": "#/$defs/ref"
+          },
+          "stratum": {
+            "$ref": "#/$defs/ref"
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "actuation",
+        "maintenance_authorization",
+        "mode_transition_authorization",
+        "restriction_clearance"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "actuation": {
+          "const": false
+        },
+        "maintenance_authorization": {
+          "const": false
+        },
+        "mode_transition_authorization": {
+          "const": false
+        },
+        "restriction_clearance": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_commit",
+        "case_sha256",
+        "clock_qualification_id",
+        "clock_qualification_sha256",
+        "timebase_id"
+      ],
+      "properties": {
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "case_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "clock_qualification_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_qualification_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "timebase_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ambiguity_classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ambiguity_class_id",
+          "candidate_fault_ids",
+          "pairwise_non_isolable_pairs"
+        ],
+        "properties": {
+          "ambiguity_class_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_fault_ids": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "pairwise_non_isolable_pairs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fault_a",
+                "fault_b",
+                "state"
+              ],
+              "properties": {
+                "fault_a": {
+                  "$ref": "#/$defs/ref"
+                },
+                "fault_b": {
+                  "$ref": "#/$defs/ref"
+                },
+                "state": {
+                  "const": "non_isolable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "measurement_window_assessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state_id",
+          "measurement_window_ref",
+          "status",
+          "eligible_channel_ids",
+          "required_common_overlap_ms",
+          "guaranteed_common_start_ms",
+          "guaranteed_common_end_ms",
+          "guaranteed_common_overlap_ms"
+        ],
+        "properties": {
+          "state_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "measurement_window_ref": {
+            "$ref": "#/$defs/ref"
+          },
+          "status": {
+            "enum": [
+              "qualified",
+              "not_evaluated"
+            ]
+          },
+          "eligible_channel_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "required_common_overlap_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "guaranteed_common_start_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "guaranteed_common_end_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "guaranteed_common_overlap_ms": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "resilience_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysis_method",
+        "failure_atom_count",
+        "failure_atom_catalog",
+        "maximum_failure_cut_order",
+        "failure_scenario_count",
+        "critical_pair_count",
+        "baseline_qualified_critical_pair_count",
+        "cut_found_critical_pair_count",
+        "no_cut_found_within_bound_critical_pair_count",
+        "baseline_not_qualified_critical_pair_count",
+        "pair_results",
+        "claim_ceiling",
+        "trajectory_pair_count",
+        "trajectory_baseline_qualified_count",
+        "trajectory_cut_found_count",
+        "trajectory_no_cut_found_within_bound_count",
+        "trajectory_baseline_not_qualified_count",
+        "trajectory_pair_results"
+      ],
+      "properties": {
+        "analysis_method": {
+          "const": "EXACT_SENSOR_AND_SHARED_DEPENDENCY_CUT_ENUMERATION_V0_1"
+        },
+        "failure_atom_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "failure_atom_catalog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "identity"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "sensor",
+                  "dependency_group"
+                ]
+              },
+              "identity": {
+                "$ref": "#/$defs/ref"
+              }
+            }
+          }
+        },
+        "maximum_failure_cut_order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "failure_scenario_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_qualified_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cut_found_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_cut_found_within_bound_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_not_qualified_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pair_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fault_a",
+              "fault_b",
+              "baseline_state",
+              "status",
+              "minimum_cut_order",
+              "maximum_tolerated_failure_atoms",
+              "tolerated_failure_atoms_lower_bound",
+              "minimal_cut_sets"
+            ],
+            "properties": {
+              "fault_a": {
+                "$ref": "#/$defs/ref"
+              },
+              "fault_b": {
+                "$ref": "#/$defs/ref"
+              },
+              "baseline_state": {
+                "enum": [
+                  "isolable",
+                  "non_isolable",
+                  "not_evaluated"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "baseline_not_qualified",
+                  "cut_found_within_bound",
+                  "no_cut_found_within_bound"
+                ]
+              },
+              "minimum_cut_order": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "maximum_tolerated_failure_atoms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "tolerated_failure_atoms_lower_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "minimal_cut_sets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "order",
+                    "failure_atoms"
+                  ],
+                  "properties": {
+                    "order": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2
+                    },
+                    "failure_atoms": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "identity"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "sensor",
+                              "dependency_group"
+                            ]
+                          },
+                          "identity": {
+                            "$ref": "#/$defs/ref"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 80
+        },
+        "trajectory_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_baseline_qualified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_cut_found_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_no_cut_found_within_bound_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_baseline_not_qualified_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trajectory_pair_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signature_case_id",
+              "pair_id",
+              "fault_a",
+              "fault_b",
+              "baseline_static_state",
+              "baseline_trajectory_state",
+              "status",
+              "minimum_cut_order",
+              "maximum_tolerated_failure_atoms",
+              "tolerated_failure_atoms_lower_bound",
+              "minimal_cut_sets"
+            ],
+            "properties": {
+              "signature_case_id": {
+                "$ref": "#/$defs/ref"
+              },
+              "pair_id": {
+                "$ref": "#/$defs/ref"
+              },
+              "fault_a": {
+                "$ref": "#/$defs/ref"
+              },
+              "fault_b": {
+                "$ref": "#/$defs/ref"
+              },
+              "baseline_static_state": {
+                "enum": [
+                  "isolable",
+                  "non_isolable",
+                  "not_evaluated"
+                ]
+              },
+              "baseline_trajectory_state": {
+                "enum": [
+                  "isolable",
+                  "non_isolable",
+                  "not_evaluated"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "baseline_not_qualified",
+                  "cut_found_within_bound",
+                  "no_cut_found_within_bound"
+                ]
+              },
+              "minimum_cut_order": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "maximum_tolerated_failure_atoms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "tolerated_failure_atoms_lower_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "minimal_cut_sets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "order",
+                    "failure_atoms"
+                  ],
+                  "properties": {
+                    "order": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2
+                    },
+                    "failure_atoms": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "identity"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "sensor",
+                              "dependency_group"
+                            ]
+                          },
+                          "identity": {
+                            "$ref": "#/$defs/ref"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "trajectory_pair_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "signature_case_id",
+          "pair_id",
+          "fault_a",
+          "fault_b",
+          "static_pair_state",
+          "trajectory_state",
+          "independent_measurement_principle_count",
+          "minimum_independent_principles",
+          "qualifying_measurement_principles",
+          "trajectory_channels",
+          "supplementary_interpretation",
+          "claim_ceiling"
+        ],
+        "properties": {
+          "signature_case_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "pair_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "fault_a": {
+            "$ref": "#/$defs/ref"
+          },
+          "fault_b": {
+            "$ref": "#/$defs/ref"
+          },
+          "static_pair_state": {
+            "enum": [
+              "isolable",
+              "non_isolable",
+              "not_evaluated"
+            ]
+          },
+          "trajectory_state": {
+            "enum": [
+              "isolable",
+              "non_isolable",
+              "not_evaluated"
+            ]
+          },
+          "independent_measurement_principle_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minimum_independent_principles": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "qualifying_measurement_principles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "trajectory_channels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sensor_id",
+                "channel_id",
+                "measurement_principle_ref",
+                "combined_alignment_uncertainty_ms",
+                "longest_separated_sample_span_ms",
+                "minimum_required_separated_duration_ms",
+                "qualified_temporal_separation",
+                "reason"
+              ],
+              "properties": {
+                "sensor_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "channel_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "measurement_principle_ref": {
+                  "$ref": "#/$defs/ref"
+                },
+                "combined_alignment_uncertainty_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "longest_separated_sample_span_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "minimum_required_separated_duration_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "qualified_temporal_separation": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "$ref": "#/$defs/ref"
+                }
+              }
+            }
+          },
+          "supplementary_interpretation": {
+            "enum": [
+              "STATIC_AMBIGUITY_RESOLVED_BY_TEMPORAL_SIGNATURE",
+              "NO_STATIC_CONCLUSION_UPGRADED"
+            ]
+          },
+          "claim_ceiling": {
+            "type": "string",
+            "minLength": 80
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

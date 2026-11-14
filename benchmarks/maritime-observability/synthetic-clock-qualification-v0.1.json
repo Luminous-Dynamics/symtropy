@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1.0",
+  "qualification_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "timebase_id": "marine-engine-common-ptp-v1",
+  "clock_domain": "engine-io-clock-domain-1",
+  "declared_timestamp_uncertainty_ms": 1,
+  "layout_maximum_timestamp_uncertainty_ms": 5,
+  "uncertainty_source": "synthetic_fixture",
+  "mapping_method": "identity_mapping_within_one_declared_synthetic_clock_domain",
+  "hardware_clock_measurements_present": false,
+  "claim_ceiling": "Synthetic contract fixture only. No PTP device, engine network, clock offset, drift, path asymmetry or end-to-end latency was measured or qualified."
+}

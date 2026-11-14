@@ -1,0 +1,991 @@
+{
+  "schema_version": "0.1.0",
+  "assessment_id": "MARITIME-OBSERVABILITY-SYNTHETIC-001",
+  "generated_at": "2026-11-11T00:00:00Z",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "asset": {
+    "asset_id": "VSL-TEST-ENGINE-01",
+    "asset_class": "main_engine",
+    "vessel_id": "VESSEL-TEST-001",
+    "engine_id": "ENGINE-TEST-001",
+    "engine_model": "marine-diesel-synthetic-v1",
+    "configuration_revision": "engine-r1",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "operating_domain": {
+    "regime_id": "REGIME_STEADY_75_MCR",
+    "description": "Synthetic steady-state engine at 75 percent maximum continuous rating",
+    "qualification_state": "qualified",
+    "load_percent": 75,
+    "speed_rpm": 750,
+    "transient_state": "steady",
+    "measurement_timebase_id": "marine-engine-common-ptp-v1",
+    "maximum_timestamp_uncertainty_ms": 5
+  },
+  "evidence_digests": {
+    "sensor_topology_sha256": null,
+    "fault_model_sha256": null,
+    "evaluator_sha256": null,
+    "dataset_sha256": null,
+    "split_manifest_sha256": null,
+    "model_sha256": null
+  },
+  "layout_profile": {
+    "layout_profile_ref": "layout:marine-engine-a-r1",
+    "state_taxonomy_ref": "taxonomy:marine-diesel-faults-v0.1",
+    "required_pair_set_ref": "pairs:marine-engine-core-v0.1",
+    "minimum_independent_principles_for_critical_pairs": 2,
+    "reference_state_id": "ENGINE_NORMAL_STEADY",
+    "maximum_timestamp_uncertainty_ms": 5,
+    "minimum_common_window_overlap_ms": 5000,
+    "maximum_failure_atoms_for_exact_cut_analysis": 12,
+    "maximum_failure_cut_order": 2
+  },
+  "sensors": [
+    {
+      "sensor_id": "fuel-rail-pressure-sensor",
+      "channel_id": "fuel-rail-pressure",
+      "installed": true,
+      "measurement_principle_ref": "principle:pressure-transduction",
+      "measurand": "FUEL_RAIL_PRESSURE",
+      "technique": "PIEZORESISTIVE_PRESSURE",
+      "unit": "bar",
+      "physical_location_ref": "location:fuel-rail",
+      "calibration_ref": "cal:fuel-rail-pressure-r1",
+      "calibration_state": "current",
+      "quality_state": "current",
+      "source_role": "synthetic",
+      "dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1",
+        "power:fuel-pressure"
+      ],
+      "derived_from_channel_ids": [],
+      "source_artifact_ref": "artifact:fuel-rail-pressure-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
+    },
+    {
+      "sensor_id": "crankshaft-speed-sensor",
+      "channel_id": "shaft-speed",
+      "installed": true,
+      "measurement_principle_ref": "principle:rotational-encoder",
+      "measurand": "ENGINE_SPEED",
+      "technique": "MAGNETIC_PICKUP",
+      "unit": "rpm",
+      "physical_location_ref": "location:crankshaft-flywheel",
+      "calibration_ref": "cal:shaft-speed-r1",
+      "calibration_state": "current",
+      "quality_state": "current",
+      "source_role": "synthetic",
+      "dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1",
+        "power:speed"
+      ],
+      "derived_from_channel_ids": [],
+      "source_artifact_ref": "artifact:shaft-speed-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
+    },
+    {
+      "sensor_id": "exhaust-thermocouple",
+      "channel_id": "exhaust-temperature",
+      "installed": true,
+      "measurement_principle_ref": "principle:thermoelectric",
+      "measurand": "EXHAUST_GAS_TEMPERATURE",
+      "technique": "TYPE_K_THERMOCOUPLE",
+      "unit": "degC",
+      "physical_location_ref": "location:exhaust-manifold",
+      "calibration_ref": "cal:exhaust-temp-r1",
+      "calibration_state": "current",
+      "quality_state": "current",
+      "source_role": "synthetic",
+      "dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1",
+        "power:thermocouple-module"
+      ],
+      "derived_from_channel_ids": [],
+      "source_artifact_ref": "artifact:exhaust-temp-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
+    },
+    {
+      "sensor_id": "rack-position-transducer",
+      "channel_id": "rack-position",
+      "installed": true,
+      "measurement_principle_ref": "principle:linear-displacement",
+      "measurand": "FUEL_RACK_POSITION",
+      "technique": "LVDT",
+      "unit": "percent",
+      "physical_location_ref": "location:fuel-pump-rack",
+      "calibration_ref": "cal:rack-position-r1",
+      "calibration_state": "current",
+      "quality_state": "current",
+      "source_role": "synthetic",
+      "dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1",
+        "power:rack-transducer"
+      ],
+      "derived_from_channel_ids": [],
+      "source_artifact_ref": "artifact:rack-position-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
+    },
+    {
+      "sensor_id": "engine-vibration-sensor",
+      "channel_id": "vibration-rms",
+      "installed": true,
+      "measurement_principle_ref": "principle:piezoelectric-acceleration",
+      "measurand": "ENGINE_VIBRATION_RMS",
+      "technique": "PIEZOELECTRIC_ACCELEROMETER",
+      "unit": "mm/s",
+      "physical_location_ref": "location:engine-block",
+      "calibration_ref": "cal:vibration-r1",
+      "calibration_state": "current",
+      "quality_state": "current",
+      "source_role": "synthetic",
+      "dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1",
+        "power:vibration"
+      ],
+      "derived_from_channel_ids": [],
+      "source_artifact_ref": "artifact:vibration-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
+    }
+  ],
+  "states": [
+    {
+      "state_id": "ENGINE_NORMAL_STEADY",
+      "state_class": "PROCESS_STATE",
+      "faulted_sensor_ids": []
+    },
+    {
+      "state_id": "ENGINE_FUEL_INJECTION_FAULT",
+      "state_class": "PROCESS_STATE",
+      "faulted_sensor_ids": []
+    },
+    {
+      "state_id": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "state_class": "PROCESS_STATE",
+      "faulted_sensor_ids": []
+    },
+    {
+      "state_id": "ENGINE_COOLING_RESTRICTION",
+      "state_class": "PROCESS_STATE",
+      "faulted_sensor_ids": []
+    },
+    {
+      "state_id": "FUEL_PRESSURE_SENSOR_FAULT",
+      "state_class": "SENSOR_FAULT",
+      "faulted_sensor_ids": [
+        "fuel-rail-pressure-sensor"
+      ]
+    },
+    {
+      "state_id": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "state_class": "OUT_OF_DOMAIN",
+      "faulted_sensor_ids": []
+    }
+  ],
+  "required_fault_pairs": [
+    {
+      "pair_id": "normal-vs-injection",
+      "fault_a": "ENGINE_NORMAL_STEADY",
+      "fault_b": "ENGINE_FUEL_INJECTION_FAULT",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-turbo",
+      "fault_a": "ENGINE_NORMAL_STEADY",
+      "fault_b": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-cooling",
+      "fault_a": "ENGINE_NORMAL_STEADY",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "critical": false,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-pressure-sensor",
+      "fault_a": "ENGINE_NORMAL_STEADY",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
+      "critical": true,
+      "minimum_independent_principles": 2
+    },
+    {
+      "pair_id": "normal-vs-ood",
+      "fault_a": "ENGINE_NORMAL_STEADY",
+      "fault_b": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_fuel_injection_fault-vs-engine_turbocharger_degradation",
+      "fault_a": "ENGINE_FUEL_INJECTION_FAULT",
+      "fault_b": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_fuel_injection_fault-vs-engine_cooling_restriction",
+      "fault_a": "ENGINE_FUEL_INJECTION_FAULT",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_fuel_injection_fault-vs-fuel_pressure_sensor_fault",
+      "fault_a": "ENGINE_FUEL_INJECTION_FAULT",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_turbocharger_degradation-vs-engine_cooling_restriction",
+      "fault_a": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_turbocharger_degradation-vs-fuel_pressure_sensor_fault",
+      "fault_a": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_cooling_restriction-vs-fuel_pressure_sensor_fault",
+      "fault_a": "ENGINE_COOLING_RESTRICTION",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
+      "critical": false,
+      "minimum_independent_principles": 1
+    }
+  ],
+  "responses": [
+    {
+      "response_id": "response:ENGINE_NORMAL_STEADY:fuel-rail-pressure",
+      "state_id": "ENGINE_NORMAL_STEADY",
+      "channel_id": "fuel-rail-pressure",
+      "availability": "VALID",
+      "value_lower": 300,
+      "value_upper": 310,
+      "unit": "bar",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_NORMAL_STEADY:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_NORMAL_STEADY:fuel-rail-pressure",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc00",
+      "adjudication_ref": "adjudication:ENGINE_NORMAL_STEADY:fuel-rail-pressure",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1010000
+    },
+    {
+      "response_id": "response:ENGINE_NORMAL_STEADY:shaft-speed",
+      "state_id": "ENGINE_NORMAL_STEADY",
+      "channel_id": "shaft-speed",
+      "availability": "VALID",
+      "value_lower": 750,
+      "value_upper": 760,
+      "unit": "rpm",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_NORMAL_STEADY:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_NORMAL_STEADY:shaft-speed",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc01",
+      "adjudication_ref": "adjudication:ENGINE_NORMAL_STEADY:shaft-speed",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1010000
+    },
+    {
+      "response_id": "response:ENGINE_NORMAL_STEADY:exhaust-temperature",
+      "state_id": "ENGINE_NORMAL_STEADY",
+      "channel_id": "exhaust-temperature",
+      "availability": "VALID",
+      "value_lower": 350,
+      "value_upper": 360,
+      "unit": "degC",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_NORMAL_STEADY:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_NORMAL_STEADY:exhaust-temperature",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc02",
+      "adjudication_ref": "adjudication:ENGINE_NORMAL_STEADY:exhaust-temperature",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1010000
+    },
+    {
+      "response_id": "response:ENGINE_NORMAL_STEADY:rack-position",
+      "state_id": "ENGINE_NORMAL_STEADY",
+      "channel_id": "rack-position",
+      "availability": "VALID",
+      "value_lower": 45,
+      "value_upper": 46,
+      "unit": "percent",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_NORMAL_STEADY:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_NORMAL_STEADY:rack-position",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc03",
+      "adjudication_ref": "adjudication:ENGINE_NORMAL_STEADY:rack-position",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1010000
+    },
+    {
+      "response_id": "response:ENGINE_NORMAL_STEADY:vibration-rms",
+      "state_id": "ENGINE_NORMAL_STEADY",
+      "channel_id": "vibration-rms",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 2.2,
+      "unit": "mm/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_NORMAL_STEADY:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_NORMAL_STEADY:vibration-rms",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc04",
+      "adjudication_ref": "adjudication:ENGINE_NORMAL_STEADY:vibration-rms",
+      "window_start_ms": 1000000,
+      "window_end_ms": 1010000
+    },
+    {
+      "response_id": "response:ENGINE_FUEL_INJECTION_FAULT:fuel-rail-pressure",
+      "state_id": "ENGINE_FUEL_INJECTION_FAULT",
+      "channel_id": "fuel-rail-pressure",
+      "availability": "VALID",
+      "value_lower": 250,
+      "value_upper": 260,
+      "unit": "bar",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_FUEL_INJECTION_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_FUEL_INJECTION_FAULT:fuel-rail-pressure",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc05",
+      "adjudication_ref": "adjudication:ENGINE_FUEL_INJECTION_FAULT:fuel-rail-pressure",
+      "window_start_ms": 1060000,
+      "window_end_ms": 1070000
+    },
+    {
+      "response_id": "response:ENGINE_FUEL_INJECTION_FAULT:shaft-speed",
+      "state_id": "ENGINE_FUEL_INJECTION_FAULT",
+      "channel_id": "shaft-speed",
+      "availability": "VALID",
+      "value_lower": 690,
+      "value_upper": 700,
+      "unit": "rpm",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_FUEL_INJECTION_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_FUEL_INJECTION_FAULT:shaft-speed",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc06",
+      "adjudication_ref": "adjudication:ENGINE_FUEL_INJECTION_FAULT:shaft-speed",
+      "window_start_ms": 1060000,
+      "window_end_ms": 1070000
+    },
+    {
+      "response_id": "response:ENGINE_FUEL_INJECTION_FAULT:exhaust-temperature",
+      "state_id": "ENGINE_FUEL_INJECTION_FAULT",
+      "channel_id": "exhaust-temperature",
+      "availability": "VALID",
+      "value_lower": 330,
+      "value_upper": 340,
+      "unit": "degC",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_FUEL_INJECTION_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_FUEL_INJECTION_FAULT:exhaust-temperature",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc07",
+      "adjudication_ref": "adjudication:ENGINE_FUEL_INJECTION_FAULT:exhaust-temperature",
+      "window_start_ms": 1060000,
+      "window_end_ms": 1070000
+    },
+    {
+      "response_id": "response:ENGINE_FUEL_INJECTION_FAULT:rack-position",
+      "state_id": "ENGINE_FUEL_INJECTION_FAULT",
+      "channel_id": "rack-position",
+      "availability": "VALID",
+      "value_lower": 60,
+      "value_upper": 61,
+      "unit": "percent",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_FUEL_INJECTION_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_FUEL_INJECTION_FAULT:rack-position",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc08",
+      "adjudication_ref": "adjudication:ENGINE_FUEL_INJECTION_FAULT:rack-position",
+      "window_start_ms": 1060000,
+      "window_end_ms": 1070000
+    },
+    {
+      "response_id": "response:ENGINE_FUEL_INJECTION_FAULT:vibration-rms",
+      "state_id": "ENGINE_FUEL_INJECTION_FAULT",
+      "channel_id": "vibration-rms",
+      "availability": "VALID",
+      "value_lower": 2.5,
+      "value_upper": 2.7,
+      "unit": "mm/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_FUEL_INJECTION_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_FUEL_INJECTION_FAULT:vibration-rms",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc09",
+      "adjudication_ref": "adjudication:ENGINE_FUEL_INJECTION_FAULT:vibration-rms",
+      "window_start_ms": 1060000,
+      "window_end_ms": 1070000
+    },
+    {
+      "response_id": "response:ENGINE_TURBOCHARGER_DEGRADATION:fuel-rail-pressure",
+      "state_id": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "channel_id": "fuel-rail-pressure",
+      "availability": "VALID",
+      "value_lower": 300,
+      "value_upper": 310,
+      "unit": "bar",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:fuel-rail-pressure",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0a",
+      "adjudication_ref": "adjudication:ENGINE_TURBOCHARGER_DEGRADATION:fuel-rail-pressure",
+      "window_start_ms": 1120000,
+      "window_end_ms": 1130000
+    },
+    {
+      "response_id": "response:ENGINE_TURBOCHARGER_DEGRADATION:shaft-speed",
+      "state_id": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "channel_id": "shaft-speed",
+      "availability": "VALID",
+      "value_lower": 700,
+      "value_upper": 710,
+      "unit": "rpm",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:shaft-speed",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0b",
+      "adjudication_ref": "adjudication:ENGINE_TURBOCHARGER_DEGRADATION:shaft-speed",
+      "window_start_ms": 1120000,
+      "window_end_ms": 1130000
+    },
+    {
+      "response_id": "response:ENGINE_TURBOCHARGER_DEGRADATION:exhaust-temperature",
+      "state_id": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "channel_id": "exhaust-temperature",
+      "availability": "VALID",
+      "value_lower": 380,
+      "value_upper": 390,
+      "unit": "degC",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:exhaust-temperature",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0c",
+      "adjudication_ref": "adjudication:ENGINE_TURBOCHARGER_DEGRADATION:exhaust-temperature",
+      "window_start_ms": 1120000,
+      "window_end_ms": 1130000
+    },
+    {
+      "response_id": "response:ENGINE_TURBOCHARGER_DEGRADATION:rack-position",
+      "state_id": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "channel_id": "rack-position",
+      "availability": "VALID",
+      "value_lower": 50,
+      "value_upper": 51,
+      "unit": "percent",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:rack-position",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0d",
+      "adjudication_ref": "adjudication:ENGINE_TURBOCHARGER_DEGRADATION:rack-position",
+      "window_start_ms": 1120000,
+      "window_end_ms": 1130000
+    },
+    {
+      "response_id": "response:ENGINE_TURBOCHARGER_DEGRADATION:vibration-rms",
+      "state_id": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "channel_id": "vibration-rms",
+      "availability": "VALID",
+      "value_lower": 3,
+      "value_upper": 3.2,
+      "unit": "mm/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:vibration-rms",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0e",
+      "adjudication_ref": "adjudication:ENGINE_TURBOCHARGER_DEGRADATION:vibration-rms",
+      "window_start_ms": 1120000,
+      "window_end_ms": 1130000
+    },
+    {
+      "response_id": "response:ENGINE_COOLING_RESTRICTION:fuel-rail-pressure",
+      "state_id": "ENGINE_COOLING_RESTRICTION",
+      "channel_id": "fuel-rail-pressure",
+      "availability": "VALID",
+      "value_lower": 300,
+      "value_upper": 310,
+      "unit": "bar",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_COOLING_RESTRICTION:fuel-rail-pressure",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0f",
+      "adjudication_ref": "adjudication:ENGINE_COOLING_RESTRICTION:fuel-rail-pressure",
+      "window_start_ms": 1180000,
+      "window_end_ms": 1190000
+    },
+    {
+      "response_id": "response:ENGINE_COOLING_RESTRICTION:shaft-speed",
+      "state_id": "ENGINE_COOLING_RESTRICTION",
+      "channel_id": "shaft-speed",
+      "availability": "VALID",
+      "value_lower": 700,
+      "value_upper": 710,
+      "unit": "rpm",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_COOLING_RESTRICTION:shaft-speed",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc10",
+      "adjudication_ref": "adjudication:ENGINE_COOLING_RESTRICTION:shaft-speed",
+      "window_start_ms": 1180000,
+      "window_end_ms": 1190000
+    },
+    {
+      "response_id": "response:ENGINE_COOLING_RESTRICTION:exhaust-temperature",
+      "state_id": "ENGINE_COOLING_RESTRICTION",
+      "channel_id": "exhaust-temperature",
+      "availability": "VALID",
+      "value_lower": 380,
+      "value_upper": 390,
+      "unit": "degC",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_COOLING_RESTRICTION:exhaust-temperature",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc11",
+      "adjudication_ref": "adjudication:ENGINE_COOLING_RESTRICTION:exhaust-temperature",
+      "window_start_ms": 1180000,
+      "window_end_ms": 1190000
+    },
+    {
+      "response_id": "response:ENGINE_COOLING_RESTRICTION:rack-position",
+      "state_id": "ENGINE_COOLING_RESTRICTION",
+      "channel_id": "rack-position",
+      "availability": "VALID",
+      "value_lower": 50,
+      "value_upper": 51,
+      "unit": "percent",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_COOLING_RESTRICTION:rack-position",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc12",
+      "adjudication_ref": "adjudication:ENGINE_COOLING_RESTRICTION:rack-position",
+      "window_start_ms": 1180000,
+      "window_end_ms": 1190000
+    },
+    {
+      "response_id": "response:ENGINE_COOLING_RESTRICTION:vibration-rms",
+      "state_id": "ENGINE_COOLING_RESTRICTION",
+      "channel_id": "vibration-rms",
+      "availability": "VALID",
+      "value_lower": 3,
+      "value_upper": 3.2,
+      "unit": "mm/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_COOLING_RESTRICTION:vibration-rms",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc13",
+      "adjudication_ref": "adjudication:ENGINE_COOLING_RESTRICTION:vibration-rms",
+      "window_start_ms": 1180000,
+      "window_end_ms": 1190000
+    },
+    {
+      "response_id": "response:FUEL_PRESSURE_SENSOR_FAULT:fuel-rail-pressure",
+      "state_id": "FUEL_PRESSURE_SENSOR_FAULT",
+      "channel_id": "fuel-rail-pressure",
+      "availability": "MISSING",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "bar",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:FUEL_PRESSURE_SENSOR_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:FUEL_PRESSURE_SENSOR_FAULT:fuel-rail-pressure",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc14",
+      "adjudication_ref": "adjudication:FUEL_PRESSURE_SENSOR_FAULT:fuel-rail-pressure",
+      "window_start_ms": 1240000,
+      "window_end_ms": 1250000
+    },
+    {
+      "response_id": "response:FUEL_PRESSURE_SENSOR_FAULT:shaft-speed",
+      "state_id": "FUEL_PRESSURE_SENSOR_FAULT",
+      "channel_id": "shaft-speed",
+      "availability": "VALID",
+      "value_lower": 750,
+      "value_upper": 760,
+      "unit": "rpm",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:FUEL_PRESSURE_SENSOR_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:FUEL_PRESSURE_SENSOR_FAULT:shaft-speed",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc15",
+      "adjudication_ref": "adjudication:FUEL_PRESSURE_SENSOR_FAULT:shaft-speed",
+      "window_start_ms": 1240000,
+      "window_end_ms": 1250000
+    },
+    {
+      "response_id": "response:FUEL_PRESSURE_SENSOR_FAULT:exhaust-temperature",
+      "state_id": "FUEL_PRESSURE_SENSOR_FAULT",
+      "channel_id": "exhaust-temperature",
+      "availability": "VALID",
+      "value_lower": 350,
+      "value_upper": 360,
+      "unit": "degC",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:FUEL_PRESSURE_SENSOR_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:FUEL_PRESSURE_SENSOR_FAULT:exhaust-temperature",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc16",
+      "adjudication_ref": "adjudication:FUEL_PRESSURE_SENSOR_FAULT:exhaust-temperature",
+      "window_start_ms": 1240000,
+      "window_end_ms": 1250000
+    },
+    {
+      "response_id": "response:FUEL_PRESSURE_SENSOR_FAULT:rack-position",
+      "state_id": "FUEL_PRESSURE_SENSOR_FAULT",
+      "channel_id": "rack-position",
+      "availability": "VALID",
+      "value_lower": 45,
+      "value_upper": 46,
+      "unit": "percent",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:FUEL_PRESSURE_SENSOR_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:FUEL_PRESSURE_SENSOR_FAULT:rack-position",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc17",
+      "adjudication_ref": "adjudication:FUEL_PRESSURE_SENSOR_FAULT:rack-position",
+      "window_start_ms": 1240000,
+      "window_end_ms": 1250000
+    },
+    {
+      "response_id": "response:FUEL_PRESSURE_SENSOR_FAULT:vibration-rms",
+      "state_id": "FUEL_PRESSURE_SENSOR_FAULT",
+      "channel_id": "vibration-rms",
+      "availability": "VALID",
+      "value_lower": 2,
+      "value_upper": 2.2,
+      "unit": "mm/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:FUEL_PRESSURE_SENSOR_FAULT:synthetic-01",
+      "artifact_id": "artifact:response:FUEL_PRESSURE_SENSOR_FAULT:vibration-rms",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc18",
+      "adjudication_ref": "adjudication:FUEL_PRESSURE_SENSOR_FAULT:vibration-rms",
+      "window_start_ms": 1240000,
+      "window_end_ms": 1250000
+    },
+    {
+      "response_id": "response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:fuel-rail-pressure",
+      "state_id": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "fuel-rail-pressure",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "bar",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_UNKNOWN_OUT_OF_DOMAIN:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:fuel-rail-pressure",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc19",
+      "adjudication_ref": "adjudication:ENGINE_UNKNOWN_OUT_OF_DOMAIN:fuel-rail-pressure",
+      "window_start_ms": 1300000,
+      "window_end_ms": 1310000
+    },
+    {
+      "response_id": "response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:shaft-speed",
+      "state_id": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "shaft-speed",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "rpm",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_UNKNOWN_OUT_OF_DOMAIN:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:shaft-speed",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1a",
+      "adjudication_ref": "adjudication:ENGINE_UNKNOWN_OUT_OF_DOMAIN:shaft-speed",
+      "window_start_ms": 1300000,
+      "window_end_ms": 1310000
+    },
+    {
+      "response_id": "response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:exhaust-temperature",
+      "state_id": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "exhaust-temperature",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "degC",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_UNKNOWN_OUT_OF_DOMAIN:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:exhaust-temperature",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1b",
+      "adjudication_ref": "adjudication:ENGINE_UNKNOWN_OUT_OF_DOMAIN:exhaust-temperature",
+      "window_start_ms": 1300000,
+      "window_end_ms": 1310000
+    },
+    {
+      "response_id": "response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:rack-position",
+      "state_id": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "rack-position",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "percent",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_UNKNOWN_OUT_OF_DOMAIN:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:rack-position",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1c",
+      "adjudication_ref": "adjudication:ENGINE_UNKNOWN_OUT_OF_DOMAIN:rack-position",
+      "window_start_ms": 1300000,
+      "window_end_ms": 1310000
+    },
+    {
+      "response_id": "response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:vibration-rms",
+      "state_id": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "channel_id": "vibration-rms",
+      "availability": "UNKNOWN",
+      "value_lower": null,
+      "value_upper": null,
+      "unit": "mm/s",
+      "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+      "measurement_window_ref": "window:ENGINE_UNKNOWN_OUT_OF_DOMAIN:synthetic-01",
+      "artifact_id": "artifact:response:ENGINE_UNKNOWN_OUT_OF_DOMAIN:vibration-rms",
+      "source_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc1d",
+      "adjudication_ref": "adjudication:ENGINE_UNKNOWN_OUT_OF_DOMAIN:vibration-rms",
+      "window_start_ms": 1300000,
+      "window_end_ms": 1310000
+    }
+  ],
+  "common_cause_scenarios": [
+    {
+      "scenario_id": "engine-gateway-loss",
+      "removed_sensor_ids": [],
+      "removed_dependency_groups": [
+        "gateway:engine-io-1"
+      ]
+    },
+    {
+      "scenario_id": "fuel-pressure-transducer-loss",
+      "removed_sensor_ids": [
+        "fuel-rail-pressure-sensor"
+      ],
+      "removed_dependency_groups": []
+    },
+    {
+      "scenario_id": "shared-clock-loss",
+      "removed_sensor_ids": [],
+      "removed_dependency_groups": [
+        "clock:ptp-engine-1"
+      ]
+    },
+    {
+      "scenario_id": "gateway-and-clock-loss",
+      "removed_sensor_ids": [],
+      "removed_dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1"
+      ]
+    }
+  ],
+  "claim_ceiling": "Fabricated conformance data only. No physical maritime engine, calibration, sensor topology, fault diagnosis, shipboard or maintenance claim.",
+  "trajectory_signature_cases": [
+    {
+      "signature_case_id": "turbocharger-vs-cooling-load-step-temporal-v1",
+      "pair_id": "engine_turbocharger_degradation-vs-engine_cooling_restriction",
+      "fault_a": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "event_alignment_ref": "alignment:synthetic-engine-load-step-v1",
+      "event_alignment_state": "synthetic_conformance",
+      "event_alignment_record_id": null,
+      "event_alignment_record_sha256": null,
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "alignment_uncertainty_ms": 1,
+      "sample_period_ms": 1000,
+      "minimum_separated_duration_ms": 2000,
+      "minimum_independent_principles": 2,
+      "trajectory_channels": [
+        {
+          "sensor_id": "crankshaft-speed-sensor",
+          "channel_id": "shaft-speed",
+          "measurement_window_ref_a": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+          "measurement_window_ref_b": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+          "artifact_id_a": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:shaft-speed",
+          "artifact_id_b": "artifact:response:ENGINE_COOLING_RESTRICTION:shaft-speed",
+          "samples_a": [
+            {
+              "offset_ms": 0,
+              "value_lower": 749.5,
+              "value_upper": 750.5
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 743.5,
+              "value_upper": 744.5
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 737.5,
+              "value_upper": 738.5
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 731.5,
+              "value_upper": 732.5
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 725.5,
+              "value_upper": 726.5
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 719.5,
+              "value_upper": 720.5
+            }
+          ],
+          "samples_b": [
+            {
+              "offset_ms": 0,
+              "value_lower": 719.5,
+              "value_upper": 720.5
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 725.5,
+              "value_upper": 726.5
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 731.5,
+              "value_upper": 732.5
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 737.5,
+              "value_upper": 738.5
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 743.5,
+              "value_upper": 744.5
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 749.5,
+              "value_upper": 750.5
+            }
+          ]
+        },
+        {
+          "sensor_id": "engine-vibration-sensor",
+          "channel_id": "vibration-rms",
+          "measurement_window_ref_a": "window:ENGINE_TURBOCHARGER_DEGRADATION:synthetic-01",
+          "measurement_window_ref_b": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
+          "artifact_id_a": "artifact:response:ENGINE_TURBOCHARGER_DEGRADATION:vibration-rms",
+          "artifact_id_b": "artifact:response:ENGINE_COOLING_RESTRICTION:vibration-rms",
+          "samples_a": [
+            {
+              "offset_ms": 0,
+              "value_lower": 1.95,
+              "value_upper": 2.05
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 2.35,
+              "value_upper": 2.45
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 2.75,
+              "value_upper": 2.85
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 3.15,
+              "value_upper": 3.25
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 3.55,
+              "value_upper": 3.65
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 3.95,
+              "value_upper": 4.05
+            }
+          ],
+          "samples_b": [
+            {
+              "offset_ms": 0,
+              "value_lower": 3.95,
+              "value_upper": 4.05
+            },
+            {
+              "offset_ms": 1000,
+              "value_lower": 3.55,
+              "value_upper": 3.65
+            },
+            {
+              "offset_ms": 2000,
+              "value_lower": 3.15,
+              "value_upper": 3.25
+            },
+            {
+              "offset_ms": 3000,
+              "value_lower": 2.75,
+              "value_upper": 2.85
+            },
+            {
+              "offset_ms": 4000,
+              "value_lower": 2.35,
+              "value_upper": 2.45
+            },
+            {
+              "offset_ms": 5000,
+              "value_lower": 1.95,
+              "value_upper": 2.05
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
