@@ -627,7 +627,7 @@
       "expected": {
         "status": "VERIFICATION_REQUIRED",
         "reasons": [
-          "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_OR_STALE"
+          "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_STALE_OR_INCOMPLETE"
         ],
         "coverage": [
           {
@@ -855,7 +855,7 @@
       "expected": {
         "status": "VERIFICATION_REQUIRED",
         "reasons": [
-          "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_OR_STALE"
+          "CURRENT_ACCREDITED_POST_TREATMENT_SAMPLE_MISSING_STALE_OR_INCOMPLETE"
         ],
         "coverage": [
           {
