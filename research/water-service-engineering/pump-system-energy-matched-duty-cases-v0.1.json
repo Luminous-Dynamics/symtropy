@@ -1,0 +1,82 @@
+{
+  "schema_version": "pump-system-energy-matched-duty-cases-v0.1",
+  "evidence_class": "synthetic_matched_hydraulic_service_arithmetic",
+  "evidence_ceiling": "synthetic_pump_system_equation_checks_only_no_energy_saving_or_installed_performance_claim",
+  "model": "quadratic_fixed_speed_pump_curve_and_static_plus_friction_system_curve_constant_wire_to_water_efficiency",
+  "units": {
+    "flow": "m3/s",
+    "head": "m",
+    "power": "W",
+    "density": "kg/m3",
+    "energy": "kWh"
+  },
+  "assumptions": {
+    "water_density_kg_m3": 1000,
+    "gravity_m_s2": 9.81,
+    "wire_to_water_efficiency_assumed": 0.65,
+    "efficiency_is_identical_for_fixed_speed_and_vfd": "yes_for_isolating_head_loss_effect_only",
+    "note": "Synthetic analytic fixture. Real pump/motor/VFD efficiency maps, NPSHr, transient behavior and vendor curves are excluded."
+  },
+  "equations": {
+    "fixed_speed_pump_head_m": "H0 - pump_curve_k_m_per_m6_s2 * Q^2",
+    "system_required_head_m": "H_static + system_curve_k_m_per_m6_s2 * Q^2",
+    "fixed_speed_throttle_head_m": "fixed_speed_pump_head_m - system_required_head_m",
+    "variable_speed_ratio": "sqrt(system_required_head_m + pump_curve_k*Q^2) / sqrt(H0)",
+    "variable_speed_pump_head_m": "speed_ratio^2 * H0 - pump_curve_k*Q^2",
+    "hydraulic_power_w": "rho * g * Q * pump_head_m",
+    "electrical_power_w": "hydraulic_power_w / assumed_wire_to_water_efficiency",
+    "equal_service_energy_saving_fraction": "1 - vfd_electrical_power_w / fixed_speed_electrical_power_w"
+  },
+  "cases": [
+    {
+      "case_id": "PSE-001-friction-dominated-low-static-head",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "pump_shutoff_head_m": 40,
+        "pump_curve_k_m_per_m6_s2": 10000000,
+        "system_static_head_m": 2,
+        "system_curve_k_m_per_m6_s2": 8000000
+      }
+    },
+    {
+      "case_id": "PSE-002-high-static-head",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "pump_shutoff_head_m": 50,
+        "pump_curve_k_m_per_m6_s2": 8000000,
+        "system_static_head_m": 30,
+        "system_curve_k_m_per_m6_s2": 8000000
+      }
+    },
+    {
+      "case_id": "PSE-003-mixed-static-and-friction",
+      "inputs": {
+        "flow_m3_s": 0.0008,
+        "pump_shutoff_head_m": 45,
+        "pump_curve_k_m_per_m6_s2": 9000000,
+        "system_static_head_m": 8,
+        "system_curve_k_m_per_m6_s2": 10000000
+      }
+    },
+    {
+      "case_id": "PSE-004-near-full-speed-duty",
+      "inputs": {
+        "flow_m3_s": 0.0015,
+        "pump_shutoff_head_m": 35,
+        "pump_curve_k_m_per_m6_s2": 10000000,
+        "system_static_head_m": 3,
+        "system_curve_k_m_per_m6_s2": 4000000
+      }
+    },
+    {
+      "case_id": "PSE-005-small-surplus-head",
+      "inputs": {
+        "flow_m3_s": 0.001,
+        "pump_shutoff_head_m": 32,
+        "pump_curve_k_m_per_m6_s2": 12000000,
+        "system_static_head_m": 12,
+        "system_curve_k_m_per_m6_s2": 7000000
+      }
+    }
+  ]
+}
