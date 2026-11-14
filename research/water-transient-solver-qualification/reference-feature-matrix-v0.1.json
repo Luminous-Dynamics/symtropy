@@ -57,8 +57,8 @@
       "display_name": "EPANET-AWH",
       "method_family": "algebraic_water_hammer_with_quasi_adaptive_steady_transient_switch",
       "source_ref": "epanet_awh_paper",
-      "source_revision": "not_pinned",
-      "licence_state": "must_inspect_exact_repository_revision",
+      "source_revision": "not_pinned_at_snapshot",
+      "licence_state": "MIT_confirmed_in_LICENSE_1-AWH_file; includes explicit 2016 OWA EPANET3 and 2025 AWH-extension copyrights",
       "published_comparison": {
         "networks": 2,
         "event_classes": [
@@ -74,7 +74,28 @@
         "runtime_s": 1490,
         "hammer_runtime_s": 2013,
         "runtime_reduction_fraction": 0.26,
-        "physical_validation": "not_established_by_solver_to_solver_comparison"
+        "physical_validation": "not_established_by_solver_to_solver_comparison",
+        "validation_scope": {
+          "compared_time_window_s": 20,
+          "networks": [
+            "Onizuka 1986",
+            "Nault et al. 2018 (1489 pipes)"
+          ],
+          "event_classes": [
+            "valve_closure",
+            "pump_shutdown",
+            "pump_startup",
+            "sudden_50_L_s_withdrawal"
+          ],
+          "reference_files": "Bentley HAMMER/WaterGEMS .wtg and SQLite files shipped; Bentley licence required",
+          "validation_method": "comparison against Bentley HAMMER; not independent physical validation",
+          "validation_table_caveats": [
+            "Onizuka wave head swings reported around 300 m at J1 and 490 m at J2; large RMSE rows are attributed in README to timing offsets of a few hundredths of a second",
+            "Nault pump shutdown, pump startup and sudden-demand results have per-node metric variation",
+            "One sudden-demand NSE is marked not meaningful because event head change is smaller than systematic model offset",
+            "HAMMER-imported models add short stub pipes at pump/valve ends, changing topology relative to AWH"
+          ]
+        }
       },
       "feature_claims": [
         {
@@ -103,12 +124,36 @@
         }
       ],
       "verification_required": [
-        "exact_source_revision_and_licence",
-        "build_and_dependency_reproducibility",
-        "pump_and_valve_characteristic_support",
-        "air_cavitation_column_separation_scope",
-        "branched_network_wave_reflection_parity",
-        "numerical_and_physical_validation"
+        "pin_exact_source_commit_and_reproduce_the_build",
+        "confirm_MIT_LICENSE_1_AWH_and_preserve_both_upstream_and_extension_attribution",
+        "replace_or_calibrate_diameter_only_wave_speed_using_material_wall_and_restraint_data",
+        "make_transient_timestep_configurable_and_publish_mesh_or_timestep_sensitivity",
+        "repair_output_path_and_node_selection_for_portable_raw_time_series_export",
+        "test_event_detection_on_gradual_setting_changes_and_switch_reversal_behavior",
+        "exclude_pressure_below_vapour_pressure_from_AWH_use_or_use_a_solver_with_qualified_column_separation",
+        "add_unit_and_regression_tests_before_independent_use",
+        "qualify_pressure_dependent_demand_and_leakage_if_these_features_are_in_benchmark_scope",
+        "independent_physical_pressure_trace_validation"
+      ],
+      "licence_file": "https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/LICENSE_1-AWH",
+      "repository_readme": "https://github.com/MehmetMelihKosucu/EPANET-AWH/blob/main/README.md",
+      "build_notes": {
+        "minimum_cmake": "3.16 or newer according to README because target_precompile_headers is used",
+        "declared_cmake_minimum": "2.8...3.13 (below actual feature requirement)",
+        "primary_tested_platform": "Windows / Visual Studio",
+        "linux_macos": "CMake non-MSVC branch exists; shipped fixed Windows output path loses time-series export",
+        "source_code_edits_required_for_case_switch": "wave speed, transient timestep and fixed result path/node list are compile-time source edits"
+      },
+      "known_limitations": [
+        "wave_speed_hard_coded_from_pipe_diameter_not_material_wall_thickness_or_restraint",
+        "full_elastic_wave_speed_formula_in_source_is_commented_out",
+        "transient_timestep_Delta_WH_is_compile_time_constant_and_ignores_EPANET_TIMES_after_AWH_engages",
+        "fixed_Windows_output_path_and_fixed_node_list_can_drop_timeseries_on_non_Windows",
+        "no_cavitation_or_column_separation_model; below_vapour_pressure_heads_are_nonphysical",
+        "one_way_G_GGA_to_AWH_switch_after_setting_change_over_0_1_or_link_status_change",
+        "gradual_setting_changes_below_0_1_without_status_change_may_not_trigger",
+        "pressure_dependent_demand_and_leakage_under_transients_uncharacterized",
+        "repository_README_states_no_test_suite_or_CI; verification_by_HAMMER_example_comparisons"
       ]
     },
     {
