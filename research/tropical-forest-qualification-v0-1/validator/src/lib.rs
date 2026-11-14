@@ -271,6 +271,9 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         ("MAPBIOMAS-BRAZIL-TRANSFER-001", "OUT_OF_DOMAIN"),
         ("CLOUD-OR-NODATA-NO-CHANGE-001", "UNOBSERVED_CLOUD_OR_QA_MASK"),
         ("PLOT-CAMPAIGN-LEAKAGE-001", "REJECT_LEAKAGE"),
+        ("DRC-INACCESSIBLE-SAMPLE-UNITS-001", "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED"),
+        ("PNG-SECURITY-LOGISTICS-OMISSIONS-001", "UNOBSERVED_SECURITY_OR_LOGISTICS"),
+        ("SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001", "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"),
     ]
     .into_iter()
     .collect();
@@ -852,7 +855,7 @@ mod tests {
         include_str!("../../cases/canopy-gap-representation-synthetic-v0.1.json");
 
     #[test]
-    fn observation_corpus_manifest_has_six_expected_dispositions() {
+    fn observation_corpus_manifest_has_nine_expected_dispositions() {
         let receipt = evaluate(OBSERVATION_FIXTURE.as_bytes()).expect("observation corpus parses");
         assert_eq!(receipt["result"], "MANIFEST_VALID");
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
