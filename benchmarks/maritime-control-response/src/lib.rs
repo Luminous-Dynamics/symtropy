@@ -26,6 +26,8 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
+use crate::temporal::BoundedEventTimeInterval;
+
 pub const LIU_ICE_BENCHMARK_URL: &str =
     "https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index";
 pub const LIU_ICE_NOMINAL_SAMPLE_RATE_HZ: f64 = 20.0;
@@ -594,6 +596,8 @@ pub enum ResponseStatus {
     MismatchOutsideCalibratedEnvelope,
     NotEvaluableMissingCommand,
     NotEvaluableMissingResponse,
+    NotEvaluableTimebase,
+    NotEvaluableTemporalOrder,
     NotEvaluableFutureCommand,
     NotEvaluableResponseBeforePrediction,
     NotEvaluableResponseOutsideHorizon,
@@ -620,6 +624,10 @@ pub struct CommandResponsePair {
     pub recording_id: String,
     pub sample_index: u64,
     pub prediction_time_seconds: f64,
+    pub prediction_timestamp_uncertainty_seconds: f64,
+    pub timebase_id: String,
+    pub timebase_qualified: bool,
+    pub timebase_qualification_sha256: String,
     pub command_signal: String,
     pub response_signal: String,
     pub regime_id: String,
@@ -629,9 +637,11 @@ pub struct CommandResponsePair {
     pub command_value: Option<f64>,
     /// Time at which the requested command became available to the predictor.
     pub command_time_seconds: Option<f64>,
+    pub command_timestamp_uncertainty_seconds: Option<f64>,
     pub response_value: Option<f64>,
     /// Time at which the independent physical response was observed.
     pub response_time_seconds: Option<f64>,
+    pub response_timestamp_uncertainty_seconds: Option<f64>,
     pub maximum_response_horizon_seconds: f64,
     pub expected_response: Option<f64>,
     /// Training-only residual standard deviation of the frozen response model.
@@ -645,10 +655,26 @@ pub struct CommandResponsePair {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct CommandResponseTemporalEvidence {
+    pub command_available_earliest_seconds: f64,
+    pub command_available_latest_seconds: f64,
+    pub prediction_earliest_seconds: f64,
+    pub prediction_latest_seconds: f64,
+    pub response_observed_earliest_seconds: f64,
+    pub response_observed_latest_seconds: f64,
+    pub command_age_worst_case_seconds: f64,
+    pub response_lag_minimum_seconds: f64,
+    pub response_lag_maximum_seconds: f64,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ResponseEvaluation {
     pub recording_id: String,
     pub sample_index: u64,
     pub prediction_time_seconds: f64,
+    pub timebase_id: String,
+    pub timebase_qualification_sha256: String,
+    pub temporal_evidence: Option<CommandResponseTemporalEvidence>,
     pub command_signal: String,
     pub response_signal: String,
     pub regime_id: String,
@@ -687,6 +713,10 @@ pub fn evaluate_command_response(
         || pair.maximum_command_age_seconds < 0.0
         || !pair.prediction_time_seconds.is_finite()
         || pair.prediction_time_seconds < 0.0
+        || !pair.prediction_timestamp_uncertainty_seconds.is_finite()
+        || pair.prediction_timestamp_uncertainty_seconds < 0.0
+        || pair.timebase_id.trim().is_empty()
+        || !is_sha256_hex(&pair.timebase_qualification_sha256)
         || !pair.maximum_response_horizon_seconds.is_finite()
         || pair.maximum_response_horizon_seconds <= 0.0
     {
@@ -697,6 +727,9 @@ pub fn evaluate_command_response(
         recording_id: pair.recording_id.clone(),
         sample_index: pair.sample_index,
         prediction_time_seconds: pair.prediction_time_seconds,
+        timebase_id: pair.timebase_id.clone(),
+        timebase_qualification_sha256: pair.timebase_qualification_sha256.clone(),
+        temporal_evidence: None,
         command_signal: pair.command_signal.clone(),
         response_signal: pair.response_signal.clone(),
         regime_id: pair.regime_id.clone(),
@@ -711,6 +744,10 @@ pub fn evaluate_command_response(
         cause_claim: CauseClaim::NotIsolated,
     };
 
+    if !pair.timebase_qualified {
+        result.status = ResponseStatus::NotEvaluableTimebase;
+        return Ok(result);
+    }
     if pair.command_quality == SignalQuality::Missing || pair.command_value.is_none() {
         result.status = ResponseStatus::NotEvaluableMissingCommand;
         return Ok(result);
@@ -735,36 +772,83 @@ pub fn evaluate_command_response(
     if pair.command_value.is_some_and(|value| !value.is_finite()) {
         return Err(EvalError::InvalidCommandResponsePair);
     }
-    let command_time = match pair.command_time_seconds {
-        Some(value) if value.is_finite() && value >= 0.0 => value,
+    let command_time = match (pair.command_time_seconds, pair.command_timestamp_uncertainty_seconds) {
+        (Some(value), Some(uncertainty)) if value.is_finite() && uncertainty.is_finite() && uncertainty >= 0.0 => {
+            match BoundedEventTimeInterval::new(value, uncertainty) {
+                Ok(interval) => interval,
+                Err(_) => return Err(EvalError::InvalidCommandResponsePair),
+            }
+        }
         _ => {
             result.status = ResponseStatus::NotEvaluableMissingCommand;
             return Ok(result);
         }
     };
-    let response_time = match pair.response_time_seconds {
-        Some(value) if value.is_finite() && value >= 0.0 => value,
+    let response_time = match (pair.response_time_seconds, pair.response_timestamp_uncertainty_seconds) {
+        (Some(value), Some(uncertainty)) if value.is_finite() && uncertainty.is_finite() && uncertainty >= 0.0 => {
+            match BoundedEventTimeInterval::new(value, uncertainty) {
+                Ok(interval) => interval,
+                Err(_) => return Err(EvalError::InvalidCommandResponsePair),
+            }
+        }
         _ => {
             result.status = ResponseStatus::NotEvaluableMissingResponse;
             return Ok(result);
         }
     };
-    if command_time > pair.prediction_time_seconds {
+    let prediction_time = match BoundedEventTimeInterval::new(
+        pair.prediction_time_seconds,
+        pair.prediction_timestamp_uncertainty_seconds,
+    ) {
+        Ok(interval) => interval,
+        Err(_) => return Err(EvalError::InvalidCommandResponsePair),
+    };
+
+    if command_time.is_strictly_after(prediction_time) {
         result.status = ResponseStatus::NotEvaluableFutureCommand;
         return Ok(result);
     }
-    if response_time <= pair.prediction_time_seconds {
+    if command_time.latest_seconds() > prediction_time.earliest_seconds() {
+        result.status = ResponseStatus::NotEvaluableTemporalOrder;
+        return Ok(result);
+    }
+    if response_time.is_strictly_before(prediction_time) {
         result.status = ResponseStatus::NotEvaluableResponseBeforePrediction;
         return Ok(result);
     }
-    if pair.prediction_time_seconds - command_time > pair.maximum_command_age_seconds {
+    if !response_time.is_strictly_after(prediction_time) {
+        result.status = ResponseStatus::NotEvaluableTemporalOrder;
+        return Ok(result);
+    }
+    let command_age_worst_case =
+        prediction_time.latest_seconds() - command_time.earliest_seconds();
+    if command_age_worst_case > pair.maximum_command_age_seconds {
         result.status = ResponseStatus::NotEvaluableStaleCommand;
         return Ok(result);
     }
-    if response_time - pair.prediction_time_seconds > pair.maximum_response_horizon_seconds {
+    let response_lag_minimum =
+        response_time.earliest_seconds() - prediction_time.latest_seconds();
+    let response_lag_maximum =
+        response_time.latest_seconds() - prediction_time.earliest_seconds();
+    if response_lag_minimum > pair.maximum_response_horizon_seconds {
         result.status = ResponseStatus::NotEvaluableResponseOutsideHorizon;
         return Ok(result);
     }
+    if response_lag_maximum > pair.maximum_response_horizon_seconds {
+        result.status = ResponseStatus::NotEvaluableTemporalOrder;
+        return Ok(result);
+    }
+    result.temporal_evidence = Some(CommandResponseTemporalEvidence {
+        command_available_earliest_seconds: command_time.earliest_seconds(),
+        command_available_latest_seconds: command_time.latest_seconds(),
+        prediction_earliest_seconds: prediction_time.earliest_seconds(),
+        prediction_latest_seconds: prediction_time.latest_seconds(),
+        response_observed_earliest_seconds: response_time.earliest_seconds(),
+        response_observed_latest_seconds: response_time.latest_seconds(),
+        command_age_worst_case_seconds: command_age_worst_case,
+        response_lag_minimum_seconds: response_lag_minimum,
+        response_lag_maximum_seconds: response_lag_maximum,
+    });
 
     let observed = pair.response_value.expect("checked above");
     let Some(expected) = pair.expected_response else {
@@ -1358,9 +1442,15 @@ mod tests {
             split_manifest_sha256: digest('c'),
             command_value: Some(0.6),
             command_time_seconds: Some(0.45),
+            command_timestamp_uncertainty_seconds: Some(0.0),
             prediction_time_seconds: 0.45,
+            prediction_timestamp_uncertainty_seconds: 0.0,
+            timebase_id: "held-out-run-clock".into(),
+            timebase_qualified: true,
+            timebase_qualification_sha256: digest('d'),
             response_value: Some(1.4),
             response_time_seconds: Some(0.5),
+            response_timestamp_uncertainty_seconds: Some(0.0),
             maximum_response_horizon_seconds: 0.1,
             expected_response: Some(1.0),
             model_residual_std: 0.1,
@@ -1477,6 +1567,48 @@ mod tests {
                 .status,
             ResponseStatus::NotEvaluableResponseOutsideHorizon
         );
+    }
+
+    #[test]
+    fn overlapping_command_prediction_interval_is_not_evaluable() {
+        let mut pair = response_pair();
+        pair.command_timestamp_uncertainty_seconds = Some(0.01);
+        pair.prediction_timestamp_uncertainty_seconds = 0.01;
+        let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
+        assert_eq!(result.status, ResponseStatus::NotEvaluableTemporalOrder);
+        assert!(result.observed_residual.is_none());
+    }
+
+    #[test]
+    fn overlapping_prediction_response_interval_is_not_evaluable() {
+        let mut pair = response_pair();
+        pair.response_time_seconds = Some(0.46);
+        pair.response_timestamp_uncertainty_seconds = Some(0.02);
+        pair.prediction_timestamp_uncertainty_seconds = 0.02;
+        let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
+        assert_eq!(result.status, ResponseStatus::NotEvaluableTemporalOrder);
+        assert!(result.observed_residual.is_none());
+    }
+
+    #[test]
+    fn unqualified_timebase_never_proves_command_response_causality() {
+        let mut pair = response_pair();
+        pair.timebase_qualified = false;
+        let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
+        assert_eq!(result.status, ResponseStatus::NotEvaluableTimebase);
+        assert!(result.temporal_evidence.is_none());
+    }
+
+    #[test]
+    fn successful_residual_receipt_exposes_conservative_temporal_bounds() {
+        let pair = response_pair();
+        let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
+        assert_eq!(result.status, ResponseStatus::MismatchOutsideCalibratedEnvelope);
+        let evidence = result.temporal_evidence.unwrap();
+        assert_eq!(evidence.command_available_earliest_seconds, 0.45);
+        assert_eq!(evidence.prediction_latest_seconds, 0.45);
+        assert!(evidence.response_lag_minimum_seconds > 0.0);
+        assert!(evidence.response_lag_maximum_seconds >= evidence.response_lag_minimum_seconds);
     }
 
     #[test]
