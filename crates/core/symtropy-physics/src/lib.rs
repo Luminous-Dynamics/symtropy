@@ -25,6 +25,7 @@ pub mod delassus;
 pub mod diagnostics;
 pub mod epa;
 pub mod friction_cone;
+pub mod friction_disk;
 pub mod gjk;
 pub mod inertia;
 pub mod integrator;
