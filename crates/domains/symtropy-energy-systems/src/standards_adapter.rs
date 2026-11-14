@@ -303,9 +303,9 @@ pub struct AdapterRun {
     source_semantic_item_count: usize,
     source_extension_count: usize,
     status: AdapterRunStatus,
-    #[serde(serialize_with = "serialize_map_values")]
+    #[serde(rename = "mapping_records", serialize_with = "serialize_map_values")]
     records: BTreeMap<SourceSemanticRef, MappingRecord>,
-    #[serde(serialize_with = "serialize_map_values")]
+    #[serde(rename = "extension_records", serialize_with = "serialize_map_values")]
     extensions: BTreeMap<(String, String), ExtensionMapping>,
 }
 
