@@ -471,6 +471,26 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         Ok(whitened)
     }
 
+    /// Undo covector whitening: alpha = L z for alpha_whitened = L^-1 alpha.
+    pub fn unwhiten_cotangent(
+        &self,
+        whitened: &Vector<N>,
+    ) -> Result<Cotangent<F, N>, MetricErrorV1> {
+        validate_vector(whitened)?;
+        let mut components = [0.0; N];
+        for row in 0..N {
+            let mut value = 0.0;
+            for (column, whitened_value) in whitened.iter().take(row + 1).enumerate() {
+                value += self.cholesky[row][column] * whitened_value;
+            }
+            if !value.is_finite() {
+                return Err(MetricErrorV1::NonFiniteIntermediate);
+            }
+            components[row] = value;
+        }
+        Cotangent::new(components)
+    }
+
     /// ||alpha||_(M^-1) = sqrt(alpha^T M^-1 alpha), evaluated as ||L^-1 alpha||_2.
     pub fn cotangent_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
         let whitened = self.whiten_cotangent(covector)?;
@@ -680,6 +700,27 @@ mod tests {
         assert!(
             (left - right).abs() <= tolerance * scale,
             "{left} != {right}"
+        );
+    }
+
+    #[test]
+    fn covector_whitening_roundtrips_and_matches_dual_norm() {
+        let metric = cartesian_metric();
+        let covector = Cotangent::<CartesianQ, 3>::new([2.0, -3.0, 0.75]).unwrap();
+        let whitened = metric.whiten_cotangent(&covector).unwrap();
+        let recovered = metric.unwhiten_cotangent(&whitened).unwrap();
+
+        for index in 0..3 {
+            close(
+                recovered.components[index],
+                covector.components[index],
+                2.0e-13,
+            );
+        }
+        close(
+            vector_euclidean(&whitened),
+            metric.cotangent_norm(&covector).unwrap(),
+            2.0e-13,
         );
     }
 
