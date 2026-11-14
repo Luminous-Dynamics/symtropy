@@ -1,0 +1,67 @@
+name: Extreme Cargo and Human Mission Contract Audit
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/extreme_cargo_mission_contract_v0_1.schema.json"
+      - "fixtures/extreme_environment/extreme_cargo_mission_scenarios_v0_1.json"
+      - "docs/tech/EXTREME_CARGO_AND_HUMAN_MISSION_CONTRACT_V0_1.md"
+      - "tools/extreme-cargo-mission-audit/**"
+      - ".github/workflows/extreme-cargo-mission-audit.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "schemas/transport/extreme_cargo_mission_contract_v0_1.schema.json"
+      - "fixtures/extreme_environment/extreme_cargo_mission_scenarios_v0_1.json"
+      - "docs/tech/EXTREME_CARGO_AND_HUMAN_MISSION_CONTRACT_V0_1.md"
+      - "tools/extreme-cargo-mission-audit/**"
+      - ".github/workflows/extreme-cargo-mission-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extreme-cargo-mission-audit-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/extreme-cargo-mission-audit/Cargo.toml -- --check
+      - name: Run payload, loading, human-factors and hard-gate tests
+        run: cargo test --manifest-path tools/extreme-cargo-mission-audit/Cargo.toml --all-targets
+      - name: Emit deterministic synthetic mission report
+        run: |
+          cargo run --manifest-path tools/extreme-cargo-mission-audit/Cargo.toml -- fixtures/extreme_environment/extreme_cargo_mission_scenarios_v0_1.json > "$RUNNER_TEMP/extreme-cargo-report.json"
+          jq -e '
+            .benchmark_id == "extreme-cargo-mission-contract-v0.1"
+            and .payload_profile_count == 8
+            and .platform_profile_count == 11
+            and .mission_scenario_count == 10
+            and .assessment_count == 21
+            and .eligible_for_human_review_count == 9
+            and .blocked_hard_gate_count == 8
+            and .blocked_platform_mismatch_count == 2
+            and .needs_gate_evidence_count == 2
+            and .not_assessable_incomplete_metrics_count == 0
+            and .weighted_utility_score_produced == false
+            and .universal_winner_produced == false
+            and .operational_authorization_granted == false
+            and .patient_care_authorization_granted == false
+            and .autonomous_hazard_handling_authorized == false
+            and ([.assessment_reports[] | select(.assessment_id == "amz-accessible-passengers-01-riverlink_accessible_ferry") | .readiness_disposition] == ["eligible_for_human_review"])
+            and ([.assessment_reports[] | select(.assessment_id == "amz-accessible-passengers-01-riverlink_cargo_boat") | .readiness_disposition] == ["blocked_hard_gate"])
+            and ([.assessment_reports[] | select(.assessment_id == "afghanistan-medical-supply-01-aidrover_supply") | .readiness_disposition] == ["needs_gate_evidence"])
+            and ([.assessment_reports[] | select(.assessment_id == "amz-coldchain-01-riverlink_cargo_boat") | .on_robust_pareto_frontier] == [true])
+          ' "$RUNNER_TEMP/extreme-cargo-report.json"
+          sha256sum "$RUNNER_TEMP/extreme-cargo-report.json"
