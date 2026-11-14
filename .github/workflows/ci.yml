@@ -3,8 +3,10 @@ name: CI
 on:
   push:
     branches: [ "main", "stabilize/*" ]
+  # Stacked research PRs target another research branch rather than main.
+  # Qualify each exact child head; do not inherit the parent PR's green checks.
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "research/**" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
