@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-service-graph-0.1.json",
+  "title": "Power Fabric Service Graph Synthetic Fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "fixture_id",
+    "schema_version",
+    "status",
+    "safety_boundary",
+    "revision",
+    "nodes",
+    "edges",
+    "expected_declared_source_paths",
+    "not_a_claim_of"
+  ],
+  "properties": {
+    "fixture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_fixture_only"
+    },
+    "safety_boundary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_id",
+        "revision_id",
+        "content_digest",
+        "scope_statement",
+        "maturity",
+        "current",
+        "maturity_evidence"
+      ],
+      "properties": {
+        "graph_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maturity": {
+          "enum": [
+            "design_only",
+            "field_reconciled",
+            "independently_reviewed"
+          ]
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "maturity_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node_id",
+          "kind",
+          "label",
+          "evidence"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "utility_source",
+              "renewable_source",
+              "generator_source",
+              "storage",
+              "converter",
+              "ac_bus",
+              "dc_bus",
+              "distribution_board",
+              "feeder",
+              "circuit",
+              "load",
+              "protective_device",
+              "isolation_point",
+              "meter",
+              "thermal_module",
+              "controller"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          },
+          "module_identity": {
+            "$ref": "#/$defs/module_identity"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "edge_id",
+          "from_node",
+          "to_node",
+          "kind",
+          "evidence"
+        ],
+        "properties": {
+          "edge_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from_node": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to_node": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "power_path",
+              "protection_association",
+              "measurement_association",
+              "control_association",
+              "thermal_association",
+              "physical_association",
+              "authority_association"
+            ]
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      }
+    },
+    "expected_declared_source_paths": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "not_a_claim_of": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "unknown",
+            "design_declared",
+            "field_observed",
+            "independently_reviewed"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "evidence_id"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "design_declared",
+                  "field_observed",
+                  "independently_reviewed"
+                ]
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "evidence_id"
+            ]
+          }
+        }
+      ]
+    },
+    "module_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "module_id",
+        "hardware_revision",
+        "configuration_digest",
+        "configuration_current"
+      ],
+      "properties": {
+        "module_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_current": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

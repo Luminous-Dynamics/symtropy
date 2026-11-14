@@ -1,0 +1,254 @@
+{
+  "fixture_id": "POWER-FABRIC-SERVICE-GRAPH-EXAMPLE-001",
+  "schema_version": "0.1.0",
+  "status": "synthetic_fixture_only",
+  "safety_boundary": "not_an_installation_design_or_electrical_safety_claim",
+  "revision": {
+    "graph_id": "synthetic-building-a",
+    "revision_id": "rev-7",
+    "content_digest": "sha256:synthetic-example-only",
+    "scope_statement": "Synthetic grid/PV/battery sources to declared building lighting service",
+    "maturity": "design_only",
+    "current": true,
+    "maturity_evidence": {
+      "state": "design_declared",
+      "evidence_id": "synthetic-graph-revision-design"
+    }
+  },
+  "nodes": [
+    {
+      "node_id": "utility",
+      "kind": "utility_source",
+      "label": "Synthetic utility source",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-utility"
+      }
+    },
+    {
+      "node_id": "pv",
+      "kind": "renewable_source",
+      "label": "Synthetic PV source",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-pv"
+      },
+      "module_identity": {
+        "module_id": "pv-array-01",
+        "hardware_revision": "pv-r2",
+        "configuration_digest": "sha256:pv-config-r2",
+        "configuration_current": true
+      }
+    },
+    {
+      "node_id": "battery",
+      "kind": "storage",
+      "label": "Synthetic battery storage",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-battery"
+      },
+      "module_identity": {
+        "module_id": "battery-rack-01",
+        "hardware_revision": "battery-r1",
+        "configuration_digest": "sha256:battery-config-r1",
+        "configuration_current": true
+      }
+    },
+    {
+      "node_id": "hybrid-inverter",
+      "kind": "converter",
+      "label": "Synthetic hybrid inverter",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-inverter"
+      },
+      "module_identity": {
+        "module_id": "hybrid-inverter-01",
+        "hardware_revision": "inverter-r3",
+        "configuration_digest": "sha256:inverter-config-r3",
+        "configuration_current": true
+      }
+    },
+    {
+      "node_id": "ac-bus",
+      "kind": "ac_bus",
+      "label": "Synthetic AC bus",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-bus"
+      }
+    },
+    {
+      "node_id": "board",
+      "kind": "distribution_board",
+      "label": "Synthetic distribution board",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-board"
+      }
+    },
+    {
+      "node_id": "lighting-circuit",
+      "kind": "circuit",
+      "label": "Synthetic lighting circuit",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-circuit"
+      }
+    },
+    {
+      "node_id": "lighting-load",
+      "kind": "load",
+      "label": "Synthetic lighting service",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-load"
+      }
+    },
+    {
+      "node_id": "protective-device",
+      "kind": "protective_device",
+      "label": "Synthetic protective-device association",
+      "evidence": {
+        "state": "unknown"
+      }
+    },
+    {
+      "node_id": "meter",
+      "kind": "meter",
+      "label": "Synthetic meter association",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-meter"
+      }
+    },
+    {
+      "node_id": "isolation-point",
+      "kind": "isolation_point",
+      "label": "Synthetic isolation-point reference",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-isolation"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "utility-bus",
+      "from_node": "utility",
+      "to_node": "ac-bus",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-utility"
+      }
+    },
+    {
+      "edge_id": "pv-inverter",
+      "from_node": "pv",
+      "to_node": "hybrid-inverter",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-pv"
+      }
+    },
+    {
+      "edge_id": "battery-inverter",
+      "from_node": "battery",
+      "to_node": "hybrid-inverter",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-battery"
+      }
+    },
+    {
+      "edge_id": "inverter-bus",
+      "from_node": "hybrid-inverter",
+      "to_node": "ac-bus",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-inverter"
+      }
+    },
+    {
+      "edge_id": "bus-board",
+      "from_node": "ac-bus",
+      "to_node": "board",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-bus-board"
+      }
+    },
+    {
+      "edge_id": "board-circuit",
+      "from_node": "board",
+      "to_node": "lighting-circuit",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-board-circuit"
+      }
+    },
+    {
+      "edge_id": "circuit-load",
+      "from_node": "lighting-circuit",
+      "to_node": "lighting-load",
+      "kind": "power_path",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-load"
+      }
+    },
+    {
+      "edge_id": "protection-association",
+      "from_node": "protective-device",
+      "to_node": "lighting-circuit",
+      "kind": "protection_association",
+      "evidence": {
+        "state": "unknown"
+      }
+    },
+    {
+      "edge_id": "meter-observes-board",
+      "from_node": "meter",
+      "to_node": "board",
+      "kind": "measurement_association",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-meter"
+      }
+    },
+    {
+      "edge_id": "isolation-associated-board",
+      "from_node": "isolation-point",
+      "to_node": "board",
+      "kind": "physical_association",
+      "evidence": {
+        "state": "design_declared",
+        "evidence_id": "fixture-edge-isolation"
+      }
+    }
+  ],
+  "expected_declared_source_paths": {
+    "lighting-load": [
+      "battery",
+      "pv",
+      "utility"
+    ]
+  },
+  "not_a_claim_of": [
+    "actual_live_power_flow",
+    "complete_discovery_of_physical_sources",
+    "protective_device_coordination",
+    "isolation",
+    "absence_of_voltage",
+    "safe_to_touch",
+    "installation_approval",
+    "certificate_of_compliance"
+  ]
+}

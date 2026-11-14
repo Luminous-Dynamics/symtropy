@@ -17,6 +17,7 @@ mod batch_evaluation;
 mod duty_cycle;
 mod fuel;
 mod module_contract;
+mod service_graph;
 
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
@@ -32,6 +33,12 @@ pub use module_contract::{
     ConnectionEnvelope, DcPolarity, DcPort, ElectricalInterface, ElectricalInterfaceKind,
     EvidenceClaim, EvidencePolicy, ModuleClass, ModuleEvidenceClass, ModuleIdentity,
     ModulePort, PortContractError, PortDirection, PowerModule, QuantityRange,
+};
+pub use service_graph::{
+    GraphEvidence, GraphEvidenceState, GraphMaturity, GraphRevision, LoadCoverageStatus,
+    LoadSourceCoverage, ServiceEdge, ServiceEdgeKind, ServiceGraph, ServiceGraphError,
+    ServiceNode, ServiceNodeKind, SourceMapAssessment, SourcePath, StaleModuleConfiguration,
+    PathWitnessPolicy,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
