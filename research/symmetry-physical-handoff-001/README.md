@@ -20,10 +20,12 @@ The field scientific_search_pruning_authorized is structurally fixed to false in
 
 ## Schema and fixture
 
-- symmetry-physical-handoff-v0.1.schema.json — Draft 2020-12 envelope schema.
-- fixtures/synthetic-handoff-v0.1.json — synthetic shape fixture. It deliberately records source mathematical PASS alongside receiver INCONCLUSIVE, with no physical authority.
+- symmetry-physical-handoff-v0.1.schema.json — Draft 2020-12 handoff envelope schema.
+- symmetry-physical-artifact-manifest-v0.1.schema.json — strict 17-role digest/path manifest schema.
+- fixtures/synthetic-handoff-v0.1.json — synthetic handoff shape fixture. It deliberately records source mathematical PASS alongside receiver INCONCLUSIVE, with no physical authority.
+- fixtures/synthetic-artifact-manifest-v0.1.json — synthetic manifest shape fixture; its placeholder digests do not identify real files.
 
-The schema validates field shape, identity formats, status vocabulary, and selected cross-field promotion rules. It does not compute the referenced SHA-256 digests or independently verify physics. The receiver-side verifier in the next implementation slice must do that.
+The schemas validate field shape, identity formats, status vocabulary, role inventory, and selected cross-field promotion rules. They do not compute the referenced SHA-256 digests or independently verify physics. The first receiver-side byte-binding implementation is [PR #5123](https://github.com/Luminous-Dynamics/symtropy/pull/5123); it verifies exact local bytes and role-to-digest binding only. Independent physical verification of all nine receiver obligations remains a separate stage.
 
 ## Next implementation
 
