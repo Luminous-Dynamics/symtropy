@@ -14,8 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 pub const REPAIR_RESTORATION_SCHEMA: &str = "symtropy-marine-repair-restoration-v0.1";
-pub const REPAIR_RESTORATION_CASES_SCHEMA: &str =
-    "symtropy-marine-repair-restoration-cases-v0.1";
+pub const REPAIR_RESTORATION_CASES_SCHEMA: &str = "symtropy-marine-repair-restoration-cases-v0.1";
 const TIME_TOLERANCE_SECONDS: f64 = 1e-9;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -265,23 +264,56 @@ pub enum RepairVerificationError {
 impl fmt::Display for RepairVerificationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidSchemaVersion => write!(formatter, "unexpected repair-restoration schema version"),
+            Self::InvalidSchemaVersion => {
+                write!(formatter, "unexpected repair-restoration schema version")
+            },
             Self::EmptyIdentity => write!(formatter, "repair-restoration identity is empty"),
-            Self::InvalidDigest => write!(formatter, "repair-restoration digest is not lowercase SHA-256"),
+            Self::InvalidDigest => write!(
+                formatter,
+                "repair-restoration digest is not lowercase SHA-256"
+            ),
             Self::InvalidTimestamp => write!(formatter, "repair-restoration timestamp is invalid"),
-            Self::InvalidBinding => write!(formatter, "repair-restoration binding is incomplete or inconsistent"),
-            Self::DuplicateCondition(id) => write!(formatter, "duplicate operating condition: {id}"),
+            Self::InvalidBinding => write!(
+                formatter,
+                "repair-restoration binding is incomplete or inconsistent"
+            ),
+            Self::DuplicateCondition(id) => {
+                write!(formatter, "duplicate operating condition: {id}")
+            }
             Self::DuplicateCapability(id) => write!(formatter, "duplicate capability: {id}"),
-            Self::DuplicateMeasurement(id) => write!(formatter, "duplicate measurement for metric: {id}"),
-            Self::DuplicateMeasurementId(id) => write!(formatter, "duplicate measurement identity: {id}"),
-            Self::InvalidEnvelope(id) => write!(formatter, "invalid capability acceptance envelope: {id}"),
-            Self::InvalidRepairChronology => write!(formatter, "repair chronology does not separate pre- and post-repair episodes"),
-            Self::EpisodeIdentityMismatch => write!(formatter, "pre/post episode asset identity does not match repair binding"),
-            Self::EpisodeConfigurationMismatch => write!(formatter, "pre/post episode configuration does not match the bound repair transition"),
-            Self::InvalidEpisodeWindow(id) => write!(formatter, "invalid test episode window: {id}"),
-            Self::InvalidMeasurement(id) => write!(formatter, "invalid measurement values or identity: {id}"),
-            Self::InvalidConditionTolerance(id) => write!(formatter, "invalid condition tolerance: {id}"),
-            Self::Serialization => write!(formatter, "failed to serialize repair-restoration evidence"),
+            Self::DuplicateMeasurement(id) => {
+                write!(formatter, "duplicate measurement for metric: {id}")
+            }
+            Self::DuplicateMeasurementId(id) => {
+                write!(formatter, "duplicate measurement identity: {id}")
+            }
+            Self::InvalidEnvelope(id) => {
+                write!(formatter, "invalid capability acceptance envelope: {id}")
+            }
+            Self::InvalidRepairChronology => write!(
+                formatter,
+                "repair chronology does not separate pre- and post-repair episodes"
+            ),
+            Self::EpisodeIdentityMismatch => write!(
+                formatter,
+                "pre/post episode asset identity does not match repair binding"
+            ),
+            Self::EpisodeConfigurationMismatch => write!(
+                formatter,
+                "pre/post episode configuration does not match the bound repair transition"
+            ),
+            Self::InvalidEpisodeWindow(id) => {
+                write!(formatter, "invalid test episode window: {id}")
+            }
+            Self::InvalidMeasurement(id) => {
+                write!(formatter, "invalid measurement values or identity: {id}")
+            }
+            Self::InvalidConditionTolerance(id) => {
+                write!(formatter, "invalid condition tolerance: {id}")
+            }
+            Self::Serialization => {
+                write!(formatter, "failed to serialize repair-restoration evidence")
+            }
         }
     }
 }
@@ -307,18 +339,13 @@ fn capability_envelopes_sha256(
     sha256_serializable(b"symtropy-marine-capability-envelope-set-v1\0", &canonical)
 }
 
-fn repair_case_sha256(
-    case: &RepairVerificationCase,
-) -> Result<String, RepairVerificationError> {
+fn repair_case_sha256(case: &RepairVerificationCase) -> Result<String, RepairVerificationError> {
     let mut canonical = case.clone();
     canonical
         .binding
         .diagnostic_measurement_principle_ids
         .sort();
-    canonical
-        .binding
-        .diagnostic_dependency_domain_ids
-        .sort();
+    canonical.binding.diagnostic_dependency_domain_ids.sort();
     canonical
         .binding
         .condition_tolerances
@@ -485,10 +512,7 @@ fn validate_episode(episode: &TestEpisode) -> Result<(), RepairVerificationError
             && (measurement.calibration_record_sha256.is_none()
                 || measurement
                     .calibration_valid_until_seconds
-                    .is_none_or(|valid_until| {
-                        !valid_until.is_finite()
-                            || valid_until < measurement.available_at_seconds
-                    }));
+                    .is_none_or(|valid_until| !valid_until.is_finite() || valid_until < measurement.available_at_seconds));
         let invalid_calibration_expiry = measurement
             .calibration_valid_until_seconds
             .is_some_and(|valid_until| !valid_until.is_finite());
@@ -601,9 +625,7 @@ fn validate_repair(case: &RepairVerificationCase) -> Result<(), RepairVerificati
     Ok(())
 }
 
-fn condition_map(
-    episode: &TestEpisode,
-) -> BTreeMap<&str, (&str, f64)> {
+fn condition_map(episode: &TestEpisode) -> BTreeMap<&str, (&str, f64)> {
     episode
         .conditions
         .iter()
@@ -748,19 +770,19 @@ pub fn evaluate_repair_restoration(
 
         if let Err(reason) = valid_measurement(pre_measurement, envelope) {
             return Ok(not_evaluable_report(
-            case,
-            reason,
-            matched_condition_ids),
-            case_sha256.clone(),
-        );
+                case,
+                reason,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         }
         if let Err(reason) = valid_measurement(post_measurement, envelope) {
             return Ok(not_evaluable_report(
-            case,
-            reason,
-            matched_condition_ids),
-            case_sha256.clone(),
-        );
+                case,
+                reason,
+                matched_condition_ids,
+                case_sha256.clone(),
+            ));
         }
         let same_reference_measurement_path = pre_measurement.measurement_principle_id
             == post_measurement.measurement_principle_id
@@ -947,13 +969,23 @@ mod tests {
         principles: [&str; 2],
         domains: [&str; 2],
     ) -> TestEpisode {
-        let mut torque_measurement =
-            measurement("m-torque", "propulsion_delivery_pressure", torque, principles[0], domains[0]);
+        let mut torque_measurement = measurement(
+            "m-torque",
+            "propulsion_delivery_pressure",
+            torque,
+            principles[0],
+            domains[0],
+        );
         torque_measurement.source_id = format!("{id}-torque-meter");
         torque_measurement.observed_at_seconds = end - 1.0;
         torque_measurement.available_at_seconds = end;
-        let mut cooling_measurement =
-            measurement("m-cooling", "cooling_pressure", cooling, principles[1], domains[1]);
+        let mut cooling_measurement = measurement(
+            "m-cooling",
+            "cooling_pressure",
+            cooling,
+            principles[1],
+            domains[1],
+        );
         cooling_measurement.source_id = format!("{id}-cooling-meter");
         cooling_measurement.observed_at_seconds = end - 1.0;
         cooling_measurement.available_at_seconds = end;
@@ -1089,14 +1121,8 @@ mod tests {
         let case = valid_case();
         let first_digest = repair_case_sha256(&case).unwrap();
         let mut reordered = case;
-        reordered
-            .pre_repair_episode
-            .measurements
-            .reverse();
-        reordered
-            .binding
-            .capability_envelopes
-            .reverse();
+        reordered.pre_repair_episode.measurements.reverse();
+        reordered.binding.capability_envelopes.reverse();
         assert_eq!(first_digest, repair_case_sha256(&reordered).unwrap());
     }
 
@@ -1135,8 +1161,7 @@ mod tests {
     #[test]
     fn same_failed_measurement_dependency_cannot_verify_physical_restoration() {
         let mut case = valid_case();
-        case.post_repair_episode.measurements[0].dependency_domain_id =
-            "control-gateway".into();
+        case.post_repair_episode.measurements[0].dependency_domain_id = "control-gateway".into();
         let report = evaluate_repair_restoration(&case).unwrap();
         assert_eq!(report.disposition, RestorationDisposition::NotEvaluable);
         assert_eq!(
@@ -1181,7 +1206,10 @@ mod tests {
         case.pre_repair_episode.measurements[1].value = 40.0;
         case.post_repair_episode.measurements[1].value = 10.0;
         let report = evaluate_repair_restoration(&case).unwrap();
-        assert_eq!(report.disposition, RestorationDisposition::PartialRestoration);
+        assert_eq!(
+            report.disposition,
+            RestorationDisposition::PartialRestoration
+        );
     }
 
     #[test]
@@ -1273,8 +1301,7 @@ mod tests {
     #[test]
     fn pre_repair_measurement_sharing_diagnostic_path_is_not_an_independent_baseline() {
         let mut case = valid_case();
-        case.pre_repair_episode.measurements[0].dependency_domain_id =
-            "control-gateway".into();
+        case.pre_repair_episode.measurements[0].dependency_domain_id = "control-gateway".into();
         let report = evaluate_repair_restoration(&case).unwrap();
         assert_eq!(report.disposition, RestorationDisposition::NotEvaluable);
         assert_eq!(
@@ -1299,7 +1326,9 @@ mod tests {
         case.post_repair_episode.measurements[0].calibration_record_sha256 = None;
         assert_eq!(
             evaluate_repair_restoration(&case),
-            Err(RepairVerificationError::InvalidMeasurement("m-torque".into()))
+            Err(RepairVerificationError::InvalidMeasurement(
+                "m-torque".into()
+            ))
         );
     }
 
@@ -1334,10 +1363,12 @@ mod tests {
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 12);
         assert_eq!(corpus["schema_version"], REPAIR_RESTORATION_CASES_SCHEMA);
         assert_eq!(corpus["cases"].as_array().unwrap().len(), 12);
-        assert!(corpus["cases"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|case| case["expected_disposition"].is_string()));
+        assert!(
+            corpus["cases"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|case| case["expected_disposition"].is_string())
+        );
     }
 }
