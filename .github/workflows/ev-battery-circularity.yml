@@ -1,0 +1,55 @@
+name: EV Battery Circularity Screen
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-battery-circularity/**"
+      - ".github/workflows/ev-battery-circularity.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-battery-circularity/**"
+      - ".github/workflows/ev-battery-circularity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-battery-circularity/Cargo.toml --all -- --check
+      - name: Check schema and fixture JSON
+        run: |
+          jq empty tools/ev-battery-circularity/schemas/ev_battery_circularity_v0_1.schema.json
+          jq empty tools/ev-battery-circularity/fixtures/ev_battery_circularity_v0_1.json
+      - name: Run evaluator tests
+        run: cargo test --manifest-path tools/ev-battery-circularity/Cargo.toml --all-targets
+      - name: Run lifecycle and materials screen
+        run: |
+          cargo run --quiet --manifest-path tools/ev-battery-circularity/Cargo.toml --bin ev-battery-circularity -- tools/ev-battery-circularity/fixtures/ev_battery_circularity_v0_1.json > ev-battery-circularity-report.json
+          jq -e '.suite_id == "EV-BATTERY-CIRCULARITY-001" and (.results | (length == 3 and all(.[]; .evidence_class == "synthetic" and .all_material_flows_conserve and ((.material_mass_balance_residual_kg_per_pack | fabs) < 0.000001) and (.release_eligible == false) and (.pareto_eligible == false) and (.qualification_gate_count == 6) and (.qualification_gates_passed == 0) and ((.materials | length) == 4))))' ev-battery-circularity-report.json
+      - name: Hash report, code, schema and fixture
+        run: sha256sum ev-battery-circularity-report.json tools/ev-battery-circularity/Cargo.toml tools/ev-battery-circularity/src/main.rs tools/ev-battery-circularity/fixtures/ev_battery_circularity_v0_1.json tools/ev-battery-circularity/schemas/ev_battery_circularity_v0_1.schema.json tools/ev-battery-circularity/README.md > ev-battery-circularity.sha256
+      - name: Upload reproducible outputs and inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-battery-circularity-${{ github.sha }}
+          path: |
+            ev-battery-circularity-report.json
+            ev-battery-circularity.sha256
+            tools/ev-battery-circularity/Cargo.toml
+            tools/ev-battery-circularity/src/main.rs
+            tools/ev-battery-circularity/fixtures/ev_battery_circularity_v0_1.json
+            tools/ev-battery-circularity/schemas/ev_battery_circularity_v0_1.schema.json
+            tools/ev-battery-circularity/README.md
+          if-no-files-found: error
+          retention-days: 14

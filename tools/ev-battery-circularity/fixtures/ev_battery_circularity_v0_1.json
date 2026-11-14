@@ -1,0 +1,417 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "EV-BATTERY-CIRCULARITY-001",
+  "functional_unit": "1 kWh of battery energy delivered over declared service life",
+  "life_cycle_boundary": "Declared initial pack manufacture + listed pack/unit replacement + specified charging electricity + declared end-of-life processing; excludes glider, charger/grid infrastructure, upstream energy-supply impacts, recycling credits, and unlisted maintenance.",
+  "claim_ceiling": "All candidate values are synthetic. This fixture demonstrates arithmetic and contract behavior only; it is not a physical or environmental comparison of real battery architectures.",
+  "designs": [
+    {
+      "design_id": "integrated-pack",
+      "label": "Highly integrated, pack-level service candidate",
+      "architecture": "integrated-pack",
+      "configuration_id": "SYN-INTEGRATED-100KWH-R1",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative numbers; not a manufacturer design or measured battery pack.",
+      "nominal_capacity_kwh": 100,
+      "usable_capacity_fraction": 0.9,
+      "pack_mass_kg": 550,
+      "initial_pack_cost_usd": 14000,
+      "initial_pack_embodied_kgco2e": 5000,
+      "lifetime_delivered_energy_kwh": 240000,
+      "use_phase_grid_intensity_kgco2e_per_kwh": 0.35,
+      "electricity_price_usd_per_kwh": 0.18,
+      "labor_rate_usd_per_hour": 45,
+      "downtime_cost_usd_per_hour": 60,
+      "serviceable_unit_count": 1,
+      "smallest_replaceable_unit_kwh": 90,
+      "maintenance": {
+        "repair_events_over_life": 1,
+        "whole_pack_replacements_over_life": 1,
+        "repair_unit_cost_usd": 1800,
+        "repair_unit_embodied_kgco2e": 260,
+        "replacement_pack_cost_usd": 14000,
+        "replacement_pack_embodied_kgco2e": 5000,
+        "parts_wait_hours_per_repair": 24,
+        "parts_wait_hours_per_pack_replacement": 96
+      },
+      "operations": {
+        "isolation_minutes": 40,
+        "diagnosis_minutes": 120,
+        "enclosure_access_minutes": 240,
+        "replace_unit_minutes": 240,
+        "reassembly_minutes": 180,
+        "post_service_validation_minutes": 120,
+        "pack_removal_minutes": 120,
+        "pack_installation_minutes": 180,
+        "post_pack_validation_minutes": 120
+      },
+      "materials": [
+        {
+          "material_id": "cells",
+          "material_family": "battery-cells",
+          "mass_kg_per_pack": 410,
+          "collection_fraction": 0.88,
+          "material_recovery_fraction": 0.82,
+          "end_of_life_processing_kgco2e_per_kg": 0.11,
+          "recovery_route": "declared-hydromet-route",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative recovery and processing factors."
+        },
+        {
+          "material_id": "structure",
+          "material_family": "steel-aluminium",
+          "mass_kg_per_pack": 85,
+          "collection_fraction": 0.95,
+          "material_recovery_fraction": 0.91,
+          "end_of_life_processing_kgco2e_per_kg": 0.025,
+          "recovery_route": "declared-metal-recycling",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined structural fraction."
+        },
+        {
+          "material_id": "copper-electronics",
+          "material_family": "copper-electronics",
+          "mass_kg_per_pack": 35,
+          "collection_fraction": 0.9,
+          "material_recovery_fraction": 0.75,
+          "end_of_life_processing_kgco2e_per_kg": 0.08,
+          "recovery_route": "declared-specialist-recovery",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined electronics fraction."
+        },
+        {
+          "material_id": "cooling-polymer",
+          "material_family": "coolant-polymers",
+          "mass_kg_per_pack": 20,
+          "collection_fraction": 0.8,
+          "material_recovery_fraction": 0.5,
+          "end_of_life_processing_kgco2e_per_kg": 0.06,
+          "recovery_route": "declared-separation-route",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined cooling and polymer fraction."
+        }
+      ],
+      "qualification_gates": [
+        {
+          "gate_id": "structural_integrity",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No physical structural qualification evidence."
+        },
+        {
+          "gate_id": "thermal_containment",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No thermal containment qualification evidence."
+        },
+        {
+          "gate_id": "electrical_isolation",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No electrical isolation qualification evidence."
+        },
+        {
+          "gate_id": "diagnostic_access",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No measured diagnostic service procedure."
+        },
+        {
+          "gate_id": "repair_validation",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No validated repair procedure."
+        },
+        {
+          "gate_id": "end_of_life_handling",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No qualified end-of-life handling procedure."
+        }
+      ]
+    },
+    {
+      "design_id": "modular-serviceable",
+      "label": "Modular, serviceable pack candidate",
+      "architecture": "modular-serviceable",
+      "configuration_id": "SYN-MODULAR-100KWH-R1",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative replaceable-unit architecture with additional structure; not a measured product.",
+      "nominal_capacity_kwh": 100,
+      "usable_capacity_fraction": 0.9,
+      "pack_mass_kg": 590,
+      "initial_pack_cost_usd": 15000,
+      "initial_pack_embodied_kgco2e": 5350,
+      "lifetime_delivered_energy_kwh": 240000,
+      "use_phase_grid_intensity_kgco2e_per_kwh": 0.35,
+      "electricity_price_usd_per_kwh": 0.18,
+      "labor_rate_usd_per_hour": 45,
+      "downtime_cost_usd_per_hour": 60,
+      "serviceable_unit_count": 10,
+      "smallest_replaceable_unit_kwh": 9,
+      "maintenance": {
+        "repair_events_over_life": 3,
+        "whole_pack_replacements_over_life": 0,
+        "repair_unit_cost_usd": 720,
+        "repair_unit_embodied_kgco2e": 125,
+        "replacement_pack_cost_usd": 15000,
+        "replacement_pack_embodied_kgco2e": 5350,
+        "parts_wait_hours_per_repair": 8,
+        "parts_wait_hours_per_pack_replacement": 96
+      },
+      "operations": {
+        "isolation_minutes": 30,
+        "diagnosis_minutes": 60,
+        "enclosure_access_minutes": 35,
+        "replace_unit_minutes": 45,
+        "reassembly_minutes": 30,
+        "post_service_validation_minutes": 45,
+        "pack_removal_minutes": 60,
+        "pack_installation_minutes": 60,
+        "post_pack_validation_minutes": 60
+      },
+      "materials": [
+        {
+          "material_id": "cells",
+          "material_family": "battery-cells",
+          "mass_kg_per_pack": 420,
+          "collection_fraction": 0.93,
+          "material_recovery_fraction": 0.88,
+          "end_of_life_processing_kgco2e_per_kg": 0.11,
+          "recovery_route": "declared-hydromet-route",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative recovery and processing factors."
+        },
+        {
+          "material_id": "structure",
+          "material_family": "steel-aluminium",
+          "mass_kg_per_pack": 105,
+          "collection_fraction": 0.97,
+          "material_recovery_fraction": 0.93,
+          "end_of_life_processing_kgco2e_per_kg": 0.025,
+          "recovery_route": "declared-metal-recycling",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined structural fraction."
+        },
+        {
+          "material_id": "copper-electronics",
+          "material_family": "copper-electronics",
+          "mass_kg_per_pack": 40,
+          "collection_fraction": 0.92,
+          "material_recovery_fraction": 0.79,
+          "end_of_life_processing_kgco2e_per_kg": 0.08,
+          "recovery_route": "declared-specialist-recovery",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined electronics fraction."
+        },
+        {
+          "material_id": "cooling-polymer",
+          "material_family": "coolant-polymers",
+          "mass_kg_per_pack": 25,
+          "collection_fraction": 0.85,
+          "material_recovery_fraction": 0.56,
+          "end_of_life_processing_kgco2e_per_kg": 0.06,
+          "recovery_route": "declared-separation-route",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined cooling and polymer fraction."
+        }
+      ],
+      "qualification_gates": [
+        {
+          "gate_id": "structural_integrity",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No physical structural qualification evidence."
+        },
+        {
+          "gate_id": "thermal_containment",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No thermal containment qualification evidence."
+        },
+        {
+          "gate_id": "electrical_isolation",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No electrical isolation qualification evidence."
+        },
+        {
+          "gate_id": "diagnostic_access",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No measured diagnostic service procedure."
+        },
+        {
+          "gate_id": "repair_validation",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No validated repair procedure."
+        },
+        {
+          "gate_id": "end_of_life_handling",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No qualified end-of-life handling procedure."
+        }
+      ]
+    },
+    {
+      "design_id": "structural-cell-to-pack",
+      "label": "Structural cell-to-pack candidate",
+      "architecture": "structural-cell-to-pack",
+      "configuration_id": "SYN-CTP-100KWH-R1",
+      "evidence_class": "synthetic",
+      "evidence_reference": "synthetic",
+      "evidence_note": "Illustrative mass-efficient architecture with pack-level replacement granularity; not a validated structural battery.",
+      "nominal_capacity_kwh": 100,
+      "usable_capacity_fraction": 0.92,
+      "pack_mass_kg": 520,
+      "initial_pack_cost_usd": 13500,
+      "initial_pack_embodied_kgco2e": 4900,
+      "lifetime_delivered_energy_kwh": 240000,
+      "use_phase_grid_intensity_kgco2e_per_kwh": 0.35,
+      "electricity_price_usd_per_kwh": 0.18,
+      "labor_rate_usd_per_hour": 45,
+      "downtime_cost_usd_per_hour": 60,
+      "serviceable_unit_count": 1,
+      "smallest_replaceable_unit_kwh": 92,
+      "maintenance": {
+        "repair_events_over_life": 1,
+        "whole_pack_replacements_over_life": 1,
+        "repair_unit_cost_usd": 2400,
+        "repair_unit_embodied_kgco2e": 320,
+        "replacement_pack_cost_usd": 13500,
+        "replacement_pack_embodied_kgco2e": 4900,
+        "parts_wait_hours_per_repair": 48,
+        "parts_wait_hours_per_pack_replacement": 120
+      },
+      "operations": {
+        "isolation_minutes": 45,
+        "diagnosis_minutes": 150,
+        "enclosure_access_minutes": 270,
+        "replace_unit_minutes": 300,
+        "reassembly_minutes": 210,
+        "post_service_validation_minutes": 180,
+        "pack_removal_minutes": 135,
+        "pack_installation_minutes": 195,
+        "post_pack_validation_minutes": 150
+      },
+      "materials": [
+        {
+          "material_id": "cells",
+          "material_family": "battery-cells",
+          "mass_kg_per_pack": 395,
+          "collection_fraction": 0.8,
+          "material_recovery_fraction": 0.75,
+          "end_of_life_processing_kgco2e_per_kg": 0.11,
+          "recovery_route": "declared-hydromet-route",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative recovery and processing factors."
+        },
+        {
+          "material_id": "structure",
+          "material_family": "steel-aluminium",
+          "mass_kg_per_pack": 80,
+          "collection_fraction": 0.91,
+          "material_recovery_fraction": 0.86,
+          "end_of_life_processing_kgco2e_per_kg": 0.025,
+          "recovery_route": "declared-metal-recycling",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined structural fraction."
+        },
+        {
+          "material_id": "copper-electronics",
+          "material_family": "copper-electronics",
+          "mass_kg_per_pack": 30,
+          "collection_fraction": 0.84,
+          "material_recovery_fraction": 0.68,
+          "end_of_life_processing_kgco2e_per_kg": 0.08,
+          "recovery_route": "declared-specialist-recovery",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined electronics fraction."
+        },
+        {
+          "material_id": "cooling-polymer",
+          "material_family": "coolant-polymers",
+          "mass_kg_per_pack": 15,
+          "collection_fraction": 0.72,
+          "material_recovery_fraction": 0.42,
+          "end_of_life_processing_kgco2e_per_kg": 0.06,
+          "recovery_route": "declared-separation-route",
+          "evidence_class": "synthetic",
+          "evidence_reference": "synthetic",
+          "evidence_note": "Illustrative combined cooling and polymer fraction."
+        }
+      ],
+      "qualification_gates": [
+        {
+          "gate_id": "structural_integrity",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No physical structural qualification evidence."
+        },
+        {
+          "gate_id": "thermal_containment",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No thermal containment qualification evidence."
+        },
+        {
+          "gate_id": "electrical_isolation",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No electrical isolation qualification evidence."
+        },
+        {
+          "gate_id": "diagnostic_access",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No measured diagnostic service procedure."
+        },
+        {
+          "gate_id": "repair_validation",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No validated repair procedure."
+        },
+        {
+          "gate_id": "end_of_life_handling",
+          "status": "not_assessed",
+          "evidence_class": "unknown",
+          "evidence_reference": "",
+          "evidence_note": "No qualified end-of-life handling procedure."
+        }
+      ]
+    }
+  ]
+}
