@@ -17,12 +17,12 @@ pub mod event_metrics;
 pub mod external_dataset;
 pub mod joint_scenario_posterior;
 pub mod maintenance_effect;
-pub mod target_trial_contract;
 pub mod published_baseline_audit;
 pub mod repair_restoration;
 pub mod sequential_evidence;
 pub mod startup_adaptation;
 pub mod streaming_contract;
+pub mod target_trial_contract;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
