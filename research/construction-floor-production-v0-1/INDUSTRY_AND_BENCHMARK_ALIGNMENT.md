@@ -274,6 +274,47 @@ Report separate metric families—no single weighted score may hide a hard failu
 
 For the first synthetic milestone, require exact agreement with independent small-case oracles, zero false-clear negative controls, zero stale-context admission, 100% attempt/acceptance/cost reconciliation and deterministic replay. For physical trials, use matched scopes, measured baselines, independent acceptance, raw evidence and confidence intervals. The existing target of >=20% crew-hour reduction remains a hypothesis until a matched field study supports it.
 
+## 4A. Competitive baseline: compare against the products that already solve parts of this problem
+
+The commercial baseline is stronger than “a CPM schedule plus a fleet manager.” Our comparison must account for four established capability families:
+
+| Baseline | Publicly documented capability | What Luminous should reuse or test rather than claim to reinvent |
+|---|---|---|
+| Oracle Primavera P6 | CPM schedule management, resource leveling, resource-driven critical paths, cost/schedule management and project controls | Use P6 as the source of the baseline programme/resource plan; test import/export and compare changes against its resource-levelled schedule |
+| Bentley SYNCHRO 4D | BIM-linked 4D schedules, what-if sequencing, resource assignment, schedule/baseline comparison, actual cost and earned-value reporting, dynamic spatial coordination tests for objects, equipment and work zones | Treat 4D visualization, ordinary clash detection, space allocation and cost roll-up as parity requirements |
+| ALICE Technologies | Generative construction sequencing, crew/duration flexibility, targeted schedule acceleration and schedule-recovery optimization | Benchmark our scheduler and option evaluator against its matched schedule alternatives; do not claim generative scheduling as new |
+| nPlan | ML activity-performance prediction from a vendor-stated corpus of more than 750,000 programme files; graph neural networks over tasks/resources/timelines; schedule simulation | Treat forecast calibration, risk ranking and scenario prediction as an existing specialized capability; compare on blind held-out projects, not vendor-scale claims |
+| Autodesk Navisworks | Federated-model clash review, 4D TimeLiner, object animation and interference management | Use as the geometry/4D review baseline and as an interchange path |
+
+Sources: [Oracle P6 resource leveling, v26](https://docs.oracle.com/cd/G48902_01/English/User_Guides/p6_pro_user/leveling_resources.htm); [Bentley SYNCHRO 4D](https://www.bentley.com/products/synchro-4d/); [SYNCHRO dynamic spatial coordination and earned-value features](https://bentleysystems.service-now.com/community?id=kb_article&sysparm_article=KB0017688); [ALICE schedule acceleration and targeted optimization](https://www.alicetechnologies.com/construction-project-schedule-acceleration-optimization-software); [nPlan AI and GNN claims](https://www.nplan.io/our-ai); [Autodesk Navisworks](https://www.autodesk.com/products/navisworks/overview).
+
+The nPlan corpus size and model description above are vendor-stated claims, not independently audited facts. ALICE feature descriptions are likewise vendor statements. These sources establish the capabilities a buyer can evaluate; they do not establish comparative accuracy, economic impact or the absence of additional capabilities in any competitor's private deployment.
+
+### The defensible Luminous position
+
+Do not try to be a second P6, ALICE or SYNCHRO. Build the evidence-qualified physical execution and reconciliation layer that can accept their plans and answer questions they do not answer by schedule output alone:
+
+- Can this exact task be executed by this exact machine/tool configuration under this exact design revision, frame and site epoch?
+- Are the workface, transit corridor, temporary works, lifting envelope, inspection access and resource reservation simultaneously admissible under declared uncertainty?
+- Which observation should be acquired before committing downstream work, and what decision did the observation actually change?
+- When communications, survey, machine, material, inspection or site conditions change, what must be invalidated and reconciled before another mutation?
+- Which output received independent acceptance, what failed or required rework, and what were the full workflow labour, resource, carbon, material and cost consequences?
+
+The actual competitive wedge is **schedule-to-accepted-physical-outcome assurance**, with open adapters. Do not assert that a vendor cannot provide a feature because it is absent from a public product page. Test the real product, version, connector and operator workflow.
+
+### Matched head-to-head experiment
+
+Use one frozen benchmark package for every baseline and record the exact product version/configuration:
+
+1. Export the same task graph, work-package quantities, precedence, resource capacities, baseline durations, calendar, risk assumptions, 4D model and design revision to P6, SYNCHRO and ALICE where supported.
+2. Compare their native plan with Luminous B0 (imported baseline unchanged), B1 (our constrained schedule adapter), B2 (spatial-temporal occupancy + existing time-resource index), B3 (observation-aware replan), and B4 (function-first Avoid/Switch/Improve option selection).
+3. Feed identical disturbances and hidden changes. For prediction systems, score only frozen, blind holdout observations; for optimizers, score schedule feasibility and cost using the same independent evaluator.
+4. Report CPM/RCPSP makespan and resource utilization separately from spatial conflict precision/recall, missed-conflict count, false-positive overblocking, stale-context rejection, replan latency and candidate-pair reduction.
+5. Then report finally accepted homogeneous functional units, first-pass yield, rework, p50/p90 time to accepted output, total workflow crew-hours, idle/wait, unallocated shared cost, task-attributed cost, material/energy/carbon and lifecycle cost.
+6. Use independent acceptance and an assessor blind to the planning method. Publish raw fixtures, product builds/settings, adapters, exact input/output digests, failed cases, missing data and confidence intervals.
+
+A valid initial win is **semantic parity plus evidence completeness and trustworthy recovery**, not a claim to beat every incumbent optimizer. A schedule or forecast advantage is only established on matched blind cases. A production-economics advantage is only established on independently accepted work.
+
 ## 5. Target ladder
 
 The following are proposed research targets, not achieved results:
