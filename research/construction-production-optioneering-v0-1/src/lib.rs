@@ -240,8 +240,12 @@ pub struct OptionCandidate {
     pub tier: OptionTier,
     pub functional_contract_id: String,
     pub functional_contract_digest: String,
-    /// Each alternative may have a different design/method revision.
+    /// Each alternative may have a different design revision.
     pub option_design_digest: String,
+    /// Immutable profile references used to identify what changed between alternatives.
+    pub method_profile_digest: String,
+    pub scheduler_profile_digest: String,
+    pub fleet_profile_digest: String,
     pub scenario_results: BTreeMap<String, ScenarioResult>,
 }
 
@@ -253,6 +257,9 @@ impl OptionCandidate {
     ) -> Result<(), OptioneeringError> {
         require_non_empty("option_id", &self.option_id)?;
         require_non_empty("option_design_digest", &self.option_design_digest)?;
+        require_non_empty("method_profile_digest", &self.method_profile_digest)?;
+        require_non_empty("scheduler_profile_digest", &self.scheduler_profile_digest)?;
+        require_non_empty("fleet_profile_digest", &self.fleet_profile_digest)?;
         if self.functional_contract_id != contract.contract_id
             || self.functional_contract_digest != contract.contract_digest
         {
@@ -431,6 +438,58 @@ pub struct OptionEvaluation {
     pub status: OptionStatus,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum InterventionAxis {
+    Design,
+    Method,
+    Scheduler,
+    Fleet,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RobustObjectiveDelta {
+    /// Candidate minus reference. Negative means lower cost/time/quantity.
+    pub lifecycle_cost_minor_units: i128,
+    pub elapsed_minutes: i128,
+    pub workflow_crew_minutes: i128,
+    pub energy_wh: i128,
+    pub carbon_gco2e: i128,
+    pub material_mass_kg_milli: i128,
+    pub rework_units: i128,
+}
+
+impl RobustObjectiveDelta {
+    fn between(reference: &RobustObjectives, candidate: &RobustObjectives) -> Self {
+        Self {
+            lifecycle_cost_minor_units: i128::from(candidate.worst_lifecycle_cost_minor_units)
+                - i128::from(reference.worst_lifecycle_cost_minor_units),
+            elapsed_minutes: i128::from(candidate.worst_elapsed_minutes)
+                - i128::from(reference.worst_elapsed_minutes),
+            workflow_crew_minutes: i128::from(candidate.worst_workflow_crew_minutes)
+                - i128::from(reference.worst_workflow_crew_minutes),
+            energy_wh: i128::from(candidate.worst_energy_wh)
+                - i128::from(reference.worst_energy_wh),
+            carbon_gco2e: i128::from(candidate.worst_carbon_gco2e)
+                - i128::from(reference.worst_carbon_gco2e),
+            material_mass_kg_milli: i128::from(candidate.worst_material_mass_kg_milli)
+                - i128::from(reference.worst_material_mass_kg_milli),
+            rework_units: i128::from(candidate.worst_rework_units)
+                - i128::from(reference.worst_rework_units),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MatchedOptionComparison {
+    pub reference_option_id: String,
+    pub candidate_option_id: String,
+    /// Dimensions that changed; only a one-axis difference is a controlled single-factor contrast.
+    pub changed_axes: Vec<InterventionAxis>,
+    pub single_factor_controlled: bool,
+    /// Both options must be robust-feasible for this comparison to be emitted.
+    pub delta_candidate_minus_reference: RobustObjectiveDelta,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ReportDisposition {
     FrontierComputed,
@@ -452,6 +511,7 @@ pub struct OptioneeringReport {
     pub disposition: ReportDisposition,
     pub evaluations: Vec<OptionEvaluation>,
     pub frontier_option_ids: Vec<String>,
+    pub matched_option_comparisons: Vec<MatchedOptionComparison>,
     /// Candidates at later tiers are intentionally not evaluated until the current
     /// stage has an evidence-bearing close disposition.
     pub deferred_option_ids: Vec<String>,
@@ -630,6 +690,7 @@ pub fn evaluate_option_set(
             disposition,
             evaluations: Vec::new(),
             frontier_option_ids: Vec::new(),
+            matched_option_comparisons: Vec::new(),
             deferred_option_ids,
         });
     };
@@ -648,6 +709,7 @@ pub fn evaluate_option_set(
             disposition,
             evaluations: Vec::new(),
             frontier_option_ids: Vec::new(),
+            matched_option_comparisons: Vec::new(),
             deferred_option_ids: sorted_option_ids(options, tier),
         });
     }
@@ -734,6 +796,14 @@ pub fn evaluate_option_set(
     }
 
     evaluations.sort_by(|left, right| left.option_id.cmp(&right.option_id));
+    let matched_comparisons = matched_option_comparisons(
+        &options
+            .iter()
+            .filter(|option| option.tier == tier)
+            .cloned()
+            .collect::<Vec<_>>(),
+        &evaluations,
+    );
     Ok(OptioneeringReport {
         functional_contract_id: contract.contract_id.clone(),
         functional_contract_digest: contract.contract_digest.clone(),
@@ -745,8 +815,70 @@ pub fn evaluate_option_set(
         disposition,
         evaluations,
         frontier_option_ids,
+        matched_option_comparisons: matched_comparisons,
         deferred_option_ids: sorted_option_ids(options, tier),
     })
+}
+
+fn matched_option_comparisons(
+    options: &[OptionCandidate],
+    evaluations: &[OptionEvaluation],
+) -> Vec<MatchedOptionComparison> {
+    let objectives: BTreeMap<&str, &RobustObjectives> = evaluations
+        .iter()
+        .filter_map(|evaluation| {
+            evaluation
+                .robust_objectives
+                .as_ref()
+                .map(|robust| (evaluation.option_id.as_str(), robust))
+        })
+        .collect();
+
+    let mut feasible_options: Vec<&OptionCandidate> = options
+        .iter()
+        .filter(|option| objectives.contains_key(option.option_id.as_str()))
+        .collect();
+    feasible_options.sort_by(|left, right| left.option_id.cmp(&right.option_id));
+
+    let mut comparisons = Vec::new();
+    for left_index in 0..feasible_options.len() {
+        for right_index in (left_index + 1)..feasible_options.len() {
+            let left = feasible_options[left_index];
+            let right = feasible_options[right_index];
+
+            let mut changed_axes = Vec::new();
+            if left.option_design_digest != right.option_design_digest {
+                changed_axes.push(InterventionAxis::Design);
+            }
+            if left.method_profile_digest != right.method_profile_digest {
+                changed_axes.push(InterventionAxis::Method);
+            }
+            if left.scheduler_profile_digest != right.scheduler_profile_digest {
+                changed_axes.push(InterventionAxis::Scheduler);
+            }
+            if left.fleet_profile_digest != right.fleet_profile_digest {
+                changed_axes.push(InterventionAxis::Fleet);
+            }
+            if changed_axes.is_empty() {
+                continue;
+            }
+
+            let reference = objectives[left.option_id.as_str()];
+            let candidate = objectives[right.option_id.as_str()];
+            comparisons.push(MatchedOptionComparison {
+                reference_option_id: left.option_id.clone(),
+                candidate_option_id: right.option_id.clone(),
+                single_factor_controlled: changed_axes.len() == 1,
+                changed_axes,
+                delta_candidate_minus_reference: RobustObjectiveDelta::between(
+                    reference,
+                    candidate,
+                ),
+            });
+        }
+    }
+
+    comparisons
 }
 
 fn sorted_option_ids(options: &[OptionCandidate], current_tier: OptionTier) -> Vec<String> {
@@ -868,6 +1000,9 @@ mod tests {
             functional_contract_id: contract().contract_id,
             functional_contract_digest: contract().contract_digest,
             option_design_digest: design.to_owned(),
+            method_profile_digest: format!("method:{design}"),
+            scheduler_profile_digest: "scheduler:reference-v1".to_owned(),
+            fleet_profile_digest: "fleet:reference-v1".to_owned(),
             scenario_results: scenarios
                 .into_iter()
                 .map(|scenario| (scenario.scenario_id.clone(), scenario))
