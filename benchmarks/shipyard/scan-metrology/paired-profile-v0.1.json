@@ -23,7 +23,7 @@
       "joint_revision": "JOINT-R1",
       "layer_id": "LAYER-02",
       "profile_station_id": "STATION-001",
-      "coordinate_frame": "WELDING-FRAME-R1",
+      "coordinate_frame": "SCANNER-NATIVE-AFTER-R1",
       "instrument_id": "SCANNER-SYNTH-01",
       "calibration_revision": "CAL-R1",
       "captured_at_ms": 2000
@@ -50,7 +50,9 @@
       "independent_check_point_error_um": 3,
       "maximum_check_point_error_um": 10,
       "scale_deviation_ppm": 2,
-      "maximum_scale_deviation_ppm": 10
+      "maximum_scale_deviation_ppm": 10,
+      "source_frame": "SCANNER-NATIVE-AFTER-R1",
+      "target_frame": "WELDING-FRAME-R1"
     },
     "surface_compatibility": {
       "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -90,7 +92,8 @@
         "after_z_um": 100
       }
     ],
-    "claim_ceiling": "SURFACE_ENVELOPE_CHANGE_ONLY"
+    "claim_ceiling": "SURFACE_ENVELOPE_CHANGE_ONLY",
+    "comparison_frame": "WELDING-FRAME-R1"
   },
   "expected_report": {
     "pair_id": "PAIR-SYNTH-001",
