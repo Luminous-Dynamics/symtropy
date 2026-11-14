@@ -125,6 +125,9 @@ pub struct TargetTrialProtocol {
     pub assignment_rule_sha256: String,
     pub causal_graph_sha256: String,
     pub analysis_plan_sha256: String,
+    pub cluster_group_key: String,
+    pub cluster_grouping_rule_sha256: String,
+    pub cluster_robust_inference_declared: bool,
     pub emulation_design: EmulationDesign,
     pub causal_contrast: CausalContrast,
     pub align_eligibility_assignment_followup_at_time_zero: bool,
@@ -191,6 +194,7 @@ pub struct ObservationalEmulationDiagnostics {
     pub trial_id: String,
     pub data_snapshot_sha256: String,
     pub eligible_emulation_entry_count: usize,
+    pub independent_cluster_count: usize,
     pub strategy_arm_counts: Vec<StrategyArmCount>,
     pub overlap: OverlapDiagnostics,
     pub followup_completeness_fraction: f64,
@@ -250,6 +254,14 @@ fn validate_protocol(protocol: &TargetTrialProtocol) -> Vec<String> {
         if !is_sha256_hex(digest) {
             blockers.push(format!("{name} digest is invalid"));
         }
+    }
+    if protocol.cluster_group_key.trim().is_empty()
+        || !is_sha256_hex(&protocol.cluster_grouping_rule_sha256)
+        || !protocol.cluster_robust_inference_declared
+    {
+        blockers.push(
+            "cluster unit, grouping rule or cluster-robust uncertainty plan is missing".into(),
+        );
     }
     if !protocol.align_eligibility_assignment_followup_at_time_zero {
         blockers.push(
@@ -403,6 +415,7 @@ fn validate_timelines(
         .map(|covariate| covariate.covariate_id.as_str())
         .collect::<BTreeSet<_>>();
     let mut entry_ids = BTreeSet::new();
+    let mut asset_ids = BTreeSet::new();
     let mut arm_counts = BTreeMap::<String, usize>::new();
 
     for timeline in &diagnostics.unit_timelines {
@@ -423,6 +436,13 @@ fn validate_timelines(
             continue;
         };
         *arm_counts.entry(timeline.strategy_id.clone()).or_default() += 1;
+        let asset_was_seen = !asset_ids.insert(timeline.asset_id.clone());
+        if asset_was_seen && protocol.emulation_design == EmulationDesign::ParallelGroup {
+            blockers.push(format!(
+                "asset {} appears more than once in a parallel-group emulation",
+                timeline.asset_id
+            ));
+        }
 
         let times = [
             timeline.eligible_at_seconds,
@@ -453,11 +473,23 @@ fn validate_timelines(
                 timeline.emulation_unit_id
             ));
         }
+        if timeline.followup_end_reason == FollowupEndReason::AdministrativeEnd
+            && timeline.followup_end_at_seconds
+                < timeline.followup_start_at_seconds + protocol.followup_horizon_seconds
+                    - TIME_TOLERANCE_SECONDS
+        {
+            blockers.push(format!(
+                "unit {} has premature administrative follow-up end",
+                timeline.emulation_unit_id
+            ));
+        }
         if let Some(treatment_start) = timeline.treatment_start_at_seconds {
             if !finite_non_negative(treatment_start)
                 || treatment_start < time_zero - TIME_TOLERANCE_SECONDS
                 || treatment_start
                     > time_zero + strategy.grace_period_seconds + TIME_TOLERANCE_SECONDS
+                || treatment_start
+                    > timeline.followup_end_at_seconds + TIME_TOLERANCE_SECONDS
             {
                 blockers.push(format!(
                     "unit {} has treatment start outside its declared strategy window",
@@ -511,6 +543,12 @@ fn validate_timelines(
             "timeline row count does not match the declared emulation-entry count".into(),
         );
     }
+    if asset_ids.len() != diagnostics.independent_cluster_count {
+        blockers.push(
+            "distinct cluster-key count does not match the declared independent-cluster count"
+                .into(),
+        );
+    }
     for strategy in &protocol.treatment_strategies {
         if arm_counts.get(&strategy.strategy_id).copied().unwrap_or(0) == 0 {
             blockers.push(format!(
@@ -553,6 +591,8 @@ pub fn evaluate_observational_target_trial(
     if diagnostics.trial_id != protocol.trial_id
         || !is_sha256_hex(&diagnostics.data_snapshot_sha256)
         || diagnostics.eligible_emulation_entry_count == 0
+        || diagnostics.independent_cluster_count == 0
+        || diagnostics.independent_cluster_count > diagnostics.eligible_emulation_entry_count
     {
         blockers.push("diagnostic snapshot identity or emulation-entry count is invalid".into());
     }
@@ -651,6 +691,9 @@ mod tests {
             assignment_rule_sha256: digest('b'),
             causal_graph_sha256: digest('c'),
             analysis_plan_sha256: digest('d'),
+            cluster_group_key: "asset_id".into(),
+            cluster_grouping_rule_sha256: digest('f'),
+            cluster_robust_inference_declared: true,
             emulation_design: EmulationDesign::ParallelGroup,
             causal_contrast: CausalContrast::AssignmentEffect,
             align_eligibility_assignment_followup_at_time_zero: true,
@@ -737,6 +780,7 @@ mod tests {
             trial_id: "synthetic-target-trial-v1".into(),
             data_snapshot_sha256: digest('8'),
             eligible_emulation_entry_count: 40,
+            independent_cluster_count: 40,
             strategy_arm_counts: vec![
                 StrategyArmCount {
                     strategy_id: "physical-repair".into(),
@@ -866,6 +910,34 @@ mod tests {
     }
 
     #[test]
+    fn parallel_group_does_not_allow_one_asset_in_both_strategies() {
+        let mut data = diagnostics();
+        data.unit_timelines[20].asset_id = data.unit_timelines[0].asset_id.clone();
+        data.independent_cluster_count = 39;
+        let report = evaluate_observational_target_trial(&protocol(), &data);
+        assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+        assert!(report.blockers.iter().any(|item| item.contains("parallel-group")));
+    }
+
+    #[test]
+    fn administrative_followup_cannot_end_before_the_preregistered_horizon() {
+        let mut data = diagnostics();
+        data.unit_timelines[0].followup_end_at_seconds = 500.0;
+        let report = evaluate_observational_target_trial(&protocol(), &data);
+        assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+        assert!(report.blockers.iter().any(|item| item.contains("premature administrative")));
+    }
+
+    #[test]
+    fn cluster_robust_uncertainty_must_be_declared() {
+        let mut spec = protocol();
+        spec.cluster_robust_inference_declared = false;
+        let report = evaluate_observational_target_trial(&spec, &diagnostics());
+        assert_eq!(report.disposition, TargetTrialDisposition::ProtocolIncomplete);
+        assert!(report.blockers.iter().any(|item| item.contains("cluster-robust")));
+    }
+
+    #[test]
     fn missing_or_invalid_negative_control_prevents_design_qualification() {
         let mut data = diagnostics();
         data.negative_control_status = AssessmentStatus::Unknown;
@@ -889,6 +961,7 @@ mod tests {
         let mut data = diagnostics();
         data.unit_timelines[1].asset_id = data.unit_timelines[0].asset_id.clone();
         data.unit_timelines[1].emulation_unit_id = "entry-1-sequential-reentry".into();
+        data.independent_cluster_count = 39;
         let report = evaluate_observational_target_trial(&spec, &data);
         assert_eq!(
             report.disposition,
