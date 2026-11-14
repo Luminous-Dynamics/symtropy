@@ -1,0 +1,20 @@
+[package]
+name = "shipyard-cost-trace"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Evidence-bounded schedule-to-cost reconciliation kernel for shipyard build events"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "synthetic"
+path = "examples/synthetic.rs"
+
+[dependencies]
+
+# Keep this reference kernel isolated from Symtropy's broad application workspace.
+[workspace]

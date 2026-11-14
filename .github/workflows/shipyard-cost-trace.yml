@@ -1,0 +1,64 @@
+name: Shipyard cost trace
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/shipyard-cost-trace/**"
+      - ".github/workflows/shipyard-cost-trace.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/shipyard-cost-trace/**"
+      - ".github/workflows/shipyard-cost-trace.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-cost-trace-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Pinned Rust reference ledger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check Rust formatting
+        run: cargo fmt --all --manifest-path tools/shipyard-cost-trace/Cargo.toml -- --check
+
+      - name: Verify frozen input and expected-output corpus digests
+        run: |
+          echo "73fad1b9b94955ba018aa627787651a4e1a570bf754e02b161b1414c4f9ab295  tools/shipyard-cost-trace/tests/fixtures/golden-ledger-v0.tsv" | sha256sum --check --status
+          echo "b000af22a68ef77f74abbeb19808a4c4708247093e96b29521ece6b34e216ab7  tools/shipyard-cost-trace/tests/fixtures/event-semantics-v1.tsv" | sha256sum --check --status
+          echo "73f0a5f4d6100f94ac64d9f63808ed4329ed18ab05756c6be9e6ef2fab237f91  tools/shipyard-cost-trace/tests/fixtures/event-semantics-v1-expected.tsv" | sha256sum --check --status
+
+      - name: Run isolated tests offline
+        run: cargo test --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml
+
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --all-targets -- -D warnings
+
+      - name: Characterize audit latency at frozen event scales
+        run: cargo run --release --quiet --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --example scale
+
+      - name: Check deterministic synthetic output
+        shell: bash
+        run: |
+          set -euo pipefail
+          first="$(mktemp)"
+          second="$(mktemp)"
+          trap 'rm -f "$first" "$second"' EXIT
+          cargo run --quiet --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --example synthetic > "$first"
+          cargo run --quiet --locked --offline --manifest-path tools/shipyard-cost-trace/Cargo.toml --example synthetic > "$second"
+          cmp "$first" "$second"
+          sha256sum "$first"
