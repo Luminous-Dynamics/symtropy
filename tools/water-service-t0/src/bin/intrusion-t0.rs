@@ -107,11 +107,20 @@ fn compute(case: &Value) -> Result<Value, String> {
             let covered = bool_field(inputs, "sample_coverage_complete")?;
             let calibrated = bool_field(inputs, "instrument_calibration_current")?;
             let method = bool_field(inputs, "method_valid_for_tracer")?;
-            require(deficit && duration > 0.0, "case requires a declared pressure-deficit event")?;
-            require(pathway == "confirmed_connected_defect", "case requires a confirmed connected defect")?;
+            require(
+                deficit && duration > 0.0,
+                "case requires a declared pressure-deficit event",
+            )?;
+            require(
+                pathway == "confirmed_connected_defect",
+                "case requires a confirmed connected defect",
+            )?;
             require(external, "case requires external tracer")?;
             require(attribution == "unique", "tracer source must be uniquely attributable")?;
-            require(covered && calibrated && method, "critical evidence must be complete and valid")?;
+            require(
+                covered && calibrated && method,
+                "critical evidence must be complete and valid",
+            )?;
             let mass = direct_tracer_mass(inputs)?;
             Ok(json!({
                 "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
@@ -123,34 +132,86 @@ fn compute(case: &Value) -> Result<Value, String> {
         }
         "DI-T0-002-transient-with-no-defect-and-complete-negative-samples" => {
             require(pressure_deficit(inputs)?, "case requires a pressure-deficit event")?;
-            require(number(inputs, "pressure_event_duration_s")? > 0.0, "case requires a non-zero event duration")?;
-            require(text(inputs, "pathway_state")? == "no_defect_confirmed", "negative control requires no confirmed defect")?;
-            require(!bool_field(inputs, "external_tracer_present")?, "negative control must have no external tracer")?;
-            require(bool_field(inputs, "sample_coverage_complete")?, "negative control requires complete sample coverage")?;
-            require(text(inputs, "sample_result")? == "not_detected", "negative control requires a valid non-detect")?;
-            require(number(inputs, "detection_limit_mg_l")? > 0.0, "detection limit must be positive")?;
-            require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "negative sample evidence must be valid")?;
+            require(
+                number(inputs, "pressure_event_duration_s")? > 0.0,
+                "case requires a non-zero event duration",
+            )?;
+            require(
+                text(inputs, "pathway_state")? == "no_defect_confirmed",
+                "negative control requires no confirmed defect",
+            )?;
+            require(
+                !bool_field(inputs, "external_tracer_present")?,
+                "negative control must have no external tracer",
+            )?;
+            require(
+                bool_field(inputs, "sample_coverage_complete")?,
+                "negative control requires complete sample coverage",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "not_detected",
+                "negative control requires a valid non-detect",
+            )?;
+            require(
+                number(inputs, "detection_limit_mg_l")? > 0.0,
+                "detection limit must be positive",
+            )?;
+            let sample_evidence_valid = bool_field(inputs, "instrument_calibration_current")?
+                && bool_field(inputs, "method_valid_for_tracer")?;
+            require(
+                sample_evidence_valid,
+                "negative sample evidence must be valid",
+            )?;
             Ok(negative_result())
         }
         "DI-T0-003-defect-and-tracer-but-no-external-head-exceedance" => {
-            require(!pressure_deficit(inputs)?, "case must not have external head above internal pressure")?;
-            require(number(inputs, "pressure_event_duration_s")? == 0.0, "case must have no pressure-deficit duration")?;
-            require(text(inputs, "pathway_state")? == "confirmed_connected_defect", "case requires a known defect")?;
+            require(
+                !pressure_deficit(inputs)?,
+                "case must not have external head above internal pressure",
+            )?;
+            require(
+                number(inputs, "pressure_event_duration_s")? == 0.0,
+                "case must have no pressure-deficit duration",
+            )?;
+            require(
+                text(inputs, "pathway_state")? == "confirmed_connected_defect",
+                "case requires a known defect",
+            )?;
             require(bool_field(inputs, "external_tracer_present")?, "case requires external tracer")?;
-            require(bool_field(inputs, "sample_coverage_complete")?, "case requires complete sample coverage")?;
-            require(text(inputs, "sample_result")? == "not_detected", "case requires a valid non-detect")?;
-            require(number(inputs, "detection_limit_mg_l")? > 0.0, "detection limit must be positive")?;
-            require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "sample evidence must be valid")?;
+            require(
+                bool_field(inputs, "sample_coverage_complete")?,
+                "case requires complete sample coverage",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "not_detected",
+                "case requires a valid non-detect",
+            )?;
+            require(
+                number(inputs, "detection_limit_mg_l")? > 0.0,
+                "detection limit must be positive",
+            )?;
+            let sample_evidence_valid = bool_field(inputs, "instrument_calibration_current")?
+                && bool_field(inputs, "method_valid_for_tracer")?;
+            require(sample_evidence_valid, "sample evidence must be valid")?;
             Ok(negative_result())
         }
         "DI-T0-004-pressure-deficit-with-unknown-pathway" => {
             require(pressure_deficit(inputs)?, "case requires pressure deficit")?;
-            require(number(inputs, "pressure_event_duration_s")? > 0.0, "case requires non-zero pressure event")?;
-            require(text(inputs, "pathway_state")? == "unknown", "case requires unknown pathway state")?;
+            require(
+                number(inputs, "pressure_event_duration_s")? > 0.0,
+                "case requires non-zero pressure event",
+            )?;
+            require(
+                text(inputs, "pathway_state")? == "unknown",
+                "case requires unknown pathway state",
+            )?;
             Ok(indeterminate("PATHWAY_OBSERVABILITY_INSUFFICIENT"))
         }
         "DI-T0-005-missing-downstream-sample" => {
-            require(!bool_field(inputs, "sample_coverage_complete")?, "case requires incomplete sample coverage")?;
+            require(
+                !bool_field(inputs, "sample_coverage_complete")?,
+                "case requires incomplete sample coverage",
+            )?;
             let missing = field(inputs, "missing_sample_points")?
                 .as_array()
                 .ok_or_else(|| "missing_sample_points must be an array".to_owned())?;
@@ -161,28 +222,54 @@ fn compute(case: &Value) -> Result<Value, String> {
             Ok(indeterminate("DOWNSTREAM_SAMPLE_COVERAGE_INCOMPLETE"))
         }
         "DI-T0-006-expired-pressure-or-sample-calibration" => {
-            require(!bool_field(inputs, "instrument_calibration_current")?, "case requires invalid calibration")?;
+            require(
+                !bool_field(inputs, "instrument_calibration_current")?,
+                "case requires invalid calibration",
+            )?;
             Ok(indeterminate("CRITICAL_CALIBRATION_INVALID"))
         }
         "DI-T0-007-detection-limit-insufficient" => {
             let detection = number(inputs, "detection_limit_mg_l")?;
             let required = number(inputs, "required_test_sensitivity_mg_l")?;
-            require(detection > 0.0 && required > 0.0, "detection-limit values must be positive")?;
+            require(
+                detection > 0.0 && required > 0.0,
+                "detection-limit values must be positive",
+            )?;
             require(detection > required, "case requires inadequate detection sensitivity")?;
-            require(text(inputs, "sample_result")? == "not_detected", "case requires a reported non-detect")?;
+            require(
+                text(inputs, "sample_result")? == "not_detected",
+                "case requires a reported non-detect",
+            )?;
             Ok(indeterminate("DETECTION_LIMIT_TOO_HIGH_FOR_NEGATIVE_CONCLUSION"))
         }
         "DI-T0-008-tracer-source-ambiguous" => {
-            require(text(inputs, "tracer_source_attribution")? == "ambiguous", "case requires ambiguous tracer source")?;
-            require(text(inputs, "sample_result")? == "detected", "case requires a reported detection")?;
+            require(
+                text(inputs, "tracer_source_attribution")? == "ambiguous",
+                "case requires ambiguous tracer source",
+            )?;
+            require(
+                text(inputs, "sample_result")? == "detected",
+                "case requires a reported detection",
+            )?;
             Ok(indeterminate("TRACER_SOURCE_NOT_UNIQUELY_ATTRIBUTABLE"))
         }
         "DI-T0-009-ingress-known-but-mass-balance-incomplete" => {
-            require(text(inputs, "tracer_source_attribution")? == "unique", "case requires unique tracer attribution")?;
-            require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "direct tracer evidence must be valid")?;
+            require(
+                text(inputs, "tracer_source_attribution")? == "unique",
+                "case requires unique tracer attribution",
+            )?;
+            let direct_evidence_valid = bool_field(inputs, "instrument_calibration_current")?
+                && bool_field(inputs, "method_valid_for_tracer")?;
+            require(direct_evidence_valid, "direct tracer evidence must be valid")?;
             let _mass = direct_tracer_mass(inputs)?;
-            require(!bool_field(inputs, "all_declared_streams_measured")?, "case requires an unmeasured declared stream")?;
-            require(field(inputs, "captured_residual_mass_mg")?.is_null(), "case requires missing captured residual mass")?;
+            require(
+                !bool_field(inputs, "all_declared_streams_measured")?,
+                "case requires an unmeasured declared stream",
+            )?;
+            require(
+                field(inputs, "captured_residual_mass_mg")?.is_null(),
+                "case requires missing captured residual mass",
+            )?;
             Ok(json!({
                 "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
                 "mass_balance_disposition": "MASS_BALANCE_UNRESOLVED",
@@ -194,11 +281,23 @@ fn compute(case: &Value) -> Result<Value, String> {
         "DI-T0-010-downstream-tracer-arrival" => {
             let concentration = number(inputs, "sample_concentration_mg_l")?;
             let quantification = number(inputs, "method_quantification_limit_mg_l")?;
-            require(concentration >= 0.0 && quantification > 0.0, "sample concentration / quantification limit invalid")?;
-            require(concentration > quantification, "sample must exceed the method quantification limit")?;
+            require(
+                concentration >= 0.0 && quantification > 0.0,
+                "sample concentration / quantification limit invalid",
+            )?;
+            require(
+                concentration > quantification,
+                "sample must exceed the method quantification limit",
+            )?;
             require(number(inputs, "sample_time_s")? >= 0.0, "sample time must be non-negative")?;
-            require(!text(inputs, "sample_point_id")?.is_empty(), "sample point identity is required")?;
-            require(text(inputs, "tracer_source_attribution")? == "unique", "tracer must have unique source attribution")?;
+            require(
+                !text(inputs, "sample_point_id")?.is_empty(),
+                "sample point identity is required",
+            )?;
+            require(
+                text(inputs, "tracer_source_attribution")? == "unique",
+                "tracer must have unique source attribution",
+            )?;
             require(bool_field(inputs, "instrument_calibration_current")? && bool_field(inputs, "method_valid_for_tracer")?, "sample evidence must be valid")?;
             Ok(json!({
                 "transport_disposition": "DOWNSTREAM_TRACER_DETECTED",
@@ -207,11 +306,26 @@ fn compute(case: &Value) -> Result<Value, String> {
             }))
         }
         "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence" => {
-            require(bool_field(inputs, "pressure_within_declared_band")?, "case requires pressure restoration")?;
-            require(text(inputs, "maintenance_ticket")? == "closed", "case requires a closed maintenance ticket")?;
-            require(!bool_field(inputs, "post_event_samples_present")?, "case requires missing post-event samples")?;
-            require(!bool_field(inputs, "independent_quality_verification")?, "case requires absent independent quality verification")?;
-            require(!bool_field(inputs, "stable_dwell_complete")?, "case requires incomplete stable dwell")?;
+            require(
+                bool_field(inputs, "pressure_within_declared_band")?,
+                "case requires pressure restoration",
+            )?;
+            require(
+                text(inputs, "maintenance_ticket")? == "closed",
+                "case requires a closed maintenance ticket",
+            )?;
+            require(
+                !bool_field(inputs, "post_event_samples_present")?,
+                "case requires missing post-event samples",
+            )?;
+            require(
+                !bool_field(inputs, "independent_quality_verification")?,
+                "case requires absent independent quality verification",
+            )?;
+            require(
+                !bool_field(inputs, "stable_dwell_complete")?,
+                "case requires incomplete stable dwell",
+            )?;
             Ok(json!({
                 "recommissioning_disposition": "RECOMMISSIONING_NOT_VERIFIED",
                 "potability_claim_permitted": false,
@@ -220,7 +334,10 @@ fn compute(case: &Value) -> Result<Value, String> {
         }
         "DI-T0-012-similar-pressure-event-no-ingress-pathway" => {
             require(!bool_field(inputs, "external_tracer_present")?, "negative control must have no external tracer")?;
-            require(text(inputs, "pathway_state")? == "no_defect_confirmed", "negative control requires confirmed absence of a defect")?;
+            require(
+                text(inputs, "pathway_state")? == "no_defect_confirmed",
+                "negative control requires confirmed absence of a defect",
+            )?;
             require(bool_field(inputs, "sample_coverage_complete")?, "negative control requires complete sample coverage")?;
             require(text(inputs, "sample_result")? == "not_detected", "negative control requires a valid non-detect")?;
             require(number(inputs, "detection_limit_mg_l")? > 0.0, "detection limit must be positive")?;
@@ -271,7 +388,11 @@ fn read_ids(value: &Value, key: &str) -> Result<Vec<String>, String> {
         .collect()
 }
 
-fn validate_same_ids(input_ids: &[String], reference_ids: &[String], label: &str) -> Result<(), String> {
+fn validate_same_ids(
+    input_ids: &[String],
+    reference_ids: &[String],
+    label: &str,
+) -> Result<(), String> {
     let input_set: BTreeSet<&str> = input_ids.iter().map(String::as_str).collect();
     let reference_set: BTreeSet<&str> = reference_ids.iter().map(String::as_str).collect();
     require(input_ids.len() == input_set.len(), &format!("{label}: duplicate case IDs"))?;
@@ -282,11 +403,21 @@ fn validate_same_ids(input_ids: &[String], reference_ids: &[String], label: &str
 fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result<(), String> {
     require(text(inputs, "schema_version")? == "0.1.0", "input schema version mismatch")?;
     require(text(inputs, "programme")? == PROGRAMME, "input programme mismatch")?;
-    require(text(inputs, "evidence_class")? == "synthetic_only", "input evidence class mismatch")?;
-    require(text(inputs, "evidence_ceiling")? == INPUT_CEILING, "input evidence ceiling mismatch")?;
-    require(text(&field(inputs, "profile")?, "profile_id")? == PROFILE, "input profile mismatch")?;
-    require(text(&field(inputs, "profile")?, "revision")? == "0.1", "input profile revision mismatch")?;
-    require(bool_field(&field(inputs, "profile")?, "all_values_are_fictional")?, "input values must be declared fictional")?;
+    require(
+        text(inputs, "evidence_class")? == "synthetic_only",
+        "input evidence class mismatch",
+    )?;
+    require(
+        text(inputs, "evidence_ceiling")? == INPUT_CEILING,
+        "input evidence ceiling mismatch",
+    )?;
+    let profile = field(inputs, "profile")?;
+    require(text(profile, "profile_id")? == PROFILE, "input profile mismatch")?;
+    require(text(profile, "revision")? == "0.1", "input profile revision mismatch")?;
+    require(
+        bool_field(profile, "all_values_are_fictional")?,
+        "input values must be declared fictional",
+    )?;
 
     let expected_units = [
         ("pressure", "kPa_gauge"),
@@ -303,17 +434,38 @@ fn validate_contract(inputs: &Value, oracle: &Value, manifest: &Value) -> Result
 
     require(text(oracle, "schema_version")? == "0.1.0", "oracle schema version mismatch")?;
     require(text(oracle, "programme")? == PROGRAMME, "oracle programme mismatch")?;
-    require(text(oracle, "evidence_class")? == "synthetic_expected_outputs_only", "oracle evidence class mismatch")?;
-    require(text(oracle, "evidence_ceiling")? == ORACLE_CEILING, "oracle evidence ceiling mismatch")?;
+    require(
+        text(oracle, "evidence_class")? == "synthetic_expected_outputs_only",
+        "oracle evidence class mismatch",
+    )?;
+    require(
+        text(oracle, "evidence_ceiling")? == ORACLE_CEILING,
+        "oracle evidence ceiling mismatch",
+    )?;
     require(text(oracle, "input_profile_id")? == PROFILE, "oracle profile mismatch")?;
 
     require(text(manifest, "schema_version")? == "0.1.0", "manifest schema version mismatch")?;
     require(text(manifest, "programme_id")? == PROGRAMME, "manifest programme mismatch")?;
-    require(text(manifest, "evidence_class")? == "design_and_synthetic_only", "manifest evidence class mismatch")?;
-    require(text(manifest, "input_file")? == "intrusion-t0-scenarios-v0.1.json", "manifest input filename mismatch")?;
-    require(text(manifest, "oracle_file")? == "intrusion-t0-oracle-v0.1.json", "manifest oracle filename mismatch")?;
-    require(number(manifest, "scenario_count")? == CASE_COUNT as f64, "manifest scenario count mismatch")?;
-    require(text(manifest, "evidence_ceiling")?.contains("no_potability"), "manifest evidence ceiling too permissive")?;
+    require(
+        text(manifest, "evidence_class")? == "design_and_synthetic_only",
+        "manifest evidence class mismatch",
+    )?;
+    require(
+        text(manifest, "input_file")? == "intrusion-t0-scenarios-v0.1.json",
+        "manifest input filename mismatch",
+    )?;
+    require(
+        text(manifest, "oracle_file")? == "intrusion-t0-oracle-v0.1.json",
+        "manifest oracle filename mismatch",
+    )?;
+    require(
+        number(manifest, "scenario_count")? == CASE_COUNT as f64,
+        "manifest scenario count mismatch",
+    )?;
+    require(
+        text(manifest, "evidence_ceiling")?.contains("no_potability"),
+        "manifest evidence ceiling too permissive",
+    )?;
     Ok(())
 }
 
@@ -338,9 +490,18 @@ pub fn evaluate(inputs: &Value, oracle: &Value, manifest: &Value) -> Result<Valu
     for row in oracle_cases {
         let id = case_id(row)?.to_owned();
         let expected = field(row, "expected")?;
-        require(!bool_field(expected, "potability_claim_permitted")?, "oracle must never permit a potability claim")?;
-        require(!bool_field(expected, "release_authorized")?, "oracle must never authorize release")?;
-        require(expected_by_id.insert(id.clone(), expected).is_none(), &format!("duplicate oracle case ID: {id}"))?;
+        require(
+            !bool_field(expected, "potability_claim_permitted")?,
+            "oracle must never permit a potability claim",
+        )?;
+        require(
+            !bool_field(expected, "release_authorized")?,
+            "oracle must never authorize release",
+        )?;
+        require(
+            expected_by_id.insert(id.clone(), expected).is_none(),
+            &format!("duplicate oracle case ID: {id}"),
+        )?;
     }
 
     let mut results = Vec::with_capacity(CASE_COUNT);
@@ -369,7 +530,11 @@ pub fn evaluate(inputs: &Value, oracle: &Value, manifest: &Value) -> Result<Valu
     let matched = results.len() - mismatches.len();
     Ok(json!({
         "schema_version": "distribution-intrusion-t0-evaluation-v0.1",
-        "verification_state": if mismatches.is_empty() { "MatchedFrozenOracle" } else { "OracleMismatch" },
+        "verification_state": if mismatches.is_empty() {
+            "MatchedFrozenOracle"
+        } else {
+            "OracleMismatch"
+        },
         "qualification_status": "NotRun",
         "evidence_class": "synthetic_only",
         "evidence_ceiling": INPUT_CEILING,
@@ -589,7 +754,7 @@ mod tests {
         let row = result["results"].as_array().unwrap()
             .iter().find(|row| row["case_id"] == "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence").unwrap();
         assert_eq!(row["computed"]["recommissioning_disposition"], "RECOMMISSIONING_NOT_VERIFIED");
-        assert_eq!(row["computed"]["release_authorized"], false);
+        assert!(!row["computed"]["release_authorized"].as_bool().unwrap());
     }
 
     #[test]
