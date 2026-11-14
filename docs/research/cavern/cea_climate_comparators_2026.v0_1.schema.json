@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy/cea-climate-comparator-registry-v0.1.json",
+  "title": "CEA Climate Comparator Registry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "registry_id",
+    "created_on",
+    "comparators",
+    "interpretation_rules"
+  ],
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "reported_value",
+        "unit",
+        "basis",
+        "status"
+      ],
+      "properties": {
+        "metric_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "reported_value": {
+          "$ref": "#/$defs/ref"
+        },
+        "unit": {
+          "$ref": "#/$defs/ref"
+        },
+        "basis": {
+          "$ref": "#/$defs/ref"
+        },
+        "status": {
+          "enum": [
+            "MEASURED",
+            "MODEL_VALIDATION",
+            "MODEL_PREDICTION",
+            "MODEL_SCENARIO",
+            "SIMULATED_DESIGN_COMPARISON",
+            "AUTHOR_REPORTED"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparator_id",
+        "title",
+        "authors",
+        "publication_date",
+        "venue",
+        "doi",
+        "source_url",
+        "evidence_class",
+        "system_domain",
+        "method_summary",
+        "reported_metrics",
+        "limitations",
+        "transferability"
+      ],
+      "properties": {
+        "comparator_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "title": {
+          "$ref": "#/$defs/ref"
+        },
+        "authors": {
+          "$ref": "#/$defs/ref"
+        },
+        "publication_date": {
+          "type": "string",
+          "pattern": "^[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?$"
+        },
+        "venue": {
+          "$ref": "#/$defs/ref"
+        },
+        "doi": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "evidence_class": {
+          "enum": [
+            "MODEL_VALIDATED_AGAINST_EXPERIMENTS",
+            "CFD_VALIDATED_AGAINST_FIELD_MEASUREMENTS",
+            "EXPERIMENTAL_MOCK_UP",
+            "TRANSIENT_MODEL_SCENARIOS",
+            "MODEL_VALIDATED_AGAINST_FACILITY_BILLS",
+            "BUILDING_ENERGY_SIMULATION"
+          ]
+        },
+        "system_domain": {
+          "$ref": "#/$defs/ref"
+        },
+        "method_summary": {
+          "$ref": "#/$defs/ref"
+        },
+        "reported_metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "transferability": {
+          "$ref": "#/$defs/ref"
+        },
+        "source_scope_warning": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "registry_id": {
+      "$ref": "#/$defs/ref"
+    },
+    "created_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/comparator"
+      }
+    },
+    "interpretation_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    }
+  }
+}
