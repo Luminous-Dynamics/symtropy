@@ -1,0 +1,17 @@
+[package]
+name = "shipyard-reference-drift"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic reference-artifact drift sentinel for scan metrology"
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
