@@ -20,6 +20,7 @@ pub mod sequential_evidence;
 pub mod startup_adaptation;
 pub mod streaming_contract;
 pub mod temporal;
+pub mod validation_evidence;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
