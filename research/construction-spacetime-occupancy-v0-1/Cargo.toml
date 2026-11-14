@@ -1,0 +1,16 @@
+[package]
+name = "construction-spacetime-occupancy-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+construction-floor-production-core = { path = "../construction-floor-production-v0-1" }
+construction-robot-interop-core = { path = "../construction-robot-interop-v0-1" }
+
+[workspace]
+
+[[bench]]
+name = "scale"
+path = "benches/scale.rs"
+harness = false
