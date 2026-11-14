@@ -172,6 +172,8 @@ pub struct DerivedResultReceipt {
     pub input_measurement_ids: Vec<String>,
     pub input_uncertainty_receipt_ids: Vec<String>,
     pub output_result_digest: String,
+    /// Exact uncertainty receipt for the derived output measurement.
+    pub output_uncertainty_receipt_id: String,
     pub upstream_disposition: EvidenceDisposition,
 }
 
