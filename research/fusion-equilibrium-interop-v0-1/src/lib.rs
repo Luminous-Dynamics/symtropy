@@ -616,7 +616,7 @@ mod tests {
 
     #[test]
     fn declared_digest_is_not_misrepresented_as_payload_verification() {
-        let normalized = normalize(&input(), convention()).unwrap();
+        let normalized = normalize(&input(), &expected_profile()).unwrap();
         assert!(!normalized.receipt.source_artifact_payload_verified);
     }
 
@@ -665,7 +665,7 @@ mod tests {
         source.time_unit = TimeUnit::Milliseconds;
         source.timestamps = vec![250.0];
 
-        let normalized = normalize(&source, convention()).unwrap();
+        let normalized = normalize(&source, &expected_profile()).unwrap();
         assert_eq!(normalized.r_axis_m, vec![1.0, 2.0]);
         assert_eq!(normalized.z_axis_m, vec![-1.0, 1.0]);
         assert_eq!(normalized.timestamps_s, vec![0.25]);
@@ -675,7 +675,7 @@ mod tests {
     fn unknown_flux_unit_is_rejected() {
         let mut source = input();
         source.flux_unit = FluxUnit::Unknown;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::UnknownFluxUnit));
     }
 
@@ -683,7 +683,7 @@ mod tests {
     fn missing_cocos_flags_are_rejected() {
         let mut source = input();
         source.convention.cocos_flags = None;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::MissingCocosFlags));
     }
 
@@ -691,7 +691,7 @@ mod tests {
     fn missing_quantity_signs_are_rejected() {
         let mut source = input();
         source.convention.quantity_signs = None;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::MissingQuantitySigns));
     }
 
@@ -699,7 +699,7 @@ mod tests {
     fn sign_or_cocos_mismatch_is_not_silently_corrected() {
         let mut source = input();
         source.convention.quantity_signs.as_mut().unwrap().q = -1;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::ConventionMismatch));
     }
 
@@ -707,7 +707,7 @@ mod tests {
     fn transposed_grid_layout_is_rejected_instead_of_reordered() {
         let mut source = input();
         source.frame_layout = FrameLayout::ZRowsRColumns;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::UnsupportedFrameLayout));
     }
 
@@ -715,7 +715,7 @@ mod tests {
     fn non_monotonic_r_axis_is_rejected() {
         let mut source = input();
         source.r_axis = vec![2.0, 1.0];
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(
             &errors,
             ValidationError::NonMonotonicAxis("R")
@@ -726,7 +726,7 @@ mod tests {
     fn non_monotonic_z_axis_is_rejected() {
         let mut source = input();
         source.z_axis = vec![1.0, -1.0];
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(
             &errors,
             ValidationError::NonMonotonicAxis("Z")
@@ -737,7 +737,7 @@ mod tests {
     fn malformed_frame_shape_is_rejected() {
         let mut source = input();
         source.psi_frames[0][0].pop();
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(errors.iter().any(|error| matches!(
             error,
             ValidationError::FrameShapeMismatch { frame: 0, .. }
@@ -748,7 +748,7 @@ mod tests {
     fn non_finite_flux_is_rejected() {
         let mut source = input();
         source.psi_frames[0][0][0] = f64::NAN;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(errors.iter().any(|error| matches!(
             error,
             ValidationError::NonFiniteFlux { frame: 0, .. }
@@ -760,7 +760,7 @@ mod tests {
         let mut source = input();
         source.psi_frames.push(source.psi_frames[0].clone());
         source.timestamps.push(1.0);
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::StaticFrameCount));
     }
 
@@ -768,7 +768,7 @@ mod tests {
     fn evolving_task_requires_at_least_two_frames() {
         let mut source = input();
         source.task_kind = TaskKind::EvolvingForward;
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::EvolvingFrameCount));
     }
 
@@ -778,14 +778,14 @@ mod tests {
         source.task_kind = TaskKind::DatasetReconstruction;
         source.psi_frames.push(source.psi_frames[0].clone());
         source.timestamps = vec![1.0, 0.5];
-        let errors = normalize(&source, convention()).unwrap_err();
+        let errors = normalize(&source, &expected_profile()).unwrap_err();
         assert!(contains_error(&errors, ValidationError::NonMonotonicTime));
     }
 
     #[test]
     fn receipt_rejects_changed_geometry_identity() {
         let source = input();
-        let normalized = normalize(&source, convention()).unwrap();
+        let normalized = normalize(&source, &expected_profile()).unwrap();
         let mut changed = source;
         changed.geometry_sha256 = "c".repeat(64);
         assert_eq!(
@@ -797,11 +797,11 @@ mod tests {
     #[test]
     fn receipt_rejects_changed_source_artifact_identity() {
         let source = input();
-        let normalized = normalize(&source, convention()).unwrap();
+        let normalized = normalize(&source, &expected_profile()).unwrap();
         let mut changed = source;
         changed.source_artifact_sha256 = "d".repeat(64);
         assert_eq!(
-            verify_receipt(&changed, &normalized.receipt),
+            verify_receipt(&changed, &expected_profile(), &normalized.receipt),
             Err(ValidationError::StaleSourceArtifactIdentity)
         );
     }
@@ -812,7 +812,7 @@ mod tests {
         source.task_kind = TaskKind::DatasetReconstruction;
         source.timestamps = vec![0.0, 0.013];
         source.psi_frames.push(source.psi_frames[0].clone());
-        let normalized = normalize(&source, convention()).unwrap();
+        let normalized = normalize(&source, &expected_profile()).unwrap();
         assert_eq!(normalized.timestamps_s, vec![0.0, 0.013]);
         assert_eq!(normalized.psi_frames_wb_per_radian.len(), 2);
     }
