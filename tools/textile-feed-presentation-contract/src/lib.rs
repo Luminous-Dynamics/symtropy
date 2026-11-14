@@ -709,6 +709,18 @@ mod tests {
             "FEED-018-EMPTY-REFERENCE-DESTINATION" => {
                 run.incoming_items[0].reference_destination = Some(String::new());
             }
+            "FEED-019-INVALID-RUN-INTERVAL" => {
+                run.run_completed_at_ns = run.run_started_at_ns;
+            }
+            "FEED-020-INTAKE-OUTSIDE-RUN" => {
+                run.incoming_items[0].intake_at_ns = run.run_completed_at_ns;
+            }
+            "FEED-021-ATTEMPT-BEFORE-INTAKE" => {
+                run.attempts[0].started_at_ns = run.incoming_items[0].intake_at_ns - 1;
+            }
+            "FEED-022-TERMINAL-OUTSIDE-RUN" => {
+                run.terminal_dispositions[0].completed_at_ns = run.run_completed_at_ns + 1;
+            }
             other => panic!("unknown feed presentation corpus case: {other}"),
         }
         run
@@ -726,13 +738,13 @@ mod tests {
         assert_eq!(corpus["schema_version"], "0.1.0");
         assert_eq!(corpus["corpus_id"], "TEXTILE-FEED-PRESENTATION-CASES-001");
         assert_eq!(corpus["fixture_class"], "synthetic");
-        assert_eq!(schema["properties"]["cases"]["minItems"].as_u64(), Some(18));
+        assert_eq!(schema["properties"]["cases"]["minItems"].as_u64(), Some(22));
         assert_eq!(schema["properties"]["cases"]["maxItems"].as_u64(), Some(18));
 
         let cases = corpus["cases"]
             .as_array()
             .expect("feed cases must be an array");
-        assert_eq!(cases.len(), 18);
+        assert_eq!(cases.len(), 22);
         let mut seen = BTreeSet::new();
 
         for case in cases {
@@ -767,7 +779,7 @@ mod tests {
                 assert!(run.metrics().is_err(), "invalid corpus case {case_id} must not emit metrics");
             }
         }
-        assert_eq!(seen.len(), 18);
+        assert_eq!(seen.len(), 22);
     }
 
     #[test]
