@@ -1,0 +1,193 @@
+{
+  "schema_id": "org.luminousdynamics.aboveground-service-cassette.profile",
+  "schema_version": "0.1.0",
+  "profile_id": "SERVICE-CASSETTE-REFERENCE-PROFILE-V0.1",
+  "classification": "synthetic_first_non_habitable_mock_article",
+  "claim_ceiling": "No occupied-building, product-certification, code-compliance, potable-water, mains-electric, gas, fire-protection, clinical or operational-city claim.",
+  "physical_scope": {
+    "article": "Non-habitable low-energy mock building-services spine",
+    "allowed_circuits": [
+      {
+        "id": "dc",
+        "type": "low_voltage_dc_mock",
+        "mains_connection": false
+      },
+      {
+        "id": "data",
+        "type": "isolated_data_network_test"
+      },
+      {
+        "id": "water",
+        "type": "contained_non_potable_low_pressure_loop"
+      },
+      {
+        "id": "ventilation",
+        "type": "low_energy_fan_and_replaceable_filter"
+      },
+      {
+        "id": "instrumentation",
+        "type": "low_voltage_instrumentation_and_telemetry"
+      }
+    ],
+    "excluded": [
+      "occupied_building_connection",
+      "mains_electricity",
+      "potable_water",
+      "gas",
+      "refrigerant",
+      "fire_or_life_safety_circuits",
+      "clinical_equipment",
+      "public_utility_service"
+    ]
+  },
+  "routes": [
+    "S0_site_built",
+    "S1_prefabricated_linear_spine",
+    "S2_distributed_local_cassettes",
+    "S3_hybrid_riser_and_local_branches",
+    "S4_maintain_existing"
+  ],
+  "functional_units": [
+    {
+      "id": "FU-CASSETTE-01",
+      "definition": "One independently accepted, tested and uniquely identified cassette of a frozen configuration."
+    },
+    {
+      "id": "FU-INSTALLED-01",
+      "definition": "One installed cassette with accepted mechanical, water, low-voltage and data interfaces to an exact mock-facility revision."
+    },
+    {
+      "id": "FU-SERVICE-01",
+      "definition": "One declared mock-facility service-year; report each service separately."
+    }
+  ],
+  "services": [
+    {
+      "id": "water_loop",
+      "unit": null,
+      "performance": null,
+      "status": "Unspecified"
+    },
+    {
+      "id": "dc_power",
+      "unit": null,
+      "performance": null,
+      "status": "Unspecified"
+    },
+    {
+      "id": "data_link",
+      "unit": null,
+      "performance": null,
+      "status": "Unspecified"
+    },
+    {
+      "id": "ventilation",
+      "unit": null,
+      "performance": null,
+      "status": "Unspecified"
+    }
+  ],
+  "required_evidence": [
+    "released_design_and_BOM_revision",
+    "facility_scope_and_reference_frame",
+    "module_component_and_lot_identity",
+    "interface_definition_and_tolerance_source",
+    "calibrated_factory_measurement_receipts",
+    "factory_acceptance_receipt",
+    "custody_and_receiving_receipt",
+    "installation_and_interface_inspection_receipt",
+    "integrated_commissioning_receipt",
+    "maintenance_and_replacement_access_evidence",
+    "fault_recovery_and_recommissioning_receipt"
+  ],
+  "states": {
+    "factory": [
+      "NotBuilt",
+      "InProgress",
+      "Accepted",
+      "Rejected",
+      "Unknown"
+    ],
+    "delivery": [
+      "NotReleased",
+      "InTransit",
+      "Received",
+      "Disputed",
+      "Rejected",
+      "Unknown"
+    ],
+    "installation": [
+      "NotInstalled",
+      "InstalledUnverified",
+      "Accepted",
+      "Blocked",
+      "Unknown"
+    ],
+    "commissioning": [
+      "NotStarted",
+      "InProgress",
+      "Passed",
+      "Failed",
+      "Unknown"
+    ],
+    "service": [
+      "Unavailable",
+      "AvailableForDeclaredMockProfile",
+      "Degraded",
+      "Unknown"
+    ]
+  },
+  "invariants": [
+    "factory_acceptance_does_not_imply_installation_acceptance",
+    "installation_acceptance_does_not_imply_commissioning",
+    "commissioning_does_not_imply_continuous_service",
+    "unknown_or_stale_required_evidence_never_becomes_pass",
+    "wet_dry_and_electrical_segregation_are_separate_hard_constraints",
+    "all_source_owner_claims_retain_owner_schema_revision_and_subject_identity",
+    "nominal_design_geometry_is_not_as_built_geometry",
+    "tolerance_stack_method_and_owner_revision_are_explicit",
+    "buffer_allowance_is_not_infinite_or_implicitly_adjustable",
+    "no_force_fit_or_unapproved_field_modification_is_accepted"
+  ],
+  "metrics": [
+    "accepted_units_per_scheduled_hour",
+    "accepted_units_per_total_workflow_labour_hour",
+    "first_pass_yield",
+    "final_acceptance_yield",
+    "p50_p90_factory_install_commissioning_time",
+    "defects_rework_scrap_by_interface",
+    "installation_labour_hours_by_role",
+    "commissioning_failures_and_retests",
+    "diagnosis_isolation_replacement_recommissioning_time",
+    "service_interruptions_by_service",
+    "common_mode_failure_exposure",
+    "qualified_spare_availability_and_lead_time",
+    "materials_energy_water_waste_per_functional_unit",
+    "worker_exposure_removed_and_new_exposure_introduced"
+  ],
+  "evidence_tiers": [
+    "E1_synthetic",
+    "E2_reference_method",
+    "E3_instrumented_lab",
+    "E4_supervised_facility_pilot",
+    "E5_sustained_replication"
+  ],
+  "tolerance_chain": {
+    "required": true,
+    "tolerance_method_id": null,
+    "tolerance_method_revision": null,
+    "design_datum_revision": null,
+    "host_as_built_measurement_receipt": null,
+    "host_measurement_instrument_calibration_receipt": null,
+    "module_as_manufactured_measurement_receipt": null,
+    "module_measurement_instrument_calibration_receipt": null,
+    "interface_allowance_definition": null,
+    "buffer_mechanism_definition": null,
+    "buffer_qualified_range": null,
+    "assembly_sequence_revision": null,
+    "final_installed_interface_measurement_receipt": null,
+    "acceptance_owner": null,
+    "status": "unspecified",
+    "policy": "Do not infer a fit from nominal BIM geometry. No forced fit, cutting, drilling, slot extension or shim acceptance without an owner-approved disposition and evidence."
+  }
+}
