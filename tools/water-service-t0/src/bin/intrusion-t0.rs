@@ -187,7 +187,6 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
                 "mass_balance_disposition": "MASS_BALANCE_UNRESOLVED",
                 "reason": "DECLARED_RESIDUAL_STREAM_UNMEASURED",
-                "tracer_mass_recomputed_mg": mass,
                 "potability_claim_permitted": false,
                 "release_authorized": false
             }))
