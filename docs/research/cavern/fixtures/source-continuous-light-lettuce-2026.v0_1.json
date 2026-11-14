@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "case_id": "SOURCE-CONTINUOUS-LETTUCE-LOW-PPFD-2026-001",
+  "evidence_class": "PUBLISHED_CONTROLLED_CHAMBER_EXPERIMENT",
+  "source": {
+    "title": "Continuous lighting at low PPFD improves energy efficiency while preserving growth and quality of lettuce in vertical farming systems",
+    "authors": "Palmitessa et al.",
+    "published_date": "2026-03-04",
+    "doi": "10.3389/fpls.2026.1783548",
+    "url": "https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2026.1783548/full",
+    "journal": "Frontiers in Plant Science",
+    "volume": 17,
+    "article_number": "1783548"
+  },
+  "design": {
+    "chamber_count": 1,
+    "chamber_dimensions_m": [
+      3.36,
+      2.86,
+      2.78
+    ],
+    "rack_count": 3,
+    "design": "split-plot; light treatment main plots and cultivar subplots",
+    "blocks_shown_in_design_schematic": 3,
+    "cultivars": [
+      "Falstaff",
+      "Copacabana"
+    ],
+    "pots_per_shelf": 16,
+    "plants_per_cultivar_per_shelf": 8,
+    "plant_density_per_m2": 33.3,
+    "destructive_harvest_plants_per_experimental_unit": 4,
+    "crop_trials_conducted": 2,
+    "trial_reported_in_results": "second controlled-chamber trial only",
+    "harvest_day_after_transplant": 26,
+    "limits": [
+      "One walk-in growth chamber; no independent facility replication.",
+      "Results are cultivar- and chamber-specific.",
+      "Plants within the shelf unit are subsamples, not independent treatment units."
+    ]
+  },
+  "common_conditions": {
+    "target_dli_mol_m2_day": 14.4,
+    "measured_dli_tolerance_mol_m2_day": 0.4,
+    "temperature_C": 24,
+    "relative_humidity_percent": 65,
+    "ambient_co2_approx_ppm": 400,
+    "led_photon_efficacy_reported_umol_J_range": [
+      3,
+      3.4
+    ],
+    "ppfd_measurement_accuracy_percent": 5,
+    "photon_mapping": "multiple leaf-level positions across each treatment shelf"
+  },
+  "treatments": [
+    {
+      "id": "photoperiod-16-8",
+      "light_hours": 16,
+      "dark_hours": 8,
+      "ppfd_umol_m2_s": 250,
+      "ppfd_sd": 10,
+      "fresh_mass_g_per_plant": {
+        "mean": 38.5,
+        "se": 1.8
+      },
+      "yield_g_m2": {
+        "mean": 1271,
+        "se": 44.2
+      },
+      "dry_matter_percent": {
+        "mean": 7.1,
+        "se": 0.31
+      },
+      "led_eue_g_fresh_per_kwh": {
+        "mean": 9.8,
+        "se": 1.07
+      },
+      "light_use_efficiency_g_per_mol": {
+        "mean": 3.4,
+        "se": 0.21
+      },
+      "led_energy_reported": {
+        "mean": 129,
+        "se": 10.02
+      },
+      "led_cost_eur_m2": {
+        "mean": 18.2,
+        "se": 1.53
+      },
+      "derived_dli_mol_m2_day": 14.4,
+      "derived_led_eue_from_yield_energy": 9.8527,
+      "derived_eue_relative_error_percent": 0.538
+    },
+    {
+      "id": "photoperiod-12-12",
+      "light_hours": 12,
+      "dark_hours": 12,
+      "ppfd_umol_m2_s": 340,
+      "ppfd_sd": 12,
+      "fresh_mass_g_per_plant": {
+        "mean": 38,
+        "se": 1.8
+      },
+      "yield_g_m2": {
+        "mean": 1255,
+        "se": 43.9
+      },
+      "dry_matter_percent": {
+        "mean": 6.9,
+        "se": 0.34
+      },
+      "led_eue_g_fresh_per_kwh": {
+        "mean": 9,
+        "se": 0.98
+      },
+      "light_use_efficiency_g_per_mol": {
+        "mean": 3.4,
+        "se": 0.22
+      },
+      "led_energy_reported": {
+        "mean": 140,
+        "se": 17.29
+      },
+      "led_cost_eur_m2": {
+        "mean": 19.8,
+        "se": 2.44
+      },
+      "derived_dli_mol_m2_day": 14.688,
+      "derived_led_eue_from_yield_energy": 8.9643,
+      "derived_eue_relative_error_percent": -0.397
+    },
+    {
+      "id": "photoperiod-24-0",
+      "light_hours": 24,
+      "dark_hours": 0,
+      "ppfd_umol_m2_s": 170,
+      "ppfd_sd": 8,
+      "fresh_mass_g_per_plant": {
+        "mean": 42,
+        "se": 2.2
+      },
+      "yield_g_m2": {
+        "mean": 1390,
+        "se": 54.9
+      },
+      "dry_matter_percent": {
+        "mean": 7.1,
+        "se": 0.38
+      },
+      "led_eue_g_fresh_per_kwh": {
+        "mean": 11.4,
+        "se": 1.38
+      },
+      "light_use_efficiency_g_per_mol": {
+        "mean": 3.8,
+        "se": 0.22
+      },
+      "led_energy_reported": {
+        "mean": 122,
+        "se": 12.25
+      },
+      "led_cost_eur_m2": {
+        "mean": 16.3,
+        "se": 1.79
+      },
+      "derived_dli_mol_m2_day": 14.688,
+      "derived_led_eue_from_yield_energy": 11.3934,
+      "derived_eue_relative_error_percent": -0.058
+    }
+  ],
+  "source_statistics": {
+    "yield_treatment_effect": "not significant",
+    "yield_p_value": 0.08,
+    "dry_matter_treatment_effect": "not significant",
+    "led_electricity_treatment_effect": "not significant",
+    "led_eue_treatment_effect": "significant; P < 0.01 as reported in Table 4",
+    "light_use_efficiency_treatment_effect": "significant; P < 0.05 as reported in Table 4",
+    "led_cost_treatment_effect": "significant; P < 0.01 as reported in Table 4",
+    "cultivar_effects": "cultivar differences were significant for multiple yield and biochemical outcomes"
+  },
+  "unit_and_boundary_audit": {
+    "led_energy_table_header_unit": "kW m^-2",
+    "methods_and_results_prose_unit": "kWh m^-2",
+    "prose_average_led_energy": "approximately 130 kWh m^-2 across treatments over the growth cycle",
+    "unit_status": "SOURCE_INTERNAL_LABEL_INCONSISTENCY",
+    "led_energy_significance": "no significant treatment difference",
+    "led_cost_tariff_basis": "Italian hourly electricity market rates accessed 2025-07-07",
+    "led_cost_transferability": "tariff and schedule dependent; not universal",
+    "other_subsystems_monitored": [
+      "HVAC",
+      "water pumps",
+      "fertigation units"
+    ],
+    "other_subsystem_results_in_headline_eue": "not included; EUE is expressly based on LED electricity",
+    "whole_facility_energy_superiority": "NOT_ESTABLISHED"
+  },
+  "derived_checks": [
+    {
+      "id": "dli-recompute",
+      "formula": "PPFD_umol_m2_s * light_hours * 3600 / 1e6",
+      "results": [
+        {
+          "treatment_id": "photoperiod-16-8",
+          "dli_mol_m2_day": 14.4
+        },
+        {
+          "treatment_id": "photoperiod-12-12",
+          "dli_mol_m2_day": 14.688
+        },
+        {
+          "treatment_id": "photoperiod-24-0",
+          "dli_mol_m2_day": 14.688
+        }
+      ],
+      "interpretation": "The three calculated DLI values (14.4, 14.688, 14.688 mol m^-2 day^-1) all lie within the source-reported target 14.4 ±0.4.",
+      "status": "ARITHMETIC_CHECK"
+    },
+    {
+      "id": "eue-recompute-conditional",
+      "formula": "reported_yield_g_m2 / reported_LED_energy_value",
+      "results": [
+        {
+          "treatment_id": "photoperiod-16-8",
+          "eue_g_per_kwh": 9.8527,
+          "relative_error_percent": 0.538
+        },
+        {
+          "treatment_id": "photoperiod-12-12",
+          "eue_g_per_kwh": 8.9643,
+          "relative_error_percent": -0.397
+        },
+        {
+          "treatment_id": "photoperiod-24-0",
+          "eue_g_per_kwh": 11.3934,
+          "relative_error_percent": -0.058
+        }
+      ],
+      "interpretation": "The EUE values approximately reproduce from the reported yield and LED energy numbers if the method text's kWh m^-2 interpretation is used. This does not resolve the table's printed kW m^-2 unit label, and is not a full-facility energy result.",
+      "status": "CONDITIONAL_ON_METHOD_TEXT_UNIT"
+    }
+  ],
+  "claim_ceiling": "Published one-chamber controlled-environment experiment and arithmetic checks only. No independent facility replication, statistically significant treatment yield advantage, reduction in LED kWh, whole-facility kWh/kg advantage or universal continuous-light recommendation."
+}

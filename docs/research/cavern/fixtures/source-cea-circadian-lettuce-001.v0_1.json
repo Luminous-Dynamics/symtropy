@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "case_id": "SOURCE-CEA-CIRCADIAN-LETTUCE-001",
+  "evidence_class": "PUBLISHED_STUDY_MEAN_ARITHMETIC",
+  "source": {
+    "title": "Matching circadian rhythms to light-dark cycles increases lettuce yield by 29% in vertical farms without additional energy input",
+    "doi": "10.1093/jxb/erag222",
+    "published_date": "2026-05-12",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13529320/",
+    "authors": "Anton-Sales et al.",
+    "journal": "Journal of Experimental Botany"
+  },
+  "study_context": {
+    "accession_count": 20,
+    "rack_count": 2,
+    "horizontal_levels_per_rack": 5,
+    "treatment_assignment_unit_reported": "individual rack level",
+    "plant_positions_randomized": "row-column",
+    "harvest_phenotyping_per_accession_treatment": "n>=7-16 plants",
+    "independent_compartment_replicates_per_treatment": "not clearly documented in accessible methods",
+    "reported_heads": ">2000"
+  },
+  "matched_pairs": [
+    {
+      "pair_id": "long-clock-standard-photoperiod",
+      "clock_group": "LONG_APPROX_27H",
+      "cycle_count": 30,
+      "reference": {
+        "cycle_length_hours": 24,
+        "photoperiod_hours": 16,
+        "dark_hours": 8,
+        "ppfd_umol_m2_s": 250,
+        "photons_per_treatment_cycle_mol_m2": 14.4,
+        "fresh_mass_g_reported_mean": 61
+      },
+      "resonant": {
+        "cycle_length_hours": 27,
+        "photoperiod_hours": 16,
+        "dark_hours": 11,
+        "ppfd_umol_m2_s": 250,
+        "photons_per_treatment_cycle_mol_m2": 14.4,
+        "fresh_mass_g_reported_mean": 68
+      },
+      "derived": {
+        "reference_elapsed_hours": 720,
+        "resonant_elapsed_hours": 810,
+        "reference_calendar_throughput_g_per_24h": 2.0333333333,
+        "resonant_calendar_throughput_g_per_24h": 2.0148148148,
+        "per_cycle_mass_ratio": 1.1147540984,
+        "calendar_throughput_ratio": 0.9908925319,
+        "calendar_throughput_change_percent": -0.91074681,
+        "total_photons_per_m2_over_cycles": 432,
+        "source_claim_ceiling": "Published study mean plus arithmetic normalization; no facility-wide energy conclusion",
+        "single_30_cycle_mean_calendar_ratio": 0.9908925319,
+        "interpretation": "Limited arithmetic check from a single 30-cycle group mean; not the source authors' full time- and area-corrected annual-yield calculation, and must not be used to contradict Supplementary Fig. S4."
+      }
+    },
+    {
+      "pair_id": "long-clock-extended-matched-photon",
+      "clock_group": "LONG_APPROX_27H",
+      "cycle_count": 30,
+      "reference": {
+        "cycle_length_hours": 24,
+        "photoperiod_hours": 20,
+        "dark_hours": 4,
+        "ppfd_umol_m2_s": 200,
+        "photons_per_treatment_cycle_mol_m2": 14.4,
+        "fresh_mass_g_reported_mean": 56
+      },
+      "resonant": {
+        "cycle_length_hours": 27,
+        "photoperiod_hours": 20,
+        "dark_hours": 7,
+        "ppfd_umol_m2_s": 200,
+        "photons_per_treatment_cycle_mol_m2": 14.4,
+        "fresh_mass_g_reported_mean": 72
+      },
+      "derived": {
+        "reference_elapsed_hours": 720,
+        "resonant_elapsed_hours": 810,
+        "reference_calendar_throughput_g_per_24h": 1.8666666667,
+        "resonant_calendar_throughput_g_per_24h": 2.1333333333,
+        "per_cycle_mass_ratio": 1.2857142857,
+        "calendar_throughput_ratio": 1.1428571429,
+        "calendar_throughput_change_percent": 14.28571429,
+        "total_photons_per_m2_over_cycles": 432,
+        "source_claim_ceiling": "Published study mean plus arithmetic normalization; no facility-wide energy conclusion",
+        "single_30_cycle_mean_calendar_ratio": 1.1428571429,
+        "interpretation": "Limited arithmetic check from a single 30-cycle group mean; not the source authors' full time- and area-corrected annual-yield calculation, and must not be used to contradict Supplementary Fig. S4."
+      }
+    }
+  ],
+  "global_normalization": {
+    "cycle_length_ratio_27h_to_24h": 1.125,
+    "elapsed_time_increase_percent": 12.5,
+    "photons_per_24_elapsed_hours_for_24h_cycle_mol_m2": 14.4,
+    "photons_per_24_elapsed_hours_for_27h_cycle_mol_m2": 12.8,
+    "note": "Per-treatment-cycle photon dose is equal; calendar-time photon rate differs because the 27h cycle lasts longer."
+  },
+  "quality_boundary": {
+    "high_dli_mol_m2_per_cycle": 18,
+    "reported_effects": [
+      "maximum biomass in high-energy treatment",
+      "morphological aberrations",
+      "increased tipburn"
+    ],
+    "interpretation": "Do not optimize biomass while omitting marketable quality and rejection."
+  },
+  "not_measured_by_this_fixture": [
+    "whole-facility electricity",
+    "hvac and dehumidification energy",
+    "pumping and water-treatment energy",
+    "co2 delivery energy",
+    "cold-storage energy",
+    "accepted harvest after all commercial rejection criteria",
+    "between-compartment treatment variance",
+    "independent reproduction of the authors' time- and area-corrected annual-yield calculations from plant-level supplementary data",
+    "whole-facility energy impact of the extra 12.5% cycle time",
+    "independent reproduction of the source authors' annual yield calculation from the supplementary raw observations",
+    "whole-facility HVAC and base-load energy impact of the additional 12.5% elapsed cycle time"
+  ],
+  "source_annualization": {
+    "source_location": "Supplementary Figure S4; main-text subsection 'Circadian resonance maintains annual productivity under extended diel cycles in long- and normal-clock lettuce accessions'",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13529320/",
+    "crop_rotations_per_year": {
+      "cycle_24h": 12.2,
+      "cycle_27h": 10.8
+    },
+    "source_reported_conclusion": "The authors report time- and area-corrected projected annual yield per square metre as equivalent or greater for long-clock accessions under 27 h cycles relative to the same accessions under 24 h cycles; they report no such compensation for normal-clock accessions.",
+    "status": "SOURCE_REPORTED_NOT_RECOMPUTED",
+    "method_note": "The paper states that it normalized fresh weight by elapsed days and projected yield per square metre accounting for rotation frequency. This fixture does not reproduce the supplementary plant-level calculation.",
+    "reproduction_requirement": "Ingest supplementary raw observations and independently reproduce the time- and area-corrected annual-yield method, preserving harvest-time basis and plant-density changes."
+  }
+}
