@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "wpt-corridor-design-v0.schema.json",
+  "title": "WPT exact corridor-design scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "corridor_id", "evidence_kind", "feeders", "routes", "candidate_segments", "quality_flags"],
+  "properties": {
+    "schema_version": { "const": "wpt-corridor-design-v0" },
+    "corridor_id": { "type": "string", "minLength": 1 },
+    "evidence_kind": { "const": "SYNTHETIC_KNOWN_TRUTH" },
+    "feeders": {
+      "type": "array", "minItems": 1, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["feeder_id", "available_deliverable_energy_kwh"],
+        "properties": {
+          "feeder_id": { "type": "string", "minLength": 1 },
+          "available_deliverable_energy_kwh": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "routes": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["route_id", "minimum_useful_energy_kwh"],
+        "properties": {
+          "route_id": { "type": "string", "minLength": 1 },
+          "minimum_useful_energy_kwh": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "candidate_segments": {
+      "type": "array", "minItems": 1, "maxItems": 12,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["segment_id", "feeder_id", "max_deliverable_energy_kwh", "capex_units", "served_route_ids"],
+        "properties": {
+          "segment_id": { "type": "string", "minLength": 1 },
+          "feeder_id": { "type": "string", "minLength": 1 },
+          "max_deliverable_energy_kwh": { "type": "integer", "minimum": 1 },
+          "capex_units": { "type": "integer", "minimum": 1 },
+          "served_route_ids": {
+            "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "quality_flags": { "const": ["SYNTHETIC_ONLY"] }
+  }
+}
