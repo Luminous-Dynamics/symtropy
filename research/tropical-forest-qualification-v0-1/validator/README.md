@@ -17,7 +17,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/canopy-gap-representation-synthetic-v0.1.json
 
-# Observation-operator case manifest (validates expected dispositions, does not execute them)
+# Observation-operator synthetic rule corpus (does not run a production adapter)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-operator-negative-controls-v0.1.json
 
@@ -39,7 +39,7 @@ The public forest model-set corpus is a case-family contract only. It deliberate
 |---|---|---|
 | Biomass accounting | `PASS` | The synthetic live/deadwood transitions, declared transfers, total stocks and disconnected-control invariants are internally consistent |
 | Canopy geometry | `PASS_SYNTHETIC_GEOMETRY` | The 8×8 analytical grid matches its declared LAI, four-neighbour gap topology and uncalibrated synthetic transmittance equations; ten public challenge-case IDs and expected dispositions are valid. The challenge processes are not executed |
-| Observation operators | `MANIFEST_VALID` | The nine expected dispositions, source-specific claim boundaries and non-execution metadata are well-formed; the negative controls themselves have **not** been run against a production observation adapter |
+| Observation operators | `PASS_SYNTHETIC_RULES` | The nine synthetic input descriptors are run through the Rust rule engine and produce their declared missingness/support/semantics dispositions; no external data or production adapter is used |
 | Model-set adequacy | `MANIFEST_VALID` | The ten public development case families and expected dispositions are well-formed; no blind generator or independent custodian is provided |
 
 ## Dataset candidate register
@@ -52,7 +52,7 @@ See [DATASET_CANDIDATE_REGISTER_V0_1.json](../DATASET_CANDIDATE_REGISTER_V0_1.js
 - Non-negative declared flows, parameter/effect consistency and explicit decomposition boundary.
 - Live biomass, deadwood, total biomass, mortality transfer and biomass budget.
 - Disconnected-control invariance using declared causal links, comparing canonical stocks separately from derived totals.
-- Observation corpus case uniqueness, complete expected disposition mapping and explicit `NOT_IMPLEMENTED` / `NOT_RUN` execution fields.
+- Observation corpus rule execution for support mismatch, no acquisition, label-semantic mismatch, geographic out-of-domain, cloud/no-data, plot leakage, inaccessible DRC units, PNG security/logistics omissions and single-census longitudinal overclaim; production adapter and rights execution remain explicitly not implemented.
 - Canopy coordinate bounds, duplicate/overlap/coverage, total and mean LAI, connected gap components, synthetic transmission, uniform-baseline calculations, and ten unique named challenge-family dispositions.
 - Deterministic receipt generation and adversarial mutation tests.
 
@@ -62,7 +62,7 @@ These results are deliberately narrow:
 
 - Biomass fixture PASS does not validate ecological growth or mortality equations.
 - Canopy geometry PASS does not validate radiative transfer, crown allometry, tree physiology or recruitment; the ten challenge-case dispositions are contract checks, not executed canopy processes.
-- Observation `MANIFEST_VALID` does not mean an observation adapter rejected the nine negative controls at runtime.
+- Observation `PASS_SYNTHETIC_RULES` means only that the nine machine-readable synthetic input descriptors triggered the intended Rust rule dispositions; it does not mean a production observation adapter rejected real-world invalid claims.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
 The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
