@@ -1,0 +1,27 @@
+{
+  "schema_version": "ground-air-episode-v0",
+  "case_id": "ground-air-not-run-template",
+  "case_state": "NOT_RUN",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "scenario": {
+    "family": "DOCKED_RECHARGE",
+    "site_id": "NOT_RUN",
+    "seed": 0,
+    "slot_duration_ms": 1000,
+    "slot_count": 1,
+    "environment_strata": [
+      "NOT_RUN_UNSPECIFIED"
+    ],
+    "held_out_partition": "KNOWN_TRUTH_ORACLE"
+  },
+  "frozen_inputs": {
+    "scenario_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "source_catalogue_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "upstream_receipts": []
+  },
+  "opportunities": [],
+  "receivers": [],
+  "candidate_policies": [],
+  "metric_lanes": [],
+  "claim_ceiling": "NOT_RUN. No episode evidence, policies or result exists. This template is not a pass, physical permit, energy-transfer claim or operational authorization."
+}

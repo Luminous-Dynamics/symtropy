@@ -1,0 +1,407 @@
+{
+  "schema_version": "ground-air-episode-v0",
+  "case_id": "synthetic-shared-site-ground-air-v0",
+  "case_state": "FIXTURE",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "scenario": {
+    "family": "SHARED_SITE_COEXISTENCE",
+    "site_id": "synthetic-site-001",
+    "seed": 417,
+    "slot_duration_ms": 1000,
+    "slot_count": 2,
+    "environment_strata": [
+      "IDEAL_SYNTHETIC",
+      "SYNTHETIC_POSE_ALIAS_NEGATIVE_CONTROL"
+    ],
+    "held_out_partition": "KNOWN_TRUTH_ORACLE"
+  },
+  "frozen_inputs": {
+    "scenario_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_catalogue_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "upstream_receipts": [
+      {
+        "receipt_id": "synthetic-site-budget",
+        "owner_issue": "#3980",
+        "role": "SITE_ALLOCATION",
+        "artifact_path": "fixtures/site-budget.synthetic.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-envelope",
+        "owner_issue": "#3473",
+        "role": "PHYSICAL_ENVELOPE",
+        "artifact_path": "fixtures/ground-ipt-envelope.synthetic.json",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-observability",
+        "owner_issue": "#4115",
+        "role": "OBSERVABILITY",
+        "artifact_path": "fixtures/ground-pose.synthetic.json",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-envelope",
+        "owner_issue": "#3448",
+        "role": "PHYSICAL_ENVELOPE",
+        "artifact_path": "fixtures/rf-air-envelope.synthetic.json",
+        "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-observability-ambiguous",
+        "owner_issue": "#4115",
+        "role": "OBSERVABILITY",
+        "artifact_path": "fixtures/air-pose-ambiguous.synthetic.json",
+        "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "AMBIGUOUS",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-mission",
+        "owner_issue": "#4080",
+        "role": "MISSION_ENERGY",
+        "artifact_path": "fixtures/mission.synthetic.json",
+        "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-meters",
+        "owner_issue": "#3472",
+        "role": "SOURCE_TO_LOAD_METROLOGY",
+        "artifact_path": "fixtures/energy-balance.synthetic.json",
+        "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "configuration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-auth",
+        "owner_issue": "#4080",
+        "role": "AUTHORIZATION",
+        "artifact_path": "fixtures/air-authorization.synthetic.json",
+        "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-local-protection",
+        "owner_issue": "#4080",
+        "role": "LOCAL_PROTECTION",
+        "artifact_path": "fixtures/air-local-protection.synthetic.json",
+        "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-auth",
+        "owner_issue": "#4080",
+        "role": "AUTHORIZATION",
+        "artifact_path": "fixtures/synthetic-ground-auth.json",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-local-protection",
+        "owner_issue": "#4080",
+        "role": "LOCAL_PROTECTION",
+        "artifact_path": "fixtures/synthetic-ground-local-protection.json",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-session-admission",
+        "owner_issue": "#4080",
+        "role": "SESSION_ADMISSION",
+        "artifact_path": "fixtures/synthetic-ground-session-admission.json",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-standards",
+        "owner_issue": "#4141",
+        "role": "STANDARDS_APPLICABILITY",
+        "artifact_path": "fixtures/synthetic-ground-standards.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-ground-mission-energy",
+        "owner_issue": "#3885",
+        "role": "MISSION_ENERGY",
+        "artifact_path": "fixtures/synthetic-ground-mission-energy.json",
+        "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-session-admission",
+        "owner_issue": "#4080",
+        "role": "SESSION_ADMISSION",
+        "artifact_path": "fixtures/synthetic-air-session-admission.json",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-standards",
+        "owner_issue": "#4141",
+        "role": "STANDARDS_APPLICABILITY",
+        "artifact_path": "fixtures/synthetic-air-standards.json",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      },
+      {
+        "receipt_id": "synthetic-air-mission-energy",
+        "owner_issue": "#3885",
+        "role": "MISSION_ENERGY",
+        "artifact_path": "fixtures/synthetic-air-mission-energy.json",
+        "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "evidence_class": "SYNTHETIC_ONLY",
+        "disposition": "SYNTHETIC_ONLY",
+        "validity": {
+          "start_ms": 0,
+          "end_ms": 2000
+        }
+      }
+    ]
+  },
+  "opportunities": [
+    {
+      "opportunity_id": "ground-ipt-dock",
+      "site_id": "synthetic-site-001",
+      "source_id": "shared-source",
+      "bearer": "IPT",
+      "field_regime": "NEAR_FIELD",
+      "supported_motion_states": [
+        "DOCKED",
+        "PARKED"
+      ],
+      "environment_stratum": "IDEAL_SYNTHETIC",
+      "field_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "receiver_geometry_sha256": "1212121212121212121212121212121212121212121212121212121212121212",
+      "capacity_mwh": 3000,
+      "available_slots": [
+        0,
+        1
+      ],
+      "required_receipt_roles": [
+        "PHYSICAL_ENVELOPE",
+        "OBSERVABILITY",
+        "AUTHORIZATION",
+        "LOCAL_PROTECTION",
+        "SESSION_ADMISSION",
+        "SITE_ALLOCATION",
+        "SOURCE_TO_LOAD_METROLOGY",
+        "STANDARDS_APPLICABILITY",
+        "MISSION_ENERGY"
+      ],
+      "receipt_ids": [
+        "synthetic-site-budget",
+        "synthetic-ground-envelope",
+        "synthetic-ground-observability",
+        "synthetic-meters",
+        "synthetic-ground-auth",
+        "synthetic-ground-local-protection",
+        "synthetic-ground-session-admission",
+        "synthetic-ground-standards",
+        "synthetic-ground-mission-energy"
+      ]
+    },
+    {
+      "opportunity_id": "air-rf-hover",
+      "site_id": "synthetic-site-001",
+      "source_id": "shared-source",
+      "bearer": "RF_MICROWAVE",
+      "field_regime": "FAR_FIELD",
+      "supported_motion_states": [
+        "HOVER",
+        "REACQUISITION"
+      ],
+      "environment_stratum": "IDEAL_SYNTHETIC",
+      "field_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "receiver_geometry_sha256": "3434343434343434343434343434343434343434343434343434343434343434",
+      "capacity_mwh": 4000,
+      "available_slots": [
+        0,
+        1
+      ],
+      "required_receipt_roles": [
+        "PHYSICAL_ENVELOPE",
+        "OBSERVABILITY",
+        "AUTHORIZATION",
+        "LOCAL_PROTECTION",
+        "SITE_ALLOCATION",
+        "SOURCE_TO_LOAD_METROLOGY",
+        "SESSION_ADMISSION",
+        "STANDARDS_APPLICABILITY",
+        "MISSION_ENERGY"
+      ],
+      "receipt_ids": [
+        "synthetic-site-budget",
+        "synthetic-air-envelope",
+        "synthetic-air-observability-ambiguous",
+        "synthetic-meters",
+        "synthetic-air-auth",
+        "synthetic-air-local-protection",
+        "synthetic-air-session-admission",
+        "synthetic-air-standards",
+        "synthetic-air-mission-energy"
+      ]
+    }
+  ],
+  "receivers": [
+    {
+      "receiver_id": "ground-vehicle-01",
+      "receiver_sha256": "abababababababababababababababababababababababababababababababab",
+      "requested_energy_mwh": 3000,
+      "minimum_service_mwh": 1500,
+      "battery_acceptance_mwh": 3000,
+      "initial_battery_energy_mwh": 20000,
+      "reserve_energy_mwh": 5000,
+      "deadline_slot": 1,
+      "eligible_opportunity_ids": [
+        "ground-ipt-dock"
+      ]
+    },
+    {
+      "receiver_id": "aircraft-01",
+      "receiver_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "requested_energy_mwh": 4000,
+      "minimum_service_mwh": 2000,
+      "battery_acceptance_mwh": 4000,
+      "initial_battery_energy_mwh": 8000,
+      "reserve_energy_mwh": 3000,
+      "deadline_slot": 1,
+      "eligible_opportunity_ids": [
+        "air-rf-hover"
+      ]
+    }
+  ],
+  "candidate_policies": [
+    {
+      "policy_id": "equal-split-v0",
+      "baseline_family": "FIXED_EQUAL_SPLIT",
+      "artifact_sha256": "abababababababababababababababababababababababababababababababab",
+      "compute_budget_ms": 100,
+      "tuning_partition": "PREDECLARED_FIXED"
+    },
+    {
+      "policy_id": "greedy-v0",
+      "baseline_family": "GREEDY_EFFICIENCY",
+      "artifact_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "compute_budget_ms": 100,
+      "tuning_partition": "PREDECLARED_FIXED"
+    },
+    {
+      "policy_id": "exact-small-instance-oracle",
+      "baseline_family": "EXACT_PARETO_ORACLE",
+      "artifact_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+      "compute_budget_ms": 1000,
+      "tuning_partition": "PREDECLARED_FIXED"
+    }
+  ],
+  "metric_lanes": [
+    "PHYSICAL_ENERGY_METROLOGY",
+    "POSE_OBSERVABILITY",
+    "SESSION_LIFECYCLE",
+    "MISSION_SERVICE",
+    "FAIRNESS_AND_ASSET_HEALTH",
+    "SAFETY_AND_EVIDENCE",
+    "COMPUTATION"
+  ],
+  "claim_ceiling": "SYNTHETIC_ONLY. All identities, digests, capacities, receipts and observations are fabricated known-truth fixture values. The RF opportunity has an AMBIGUOUS pose receipt and must not be admitted by a composite policy, regardless of its received-power proxy. This manifest proves neither physical transfer nor safety, efficiency, authorization, flight capability or standards compliance."
+}
