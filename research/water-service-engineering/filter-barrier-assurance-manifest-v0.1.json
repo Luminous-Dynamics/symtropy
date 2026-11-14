@@ -7,6 +7,16 @@
   "cases": "research/water-service-engineering/filter-barrier-assurance-cases-v0.1.json",
   "oracle": "research/water-service-engineering/filter-barrier-assurance-oracle-v0.1.json",
   "schema": "research/water-service-engineering/filter-barrier-assurance.schema.json",
-  "case_count": 8,
-  "evidence_ceiling": "no_filter_or_water_safety_claim"
+  "case_count": 9,
+  "evidence_ceiling": "no_filter_or_water_safety_claim",
+  "negative_controls": [
+    "open_bypass",
+    "offline_sensor",
+    "expired_calibration",
+    "out_of_envelope",
+    "expired_media",
+    "missing_challenge_evidence",
+    "maintenance_without_requalification",
+    "claim_scope_mismatch"
+  ]
 }
