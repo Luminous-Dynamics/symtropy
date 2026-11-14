@@ -153,7 +153,7 @@ The temporal-index test corpus checks bucket boundaries, uncertainty-expanded ov
 
 This is an optimization experiment, not yet a production performance claim. It adds memory/index maintenance and may retain linear behavior for dense same-bucket or oversized-interval cases. The exact capacity oracle and full-scan reference must remain in the test suite.
 
-The Rust source currently contains 44 unit tests on the temporal-index branch: 13 lifecycle, 24 resource-calendar and 7 synthetic-adapter cases. Exact-head cross-platform CI is still required before calling this branch validated.
+The current Rust source contains 52 unit tests on the temporal-index branch: 13 task/interoperability lifecycle, 32 reservation/resource-calendar (including full-scan capacity parity and active-only epoch invalidation), and 7 synthetic-adapter cases. The earlier exact-head workflow passed 48 tests; four later resource-index regression tests require the current-head matrix to finish before they are called validated.
 
 ## Frozen reference corpus
 
