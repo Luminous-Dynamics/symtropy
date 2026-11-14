@@ -8,6 +8,7 @@ on:
       - "Cargo.lock"
       - "research/water-service-engineering/**"
       - "research/distribution-intrusion-transient/**"
+      - "research/water-transient-solver-qualification/**"
       - ".github/workflows/water-service-t0.yml"
   pull_request:
     paths:
@@ -15,6 +16,8 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "research/water-service-engineering/**"
+      - "research/distribution-intrusion-transient/**"
+      - "research/water-transient-solver-qualification/**"
       - ".github/workflows/water-service-t0.yml"
   workflow_dispatch:
 
@@ -63,6 +66,17 @@ jobs:
             research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json \
             research/distribution-intrusion-transient/manifest-v0.1.json \
             artifacts/distribution-intrusion-t0/receipt.json
+      - name: Evaluate water transient analytical T0 exact checked-out revision
+        id: transient
+        env:
+          WATER_TRANSIENT_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-transient-t0 -- \
+            research/water-transient-solver-qualification/water-transient-t0-cases-v0.1.json \
+            research/water-transient-solver-qualification/water-transient-t0-oracle-v0.1.json \
+            research/water-transient-solver-qualification/manifest-v0.1.json \
+            artifacts/water-transient-t0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipts
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,14 +90,20 @@ jobs:
             research/distribution-intrusion-transient/intrusion-t0-scenarios-v0.1.json
             research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json
             research/distribution-intrusion-transient/manifest-v0.1.json
+            research/water-transient-solver-qualification/water-transient-t0-cases-v0.1.json
+            research/water-transient-solver-qualification/water-transient-t0-oracle-v0.1.json
+            research/water-transient-solver-qualification/manifest-v0.1.json
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
+            artifacts/water-transient-t0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           INTRUSION_OUTCOME: ${{ steps.intrusion.outcome }}
+          TRANSIENT_OUTCOME: ${{ steps.transient.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$INTRUSION_OUTCOME" = "success"
+          test "$TRANSIENT_OUTCOME" = "success"
