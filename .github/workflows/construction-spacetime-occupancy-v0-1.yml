@@ -3,7 +3,7 @@ name: Construction Space-Time Occupancy v0.1
 on:
   pull_request:
     branches:
-      - "research/construction-floor-production-v0-1"
+      - "research/construction-floor-production-time-index-stack-v0-1"
     paths:
       - "research/construction-spacetime-occupancy-v0-1/**"
       - ".github/workflows/construction-spacetime-occupancy-v0-1.yml"
