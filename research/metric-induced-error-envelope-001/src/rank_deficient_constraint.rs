@@ -1091,6 +1091,62 @@ mod tests {
     }
 
     #[test]
+    fn rank_threshold_uncertainty_band_forces_inconclusive_without_correction() {
+        let profile = ConstraintQuotientProfileV1 {
+            relative_rank_tolerance: 1.0e-8,
+            rank_uncertainty_factor: 10.0,
+            relative_compatibility_tolerance: 1.0e-9,
+            relative_reduced_pivot_tolerance: 1.0e-12,
+        };
+        let near_dependent = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 5.0e-8, 1.0]];
+        let quotient =
+            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+                &mass(),
+                near_dependent,
+                &residual_metric(),
+                profile,
+            )
+            .unwrap();
+        let receipt = quotient.receipt();
+        assert_eq!(receipt.numerical_rank, 2);
+        assert!(!receipt.rank_resolved);
+        assert!(receipt.unresolved_relative_pivot.is_some());
+
+        let residual = ConstraintResidualV1::<OldConstraintSpace, 3>::new(
+            std::array::from_fn(|row| {
+                (0..3).map(|column| near_dependent[row][column] * [0.1, -0.2, 0.3][column]).sum()
+            }),
+        )
+        .unwrap();
+        let outcome = quotient.solve_residual(&residual).unwrap();
+        assert_eq!(outcome.status(), ConstraintResidualStatusV1::Inconclusive);
+        assert!(outcome.minimum_kinetic_correction().is_none());
+        assert!(outcome.multiplier_representative().is_none());
+    }
+
+    #[test]
+    fn well_separated_small_independent_row_is_admitted_as_full_rank() {
+        let profile = ConstraintQuotientProfileV1 {
+            relative_rank_tolerance: 1.0e-8,
+            rank_uncertainty_factor: 10.0,
+            relative_compatibility_tolerance: 1.0e-9,
+            relative_reduced_pivot_tolerance: 1.0e-12,
+        };
+        let full_rank = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 1.0e-4, 1.0]];
+        let quotient =
+            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+                &mass(),
+                full_rank,
+                &residual_metric(),
+                profile,
+            )
+            .unwrap();
+        assert_eq!(quotient.rank(), 3);
+        assert!(quotient.receipt().rank_resolved);
+        assert_eq!(quotient.nullity(), 0);
+    }
+
+    #[test]
     fn rank_zero_jacobian_accepts_only_zero_residual() {
         let zero_j = [[0.0; 3]; 2];
         let h = Metric::<OldConstraintSpace, 2>::admit(
