@@ -1,0 +1,54 @@
+{
+  "schema_version": "visual-pinhole-ray-v0",
+  "case_id": "VIS-RAY-ROUNDTRIP-001",
+  "status": "UNQUALIFIED",
+  "evidence_class": "ANALYTIC_REFERENCE",
+  "model": {
+    "name": "ideal_rectified_pinhole",
+    "version": "0",
+    "ray_convention": "unnormalized_camera_ray_z_equals_1",
+    "assumptions": [
+      "zero lens distortion",
+      "pixel point and intrinsics use the same continuous image coordinate convention",
+      "point is expressed in the matching camera/projector frame"
+    ]
+  },
+  "intrinsics": {
+    "fx_px": 1000.0,
+    "fy_px": 1000.0,
+    "cx_px": 640.0,
+    "cy_px": 360.0
+  },
+  "input_pixel": {
+    "u": 725.0,
+    "v": 295.0
+  },
+  "expected_ray": {
+    "x": 0.085,
+    "y": -0.065,
+    "z": 1.0
+  },
+  "scale_depth": 3.0,
+  "expected_point_at_depth": {
+    "x": 0.255,
+    "y": -0.195,
+    "z": 3.0
+  },
+  "expected_reprojected_pixel": {
+    "u": 725.0,
+    "v": 295.0
+  },
+  "tolerance": 1e-12,
+  "negative_controls_required": [
+    "NaN or infinity in pixel coordinates must reject",
+    "NaN or infinity in intrinsics must reject",
+    "invalid focal length must reject",
+    "round-trip test must not use the candidate function to generate its own expected pixel",
+    "frame/units assumptions must be stated outside the numerical vector"
+  ],
+  "limitations": [
+    "Proposed analytic fixture, not yet consumed by a fixture verifier.",
+    "No pose transformation, distortion correction or real-device calibration is performed.",
+    "The depth is a model-coordinate value, not measured scene depth."
+  ]
+}
