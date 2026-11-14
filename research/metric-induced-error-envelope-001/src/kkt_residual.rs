@@ -31,12 +31,19 @@ use crate::{
 };
 
 const SQRT_2: f64 = std::f64::consts::SQRT_2;
-const GOLDEN_RATIO: f64 = (1.0 + 5.0_f64.sqrt()) * 0.5;
+const GOLDEN_RATIO: f64 = 1.618_033_988_749_895_f64;
 
 /// Explicitly narrow claim scope for the current residual certificate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KktResidualClaimScopeV1 {
     FixedLinearSpdMassFullRowRankConstraints,
+}
+
+/// This implementation evaluates the theorem using ordinary f64 arithmetic.
+/// It is not an outward-rounded interval or validated-numerics certificate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KktResidualEvidenceStatusV1 {
+    FloatingPointEvaluationOfExactArithmeticTheorem,
 }
 
 /// Numerical evaluation of the exact-arithmetic linear KKT residual theorem.
@@ -56,6 +63,7 @@ pub struct ConstrainedKktResidualReceiptV1<
     pub multiplier_error_bound: f64,
     pub combined_state_error_bound: f64,
     pub claim_scope: KktResidualClaimScopeV1,
+    pub evidence_status: KktResidualEvidenceStatusV1,
 }
 
 /// Evaluate the force and constraint residuals of a candidate fixed-linear KKT
@@ -127,6 +135,8 @@ pub fn evaluate_constrained_kkt_residual<
         multiplier_error_bound,
         combined_state_error_bound,
         claim_scope: KktResidualClaimScopeV1::FixedLinearSpdMassFullRowRankConstraints,
+        evidence_status:
+            KktResidualEvidenceStatusV1::FloatingPointEvaluationOfExactArithmeticTheorem,
     })
 }
 
@@ -199,6 +209,10 @@ mod tests {
         assert_eq!(
             receipt.claim_scope,
             KktResidualClaimScopeV1::FixedLinearSpdMassFullRowRankConstraints
+        );
+        assert_eq!(
+            receipt.evidence_status,
+            KktResidualEvidenceStatusV1::FloatingPointEvaluationOfExactArithmeticTheorem
         );
     }
 
