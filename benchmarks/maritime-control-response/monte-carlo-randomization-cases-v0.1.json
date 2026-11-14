@@ -1,0 +1,66 @@
+{
+  "schema_version": "symtropy-marine-monte-carlo-randomization-cases-v0.1",
+  "status": "synthetic_sampler_contract_cases_not_field_evidence",
+  "cases": [
+    {
+      "case_id": "MC01",
+      "scenario": "Same seed, PRNG, draw budget and inputs reproduce the exact output and sampled assignment digest.",
+      "expected": "deterministic_replay"
+    },
+    {
+      "case_id": "MC02",
+      "scenario": "A different seed changes the sampled assignment digest.",
+      "expected": "distinct_random_stream"
+    },
+    {
+      "case_id": "MC03",
+      "scenario": "The plus-one correction never reports p = 0.",
+      "expected": "positive_finite_sample_p_value"
+    },
+    {
+      "case_id": "MC04",
+      "scenario": "A small blocked trial's Monte Carlo tail interval is checked against exact Fisher enumeration.",
+      "expected": "differential_exact_reference"
+    },
+    {
+      "case_id": "MC05",
+      "scenario": "A 17-unit blocked trial is supported beyond the exact 16-unit enumeration limit.",
+      "expected": "monte_carlo_scaling"
+    },
+    {
+      "case_id": "MC06",
+      "scenario": "Draw counts below/above frozen bounds are rejected.",
+      "expected": "invalid_draw_count"
+    },
+    {
+      "case_id": "MC07",
+      "scenario": "The SplitMix64 implementation matches frozen golden vectors.",
+      "expected": "prng_version_integrity"
+    },
+    {
+      "case_id": "MC08",
+      "scenario": "Reordering input rows does not change canonical frame or assignment stream digest.",
+      "expected": "canonical_row_order_invariance"
+    },
+    {
+      "case_id": "MC09",
+      "scenario": "A request exceeding the total unit-draw work budget fails before sampling.",
+      "expected": "work_budget_rejected"
+    },
+    {
+      "case_id": "MC10",
+      "scenario": "Within a fixed-count stratum the sampler covers all small subsets at approximately uniform frequencies.",
+      "expected": "uniform_block_sampling"
+    },
+    {
+      "case_id": "MC11",
+      "scenario": "Every sampled assignment preserves each frozen block allocation.",
+      "expected": "zero_allocation_violations"
+    },
+    {
+      "case_id": "MC12",
+      "scenario": "Monte Carlo uncertainty is explicitly separated from the ATE sampling interval.",
+      "expected": "uncertainty_channel_separation"
+    }
+  ]
+}
