@@ -564,10 +564,24 @@ mod tests {
             [r(5, 16), r(-1, 8)],
             [r(-1, 8), r(17, 16)],
         ];
-        let w_new_expected = [
-            [r(5, 16), r(1, 32)],
-            [r(1, 32), r(65, 64)],
+        let tw = [
+            [w_old[0][0], w_old[0][1]],
+            [
+                half.mul(w_old[0][0]).add(w_old[1][0]),
+                half.mul(w_old[0][1]).add(w_old[1][1]),
+            ],
         ];
+        let w_new_expected = [
+            [tw[0][0], tw[0][0].mul(half).add(tw[0][1])],
+            [tw[1][0], tw[1][0].mul(half).add(tw[1][1])],
+        ];
+        assert_eq!(
+            w_new_expected,
+            [
+                [r(5, 16), r(1, 32)],
+                [r(1, 32), r(65, 64)],
+            ]
+        );
         let w_new_direct = [
             [
                 jacobian_new[0][0].mul(jacobian_new[0][0])
@@ -596,14 +610,13 @@ mod tests {
             g_ddot[0],
             half.mul(g_ddot[0]).add(g_ddot[1]),
         ];
-        let curvature = [zero, half];
+        let curvature = [zero, quarter];
         let transformed_ddot = [
             linear[0].add(curvature[0]),
             linear[1].add(curvature[1]),
         ];
         assert_eq!(transformed_ddot, [r(3, 4), r(9, 8)]);
         assert_eq!(t[1][0].mul(g_dot[0]).add(t[1][1].mul(g_dot[1])), zero);
-        let _ = w_old;
     }
 
     #[test]
