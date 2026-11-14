@@ -167,6 +167,11 @@ jobs:
               for column in range(6):
                   expected = expected_mass[row] if row == column else 0.0
                   assert abs(matrix[row * 6 + column] - expected) < 1e-10
+          close = lambda a, b: abs(a - b) <= 1.0e-10
+          assert all(close(a, b) for a, b in zip(capture["mass_1_site_world_position"], [0.0, 0.0, 0.0]))
+          assert all(close(a, b) for a, b in zip(capture["mass_2_site_world_position"], [1.2, 0.0, 0.0]))
+          assert capture["model_state_qpos"] == [0.0] * 6
+          assert capture["model_state_qvel"] == [0.0] * 6
           jacobian = capture["constraint_jacobian"]
           assert abs(abs(jacobian[0]) - 1.0) < 1e-10
           assert abs(jacobian[3] + jacobian[0]) < 1e-10
