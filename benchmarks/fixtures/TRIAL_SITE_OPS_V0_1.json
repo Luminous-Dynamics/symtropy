@@ -1,0 +1,827 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "TRIAL-SITE-OPS-001",
+  "classification": "synthetic_only",
+  "created_at": "2026-10-19T00:00:00Z",
+  "source_boundaries": {
+    "candidate_input_projection": "Only observed, prospectively admissible site evidence at or before the case as_of time.",
+    "oracle_truth_is_hidden": true,
+    "rationale": "Outcomes and expected invariants are evaluator-only; all IDs and numeric values are synthetic."
+  },
+  "admissible_evidence_statuses": [
+    "verified",
+    "reported",
+    "unknown",
+    "stale",
+    "conflicted"
+  ],
+  "admissible_source_kinds": [
+    "direct_measurement",
+    "site_self_report",
+    "registry_status",
+    "historical_outcome",
+    "derived_estimate",
+    "post_selection_outcome"
+  ],
+  "cases": [
+    {
+      "case_id": "CAPABILITY-GAP-001",
+      "as_of": "2026-03-01T00:00:00Z",
+      "protocol_id": "PROTO-SYNTH-A",
+      "required_enrollment": 150,
+      "sites": [
+        {
+          "site_id": "SITE-NORTH",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 4,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "reachable_eligible_pool",
+              "value": 900,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "derived_estimate",
+              "observed_at": "2026-02-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.25,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "followup_reliability",
+              "value": 0.3,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 120,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        },
+        {
+          "site_id": "SITE-SOUTH",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 3,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "reachable_eligible_pool",
+              "value": 500,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "derived_estimate",
+              "observed_at": "2026-02-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.8,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "followup_reliability",
+              "value": 0.78,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 70,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-02-25T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "actual_outcomes_by_site": [
+          {
+            "site_id": "SITE-NORTH",
+            "enrolled": 42,
+            "retained": 30,
+            "access_coverage_score": 0.72,
+            "protocol_deviations": 8
+          },
+          {
+            "site_id": "SITE-SOUTH",
+            "enrolled": 64,
+            "retained": 56,
+            "access_coverage_score": 0.84,
+            "protocol_deviations": 3
+          }
+        ],
+        "primary_bottleneck_by_site": [
+          {
+            "site_id": "SITE-NORTH",
+            "name": "workflow_and_followup"
+          }
+        ],
+        "support_targets": [
+          {
+            "site_id": "SITE-NORTH",
+            "intervention": "coordinator_followup_support"
+          }
+        ]
+      },
+      "expected_invariants": [
+        "site self-report is not verified performance evidence",
+        "SITE-NORTH has a synthetic workflow/follow-up bottleneck despite a larger projected target",
+        "support recommendation and raw site rank are different outputs"
+      ]
+    },
+    {
+      "case_id": "CIRCULAR-FORECAST-002",
+      "as_of": "2026-04-01T00:00:00Z",
+      "protocol_id": "PROTO-SYNTH-B",
+      "required_enrollment": 100,
+      "sites": [
+        {
+          "site_id": "SITE-ALPHA",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 2,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.35,
+              "unit": "index_0_1",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "followup_reliability",
+              "value": 0.4,
+              "unit": "index_0_1",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "historical_enrollment_monthly",
+              "value": 3,
+              "unit": "synthetic_people_per_month",
+              "status": "verified",
+              "source_kind": "historical_outcome",
+              "observed_at": "2026-03-15T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 95,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        },
+        {
+          "site_id": "SITE-BETA",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 3,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.78,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "followup_reliability",
+              "value": 0.82,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "historical_enrollment_monthly",
+              "value": 7,
+              "unit": "synthetic_people_per_month",
+              "status": "verified",
+              "source_kind": "historical_outcome",
+              "observed_at": "2026-03-15T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 68,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-03-25T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "actual_outcomes_by_site": [
+          {
+            "site_id": "SITE-ALPHA",
+            "enrolled": 24,
+            "retained": 18,
+            "access_coverage_score": 0.65,
+            "protocol_deviations": 6
+          },
+          {
+            "site_id": "SITE-BETA",
+            "enrolled": 61,
+            "retained": 55,
+            "access_coverage_score": 0.82,
+            "protocol_deviations": 2
+          }
+        ],
+        "primary_bottleneck_by_site": [
+          {
+            "site_id": "SITE-ALPHA",
+            "name": "workflow_coordination"
+          }
+        ],
+        "support_targets": [
+          {
+            "site_id": "SITE-ALPHA",
+            "intervention": "workflow_and_followup_coaching"
+          }
+        ]
+      },
+      "expected_invariants": [
+        "do not choose SITE-ALPHA solely because its self-reported target is higher",
+        "historical and verified capability evidence remain distinct from self-report"
+      ]
+    },
+    {
+      "case_id": "DYNAMIC-CHANGE-003",
+      "as_of": "2026-06-30T00:00:00Z",
+      "protocol_id": "PROTO-SYNTH-C",
+      "required_enrollment": 120,
+      "sites": [
+        {
+          "site_id": "SITE-EAST",
+          "evidence": [
+            {
+              "name": "prior_staff_fte",
+              "value": 5,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-01-15T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "current_staff_fte",
+              "value": 2,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.7,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "competing_trial_load",
+              "value": 0.85,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 80,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        },
+        {
+          "site_id": "SITE-WEST",
+          "evidence": [
+            {
+              "name": "prior_staff_fte",
+              "value": 3,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-01-15T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "current_staff_fte",
+              "value": 3,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.76,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "competing_trial_load",
+              "value": 0.3,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 68,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "actual_outcomes_by_site": [
+          {
+            "site_id": "SITE-EAST",
+            "enrolled": 29,
+            "retained": 22,
+            "access_coverage_score": 0.72,
+            "protocol_deviations": 5
+          },
+          {
+            "site_id": "SITE-WEST",
+            "enrolled": 58,
+            "retained": 52,
+            "access_coverage_score": 0.81,
+            "protocol_deviations": 2
+          }
+        ],
+        "primary_bottleneck_by_site": [
+          {
+            "site_id": "SITE-EAST",
+            "name": "staff_capacity_and_competing_load"
+          }
+        ],
+        "support_targets": [
+          {
+            "site_id": "SITE-EAST",
+            "intervention": "reallocate_staff_or_reduce_site_target"
+          }
+        ]
+      },
+      "expected_invariants": [
+        "as-of reassessment uses current staffing and competing-load evidence",
+        "prior staff capacity cannot silently override a newer verified measure"
+      ]
+    },
+    {
+      "case_id": "REPRESENTATION-ACCESS-004",
+      "as_of": "2026-05-15T00:00:00Z",
+      "protocol_id": "PROTO-SYNTH-D",
+      "required_enrollment": 100,
+      "sites": [
+        {
+          "site_id": "SITE-CENTRAL",
+          "evidence": [
+            {
+              "name": "workflow_coordination",
+              "value": 0.83,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "followup_reliability",
+              "value": 0.82,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 90,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "access_barrier_rate",
+              "value": 0.38,
+              "unit": "index_0_1",
+              "status": "reported",
+              "source_kind": "derived_estimate",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "accessible_contact_channel_coverage",
+              "value": 0.45,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        },
+        {
+          "site_id": "SITE-COMMUNITY",
+          "evidence": [
+            {
+              "name": "workflow_coordination",
+              "value": 0.67,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "followup_reliability",
+              "value": 0.72,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 72,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "access_barrier_rate",
+              "value": 0.14,
+              "unit": "index_0_1",
+              "status": "reported",
+              "source_kind": "derived_estimate",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "accessible_contact_channel_coverage",
+              "value": 0.88,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-05-10T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "actual_outcomes_by_site": [
+          {
+            "site_id": "SITE-CENTRAL",
+            "enrolled": 75,
+            "retained": 64,
+            "access_coverage_score": 0.63,
+            "protocol_deviations": 4
+          },
+          {
+            "site_id": "SITE-COMMUNITY",
+            "enrolled": 66,
+            "retained": 59,
+            "access_coverage_score": 0.89,
+            "protocol_deviations": 3
+          }
+        ],
+        "primary_bottleneck_by_site": [
+          {
+            "site_id": "SITE-CENTRAL",
+            "name": "participant_access"
+          }
+        ],
+        "support_targets": [
+          {
+            "site_id": "SITE-CENTRAL",
+            "intervention": "accessible_contact_and_travel_support"
+          }
+        ]
+      },
+      "expected_invariants": [
+        "report volume and access outcomes separately",
+        "no scalar site-quality score may conceal access trade-offs",
+        "aggregate indicators do not establish individual eligibility or consent"
+      ]
+    },
+    {
+      "case_id": "STALE-INCOMPLETE-005",
+      "as_of": "2026-07-01T00:00:00Z",
+      "protocol_id": "PROTO-SYNTH-E",
+      "required_enrollment": 80,
+      "sites": [
+        {
+          "site_id": "SITE-STALE",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 4,
+              "unit": "FTE",
+              "status": "stale",
+              "source_kind": "direct_measurement",
+              "observed_at": "2025-12-01T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "historical_enrollment_monthly",
+              "value": 6,
+              "unit": "synthetic_people_per_month",
+              "status": "stale",
+              "source_kind": "historical_outcome",
+              "observed_at": "2025-12-01T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "screened_denominator",
+              "value": null,
+              "unit": "synthetic_people",
+              "status": "unknown",
+              "source_kind": "derived_estimate",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 70,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        },
+        {
+          "site_id": "SITE-UNKNOWN",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": null,
+              "unit": "FTE",
+              "status": "unknown",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.7,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "screened_denominator",
+              "value": null,
+              "unit": "synthetic_people",
+              "status": "unknown",
+              "source_kind": "derived_estimate",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 65,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-06-20T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "actual_outcomes_by_site": [
+          {
+            "site_id": "SITE-STALE",
+            "enrolled": 0,
+            "retained": 0,
+            "access_coverage_score": 0.5,
+            "protocol_deviations": 0
+          },
+          {
+            "site_id": "SITE-UNKNOWN",
+            "enrolled": 0,
+            "retained": 0,
+            "access_coverage_score": 0.5,
+            "protocol_deviations": 0
+          }
+        ],
+        "primary_bottleneck_by_site": [
+          {
+            "site_id": "SITE-STALE",
+            "name": "critical_evidence_stale"
+          },
+          {
+            "site_id": "SITE-UNKNOWN",
+            "name": "critical_evidence_unknown"
+          }
+        ],
+        "support_targets": []
+      },
+      "expected_invariants": [
+        "abstain on confident ranking while critical denominators and current capacity are unresolved",
+        "unknown staffing is not zero staffing",
+        "zero observed enrollment is not inferred from missing prospective evidence"
+      ]
+    },
+    {
+      "case_id": "OUTCOME-LEAKAGE-006",
+      "as_of": "2026-08-01T00:00:00Z",
+      "protocol_id": "PROTO-SYNTH-F",
+      "required_enrollment": 100,
+      "sites": [
+        {
+          "site_id": "SITE-LEAK",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 3,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-07-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.75,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-07-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 65,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-07-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "post_selection_enrolled",
+              "value": 96,
+              "unit": "synthetic_people",
+              "status": "verified",
+              "source_kind": "post_selection_outcome",
+              "observed_at": "2026-11-01T00:00:00Z",
+              "prospective_admissible": false
+            }
+          ]
+        },
+        {
+          "site_id": "SITE-CONTROL",
+          "evidence": [
+            {
+              "name": "staff_fte",
+              "value": 3,
+              "unit": "FTE",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-07-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "workflow_coordination",
+              "value": 0.72,
+              "unit": "index_0_1",
+              "status": "verified",
+              "source_kind": "direct_measurement",
+              "observed_at": "2026-07-20T00:00:00Z",
+              "prospective_admissible": true
+            },
+            {
+              "name": "site_projected_enrollment",
+              "value": 68,
+              "unit": "synthetic_people",
+              "status": "reported",
+              "source_kind": "site_self_report",
+              "observed_at": "2026-07-20T00:00:00Z",
+              "prospective_admissible": true
+            }
+          ]
+        }
+      ],
+      "oracle_truth": {
+        "actual_outcomes_by_site": [
+          {
+            "site_id": "SITE-LEAK",
+            "enrolled": 60,
+            "retained": 52,
+            "access_coverage_score": 0.82,
+            "protocol_deviations": 2
+          },
+          {
+            "site_id": "SITE-CONTROL",
+            "enrolled": 58,
+            "retained": 50,
+            "access_coverage_score": 0.8,
+            "protocol_deviations": 2
+          }
+        ],
+        "primary_bottleneck_by_site": [],
+        "support_targets": []
+      },
+      "expected_invariants": [
+        "post-selection outcomes after the as-of time are excluded from candidate projections",
+        "future evidence marked prospectively admissible must be rejected"
+      ]
+    }
+  ]
+}
