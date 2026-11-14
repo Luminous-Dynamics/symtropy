@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic matched-duty pump system energy cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "model",
+    "units",
+    "assumptions",
+    "equations",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "pump-system-energy-matched-duty-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_matched_hydraulic_service_arithmetic"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_pump_system_equation_checks_only_no_energy_saving_or_installed_performance_claim"
+    },
+    "model": {
+      "const": "quadratic_fixed_speed_pump_curve_and_static_plus_friction_system_curve_constant_wire_to_water_efficiency"
+    },
+    "units": {
+      "type": "object"
+    },
+    "assumptions": {
+      "type": "object",
+      "required": [
+        "water_density_kg_m3",
+        "gravity_m_s2",
+        "wire_to_water_efficiency_assumed",
+        "efficiency_is_identical_for_fixed_speed_and_vfd",
+        "note"
+      ],
+      "properties": {
+        "water_density_kg_m3": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "gravity_m_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "wire_to_water_efficiency_assumed": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "efficiency_is_identical_for_fixed_speed_and_vfd": {
+          "const": "yes_for_isolating_head_loss_effect_only"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "equations": {
+      "type": "object",
+      "required": [
+        "fixed_speed_pump_head_m",
+        "system_required_head_m",
+        "fixed_speed_throttle_head_m",
+        "variable_speed_ratio",
+        "variable_speed_pump_head_m",
+        "hydraulic_power_w",
+        "electrical_power_w",
+        "equal_service_energy_saving_fraction"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^PSE-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flow_m3_s",
+              "pump_shutoff_head_m",
+              "pump_curve_k_m_per_m6_s2",
+              "system_static_head_m",
+              "system_curve_k_m_per_m6_s2"
+            ],
+            "properties": {
+              "flow_m3_s": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "pump_shutoff_head_m": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "pump_curve_k_m_per_m6_s2": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "system_static_head_m": {
+                "type": "number",
+                "minimum": 0
+              },
+              "system_curve_k_m_per_m6_s2": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
