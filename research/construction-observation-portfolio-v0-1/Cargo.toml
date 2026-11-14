@@ -10,3 +10,8 @@ construction-robot-interop-core = { path = "../construction-robot-interop-v0-1" 
 construction-spacetime-occupancy-core = { path = "../construction-spacetime-occupancy-v0-1" }
 
 [workspace]
+
+[[bench]]
+name = "campaign_scale"
+path = "benches/campaign_scale.rs"
+harness = false
