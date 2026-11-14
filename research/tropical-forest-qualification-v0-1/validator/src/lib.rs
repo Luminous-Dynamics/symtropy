@@ -1492,8 +1492,8 @@ mod tests {
         assert_eq!(receipt["result"], "MANIFEST_VALID");
         assert_eq!(receipt["public_case_count"], 20);
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
-        assert_eq!(receipt["expected_gross_evsi_example"], 8.8);
-        assert_eq!(receipt["expected_net_value_after_cost_example"], 5.8);
+        assert!((receipt["expected_gross_evsi_example"].as_f64().unwrap() - 8.8).abs() < 1e-9);
+        assert!((receipt["expected_net_value_after_cost_example"].as_f64().unwrap() - 5.8).abs() < 1e-9);
         assert_eq!(receipt["decision_policy_performance"], "NOT_ESTABLISHED");
         assert_eq!(receipt["existing_evsi_kernel_execution"], "NOT_RUN");
     }
