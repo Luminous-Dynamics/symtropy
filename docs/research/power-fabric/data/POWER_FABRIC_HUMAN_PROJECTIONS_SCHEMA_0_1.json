@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-human-projection-fixture-0.1.schema.json",
+  "title": "Power Fabric Human Projection Fixture v0.1",
+  "type": "object", "additionalProperties": false,
+  "required": ["graph_id", "revision_id", "graph_content_digest", "scope_statement", "graph_maturity", "revision_current", "stale_modules", "loads", "expected_by_audience"],
+  "properties": {
+    "graph_id": { "type": "string", "minLength": 1 },
+    "revision_id": { "type": "string", "minLength": 1 },
+    "graph_content_digest": { "type": "string", "minLength": 1 },
+    "scope_statement": { "type": "string", "minLength": 1 },
+    "graph_maturity": { "enum": ["DesignOnly", "FieldReconciled", "IndependentlyReviewed"] },
+    "revision_current": { "type": "boolean" },
+    "stale_modules": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "loads": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["load_id", "status", "paths"],
+        "properties": {
+          "load_id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["DeclaredSourcePathFound", "NoDeclaredSourcePath"] },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["source_id", "node_ids", "edge_ids"],
+              "properties": {
+                "source_id": { "type": "string", "minLength": 1 },
+                "node_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+                "edge_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected_by_audience": {
+      "type": "object", "additionalProperties": false,
+      "required": ["resident", "operator", "qualified_practitioner", "emergency_responder"],
+      "properties": {
+        "resident": { "$ref": "#/$defs/audience_expectation" },
+        "operator": { "$ref": "#/$defs/audience_expectation" },
+        "qualified_practitioner": { "$ref": "#/$defs/audience_expectation" },
+        "emergency_responder": { "$ref": "#/$defs/audience_expectation" }
+      }
+    }
+  },
+  "$defs": {
+    "audience_expectation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["shows_source_ids", "shows_path_details", "required_notices"],
+      "properties": {
+        "shows_source_ids": { "type": "boolean" },
+        "shows_path_details": { "type": "boolean" },
+        "required_notices": { "type": "array", "uniqueItems": true, "items": { "enum": ["DeclaredPathIsNotLiveFlow", "NoDeclaredPathIsNotIsolation", "NoSafeToTouchConclusion", "NotInstallationApproval", "GraphRevisionStale", "DesignOnlyGraph", "StaleModuleConfiguration", "LimitedPathWitnessPolicy"] } }
+      }
+    }
+  }
+}

@@ -18,6 +18,7 @@ mod change_impact;
 mod duty_cycle;
 mod diagnostics;
 mod fuel;
+mod human_projection;
 mod infrastructure_ir;
 mod module_contract;
 mod resilience;
@@ -40,6 +41,11 @@ pub use infrastructure_ir::{
     ClaimDomain, ClaimProvenance, ClaimState, ExtensionOwner, IrError, IrObject,
     IrRelationship, IrSchemaVersion, NamespacedType, ObjectIdentity, OpaqueExtension,
     PowerFabricDocument, PropertyClaim, PropertyValue, RelationshipDirection, WireDocument,
+};
+pub use human_projection::{
+    compile_role_projection, ProjectedEvidence, ProjectedLoad, ProjectedLoadStatus,
+    ProjectedPath, ProjectionAudience, ProjectionError, ProjectionNotice,
+    ProjectionNoticeCode, ProjectionNoticeSeverity, ProjectionRevisionStatus, RoleProjection,
 };
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
