@@ -269,6 +269,38 @@ fn sample_blocked_assignment(
     Ok(treatment_mask)
 }
 
+fn count_allocation_constraint_violations(
+    trial: &BlockedRandomizedMaintenanceTrial,
+    groups: &BTreeMap<String, Vec<usize>>,
+    assignment: &[bool],
+) -> usize {
+    if assignment.len() != trial.observations.len() {
+        return 1;
+    }
+    let allocations = allocation_map(trial);
+    let mut violations = 0usize;
+    if groups.len() != allocations.len() {
+        violations += 1;
+    }
+    for (stratum_id, indices) in groups {
+        let Some((expected_treatment, expected_control)) = allocations.get(stratum_id.as_str())
+        else {
+            violations += 1;
+            continue;
+        };
+        let treatment_count = indices.iter().filter(|index| assignment[**index]).count();
+        let control_count = indices.len().saturating_sub(treatment_count);
+        if treatment_count != *expected_treatment || control_count != *expected_control {
+            violations += 1;
+        }
+    }
+    violations
+}
+
+fn plus_one_p_value(exceedances: usize, draw_count: usize) -> f64 {
+    (exceedances as f64 + 1.0) / (draw_count as f64 + 1.0)
+}
+
 fn stratified_difference_in_means(
     trial: &BlockedRandomizedMaintenanceTrial,
     groups: &BTreeMap<String, Vec<usize>>,
@@ -371,9 +403,14 @@ pub fn estimate_monte_carlo_randomization_p_value(
     hasher.update((config.draw_count as u64).to_le_bytes());
 
     let mut exceedances = 0usize;
-    let allocation_constraint_violations = 0usize;
+    let mut allocation_constraint_violations = 0usize;
     for _ in 0..config.draw_count {
         let assignment = sample_blocked_assignment(trial, &groups, &mut rng)?;
+        allocation_constraint_violations +=
+            count_allocation_constraint_violations(trial, &groups, &assignment);
+        if allocation_constraint_violations > 0 {
+            return Err(MonteCarloRandomizationError::InvalidAssignmentSpace);
+        }
         update_sampled_assignment_digest(&mut hasher, trial, &groups, &assignment);
 
         let statistic = stratified_difference_in_means(trial, &groups, &assignment)?;
@@ -382,7 +419,7 @@ pub fn estimate_monte_carlo_randomization_p_value(
         }
     }
     let tail_probability_estimate = exceedances as f64 / config.draw_count as f64;
-    let p_value_plus_one = (exceedances as f64 + 1.0) / (config.draw_count as f64 + 1.0);
+    let p_value_plus_one = plus_one_p_value(exceedances, config.draw_count);
     let monte_carlo_standard_error =
         (tail_probability_estimate * (1.0 - tail_probability_estimate) / config.draw_count as f64)
             .sqrt();
@@ -644,6 +681,31 @@ mod tests {
             first.sampled_assignments_sha256,
             second.sampled_assignments_sha256
         );
+    }
+
+    #[test]
+    fn independent_allocation_verifier_rejects_malformed_assignment_masks() {
+        let trial = trial();
+        let groups = stratum_indices(&trial);
+        let mut assignment = trial
+            .observations
+            .iter()
+            .map(|item| item.assigned_arm == AssignedArm::Treatment)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            count_allocation_constraint_violations(&trial, &groups, &assignment),
+            0
+        );
+        assignment[0] = false;
+        assert!(
+            count_allocation_constraint_violations(&trial, &groups, &assignment) > 0
+        );
+    }
+
+    #[test]
+    fn zero_exceedances_still_produce_the_plus_one_minimum_p_value() {
+        assert_eq!(plus_one_p_value(0, 999), 0.001);
+        assert!(plus_one_p_value(0, 2_000_000) > 0.0);
     }
 
     #[test]
