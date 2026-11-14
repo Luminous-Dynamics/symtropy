@@ -1,0 +1,79 @@
+name: VIS-MEM-011 Transfer Under Mismatch Diagnostic
+
+on:
+  push:
+    branches: ["research/vis-mem-transfer-v0-1"]
+    paths:
+      - "tools/vision-memory-transfer-bench.rs"
+      - ".github/workflows/vision-memory-transfer-bench.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+    paths:
+      - "tools/vision-memory-transfer-bench.rs"
+      - ".github/workflows/vision-memory-transfer-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vis-mem-011-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify-transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Verify exact source head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          rustc --version | grep -F "1.96.0"
+
+      - name: Compile and run transfer tests
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 --test tools/vision-memory-transfer-bench.rs -o /tmp/vis-mem-transfer-tests
+          /tmp/vis-mem-transfer-tests
+
+      - name: Build, replay, and validate report
+        run: |
+          set -euo pipefail
+          rustc --edition=2024 -O tools/vision-memory-transfer-bench.rs -o /tmp/vis-mem-transfer-bench
+          /tmp/vis-mem-transfer-bench > vis-mem-transfer.tsv
+          /tmp/vis-mem-transfer-bench > vis-mem-transfer-repeat.tsv
+          cmp vis-mem-transfer.tsv vis-mem-transfer-repeat.tsv
+          grep -Fq $'META\tformat\tVIS-MEM-011-v0.1' vis-mem-transfer.tsv
+          grep -Fq $'META\tevaluator_only\tordered waypoint truth' vis-mem-transfer.tsv
+          grep -Fq $'MATRIX_SUMMARY_HEADER\tpolicy' vis-mem-transfer.tsv
+          grep -Fq $'MATRIX_SUMMARY\tguarded_hybrid\tall' vis-mem-transfer.tsv
+          grep -Fq $'METRIC\tmatched_open\treplay_first' vis-mem-transfer.tsv
+          grep -Fq $'METRIC\tshifted_start\tguarded_hybrid' vis-mem-transfer.tsv
+          grep -Fq $'METRIC\tshifted_and_blocked\tconstraint_planner' vis-mem-transfer.tsv
+          grep -Fq $'METRIC\ttarget_disconnected\tconstraint_planner' vis-mem-transfer.tsv
+          awk -F '\t' '$1 == "HEADER" { if (NF != 14) exit 1; h++ } $1 == "METRIC" { if (NF != 14) exit 1; n++ } $1 == "MATRIX_SUMMARY_HEADER" { if (NF != 11) exit 1; s++ } $1 == "MATRIX_SUMMARY" { if (NF != 11) exit 1; m++ } END { if (h != 1 || n != 1000 || s != 1 || m != 25) exit 1 }' vis-mem-transfer.tsv
+          sha256sum vis-mem-transfer.tsv > vis-mem-transfer.sha256
+          sha256sum -c vis-mem-transfer.sha256
+
+      - name: Upload exact-head transfer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vis-mem-011-transfer-report
+          path: |
+            vis-mem-transfer.tsv
+            vis-mem-transfer.sha256
+          if-no-files-found: error
