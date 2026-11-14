@@ -53,16 +53,29 @@ For the declared eligible randomized units:
 
 The estimator is the stratum-weighted difference in means. The report includes the raw effect and a benefit-oriented sign convention determined by whether higher or lower outcomes are better.
 
+### Measurement provenance and uncertainty
+
+Each baseline and outcome measurement binds a source ID, measurement principle, dependency domain, evidence digest, quality state, calibration-record digest and calibration-valid-until time. Only valid evidence with verified calibration that remains valid through evidence availability is admitted. The outcome measurement principle is frozen by the trial and must match across every randomization unit.
+
+The estimator requires a deterministic absolute-error bound for each baseline/outcome measurement. Baseline uncertainty is recorded and validated but is not used for adjustment in P0. Outcome uncertainty is summarized separately:
+
+- **Sampling uncertainty:** Neyman standard error and normal-approximation confidence interval from randomized units.
+- **Measurement uncertainty:** the stratum-weighted sum of treatment-arm and control-arm mean absolute-error bounds.
+- **Robust interval:** the sampling interval expanded on both sides by that deterministic measurement-error bound.
+
+The measurement-error bound is not inserted into the Neyman sampling variance and is not described as a standard deviation. The robust interval is a deterministic error-bound expansion of the sampling interval. The module checks declared calibration/evidence metadata; it does not authenticate issuers or prove the physical validity of a stated bound.
+
 ### Uncertainty and tests
 
 The estimator reports:
 - a Neyman conservative variance estimate from within-arm sample variances;
-- a normal-approximation confidence interval at a preregistered 90%, 95% or 99% level;
+- a normal-approximation sampling interval at a preregistered 90%, 95% or 99% level;
+- a separate deterministic measurement-error bound and measurement-robust interval;
 - a two-sided exact Fisher randomization p-value under the sharp null, conditional on the blocked allocation.
 
 The P0 exact randomization enumeration is deliberately bounded to 16 independent units. It fails closed above that limit. Larger campaigns will need a separately qualified Monte Carlo randomization-inference method and reproducible random-stream contract.
 
-The confidence interval is explicitly a normal approximation. It should not be treated as an exact randomization interval or assumed to have nominal coverage at small sample sizes.
+The sampling confidence interval is explicitly a normal approximation. It should not be treated as an exact randomization interval or assumed to have nominal coverage at small sample sizes. The measurement-robust interval widens this interval by the declared deterministic measurement-error bound; it does not correct unobserved confounding or invalid calibration.
 
 ### Oracle separation
 
@@ -84,7 +97,7 @@ The machine-readable manifest has ten scenarios:
 9. insufficient within-arm replication rejected;
 10. exact enumeration beyond the frozen P0 bound rejected.
 
-The Rust unit suite exercises the estimator, exact randomization reference distribution, directionality, chronology, assignment design, oracle separation and the protocol/case manifest.
+The Rust unit suite exercises the estimator, exact randomization reference distribution, directionality, chronology, assignment design, oracle separation, calibration validity, measurement-principle binding, deterministic measurement-error expansion and the protocol/case manifest.
 
 ## What this does not estimate yet
 
