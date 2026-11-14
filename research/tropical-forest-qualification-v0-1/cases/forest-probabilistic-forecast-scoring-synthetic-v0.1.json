@@ -9,7 +9,7 @@
     "horizon_days": 365
   },
   "baseline_kind": "SYNTHETIC_POINT_MASS_REFERENCE",
-  "claim_ceiling": "Six public synthetic forecast cases exercise empirical CRPS, nearest-rank interval diagnostics, paired CRPS skill against a baseline, and explicit abstention coverage. Five forecasts are emitted and one abstains. This is not a calibrated forecast, an ecological evaluation, a blind test or a claim of SOTA skill.",
+  "claim_ceiling": "Six public synthetic continuous forecast cases exercise empirical CRPS, nearest-rank interval diagnostics, paired CRPS skill against a baseline, and explicit abstention coverage. A separate six-case confidence-ranked slice exercises the full empirical CRPS risk–coverage curve. Five forecasts are emitted and one abstains in the main slice. This is not a calibrated forecast, an ecological evaluation, a blind test or a claim of SOTA skill.",
   "cases": [
     {
       "forecast_id": "FORECAST-CRPS-TWO-MEMBER-REFERENCE-001",
@@ -196,5 +196,92 @@
     "probabilistic_calibration": "NOT_ESTABLISHED",
     "ecological_forecast_skill": "NOT_ESTABLISHED",
     "blind_evaluation": "NOT_CREATED"
-  }
+  },
+  "risk_coverage_cases": [
+    {
+      "forecast_id": "RISK-COVERAGE-HIGH-001",
+      "confidence_score": 0.95,
+      "forecast_samples": [
+        0,
+        1
+      ],
+      "observed": 0.5
+    },
+    {
+      "forecast_id": "RISK-COVERAGE-HIGH-SECOND-001",
+      "confidence_score": 0.9,
+      "forecast_samples": [
+        2,
+        2
+      ],
+      "observed": 3
+    },
+    {
+      "forecast_id": "RISK-COVERAGE-MID-001",
+      "confidence_score": 0.7,
+      "forecast_samples": [
+        0,
+        2
+      ],
+      "observed": 1
+    },
+    {
+      "forecast_id": "RISK-COVERAGE-LOW-001",
+      "confidence_score": 0.4,
+      "forecast_samples": [
+        4,
+        5
+      ],
+      "observed": 0
+    },
+    {
+      "forecast_id": "RISK-COVERAGE-LOW-SECOND-001",
+      "confidence_score": 0.2,
+      "forecast_samples": [
+        0
+      ],
+      "observed": 2
+    },
+    {
+      "forecast_id": "RISK-COVERAGE-LOWEST-001",
+      "confidence_score": 0.1,
+      "forecast_samples": [
+        6,
+        8
+      ],
+      "observed": 0
+    }
+  ],
+  "expected_risk_coverage_curve": [
+    {
+      "selected_count": 1,
+      "coverage_fraction": 0.16666666666666666,
+      "mean_crps_risk": 0.25
+    },
+    {
+      "selected_count": 2,
+      "coverage_fraction": 0.3333333333333333,
+      "mean_crps_risk": 0.625
+    },
+    {
+      "selected_count": 3,
+      "coverage_fraction": 0.5,
+      "mean_crps_risk": 0.5833333333333334
+    },
+    {
+      "selected_count": 4,
+      "coverage_fraction": 0.6666666666666666,
+      "mean_crps_risk": 1.5
+    },
+    {
+      "selected_count": 5,
+      "coverage_fraction": 0.8333333333333334,
+      "mean_crps_risk": 1.6
+    },
+    {
+      "selected_count": 6,
+      "coverage_fraction": 1,
+      "mean_crps_risk": 2.4166666666666665
+    }
+  ]
 }
