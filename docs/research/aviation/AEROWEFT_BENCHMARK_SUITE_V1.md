@@ -327,3 +327,15 @@ AeroWeft should learn from its shared digital picture, candidate identification 
 
 Source: NASA Digital Trajectory Rerouting Capability, page updated 1 July 2026:
 https://www.nasa.gov/directorates/armd/aosp/atms/digital-trajectory-rerouting-capability-tech-transfer/
+
+
+### South African source-admission work
+
+Sol-Atlas now tracks
+[AEROWEFT-SA-DATA-001 #825](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/825)
+with draft [PR #826](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/826).
+Its source inventory distinguishes SACAA AIP editions, public NOTAM summaries,
+authenticated current briefings, regulatory amendments and data rights. The
+medical benchmark remains synthetic until every required source is admitted for
+its declared purpose; a public PDF or NOTAM summary is not a live operational
+feed or flight-preparation service.
