@@ -75,7 +75,14 @@ Required first suite:
 7. Rolling without slipping after rotational inertia closure.
 8. Two-body Kepler orbit after the orbital solver is isolated.
 
-The included `free_fall_validation` example is the reference format.
+The included `free_fall_validation` example is the first executable translational regression gate. The companion `constant_force_validation` example exercises repeated external-force accumulation separately from gravity and checks its own exact discrete trajectory. Run both from the workspace root:
+
+```bash
+cargo run --release --example free_fall_validation
+cargo run --release --example constant_force_validation
+```
+
+Both emit machine-readable measurements and fail non-zero when declared expectations or timestep-convergence checks fail. These remain narrow translational tests; they do not establish contact, articulation, structural, fatigue, or material validity.
 
 ### Tier C — Independent implementation comparison
 
