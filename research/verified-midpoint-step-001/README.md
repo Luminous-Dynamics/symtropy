@@ -36,11 +36,11 @@ The distinction here is narrower: this reference attempts to certify a unique ro
 
 ## Important claim boundary
 
-v0 certifies the exact scalar reduced equation and one-step map defined by the supplied binary64 coefficients. The root receipt is opaque to external construction and is bound to the bit patterns of the complete problem record (timestep, initial/free relative positions, Delassus matrix, initial position/velocity, free midpoint velocity, mass-inverse Jacobian transpose and mass metric). Step-error propagation rechecks that binding and rejects reuse against even one changed input field.
+v0 certifies the exact scalar reduced equation and one-step map defined by the supplied binary64 coefficients. The root receipt is opaque to external construction and is bound to the bit patterns of the complete problem record (timestep, initial/free relative positions, Delassus matrix, explicit constraint Jacobian, initial position/velocity, free midpoint velocity, mass-inverse Jacobian transpose and mass metric). Step-error propagation rechecks that binding and rejects reuse against even one changed input field.
 
-It does not independently prove that the supplied W and B are exactly J M^-1 J^T and M^-1 J^T for a separate upstream M/J model; that coefficient provenance remains a distinct obligation. The fixture uses dyadic unequal masses and a simple difference Jacobian so the intended W/B relationships can be checked exactly in a later provenance layer.
+The problem validator now checks the two provenance identities with exact dyadic arithmetic on the binary64 inputs: `M B = J^T` and `J B = W`. Since M must also pass the symmetric-positive-definite check, the first identity establishes the supplied B is M^-1 J^T; the second establishes the supplied Delassus matrix. The fixture uses exact dyadic unequal masses and a difference Jacobian, with negative controls for a mutated B, J, or W. The bounded i128 exact-arithmetic verifier abstains on exponent spreads or products it cannot represent exactly; it does not silently substitute a floating tolerance.
 
-The interval layer is finite-dimensional and f64. It is not yet a general interval matrix library, arbitrary multibody root verifier, or global Newton convergence theorem. No production solver authority or scientific-search pruning authority is created.
+The interval layer is finite-dimensional and f64. The coefficient-provenance subcheck is exact over the supplied dyadic inputs, but the interval step proof remains bounded to this declared fixture and scalar reduction. It is not yet a general interval matrix library, arbitrary multibody root verifier, or global Newton convergence theorem. No production solver authority or scientific-search pruning authority is created.
 
 ## Reproduction
 
