@@ -49,6 +49,45 @@
       "url": "https://docs.aft.com/impulse10/Verification/Verification_Methodology.html",
       "source_class": "vendor_documentation",
       "verification_status": "vendor_described_verification_method"
+    },
+    {
+      "id": "tsnet_paper",
+      "url": "https://doi.org/10.1016/j.advengsoft.2020.102884",
+      "source_class": "peer_reviewed_paper",
+      "date": "2020-11",
+      "verification_status": "published_method_and_scope_comparator"
+    },
+    {
+      "id": "tsnet_docs",
+      "url": "https://tsnet.readthedocs.io/en/latest/",
+      "source_class": "project_documentation",
+      "verification_status": "version_and_boundary_conditions_must_be_pinned"
+    },
+    {
+      "id": "tsnet_pypi",
+      "url": "https://pypi.org/project/tsnet/0.3.1/",
+      "source_class": "package_registry_metadata",
+      "verification_status": "package_metadata_not_source_build_validation"
+    },
+    {
+      "id": "ptsnet_paper",
+      "url": "https://doi.org/10.1016/j.envsoft.2022.105554",
+      "source_class": "peer_reviewed_paper",
+      "date": "2022-12",
+      "verification_status": "published_method_and_scalability_comparator"
+    },
+    {
+      "id": "dv_moc_paper",
+      "url": "https://doi.org/10.1111/mice.12709",
+      "source_class": "peer_reviewed_paper",
+      "date": "2022-02",
+      "verification_status": "distributed_vectorized_moc_method_comparator"
+    },
+    {
+      "id": "ptsnet_pypi",
+      "url": "https://pypi.org/project/ptsnet/0.1.7/",
+      "source_class": "package_registry_metadata",
+      "verification_status": "unlicense_classifier_metadata_not_repository_licence_text"
     }
   ],
   "references_by_solver": [
@@ -355,6 +394,159 @@
         "repeat_runs_and_uncertainty",
         "raw_data_rights_and_chain_of_custody"
       ]
+    },
+    {
+      "solver_id": "tsnet_0_3_1",
+      "display_name": "TSNet",
+      "method_family": "EPANET_INP_initial_conditions_plus_method_of_characteristics_transient_solver",
+      "source_refs": [
+        "tsnet_paper",
+        "tsnet_docs",
+        "tsnet_pypi"
+      ],
+      "source_revision": "27e616a8e2048a431eed27b00a08322d49035a52",
+      "source_commit_url": "https://github.com/glorialulu/TSNet/commit/27e616a8e2048a431eed27b00a08322d49035a52",
+      "package_version": "0.3.1 (setup.py and PyPI); repository README still says 0.2.2; HISTORY changelog lists 0.3.0",
+      "licence_state": "MIT_confirmed_in_repository_LICENSE_and_setup_classifier",
+      "licence_file": "https://github.com/glorialulu/TSNet/blob/27e616a8e2048a431eed27b00a08322d49035a52/LICENSE",
+      "language": "Python research comparator only; not a production dependency for the Rust-first stack",
+      "dependencies": [
+        "NumPy",
+        "SciPy",
+        "pandas",
+        "WNTR",
+        "NetworkX",
+        "Matplotlib",
+        "Plotly"
+      ],
+      "feature_claims": [
+        {
+          "feature": "EPANET_INP_network_import",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "steady_initial_conditions_via_WNTR",
+          "status": "documentation_described"
+        },
+        {
+          "feature": "method_of_characteristics_transients",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "valve_and_pump_operations",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "pipe_bursts_and_background_leaks",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "open_and_closed_surge_tanks",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "steady_quasi_steady_and_unsteady_friction",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "pressure_dependent_demand_initialization",
+          "status": "documentation_described"
+        }
+      ],
+      "known_limitations": [
+        "package_setup_version_0_3_1_disagrees_with_embedded_README_version_0_2_2_and_HISTORY_latest_0_3_0",
+        "MOC_requires_spatial_reaches_and_a_Courant_consistent_common_time_step; compare only after time_step_and_reach_convergence",
+        "TSNet_PDD_negative_pressure_behavior_sets_demand_to_zero_under_an_assumption_of_backflow_prevention_at_each_node; not a bidirectional intrusion boundary model",
+        "steady_initialization_and_transient_solver_are_distinct_model_stages; bind both engines_and_initial_state",
+        "Python_dependency_stack_is_for_research_comparison_only_not_adopted_as_Luminous_production_runtime"
+      ],
+      "verification_required": [
+        "pin_Python_WNTR_and_dependency_lock",
+        "reconcile_repository_setup_README_and_changelog_versions",
+        "reproduce_analytical_wave_and_reflection_cases",
+        "record_pipe_reach_counts_common_time_step_and_Courant_condition",
+        "verify_negative_pressure_PDD_and_reverse_flow_semantics",
+        "compare_device_boundary_models_and_friction_modes",
+        "measure_memory_runtime_and_error_vs_mesh_refinement",
+        "independently_validate_against_physical_pressure_records"
+      ]
+    },
+    {
+      "solver_id": "ptsnet_0_1_7",
+      "display_name": "PTSNet",
+      "method_family": "vectorized_distributed_memory_parallel_method_of_characteristics",
+      "source_refs": [
+        "ptsnet_paper",
+        "dv_moc_paper",
+        "ptsnet_pypi"
+      ],
+      "source_revision": "0b5c562518372f45aa3248c58544da0cd23d3368",
+      "source_commit_url": "https://github.com/gandresr/PTSNET/commit/0b5c562518372f45aa3248c58544da0cd23d3368",
+      "package_version": "0.1.7 (setup.py and PyPI metadata)",
+      "licence_state": "Unlicense_classifier_on_setup_and_PyPI_but_no_root_UNLICENSE_text_found_in_inspected_paths; confirm licence text and rights before copying, modifying or redistributing",
+      "language": "Python/HPC research comparator only; not a production dependency",
+      "dependencies": [
+        "Python 3.9 environment file",
+        "NumPy",
+        "SciPy",
+        "Numba",
+        "mpi4py",
+        "OpenMPI",
+        "h5py MPI",
+        "WNTR 0.5.0",
+        "pandas"
+      ],
+      "feature_claims": [
+        {
+          "feature": "EPANET_INP_network_workflow",
+          "status": "repository_documented"
+        },
+        {
+          "feature": "method_of_characteristics",
+          "status": "paper_and_repository_documented"
+        },
+        {
+          "feature": "vectorized_spatial_computation",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "distributed_memory_parallel_computation",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "MPI_HPC_scaling",
+          "status": "paper_and_environment_documented"
+        },
+        {
+          "feature": "large_network_transient_experiments",
+          "status": "paper_reported"
+        }
+      ],
+      "published_scalability": {
+        "paper": "PTSNet 2022 Environmental Modelling & Software 158 105554",
+        "method_paper": "DV-MOC 2022 Computer-Aided Civil and Infrastructure Engineering 37(2)",
+        "network_pipes": 14824,
+        "approximate_solution_points": 600000000000,
+        "reported_speedup": "in the thousands for sufficiently dense grids versus sequential MOC",
+        "comparison_scope": "paper-reported MOC implementation scalability; not a matched benchmark against algebraic AWH or commercial network solvers"
+      },
+      "known_limitations": [
+        "performance_claims_are_bound_to_paper_hardware_grid_and_software_configuration",
+        "dense_MOC_grids_have_high_memory_and_MPI_communication_costs; report scaling efficiency and memory",
+        "MOC_mesh_and_time_step_convergence_must_be_demonstrated_before runtime comparison",
+        "package_environment_uses_legacy_dependency_versions_and_an_MPI_stack",
+        "repository_root_licence_text_not_found_in_inspected_paths; PyPI and setup.py classifiers alone do not settle reuse rights",
+        "DV_MOC_paper_identifies_additional_physics_such_as_air_chambers_surge_tanks_advanced_friction_and_two_phase_cavitation_as_future_development_topics"
+      ],
+      "verification_required": [
+        "pin_exact_package_artifacts_and_source_revision",
+        "obtain_and_verify_actual_Unlicense_text_and_reuse_rights",
+        "recreate_paper_network_grid_hardware_and_MPI_configuration",
+        "measure_weak_and_strong_scaling_memory_and_parallel_efficiency",
+        "verify_MOC_time_and_space_convergence",
+        "reproduce_analytical_and_physical_pressure_waveforms",
+        "record_device_boundary_models_and_cavitation_air_physics"
+      ]
     }
   ],
   "required_feature_activation_record": [
@@ -368,7 +560,12 @@
     "parameter_values_and_boundary_conditions",
     "solver_timestep_mesh_or_algebraic_discretization",
     "simplifications_and_unsupported_physics",
-    "raw_output_digest_and_execution_receipt"
+    "raw_output_digest_and_execution_receipt",
+    "spatial_reach_count_and_common_time_step_for_MOC_methods",
+    "Courant_condition_and_mesh_refinement_level",
+    "MPI_process_count_vectorization_and_memory_budget",
+    "negative_pressure_reverse_flow_and_backflow_prevention_assumptions",
+    "initial_steady_state_engine_and_pressure_dependent_demand_configuration"
   ],
   "hard_gates": [
     "no_solver_to_solver_agreement_called_physical_validation",
