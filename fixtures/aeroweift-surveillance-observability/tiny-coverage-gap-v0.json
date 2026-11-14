@@ -66,7 +66,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-east",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         },
         {
           "id": "adsb-rx-2",
@@ -83,7 +84,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-west",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": {
@@ -125,7 +127,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-a",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": null,
@@ -159,7 +162,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-adsb",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": null,
@@ -236,7 +240,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "shared-time-power-net",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         },
         {
           "id": "rx-2",
@@ -253,7 +258,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "shared-time-power-net",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         },
         {
           "id": "rx-3",
@@ -270,7 +276,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "shared-time-power-net",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": null,
@@ -304,7 +311,8 @@
           "dependency_inventory_complete": false,
           "independent_family_id": null,
           "profile_id": "synthetic-tdoa-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         },
         {
           "id": "tdoa-pair-b",
@@ -321,7 +329,8 @@
           "dependency_inventory_complete": false,
           "independent_family_id": null,
           "profile_id": "synthetic-tdoa-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": null,
@@ -355,7 +364,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-timed",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": {
@@ -447,7 +457,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-positive-adsb",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         },
         {
           "id": "positive-eoir",
@@ -464,7 +475,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-positive-eoir",
           "profile_id": "synthetic-eoir-daylight-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-day-clear"
         }
       ],
       "evaluations": [
@@ -533,7 +545,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-nr-east",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         },
         {
           "id": "adsb-no-report-b",
@@ -550,7 +563,8 @@
           "dependency_inventory_complete": true,
           "independent_family_id": "family-nr-west",
           "profile_id": "synthetic-adsb-profile-v0",
-          "upstream_degraded": false
+          "upstream_degraded": false,
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": null,
@@ -584,7 +598,8 @@
           "pnt_time_qualified": true,
           "dependency_inventory_complete": true,
           "independent_family_id": "family-degraded",
-          "profile_id": "synthetic-adsb-profile-v0"
+          "profile_id": "synthetic-adsb-profile-v0",
+          "environment_profile": "synthetic-standard-conditions"
         }
       ],
       "observation": null,
