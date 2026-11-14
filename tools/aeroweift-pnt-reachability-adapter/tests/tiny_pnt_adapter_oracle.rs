@@ -364,6 +364,21 @@ fn widening_sample_time_interval_cannot_shrink_the_position_enclosure() {
 }
 
 
+
+#[test]
+fn elapsed_time_beyond_core_exact_integer_domain_is_rejected() {
+    let mut sample = input(PntServiceState::Normal);
+    sample.assessment_time_lower_utc_ms = 0;
+    sample.assessment_time_upper_utc_ms = 9_007_199_254_740_992;
+    sample.primary.as_mut().unwrap().sample_time_lower_utc_ms = 0;
+    sample.primary.as_mut().unwrap().sample_time_upper_utc_ms = 0;
+    sample.policy.maximum_sample_age_ms = u64::MAX;
+    assert_rejected(
+        evaluate(&sample),
+        NotAssessableReason::ArithmeticFailure,
+    );
+}
+
 #[test]
 fn widening_evaluation_time_interval_cannot_shrink_the_position_enclosure() {
     let mut narrow_input = input(PntServiceState::Normal);
