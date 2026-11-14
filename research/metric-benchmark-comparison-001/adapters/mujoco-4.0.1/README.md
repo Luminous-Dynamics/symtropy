@@ -14,7 +14,7 @@ This reproduces the six-dimensional mass matrix and one-row fixed-distance Jacob
 - Release commit: `4ed093a9f06b170bd1564942fa37e1bb907d93e3`.
 - Linux x86-64 release archive SHA-256: `8df1308b2900a4ed6c18717ebbc9d66d53ab3fe7a4da860a7d5b21f94607299d`.
 
-The workflow verifies the archive digest before extracting it. This exact version matters because 4.0.1 fixed a sparse Cholesky bug in the 4.0.0 Newton Hessian path.
+The workflow verifies the archive digest before extracting it. It then binds the result JSON to both the archive digest and the exact MJCF model digest, and uploads the capture with the adapter source and model. This exact version matters because 4.0.1 fixed a sparse Cholesky bug in the 4.0.0 Newton Hessian path.
 
 ## Capture procedure
 
