@@ -11,11 +11,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use construction_robot_interop_core::resources::{
-    ReservationBook, ReservationError, ReservationOutcome, ReservationRequest,
+    ReservationBook, ReservationError, ReservationRequest,
 };
-use construction_spacetime_occupancy_core::{
-    SpatialError, SpatialOccupancy, SpatialOccupancyBook,
-};
+use construction_spacetime_occupancy_core::{SpatialError, SpatialOccupancy, SpatialOccupancyBook};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ExecutionMode {
@@ -79,10 +77,7 @@ impl ModeEligibility {
             self.capability_profile_ref.as_deref(),
         )?;
         require_reference("qualification_ref", self.qualification_ref.as_deref())?;
-        require_reference(
-            "authority_scope_ref",
-            self.authority_scope_ref.as_deref(),
-        )
+        require_reference("authority_scope_ref", self.authority_scope_ref.as_deref())
     }
 }
 
@@ -149,9 +144,7 @@ impl RequiredWorkUnit {
         for option in &self.mode_options {
             option.validate_for(self)?;
             if !seen_options.insert(option.option_id.as_str()) {
-                return Err(PortfolioError::DuplicateOption(
-                    option.option_id.clone(),
-                ));
+                return Err(PortfolioError::DuplicateOption(option.option_id.clone()));
             }
         }
         Ok(())
@@ -184,7 +177,10 @@ impl ModeOption {
     fn validate_for(&self, unit: &RequiredWorkUnit) -> Result<(), PortfolioError> {
         require_non_empty("option_id", &self.option_id)?;
         require_non_empty("option_work_unit_id", &self.work_unit_id)?;
-        require_non_empty("option_acceptance_contract_ref", &self.acceptance_contract_ref)?;
+        require_non_empty(
+            "option_acceptance_contract_ref",
+            &self.acceptance_contract_ref,
+        )?;
         if self.work_unit_id != unit.work_unit_id {
             return Err(PortfolioError::OptionWorkUnitMismatch {
                 option_id: self.option_id.clone(),
@@ -246,7 +242,9 @@ impl ModeOption {
         self.crew_minutes_by_role
             .values()
             .try_fold(0_u64, |total, value| {
-                total.checked_add(*value).ok_or(PortfolioError::CrewOverflow)
+                total
+                    .checked_add(*value)
+                    .ok_or(PortfolioError::CrewOverflow)
             })
     }
 }
@@ -371,7 +369,6 @@ pub fn solve_portfolio(
     let candidate_options = candidate_options_for_policy(problem, policy, &mut excluded_options)?;
 
     let mut state = SearchState {
-        policy,
         max_states: problem.max_search_states,
         evaluated_states: 0,
         feasible_portfolio_count: 0,
@@ -414,7 +411,10 @@ pub fn solve_portfolio(
 
 fn validate_problem(problem: &PortfolioProblem) -> Result<(), PortfolioError> {
     if problem.currency_code.len() != 3
-        || !problem.currency_code.bytes().all(|byte| byte.is_ascii_uppercase())
+        || !problem
+            .currency_code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase())
     {
         return Err(PortfolioError::InvalidCurrency);
     }
@@ -426,9 +426,7 @@ fn validate_problem(problem: &PortfolioProblem) -> Result<(), PortfolioError> {
     for unit in &problem.work_units {
         unit.validate(&seen_units)?;
         if !seen_units.insert(unit.work_unit_id.as_str()) {
-            return Err(PortfolioError::DuplicateWorkUnit(
-                unit.work_unit_id.clone(),
-            ));
+            return Err(PortfolioError::DuplicateWorkUnit(unit.work_unit_id.clone()));
         }
     }
     Ok(())
@@ -575,7 +573,6 @@ impl Accumulator {
 
 #[derive(Clone, Debug)]
 struct SearchState {
-    policy: PortfolioPolicy,
     max_states: usize,
     evaluated_states: usize,
     feasible_portfolio_count: usize,
@@ -733,7 +730,10 @@ fn pareto_frontier(mut plans: Vec<PortfolioPlan>) -> Vec<PortfolioPlan> {
             continue;
         }
         frontier.retain(|existing| !dominates(&candidate.metrics, &existing.metrics));
-        if !frontier.iter().any(|existing| existing.choices == candidate.choices) {
+        if !frontier
+            .iter()
+            .any(|existing| existing.choices == candidate.choices)
+        {
             frontier.push(candidate);
         }
     }
@@ -764,10 +764,7 @@ fn dominates(left: &PortfolioMetrics, right: &PortfolioMetrics) -> bool {
     no_worse && strictly_better
 }
 
-fn require_reference(
-    name: &'static str,
-    value: Option<&str>,
-) -> Result<(), PortfolioError> {
+fn require_reference(name: &'static str, value: Option<&str>) -> Result<(), PortfolioError> {
     match value {
         Some(value) => require_non_empty(name, value),
         None => Err(PortfolioError::EmptyField(name)),
@@ -785,9 +782,7 @@ fn require_non_empty(name: &'static str, value: &str) -> Result<(), PortfolioErr
 mod tests {
     use super::*;
     use construction_robot_interop_core::resources::ReservationState;
-    use construction_spacetime_occupancy_core::{
-        Bounds3Mm, OccupancyKind, SiteBinding,
-    };
+    use construction_spacetime_occupancy_core::{Bounds3Mm, OccupancyKind, SiteBinding};
 
     fn site_binding() -> SiteBinding {
         SiteBinding {
@@ -803,8 +798,8 @@ mod tests {
     }
 
     fn resource_book(resources: &[(&str, u32)]) -> ReservationBook {
-        let mut book = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
-            .expect("resource book");
+        let mut book =
+            ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("resource book");
         for (resource_id, capacity) in resources {
             book.register_resource(*resource_id, *capacity)
                 .expect("resource capacity");
@@ -866,12 +861,7 @@ mod tests {
         ModeEligibility::excluded(status, reason.to_owned())
     }
 
-    fn cost(
-        labour: u64,
-        equipment: u64,
-        energy: u64,
-        setup: u64,
-    ) -> CostBreakdown {
+    fn cost(labour: u64, equipment: u64, energy: u64, setup: u64) -> CostBreakdown {
         CostBreakdown {
             labour_minor_units: labour,
             equipment_minor_units: equipment,
@@ -893,16 +883,8 @@ mod tests {
         crew_minutes: u64,
         skilled_crew_minutes: u64,
     ) -> ModeOption {
-        let occupancy = area.map(|area| {
-            occupancy(
-                option_id,
-                work_unit_id,
-                area,
-                start_ms,
-                end_ms,
-                resource_id,
-            )
-        });
+        let occupancy = area
+            .map(|area| occupancy(option_id, work_unit_id, area, start_ms, end_ms, resource_id));
         let requests = if let Some(occupancy) = &occupancy {
             vec![occupancy.reservation.clone()]
         } else {
@@ -944,7 +926,7 @@ mod tests {
     fn problem(
         work_units: Vec<RequiredWorkUnit>,
         resources: &[(&str, u32)],
-        spatial: bool,
+        _spatial: bool,
     ) -> PortfolioProblem {
         PortfolioProblem {
             currency_code: "USD".to_owned(),
@@ -1022,8 +1004,7 @@ mod tests {
             ),
         ];
         let p = problem(units, &[("crew", 1), ("robot", 1)], true);
-        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto)
-            .expect("portfolio search");
+        let result = solve_portfolio(&p, PortfolioPolicy::ExactPareto).expect("portfolio search");
 
         assert_eq!(result.completeness, SearchCompleteness::Exhaustive);
         assert!(!result.infeasible_declared_portfolio);
@@ -1031,10 +1012,12 @@ mod tests {
         assert!(result.pareto_frontier.iter().any(|plan| {
             plan.metrics.robot_work_units == 1 && plan.metrics.human_work_units == 1
         }));
-        assert!(result
-            .pareto_frontier
-            .iter()
-            .all(|plan| plan.metrics.planned_work_units == 2));
+        assert!(
+            result
+                .pareto_frontier
+                .iter()
+                .all(|plan| plan.metrics.planned_work_units == 2)
+        );
     }
 
     #[test]
@@ -1071,12 +1054,19 @@ mod tests {
         )];
         let p = problem(units, &[("crew", 1), ("robot", 1)], false);
         let human = solve_portfolio(&p, PortfolioPolicy::HumanOnly).expect("human baseline");
-        let robot = solve_portfolio(&p, PortfolioPolicy::RobotizeAllEligible).expect("robot baseline");
+        let robot =
+            solve_portfolio(&p, PortfolioPolicy::RobotizeAllEligible).expect("robot baseline");
         let optimal = solve_portfolio(&p, PortfolioPolicy::ExactPareto).expect("exact portfolio");
 
         assert_eq!(human.pareto_frontier[0].metrics.total_cost_minor_units, 100);
-        assert_eq!(robot.pareto_frontier[0].metrics.total_cost_minor_units, 1_300);
-        assert_eq!(optimal.pareto_frontier[0].metrics.total_cost_minor_units, 100);
+        assert_eq!(
+            robot.pareto_frontier[0].metrics.total_cost_minor_units,
+            1_300
+        );
+        assert_eq!(
+            optimal.pareto_frontier[0].metrics.total_cost_minor_units,
+            100
+        );
     }
 
     #[test]
@@ -1115,9 +1105,15 @@ mod tests {
         let result = solve_portfolio(&p, PortfolioPolicy::RobotizeAllEligible)
             .expect("robot policy falls back only when robot is ineligible");
         assert_eq!(result.pareto_frontier.len(), 1);
-        assert_eq!(result.pareto_frontier[0].choices[0].mode, ExecutionMode::Human);
+        assert_eq!(
+            result.pareto_frontier[0].choices[0].mode,
+            ExecutionMode::Human
+        );
         assert_eq!(result.excluded_options.len(), 1);
-        assert_eq!(result.excluded_options[0].status, EligibilityStatus::Unknown);
+        assert_eq!(
+            result.excluded_options[0].status,
+            EligibilityStatus::Unknown
+        );
     }
 
     #[test]
