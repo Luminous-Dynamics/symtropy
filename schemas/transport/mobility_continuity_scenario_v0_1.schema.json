@@ -1,0 +1,509 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:mobility:continuity:scenario:0.1",
+  "title": "Household Mobility Continuity Benchmark v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "created_date",
+    "market",
+    "status",
+    "architecture_profiles",
+    "stress_profiles",
+    "demand_profile",
+    "dispatch_policy",
+    "required_metrics",
+    "benchmark_targets",
+    "scenarios",
+    "negative_controls",
+    "evidence_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "household-mobility-continuity-benchmark/0.1"
+    },
+    "benchmark_id": {
+      "const": "mobility-continuity-sa-0.1"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "market": {
+      "const": "South Africa"
+    },
+    "status": {
+      "const": "synthetic benchmark design; no field outcomes or vehicle approval implied"
+    },
+    "architecture_profiles": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "label",
+          "fallback_capacity_fraction",
+          "stocked_critical_part_coverage_days",
+          "parameter_status",
+          "fallback_mode_eligible_for_synthetic_test"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "single_vehicle_baseline",
+              "single_vehicle_repairability_oriented",
+              "household_mobility_bundle"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fallback_capacity_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "stocked_critical_part_coverage_days": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 365
+          },
+          "parameter_status": {
+            "const": "synthetic_fixture_value_not_observed"
+          },
+          "fallback_mode_eligible_for_synthetic_test": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "stress_profiles": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "repair_delay_days",
+          "critical_part_fill_fraction",
+          "fuel_cost_multiplier",
+          "household_budget_retention_fraction",
+          "parameter_status"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "nominal",
+              "repair_delay",
+              "critical_part_unavailability",
+              "fuel_price_shock",
+              "cashflow_contraction",
+              "repair_delay_plus_fuel_price_shock",
+              "critical_part_plus_cashflow_contraction",
+              "combined_supply_fuel_cashflow_shock"
+            ]
+          },
+          "repair_delay_days": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 365
+          },
+          "critical_part_fill_fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "fuel_cost_multiplier": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 10
+          },
+          "household_budget_retention_fraction": {
+            "type": "number",
+            "minimum": 0.01,
+            "maximum": 1
+          },
+          "parameter_status": {
+            "const": "synthetic_fixture_value_not_observed"
+          }
+        }
+      }
+    },
+    "demand_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "essential_trips_per_week",
+        "discretionary_trips_per_week",
+        "parameter_status"
+      ],
+      "properties": {
+        "essential_trips_per_week": {
+          "const": 12
+        },
+        "discretionary_trips_per_week": {
+          "const": 8
+        },
+        "parameter_status": {
+          "const": "normalized_synthetic_workload_not_a_population_estimate"
+        }
+      }
+    },
+    "dispatch_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "active_safety_hold_action",
+        "unqualified_configuration_action",
+        "fallback_counting_rule"
+      ],
+      "properties": {
+        "active_safety_hold_action": {
+          "const": "deny_dispatch"
+        },
+        "unqualified_configuration_action": {
+          "const": "deny_dispatch"
+        },
+        "fallback_counting_rule": {
+          "const": "count_only_when_legal_accessible_available_and_capacity_sufficient"
+        }
+      }
+    },
+    "required_metrics": {
+      "const": [
+        "essential_trip_fulfillment_ratio",
+        "unmet_essential_trip_count",
+        "out_of_service_hours",
+        "time_to_safe_recovery_p50_hours",
+        "time_to_safe_recovery_p90_hours",
+        "cost_per_fulfilled_essential_trip_r",
+        "fallback_accessibility_fraction",
+        "uncertainty_interval_coverage"
+      ]
+    },
+    "benchmark_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "safety_dispatch_violations_max",
+        "negative_control_false_accepts_max",
+        "nominal_essential_trip_fulfillment_ratio_min",
+        "stress_essential_trip_fulfillment_ratio_min",
+        "p90_recovery_improvement_vs_baseline_min",
+        "unknown_lifecycle_costs_imputed_as_zero_max",
+        "repeat_run_report_digest_match_min",
+        "target_status"
+      ],
+      "properties": {
+        "safety_dispatch_violations_max": {
+          "const": 0
+        },
+        "negative_control_false_accepts_max": {
+          "const": 0
+        },
+        "nominal_essential_trip_fulfillment_ratio_min": {
+          "const": 0.95
+        },
+        "stress_essential_trip_fulfillment_ratio_min": {
+          "const": 0.9
+        },
+        "p90_recovery_improvement_vs_baseline_min": {
+          "const": 0.25
+        },
+        "unknown_lifecycle_costs_imputed_as_zero_max": {
+          "const": 0
+        },
+        "repeat_run_report_digest_match_min": {
+          "const": 1
+        },
+        "target_status": {
+          "const": "proposed_acceptance_targets_not_achieved_results"
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "architecture_id",
+          "stressor_id",
+          "evidence_class",
+          "demand",
+          "stress_parameters",
+          "safety_policy",
+          "reported_outputs"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^MC-[A-Z0-9_]+-[A-Z0-9_]+$"
+          },
+          "architecture_id": {
+            "enum": [
+              "single_vehicle_baseline",
+              "single_vehicle_repairability_oriented",
+              "household_mobility_bundle"
+            ]
+          },
+          "stressor_id": {
+            "enum": [
+              "nominal",
+              "repair_delay",
+              "critical_part_unavailability",
+              "fuel_price_shock",
+              "cashflow_contraction",
+              "repair_delay_plus_fuel_price_shock",
+              "critical_part_plus_cashflow_contraction",
+              "combined_supply_fuel_cashflow_shock"
+            ]
+          },
+          "evidence_class": {
+            "const": "synthetic_scenario_input"
+          },
+          "demand": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "essential_trips_per_week",
+              "discretionary_trips_per_week"
+            ],
+            "properties": {
+              "essential_trips_per_week": {
+                "const": 12
+              },
+              "discretionary_trips_per_week": {
+                "const": 8
+              }
+            }
+          },
+          "stress_parameters": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "repair_delay_days",
+              "critical_part_fill_fraction",
+              "fuel_cost_multiplier",
+              "household_budget_retention_fraction"
+            ],
+            "properties": {
+              "repair_delay_days": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 365
+              },
+              "critical_part_fill_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "fuel_cost_multiplier": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 10
+              },
+              "household_budget_retention_fraction": {
+                "type": "number",
+                "minimum": 0.01,
+                "maximum": 1
+              }
+            }
+          },
+          "safety_policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "active_safety_hold_action",
+              "unqualified_configuration_action",
+              "active_safety_hold",
+              "configuration_qualified_for_simulation"
+            ],
+            "properties": {
+              "active_safety_hold_action": {
+                "const": "deny_dispatch"
+              },
+              "unqualified_configuration_action": {
+                "const": "deny_dispatch"
+              },
+              "active_safety_hold": {
+                "type": "boolean"
+              },
+              "configuration_qualified_for_simulation": {
+                "type": "boolean"
+              }
+            }
+          },
+          "reported_outputs": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "anti_pattern",
+          "must_reject",
+          "evidence_class",
+          "adversarial_input"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "NC-01",
+              "NC-02",
+              "NC-03",
+              "NC-04",
+              "NC-05"
+            ]
+          },
+          "anti_pattern": {
+            "enum": [
+              "safety_hold_bypassed",
+              "unknown_lifecycle_cost_imputed_as_zero",
+              "synthetic_result_relabelled_as_observed",
+              "unavailable_fallback_counted_as_served",
+              "advertised_from_price_treated_as_lifecycle_cost"
+            ]
+          },
+          "must_reject": {
+            "const": true
+          },
+          "evidence_class": {
+            "const": "negative_control"
+          },
+          "adversarial_input": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "active_safety_hold",
+              "dispatch_allowed",
+              "lifecycle_cost_status",
+              "reported_lifecycle_cost_r",
+              "input_evidence_class",
+              "claimed_output_evidence_class",
+              "fallback_available",
+              "trips_demanded",
+              "trips_counted_served",
+              "price_basis",
+              "claimed_as_lifecycle_cost"
+            ],
+            "properties": {
+              "active_safety_hold": {
+                "type": "boolean"
+              },
+              "dispatch_allowed": {
+                "type": "boolean"
+              },
+              "lifecycle_cost_status": {
+                "enum": [
+                  "unknown",
+                  "quoted",
+                  "measured",
+                  "modeled"
+                ]
+              },
+              "reported_lifecycle_cost_r": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "input_evidence_class": {
+                "enum": [
+                  "synthetic_scenario_input",
+                  "synthetic_scenario_output",
+                  "workshop_measurement",
+                  "observed_field_measurement",
+                  "independent_inspection",
+                  "regulatory_receipt"
+                ]
+              },
+              "claimed_output_evidence_class": {
+                "enum": [
+                  "synthetic_scenario_input",
+                  "synthetic_scenario_output",
+                  "workshop_measurement",
+                  "observed_field_measurement",
+                  "independent_inspection",
+                  "regulatory_receipt"
+                ]
+              },
+              "fallback_available": {
+                "type": "boolean"
+              },
+              "trips_demanded": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "trips_counted_served": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "price_basis": {
+                "enum": [
+                  "unknown",
+                  "advertised_from",
+                  "written_dealer_quote",
+                  "landed_quote",
+                  "measured_cost_model"
+                ]
+              },
+              "claimed_as_lifecycle_cost": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidence_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all_scenario_inputs_synthetic",
+        "observed_outcomes_present",
+        "safety_or_regulatory_approval_implied",
+        "notes"
+      ],
+      "properties": {
+        "all_scenario_inputs_synthetic": {
+          "const": true
+        },
+        "observed_outcomes_present": {
+          "const": false
+        },
+        "safety_or_regulatory_approval_implied": {
+          "const": false
+        },
+        "notes": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

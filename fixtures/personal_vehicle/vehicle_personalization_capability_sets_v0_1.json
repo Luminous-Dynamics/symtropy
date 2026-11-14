@@ -1,0 +1,109 @@
+{
+  "schema_version": "vehicle-personalization-capability-set/0.1",
+  "evidence_class": "synthetic_capability_fixture",
+  "capability_sets": [
+    {
+      "id": "demo_parked_vehicle",
+      "vehicle_configuration_ref": "synthetic_vehicle_config_demo_v0_1",
+      "context": "parked",
+      "profile_changes_blocked_while_moving": true,
+      "features": {
+        "supported_themes": [
+          "warm_light",
+          "dark_low_glare",
+          "high_contrast",
+          "calm_neutral"
+        ],
+        "max_text_scale": 1.15,
+        "supports_reduced_motion": true,
+        "supports_climate_control": true,
+        "allowed_temperature_range_c": [
+          18,
+          24
+        ],
+        "supports_ambient_lighting": true,
+        "supported_ambient_colors": [
+          "off",
+          "warm_amber",
+          "neutral_white"
+        ],
+        "max_ambient_intensity_fraction": 0.15,
+        "supports_seat_memory": false,
+        "supported_listening_styles": [
+          "quiet",
+          "balanced",
+          "spoken_word"
+        ],
+        "supported_cue_styles": [
+          "short_tone",
+          "soft_tone",
+          "spoken_on_request"
+        ],
+        "max_preferred_volume_fraction": 0.35,
+        "supports_large_controls": true,
+        "supports_captions": true,
+        "supports_tactile_feedback": true,
+        "supported_voice_modes": [
+          "off",
+          "on_request"
+        ],
+        "local_encrypted_storage": true,
+        "local_export_supported": true,
+        "local_delete_supported": true,
+        "neutral_reset_supported": true
+      }
+    },
+    {
+      "id": "demo_moving_vehicle",
+      "vehicle_configuration_ref": "synthetic_vehicle_config_demo_v0_1",
+      "context": "moving",
+      "profile_changes_blocked_while_moving": true,
+      "features": {
+        "supported_themes": [
+          "warm_light",
+          "dark_low_glare",
+          "high_contrast",
+          "calm_neutral"
+        ],
+        "max_text_scale": 1.15,
+        "supports_reduced_motion": true,
+        "supports_climate_control": true,
+        "allowed_temperature_range_c": [
+          18,
+          24
+        ],
+        "supports_ambient_lighting": true,
+        "supported_ambient_colors": [
+          "off",
+          "warm_amber",
+          "neutral_white"
+        ],
+        "max_ambient_intensity_fraction": 0.15,
+        "supports_seat_memory": false,
+        "supported_listening_styles": [
+          "quiet",
+          "balanced",
+          "spoken_word"
+        ],
+        "supported_cue_styles": [
+          "short_tone",
+          "soft_tone",
+          "spoken_on_request"
+        ],
+        "max_preferred_volume_fraction": 0.35,
+        "supports_large_controls": true,
+        "supports_captions": true,
+        "supports_tactile_feedback": true,
+        "supported_voice_modes": [
+          "off",
+          "on_request"
+        ],
+        "local_encrypted_storage": true,
+        "local_export_supported": true,
+        "local_delete_supported": true,
+        "neutral_reset_supported": true
+      }
+    }
+  ],
+  "claim_ceiling": "synthetic capability matching only; no claim about a real vehicle's support, compatibility or safety"
+}

@@ -1,0 +1,360 @@
+{
+  "schema_version": "vehicle-personalization-profile-set/0.1",
+  "evidence_class": "synthetic_profile_fixture",
+  "profiles": [
+    {
+      "schema_version": "vehicle-personalization-profile/0.1",
+      "profile_id": "vpf_daily001",
+      "label": "Everyday calm",
+      "evidence_class": "synthetic_profile_fixture",
+      "display_preferences": {
+        "theme": "dark_low_glare",
+        "text_scale": 1.15,
+        "contrast": "standard",
+        "reduced_motion": true
+      },
+      "cabin_preferences": {
+        "preferred_temperature_c": 21,
+        "ambient_light": "warm_amber",
+        "ambient_intensity_fraction": 0.16,
+        "seat_preset_ref": "seat_daily01",
+        "apply_context": "parked_only"
+      },
+      "audio_preferences": {
+        "listening_style": "balanced",
+        "preferred_cue_style": "soft_tone",
+        "preferred_volume_fraction": 0.28,
+        "warning_audibility_policy": "manufacturer_defined_non_overridable"
+      },
+      "accessibility_preferences": {
+        "large_controls": false,
+        "optional_captions": "off",
+        "tactile_feedback": false,
+        "voice_assistance": "on_request",
+        "simplified_moving_ui": true
+      },
+      "interaction_policy": {
+        "moving_ui_policy": "minimal_low_distraction",
+        "profile_changes_while_moving": "blocked",
+        "safety_critical_settings": "manufacturer_controlled_non_overridable",
+        "manual_override": "always_available",
+        "unsupported_preference_behavior": "preserve_but_do_not_apply_and_explain"
+      },
+      "privacy": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "disabled",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "disabled",
+        "telemetry_consent": false,
+        "profile_scope": "private",
+        "clear_on_session_end": false,
+        "retention_days": 365,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "reversibility": {
+        "neutral_reset_available": true,
+        "settings_export_format": "versioned_open_json",
+        "personalization_modules_replaceable": true
+      }
+    },
+    {
+      "schema_version": "vehicle-personalization-profile/0.1",
+      "profile_id": "vpf_access001",
+      "label": "High contrast and larger controls",
+      "evidence_class": "synthetic_profile_fixture",
+      "display_preferences": {
+        "theme": "high_contrast",
+        "text_scale": 1.3,
+        "contrast": "high",
+        "reduced_motion": true
+      },
+      "cabin_preferences": {
+        "preferred_temperature_c": 22,
+        "ambient_light": "off",
+        "ambient_intensity_fraction": 0,
+        "seat_preset_ref": "seat_access01",
+        "apply_context": "parked_only"
+      },
+      "audio_preferences": {
+        "listening_style": "spoken_word",
+        "preferred_cue_style": "haptic_when_supported",
+        "preferred_volume_fraction": 0.3,
+        "warning_audibility_policy": "manufacturer_defined_non_overridable"
+      },
+      "accessibility_preferences": {
+        "large_controls": true,
+        "optional_captions": "on_when_available",
+        "tactile_feedback": true,
+        "voice_assistance": "hands_free_when_supported",
+        "simplified_moving_ui": true
+      },
+      "interaction_policy": {
+        "moving_ui_policy": "minimal_low_distraction",
+        "profile_changes_while_moving": "blocked",
+        "safety_critical_settings": "manufacturer_controlled_non_overridable",
+        "manual_override": "always_available",
+        "unsupported_preference_behavior": "preserve_but_do_not_apply_and_explain"
+      },
+      "privacy": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "disabled",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "disabled",
+        "telemetry_consent": false,
+        "profile_scope": "private",
+        "clear_on_session_end": false,
+        "retention_days": 365,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "reversibility": {
+        "neutral_reset_available": true,
+        "settings_export_format": "versioned_open_json",
+        "personalization_modules_replaceable": true
+      }
+    },
+    {
+      "schema_version": "vehicle-personalization-profile/0.1",
+      "profile_id": "vpf_shared001",
+      "label": "Shared household",
+      "evidence_class": "synthetic_profile_fixture",
+      "display_preferences": {
+        "theme": "calm_neutral",
+        "text_scale": 1.15,
+        "contrast": "standard",
+        "reduced_motion": false
+      },
+      "cabin_preferences": {
+        "preferred_temperature_c": 21,
+        "ambient_light": "neutral_white",
+        "ambient_intensity_fraction": 0.1,
+        "seat_preset_ref": "seat_shared01",
+        "apply_context": "parked_only"
+      },
+      "audio_preferences": {
+        "listening_style": "quiet",
+        "preferred_cue_style": "short_tone",
+        "preferred_volume_fraction": 0.2,
+        "warning_audibility_policy": "manufacturer_defined_non_overridable"
+      },
+      "accessibility_preferences": {
+        "large_controls": false,
+        "optional_captions": "on_when_available",
+        "tactile_feedback": true,
+        "voice_assistance": "on_request",
+        "simplified_moving_ui": true
+      },
+      "interaction_policy": {
+        "moving_ui_policy": "minimal_low_distraction",
+        "profile_changes_while_moving": "blocked",
+        "safety_critical_settings": "manufacturer_controlled_non_overridable",
+        "manual_override": "always_available",
+        "unsupported_preference_behavior": "preserve_but_do_not_apply_and_explain"
+      },
+      "privacy": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "disabled",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "disabled",
+        "telemetry_consent": false,
+        "profile_scope": "shared_household",
+        "clear_on_session_end": false,
+        "retention_days": 365,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "reversibility": {
+        "neutral_reset_available": true,
+        "settings_export_format": "versioned_open_json",
+        "personalization_modules_replaceable": true
+      }
+    },
+    {
+      "schema_version": "vehicle-personalization-profile/0.1",
+      "profile_id": "vpf_guest0001",
+      "label": "Guest session",
+      "evidence_class": "synthetic_profile_fixture",
+      "display_preferences": {
+        "theme": "warm_light",
+        "text_scale": 1,
+        "contrast": "standard",
+        "reduced_motion": true
+      },
+      "cabin_preferences": {
+        "preferred_temperature_c": 20,
+        "ambient_light": "off",
+        "ambient_intensity_fraction": 0,
+        "seat_preset_ref": null,
+        "apply_context": "parked_only"
+      },
+      "audio_preferences": {
+        "listening_style": "quiet",
+        "preferred_cue_style": "short_tone",
+        "preferred_volume_fraction": 0.15,
+        "warning_audibility_policy": "manufacturer_defined_non_overridable"
+      },
+      "accessibility_preferences": {
+        "large_controls": false,
+        "optional_captions": "off",
+        "tactile_feedback": false,
+        "voice_assistance": "off",
+        "simplified_moving_ui": true
+      },
+      "interaction_policy": {
+        "moving_ui_policy": "minimal_low_distraction",
+        "profile_changes_while_moving": "blocked",
+        "safety_critical_settings": "manufacturer_controlled_non_overridable",
+        "manual_override": "always_available",
+        "unsupported_preference_behavior": "preserve_but_do_not_apply_and_explain"
+      },
+      "privacy": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "disabled",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "disabled",
+        "telemetry_consent": false,
+        "profile_scope": "guest",
+        "clear_on_session_end": true,
+        "retention_days": 0,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "reversibility": {
+        "neutral_reset_available": true,
+        "settings_export_format": "versioned_open_json",
+        "personalization_modules_replaceable": true
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-PERS-01",
+      "profile_id": "vpf_daily001",
+      "operation": "add_root_property",
+      "property": "steering_response_curve",
+      "mutation_value": "custom",
+      "expected_rejection": "unknown_property",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-02",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_interaction_policy",
+      "property": "interaction_policy",
+      "mutation_value": {
+        "moving_ui_policy": "minimal_low_distraction",
+        "profile_changes_while_moving": "blocked",
+        "safety_critical_settings": "user_customizable",
+        "manual_override": "always_available",
+        "unsupported_preference_behavior": "preserve_but_do_not_apply_and_explain"
+      },
+      "expected_rejection": "safety_policy_override",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-03",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_interaction_policy",
+      "property": "interaction_policy",
+      "mutation_value": {
+        "moving_ui_policy": "full_custom_interactive",
+        "profile_changes_while_moving": "blocked",
+        "safety_critical_settings": "manufacturer_controlled_non_overridable",
+        "manual_override": "always_available",
+        "unsupported_preference_behavior": "preserve_but_do_not_apply_and_explain"
+      },
+      "expected_rejection": "moving_ui_not_restricted",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-04",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_privacy",
+      "property": "privacy",
+      "mutation_value": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "explicit_opt_in",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "disabled",
+        "telemetry_consent": false,
+        "profile_scope": "private",
+        "clear_on_session_end": false,
+        "retention_days": 365,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "expected_rejection": "cloud_sync_without_consent",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-05",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_privacy",
+      "property": "privacy",
+      "mutation_value": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "disabled",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "explicit_opt_in",
+        "telemetry_consent": false,
+        "profile_scope": "private",
+        "clear_on_session_end": false,
+        "retention_days": 365,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "expected_rejection": "telemetry_without_consent",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-06",
+      "profile_id": "vpf_guest0001",
+      "operation": "replace_privacy",
+      "property": "privacy",
+      "mutation_value": {
+        "storage_mode": "device_local_encrypted",
+        "cloud_sync_mode": "disabled",
+        "cloud_sync_consent": false,
+        "telemetry_mode": "disabled",
+        "telemetry_consent": false,
+        "profile_scope": "guest",
+        "clear_on_session_end": false,
+        "retention_days": 90,
+        "local_export_enabled": true,
+        "local_delete_enabled": true
+      },
+      "expected_rejection": "guest_data_persistence",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-07",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_cabin_preferences",
+      "property": "cabin_preferences",
+      "mutation_value": {
+        "preferred_temperature_c": 21,
+        "ambient_light": "warm_amber",
+        "ambient_intensity_fraction": 1,
+        "seat_preset_ref": "seat_daily01",
+        "apply_context": "parked_only"
+      },
+      "expected_rejection": "excessive_ambient_intensity",
+      "must_reject": true
+    },
+    {
+      "id": "NC-PERS-08",
+      "profile_id": "vpf_daily001",
+      "operation": "replace_reversibility",
+      "property": "reversibility",
+      "mutation_value": {
+        "neutral_reset_available": false,
+        "settings_export_format": "versioned_open_json",
+        "personalization_modules_replaceable": false
+      },
+      "expected_rejection": "irreversible_profile_customization",
+      "must_reject": true
+    }
+  ],
+  "claim_ceiling": "synthetic profile-contract and policy-guard tests only; no production vehicle, human-factors, accessibility or safety claim"
+}

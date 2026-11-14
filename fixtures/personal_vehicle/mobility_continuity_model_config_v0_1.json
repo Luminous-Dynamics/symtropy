@@ -1,0 +1,24 @@
+{
+  "schema_version": "mobility-continuity-model-config/0.1",
+  "model_id": "deterministic-household-continuity-proxy/0.1",
+  "evidence_class": "synthetic_model_assumption",
+  "horizon_days": 364,
+  "failure_event_days": [
+    30,
+    210
+  ],
+  "hands_on_repair_hours_per_event": 8,
+  "weekly_essential_mobility_budget_r": 240,
+  "primary_energy_cost_per_essential_trip_r": 20,
+  "fallback_cost_per_essential_trip_r": 35,
+  "inventory_delay_credit_rule": "min(stock_coverage_days, repair_delay_days) * (1 - critical_part_fill_fraction)",
+  "cost_output_ceiling": "variable primary energy plus fallback-trip spend only; whole-life ownership and lifecycle cost remain unknown",
+  "model_limitations": [
+    "All config values are synthetic smoke-test assumptions, not measured vehicle, parts, repair, fuel-price, household, or transport-mode data.",
+    "Two fixed failure times are a deterministic stress replay and do not estimate failure probability, reliability, or population P50/P90.",
+    "Inventory delay credit is a simple sensitivity proxy and is not an inventory-control, supplier lead-time, or repair process model.",
+    "Fallback capacity and eligibility are hypothetical test inputs; no public transport, rideshare, walking, cycling, accessibility, timing, safety, or legal availability is verified.",
+    "The budget covers synthetic essential-mobility variable spend only; taxes, capital, financing, insurance, maintenance, tires, parts purchases, depreciation, downtime consequences, and whole-life ownership cost are excluded.",
+    "This model is not a vehicle dynamics model, roadworthiness or homologation test, safety case, or purchasing recommendation."
+  ]
+}
