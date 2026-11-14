@@ -35,6 +35,14 @@ cargo test --manifest-path research/construction-function-first-optioneering-v0-
 cargo clippy --manifest-path research/construction-function-first-optioneering-v0-1/Cargo.toml --locked --all-targets -- -D warnings
 ```
 
+## Exact Pareto scale benchmark
+
+The dependency-free `pareto_scale` harness runs two deterministic catalogue shapes at 10, 100, 1,000 and 3,000 options, with seven repetitions each:
+- `dominated-heavy`: one progression dominates many alternatives, exercising early dominator discovery;
+- `tradeoff-heavy`: multiple objectives move in opposing directions, producing many non-dominated options and stressing the exact pairwise frontier.
+
+It reports frontier size and p50/p95/p99 evaluation latency. The trade-off-heavy case is the important worst case: exact Pareto comparison is quadratic in option count. These are software scaling measurements, not a construction-project benchmark or a comparison against ALICE/SYNCHRO/P6.
+
 ## Important boundaries
 
 The code only consumes declared gate status and evidence references. It does not establish structural adequacy, fire safety, accessibility, environmental compliance, permissions, cost rates, emissions factors or professional acceptance.
@@ -45,4 +53,4 @@ No aggregate scalar “best option” is emitted. The output is a robust Pareto 
 
 ## Claim ceiling
 
-V0.1 establishes only deterministic synthetic hard-gate classification, worst-case metric aggregation and robust Pareto dominance for a finite catalogue. It does not establish real savings, environmental benefits, structural safety, regulatory compliance, or superiority to P6, ALICE, SYNCHRO, Navisworks or any other commercial system.
+V0.1 establishes only deterministic synthetic hard-gate classification, worst-case metric aggregation and robust Pareto dominance for a finite catalogue. Whole-life cost vectors are supplied by the fixture owner in the declared currency; this crate records the analysis horizon and discount-rate assumption but does not discount cashflows or validate cost inputs. It does not establish real savings, environmental benefits, structural safety, regulatory compliance, or superiority to P6, ALICE, SYNCHRO, Navisworks or any other commercial system.
