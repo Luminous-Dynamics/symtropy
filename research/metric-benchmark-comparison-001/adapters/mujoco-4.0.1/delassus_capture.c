@@ -243,6 +243,18 @@ int main(int argc, char** argv) {
   fprintf(output, ",\"native_constraint_force\":%.17g", (double)data->efc_force[0]);
   fprintf(output, ",\"constraint_position_residual\":%.17g", (double)data->efc_pos[0]);
   fprintf(output, ",\"direct_whitened_relative_defect\":%.17g", (double)relative_defect);
+  const int site1_id = mj_name2id(model, mjOBJ_SITE, "mass-1-site");
+  const int site2_id = mj_name2id(model, mjOBJ_SITE, "mass-2-site");
+  if (site1_id < 0 || site2_id < 0) {
+    fclose(output);
+    mj_deleteData(data);
+    mj_deleteModel(model);
+    return fail("compiled model is missing one of the named point-mass sites");
+  }
+  fprintf(output, ",\"mass_1_site_world_position\":");
+  print_array(data->site_xpos + 3 * site1_id, 3);
+  fprintf(output, ",\"mass_2_site_world_position\":");
+  print_array(data->site_xpos + 3 * site2_id, 3);
   fprintf(output, ",\"model_state_qpos\":");
   print_array(data->qpos, (int)model->nq);
   fprintf(output, ",\"model_state_qvel\":");
