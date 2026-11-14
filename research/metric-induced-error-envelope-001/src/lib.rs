@@ -903,7 +903,11 @@ mod tests {
 
         for row in 0..N {
             for column in 0..N {
-                close(metric_y.matrix()[row][column], expected[row][column], 2.0e-13);
+                close(
+                    metric_y.matrix()[row][column],
+                    expected[row][column],
+                    2.0e-13,
+                );
             }
         }
     }
