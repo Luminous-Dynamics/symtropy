@@ -1333,7 +1333,7 @@ mod tests {
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 12);
         assert_eq!(corpus["schema_version"], REPAIR_RESTORATION_CASES_SCHEMA);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 8);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 12);
         assert!(corpus["cases"]
             .as_array()
             .unwrap()
