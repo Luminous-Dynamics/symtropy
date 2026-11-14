@@ -13,6 +13,7 @@ const RPM_TO_RAD_S: f64 = std::f64::consts::TAU / 60.0;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelError {
     NonFiniteInput(&'static str),
+    NonFiniteResult(&'static str),
     NonPositiveInput(&'static str),
     NegativeInput(&'static str),
     BodyCrossesRotationAxis,
@@ -22,6 +23,7 @@ impl fmt::Display for ModelError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFiniteInput(name) => write!(f, "{name} must be finite"),
+            Self::NonFiniteResult(name) => write!(f, "{name} result is not finite"),
             Self::NonPositiveInput(name) => write!(f, "{name} must be greater than zero"),
             Self::NegativeInput(name) => write!(f, "{name} must be non-negative"),
             Self::BodyCrossesRotationAxis => {
@@ -39,6 +41,21 @@ fn require_finite(value: f64, name: &'static str) -> Result<(), ModelError> {
     } else {
         Err(ModelError::NonFiniteInput(name))
     }
+}
+
+fn require_finite_result(value: f64, name: &'static str) -> Result<(), ModelError> {
+    if value.is_finite() {
+        Ok(())
+    } else {
+        Err(ModelError::NonFiniteResult(name))
+    }
+}
+
+fn require_finite_result_vec3(value: Vec3, name: &'static str) -> Result<(), ModelError> {
+    for component in value {
+        require_finite_result(component, name)?;
+    }
+    Ok(())
 }
 
 fn require_positive(value: f64, name: &'static str) -> Result<(), ModelError> {
@@ -62,7 +79,9 @@ fn require_non_negative(value: f64, name: &'static str) -> Result<(), ModelError
 /// Convert rotations per minute to angular velocity in radians per second.
 pub fn angular_velocity_rad_s(rpm: f64) -> Result<f64, ModelError> {
     require_non_negative(rpm, "rpm")?;
-    Ok(rpm * RPM_TO_RAD_S)
+    let omega = rpm * RPM_TO_RAD_S;
+    require_finite_result(omega, "angular_velocity_rad_s")?;
+    Ok(omega)
 }
 
 /// Magnitude of rotation-generated radial acceleration at `radius_m`.
@@ -72,7 +91,9 @@ pub fn centrifugal_acceleration_m_s2(
 ) -> Result<f64, ModelError> {
     require_non_negative(radius_m, "radius_m")?;
     let omega = angular_velocity_rad_s(rpm)?;
-    Ok(omega * omega * radius_m)
+    let acceleration = omega * omega * radius_m;
+    require_finite_result(acceleration, "centrifugal_acceleration_m_s2")?;
+    Ok(acceleration)
 }
 
 /// Local apparent gravity as a multiple of standard Earth gravity.
@@ -85,7 +106,9 @@ pub fn radius_for_gravity_m(target_g: f64, rpm: f64) -> Result<f64, ModelError> 
     require_positive(target_g, "target_g")?;
     require_positive(rpm, "rpm")?;
     let omega = angular_velocity_rad_s(rpm)?;
-    Ok(target_g * STANDARD_GRAVITY_M_S2 / (omega * omega))
+    let radius = target_g * STANDARD_GRAVITY_M_S2 / (omega * omega);
+    require_finite_result(radius, "radius_for_gravity_m")?;
+    Ok(radius)
 }
 
 /// Rotation rate required to produce `target_g` at `radius_m`.
@@ -93,7 +116,9 @@ pub fn rpm_for_gravity(target_g: f64, radius_m: f64) -> Result<f64, ModelError> 
     require_positive(target_g, "target_g")?;
     require_positive(radius_m, "radius_m")?;
     let omega = (target_g * STANDARD_GRAVITY_M_S2 / radius_m).sqrt();
-    Ok(omega / RPM_TO_RAD_S)
+    let rpm = omega / RPM_TO_RAD_S;
+    require_finite_result(rpm, "rpm_for_gravity")?;
+    Ok(rpm)
 }
 
 /// Gravity at the inboard and outboard ends of a radially aligned body.
@@ -151,11 +176,13 @@ pub fn translating_frame_apparent_acceleration(
     frame_acceleration_m_s2: Vec3,
 ) -> Result<Vec3, ModelError> {
     require_finite_vec3(frame_acceleration_m_s2, "frame_acceleration_m_s2")?;
-    Ok([
+    let apparent = [
         -frame_acceleration_m_s2[0],
         -frame_acceleration_m_s2[1],
         -frame_acceleration_m_s2[2],
-    ])
+    ];
+    require_finite_result_vec3(apparent, "translating_frame_apparent_acceleration")?;
+    Ok(apparent)
 }
 
 fn require_finite_vec3(value: Vec3, name: &'static str) -> Result<(), ModelError> {
@@ -181,7 +208,9 @@ pub fn centrifugal_apparent_acceleration(
     require_finite_vec3(omega_rad_s, "omega_rad_s")?;
     require_finite_vec3(position_m, "position_m")?;
     let nested = cross(omega_rad_s, cross(omega_rad_s, position_m));
-    Ok([-nested[0], -nested[1], -nested[2]])
+    let apparent = [-nested[0], -nested[1], -nested[2]];
+    require_finite_result_vec3(apparent, "centrifugal_apparent_acceleration")?;
+    Ok(apparent)
 }
 
 /// Coriolis apparent acceleration in the rotating frame: `-2ω × v_relative`.
@@ -192,7 +221,9 @@ pub fn coriolis_apparent_acceleration(
     require_finite_vec3(omega_rad_s, "omega_rad_s")?;
     require_finite_vec3(velocity_relative_m_s, "velocity_relative_m_s")?;
     let value = cross(omega_rad_s, velocity_relative_m_s);
-    Ok([-2.0 * value[0], -2.0 * value[1], -2.0 * value[2]])
+    let apparent = [-2.0 * value[0], -2.0 * value[1], -2.0 * value[2]];
+    require_finite_result_vec3(apparent, "coriolis_apparent_acceleration")?;
+    Ok(apparent)
 }
 
 /// Euler apparent acceleration during angular acceleration: `-α × r`.
@@ -203,7 +234,9 @@ pub fn euler_apparent_acceleration(
     require_finite_vec3(alpha_rad_s2, "alpha_rad_s2")?;
     require_finite_vec3(position_m, "position_m")?;
     let value = cross(alpha_rad_s2, position_m);
-    Ok([-value[0], -value[1], -value[2]])
+    let apparent = [-value[0], -value[1], -value[2]];
+    require_finite_result_vec3(apparent, "euler_apparent_acceleration")?;
+    Ok(apparent)
 }
 
 /// Ideal rotational kinetic energy, ½ Iω², in joules.
@@ -215,7 +248,9 @@ pub fn rotational_kinetic_energy_j(
 ) -> Result<f64, ModelError> {
     require_non_negative(moment_of_inertia_kg_m2, "moment_of_inertia_kg_m2")?;
     let omega = angular_velocity_rad_s(rpm)?;
-    Ok(0.5 * moment_of_inertia_kg_m2 * omega * omega)
+    let energy = 0.5 * moment_of_inertia_kg_m2 * omega * omega;
+    require_finite_result(energy, "rotational_kinetic_energy_j")?;
+    Ok(energy)
 }
 
 #[cfg(test)]
@@ -306,6 +341,14 @@ mod tests {
     fn spin_energy_is_stored_energy_not_power() {
         let expected = 0.5 * 10.0 * (std::f64::consts::TAU / 60.0).powi(2);
         close(rotational_kinetic_energy_j(10.0, 1.0).unwrap(), expected, 1e-12);
+    }
+
+    #[test]
+    fn rejects_overflowed_or_underflowed_results() {
+        assert!(centrifugal_acceleration_m_s2(f64::MAX, f64::MAX).is_err());
+        assert!(radius_for_gravity_m(1e-300, 1e-300).is_err());
+        assert!(coriolis_apparent_acceleration([0.0, 0.0, 1e308], [1e308, 0.0, 0.0]).is_err());
+        assert!(rotational_kinetic_energy_j(1e308, 100.0).is_err());
     }
 
     #[test]
