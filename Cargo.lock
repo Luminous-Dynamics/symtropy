@@ -8969,6 +8969,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-celestial"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-cli"
 version = "0.1.0"
 dependencies = [
