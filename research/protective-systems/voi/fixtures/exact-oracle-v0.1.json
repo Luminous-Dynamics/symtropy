@@ -1,0 +1,43 @@
+{
+  "schema_version": "protective-voi/0.1",
+  "evidence_class": "synthetic",
+  "intended_use": "finite exact-oracle benchmark for experiment value and evidence direction; not materials or physical-performance evidence",
+  "task_id": "BINARY_PROTECTIVE_DESIGN_CHOICE_001",
+  "prior": {
+    "state_a": 0.6,
+    "state_b": 0.4
+  },
+  "loss": {
+    "correct_decision": 0.0,
+    "incorrect_decision": 1.0
+  },
+  "experiment_budget": 4.0,
+  "decision_cost_weight": 0.05,
+  "expected_best_experiment_id": "ANTI_CORRELATED_PROXY",
+  "experiments": [
+    {
+      "id": "CHEAP_WEAK_PROXY",
+      "cost": 0.5,
+      "p_observation_a_given_state_a": 0.7,
+      "p_observation_a_given_state_b": 0.4
+    },
+    {
+      "id": "EXPENSIVE_HIGH_INFORMATION",
+      "cost": 4.0,
+      "p_observation_a_given_state_a": 0.9,
+      "p_observation_a_given_state_b": 0.1
+    },
+    {
+      "id": "ANTI_CORRELATED_PROXY",
+      "cost": 0.75,
+      "p_observation_a_given_state_a": 0.05,
+      "p_observation_a_given_state_b": 0.95
+    },
+    {
+      "id": "UNINFORMATIVE_PROXY",
+      "cost": 0.25,
+      "p_observation_a_given_state_a": 0.55,
+      "p_observation_a_given_state_b": 0.45
+    }
+  ]
+}
