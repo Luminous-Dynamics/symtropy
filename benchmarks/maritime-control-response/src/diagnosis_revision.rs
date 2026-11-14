@@ -231,7 +231,7 @@ fn is_sha256_hex(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn sha256_serializable<T: Serialize>(
+fn sha256_serializable<T: Serialize + ?Sized>(
     domain: &[u8],
     value: &T,
 ) -> Result<String, DiagnosticRevisionError> {
