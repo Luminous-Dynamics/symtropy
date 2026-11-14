@@ -84,6 +84,30 @@ pub struct ProfileSample {
     pub after_z_um: Option<i64>,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReferenceHealthDecision {
+    ContinueWithinDeclaredCheckLimits,
+    HoldForMetrologyReview,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct ReferenceHealthReceipt {
+    pub sha256: String,
+    pub producer: String,
+    pub sequence_id: String,
+    pub decision: ReferenceHealthDecision,
+    pub instrument_id: String,
+    pub calibration_revision: String,
+    pub reference_artifact_id: String,
+    pub characteristic_id: String,
+    pub policy_sha256: String,
+    pub certificate_sha256: String,
+    pub first_observation_at_ms: u64,
+    pub last_observation_at_ms: u64,
+    pub claim_ceiling: String,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct ProfilePairInput {
     pub schema_version: String,
@@ -94,6 +118,7 @@ pub struct ProfilePairInput {
     pub after_scan: ScanIdentity,
     pub comparison_frame: String,
     pub calibration_receipt: CalibrationReceipt,
+    pub reference_health_receipt: ReferenceHealthReceipt,
     pub registration_receipt: RegistrationReceipt,
     pub surface_compatibility: SurfaceCompatibilityReceipt,
     pub uncertainty: UncertaintyBudget,
@@ -124,6 +149,12 @@ pub enum RejectReason {
     CalibrationReceiptMismatch,
     CalibrationNotValidAtCapture,
     ReferenceArtifactOutOfTolerance,
+    ReferenceHealthMalformed,
+    ReferenceHealthHold,
+    ReferenceHealthProducerMismatch,
+    ReferenceHealthIdentityMismatch,
+    ReferenceHealthWindowDoesNotCoverPair,
+    ReferenceHealthClaimCeilingMismatch,
     RegistrationReceiptMismatch,
     NonRigidTransform,
     UnstableDatum,
@@ -150,6 +181,7 @@ pub enum RejectReason {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct MeasurementReport {
     pub pair_id: String,
+    pub reference_health_receipt_sha256: String,
     pub claim_ceiling: String,
     pub paired_sample_count: usize,
     pub expected_sample_count: usize,
@@ -406,6 +438,55 @@ fn validate_calibration(input: &ProfilePairInput) -> Result<(), RejectReason> {
     Ok(())
 }
 
+fn validate_reference_health(input: &ProfilePairInput) -> Result<(), RejectReason> {
+    let receipt = &input.reference_health_receipt;
+    if [
+        receipt.sequence_id.as_str(),
+        receipt.instrument_id.as_str(),
+        receipt.calibration_revision.as_str(),
+        receipt.reference_artifact_id.as_str(),
+        receipt.characteristic_id.as_str(),
+        receipt.claim_ceiling.as_str(),
+    ]
+    .into_iter()
+    .any(is_empty)
+    {
+        return Err(RejectReason::ReferenceHealthMalformed);
+    }
+    for digest in [
+        receipt.sha256.as_str(),
+        receipt.policy_sha256.as_str(),
+        receipt.certificate_sha256.as_str(),
+    ] {
+        if !digest_is_valid(digest) {
+            return Err(RejectReason::MalformedDigest);
+        }
+    }
+    if receipt.producer != "SHIPYARD-REFERENCE-DRIFT-001" {
+        return Err(RejectReason::ReferenceHealthProducerMismatch);
+    }
+    if receipt.claim_ceiling != "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY" {
+        return Err(RejectReason::ReferenceHealthClaimCeilingMismatch);
+    }
+    if receipt.decision != ReferenceHealthDecision::ContinueWithinDeclaredCheckLimits {
+        return Err(RejectReason::ReferenceHealthHold);
+    }
+    if receipt.instrument_id != input.before_scan.instrument_id
+        || receipt.instrument_id != input.after_scan.instrument_id
+        || receipt.calibration_revision != input.before_scan.calibration_revision
+        || receipt.calibration_revision != input.after_scan.calibration_revision
+    {
+        return Err(RejectReason::ReferenceHealthIdentityMismatch);
+    }
+    if receipt.first_observation_at_ms > input.before_scan.captured_at_ms
+        || receipt.last_observation_at_ms < input.after_scan.captured_at_ms
+        || receipt.first_observation_at_ms >= receipt.last_observation_at_ms
+    {
+        return Err(RejectReason::ReferenceHealthWindowDoesNotCoverPair);
+    }
+    Ok(())
+}
+
 fn validate_registration(input: &ProfilePairInput) -> Result<(), RejectReason> {
     let registration = &input.registration_receipt;
     if registration.before_scan_sha256 != input.before_scan.sha256
@@ -471,6 +552,7 @@ fn validate_profile(input: &ProfilePairInput) -> Result<(), RejectReason> {
 pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementReport, RejectReason> {
     validate_identity(input)?;
     validate_calibration(input)?;
+    validate_reference_health(input)?;
     validate_registration(input)?;
     validate_profile(input)?;
 
@@ -601,6 +683,7 @@ pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementRepo
 
     Ok(MeasurementReport {
         pair_id: input.pair_id.clone(),
+        reference_health_receipt_sha256: input.reference_health_receipt.sha256.clone(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
         paired_sample_count: valid_count,
         expected_sample_count: expected,
@@ -677,6 +760,21 @@ mod tests {
                 valid_until_ms: 10_000,
                 reference_artifact_error_um: 2,
                 maximum_reference_artifact_error_um: 5,
+            },
+            reference_health_receipt: ReferenceHealthReceipt {
+                sha256: digest('6'),
+                producer: "SHIPYARD-REFERENCE-DRIFT-001".to_owned(),
+                sequence_id: "HEALTH-SEQ-SYNTH-001".to_owned(),
+                decision: ReferenceHealthDecision::ContinueWithinDeclaredCheckLimits,
+                instrument_id: "SCANNER-SYNTH-01".to_owned(),
+                calibration_revision: "CAL-R1".to_owned(),
+                reference_artifact_id: "ARTIFACT-SYNTH-01".to_owned(),
+                characteristic_id: "LENGTH-X-100MM".to_owned(),
+                policy_sha256: digest('7'),
+                certificate_sha256: digest('8'),
+                first_observation_at_ms: 500,
+                last_observation_at_ms: 2_500,
+                claim_ceiling: "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY".to_owned(),
             },
             registration_receipt: RegistrationReceipt {
                 sha256: digest('4'),
@@ -985,6 +1083,56 @@ mod tests {
         assert_eq!(
             evaluate_profile_pair(&input),
             Err(RejectReason::DifferentProfileStation)
+        );
+    }
+
+    #[test]
+    fn reference_health_hold_blocks_scan_pair_comparison() {
+        let mut input = base_input();
+        input.reference_health_receipt.decision = ReferenceHealthDecision::HoldForMetrologyReview;
+        assert_eq!(
+            evaluate_profile_pair(&input),
+            Err(RejectReason::ReferenceHealthHold)
+        );
+    }
+
+    #[test]
+    fn reference_health_instrument_must_match_both_scans() {
+        let mut input = base_input();
+        input.reference_health_receipt.instrument_id = "SCANNER-OTHER".to_owned();
+        assert_eq!(
+            evaluate_profile_pair(&input),
+            Err(RejectReason::ReferenceHealthIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn reference_health_calibration_revision_must_match_both_scans() {
+        let mut input = base_input();
+        input.reference_health_receipt.calibration_revision = "CAL-R2".to_owned();
+        assert_eq!(
+            evaluate_profile_pair(&input),
+            Err(RejectReason::ReferenceHealthIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn reference_health_window_must_bracket_both_scan_captures() {
+        let mut input = base_input();
+        input.reference_health_receipt.last_observation_at_ms = 1_999;
+        assert_eq!(
+            evaluate_profile_pair(&input),
+            Err(RejectReason::ReferenceHealthWindowDoesNotCoverPair)
+        );
+    }
+
+    #[test]
+    fn reference_health_policy_and_certificate_digests_are_required() {
+        let mut input = base_input();
+        input.reference_health_receipt.policy_sha256 = "bad".to_owned();
+        assert_eq!(
+            evaluate_profile_pair(&input),
+            Err(RejectReason::MalformedDigest)
         );
     }
 
