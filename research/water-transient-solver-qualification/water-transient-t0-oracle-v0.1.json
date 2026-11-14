@@ -1,0 +1,86 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "evidence_class": "synthetic_expected_outputs_only",
+  "evidence_ceiling": "expected_analytical_contract_outputs_no_solver_or_physical_qualification",
+  "input_profile_id": "LUMINOUS-WATER-TRANSIENT-T0-SYNTHETIC",
+  "cases": [
+    {
+      "case_id": "WT-T0-001-rapid-closure-joukowsky-known-answer",
+      "expected": {
+        "disposition": "JOUKOWSKY_APPLICABLE_WITHIN_DECLARED_ASSUMPTIONS",
+        "one_way_time_s": 0.1,
+        "round_trip_time_s": 0.2,
+        "closure_to_round_trip_ratio": 0.05,
+        "pressure_change_pa": 500000,
+        "head_change_m": 50.9683995922528,
+        "post_event_candidate_absolute_pressure_pa": 800000,
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-002-one-way-and-round-trip-wave-time",
+      "expected": {
+        "disposition": "ANALYTICAL_WAVE_TIME_ONLY",
+        "one_way_time_s": 0.3,
+        "round_trip_time_s": 0.6,
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-003-negative-velocity-change-sign",
+      "expected": {
+        "disposition": "JOUKOWSKY_APPLICABLE_WITHIN_DECLARED_ASSUMPTIONS",
+        "pressure_change_pa": -179640,
+        "head_change_m": -18.34862385321101,
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-004-slow-closure-outside-instantaneous-assumption",
+      "expected": {
+        "disposition": "JOUKOWSKY_INSTANTANEOUS_FORMULA_NOT_APPLICABLE",
+        "round_trip_time_s": 0.2,
+        "closure_to_round_trip_ratio": 2,
+        "reason": "CLOSURE_NOT_FASTER_THAN_ROUND_TRIP_WAVE_TIME",
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-005-wave-speed-missing",
+      "expected": {
+        "disposition": "INDETERMINATE",
+        "reason": "WAVE_SPEED_UNAVAILABLE",
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-006-single-phase-formula-crosses-vapour-pressure",
+      "expected": {
+        "disposition": "OUT_OF_DOMAIN",
+        "reason": "SINGLE_PHASE_CANDIDATE_CROSSES_VAPOUR_PRESSURE",
+        "candidate_post_event_absolute_pressure_pa": -100000,
+        "candidate_is_not_a_physical_prediction": true,
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-007-closure-time-at-round-trip-boundary",
+      "expected": {
+        "disposition": "BOUNDARY_REQUIRES_TRANSIENT_REFERENCE",
+        "round_trip_time_s": 0.2,
+        "closure_to_round_trip_ratio": 1,
+        "reason": "CLOSURE_EQUALS_ROUND_TRIP_WAVE_TIME",
+        "solver_qualification_permitted": false
+      }
+    },
+    {
+      "case_id": "WT-T0-008-invalid-negative-pipe-length",
+      "expected": {
+        "disposition": "INVALID_INPUT",
+        "reason": "PIPE_LENGTH_NOT_POSITIVE",
+        "solver_qualification_permitted": false
+      }
+    }
+  ]
+}
