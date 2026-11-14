@@ -77,7 +77,9 @@ impl CandidateDisposition {
         match self {
             Self::UseCorroboratedMeasurement => "use_corroborated_measurement",
             Self::AbstainObservationalEquivalence => "abstain_observational_equivalence",
-            Self::RequestIndependentPhysicalMeasurement => "request_independent_physical_measurement",
+            Self::RequestIndependentPhysicalMeasurement => {
+                "request_independent_physical_measurement"
+            },
             Self::IntegrityInvestigation => "integrity_investigation",
             Self::EvidenceConflict => "evidence_conflict",
             Self::RejectEvidence => "reject_evidence",
@@ -131,12 +133,31 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
     }
     let shape_ok = matches!(
         (record.kind, record.class, record.result),
-        (EvidenceKind::PrimaryTelemetry, EvidenceClass::Measured, EvidenceResult::Numeric(_))
-            | (EvidenceKind::IndependentPhysicalMeasurement, EvidenceClass::Measured, EvidenceResult::Numeric(_))
-            | (EvidenceKind::DerivedReconstruction, EvidenceClass::Reconstructed, EvidenceResult::Numeric(_))
-            | (EvidenceKind::InstrumentSelfTest, EvidenceClass::Attested, EvidenceResult::SelfTestPass)
-            | (EvidenceKind::InstrumentSelfTest, EvidenceClass::Attested, EvidenceResult::SelfTestFail)
-            | (EvidenceKind::ForensicIntegrityReview, EvidenceClass::Attested, EvidenceResult::IntegrityIndicator)
+        (
+            EvidenceKind::PrimaryTelemetry,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(_)
+        ) | (
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(_)
+        ) | (
+            EvidenceKind::DerivedReconstruction,
+            EvidenceClass::Reconstructed,
+            EvidenceResult::Numeric(_)
+        ) | (
+            EvidenceKind::InstrumentSelfTest,
+            EvidenceClass::Attested,
+            EvidenceResult::SelfTestPass
+        ) | (
+            EvidenceKind::InstrumentSelfTest,
+            EvidenceClass::Attested,
+            EvidenceResult::SelfTestFail
+        ) | (
+            EvidenceKind::ForensicIntegrityReview,
+            EvidenceClass::Attested,
+            EvidenceResult::IntegrityIndicator
+        )
     );
     if !shape_ok {
         return Err(IntegrityAuditError::InvalidEvidenceShape);
@@ -204,7 +225,10 @@ pub fn triage_observation_integrity(
             scenario_id: policy.scenario_id.clone(),
             disposition: CandidateDisposition::RejectEvidence,
             primary_evidence_id: primary.evidence_id.clone(),
-            primary_value: match primary.result { EvidenceResult::Numeric(v) => Some(v), _ => None },
+            primary_value: match primary.result {
+                EvidenceResult::Numeric(v) => Some(v),
+                _ => None,
+            },
             admitted_evidence_ids: Vec::new(),
             rejected_evidence_ids: vec![primary.evidence_id.clone()],
             unresolved_hypotheses: Vec::new(),
@@ -222,7 +246,9 @@ pub fn triage_observation_integrity(
         return Ok(reject_primary("primary_stale"));
     }
     if !contract_matches(primary, policy) {
-        return Ok(reject_primary("primary_unit_calibration_or_configuration_mismatch"));
+        return Ok(reject_primary(
+            "primary_unit_calibration_or_configuration_mismatch",
+        ));
     }
     let primary_value = match primary.result {
         EvidenceResult::Numeric(value) => value,
@@ -236,7 +262,10 @@ pub fn triage_observation_integrity(
     let mut forensic = false;
     let mut self_test_failed = false;
 
-    for side in evidence.iter().filter(|r| r.evidence_id != primary.evidence_id) {
+    for side in evidence
+        .iter()
+        .filter(|r| r.evidence_id != primary.evidence_id)
+    {
         if !side.authenticated {
             rejected.push(side.evidence_id.clone());
             reasons.push(format!("{}:not_authenticated", side.evidence_id));
@@ -251,7 +280,10 @@ pub fn triage_observation_integrity(
             EvidenceKind::IndependentPhysicalMeasurement => {
                 if !contract_matches(side, policy) || side.class != EvidenceClass::Measured {
                     rejected.push(side.evidence_id.clone());
-                    reasons.push(format!("{}:measurement_contract_mismatch", side.evidence_id));
+                    reasons.push(format!(
+                        "{}:measurement_contract_mismatch",
+                        side.evidence_id
+                    ));
                 } else if !independent(primary, side) {
                     rejected.push(side.evidence_id.clone());
                     reasons.push(format!("{}:shared_dependency", side.evidence_id));
@@ -265,7 +297,10 @@ pub fn triage_observation_integrity(
             EvidenceKind::InstrumentSelfTest => {
                 if side.class != EvidenceClass::Attested || !independent(primary, side) {
                     rejected.push(side.evidence_id.clone());
-                    reasons.push(format!("{}:self_test_not_independent_or_attested", side.evidence_id));
+                    reasons.push(format!(
+                        "{}:self_test_not_independent_or_attested",
+                        side.evidence_id
+                    ));
                 } else {
                     admitted.push(side.evidence_id.clone());
                     self_test_failed |= side.result == EvidenceResult::SelfTestFail;
@@ -274,7 +309,10 @@ pub fn triage_observation_integrity(
             EvidenceKind::ForensicIntegrityReview => {
                 if side.class != EvidenceClass::Attested || !independent(primary, side) {
                     rejected.push(side.evidence_id.clone());
-                    reasons.push(format!("{}:forensic_receipt_not_independent_or_attested", side.evidence_id));
+                    reasons.push(format!(
+                        "{}:forensic_receipt_not_independent_or_attested",
+                        side.evidence_id
+                    ));
                 } else {
                     admitted.push(side.evidence_id.clone());
                     forensic |= side.result == EvidenceResult::IntegrityIndicator;
@@ -282,7 +320,10 @@ pub fn triage_observation_integrity(
             }
             EvidenceKind::DerivedReconstruction => {
                 rejected.push(side.evidence_id.clone());
-                reasons.push(format!("{}:derived_evidence_not_independent", side.evidence_id));
+                reasons.push(format!(
+                    "{}:derived_evidence_not_independent",
+                    side.evidence_id
+                ));
             }
             EvidenceKind::PrimaryTelemetry => {
                 rejected.push(side.evidence_id.clone());
@@ -291,7 +332,10 @@ pub fn triage_observation_integrity(
         }
     }
 
-    if physical.iter().any(|(_, value)| value.abs_diff(primary_value) > policy.numeric_tolerance) {
+    if physical
+        .iter()
+        .any(|(_, value)| value.abs_diff(primary_value) > policy.numeric_tolerance)
+    {
         reasons.push("independent_physical_measurement_conflict".to_owned());
         return Ok(finish(CandidateDecision {
             scenario_id: policy.scenario_id.clone(),
@@ -313,7 +357,9 @@ pub fn triage_observation_integrity(
             primary_value: Some(*value),
             admitted_evidence_ids: admitted,
             rejected_evidence_ids: rejected,
-            unresolved_hypotheses: vec!["physical_state_supported_but_fault_cause_unattributed".to_owned()],
+            unresolved_hypotheses: vec![
+                "physical_state_supported_but_fault_cause_unattributed".to_owned(),
+            ],
             reason_codes: reasons,
         }));
     }
@@ -373,8 +419,15 @@ mod tests {
         }
     }
 
-    fn record(id: &str, kind: EvidenceKind, class: EvidenceClass, result: EvidenceResult,
-        source: &str, gateway: &str, trust: &str) -> EvidenceRecord {
+    fn record(
+        id: &str,
+        kind: EvidenceKind,
+        class: EvidenceClass,
+        result: EvidenceResult,
+        source: &str,
+        gateway: &str,
+        trust: &str,
+    ) -> EvidenceRecord {
         EvidenceRecord {
             evidence_id: id.to_owned(),
             kind,
@@ -394,15 +447,23 @@ mod tests {
 
     fn primary() -> EvidenceRecord {
         record(
-            "primary", EvidenceKind::PrimaryTelemetry, EvidenceClass::Measured,
-            EvidenceResult::Numeric(50), "sensor-a", "gw-a", "root-a",
+            "primary",
+            EvidenceKind::PrimaryTelemetry,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "sensor-a",
+            "gw-a",
+            "root-a",
         )
     }
 
     #[test]
     fn telemetry_only_equivalence_abstains_without_cause_attribution() {
         let d = triage_observation_integrity(&policy(), &[primary()]).unwrap();
-        assert_eq!(d.disposition, CandidateDisposition::AbstainObservationalEquivalence);
+        assert_eq!(
+            d.disposition,
+            CandidateDisposition::AbstainObservationalEquivalence
+        );
         assert_eq!(d.unresolved_hypotheses.len(), 3);
         assert!(d.primary_value.is_none());
     }
@@ -411,11 +472,19 @@ mod tests {
     fn shared_gateway_or_trust_root_does_not_break_equivalence() {
         let mut e = vec![primary()];
         e.push(record(
-            "side", EvidenceKind::IndependentPhysicalMeasurement, EvidenceClass::Measured,
-            EvidenceResult::Numeric(50), "sensor-b", "gw-a", "root-a",
+            "side",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "sensor-b",
+            "gw-a",
+            "root-a",
         ));
         let d = triage_observation_integrity(&policy(), &e).unwrap();
-        assert_eq!(d.disposition, CandidateDisposition::AbstainObservationalEquivalence);
+        assert_eq!(
+            d.disposition,
+            CandidateDisposition::AbstainObservationalEquivalence
+        );
         assert!(d.rejected_evidence_ids.contains(&"side".to_owned()));
     }
 
@@ -423,11 +492,19 @@ mod tests {
     fn independent_physical_measurement_can_corroborate_but_not_attribute_cause() {
         let mut e = vec![primary()];
         e.push(record(
-            "side", EvidenceKind::IndependentPhysicalMeasurement, EvidenceClass::Measured,
-            EvidenceResult::Numeric(50), "sensor-b", "gw-b", "root-b",
+            "side",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(50),
+            "sensor-b",
+            "gw-b",
+            "root-b",
         ));
         let d = triage_observation_integrity(&policy(), &e).unwrap();
-        assert_eq!(d.disposition, CandidateDisposition::UseCorroboratedMeasurement);
+        assert_eq!(
+            d.disposition,
+            CandidateDisposition::UseCorroboratedMeasurement
+        );
         assert_eq!(d.primary_value, Some(50));
         assert!(d.unresolved_hypotheses[0].contains("unattributed"));
     }
@@ -436,8 +513,13 @@ mod tests {
     fn independent_physical_conflict_is_not_resolved_by_source_count() {
         let mut e = vec![primary()];
         e.push(record(
-            "side", EvidenceKind::IndependentPhysicalMeasurement, EvidenceClass::Measured,
-            EvidenceResult::Numeric(90), "sensor-b", "gw-b", "root-b",
+            "side",
+            EvidenceKind::IndependentPhysicalMeasurement,
+            EvidenceClass::Measured,
+            EvidenceResult::Numeric(90),
+            "sensor-b",
+            "gw-b",
+            "root-b",
         ));
         let d = triage_observation_integrity(&policy(), &e).unwrap();
         assert_eq!(d.disposition, CandidateDisposition::EvidenceConflict);
@@ -448,14 +530,18 @@ mod tests {
         let mut stale = primary();
         stale.event_tick = 1;
         assert_eq!(
-            triage_observation_integrity(&policy(), &[stale]).unwrap().disposition,
+            triage_observation_integrity(&policy(), &[stale])
+                .unwrap()
+                .disposition,
             CandidateDisposition::RejectEvidence
         );
 
         let mut bad_cal = primary();
         bad_cal.calibration_revision = "cal-old".to_owned();
         assert_eq!(
-            triage_observation_integrity(&policy(), &[bad_cal]).unwrap().disposition,
+            triage_observation_integrity(&policy(), &[bad_cal])
+                .unwrap()
+                .disposition,
             CandidateDisposition::RejectEvidence
         );
     }
@@ -464,18 +550,30 @@ mod tests {
     fn derived_and_forensic_evidence_do_not_become_physical_or_cyber_truth() {
         let mut derived = vec![primary()];
         derived.push(record(
-            "model", EvidenceKind::DerivedReconstruction, EvidenceClass::Reconstructed,
-            EvidenceResult::Numeric(50), "model", "gw-model", "root-model",
+            "model",
+            EvidenceKind::DerivedReconstruction,
+            EvidenceClass::Reconstructed,
+            EvidenceResult::Numeric(50),
+            "model",
+            "gw-model",
+            "root-model",
         ));
         assert_eq!(
-            triage_observation_integrity(&policy(), &derived).unwrap().disposition,
+            triage_observation_integrity(&policy(), &derived)
+                .unwrap()
+                .disposition,
             CandidateDisposition::AbstainObservationalEquivalence
         );
 
         let mut forensic = vec![primary()];
         forensic.push(record(
-            "forensic", EvidenceKind::ForensicIntegrityReview, EvidenceClass::Attested,
-            EvidenceResult::IntegrityIndicator, "security", "gw-sec", "root-sec",
+            "forensic",
+            EvidenceKind::ForensicIntegrityReview,
+            EvidenceClass::Attested,
+            EvidenceResult::IntegrityIndicator,
+            "security",
+            "gw-sec",
+            "root-sec",
         ));
         let d = triage_observation_integrity(&policy(), &forensic).unwrap();
         assert_eq!(d.disposition, CandidateDisposition::IntegrityInvestigation);
@@ -486,11 +584,19 @@ mod tests {
     fn self_test_failure_requests_independent_measurement_not_cause_attribution() {
         let mut e = vec![primary()];
         e.push(record(
-            "self-test", EvidenceKind::InstrumentSelfTest, EvidenceClass::Attested,
-            EvidenceResult::SelfTestFail, "self-test", "gw-test", "root-test",
+            "self-test",
+            EvidenceKind::InstrumentSelfTest,
+            EvidenceClass::Attested,
+            EvidenceResult::SelfTestFail,
+            "self-test",
+            "gw-test",
+            "root-test",
         ));
         let d = triage_observation_integrity(&policy(), &e).unwrap();
-        assert_eq!(d.disposition, CandidateDisposition::RequestIndependentPhysicalMeasurement);
+        assert_eq!(
+            d.disposition,
+            CandidateDisposition::RequestIndependentPhysicalMeasurement
+        );
         assert_eq!(d.unresolved_hypotheses.len(), 3);
     }
 
