@@ -25,7 +25,8 @@ Compose with:
 - Conservative deterministic bounds and probabilistic coverage intervals are distinct types.
 - Monte Carlo coverage requires an explicit convergence receipt.
 - Every budget component must be assigned to a dependence group, and each group declaration must enumerate the exact component-member set it covers.
-- Every dependence group must carry a joint-model receipt, an evidence-backed independence receipt, or remain Unknown. There is no default-to-independence behavior.
+- Every dependence group must carry a joint-model receipt, an evidence-backed independence receipt, or remain Unknown. The receipt enumerates its exact component members; there is no default-to-independence behavior.
+- Cross-channel reuse of a source artifact must use one shared dependence-group identity and one consistent joint-model or independence receipt across all affected measurements.
 - Reused source receipts across different measurement channels must resolve to one shared group and one consistent dependence decision/receipt; conflicting group or model bindings are rejected.
 - Derived results enumerate exact input measurement and uncertainty-receipt sets.
 - Upstream Unknown/Inconclusive/Rejected states are never promoted.
@@ -39,7 +40,7 @@ The reference validates evidence identity/completeness only. It does not validat
     cargo test --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml
     cargo clippy --locked --manifest-path research/loco-measurement-uq-receipt-001/reference/Cargo.toml --all-targets -- -D warnings
 
-The 32 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
+The 35 deterministic tests are authored known-answer/adversarial cases and remain unqualified until the exact-head Rust 1.96 workflow passes.
 
 ## Research basis
 
