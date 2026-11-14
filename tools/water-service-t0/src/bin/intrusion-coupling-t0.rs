@@ -293,9 +293,12 @@ fn verify_observations(
                 "MODEL_OUTPUT_CANNOT_SUBSTITUTE_FOR_MEASURED_OBSERVATION",
             )));
         }
-        let digest = field(observation, "raw_data_digest")?
-            .as_str()
-            .ok_or_else(|| "raw_data_digest must be a string".to_owned())?;
+        let Some(digest) = observation
+            .get("raw_data_digest")
+            .and_then(Value::as_str)
+        else {
+            return Ok(Some(indeterminate("OBSERVATION_PROVENANCE_INCOMPLETE")));
+        };
         if !valid_sha256(digest) {
             return Ok(Some(indeterminate("OBSERVATION_PROVENANCE_INCOMPLETE")));
         }
