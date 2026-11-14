@@ -1,0 +1,91 @@
+{
+  "schema_version": "symtropy-marine-monte-carlo-randomization-cases-v0.1",
+  "status": "synthetic_sampler_contract_cases_not_field_evidence",
+  "cases": [
+    {
+      "case_id": "MC01",
+      "scenario": "Same seed, PRNG, draw budget and inputs reproduce the exact output and sampled assignment digest.",
+      "expected": "deterministic_replay"
+    },
+    {
+      "case_id": "MC02",
+      "scenario": "A different seed changes the sampled assignment digest.",
+      "expected": "distinct_random_stream"
+    },
+    {
+      "case_id": "MC03",
+      "scenario": "The plus-one correction never reports p = 0.",
+      "expected": "positive_finite_sample_p_value"
+    },
+    {
+      "case_id": "MC04",
+      "scenario": "A small blocked trial's Monte Carlo tail interval is checked against exact Fisher enumeration.",
+      "expected": "differential_exact_reference"
+    },
+    {
+      "case_id": "MC05",
+      "scenario": "A 17-unit blocked trial is supported beyond the exact 16-unit enumeration limit.",
+      "expected": "monte_carlo_scaling"
+    },
+    {
+      "case_id": "MC06",
+      "scenario": "Draw counts below/above frozen bounds are rejected.",
+      "expected": "invalid_draw_count"
+    },
+    {
+      "case_id": "MC07",
+      "scenario": "The SplitMix64 implementation matches frozen golden vectors.",
+      "expected": "prng_version_integrity"
+    },
+    {
+      "case_id": "MC08",
+      "scenario": "Reordering input rows does not change canonical frame or assignment stream digest.",
+      "expected": "canonical_row_order_invariance"
+    },
+    {
+      "case_id": "MC09",
+      "scenario": "A request exceeding the total unit-draw work budget fails before sampling.",
+      "expected": "work_budget_rejected"
+    },
+    {
+      "case_id": "MC10",
+      "scenario": "Within a fixed-count stratum the sampler covers all small subsets at approximately uniform frequencies.",
+      "expected": "uniform_block_sampling"
+    },
+    {
+      "case_id": "MC11",
+      "scenario": "Every sampled assignment preserves each frozen block allocation.",
+      "expected": "zero_allocation_violations"
+    },
+    {
+      "case_id": "MC12",
+      "scenario": "Monte Carlo uncertainty is explicitly separated from the ATE sampling interval.",
+      "expected": "uncertainty_channel_separation"
+    },
+    {
+      "case_id": "MC13",
+      "scenario": "A valid blocked trial containing 10,001 independent units is rejected before Monte Carlo sampling.",
+      "expected": "unit_ceiling_rejected"
+    },
+    {
+      "case_id": "MC14",
+      "scenario": "The Rust benchmark harness executes the frozen unit-size matrix and emits throughput plus replay digests without a machine-independent performance threshold.",
+      "expected": "performance_profile_recorded_without_claimed_sota"
+    },
+    {
+      "case_id": "MC15",
+      "scenario": "A generated assignment mask is independently recounted and a block-count mismatch is rejected before statistic evaluation.",
+      "expected": "independent_allocation_verification"
+    },
+    {
+      "case_id": "MC16",
+      "scenario": "Zero Monte Carlo exceedances produce the plus-one minimum 1/(B+1), not a zero p-value.",
+      "expected": "minimum_plus_one_p_value"
+    },
+    {
+      "case_id": "MC17",
+      "scenario": "A frozen panel of 200 independent SplitMix64 seed streams checks Wilson interval coverage against the exact Fisher tail probability.",
+      "expected": "multi_seed_monte_carlo_interval_coverage"
+    }
+  ]
+}

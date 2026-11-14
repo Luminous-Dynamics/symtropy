@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/symtropy-marine-monte-carlo-randomization-config-v0.1.json",
+  "title": "Monte Carlo randomization configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "seed_u64",
+    "draw_count"
+  ],
+  "properties": {
+    "seed_u64": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615
+    },
+    "draw_count": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 2000000
+    }
+  }
+}

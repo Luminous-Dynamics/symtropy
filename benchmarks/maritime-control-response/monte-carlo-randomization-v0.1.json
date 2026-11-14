@@ -1,0 +1,217 @@
+{
+  "schema_version": "symtropy-marine-monte-carlo-randomization-v0.1",
+  "status": "protocol_only_not_executed",
+  "title": "Reproducible Monte Carlo Fisher randomization inference for blocked maintenance trials",
+  "parent_issue": 5115,
+  "parent_estimator_pr": 5111,
+  "scope": {
+    "owns": [
+      "uniform sampling from a frozen blocked assignment space",
+      "deterministic PRNG and seed provenance",
+      "fixed-budget two-sided Monte Carlo randomization p-value",
+      "plus-one finite-sample correction",
+      "Wilson interval and Monte Carlo standard error for the tail probability",
+      "canonical frame and sampled-assignment replay digests",
+      "differential comparison against exact Fisher enumeration on small trials"
+    ],
+    "does_not_own": [
+      "ATE estimation",
+      "observational causal identification",
+      "target-trial emulation",
+      "maintenance policy optimization",
+      "repair restoration acceptance",
+      "maintenance authorization",
+      "equipment control"
+    ]
+  },
+  "algorithm": {
+    "id": "splitmix64_v1",
+    "version": "2014-implementation-constants-frozen-in-module",
+    "seed": "unsigned 64-bit integer supplied by a preregistered analysis configuration",
+    "sampling": "partial Fisher-Yates within each stratum with rejection-based unbiased bounded integers",
+    "assignment_space": "uniform over all assignments satisfying every predeclared stratum treatment/control count",
+    "min_draws": 100,
+    "max_draws": 2000000,
+    "max_units": 10000,
+    "max_total_unit_draws": 100000000
+  },
+  "estimand_link": {
+    "statistic": "absolute value of the stratum-size-weighted treatment-minus-control difference in observed means",
+    "tail_rule": "count sampled assignments whose absolute statistic is greater than or equal to the observed absolute statistic, with 1e-12 tie tolerance",
+    "p_value": "(1 + exceedances) / (draw_count + 1)",
+    "tail_probability_estimate": "exceedances / draw_count; reported separately from the finite-sample corrected p-value",
+    "monte_carlo_standard_error": "sqrt(p_hat * (1 - p_hat) / draw_count)",
+    "interval": "95% Wilson score interval for the Monte Carlo tail probability",
+    "interval_nonclaim": "The Wilson interval measures Monte Carlo uncertainty in the tail probability, not uncertainty in the ATE and not causal-identification uncertainty."
+  },
+  "replay_contract": {
+    "frame_digest": "SHA-256 over the full serialized trial after canonical sorting of observations by unit ID and stratum allocations by stratum ID; this binds the complete trial contract including all measurement evidence, calibration, time, quality and uncertainty fields.",
+    "sampled_assignments_digest": "SHA-256 over domain-separated randomization-frame digest, algorithm ID, seed, draw count and each sampled allocation encoded in canonical unit-ID order",
+    "row_order": "Unit and stratum input row order must not change the frame digest, sampled-assignment digest or p-value.",
+    "prng": "SplitMix64 constants and wrapping semantics are frozen by a Rust golden-vector test. It is a reproducible simulation PRNG, not a cryptographic generator.",
+    "seed_nonclaim": "A seed digest or reproducible stream does not prove the seed was generated without bias or that the real-world trial was randomized correctly."
+  },
+  "hard_gates": [
+    "The input trial must pass the blocked-randomized trial contract from #5111.",
+    "Only the blocked allocation actually declared by the frozen trial is sampled.",
+    "Each sampled stratum assignment must preserve the exact planned treatment and control counts.",
+    "Sampling must be uniform over the admissible fixed-count assignment space.",
+    "Bounded integer generation must use rejection rather than biased modulo reduction.",
+    "The PRNG algorithm identifier and implementation version are explicit and frozen.",
+    "The unsigned 64-bit seed and fixed draw count are included in the result.",
+    "The draw count must be between 100 and 2,000,000 inclusive.",
+    "The number of independent units must not exceed 10,000.",
+    "The total work product of draws multiplied by units must not exceed 100,000,000.",
+    "The two-sided tail statistic and 1e-12 tie tolerance are fixed by protocol.",
+    "The plus-one correction must never return a zero p-value.",
+    "The uncorrected tail estimate and plus-one p-value are reported as distinct fields.",
+    "Monte Carlo standard error is reported separately from treatment-effect sampling standard error.",
+    "The Wilson 95% interval describes the tail probability, not the ATE.",
+    "The canonical randomization-frame digest binds trial identity, plan digest, allocation, units, observed assignments and outcomes.",
+    "The sampled-assignment digest binds the canonical frame, algorithm, seed, draw count and ordered sampled assignments.",
+    "Repeated execution with the same version, seed, draw count and trial inputs must reproduce byte-identical digests and p-value.",
+    "Reordering observations or allocation rows must not change the canonical replay outputs.",
+    "The exact-enumeration flag remains false for this Monte Carlo module.",
+    "For small assignment spaces, Monte Carlo results are differentially compared with the exact #5111 Fisher reference.",
+    "The test suite freezes SplitMix64 output with golden vectors.",
+    "A fixed draw budget is used; no data-dependent early stopping is allowed.",
+    "A work-budget failure must occur before any sampling begins.",
+    "Allocation constraint violations are counted and must remain zero.",
+    "The result cannot authorize maintenance, physical restoration or operating-restriction clearance.",
+    "The canonical frame digest binds the complete validated trial object, including all source, calibration, timestamp, measurement-quality and uncertainty metadata.",
+    "A valid input exceeding 10,000 independent units must be rejected before randomization sampling.",
+    "The optional performance harness uses a fixed seed and draw budget across declared unit sizes and reports observed throughput without enforcing or inventing a machine-independent speed threshold.",
+    "Every generated assignment is independently recounted against all frozen per-stratum treatment/control counts before statistic evaluation and digesting.",
+    "Any detected block-allocation violation fails closed; a successful result can report only zero verified violations.",
+    "A zero-exceedance draw set reports the plus-one minimum p-value 1/(B+1), never p = 0.",
+    "The v0.1 benchmark harness reports elapsed time and draw throughput with runner/CPU metadata; it does not claim peak-memory measurements.",
+    "The result JSON Schema is validated against a checked-in synthetic example result payload.",
+    "Both config and result schemas admit the exact full unsigned-64-bit maximum seed and reject values outside the u64 range.",
+    "A frozen 200-seed regression panel compares each Monte Carlo Wilson interval against the exact Fisher tail probability; its 90% minimum coverage assertion is a deterministic regression guard, not a claim of global nominal coverage."
+  ],
+  "comparators": [
+    {
+      "id": "exact_fisher_enumeration",
+      "role": "reference",
+      "max_units": 16
+    },
+    {
+      "id": "monte_carlo_splitmix64_v1",
+      "role": "scalable_fixed_budget_estimator"
+    },
+    {
+      "id": "naive_modulo_sampling",
+      "role": "rejected_negative_control"
+    },
+    {
+      "id": "unseeded_or_runtime_random",
+      "role": "rejected_non_reproducible_control"
+    },
+    {
+      "id": "data_dependent_early_stopping",
+      "role": "rejected_post_hoc_control"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "MC01",
+      "scenario": "Same seed, PRNG, draw budget and inputs reproduce the exact output and sampled assignment digest.",
+      "expected": "deterministic_replay"
+    },
+    {
+      "case_id": "MC02",
+      "scenario": "A different seed changes the sampled assignment digest.",
+      "expected": "distinct_random_stream"
+    },
+    {
+      "case_id": "MC03",
+      "scenario": "The plus-one correction never reports p = 0.",
+      "expected": "positive_finite_sample_p_value"
+    },
+    {
+      "case_id": "MC04",
+      "scenario": "A small blocked trial's Monte Carlo tail interval is checked against exact Fisher enumeration.",
+      "expected": "differential_exact_reference"
+    },
+    {
+      "case_id": "MC05",
+      "scenario": "A 17-unit blocked trial is supported beyond the exact 16-unit enumeration limit.",
+      "expected": "monte_carlo_scaling"
+    },
+    {
+      "case_id": "MC06",
+      "scenario": "Draw counts below/above frozen bounds are rejected.",
+      "expected": "invalid_draw_count"
+    },
+    {
+      "case_id": "MC07",
+      "scenario": "The SplitMix64 implementation matches frozen golden vectors.",
+      "expected": "prng_version_integrity"
+    },
+    {
+      "case_id": "MC08",
+      "scenario": "Reordering input rows does not change canonical frame or assignment stream digest.",
+      "expected": "canonical_row_order_invariance"
+    },
+    {
+      "case_id": "MC09",
+      "scenario": "A request exceeding the total unit-draw work budget fails before sampling.",
+      "expected": "work_budget_rejected"
+    },
+    {
+      "case_id": "MC10",
+      "scenario": "Within a fixed-count stratum the sampler covers all small subsets at approximately uniform frequencies.",
+      "expected": "uniform_block_sampling"
+    },
+    {
+      "case_id": "MC11",
+      "scenario": "Every sampled assignment preserves each frozen block allocation.",
+      "expected": "zero_allocation_violations"
+    },
+    {
+      "case_id": "MC12",
+      "scenario": "Monte Carlo uncertainty is explicitly separated from the ATE sampling interval.",
+      "expected": "uncertainty_channel_separation"
+    },
+    {
+      "case_id": "MC13",
+      "scenario": "A valid blocked trial containing 10,001 independent units is rejected before Monte Carlo sampling.",
+      "expected": "unit_ceiling_rejected"
+    },
+    {
+      "case_id": "MC14",
+      "scenario": "An opt-in Rust benchmark sweeps fixed 1,000-draw trials at 16, 32, 64, 128, 256, 1,000 and 10,000 units and reports replay-bound throughput metadata.",
+      "expected": "performance_profile_recorded_without_claimed_sota"
+    }
+  ],
+  "metrics": [
+    "monte_carlo_p_value_absolute_error_vs_exact",
+    "wilson_interval_coverage_of_exact_tail_probability",
+    "monte_carlo_standard_error_calibration",
+    "sampled_assignment_digest_replay_rate",
+    "row_order_invariance_rate",
+    "allocation_constraint_violation_count",
+    "uniform_subset_frequency_deviation",
+    "work_budget_rejection_accuracy",
+    "draws_per_second",
+    "monte_carlo_interval_width",
+    "independent_block_constraint_rejection_rate",
+    "zero_exceedance_minimum_p_value_integrity",
+    "benchmark_elapsed_microseconds",
+    "benchmark_draws_per_second",
+    "benchmark_unit_draws_per_second",
+    "result_schema_example_validation",
+    "unsigned_64_bit_seed_boundary_validation",
+    "wilson_exact_tail_coverage_across_frozen_seed_panel"
+  ],
+  "aspirations_not_achieved": [
+    "100% byte-identical replay for identical version, seed and trial inputs.",
+    "Zero blocked-allocation violations.",
+    "Zero p = 0 outputs under plus-one correction.",
+    "At least 99% empirical coverage by the nominal 95% Monte Carlo interval across a large held-out set of exact-comparison trials, with its binomial uncertainty reported.",
+    "Median absolute p-value error decreases as the fixed draw budget increases on a frozen deterministic suite.",
+    "Row reordering has zero effect on canonical replay digests.",
+    "No data-dependent stopping or undisclosed PRNG changes."
+  ],
+  "claim_ceiling": "A pass establishes only reproducible fixed-budget Monte Carlo approximation of the declared blocked randomization distribution for the exact PRNG, seed, draw count and trial frame. It does not prove trial assignment authenticity, seed unbiasedness, causal assumptions, real-engine repair efficacy or permission to operate. The hosted throughput profile is hardware- and runner-specific and is not a cross-machine SOTA ranking. Peak memory is not measured by this v0.1 harness."
+}

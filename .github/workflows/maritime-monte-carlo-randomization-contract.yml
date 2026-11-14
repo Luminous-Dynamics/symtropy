@@ -1,0 +1,143 @@
+name: Maritime Monte Carlo Randomization Contract
+
+on:
+  pull_request:
+    branches: [research/maritime-maintenance-effect-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/monte_carlo_randomization.rs"
+      - "benchmarks/maritime-control-response/benches/monte_carlo_randomization.rs"
+      - "benchmarks/maritime-control-response/Cargo.toml"
+      - "benchmarks/maritime-control-response/src/lib.rs"
+      - "benchmarks/maritime-control-response/monte-carlo-randomization-*"
+      - "docs/tech/MARITIME_MONTE_CARLO_RANDOMIZATION_V0_1.md"
+      - ".github/workflows/maritime-monte-carlo-randomization-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-monte-carlo-randomization-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  monte-carlo-randomization-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned JSON Schema validator
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Validate Monte Carlo protocol, schemas and cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/maritime-control-response")
+          protocol = json.loads((root / "monte-carlo-randomization-v0.1.json").read_text())
+          config_schema = json.loads((root / "monte-carlo-randomization-config.schema.json").read_text())
+          result_schema = json.loads((root / "monte-carlo-randomization-result.schema.json").read_text())
+          result_example = json.loads((root / "monte-carlo-randomization-result.example.json").read_text())
+          corpus = json.loads((root / "monte-carlo-randomization-cases-v0.1.json").read_text())
+          Draft202012Validator.check_schema(config_schema)
+          Draft202012Validator.check_schema(result_schema)
+          Draft202012Validator(result_schema).validate(result_example)
+          max_u64 = 18446744073709551615
+          assert config_schema["properties"]["seed_u64"]["maximum"] == max_u64
+          assert result_schema["properties"]["seed_u64"]["maximum"] == max_u64
+          Draft202012Validator(config_schema).validate({"seed_u64": max_u64, "draw_count": 2_000_000})
+          assert protocol["schema_version"] == "symtropy-marine-monte-carlo-randomization-v0.1"
+          assert protocol["status"] == "protocol_only_not_executed"
+          assert protocol["algorithm"]["id"] == "splitmix64_v1"
+          assert protocol["algorithm"]["max_units"] == 10000
+          assert protocol["algorithm"]["max_draws"] == 2000000
+          assert protocol["algorithm"]["max_total_unit_draws"] == 100000000
+          assert len(protocol["hard_gates"]) >= 36
+          assert len(corpus["cases"]) == 17
+          assert len({case["case_id"] for case in corpus["cases"]}) == 17
+          assert config_schema["additionalProperties"] is False
+          assert result_schema["additionalProperties"] is False
+          assert "randomization_frame_sha256" in result_schema["required"]
+          assert "sampled_assignments_sha256" in result_schema["required"]
+          assert result_schema["properties"]["exact_enumeration_used"]["const"] is False
+          assert result_example["allocation_constraint_violations"] == 0
+          assert result_example["p_value_plus_one"] > 0
+          print("Monte Carlo randomization protocol/schema/case checks: PASS")
+          PY
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify full crate formatting
+        working-directory: benchmarks/maritime-control-response
+        run: cargo fmt -- --check
+
+      - name: Run complete library regression suite
+        working-directory: benchmarks/maritime-control-response
+        run: cargo test --locked --lib
+
+      - name: Execute fixed-budget throughput profile
+        working-directory: benchmarks/maritime-control-response
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p benchmark-artifacts
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "runner_os=${RUNNER_OS}"
+            echo "runner_arch=${RUNNER_ARCH}"
+            echo "runner_name=${RUNNER_NAME}"
+            rustc -Vv
+            uname -a
+            lscpu | sed -n '1,24p'
+          } > benchmark-artifacts/environment.txt
+          cargo bench --locked --bench monte_carlo_randomization > benchmark-artifacts/monte-carlo-throughput.jsonl
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("benchmark-artifacts/monte-carlo-throughput.jsonl")
+          rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+          expected_units = [16, 32, 64, 128, 256, 1000, 10000]
+          assert [row["unit_count"] for row in rows] == expected_units
+          for row in rows:
+              assert row["algorithm"] == "splitmix64_v1"
+              assert row["draw_count"] == 1000
+              assert row["unit_draws"] == row["unit_count"] * row["draw_count"]
+              assert row["allocation_constraint_violations"] == 0
+              assert row["exact_enumeration_used"] is False
+              assert row["seed_u64"] >= 0
+              assert len(row["randomization_frame_sha256"]) == 64
+              assert len(row["sampled_assignments_sha256"]) == 64
+          print(f"Validated {len(rows)} replay-complete throughput JSONL rows")
+          PY
+          cat benchmark-artifacts/monte-carlo-throughput.jsonl
+
+      - name: Upload throughput profile
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-monte-carlo-throughput-${{ github.sha }}
+          path: benchmarks/maritime-control-response/benchmark-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Run strict library and benchmark Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib --bench monte_carlo_randomization -- -D warnings
