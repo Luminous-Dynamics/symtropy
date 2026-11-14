@@ -1,0 +1,42 @@
+name: CivBench Humanity Atlas sidecar contract
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/schemas/CIVBENCH_TASK_EVALUATION_V0_1.schema.json"
+      - "docs/research/fixtures/civbench_atlas_sidecar_v0_1/**"
+      - "docs/research/CIVBENCH_TASK_EVALUATION_SIDECAR_V0_1.md"
+      - "scripts/research/validate_civbench_task_evaluation.py"
+      - "requirements-civbench-sidecar.txt"
+      - ".github/workflows/civbench-atlas-sidecar.yml"
+  push:
+    paths:
+      - "docs/research/schemas/CIVBENCH_TASK_EVALUATION_V0_1.schema.json"
+      - "docs/research/fixtures/civbench_atlas_sidecar_v0_1/**"
+      - "docs/research/CIVBENCH_TASK_EVALUATION_SIDECAR_V0_1.md"
+      - "scripts/research/validate_civbench_task_evaluation.py"
+      - "requirements-civbench-sidecar.txt"
+      - ".github/workflows/civbench-atlas-sidecar.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Humanity Atlas binding, sidecar schema and negative controls
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned schema and canonicalization tools
+        run: python -m pip install --disable-pip-version-check -r requirements-civbench-sidecar.txt
+
+      - name: Validate exact run schema, task sidecar, digests and tamper controls
+        run: python scripts/research/validate_civbench_task_evaluation.py

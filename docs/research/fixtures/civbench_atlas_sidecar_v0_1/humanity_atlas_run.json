@@ -1,0 +1,63 @@
+{
+  "schema_version": "humanity-atlas.run.v0.1",
+  "run_id": "civbench-synthetic-run-001",
+  "scenario_id": "civbench-synthetic-social-patterns",
+  "inputs": {
+    "scenario_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dataset_sha256": "7c32c509c73680acb66d547326db8db7507783d76f356e9ab8de9dc651b2e901",
+    "scenario_identity_kind": "scenario_document_bytes",
+    "resolved_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "resolved_params_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "selected_definition_source": "synthetic_fixture"
+  },
+  "engine": {
+    "adapter": "civbench-synthetic-adapter",
+    "engine_version": "0.1.0",
+    "model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "model_identity_kind": "full_model",
+    "source_revision": "synthetic-fixture-commit",
+    "definition_source": "synthetic_fixture"
+  },
+  "run_status": "completed",
+  "output_classification": "synthetic_fixture",
+  "deterministic": true,
+  "seed": 42,
+  "replicates": 30,
+  "outputs": [
+    {
+      "metric_id": "activity_mean",
+      "year": 0,
+      "unit": "posts/day",
+      "statistic": "mean",
+      "value": 12.5,
+      "sample_count": 30,
+      "time_basis": "scenario_relative_year"
+    }
+  ],
+  "validation": {
+    "status": "not_run",
+    "notes": [
+      "Synthetic contract fixture only; no empirical validation performed."
+    ],
+    "evidence": []
+  },
+  "warnings": [
+    "Synthetic fixture; not a model forecast or empirical result."
+  ],
+  "artifacts": [
+    {
+      "artifact_id": "civbench-task-evaluation",
+      "role": "civbench_task_evaluation",
+      "media_type": "application/json",
+      "artifact_ref": "civbench_task_evaluation.json",
+      "artifact_sha256": "f86fbb99bc941761f6cd0d0449a36e3cd52e43646198b23d42f962299aa2089a"
+    },
+    {
+      "artifact_id": "choice-frequency-distribution",
+      "role": "distributional_metric_payload",
+      "media_type": "text/csv",
+      "artifact_ref": "choice_frequency_distribution.csv",
+      "artifact_sha256": "58f00d7ac8c87d41e94f12c1203759940c9c54fdfaddc8d92dcbb4579fd6e5aa"
+    }
+  ]
+}
