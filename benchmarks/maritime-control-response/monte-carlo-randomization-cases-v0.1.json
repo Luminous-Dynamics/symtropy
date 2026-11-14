@@ -66,6 +66,11 @@
       "case_id": "MC13",
       "scenario": "A valid blocked trial containing 10,001 independent units is rejected before Monte Carlo sampling.",
       "expected": "unit_ceiling_rejected"
+    },
+    {
+      "case_id": "MC14",
+      "scenario": "The Rust benchmark harness executes the frozen unit-size matrix and emits throughput plus replay digests without a machine-independent performance threshold.",
+      "expected": "performance_profile_recorded_without_claimed_sota"
     }
   ]
 }
