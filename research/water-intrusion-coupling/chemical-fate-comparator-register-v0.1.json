@@ -1,0 +1,210 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-INTRUSION-CHEMICAL-FATE-T0",
+  "snapshot_date": "2026-11-14",
+  "evidence_class": "repository_paper_and_vendor_documentation_scope",
+  "evidence_ceiling": "documented_capabilities_and_repository_metadata_only_no_physical_chemical_qualification",
+  "interpretation_rules": [
+    "repository_or_paper_capability_is_not_independent_physical_qualification",
+    "exact_source_commit_and_dependency_versions_are_required",
+    "missing_parameter_or_unvalidated_water_matrix_means_indeterminate_not_inert",
+    "wall_and_bulk_species_are_distinct_with_distinct_units",
+    "pressure_driven_dynamic_quality_is_not_the_same_as_high_frequency_water_hammer",
+    "model_scope_and_enabled_options_must_be_recorded_for_each_trial"
+  ],
+  "references": [
+    {
+      "id": "epa_msx_repo",
+      "url": "https://github.com/USEPA/EPANETMSX",
+      "source_class": "official_open_source_repository"
+    },
+    {
+      "id": "epa_msx_manual",
+      "url": "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P10188CK.TXT",
+      "source_class": "official_EPA_user_manual",
+      "publication": "EPA/600/R-22/199, July 2023"
+    },
+    {
+      "id": "epa_msx_framework",
+      "url": "https://epanetmsx2manual.readthedocs.io/en/latest/2_framework.html",
+      "source_class": "official_manual_html"
+    },
+    {
+      "id": "epytc_repo",
+      "url": "https://github.com/SWIL-IITK/EPyT-C",
+      "source_class": "open_source_research_repository"
+    },
+    {
+      "id": "epanet_pmx_paper",
+      "url": "https://doi.org/10.1007/s11269-017-1760-0",
+      "source_class": "peer_reviewed_paper",
+      "date": "2017-07-25"
+    },
+    {
+      "id": "2026_review",
+      "url": "https://doi.org/10.1007/s41101-026-00568-z",
+      "source_class": "peer_reviewed_review",
+      "date": "2026-09-19"
+    }
+  ],
+  "comparators": [
+    {
+      "id": "epanet_msx_2_0",
+      "source_commit": "85a303dca05859389eced63fabd5ea145c096333",
+      "source_commit_url": "https://github.com/USEPA/EPANETMSX/commit/85a303dca05859389eced63fabd5ea145c096333",
+      "version": "2.0.0",
+      "license": "MIT; root license.txt",
+      "engine_dependency": "EPANET 2.2 submodule commit 1e2fc3d909c0df654ead95e6e98c3307ce1375b1",
+      "build": "CMake >=3.9; C/C++; Linux, Windows, macOS",
+      "regression_evidence": "GitHub Actions builds Windows, Ubuntu, Intel macOS and Apple Silicon, then runs a packaged example; CMake BUILD_TESTS option is commented out, so do not describe this as a broad unit-test suite.",
+      "features": [
+        "multiple bulk/mobile species",
+        "multiple wall/surface immobile species",
+        "kinetic rate expressions and equilibrium expressions represented as DAEs",
+        "Lagrangian segment transport with react/advect/mix/release/disperse steps",
+        "optional one-dimensional dispersion in v2.0",
+        "OpenMP parallel reaction and dispersion",
+        "improved mass-balance reporting"
+      ],
+      "scope_limits": [
+        "hydraulic engine is EPANET 2.2; no native pressure-driven water-hammer/transient intrusion solver",
+        "junction mixing is assumed complete and instantaneous",
+        "storage-node mixing is complete (alternative plug-flow storage schemes are available)",
+        "wall species do not exist in storage tanks; tank expressions cover bulk species only",
+        "bulk species use mass/volume units; wall species use mass/area; user owns unit conversions",
+        "segment cap and dispersion options affect numerical diffusion and require sensitivity testing"
+      ],
+      "qualification_requirements": [
+        "pin EPANET submodule and exact build options",
+        "test reaction ODE/DAE tolerances and segment/time-step convergence",
+        "verify bulk/wall exchange and pipe-material surface-area binding",
+        "verify tank mixing assumption against target facility",
+        "test dispersion on/off and Peclet/segment limits",
+        "compare against blind multi-matrix laboratory time series"
+      ]
+    },
+    {
+      "id": "epytc_1_0_0",
+      "source_commit": "e86750c27b4da66c752c2916715707904040a7f9",
+      "source_commit_url": "https://github.com/SWIL-IITK/EPyT-C/commit/e86750c27b4da66c752c2916715707904040a7f9",
+      "version": "1.0.0",
+      "license": "MIT; repository LICENSE",
+      "language": "Python research comparator only; not adopted as production runtime",
+      "hydraulic_dependency": "EPyT interface to EPANET 2.2",
+      "method": "one-dimensional advection-reactive equations solved with explicit Method of Characteristics plus fourth-order Runge-Kutta",
+      "modules": [
+        "chlorine decay and trihalomethanes formation",
+        "bacterial regrowth",
+        "arsenite oxidation and arsenate attachment/detachment",
+        "PFOA formation"
+      ],
+      "flexibility_features": [
+        "time-varying source quality",
+        "randomized injection/source patterns",
+        "random perturbations of reaction-rate coefficients",
+        "configurable timestep and velocity tolerance"
+      ],
+      "regression_evidence": {
+        "test_files": 5,
+        "os_matrix": [
+          "Ubuntu",
+          "macOS",
+          "Windows"
+        ],
+        "python_versions": [
+          "3.9",
+          "3.10",
+          "3.11"
+        ],
+        "workflow_actions": [
+          "install requirements",
+          "pip install package",
+          "run five test scripts",
+          "run sample",
+          "run first example notebook"
+        ],
+        "caveat": "tests use fixed Net3 topology and prescribed assertions; they are software regression evidence, not physical reaction-rate transfer validation"
+      },
+      "scope_limits": [
+        "hydraulics supplied by EPANET 2.2, not high-frequency water hammer or a native defect-ingress model",
+        "mechanistic modules require matrix-specific calibration and blind laboratory validation",
+        "MOC/RK4 concentration solver requires timestep and spatial refinement analysis",
+        "Python research artefact; no production stack dependency proposed"
+      ],
+      "qualification_requirements": [
+        "pin exact EPyT package and EPANET 2.2 binaries",
+        "reproduce Net1/Net3 with exact network blob and module configuration",
+        "verify timestep and velocity-tolerance convergence",
+        "run blind multi-water-matrix chemistry and material tests",
+        "report parent/product mass recovery and wall/bulk transfer separately"
+      ]
+    },
+    {
+      "id": "epanet_pmx_2017",
+      "source": "Seyoum and Tanyimboh, Water Resources Management 31, 4485–4503 (2017)",
+      "doi": "10.1007/s11269-017-1760-0",
+      "source_class": "paper_only_comparator",
+      "features": [
+        "pressure-driven hydraulics integrated with multispecies water-quality reactions",
+        "steady-state and dynamic simulations",
+        "multiple simultaneous chemical substances and reaction kinetics"
+      ],
+      "scope_limits": [
+        "no maintained public source/build/test artefact verified in this snapshot",
+        "dynamic water-quality does not establish high-frequency water hammer, cavitation or column-separation support",
+        "published model claims require independent reproduction and physical validation"
+      ],
+      "qualification_requirements": [
+        "obtain executable source and exact revision or reproduce equations independently",
+        "pin pressure-driven demand and hydraulic solver configuration",
+        "separate pressure-driven network dynamics from sub-second water-hammer wave propagation",
+        "compare multi-species concentrations and pressure-deficient scenarios against independent measurements"
+      ]
+    },
+    {
+      "id": "standard_epanet_2_2_quality",
+      "version": "2.2",
+      "source_class": "official_baseline",
+      "features": [
+        "single-species water-quality transport",
+        "Lagrangian water-quality segment transport",
+        "single-species reactions under supported EPANET quality assumptions"
+      ],
+      "scope_limits": [
+        "not a simultaneous multi-species reactive network",
+        "not an intrusion-flow model",
+        "not a high-frequency pressure-transient solver",
+        "standard mixing and reaction assumptions must be declared"
+      ],
+      "qualification_requirements": [
+        "use only as a matched baseline for supported single-species cases",
+        "do not compare against a multi-species solver on unmatched species count"
+      ]
+    }
+  ],
+  "fair_comparison_fields": [
+    "source_revision_engine_revision_and_dependency_lock",
+    "species_ids_molecular_or_conserved_moiety_basis_and_units",
+    "bulk_wall_and_tank_phase_configuration",
+    "reaction_stoichiometry_rate_laws_and_equilibrium_constraints",
+    "water_matrix_id_temperature_ph_alkalinity_ionic_strength_and_disinfectant_residual",
+    "pipe_material_age_surface_area_to_volume_and_wall_transfer",
+    "hydraulic_time_series_source_and_pressure_driven_status",
+    "junction_tank_mixing_and_dispersion_options",
+    "reaction_solver_tolerance_and_time_step_segment_refinement",
+    "raw_lab_measurement_methods_detection_limits_and_uncertainty",
+    "parent_product_and_total_conserved_moiety_mass_recovery",
+    "runtime_memory_and_parallelism",
+    "model_scope_refusals_and_missing_parameters"
+  ],
+  "benchmark_hard_gates": [
+    "no reaction_rate_transfer_without_matrix_and_temperature_pH_basis",
+    "no missing_species_or_stream_treated_as_zero",
+    "parent_compound_mass_balance_is_distinct_from_conserved_moiety_balance",
+    "bulk_species_and_wall_species_units_are_not_interchanged",
+    "tank_wall_species_are_not_claimed_by_MSX",
+    "pressure_driven_dynamic_quality_is_not_called_water_hammer",
+    "no model output is labelled a laboratory observation",
+    "no T0 result authorizes potability or release"
+  ]
+}
