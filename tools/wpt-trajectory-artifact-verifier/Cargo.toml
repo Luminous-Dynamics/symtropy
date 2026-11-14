@@ -1,0 +1,12 @@
+[package]
+name = "wpt-trajectory-artifact-verifier"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Independent byte-digest, coordinate-transform and clock-alignment verifier for WPT trajectory bundles"
+
+[dependencies]
+base64 = "0.21.7"
+serde_json = "1.0"
+sha2 = "0.10.9"
