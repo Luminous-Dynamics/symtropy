@@ -14,6 +14,7 @@ const RPM_TO_RAD_S: f64 = std::f64::consts::TAU / 60.0;
 pub enum ModelError {
     NonFiniteInput(&'static str),
     NonFiniteResult(&'static str),
+    NonPositiveResult(&'static str),
     NonPositiveInput(&'static str),
     NegativeInput(&'static str),
     BodyCrossesRotationAxis,
@@ -24,6 +25,7 @@ impl fmt::Display for ModelError {
         match self {
             Self::NonFiniteInput(name) => write!(f, "{name} must be finite"),
             Self::NonFiniteResult(name) => write!(f, "{name} result is not finite"),
+            Self::NonPositiveResult(name) => write!(f, "{name} result is not positive"),
             Self::NonPositiveInput(name) => write!(f, "{name} must be greater than zero"),
             Self::NegativeInput(name) => write!(f, "{name} must be non-negative"),
             Self::BodyCrossesRotationAxis => {
@@ -48,6 +50,15 @@ fn require_finite_result(value: f64, name: &'static str) -> Result<(), ModelErro
         Ok(())
     } else {
         Err(ModelError::NonFiniteResult(name))
+    }
+}
+
+fn require_positive_result(value: f64, name: &'static str) -> Result<(), ModelError> {
+    require_finite_result(value, name)?;
+    if value > 0.0 {
+        Ok(())
+    } else {
+        Err(ModelError::NonPositiveResult(name))
     }
 }
 
@@ -107,7 +118,7 @@ pub fn radius_for_gravity_m(target_g: f64, rpm: f64) -> Result<f64, ModelError> 
     require_positive(rpm, "rpm")?;
     let omega = angular_velocity_rad_s(rpm)?;
     let radius = target_g * STANDARD_GRAVITY_M_S2 / (omega * omega);
-    require_finite_result(radius, "radius_for_gravity_m")?;
+    require_positive_result(radius, "radius_for_gravity_m")?;
     Ok(radius)
 }
 
@@ -117,7 +128,7 @@ pub fn rpm_for_gravity(target_g: f64, radius_m: f64) -> Result<f64, ModelError> 
     require_positive(radius_m, "radius_m")?;
     let omega = (target_g * STANDARD_GRAVITY_M_S2 / radius_m).sqrt();
     let rpm = omega / RPM_TO_RAD_S;
-    require_finite_result(rpm, "rpm_for_gravity")?;
+    require_positive_result(rpm, "rpm_for_gravity")?;
     Ok(rpm)
 }
 
@@ -349,6 +360,8 @@ mod tests {
         assert!(radius_for_gravity_m(1e-300, 1e-300).is_err());
         assert!(coriolis_apparent_acceleration([0.0, 0.0, 1e308], [1e308, 0.0, 0.0]).is_err());
         assert!(rotational_kinetic_energy_j(1e308, 100.0).is_err());
+        assert!(radius_for_gravity_m(1.0, f64::MAX).is_err());
+        assert!(rpm_for_gravity(f64::MIN_POSITIVE, f64::MAX).is_err());
     }
 
     #[test]
