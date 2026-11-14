@@ -45,6 +45,8 @@ jobs:
         run: cargo clippy --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all-targets -- -D warnings
       - name: Run deterministic coordinate ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example coordinate_ladder
+      - name: Run cubic-versus-quartic metric congruence scaling ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example congruence_scaling_ladder
       - name: Run Delassus constraint-space coordinate ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
       - name: Run deterministic metric-layer microbenchmark
