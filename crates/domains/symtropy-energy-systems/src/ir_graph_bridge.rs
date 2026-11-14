@@ -8,7 +8,7 @@ use crate::{
     ClaimDomain, ClaimState, GraphEvidence, GraphEvidenceState, GraphMaturity,
     GraphRevision, IrObject, IrRelationship, NamespacedType, PowerFabricDocument,
     RelationshipDirection, ServiceEdge, ServiceEdgeKind, ServiceGraph,
-    ServiceGraphError, ServiceNode, ServiceNodeKind,
+    ModuleIdentity, ServiceGraphError, ServiceNode, ServiceNodeKind,
 };
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -64,6 +64,7 @@ pub struct IrGraphMappingProfile {
     relationship_kind_map: BTreeMap<NamespacedType, ServiceEdgeKind>,
     domain_evidence_map: BTreeMap<ClaimDomain, GraphEvidenceState>,
     object_evidence_claim_ids: BTreeMap<String, String>,
+    object_module_identities: BTreeMap<String, ModuleIdentity>,
 }
 
 impl IrGraphMappingProfile {
@@ -74,6 +75,7 @@ impl IrGraphMappingProfile {
         relationship_kind_map: BTreeMap<NamespacedType, ServiceEdgeKind>,
         domain_evidence_map: BTreeMap<ClaimDomain, GraphEvidenceState>,
         object_evidence_claim_ids: BTreeMap<String, String>,
+        object_module_identities: BTreeMap<String, ModuleIdentity>,
     ) -> Result<Self, GraphBridgeError> {
         let profile_id = profile_id.into();
         let profile_version = profile_version.into();
@@ -90,9 +92,12 @@ impl IrGraphMappingProfile {
             require_non_empty("evidence_selection_object_id", object_id)?;
             require_non_empty("evidence_selection_claim_id", claim_id)?;
         }
+        for object_id in object_module_identities.keys() {
+            require_non_empty("module_binding_object_id", object_id)?;
+        }
         Ok(Self {
             profile_id, profile_version, object_kind_map, relationship_kind_map,
-            domain_evidence_map, object_evidence_claim_ids,
+            domain_evidence_map, object_evidence_claim_ids, object_module_identities,
         })
     }
 
@@ -107,6 +112,7 @@ pub struct ObjectMappingReceipt {
     target_kind: ServiceNodeKind,
     selected_evidence_claim_id: Option<String>,
     evidence_state: GraphEvidenceState,
+    module_identity: Option<ModuleIdentity>,
 }
 impl ObjectMappingReceipt {
     pub fn object_id(&self) -> &str { &self.object_id }
@@ -114,6 +120,7 @@ impl ObjectMappingReceipt {
     pub const fn target_kind(&self) -> ServiceNodeKind { self.target_kind }
     pub fn selected_evidence_claim_id(&self) -> Option<&str> { self.selected_evidence_claim_id.as_deref() }
     pub const fn evidence_state(&self) -> GraphEvidenceState { self.evidence_state }
+    pub fn module_identity(&self) -> Option<&ModuleIdentity> { self.module_identity.as_ref() }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -199,6 +206,11 @@ pub fn compile_ir_to_service_graph(
     profile: &IrGraphMappingProfile,
     context: GraphCompileContext,
 ) -> Result<IrGraphCompilation, GraphBridgeError> {
+    for object_id in profile.object_module_identities.keys() {
+        if !document.objects().contains_key(object_id) {
+            return Err(GraphBridgeError::ModuleBindingObjectUnknown { object_id: object_id.clone() });
+        }
+    }
     for (object_id, claim_id) in &profile.object_evidence_claim_ids {
         let object = document.objects().get(object_id).ok_or_else(|| {
             GraphBridgeError::EvidenceSelectionObjectUnknown { object_id: object_id.clone() }
@@ -223,15 +235,21 @@ pub fn compile_ir_to_service_graph(
         })?;
         let (evidence, selected_claim_id, gap) = map_object_evidence(object, object_id, profile)?;
         if let Some(gap) = gap { evidence_gaps.push(gap); }
-        nodes.push(ServiceNode::new(
+        let mut node = ServiceNode::new(
             object.identity().stable_id(), target_kind, object.identity().stable_id(), evidence.clone(),
-        ).map_err(GraphBridgeError::ServiceGraph)?);
+        ).map_err(GraphBridgeError::ServiceGraph)?;
+        let module_identity = profile.object_module_identities.get(object_id).cloned();
+        if let Some(identity) = module_identity.clone() {
+            node = node.with_module_identity(identity);
+        }
+        nodes.push(node);
         object_mappings.push(ObjectMappingReceipt {
             object_id: object_id.clone(),
             source_kind: object.kind().clone(),
             target_kind,
             selected_evidence_claim_id: selected_claim_id,
             evidence_state: evidence.state(),
+            module_identity,
         });
     }
 
@@ -385,6 +403,7 @@ pub enum GraphBridgeError {
     UnknownEvidenceStateMapping { domain: ClaimDomain },
     EvidenceSelectionObjectUnknown { object_id: String },
     EvidenceSelectionClaimUnknown { object_id: String, claim_id: String },
+    ModuleBindingObjectUnknown { object_id: String },
     UnmappedObjectKind { object_id: String, namespace: String, local_name: String },
     UnmappedRelationshipKind { relationship_id: String, namespace: String, local_name: String },
     UnsupportedRelationshipDirection { relationship_id: String, direction: RelationshipDirection },
@@ -425,7 +444,8 @@ mod tests {
             BTreeMap::from([(ns("utility_source"),ServiceNodeKind::UtilitySource),(ns("load"),ServiceNodeKind::Load)]),
             BTreeMap::from([(ns("power_path"),ServiceEdgeKind::PowerPath)]),
             BTreeMap::from([(ClaimDomain::Declared,GraphEvidenceState::DesignDeclared)]),
-            BTreeMap::from([("source:grid".into(),"claim:source".into()),("load:lighting".into(),"claim:load".into())])
+            BTreeMap::from([("source:grid".into(),"claim:source".into()),("load:lighting".into(),"claim:load".into())]),
+            BTreeMap::new()
         ).unwrap()
     }
     fn ctx(maturity: GraphMaturity, state: GraphEvidenceState) -> GraphCompileContext {
@@ -553,9 +573,81 @@ mod tests {
         assert!(matches!(IrGraphMappingProfile::new("p","v",
             BTreeMap::from([(ns("load"),ServiceNodeKind::Load)]),
             BTreeMap::from([(ns("association"),ServiceEdgeKind::PhysicalAssociation)]),
-            BTreeMap::from([(ClaimDomain::Declared,GraphEvidenceState::Unknown)]),BTreeMap::new()),
+            BTreeMap::from([(ClaimDomain::Declared,GraphEvidenceState::Unknown)]),BTreeMap::new(),BTreeMap::new()),
             Err(GraphBridgeError::UnknownEvidenceStateMapping{..})));
     }
+
+    #[test]
+    fn module_configuration_identity_is_preserved_and_stale_state_surfaces() {
+        let mut p = profile();
+        p.object_module_identities.insert(
+            "source:grid".into(),
+            ModuleIdentity::new(
+                "module:hybrid-inverter",
+                "hardware:R2",
+                "sha256:old-config",
+                false,
+            ).unwrap(),
+        );
+        let result = compile_ir_to_service_graph(
+            &doc(RelationshipDirection::Directed),
+            &p,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+        ).unwrap();
+
+        let node = result.graph().node("source:grid").unwrap();
+        let identity = node.module_identity().unwrap();
+        assert_eq!(identity.module_id(), "module:hybrid-inverter");
+        assert_eq!(identity.hardware_revision(), "hardware:R2");
+        assert_eq!(identity.configuration_digest(), "sha256:old-config");
+        assert!(!identity.configuration_current());
+        assert_eq!(
+            result.report().object_mappings().iter()
+                .find(|receipt| receipt.object_id() == "source:grid")
+                .unwrap().module_identity().unwrap().module_id(),
+            "module:hybrid-inverter"
+        );
+
+        let assessment = result.graph().assess_declared_source_paths();
+        assert_eq!(assessment.stale_module_configurations().len(), 1);
+        assert_eq!(
+            assessment.stale_module_configurations()[0].module_id(),
+            "module:hybrid-inverter"
+        );
+    }
+
+    #[test]
+    fn module_binding_to_missing_ir_object_blocks_compilation() {
+        let mut p = profile();
+        p.object_module_identities.insert(
+            "asset:missing".into(),
+            ModuleIdentity::new("module:missing", "hw:1", "sha256:config", true).unwrap(),
+        );
+        assert!(matches!(
+            compile_ir_to_service_graph(
+                &doc(RelationshipDirection::Directed),
+                &p,
+                ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            ),
+            Err(GraphBridgeError::ModuleBindingObjectUnknown { .. })
+        ));
+    }
+
+    #[test]
+    fn current_module_configuration_is_not_reported_as_stale() {
+        let mut p = profile();
+        p.object_module_identities.insert(
+            "source:grid".into(),
+            ModuleIdentity::new("module:inverter", "hw:R3", "sha256:current", true).unwrap(),
+        );
+        let result = compile_ir_to_service_graph(
+            &doc(RelationshipDirection::Directed),
+            &p,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+        ).unwrap();
+        assert!(result.graph().assess_declared_source_paths().stale_module_configurations().is_empty());
+    }
+
     #[test]
     fn invalid_evidence_selection_object_is_rejected() {
         let mut p=profile(); p.object_evidence_claim_ids.insert("missing".into(),"claim".into());
