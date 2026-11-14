@@ -81,6 +81,16 @@
       "case_id": "TT16",
       "scenario": "Missing or duplicated baseline covariate evidence or invalid evidence digest.",
       "expected": "not_identified_baseline_evidence"
+    },
+    {
+      "case_id": "TT17",
+      "scenario": "The declared cluster key is a telemetry row identity rather than the physical asset key.",
+      "expected": "protocol_incomplete_cluster_key"
+    },
+    {
+      "case_id": "TT18",
+      "scenario": "No reviewed sensitivity analysis is attached to the emulation diagnostic snapshot.",
+      "expected": "not_identified_sensitivity"
     }
   ]
 }
