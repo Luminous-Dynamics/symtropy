@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lead-lag RSSCT F0 synthetic design and sample-state inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "evidence_ceiling",
+    "units",
+    "scaling_cases",
+    "lead_lag_cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "lead-lag-rssct-f0-cases-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_adsorption_scaling_and_lead_lag_state"
+    },
+    "evidence_ceiling": {
+      "const": "synthetic_scaling_arithmetic_and_sample_state_only_no_adsorbent_or_water_quality_claim"
+    },
+    "units": {
+      "type": "object",
+      "required": [
+        "particle_size_scale_factor",
+        "full_scale_duration_days",
+        "small_scale_duration_days",
+        "concentration_ratio"
+      ]
+    },
+    "scaling_cases": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "particle_size_scale_factor",
+          "diffusivity_exponent",
+          "full_scale_duration_days"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^RSSCT-F0-[0-9]{3}-sf-[0-9]+-(CD|PD)$"
+          },
+          "particle_size_scale_factor": {
+            "type": "number",
+            "exclusiveMinimum": 1
+          },
+          "diffusivity_exponent": {
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "full_scale_duration_days": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "lead_lag_cases": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^LEADLAG-F0-[0-9]{3}-[a-z0-9-]+$"
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "analyte_claim_id",
+              "breakthrough_threshold_c_over_c0",
+              "lead_interstage_sample_state",
+              "lead_interstage_c_over_c0",
+              "lead_interstage_claim_binding_valid",
+              "final_outlet_sample_state",
+              "final_outlet_c_over_c0",
+              "final_outlet_claim_binding_valid",
+              "guard_bed_identity_verified",
+              "service_history_continuous"
+            ],
+            "properties": {
+              "analyte_claim_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "breakthrough_threshold_c_over_c0": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "lead_interstage_sample_state": {
+                "enum": [
+                  "no_sample",
+                  "accepted_quantified",
+                  "accepted_below_lod",
+                  "accepted_below_loq",
+                  "rejected_qc"
+                ]
+              },
+              "lead_interstage_c_over_c0": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "lead_interstage_claim_binding_valid": {
+                "type": "boolean"
+              },
+              "final_outlet_sample_state": {
+                "enum": [
+                  "no_sample",
+                  "accepted_quantified",
+                  "accepted_below_lod",
+                  "accepted_below_loq",
+                  "rejected_qc"
+                ]
+              },
+              "final_outlet_c_over_c0": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "final_outlet_claim_binding_valid": {
+                "type": "boolean"
+              },
+              "guard_bed_identity_verified": {
+                "type": "boolean"
+              },
+              "service_history_continuous": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
