@@ -45,3 +45,8 @@ All SHA-256 fields in the synthetic fixture are identifier-shaped placeholders. 
 
 - A 90 µm residual plus 5 µm observation uncertainty and 6 µm certificate uncertainty yields a 101 µm pointwise guard and HOLD against a 100 µm policy limit.
 - The sequence [0, 40, 40, 40] µm with observation uncertainties [50, 1, 1, 1] µm and 1 µm certificate uncertainty keeps each point below the 100 µm pointwise limit. With an EWMA limit of 39 µm, propagated uncertainty from the first observation makes the final EWMA guard exceed the limit; using only the latest sample uncertainty would understate the guard.
+
+
+### Fixed-point uncertainty rounding
+
+The EWMA residual estimate uses nearest rounding; the EWMA uncertainty bound uses ceiling on every fixed-point recurrence and adds one scaled unit to cover residual-update quantization. This keeps the propagated uncertainty one-sided/conservative rather than allowing a sequence of tiny downward roundings to reduce the guard.
