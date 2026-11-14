@@ -1,0 +1,84 @@
+{
+  "schema_version": "symtropy.flex-economics-known-truth.v1",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "currency": "USD",
+  "real_price_year": 2026,
+  "product_contract": {
+    "requested_power_kw": 1000,
+    "duration_hours": 2,
+    "scheduled_calls_per_year": 100,
+    "minimum_availability_lower_bound": 0.95,
+    "minimum_net_delivered_mwh_per_successful_call": 1.7,
+    "response_deadline_seconds": 60,
+    "rebound_included": true,
+    "pcc_metrology_qualified": true
+  },
+  "alternatives": [
+    {
+      "id": "compute-deferral",
+      "kind": "COMPUTE",
+      "service_gate_pass": true,
+      "availability_lower_bound": 0.96,
+      "net_delivered_mwh_lower_bound_per_success": 1.8,
+      "fixed_annual_cost": 10000,
+      "variable_cost_per_call": 100,
+      "opportunity_cost_per_call": 250,
+      "failure_penalty_per_call": 200,
+      "expected": {
+        "annual_cost": 45800,
+        "annual_net_delivered_mwh": 172.8,
+        "cost_per_reliable_delivered_mwh": 265.0462962962963
+      }
+    },
+    {
+      "id": "bess-ups",
+      "kind": "BESS",
+      "service_gate_pass": true,
+      "availability_lower_bound": 0.99,
+      "net_delivered_mwh_lower_bound_per_success": 1.96,
+      "fixed_annual_cost": 36000,
+      "variable_cost_per_call": 40,
+      "opportunity_cost_per_call": 0,
+      "failure_penalty_per_call": 200,
+      "expected": {
+        "annual_cost": 40200,
+        "annual_net_delivered_mwh": 194.04,
+        "cost_per_reliable_delivered_mwh": 207.17377860235004
+      }
+    },
+    {
+      "id": "cooling-thermal",
+      "kind": "THERMAL",
+      "service_gate_pass": true,
+      "availability_lower_bound": 0.97,
+      "net_delivered_mwh_lower_bound_per_success": 1.9,
+      "fixed_annual_cost": 8000,
+      "variable_cost_per_call": 160,
+      "opportunity_cost_per_call": 0,
+      "failure_penalty_per_call": 200,
+      "expected": {
+        "annual_cost": 24600,
+        "annual_net_delivered_mwh": 184.3,
+        "cost_per_reliable_delivered_mwh": 133.4780249593055
+      }
+    }
+  ],
+  "expected_comparison": {
+    "cheapest_eligible_alternative_by_cost_per_reliable_mwh": "cooling-thermal",
+    "cooling_thermal_cost_per_reliable_delivered_mwh_usd": 133.4780249593055,
+    "compute_break_even_opportunity_cost_per_call_usd": 22.650027129679913,
+    "compute_opportunity_cost_per_call_usd": 250,
+    "compute_is_least_cost": false
+  },
+  "negative_controls": [
+    "reject_alternative_that_fails_minimum_availability",
+    "reject_alternative_that_fails_response_latency_or_ramp",
+    "reject_nominal_gross_energy_when_rebound_reduces_net_energy",
+    "reject_missing_pcc_meter_uncertainty",
+    "reject_missing_fixed_capex_annualization_inputs",
+    "reject_currency_or_price_year_mismatch",
+    "reject_double_sold_capacity",
+    "reject_zero_delivered_energy",
+    "do_not_rank_ineligible_alternative_by_cost"
+  ]
+}

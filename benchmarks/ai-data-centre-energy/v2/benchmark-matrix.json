@@ -1,0 +1,433 @@
+{
+  "schema_version": "symtropy.ai-datacentre-flex-benchmark.v2",
+  "protocol": "AI-DC-FLEX-BENCH-002",
+  "protocol_version": "0.1",
+  "parent_issue": 3776,
+  "programme_issue": 3435,
+  "claim_classes": [
+    "SYNTHETIC_KNOWN_TRUTH",
+    "SOURCE_REPORTED",
+    "TRACE_REPLAY",
+    "SIMULATION",
+    "RECONSTRUCTED_MODEL",
+    "RMS_EMT",
+    "HIL",
+    "LABORATORY",
+    "FIELD_MEASURED"
+  ],
+  "normalization_rules": [
+    "same_hardware_model_precision_and_quality_for_efficiency_comparisons",
+    "same_useful_work_and_service_contract",
+    "same_grid_event_response_window_and_local_timebase",
+    "same_pcc_measurement_boundary_and_calibration_scope",
+    "same_forecast_issue_times_and_information_set",
+    "same_scenario_distribution_seeds_and_sample_budget",
+    "same_optimizer_compute_budget_and_stopping_tolerance",
+    "time_site_and_hardware_held_out_splits",
+    "never_mix_trace_model_results_with_field_measurements",
+    "never_promote_copperplate_adequacy_to_nodal_deliverability"
+  ],
+  "strategies": [
+    "static_tdp_schedule",
+    "fifo",
+    "earliest_deadline_first",
+    "gpu_clock_power_cap_only",
+    "latency_aware_workload_deferral",
+    "inter_data_centre_migration",
+    "battery_ups_only",
+    "cooling_thermal_storage_only",
+    "rule_based_hybrid",
+    "deterministic_milp",
+    "rolling_horizon_mpc",
+    "sample_average_cvar",
+    "distributionally_robust_cvar",
+    "robust_box",
+    "symtropy_hierarchical_optimizer"
+  ],
+  "benchmarks": [
+    {
+      "id": "correlated-fleet-risk",
+      "evidence_class": "TRACE_REPLAY",
+      "source": "AI-DC-FLEX-BENCH-002 / public trace adapters to be pinned",
+      "domain": "correlated_fleet_and_grid",
+      "baseline": "independent-site aggregation versus empirical joint time series and declared factor/state-space alternatives",
+      "target": "calibrated held-out aggregate ramp/variance/tail forecasts; reserve must cover measured common-mode and synchronized-release risk",
+      "primary_metrics": [
+        "aggregate_variance_error",
+        "ramp_quantile_error",
+        "tail_coverage",
+        "cross_site_lag_dependence",
+        "reserve_error",
+        "out_of_domain_abstention"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "economics-vs-bess",
+      "evidence_class": "SIMULATION",
+      "source": "https://www.iea.org/reports/powering-artificial-intelligence/executive-summary",
+      "domain": "cost_of_flexibility",
+      "baseline": "compute opportunity cost versus BESS/UPS/thermal storage/generator/network alternative",
+      "target": "compare compute, BESS/UPS and thermal alternatives only after service equivalence; use annualized fixed cost, expected variable cost and lower-bound net delivered MWh; publish break-even compute opportunity cost per event",
+      "primary_metrics": [
+        "annualized_fixed_cost",
+        "variable_cost_per_call",
+        "compute_opportunity_cost_per_call",
+        "expected_annual_cost",
+        "expected_annual_net_delivered_mwh",
+        "cost_per_reliably_delivered_mwh",
+        "minimum_availability_lower_bound",
+        "break_even_compute_opportunity_cost_per_call"
+      ],
+      "status": "COMPARATOR_PROTOCOL_AND_SYNTHETIC_FIXTURE_ADDED"
+    },
+    {
+      "id": "electrothermal-cooling-flex",
+      "evidence_class": "SIMULATION",
+      "source": "https://www.ashrae.org/technical-resources/topics-and-initiatives/ai-data-center/grid-interactive-design-demand-flexibility",
+      "domain": "cooling_and_thermal_state",
+      "baseline": "cooling-shift/thermal-storage strategy with coolant, temperature, water, auxiliary and recovery constraints",
+      "target": "compare against fixed-parasitic cooling and coupled electro-thermal baselines; no thermal/water violations",
+      "primary_metrics": [
+        "cooling_power_kw",
+        "max_temperature_c",
+        "thermal_margin_c",
+        "water_per_work",
+        "thermal_recovery_s",
+        "auxiliary_energy_wh"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "field-acm-interdc-migration",
+      "evidence_class": "FIELD_MEASURED",
+      "source": "https://doi.org/10.1145/3765611.3815063",
+      "domain": "inter_site_response",
+      "baseline": "operational cross-data-centre migration; response ordering depends on replication/remote access/on-demand copy, prelaunch and RO/RW semantics",
+      "target": "reproduce response ordering; claim strictest evaluated class only for pre-launched RO variants if measurements support it",
+      "primary_metrics": [
+        "command_to_stabilized_power_s",
+        "service_downtime_s",
+        "data_transfer_s",
+        "destination_capacity_margin",
+        "tracking_error",
+        "read_write_semantics"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "field-nature-25pct-3h",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1038/s41560-025-01927-1",
+      "domain": "compute_service_and_pcc_response",
+      "baseline": "256-GPU-class field demonstration; 25% import/power reduction sustained 3h with declared AI QoS",
+      "target": "reproduce under matched workload, hardware class, measurement boundary and QoS; stretch >=30% for 3h",
+      "primary_metrics": [
+        "pcc_reduction_fraction",
+        "sustained_duration_s",
+        "completed_useful_work",
+        "qos_violations",
+        "net_facility_energy_per_work",
+        "rebound_peak"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "grid-dynamic-stability",
+      "evidence_class": "RMS_EMT",
+      "source": "IEEE workload-driven power fluctuation and data-centre interconnection studies; utility profiles to be pinned",
+      "domain": "voltage_frequency_dynamic_performance",
+      "baseline": "no-flexibility, independent-site and correlation-aware load cases; local protection stays authoritative",
+      "target": "no degradation outside operator-approved envelopes; validated RMS/EMT and HIL receipts before any field stability claim",
+      "primary_metrics": [
+        "frequency_nadir_hz",
+        "rocof_hz_per_s",
+        "voltage_deviation_pu",
+        "settling_s",
+        "oscillation_damping",
+        "protection_events"
+      ],
+      "status": "NOT_IMPLEMENTED"
+    },
+    {
+      "id": "grid-response-delivery",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3649",
+      "domain": "dispatch_performance",
+      "baseline": "product-specific latency, sustained delivery, ramp, overshoot and signed under-delivery envelope",
+      "target": "repeated-call reliability and product-defined response/stability thresholds; no universal threshold invented",
+      "primary_metrics": [
+        "response_latency_s",
+        "time_to_stabilized_s",
+        "ramp_kw_per_s",
+        "tracking_error",
+        "availability",
+        "rebound_energy_wh",
+        "failed_call_probability"
+      ],
+      "status": "EXISTING_VERIFIER_REQUIRES_EXACT_HEAD_QUALIFICATION"
+    },
+    {
+      "id": "high-resolution-ai-training-traces-2026",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1038/s41597-026-07496-6",
+      "repository": "https://github.com/Ahmed-Elsayed95/High-resolution-AI-Data-Center-Training-Workloads-Dataset",
+      "dataset_doi": "https://doi.org/10.6084/m9.figshare.31654879.v1",
+      "domain": "accelerator_and_node_workload_dynamics",
+      "baseline": "32 sessions on 8-GPU H100/B200 nodes plus 40 RTX 3060 sessions; >1.8M samples; 15-minute sessions; 20ms node and 100ms single-machine samples",
+      "target": "use for per-GPU and GPU-sum node characterization only after license review; keep H100, B200 and RTX 3060 strata separate; never label GPU-sum node power as PCC",
+      "primary_metrics": [
+        "gpu_power_w",
+        "gpu_utilization",
+        "gpu_memory_utilization",
+        "gpu_temperature_c",
+        "node_gpu_sum_power_w",
+        "within_node_gpu_covariance",
+        "subsecond_ramp_kw_per_s",
+        "power_forecast_error"
+      ],
+      "scope_limits": [
+        "15-minute sessions do not qualify a 3-hour sustained field response",
+        "H100/B200 data is GPU-sum node power, not facility PCC power",
+        "RTX 3060 single-machine scope is not equivalent to a hyperscale facility",
+        "no ambient/cooling plant ground truth in the published trace",
+        "within-node synchronized GPU patterns are not cross-site dependence evidence",
+        "no dataset file is copied into Symtropy while the licence conflict is unresolved"
+      ],
+      "license_status": "UNRESOLVED_CONFLICT",
+      "license_evidence": {
+        "figshare_record": "CC BY 4.0 displayed on the DOI landing page",
+        "companion_github_readme": "states CC BY-NC-ND 4.0",
+        "action": "obtain author/licensor clarification before commercial use, derivative redistribution or committing dataset-derived artifacts"
+      },
+      "status": "SOURCE_METADATA_ONLY_LICENSE_REVIEW_REQUIRED",
+      "licence_status": "UNRESOLVED_CONFLICT",
+      "licence_evidence": [
+        {
+          "source": "https://doi.org/10.6084/m9.figshare.31654879.v1",
+          "reported_licence": "CC BY 4.0"
+        },
+        {
+          "source": "https://github.com/Ahmed-Elsayed95/High-resolution-AI-Data-Center-Training-Workloads-Dataset",
+          "reported_licence": "CC BY-NC-ND 4.0"
+        }
+      ]
+    },
+    {
+      "id": "mlperf-power-efficiency",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1109/MM.2026.3700126",
+      "domain": "compute_efficiency",
+      "baseline": "1841 submissions across 60 systems; tokens/J and samples/J",
+      "target": "first match best eligible result in identical hardware/model/precision/quality stratum; stretch >=5% improvement without quality loss",
+      "primary_metrics": [
+        "tokens_per_joule",
+        "samples_per_joule",
+        "useful_work_per_joule",
+        "quality_score",
+        "p99_latency",
+        "meter_boundary"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "pcc-metrology-known-truth",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3772",
+      "domain": "measurement_assurance",
+      "baseline": "linear gain-offset correction, covariance propagation, clock/quality/calibration validity and signed interval energy",
+      "target": "zero false passes when lower bound misses threshold; no hidden interpolation; every pass bound to calibration and timebase evidence",
+      "primary_metrics": [
+        "corrected_power_w",
+        "standard_uncertainty_w",
+        "paired_covariance",
+        "lower_bound_w",
+        "relative_expanded_uncertainty",
+        "net_reduction_wh",
+        "abstention_reason"
+      ],
+      "status": "IMPLEMENTATION_IN_REVIEW"
+    },
+    {
+      "id": "pras-09-adequacy-interop",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3750",
+      "domain": "multi_region_adequacy",
+      "baseline": "PRAS 0.9.0; initial pinned harness 42/42 passing assertions",
+      "target": "native ELCC method, matched seeds, repeated Monte Carlo, weather-year mixture, tail convergence and multi-region deliverability sensitivities",
+      "primary_metrics": [
+        "lole_event_periods",
+        "lold_event_days",
+        "lolh_hours",
+        "eue_mwh",
+        "energy_cvar",
+        "monte_carlo_standard_error",
+        "elcc_bounds_mw",
+        "tail_effective_sample_size"
+      ],
+      "status": "V0_1_HARNESS_PASSED_NATIVE_CAPACITY_CREDIT_NEXT"
+    },
+    {
+      "id": "trace-alibaba-lad-flex",
+      "evidence_class": "SOURCE_REPORTED",
+      "source": "https://doi.org/10.1016/j.ijepes.2026.111940",
+      "domain": "workload_deferral",
+      "baseline": "up to 22% load deferral in one-week trace-based case; >1M task records",
+      "target": "reproduce published filters and windows; stretch >=25% only with no SLA, queue, energy/work or rebound regression",
+      "primary_metrics": [
+        "deferred_load_fraction",
+        "deadline_miss_rate",
+        "p99_latency",
+        "queue_stability",
+        "backlog_clear_time",
+        "facility_energy_per_work",
+        "rebound_peak"
+      ],
+      "status": "REFERENCE_REQUIRED"
+    },
+    {
+      "id": "counterfactual-baseline-mv",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "source": "PR #3802 / GRID-BASELINE-MV-001",
+      "domain": "counterfactual_baseline_and_event_impact",
+      "baseline": "separate no-dispatch calibration and evaluation groups; block-minimum residual calibration; lower-bound holdout coverage and no-dispatch false-positive reduction rate",
+      "target": "zero future-information leakage; calibration/evaluation groups disjoint; per-regime holdout coverage above pre-registered minimum; false-positive reduction rate <=1% stretch; no event claim without declared recovery horizon",
+      "primary_metrics": [
+        "absolute_normalized_bias",
+        "normalized_mae",
+        "block_lower_residual_quantile_kw",
+        "holdout_block_coverage",
+        "false_positive_reduction_rate",
+        "event_baseline_lower_bound_kw",
+        "conservative_net_energy_kwh"
+      ],
+      "status": "IMPLEMENTATION_IN_REVIEW"
+    },
+    {
+      "id": "portfolio-joint-delivery-stress",
+      "evidence_class": "TRACE_REPLAY",
+      "source": "FLEX-PORTFOLIO-RESILIENCE-001 #3817 / implementation PR #3819",
+      "domain": "shared_failure_domain_and_joint_portfolio_delivery",
+      "baseline": "sum of marginal per-site event success rates and independence assumptions versus observed complete portfolio outcomes grouped by independent stress incident",
+      "target": "100% asset-event and domain-event panel completeness; preserve asset response and domain-state provenance; independent incident-group pass rates and worst group shortfall reported separately from dispatch-event pass rates",
+      "primary_metrics": [
+        "event_pass_fraction",
+        "incident_group_pass_fraction",
+        "worst_incident_group_margin_kw",
+        "maximum_event_shortfall_kw",
+        "empirical_upper_tail_mean_incident_shortfall_kw",
+        "largest_failure_domain_capacity_share",
+        "scenario_conditional_group_pass_fraction",
+        "missing_evidence_rejection_rate"
+      ],
+      "status": "IMPLEMENTATION_IN_REVIEW"
+    },
+    {
+      "id": "locational-network-deliverability",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH_THEN_INDEPENDENT_SOLVER",
+      "source": "GRID-LOC-DELIV-001 #3826; implementation PR #3827; IEA Electricity 2026 Grids; ESIG Large Loads RA April 2026",
+      "domain": "pcc_to_nodal_constraint_deliverability",
+      "baseline": "frozen topology and explicit PCC-bus binding, MVA base, branch reactance/rating, chronological injection trace and explicit N-1 outage set",
+      "target": "100% known-truth PTDF/flow agreement within declared tolerance; 100% fail-closed for stale topology/islanding/missing mapping; no DC screening result promoted to AC feasibility or N-1 capability",
+      "primary_metrics": [
+        "requested_response_mw",
+        "maximum_network_deliverable_mw",
+        "maximum_feasible_action_fraction",
+        "branch_flow_delta_mw",
+        "absolute_flow_relief_mw",
+        "binding_branch_margin_mw",
+        "n_1_feasibility",
+        "topology_abstention_rate"
+      ],
+      "status": "RUST_DC_SCREENING_CRATE_OPEN_CI_PENDING",
+      "claim_ceiling": "linear active-power DC screening only; not AC voltage/reactive feasibility, protection, RMS/EMT, distribution hosting capacity, market accreditation or ELCC"
+    },
+    {
+      "id": "large-load-disturbance-conformance",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH_THEN_OPERATOR_WAVEFORM_REPLAY",
+      "source": "GRID-DISTURBANCE-001 #3851; ESIG 2026 large-load modeling/disturbance/performance reports; CIGRE C4-10506-2026; NERC Large Loads Action Plan",
+      "domain": "pcc_voltage_frequency_ride_through_and_recovery",
+      "baseline": "frozen operator-specific voltage/frequency/RoCoF envelope, PCC waveform digest and measurement-chain limits",
+      "target": "100% boundary-fixture agreement; zero involuntary trips classified as intentional DR; fail closed on critical gaps, stale requirement and invalid timebase; no sub-cycle/EMT claim from RMS traces",
+      "primary_metrics": [
+        "voltage_ride_through_compliance",
+        "frequency_ride_through_compliance",
+        "rocof_tolerance",
+        "grid_connection_continuity",
+        "momentary_cessation_duration",
+        "post_fault_active_power_recovery_time",
+        "active_power_recovery_ramp",
+        "recovery_overshoot_fraction",
+        "reactive_power_envelope_compliance",
+        "pcc_current_limit_compliance",
+        "uncommanded_trip_false_credit_rate",
+        "waveform_abstention_rate"
+      ],
+      "status": "RUST_TRACE_CONFORMANCE_IMPLEMENTED_CI_PENDING",
+      "claim_ceiling": "observable PCC RMS trace conformance only; not converter internal stability, positive-sequence/EMT model validity, protection, harmonic compliance, interconnection certification, market accreditation or ELCC"
+    }
+  ],
+  "result_requirements": {
+    "mandatory_claim_fields": [
+      "claim_class",
+      "model_boundary",
+      "source_digest",
+      "data_split_digest",
+      "hardware_id",
+      "workload_contract_digest",
+      "pcc_boundary_id",
+      "calibration_id",
+      "timebase_id",
+      "scenario_digest",
+      "seed",
+      "sample_count",
+      "software_revision"
+    ],
+    "mandatory_uncertainty": [
+      "point_estimate",
+      "interval_or_standard_error",
+      "coverage_method",
+      "tail_convention",
+      "correlation_assumptions",
+      "abstention_count"
+    ],
+    "mandatory_cost_dimensions": [
+      "compute_opportunity_cost",
+      "storage_degradation",
+      "fuel_or_grid_energy",
+      "network_cost",
+      "cooling_water",
+      "emissions_boundary"
+    ],
+    "hard_gate_policy": "Safety, service, metrology and deliverability failures cannot be offset by improvements in another metric."
+  },
+  "claim_boundaries": [
+    "a trace-model result is not field evidence",
+    "a grid-facing import reduction is not necessarily facility energy efficiency",
+    "a copperplate adequacy pass is not nodal deliverability",
+    "a successful PRAS run is not NTCSA model reproduction",
+    "MLPerf tokens-per-joule is not grid-service qualification",
+    "a k-factor is not a universal confidence level",
+    "a software evaluator does not certify instrument transformers or grid-code compliance",
+    "the 15-minute H100/B200/RTX workload dataset is component/node evidence, not a facility PCC or three-hour field-response trace",
+    "a lower prediction bound calibrated on no-dispatch holdout data is model-based M&V, not causal identification or a joint event-horizon probability bound",
+    "the Figshare landing page and accompanying GitHub README report different licences for the high-resolution workload dataset; treat rights as unresolved until clarified by the rights holder",
+    "portfolio joint-delivery reports are empirical observed incident-panel results; event count and independent incident-group count are separate",
+    "failure-domain membership and state are descriptive observations, not causal failure attribution",
+    "overlapping failure-domain capacities must not be summed; V0.1 reports maximum single-domain capacity share rather than an unsupported HHI",
+    "site-meter response, network-deliverable response and probabilistic adequacy contribution are three different quantities",
+    "DC PTDF/LODF screening is not AC power-flow feasibility, distribution feeder validation, protection coordination or dynamic stability",
+    "N-0 deliverability cannot be promoted to N-1 firm deliverability without explicit contingency validation",
+    "uncommanded load trip during a voltage/frequency disturbance is not intentional demand response and must not earn flexibility credit",
+    "PCC RMS trace conformance does not prove sub-cycle converter stability, harmonic compliance or EMT model validity",
+    "disturbance performance is a separate qualification axis from dispatch flexibility",
+    "uncommanded load trip during a voltage/frequency disturbance is not intentional demand response and must never earn flexibility credit",
+    "PCC RMS trace conformance does not prove sub-cycle converter stability, harmonic compliance, unbalanced-fault response or EMT model validity",
+    "disturbance performance is a separate qualification axis from dispatch flexibility",
+    "a trace conformance requirement that includes reactive power or current must fail closed when the corresponding required measurement channels are missing",
+    "measurement bandwidth cannot exceed the observable Nyquist bandwidth implied by the declared sample cadence"
+  ],
+  "metadata": {
+    "benchmark_domain_count": 14
+  }
+}
