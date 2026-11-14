@@ -21,7 +21,7 @@ This is an engineering contract inspired by ISO 14253-1:2017, not a declaration 
 
 ## Frozen known-answer case
 
-Before value 200, after value 260, before/after measurement bounds 2 and 3, transform bound 1 and datum bound 2, all in symbolic area units:
+Before value 200, after value 260, before/after measurement bounds 2 and 3, transform bound 1 and datum bound 2, all in symbolic area units. Measurement units must match their budgets, the transform budget accepts only Registration terms and the datum budget accepts only Datum terms:
 
 - delta = 60;
 - conservative uncertainty = 2 + 3 + 1 + 2 = 8;
@@ -29,7 +29,7 @@ Before value 200, after value 260, before/after measurement bounds 2 and 3, tran
 - specification = [50, 70];
 - result = CONFORMING.
 
-A second case uses delta 55 and the same uncertainty; its interval [47,63] crosses the lower limit and therefore returns INDETERMINATE. It is not rounded or forced into acceptance.
+A boundary case uses delta 58 and the same uncertainty; [50,66] touches the inclusive lower limit and remains CONFORMING. A separate case uses delta 55 and the same uncertainty; [47,63] crosses the lower limit and therefore returns INDETERMINATE. It is not rounded or forced into acceptance.
 
 ## Baselines
 
@@ -49,4 +49,4 @@ A second case uses delta 55 and the same uncertainty; its interval [47,63] cross
 
 ## Claim ceiling
 
-The 22 deterministic unit tests exercise symbolic arithmetic, identity, source validity, interval propagation and decision classes only. They do not qualify an optical scanner, establish millimetre accuracy, parse physical scans, validate weld geometry, prove distortion, accept a weld or authorize production release.
+The 26 deterministic unit tests exercise symbolic arithmetic, identity, source validity, interval propagation and decision classes only. They do not qualify an optical scanner, establish millimetre accuracy, parse physical scans, validate weld geometry, prove distortion, accept a weld or authorize production release.
