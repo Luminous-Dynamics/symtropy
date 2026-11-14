@@ -1,0 +1,489 @@
+{
+  "schema_version": "recovery-trigger-contract-v0.1",
+  "issue": "RDO-004",
+  "status": "synthetic-boundary-fixtures",
+  "trigger_count": 12,
+  "claim_ceiling": {
+    "expected_actuation": false,
+    "real_world_measurements": false,
+    "field_accuracy_claimed": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "evaluator_order": [
+    "criteria_regime_version_match",
+    "unit_match",
+    "observation_age_and_coverage",
+    "previous_state_dependent_hysteresis_predicate",
+    "remaining_response_lead_time",
+    "review_only_disposition"
+  ],
+  "semantics": {
+    "enter_predicate": "previous_state=inactive => evaluate profile.enter operator against threshold",
+    "exit_predicate": "previous_state=active => evaluate profile.exit operator against threshold; true means cleared",
+    "stale_boundary": "age_minutes > max_observation_age_minutes is stale; equality is fresh",
+    "coverage_boundary": "coverage_ratio >= minimum_coverage_ratio is sufficient",
+    "deadline_boundary": "an active trigger is late when remaining_time_to_boundary_minutes < required_response_lead_time_minutes",
+    "profile_change": "current_decision_regime_version different from trigger_profile.criteria_version forces reassessment before trigger evaluation",
+    "trigger_authority": "review and re-evaluation only; no direct operation",
+    "all_values_synthetic": true
+  },
+  "cases": [
+    {
+      "id": "TRG-001-FOREST-ENTER-AT-BOUNDARY",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 10,
+        "unit": "wind_gust_mps",
+        "age_minutes": 5,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-001/weather",
+        "capture_id": "synthetic-capture-001"
+      },
+      "expected_outcome": "TRIGGER_ACTIVE_REVIEW_REQUIRED",
+      "expected_reason_code": "ENTRY_THRESHOLD_MET_REVIEW_ONLY",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-002-FOREST-JUST-BELOW-ENTRY",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 9.99,
+        "unit": "wind_gust_mps",
+        "age_minutes": 5,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-002/weather",
+        "capture_id": "synthetic-capture-002"
+      },
+      "expected_outcome": "NO_TRIGGER",
+      "expected_reason_code": "ENTRY_THRESHOLD_NOT_MET",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-003-FOREST-HYSTERESIS-INSIDE-BAND",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 7,
+        "unit": "wind_gust_mps",
+        "age_minutes": 5,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "active",
+        "evidence_ref": "synthetic://TRG-003/weather",
+        "capture_id": "synthetic-capture-003"
+      },
+      "expected_outcome": "TRIGGER_ACTIVE_REVIEW_REQUIRED",
+      "expected_reason_code": "EXIT_THRESHOLD_NOT_MET",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-004-FOREST-EXIT-AT-BOUNDARY",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 6,
+        "unit": "wind_gust_mps",
+        "age_minutes": 5,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "active",
+        "evidence_ref": "synthetic://TRG-004/weather",
+        "capture_id": "synthetic-capture-004"
+      },
+      "expected_outcome": "TRIGGER_ACTIVE_REVIEW_REQUIRED",
+      "expected_reason_code": "EXIT_THRESHOLD_NOT_MET",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-005-FOREST-EXIT-BELOW-BOUNDARY",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 5.99,
+        "unit": "wind_gust_mps",
+        "age_minutes": 5,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "active",
+        "evidence_ref": "synthetic://TRG-005/weather",
+        "capture_id": "synthetic-capture-005"
+      },
+      "expected_outcome": "TRIGGER_CLEARED_REVIEW_REQUIRED",
+      "expected_reason_code": "EXIT_CONDITION_SATISFIED_REVIEW_STATE_TRANSITION",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-006-FOREST-STALE-OBSERVATION",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 14,
+        "unit": "wind_gust_mps",
+        "age_minutes": 61,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-006/weather",
+        "capture_id": "synthetic-capture-006"
+      },
+      "expected_outcome": "HOLD_STALE_EVIDENCE",
+      "expected_reason_code": "OBSERVATION_EXCEEDS_MAX_AGE",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-007-FOREST-INSUFFICIENT-COVERAGE",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 14,
+        "unit": "wind_gust_mps",
+        "age_minutes": 2,
+        "coverage_ratio": 0.7,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-007/weather",
+        "capture_id": "synthetic-capture-007"
+      },
+      "expected_outcome": "HOLD_INSUFFICIENT_COVERAGE",
+      "expected_reason_code": "OBSERVATION_COVERAGE_BELOW_MINIMUM",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-008-CRITERIA-REGIME-CHANGED",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v2",
+      "observation": {
+        "value": 14,
+        "unit": "wind_gust_mps",
+        "age_minutes": 2,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-008/weather",
+        "capture_id": "synthetic-capture-008"
+      },
+      "expected_outcome": "REASSESS_CRITERIA_REGIME",
+      "expected_reason_code": "CURRENT_DECISION_REGIME_VERSION_MISMATCH",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-009-UNIT-MISMATCH",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 14,
+        "unit": "km_per_hour",
+        "age_minutes": 2,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 90,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-009/weather",
+        "capture_id": "synthetic-capture-009"
+      },
+      "expected_outcome": "HOLD_UNIT_MISMATCH",
+      "expected_reason_code": "OBSERVATION_UNIT_DIFFERS_FROM_TRIGGER_PROFILE",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-010-TRIGGER-TOO-LATE",
+      "trigger_profile": {
+        "trigger_id": "forest-weather-guard-v1",
+        "domain_profile_id": "forest_salvage_trigger_v0",
+        "criteria_version": "v1",
+        "unit": "wind_gust_mps",
+        "enter": {
+          "operator": "gte",
+          "threshold": 10
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 6
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "forest_salvage_trigger_v0",
+      "current_decision_regime_version": "v1",
+      "observation": {
+        "value": 14,
+        "unit": "wind_gust_mps",
+        "age_minutes": 2,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 10,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-010/weather",
+        "capture_id": "synthetic-capture-010"
+      },
+      "expected_outcome": "TRIGGER_LATE_REASSESSMENT_REQUIRED",
+      "expected_reason_code": "REMAINING_TIME_BELOW_REQUIRED_RESPONSE_LEAD",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-011-PV-DEGRADATION-ENTRY",
+      "trigger_profile": {
+        "trigger_id": "pv-degradation-review-v1",
+        "domain_profile_id": "photovoltaic_second_life_trigger_v0",
+        "criteria_version": "pv-acceptance-v1",
+        "unit": "degradation_pct",
+        "enter": {
+          "operator": "gte",
+          "threshold": 25
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 20
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "photovoltaic_second_life_trigger_v0",
+      "current_decision_regime_version": "pv-acceptance-v1",
+      "observation": {
+        "value": 25,
+        "unit": "degradation_pct",
+        "age_minutes": 10,
+        "coverage_ratio": 1,
+        "remaining_time_to_boundary_minutes": 180,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-011/pv-inspection",
+        "capture_id": "synthetic-capture-011"
+      },
+      "expected_outcome": "TRIGGER_ACTIVE_REVIEW_REQUIRED",
+      "expected_reason_code": "ENTRY_THRESHOLD_MET_REVIEW_ONLY",
+      "expected_actuation": false
+    },
+    {
+      "id": "TRG-012-INFRASTRUCTURE-CRACK-GROWTH",
+      "trigger_profile": {
+        "trigger_id": "bridge-crack-growth-review-v1",
+        "domain_profile_id": "infrastructure_component_trigger_v0",
+        "criteria_version": "bridge-assessment-v1",
+        "unit": "crack_growth_mm_per_month",
+        "enter": {
+          "operator": "gte",
+          "threshold": 2
+        },
+        "exit": {
+          "operator": "lt",
+          "threshold": 1
+        },
+        "minimum_coverage_ratio": 0.9,
+        "max_observation_age_minutes": 60,
+        "required_response_lead_time_minutes": 30,
+        "decision_scope": "review_only",
+        "action_on_trigger": "HUMAN_REVIEW_OR_REPLAN",
+        "action_on_clear": "HUMAN_REVIEW_STATE_TRANSITION"
+      },
+      "domain_profile_id": "infrastructure_component_trigger_v0",
+      "current_decision_regime_version": "bridge-assessment-v1",
+      "observation": {
+        "value": 2.2,
+        "unit": "crack_growth_mm_per_month",
+        "age_minutes": 12,
+        "coverage_ratio": 0.98,
+        "remaining_time_to_boundary_minutes": 50,
+        "previous_state": "inactive",
+        "evidence_ref": "synthetic://TRG-012/inspection",
+        "capture_id": "synthetic-capture-012"
+      },
+      "expected_outcome": "TRIGGER_ACTIVE_REVIEW_REQUIRED",
+      "expected_reason_code": "ENTRY_THRESHOLD_MET_REVIEW_ONLY",
+      "expected_actuation": false
+    }
+  ],
+  "algorithm_id": "versioned-signpost-trigger-evaluator-v0.1"
+}
