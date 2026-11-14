@@ -27,7 +27,7 @@ fn push_check(checks: &mut Vec<Check>, id: &'static str, passed: bool, detail: i
     });
 }
 
-fn at<'a>(root: &'a Value, path: &[&str]) -> Result<&'a Value, String> {
+fn at(root: &Value, path: &[&str]) -> Result<&Value, String> {
     let mut current = root;
     for key in path {
         let next = if let Ok(index) = key.parse::<usize>() {
@@ -65,10 +65,10 @@ fn usize_at(root: &Value, path: &[&str]) -> Result<usize, String> {
         .map_err(|_| format!("integer at {} exceeds platform usize", path.join(".")))
 }
 
-fn object_at<'a>(
-    root: &'a Value,
+fn object_at(
+    root: &Value,
     path: &[&str],
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+) -> Result<&serde_json::Map<String, Value>, String> {
     at(root, path)?
         .as_object()
         .ok_or_else(|| format!("expected object at {}", path.join(".")))
@@ -108,16 +108,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
     output
 }
 
-fn check_cell_ids(
-    manifest: &Value,
-) -> Result<
-    (
-        BTreeSet<String>,
-        BTreeMap<String, Value>,
-        BTreeMap<String, Value>,
-    ),
-    String,
-> {
+type CellStateMap = BTreeMap<String, Value>;
+type CellStateIndex = (BTreeSet<String>, CellStateMap, CellStateMap);
+
+fn check_cell_ids(manifest: &Value) -> Result<CellStateIndex, String> {
     let cells = at(manifest, &["spatial_support", "cells"])?
         .as_array()
         .ok_or_else(|| "spatial_support.cells must be an array".to_string())?;
@@ -133,11 +127,11 @@ fn check_cell_ids(
         }
     }
 
-    let initial: BTreeMap<String, Value> = object_at(manifest, &["initial_state"])?
+    let initial: CellStateMap = object_at(manifest, &["initial_state"])?
         .iter()
         .map(|(key, value)| (key.clone(), value.clone()))
         .collect();
-    let expected: BTreeMap<String, Value> = object_at(manifest, &["expected_state"])?
+    let expected: CellStateMap = object_at(manifest, &["expected_state"])?
         .iter()
         .map(|(key, value)| (key.clone(), value.clone()))
         .collect();
