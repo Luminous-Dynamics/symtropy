@@ -1,0 +1,17 @@
+[package]
+name = "aeroweift-pnt-reachability-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+description = "Fail-closed aviation adapter from qualified PNT/time claims to reachability initial sets"
+repository = "https://github.com/Luminous-Dynamics/symtropy"
+publish = false
+
+[dependencies]
+aeroweift-reachability-core = { path = "../aeroweift-reachability" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
+resolver = "2"
