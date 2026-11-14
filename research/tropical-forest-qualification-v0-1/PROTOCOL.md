@@ -64,7 +64,7 @@ The source layers measure different constructs. They are complementary, not inte
 | Source | Spatial / temporal character | Appropriate role | Non-negotiable caveat |
 |---|---|---|---|
 | JRC Tropical Moist Forest (TMF) | v2025 product: 30 m wall-to-wall Landsat Collection 2, annual change collection for 1990–2025, with timing/intensity and transition classes | Disturbance, degradation, deforestation and regrowth context | Degradation is temporary disturbance while remaining forested; deforestation is forest-to-nonforest transition. Preserve the TMF ontology rather than collapsing both to tree loss |
-| UMD / Global Forest Watch tree-cover loss | Landsat, 30 m, annual (2001–2025) | Disturbance-event screening / change context | Loss includes natural events, harvest and plantations; it is not synonymous with permanent deforestation; preserve methodology-era boundaries |
+| UMD / Global Nature Watch (formerly Global Forest Watch) tree-cover loss | Landsat, 30 m, annual (2001–2025) | Disturbance-event screening / change context | Loss includes natural events, harvest and plantations; it is not synonymous with permanent deforestation; preserve methodology-era boundaries |
 | MapBiomas Collection 11 (Brazil) | Annual land cover and use, 30 m, 1985–2025; collection notice updated August 2026 | Brazil / Amazon regional transition context | Brazil coverage is not full Amazon / Congo / New Guinea coverage; preserve class/year accuracy information and collection-specific semantics |
 | NASA GEDI L4A V2.1 | Footprint-level model estimates of aboveground biomass density (Mg/ha) and prediction standard error; nominal coverage 2019-04-18 to 2025-07-09 | Biomass / canopy-structure constraints and calibration checks | Approx. 25 m footprints sampled along sparse tracks, not wall-to-wall truth. Retain beam, orbit, algorithm group, input waveform metrics and all quality flags. There were no acquisitions while the instrument was stored from March 2023 to April 2024; do not interpret that interval as ecological absence |
 | ForestPlots.net and partner networks (including RAINFOR, AfriTRON, GEM, ForestGEO, etc.) | Plot / stem censuses with species, size, demography, traits and soil metadata | Growth, mortality, recruitment, species/trait and process calibration | Access is tiered, contributor governed and may be non-redistributable; request permission before use or derived publication |
@@ -72,7 +72,7 @@ The source layers measure different constructs. They are complementary, not inte
 
 Reference pages:
 - JRC TMF: https://forobs.jrc.ec.europa.eu/TMF/
-- UMD / GFW 2025 data explanation: https://www.globalforestwatch.org/blog/data-and-tools/2025-tree-cover-loss-data-explained/
+- UMD / Global Nature Watch tree-cover loss data explanation (formerly Global Forest Watch): https://www.globalforestwatch.org/blog/data-and-tools/2025-tree-cover-loss-data-explained/\n- Global Nature Watch rebrand / Horizon preview announcement (21 Sep 2026): https://www.wri.org/news/release-global-forest-watch-becomes-global-nature-watch-expanding-cover-more-land-ecosystems
 - MapBiomas: https://brasil.mapbiomas.org/en/
 - GEDI L4A V2.1: https://catalog.data.gov/dataset/gedi-l4a-footprint-level-aboveground-biomass-density-version-2-1
 - MapBiomas Collection 11 platform / accuracy information: https://plataforma.brasil.mapbiomas.org/
@@ -96,6 +96,14 @@ Keep a latent ecological state separate from each observation product:
 - MapBiomas is a separate annual land-cover/use classification product with its own training and accuracy profile.
 
 The evaluator must apply the relevant observation operator to the model state before scoring. Do not compare a cohort's total biomass directly with one GEDI footprint, treat TMF degradation as tree mortality, or turn cloud/no-data into stable forest. Separate process uncertainty, parameter uncertainty, sampling uncertainty, sensor/algorithm uncertainty and label uncertainty.
+
+## Industry and SOTA comparison
+
+Use the companion [Industry and SOTA Landscape v0.1](INDUSTRY_AND_SOTA_LANDSCAPE_V0_1.md) for a task-by-task comparison of FATES, LPJ-GUESS SEC/PPA, BioDT Forest Biodiversity Dynamics, Planet Forest Carbon, Space Intelligence DisturbanceTracker, Global Nature Watch/Horizon, SpeciesNet, TropiCam-AI and NEON forecast evaluation.
+
+Important current naming distinction: Global Forest Watch was renamed **Global Nature Watch** in 2026, and WRI introduced the AI-driven Horizon platform in preview. Existing forest data, tools and workflows continue through Global Nature Watch during the transition. Preserve the source dataset lineage and exact product version in all observation records; do not use the old platform brand as a substitute for the product identifier.
+
+There is no single direct competitor or universal benchmark across these products. The programme must report task-specific comparisons and never compare a remote-sensing estimate product directly with a process-based ecology model without a declared observation operator and common target.
 
 ## Strong external comparators
 
