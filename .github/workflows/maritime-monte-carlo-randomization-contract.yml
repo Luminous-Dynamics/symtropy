@@ -108,7 +108,27 @@ jobs:
             uname -a
             lscpu | sed -n '1,24p'
           } > benchmark-artifacts/environment.txt
-          cargo bench --locked --bench monte_carlo_randomization 2>&1 | tee benchmark-artifacts/monte-carlo-throughput.jsonl
+          cargo bench --locked --bench monte_carlo_randomization > benchmark-artifacts/monte-carlo-throughput.jsonl
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("benchmark-artifacts/monte-carlo-throughput.jsonl")
+          rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+          expected_units = [16, 32, 64, 128, 256, 1000, 10000]
+          assert [row["unit_count"] for row in rows] == expected_units
+          for row in rows:
+              assert row["algorithm"] == "splitmix64_v1"
+              assert row["draw_count"] == 1000
+              assert row["unit_draws"] == row["unit_count"] * row["draw_count"]
+              assert row["allocation_constraint_violations"] == 0
+              assert row["exact_enumeration_used"] is False
+              assert row["seed_u64"] >= 0
+              assert len(row["randomization_frame_sha256"]) == 64
+              assert len(row["sampled_assignments_sha256"]) == 64
+          print(f"Validated {len(rows)} replay-complete throughput JSONL rows")
+          PY
+          cat benchmark-artifacts/monte-carlo-throughput.jsonl
 
       - name: Upload throughput profile
         uses: actions/upload-artifact@v4
