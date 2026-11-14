@@ -1,0 +1,200 @@
+{
+  "benchmark_id": "POWER-FABRIC-HUMAN-COMPREHENSION-001",
+  "schema_version": "0.1.0",
+  "status": "synthetic_fixture_only",
+  "safety_boundary": "screen_and_paper_scenarios_only_no_live_electrical_work",
+  "scoring_policy": {
+    "primary_metrics": [
+      "critical_misidentification_rate",
+      "false_safe_interpretation_rate",
+      "source_comprehension_accuracy",
+      "backup_boundary_comprehension_accuracy",
+      "stale_state_detection_accuracy",
+      "median_task_time_seconds",
+      "confidence_calibration"
+    ],
+    "critical_failure_rule": "Any response that describes software state alone as proof of absence of voltage, safe isolation, or permission to touch conductors is a critical failure.",
+    "report_by_cohort": [
+      "resident",
+      "facility_operator",
+      "apprentice",
+      "registered_electrical_practitioner",
+      "accessibility_cohort"
+    ],
+    "do_not_pool_accessibility_groups_without_reporting_disaggregated_results": true
+  },
+  "scenarios": [
+    {
+      "id": "PF-HF-001-hidden-alternate-source",
+      "category": "source_comprehension",
+      "audience": ["resident", "facility_operator", "registered_electrical_practitioner"],
+      "setup": "Synthetic hybrid installation has utility, PV and battery sources. The candidate circuit directory lists utility and battery but omits the PV path. The physical source truth and the rendered directory intentionally disagree.",
+      "reference_truth": {
+        "declared_sources": ["utility", "pv_array", "battery_inverter"],
+        "rendered_sources": ["utility", "battery_inverter"],
+        "as_built_graph_complete": false
+      },
+      "task": "Explain whether the source map is complete and identify the safe next step for a resident.",
+      "required_concepts": ["source_map_incomplete", "pv_source_not_reconciled", "do_not_assume_all_sources_are_isolated", "contact_qualified_electrical_practitioner"],
+      "forbidden_claims": ["all_sources_are_shown", "main_switch_off_means_safe_to_touch"],
+      "critical_failure_conditions": ["claims_source_map_complete", "recommends_opening_panel_or_touching_conductors"],
+      "expected_system_state": "incomplete_unknown"
+    },
+    {
+      "id": "PF-HF-002-software-off-is-not-isolation",
+      "category": "isolation_boundary_comprehension",
+      "audience": ["resident", "facility_operator", "apprentice", "registered_electrical_practitioner"],
+      "setup": "A smart panel reports a software command state of OFF for a branch circuit. No physical isolation or absence-of-voltage verification evidence is attached.",
+      "reference_truth": {
+        "software_command_state": "off",
+        "physical_disconnect_state": "unknown",
+        "absence_of_voltage_evidence": "absent",
+        "authorized_work_boundary": "not_established"
+      },
+      "task": "Explain what the OFF indication proves and whether the circuit may be accessed for maintenance.",
+      "required_concepts": ["software_command_only", "isolation_not_established", "absence_of_voltage_not_verified", "maintenance_requires_applicable_professional_procedure"],
+      "forbidden_claims": ["safe_to_touch", "software_off_is_a_suitable_isolation"],
+      "critical_failure_conditions": ["equates_software_off_with_safe_isolation", "authorizes_access_to_energized_equipment"],
+      "expected_system_state": "commanded_off_but_safety_unknown"
+    },
+    {
+      "id": "PF-HF-003-stale-as-built-revision",
+      "category": "documentation_integrity",
+      "audience": ["facility_operator", "apprentice", "registered_electrical_practitioner"],
+      "setup": "An inverter was replaced and its hardware revision changed. The circuit diagram and generated label payload still reference the previous configuration digest.",
+      "reference_truth": {
+        "installed_hardware_revision": "rev-b",
+        "diagram_hardware_revision": "rev-a",
+        "installed_configuration_digest": "sha256:installed-rev-b",
+        "diagram_configuration_digest": "sha256:diagram-rev-a"
+      },
+      "task": "Determine whether the diagram and labels remain current and identify what must happen before the documentation is treated as verified.",
+      "required_concepts": ["revision_mismatch", "derived_views_stale", "reconcile_as_built", "reverify_affected_claims"],
+      "forbidden_claims": ["documentation_current", "replacement_does_not_affect_diagram"],
+      "critical_failure_conditions": ["treats_stale_documentation_as_verified"],
+      "expected_system_state": "stale_configuration_requires_reconciliation"
+    },
+    {
+      "id": "PF-HF-004-stale-telemetry",
+      "category": "data_freshness",
+      "audience": ["resident", "facility_operator"],
+      "setup": "Battery state of charge is displayed from a sensor sample older than the declared freshness limit. The network link has been unavailable since the sample was captured.",
+      "reference_truth": {
+        "sample_age_seconds": 900,
+        "freshness_limit_seconds": 30,
+        "communications_state": "unavailable",
+        "current_battery_state": "unknown"
+      },
+      "task": "Explain whether the displayed battery percentage is a live measurement and what confidence should be assigned to current backup availability.",
+      "required_concepts": ["telemetry_stale", "displayed_value_is_last_known", "current_state_unknown", "do_not_treat_backup_estimate_as_live"],
+      "forbidden_claims": ["current_soc_confirmed", "current_backup_runtime_guaranteed"],
+      "critical_failure_conditions": ["presents_stale_measurement_as_current"],
+      "expected_system_state": "stale_measurement_unknown_current_state"
+    },
+    {
+      "id": "PF-HF-005-backup-runtime-is-an-estimate",
+      "category": "backup_comprehension",
+      "audience": ["resident", "facility_operator"],
+      "setup": "The model estimates remaining battery energy and divides it by current measured load to provide a backup duration. Future load, temperature derating and battery condition are uncertain.",
+      "reference_truth": {
+        "estimated_usable_energy_kwh": 7.0,
+        "current_load_kw": 1.4,
+        "simple_division_hours": 5.0,
+        "future_load_known": false,
+        "temperature_derating_known": false,
+        "battery_capacity_health_verified": false
+      },
+      "task": "Explain what the five-hour figure means and what it does not guarantee.",
+      "required_concepts": ["conditional_estimate", "depends_on_future_load", "temperature_and_health_uncertainty", "not_guaranteed_runtime"],
+      "forbidden_claims": ["five_hours_guaranteed"],
+      "critical_failure_conditions": ["states_exact_runtime_as_guaranteed"],
+      "expected_system_state": "estimated_with_declared_uncertainty"
+    },
+    {
+      "id": "PF-HF-006-color-only-status",
+      "category": "accessibility",
+      "audience": ["resident", "accessibility_cohort"],
+      "setup": "A warning is represented only by a red/green status color, without text, shape, icon or position differences. Participants are shown a non-colour-coded description of the physical state separately for scoring.",
+      "reference_truth": {
+        "status": "protective_trip",
+        "visual_encoding": ["color_only"],
+        "color_vision_independent_cue": false
+      },
+      "task": "Identify the status and explain the safe next action using the interface.",
+      "required_concepts": ["status_has_non_color_label", "protective_trip_is_not_a_repair_instruction", "safe_role_appropriate_next_step"],
+      "forbidden_claims": ["repeatedly_reset_without_diagnosis", "open_panel_to_investigate"],
+      "critical_failure_conditions": ["interface_has_no_non_color_status_cue", "encourages_unsafe_fault_reset_or_access"],
+      "expected_system_state": "accessibility_failure_until_revised"
+    },
+    {
+      "id": "PF-HF-007-offline-local-view",
+      "category": "offline_resilience",
+      "audience": ["resident", "facility_operator"],
+      "setup": "Internet connectivity is lost. A local interface can display the last verified as-built graph and locally available sensor values, each with separate update timestamps.",
+      "reference_truth": {
+        "internet_state": "unavailable",
+        "local_graph_available": true,
+        "local_graph_revision": "rev-7",
+        "graph_verified_at": "2026-11-01T10:00:00Z",
+        "live_meter_stream": "unavailable"
+      },
+      "task": "Identify which information remains available and distinguish verified static configuration from live operating state.",
+      "required_concepts": ["local_graph_available", "graph_revision_and_timestamp_visible", "live_measurement_unavailable", "no_false_live_status"],
+      "forbidden_claims": ["internet_required_for_local_protection", "cached_value_is_live"],
+      "critical_failure_conditions": ["displays_cached_telemetry_as_live", "implies_cloud_controls_are_required_for_local_protection"],
+      "expected_system_state": "local_static_graph_available_live_state_limited"
+    },
+    {
+      "id": "PF-HF-008-contradictory-meter-observations",
+      "category": "uncertainty_and_conflict",
+      "audience": ["facility_operator", "registered_electrical_practitioner"],
+      "setup": "Two independently identified measurement channels disagree beyond the declared comparison tolerance. Their timestamps overlap but calibration status differs.",
+      "reference_truth": {
+        "meter_a_kw": 4.1,
+        "meter_b_kw": 1.6,
+        "allowed_difference_kw": 0.2,
+        "meter_a_calibration": "current",
+        "meter_b_calibration": "expired"
+      },
+      "task": "Explain whether the system can safely choose one value as true and what further evidence is needed.",
+      "required_concepts": ["measurement_conflict", "calibration_status_matters", "derived_state_unknown_or_degraded", "request_independent_reconciliation"],
+      "forbidden_claims": ["silently_average_values", "selects_preferred_value_without_basis"],
+      "critical_failure_conditions": ["reports_unqualified_single_truth"],
+      "expected_system_state": "conflicting_observations_require_reconciliation"
+    },
+    {
+      "id": "PF-HF-009-module-revision-changed",
+      "category": "module_compatibility",
+      "audience": ["apprentice", "registered_electrical_practitioner"],
+      "setup": "A replacement converter has a different firmware/configuration digest and its evidence does not establish the required grid-forming mode. The old design contract contains a prior revision.",
+      "reference_truth": {
+        "installed_configuration_current": false,
+        "grid_forming_claim_evidence": "manufacturer_declared_only",
+        "required_evidence_class": "independently_verified",
+        "old_contract_revision": "rev-a",
+        "installed_revision": "rev-b"
+      },
+      "task": "Decide whether the old compatibility and grid-forming claims remain valid.",
+      "required_concepts": ["stale_configuration", "compatibility_requires_reassessment", "evidence_class_not_admissible_for_requirement", "unsupported_mode_remains_unknown"],
+      "forbidden_claims": ["old_claim_carries_over_automatically", "inverter_implies_grid_forming"],
+      "critical_failure_conditions": ["accepts_stale_configuration_or_unsupported_mode"],
+      "expected_system_state": "stale_and_insufficient_evidence"
+    },
+    {
+      "id": "PF-HF-010-emergency-source-map",
+      "category": "emergency_legibility",
+      "audience": ["facility_operator", "registered_electrical_practitioner"],
+      "setup": "Emergency view lists utility and battery storage but omits the PV array and notes that the battery inverter may contain stored energy after shutdown.",
+      "reference_truth": {
+        "declared_sources": ["utility", "pv_array", "battery_storage"],
+        "declared_residual_energy_hazards": ["battery_storage", "dc_link_capacitors"],
+        "emergency_view_complete": false
+      },
+      "task": "Identify what the emergency view is missing and whether it may be relied upon as a complete source/isolation reference.",
+      "required_concepts": ["emergency_view_incomplete", "all_sources_and_residual_energy_hazards_required", "not_a_safe_to_touch_certificate", "professional_emergency_procedure"],
+      "forbidden_claims": ["all_sources_listed", "shutdown_removes_all_stored_energy"],
+      "critical_failure_conditions": ["treats_incomplete_emergency_view_as_complete"],
+      "expected_system_state": "emergency_view_incomplete"
+    }
+  ]
+}
