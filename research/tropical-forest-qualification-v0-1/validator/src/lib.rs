@@ -2648,15 +2648,17 @@ mod tests {
     }
 
     #[test]
-    fn support_intersection_corpus_matches_fourteen_analytic_cases() {
+    fn support_intersection_corpus_matches_eighteen_geometry_and_registration_cases() {
         let receipt = evaluate(SUPPORT_INTERSECTION_FIXTURE.as_bytes())
             .expect("support intersection corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_SUPPORT");
-        assert_eq!(receipt["case_count"], 14);
+        assert_eq!(receipt["case_count"], 18);
+        assert_eq!(receipt["registration_bounds_case_count"], 4);
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
         assert_eq!(receipt["arbitrary_polygon_support"], "NOT_IMPLEMENTED");
         assert_eq!(receipt["crs_transform"], "NOT_IMPLEMENTED");
-        assert_eq!(receipt["positional_uncertainty"], "NOT_IMPLEMENTED");
+        assert_eq!(receipt["positional_uncertainty"], "DETERMINISTIC_TRANSLATION_BOUNDS_ONLY");
+        assert_eq!(receipt["probabilistic_registration_model"], "NOT_IMPLEMENTED");
     }
 
     #[test]
@@ -2664,6 +2666,17 @@ mod tests {
         let mut manifest: Value = serde_json::from_str(SUPPORT_INTERSECTION_FIXTURE)
             .expect("valid support intersection corpus");
         manifest["cases"][2]["expected"]["geometric_coverage_fraction"] = json!(0.75);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated support corpus");
+        let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn support_intersection_corpus_rejects_mutated_registration_bounds_oracle() {
+        let mut manifest: Value = serde_json::from_str(SUPPORT_INTERSECTION_FIXTURE)
+            .expect("valid support intersection corpus");
+        manifest["cases"][15]["expected_registration_bounds"]["minimum_coverage_fraction"] =
+            json!(0.95);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated support corpus");
         let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
         assert_eq!(receipt["result"], "FAIL");
