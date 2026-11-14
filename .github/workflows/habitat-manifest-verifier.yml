@@ -1,0 +1,93 @@
+name: Habitat Manifest Structural Verification
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-manifest-verifier/**"
+      - "docs/research/WHOLE_PROPERTY_HABITAT_BENCHMARK_V0_1.md"
+      - "docs/research/TERRAIN_NATIVE_HABITATS_BENCHMARK_V0_1.md"
+      - "docs/research/fixtures/WHOLE_PROPERTY_HABITAT_SCENARIOS_V0_1.json"
+      - "docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json"
+      - ".github/workflows/habitat-manifest-verifier.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-manifest-verifier/**"
+      - "docs/research/WHOLE_PROPERTY_HABITAT_BENCHMARK_V0_1.md"
+      - "docs/research/TERRAIN_NATIVE_HABITATS_BENCHMARK_V0_1.md"
+      - "docs/research/fixtures/WHOLE_PROPERTY_HABITAT_SCENARIOS_V0_1.json"
+      - "docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json"
+      - ".github/workflows/habitat-manifest-verifier.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  structural-verification:
+    name: Frozen habitat manifest structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-manifest-verifier/Cargo.toml -- --check
+
+      - name: Run unit and adversarial tests
+        run: cargo test --locked --manifest-path tools/habitat-manifest-verifier/Cargo.toml
+
+      - name: Verify frozen whole-property corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/whole-property-report.json"
+          cargo run --locked --manifest-path tools/habitat-manifest-verifier/Cargo.toml -- \
+            whole-property docs/research/fixtures/WHOLE_PROPERTY_HABITAT_SCENARIOS_V0_1.json > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_manifest_verifier.report.v0.1" and
+            .manifest_version == "whole-property-habitat-scenarios-v0.1" and
+            .input_sha256 == "68dd4c244b29e840319fb898706fa1a4aca411a7a99655ebe3bb8c646801eb94" and
+            .verification_status == "STRUCTURAL_PASS_NOT_SEMANTIC_PASS" and
+            .claim_ceiling == "structural_conformance_only_not_semantic_or_physical_validation" and
+            .scenario_count == 19 and .negative_control_count == 17 and
+            .scenario_ids == [
+              "WP-001","WP-002","WP-003","WP-004","WP-005","WP-006",
+              "WP-007","WP-008","WP-009","WP-010","WP-011","WP-012",
+              "WP-013","WP-014","WP-015","WP-016","WP-017","WP-018","WP-019"
+            ] and
+            ([.scenarios[] | select(.invariant_count < 1)] | length) == 0
+          ' "$report"
+
+      - name: Verify frozen terrain-native corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/terrain-native-report.json"
+          cargo run --locked --manifest-path tools/habitat-manifest-verifier/Cargo.toml -- \
+            terrain-native docs/research/fixtures/TERRAIN_NATIVE_HABITAT_SCENARIOS_V0_1.json > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_manifest_verifier.report.v0.1" and
+            .manifest_version == "terrain-native-habitat-scenarios-v0.1" and
+            .input_sha256 == "2e5eb734bd14264812c27c6d23cd10ad9b49e8327f3cde8df300124cb77f578e" and
+            .verification_status == "STRUCTURAL_PASS_NOT_SEMANTIC_PASS" and
+            .claim_ceiling == "structural_conformance_only_not_semantic_or_physical_validation" and
+            .scenario_count == 14 and .negative_control_count == 12 and
+            .scenario_ids == [
+              "TNH-001","TNH-002","TNH-003","TNH-004","TNH-005","TNH-006",
+              "TNH-007","TNH-008","TNH-009","TNH-010","TNH-011","TNH-012",
+              "TNH-013","TNH-014"
+            ] and
+            ([.scenarios[] | select(.invariant_count < 1)] | length) == 0
+          ' "$report"

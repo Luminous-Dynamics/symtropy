@@ -1,0 +1,2279 @@
+{
+  "scenario_id": "medium_multi_shift_factory_150",
+  "name": "Multi-Shift Factory (150 tasks)",
+  "scale": "medium",
+  "type": "manufacturing",
+  "random_seed": 49,
+  "generated_at": "2025-09-04T12:00:00",
+  "schema_version": "1.0.0",
+  "metadata": {
+    "num_tasks": 150,
+    "num_dependencies": 67,
+    "num_resources": 20,
+    "dependency_density": 0.2
+  },
+  "tasks": [
+    {
+      "task_id": "T001",
+      "task_type": "processing",
+      "duration": 3.89,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T002",
+      "task_type": "transport",
+      "duration": 0.29,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T003",
+      "task_type": "transport",
+      "duration": 0.28,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T004",
+      "task_type": "setup",
+      "duration": 0.55,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T005",
+      "task_type": "assembly",
+      "duration": 3.31,
+      "required_skills": [
+        "mill_operation",
+        "assembly"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T006",
+      "task_type": "inspection",
+      "duration": 1.49,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T007",
+      "task_type": "processing",
+      "duration": 5.17,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T008",
+      "task_type": "setup",
+      "duration": 1.37,
+      "required_skills": [
+        "cnc_operation",
+        "setup"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T009",
+      "task_type": "maintenance",
+      "duration": 3.33,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T010",
+      "task_type": "processing",
+      "duration": 1.59,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T011",
+      "task_type": "inspection",
+      "duration": 0.59,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T012",
+      "task_type": "processing",
+      "duration": 3.98,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T013",
+      "task_type": "setup",
+      "duration": 0.66,
+      "required_skills": [
+        "cnc_operation",
+        "setup"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T014",
+      "task_type": "maintenance",
+      "duration": 2.81,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T015",
+      "task_type": "setup",
+      "duration": 1.35,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T016",
+      "task_type": "setup",
+      "duration": 0.65,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T017",
+      "task_type": "processing",
+      "duration": 5.18,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T018",
+      "task_type": "maintenance",
+      "duration": 3.03,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T019",
+      "task_type": "assembly",
+      "duration": 3.85,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T020",
+      "task_type": "processing",
+      "duration": 4.58,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T021",
+      "task_type": "transport",
+      "duration": 0.65,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T022",
+      "task_type": "processing",
+      "duration": 1.54,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T023",
+      "task_type": "assembly",
+      "duration": 5.27,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T024",
+      "task_type": "assembly",
+      "duration": 2.12,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T025",
+      "task_type": "processing",
+      "duration": 7.56,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T026",
+      "task_type": "inspection",
+      "duration": 0.97,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T027",
+      "task_type": "processing",
+      "duration": 1.28,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T028",
+      "task_type": "transport",
+      "duration": 0.97,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T029",
+      "task_type": "transport",
+      "duration": 0.73,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T030",
+      "task_type": "setup",
+      "duration": 1.49,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T031",
+      "task_type": "processing",
+      "duration": 1.68,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T032",
+      "task_type": "maintenance",
+      "duration": 3.57,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T033",
+      "task_type": "processing",
+      "duration": 7.82,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T034",
+      "task_type": "processing",
+      "duration": 2.54,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T035",
+      "task_type": "processing",
+      "duration": 2.71,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T036",
+      "task_type": "setup",
+      "duration": 0.8,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T037",
+      "task_type": "processing",
+      "duration": 1.61,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T038",
+      "task_type": "setup",
+      "duration": 1.46,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T039",
+      "task_type": "assembly",
+      "duration": 2.05,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T040",
+      "task_type": "inspection",
+      "duration": 1.94,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T041",
+      "task_type": "setup",
+      "duration": 1.23,
+      "required_skills": [
+        "setup",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T042",
+      "task_type": "processing",
+      "duration": 5.27,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T043",
+      "task_type": "assembly",
+      "duration": 3.98,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T044",
+      "task_type": "processing",
+      "duration": 7.34,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T045",
+      "task_type": "processing",
+      "duration": 7.61,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T046",
+      "task_type": "processing",
+      "duration": 3.32,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T047",
+      "task_type": "transport",
+      "duration": 0.62,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T048",
+      "task_type": "processing",
+      "duration": 7.4,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T049",
+      "task_type": "processing",
+      "duration": 4.32,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T050",
+      "task_type": "maintenance",
+      "duration": 1.73,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T051",
+      "task_type": "processing",
+      "duration": 7.53,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T052",
+      "task_type": "inspection",
+      "duration": 0.52,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T053",
+      "task_type": "processing",
+      "duration": 3.32,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T054",
+      "task_type": "inspection",
+      "duration": 1.06,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T055",
+      "task_type": "transport",
+      "duration": 0.63,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T056",
+      "task_type": "processing",
+      "duration": 4.78,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T057",
+      "task_type": "processing",
+      "duration": 2.95,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T058",
+      "task_type": "assembly",
+      "duration": 3.25,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T059",
+      "task_type": "setup",
+      "duration": 0.93,
+      "required_skills": [
+        "cnc_operation",
+        "setup"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T060",
+      "task_type": "setup",
+      "duration": 1.71,
+      "required_skills": [
+        "setup",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T061",
+      "task_type": "processing",
+      "duration": 5.84,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T062",
+      "task_type": "assembly",
+      "duration": 5.04,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T063",
+      "task_type": "processing",
+      "duration": 7.22,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T064",
+      "task_type": "transport",
+      "duration": 0.56,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T065",
+      "task_type": "inspection",
+      "duration": 1.56,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T066",
+      "task_type": "transport",
+      "duration": 0.32,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T067",
+      "task_type": "inspection",
+      "duration": 0.54,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T068",
+      "task_type": "setup",
+      "duration": 1.54,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T069",
+      "task_type": "maintenance",
+      "duration": 1.45,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T070",
+      "task_type": "processing",
+      "duration": 6.44,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T071",
+      "task_type": "inspection",
+      "duration": 0.57,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T072",
+      "task_type": "processing",
+      "duration": 3.33,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T073",
+      "task_type": "transport",
+      "duration": 0.86,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T074",
+      "task_type": "transport",
+      "duration": 0.66,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T075",
+      "task_type": "processing",
+      "duration": 3.05,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T076",
+      "task_type": "processing",
+      "duration": 7.22,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T077",
+      "task_type": "processing",
+      "duration": 2.88,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T078",
+      "task_type": "setup",
+      "duration": 0.91,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T079",
+      "task_type": "processing",
+      "duration": 4.98,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T080",
+      "task_type": "processing",
+      "duration": 5.03,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T081",
+      "task_type": "assembly",
+      "duration": 4.33,
+      "required_skills": [
+        "mill_operation",
+        "assembly"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T082",
+      "task_type": "assembly",
+      "duration": 2.73,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T083",
+      "task_type": "processing",
+      "duration": 4.95,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T084",
+      "task_type": "processing",
+      "duration": 5.65,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T085",
+      "task_type": "assembly",
+      "duration": 3.22,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T086",
+      "task_type": "processing",
+      "duration": 1.26,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T087",
+      "task_type": "inspection",
+      "duration": 0.68,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T088",
+      "task_type": "maintenance",
+      "duration": 3.24,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T089",
+      "task_type": "processing",
+      "duration": 6.79,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T090",
+      "task_type": "inspection",
+      "duration": 0.77,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T091",
+      "task_type": "assembly",
+      "duration": 4.19,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T092",
+      "task_type": "processing",
+      "duration": 7.29,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T093",
+      "task_type": "inspection",
+      "duration": 1.77,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T094",
+      "task_type": "processing",
+      "duration": 7.94,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T095",
+      "task_type": "processing",
+      "duration": 1.48,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T096",
+      "task_type": "assembly",
+      "duration": 3.6,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T097",
+      "task_type": "transport",
+      "duration": 0.55,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T098",
+      "task_type": "processing",
+      "duration": 7.37,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T099",
+      "task_type": "assembly",
+      "duration": 2.12,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T100",
+      "task_type": "transport",
+      "duration": 0.85,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T101",
+      "task_type": "maintenance",
+      "duration": 2.59,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T102",
+      "task_type": "transport",
+      "duration": 0.28,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T103",
+      "task_type": "maintenance",
+      "duration": 1.7,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T104",
+      "task_type": "transport",
+      "duration": 0.41,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T105",
+      "task_type": "processing",
+      "duration": 4.72,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T106",
+      "task_type": "processing",
+      "duration": 5.65,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T107",
+      "task_type": "processing",
+      "duration": 7.4,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T108",
+      "task_type": "inspection",
+      "duration": 1.57,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T109",
+      "task_type": "processing",
+      "duration": 5.01,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T110",
+      "task_type": "assembly",
+      "duration": 4.54,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T111",
+      "task_type": "processing",
+      "duration": 1.07,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T112",
+      "task_type": "assembly",
+      "duration": 5.64,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T113",
+      "task_type": "assembly",
+      "duration": 5.46,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T114",
+      "task_type": "assembly",
+      "duration": 5.84,
+      "required_skills": [
+        "mill_operation",
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T115",
+      "task_type": "transport",
+      "duration": 0.67,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T116",
+      "task_type": "inspection",
+      "duration": 1.58,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T117",
+      "task_type": "transport",
+      "duration": 0.98,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T118",
+      "task_type": "processing",
+      "duration": 3.14,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T119",
+      "task_type": "assembly",
+      "duration": 3.75,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T120",
+      "task_type": "inspection",
+      "duration": 1.35,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T121",
+      "task_type": "transport",
+      "duration": 0.64,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T122",
+      "task_type": "processing",
+      "duration": 3.6,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T123",
+      "task_type": "processing",
+      "duration": 5.47,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T124",
+      "task_type": "processing",
+      "duration": 1.32,
+      "required_skills": [
+        "cnc_operation"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T125",
+      "task_type": "transport",
+      "duration": 0.5,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T126",
+      "task_type": "inspection",
+      "duration": 1.36,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T127",
+      "task_type": "assembly",
+      "duration": 5.36,
+      "required_skills": [
+        "mill_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T128",
+      "task_type": "assembly",
+      "duration": 3.8,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T129",
+      "task_type": "setup",
+      "duration": 1.22,
+      "required_skills": [
+        "setup",
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T130",
+      "task_type": "maintenance",
+      "duration": 2.33,
+      "required_skills": [
+        "maintenance"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T131",
+      "task_type": "assembly",
+      "duration": 4.97,
+      "required_skills": [
+        "assembly",
+        "mill_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T132",
+      "task_type": "processing",
+      "duration": 1.03,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T133",
+      "task_type": "processing",
+      "duration": 1.53,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T134",
+      "task_type": "assembly",
+      "duration": 5.99,
+      "required_skills": [
+        "mill_operation",
+        "assembly"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T135",
+      "task_type": "transport",
+      "duration": 0.84,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T136",
+      "task_type": "processing",
+      "duration": 2.2,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T137",
+      "task_type": "assembly",
+      "duration": 2.62,
+      "required_skills": [
+        "mill_operation",
+        "assembly"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T138",
+      "task_type": "setup",
+      "duration": 0.78,
+      "required_skills": [
+        "setup"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T139",
+      "task_type": "processing",
+      "duration": 7.5,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T140",
+      "task_type": "setup",
+      "duration": 1.76,
+      "required_skills": [
+        "setup",
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T141",
+      "task_type": "processing",
+      "duration": 2.87,
+      "required_skills": [
+        "cnc_operation",
+        "machining"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T142",
+      "task_type": "assembly",
+      "duration": 3.06,
+      "required_skills": [
+        "mill_operation",
+        "assembly"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T143",
+      "task_type": "inspection",
+      "duration": 1.49,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 5,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T144",
+      "task_type": "assembly",
+      "duration": 5.38,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T145",
+      "task_type": "assembly",
+      "duration": 2.31,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T146",
+      "task_type": "processing",
+      "duration": 6.54,
+      "required_skills": [
+        "machining",
+        "cnc_operation"
+      ],
+      "priority": 2,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T147",
+      "task_type": "setup",
+      "duration": 1.71,
+      "required_skills": [
+        "setup",
+        "cnc_operation"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T148",
+      "task_type": "inspection",
+      "duration": 1.68,
+      "required_skills": [
+        "quality_control"
+      ],
+      "priority": 1,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T149",
+      "task_type": "transport",
+      "duration": 0.9,
+      "required_skills": [
+        "assembly"
+      ],
+      "priority": 3,
+      "earliest_start": null,
+      "deadline": null
+    },
+    {
+      "task_id": "T150",
+      "task_type": "processing",
+      "duration": 6.56,
+      "required_skills": [
+        "machining"
+      ],
+      "priority": 4,
+      "earliest_start": null,
+      "deadline": null
+    }
+  ],
+  "dependencies": [
+    [
+      "T006",
+      "T009"
+    ],
+    [
+      "T008",
+      "T009"
+    ],
+    [
+      "T014",
+      "T015"
+    ],
+    [
+      "T005",
+      "T016"
+    ],
+    [
+      "T011",
+      "T016"
+    ],
+    [
+      "T016",
+      "T019"
+    ],
+    [
+      "T015",
+      "T020"
+    ],
+    [
+      "T013",
+      "T022"
+    ],
+    [
+      "T011",
+      "T025"
+    ],
+    [
+      "T007",
+      "T027"
+    ],
+    [
+      "T016",
+      "T030"
+    ],
+    [
+      "T028",
+      "T038"
+    ],
+    [
+      "T008",
+      "T046"
+    ],
+    [
+      "T010",
+      "T049"
+    ],
+    [
+      "T043",
+      "T049"
+    ],
+    [
+      "T035",
+      "T050"
+    ],
+    [
+      "T049",
+      "T050"
+    ],
+    [
+      "T020",
+      "T052"
+    ],
+    [
+      "T046",
+      "T052"
+    ],
+    [
+      "T027",
+      "T053"
+    ],
+    [
+      "T026",
+      "T062"
+    ],
+    [
+      "T019",
+      "T065"
+    ],
+    [
+      "T046",
+      "T065"
+    ],
+    [
+      "T025",
+      "T070"
+    ],
+    [
+      "T012",
+      "T075"
+    ],
+    [
+      "T015",
+      "T079"
+    ],
+    [
+      "T038",
+      "T079"
+    ],
+    [
+      "T016",
+      "T083"
+    ],
+    [
+      "T046",
+      "T083"
+    ],
+    [
+      "T014",
+      "T086"
+    ],
+    [
+      "T049",
+      "T091"
+    ],
+    [
+      "T043",
+      "T094"
+    ],
+    [
+      "T008",
+      "T100"
+    ],
+    [
+      "T014",
+      "T104"
+    ],
+    [
+      "T001",
+      "T105"
+    ],
+    [
+      "T050",
+      "T105"
+    ],
+    [
+      "T060",
+      "T110"
+    ],
+    [
+      "T084",
+      "T114"
+    ],
+    [
+      "T036",
+      "T114"
+    ],
+    [
+      "T055",
+      "T115"
+    ],
+    [
+      "T078",
+      "T115"
+    ],
+    [
+      "T083",
+      "T117"
+    ],
+    [
+      "T005",
+      "T125"
+    ],
+    [
+      "T118",
+      "T126"
+    ],
+    [
+      "T114",
+      "T131"
+    ],
+    [
+      "T099",
+      "T138"
+    ],
+    [
+      "T136",
+      "T139"
+    ],
+    [
+      "T081",
+      "T142"
+    ],
+    [
+      "T005",
+      "T142"
+    ],
+    [
+      "T106",
+      "T145"
+    ],
+    [
+      "T075",
+      "T146"
+    ],
+    [
+      "T113",
+      "T146"
+    ],
+    [
+      "T018",
+      "T096"
+    ],
+    [
+      "T005",
+      "T085"
+    ],
+    [
+      "T029",
+      "T102"
+    ],
+    [
+      "T099",
+      "T150"
+    ],
+    [
+      "T017",
+      "T083"
+    ],
+    [
+      "T083",
+      "T105"
+    ],
+    [
+      "T141",
+      "T145"
+    ],
+    [
+      "T014",
+      "T057"
+    ],
+    [
+      "T111",
+      "T149"
+    ],
+    [
+      "T128",
+      "T134"
+    ],
+    [
+      "T082",
+      "T138"
+    ],
+    [
+      "T140",
+      "T141"
+    ],
+    [
+      "T108",
+      "T120"
+    ],
+    [
+      "T047",
+      "T091"
+    ],
+    [
+      "T101",
+      "T136"
+    ]
+  ],
+  "resources": [
+    {
+      "resource_id": "M001",
+      "name": "Grinder 1",
+      "resource_type": "Machine",
+      "machine_type": "grinder",
+      "skills": {
+        "grinding": 0.9,
+        "finishing": 0.85
+      },
+      "cost_per_hour": 32.5,
+      "efficiency": 0.899
+    },
+    {
+      "resource_id": "M002",
+      "name": "Drill Press 2",
+      "resource_type": "Machine",
+      "machine_type": "drill_press",
+      "skills": {
+        "drilling": 0.95,
+        "machining": 0.7
+      },
+      "cost_per_hour": 77.8,
+      "efficiency": 0.841
+    },
+    {
+      "resource_id": "M003",
+      "name": "Mill 3",
+      "resource_type": "Machine",
+      "machine_type": "mill",
+      "skills": {
+        "machining": 0.85,
+        "drilling": 0.9
+      },
+      "cost_per_hour": 37.39,
+      "efficiency": 0.852
+    },
+    {
+      "resource_id": "M004",
+      "name": "Cnc Lathe 4",
+      "resource_type": "Machine",
+      "machine_type": "cnc_lathe",
+      "skills": {
+        "machining": 0.9,
+        "precision_machining": 0.8
+      },
+      "cost_per_hour": 60.63,
+      "efficiency": 0.992
+    },
+    {
+      "resource_id": "M005",
+      "name": "Cnc Lathe 5",
+      "resource_type": "Machine",
+      "machine_type": "cnc_lathe",
+      "skills": {
+        "machining": 0.9,
+        "precision_machining": 0.8
+      },
+      "cost_per_hour": 34.87,
+      "efficiency": 0.992
+    },
+    {
+      "resource_id": "M006",
+      "name": "Grinder 6",
+      "resource_type": "Machine",
+      "machine_type": "grinder",
+      "skills": {
+        "grinding": 0.9,
+        "finishing": 0.85
+      },
+      "cost_per_hour": 38.9,
+      "efficiency": 0.816
+    },
+    {
+      "resource_id": "M007",
+      "name": "Grinder 7",
+      "resource_type": "Machine",
+      "machine_type": "grinder",
+      "skills": {
+        "grinding": 0.9,
+        "finishing": 0.85
+      },
+      "cost_per_hour": 37.7,
+      "efficiency": 0.87
+    },
+    {
+      "resource_id": "M008",
+      "name": "Mill 8",
+      "resource_type": "Machine",
+      "machine_type": "mill",
+      "skills": {
+        "machining": 0.85,
+        "drilling": 0.9
+      },
+      "cost_per_hour": 75.58,
+      "efficiency": 0.856
+    },
+    {
+      "resource_id": "W001",
+      "name": "Worker 1",
+      "resource_type": "Worker",
+      "skills": {
+        "mill_operation": 0.66,
+        "quality_control": 0.96
+      },
+      "cost_per_hour": 28.72,
+      "efficiency": 0.932
+    },
+    {
+      "resource_id": "W002",
+      "name": "Worker 2",
+      "resource_type": "Worker",
+      "skills": {
+        "mill_operation": 0.66
+      },
+      "cost_per_hour": 17.63,
+      "efficiency": 0.872
+    },
+    {
+      "resource_id": "W003",
+      "name": "Worker 3",
+      "resource_type": "Worker",
+      "skills": {
+        "quality_control": 0.75,
+        "mill_operation": 0.92
+      },
+      "cost_per_hour": 27.88,
+      "efficiency": 0.847
+    },
+    {
+      "resource_id": "W004",
+      "name": "Worker 4",
+      "resource_type": "Worker",
+      "skills": {
+        "setup": 0.79
+      },
+      "cost_per_hour": 30.15,
+      "efficiency": 0.896
+    },
+    {
+      "resource_id": "W005",
+      "name": "Worker 5",
+      "resource_type": "Worker",
+      "skills": {
+        "mill_operation": 0.96,
+        "quality_control": 0.65
+      },
+      "cost_per_hour": 18.1,
+      "efficiency": 0.853
+    },
+    {
+      "resource_id": "W006",
+      "name": "Worker 6",
+      "resource_type": "Worker",
+      "skills": {
+        "setup": 0.68,
+        "maintenance": 0.84,
+        "cnc_operation": 1.0
+      },
+      "cost_per_hour": 17.11,
+      "efficiency": 0.834
+    },
+    {
+      "resource_id": "W007",
+      "name": "Worker 7",
+      "resource_type": "Worker",
+      "skills": {
+        "maintenance": 0.61
+      },
+      "cost_per_hour": 27.8,
+      "efficiency": 0.835
+    },
+    {
+      "resource_id": "W008",
+      "name": "Worker 8",
+      "resource_type": "Worker",
+      "skills": {
+        "assembly": 0.81,
+        "quality_control": 0.69,
+        "maintenance": 0.94
+      },
+      "cost_per_hour": 15.87,
+      "efficiency": 0.986
+    },
+    {
+      "resource_id": "W009",
+      "name": "Worker 9",
+      "resource_type": "Worker",
+      "skills": {
+        "setup": 0.75
+      },
+      "cost_per_hour": 22.71,
+      "efficiency": 0.895
+    },
+    {
+      "resource_id": "W010",
+      "name": "Worker 10",
+      "resource_type": "Worker",
+      "skills": {
+        "mill_operation": 0.86,
+        "maintenance": 0.87,
+        "setup": 0.96
+      },
+      "cost_per_hour": 27.82,
+      "efficiency": 0.976
+    },
+    {
+      "resource_id": "W011",
+      "name": "Worker 11",
+      "resource_type": "Worker",
+      "skills": {
+        "mill_operation": 0.8,
+        "assembly": 0.81,
+        "setup": 0.74
+      },
+      "cost_per_hour": 27.24,
+      "efficiency": 0.888
+    },
+    {
+      "resource_id": "W012",
+      "name": "Worker 12",
+      "resource_type": "Worker",
+      "skills": {
+        "assembly": 0.89,
+        "setup": 0.64,
+        "maintenance": 0.79
+      },
+      "cost_per_hour": 17.56,
+      "efficiency": 0.815
+    }
+  ],
+  "calendar_requirements": {
+    "shift_type": "multi_shift",
+    "shifts": [
+      {
+        "name": "day",
+        "start": "08:00",
+        "end": "17:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      {
+        "name": "evening",
+        "start": "17:00",
+        "end": "01:00",
+        "days": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    ],
+    "lunch_break": {
+      "start": "12:00",
+      "end": "13:00"
+    },
+    "holidays": [
+      "2025-01-01",
+      "2025-05-01",
+      "2025-07-14",
+      "2025-12-25"
+    ]
+  },
+  "disruptions": [
+    {
+      "type": "machine_failure",
+      "severity": "high",
+      "duration_hours": 8.0,
+      "probability": 0.03,
+      "description": "Mill breakdown"
+    },
+    {
+      "type": "shift_change_delay",
+      "severity": "low",
+      "duration_hours": 2.0,
+      "probability": 0.12,
+      "description": "Handover gap"
+    }
+  ],
+  "expected_performance": {
+    "makespan_hours": 90.0,
+    "resource_utilization": 0.92
+  }
+}

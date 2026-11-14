@@ -1,0 +1,120 @@
+name: Habitat Calendar Disruption Micro-Oracle
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-calendar-oracle/**"
+      - "docs/research/HABITAT_CALENDAR_DISRUPTION_V0_1.md"
+      - "docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md"
+      - "docs/research/HABITAT_CA_RCPSP_SOURCE_AUDIT_V0_1.md"
+      - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+      - "docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
+      - "docs/research/external/ca-rcpsp-v1.0/**"
+      - ".github/workflows/habitat-calendar-oracle.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-calendar-oracle/**"
+      - "docs/research/HABITAT_CALENDAR_DISRUPTION_V0_1.md"
+      - "docs/research/HABITAT_CIVIL_TIME_PROVENANCE_V0_1.md"
+      - "docs/research/HABITAT_CA_RCPSP_SOURCE_AUDIT_V0_1.md"
+      - "docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+      - "docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
+      - "docs/research/external/ca-rcpsp-v1.0/**"
+      - ".github/workflows/habitat-calendar-oracle.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  calendar-micro-oracle:
+    name: Exact calendar and disruption reference cases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- --check
+
+      - name: Run exact oracle and validator tests
+        run: cargo test --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml
+
+      - name: Build and verify the frozen reference report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_CALENDAR_DISRUPTION_V0_1.json"
+          report="$RUNNER_TEMP/habitat-calendar-oracle.json"
+          cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_calendar_oracle_report.v0.1" and
+            .suite_id == "HABITAT-CALENDAR-DISRUPTION-V0.1" and
+            .input_sha256 == "934ff338850ddd2a5e161b5fab10ce824e7f08d56ca8308b950a395280d3762c" and
+            .case_count == 9 and
+            .scenario_count == 12 and
+            .all_searches_complete == true and
+            .all_returned_schedules_independently_validated == true and
+            .all_expected_outcomes_match == true and
+            ([.results[] | select(.status == "PROVEN_INFEASIBLE")] | length) == 2 and
+            ([.results[] | select(.status == "OPTIMAL_EXACT")] | length) == 10 and
+            ([.results[] | select(.independent_validator_status == "INDEPENDENT_VALIDATOR_PASSED")] | length) == 10
+          ' "$report"
+
+      - name: Build and verify the civil-time provenance report
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_CALENDAR_PROVENANCE_V0_1.json"
+          report="$RUNNER_TEMP/habitat-calendar-provenance.json"
+          cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- \
+            --provenance "$fixture" > "$report"
+          jq -e '
+            .schema_version == "luminous.habitat_calendar_provenance_report.v0.1" and
+            .suite_id == "HABITAT-CALENDAR-PROVENANCE-V0.1" and
+            .input_sha256 == "7717acc7932c79ee056fc9ed33b46bd8fd4af2821204e952f82984c019a4128a" and
+            .accepted_template_count == 2 and
+            .negative_control_count == 8 and
+            .rejected_negative_controls == 8 and
+            .all_expected_statuses_match == true and
+            ([.cases[] | select(.status == "METADATA_PROVENANCE_PASS_NOT_TZDB_CONFORMANCE")] | length) == 2 and
+            ([.cases[] | select(.status == "REJECTED")] | length) == 8
+          ' "$report"
+
+      - name: Build and verify the external CA-RCPSP source audit report
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/ca-rcpsp-source-audit.json"
+          cargo run --locked --manifest-path tools/habitat-calendar-oracle/Cargo.toml -- \
+            --external-audit > "$report"
+          jq -e '
+            .schema_version == "luminous.ca_rcpsp_external_audit_report.v0.1" and
+            .audit_status == "COMPLETE_PUBLISHED_METRIC_LOWER_BOUND_DISCREPANCIES_FOUND" and
+            .source_artifacts_match_pinned_sha256 == true and
+            .source_results_csv_sha256 == "834ad0cf18b8062497d2a0a5387524c340145fd164d6a2071982d83688555ce1" and
+            .instance_count == 12 and
+            .total_task_count == 2819 and
+            .solver_result_row_count == 36 and
+            .successful_solver_row_count == 30 and
+            .timeout_or_failed_row_count == 6 and
+            .successful_rows_below_longest_task_bound == 30 and
+            .expected_performance_makespan_below_longest_task_bound_count == 0 and
+            .successful_rows_with_calendar_compliance_below_one == 18 and
+            .all_scenario_ids_joined_exactly_once_per_solver == true and
+            .all_successful_rows_have_makespan == true and
+            .all_timeout_rows_have_empty_makespan == true and
+            .metric_semantics_require_source_reconciliation == true
+          ' "$report"

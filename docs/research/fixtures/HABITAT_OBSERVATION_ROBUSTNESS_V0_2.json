@@ -1,0 +1,173 @@
+{
+  "schema_version": "luminous.habitat_observation_fixture.v0.2",
+  "fixture_id": "habitat-observation-adversarial-modes-001",
+  "status": "proposed_synthetic_observation_robustness_benchmark",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_observation_robustness_not_site_safety",
+  "intended_use": "Check that an investigation result cannot narrow the possible site-condition set when explicit adversarial observation modes remain admissible. No probabilities or empirical sensor-performance claims are implied.",
+  "hazard_names": [
+    "canyon_flood",
+    "ridge_rock_unstable"
+  ],
+  "conditions": [
+    {
+      "id": "S-CLEAR",
+      "hazards": {
+        "canyon_flood": false,
+        "ridge_rock_unstable": false
+      }
+    },
+    {
+      "id": "S-CANYON-FLOOD",
+      "hazards": {
+        "canyon_flood": true,
+        "ridge_rock_unstable": false
+      }
+    },
+    {
+      "id": "S-RIDGE-UNSTABLE",
+      "hazards": {
+        "canyon_flood": false,
+        "ridge_rock_unstable": true
+      }
+    },
+    {
+      "id": "S-BOTH-HAZARDS",
+      "hazards": {
+        "canyon_flood": true,
+        "ridge_rock_unstable": true
+      }
+    }
+  ],
+  "observation_modes": [
+    "valid",
+    "false_negative",
+    "false_positive",
+    "stale",
+    "inconclusive",
+    "contradictory"
+  ],
+  "candidates": [
+    {
+      "id": "canyon_site",
+      "cost_units": 100,
+      "blocked_if_any_hazard_present": [
+        "canyon_flood"
+      ]
+    },
+    {
+      "id": "ridge_site",
+      "cost_units": 115,
+      "blocked_if_any_hazard_present": [
+        "ridge_rock_unstable"
+      ]
+    },
+    {
+      "id": "inland_fallback",
+      "cost_units": 220,
+      "blocked_if_any_hazard_present": []
+    }
+  ],
+  "actions": [
+    {
+      "id": "A-FLOOD-SURVEY",
+      "measured_hazard": "canyon_flood",
+      "cost_units": 5,
+      "description": "Synthetic flood survey with explicit adversarial observation modes.",
+      "outcomes": [
+        {
+          "id": "POSITIVE",
+          "classification": "positive",
+          "state_ids": [
+            "S-BOTH-HAZARDS::false_positive",
+            "S-BOTH-HAZARDS::valid",
+            "S-CANYON-FLOOD::false_positive",
+            "S-CANYON-FLOOD::valid",
+            "S-CLEAR::false_positive",
+            "S-RIDGE-UNSTABLE::false_positive"
+          ]
+        },
+        {
+          "id": "NEGATIVE",
+          "classification": "negative",
+          "state_ids": [
+            "S-BOTH-HAZARDS::false_negative",
+            "S-CANYON-FLOOD::false_negative",
+            "S-CLEAR::false_negative",
+            "S-CLEAR::valid",
+            "S-RIDGE-UNSTABLE::false_negative",
+            "S-RIDGE-UNSTABLE::valid"
+          ]
+        },
+        {
+          "id": "UNRESOLVED",
+          "classification": "unresolved",
+          "state_ids": [
+            "S-BOTH-HAZARDS::contradictory",
+            "S-BOTH-HAZARDS::inconclusive",
+            "S-BOTH-HAZARDS::stale",
+            "S-CANYON-FLOOD::contradictory",
+            "S-CANYON-FLOOD::inconclusive",
+            "S-CANYON-FLOOD::stale",
+            "S-CLEAR::contradictory",
+            "S-CLEAR::inconclusive",
+            "S-CLEAR::stale",
+            "S-RIDGE-UNSTABLE::contradictory",
+            "S-RIDGE-UNSTABLE::inconclusive",
+            "S-RIDGE-UNSTABLE::stale"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "A-GEOTECH-SURVEY",
+      "measured_hazard": "ridge_rock_unstable",
+      "cost_units": 8,
+      "description": "Synthetic geotechnical survey with explicit adversarial observation modes.",
+      "outcomes": [
+        {
+          "id": "POSITIVE",
+          "classification": "positive",
+          "state_ids": [
+            "S-BOTH-HAZARDS::false_positive",
+            "S-BOTH-HAZARDS::valid",
+            "S-CANYON-FLOOD::false_positive",
+            "S-CLEAR::false_positive",
+            "S-RIDGE-UNSTABLE::false_positive",
+            "S-RIDGE-UNSTABLE::valid"
+          ]
+        },
+        {
+          "id": "NEGATIVE",
+          "classification": "negative",
+          "state_ids": [
+            "S-BOTH-HAZARDS::false_negative",
+            "S-CANYON-FLOOD::false_negative",
+            "S-CANYON-FLOOD::valid",
+            "S-CLEAR::false_negative",
+            "S-CLEAR::valid",
+            "S-RIDGE-UNSTABLE::false_negative"
+          ]
+        },
+        {
+          "id": "UNRESOLVED",
+          "classification": "unresolved",
+          "state_ids": [
+            "S-BOTH-HAZARDS::contradictory",
+            "S-BOTH-HAZARDS::inconclusive",
+            "S-BOTH-HAZARDS::stale",
+            "S-CANYON-FLOOD::contradictory",
+            "S-CANYON-FLOOD::inconclusive",
+            "S-CANYON-FLOOD::stale",
+            "S-CLEAR::contradictory",
+            "S-CLEAR::inconclusive",
+            "S-CLEAR::stale",
+            "S-RIDGE-UNSTABLE::contradictory",
+            "S-RIDGE-UNSTABLE::inconclusive",
+            "S-RIDGE-UNSTABLE::stale"
+          ]
+        }
+      ]
+    }
+  ]
+}

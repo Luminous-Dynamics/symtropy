@@ -34,7 +34,10 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
     - name: Install System Dependencies (Linux)
       if: runner.os == 'Linux'

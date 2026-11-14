@@ -1,0 +1,92 @@
+name: Habitat Revalidation Scale Workload Generator
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-revalidation-scale/**"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json"
+      - ".github/workflows/habitat-revalidation-scale-generator.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-revalidation-scale/**"
+      - "docs/research/fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json"
+      - ".github/workflows/habitat-revalidation-scale-generator.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  materialize-profiles:
+    name: Deterministic workload generation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-revalidation-scale/Cargo.toml -- --check
+
+      - name: Run generator unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/habitat-revalidation-scale/Cargo.toml
+
+      - name: Materialize and repeat-check every frozen profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          matrix="docs/research/fixtures/HABITAT_REVALIDATION_SCALE_BENCHMARK_V0_1.json"
+          output_dir="$RUNNER_TEMP/habitat-revalidation-scale"
+          mkdir -p "$output_dir"
+          while IFS= read -r profile; do
+            first="$output_dir/$profile.first.json"
+            receipt_first="$output_dir/$profile.first.receipt.json"
+            second="$output_dir/$profile.second.json"
+            receipt_second="$output_dir/$profile.second.receipt.json"
+
+            cargo run --locked --manifest-path tools/habitat-revalidation-scale/Cargo.toml -- \
+              "$matrix" "$profile" "$first" "$receipt_first" "$SOURCE_COMMIT"
+            cargo run --locked --manifest-path tools/habitat-revalidation-scale/Cargo.toml -- \
+              "$matrix" "$profile" "$second" "$receipt_second" "$SOURCE_COMMIT"
+
+            cmp "$first" "$second"
+            cmp "$receipt_first" "$receipt_second"
+            digest="$(sha256sum "$first" | cut -d ' ' -f 1)"
+
+            jq -e --arg profile "$profile" --arg sha "$digest" --arg commit "$SOURCE_COMMIT" '
+              .schema_version == "luminous.habitat_revalidation_scale_receipt.v0.1" and
+              .profile_id == $profile and
+              .generator_source_commit == $commit and
+              .exact_input_sha256 == $sha and
+              .exact_input_bytes > 0 and
+              .artifact_count > 0 and
+              .task_count > 0 and
+              .reachable_task_count > 0 and
+              .claim_ceiling == "deterministic_synthetic_scale_input_not_measured_performance_or_real_world_authority"
+            ' "$receipt_first" >/dev/null
+
+            jq -e '
+              .schema_version == "luminous.habitat_revalidation_scale_instance.v0.1" and
+              .synthetic_only == true and
+              .claim_ceiling == "deterministic_synthetic_scale_input_not_measured_performance_or_real_world_authority" and
+              .artifact_count == (.artifacts | length) and
+              .task_count == (.tasks | length) and
+              .reachable_task_count == ([.tasks[] | select(.target_reachable == true)] | length) and
+              (.target_artifact_ids | length) > 0 and
+              (([.artifacts[].id] | unique | length) == (.artifacts | length)) and
+              (([.tasks[].id] | unique | length) == (.tasks | length))
+            ' "$first" >/dev/null
+            echo "Deterministic workload and receipt verified: $profile ($digest)"
+          done < <(jq -r '.profiles[].profile_id' "$matrix")

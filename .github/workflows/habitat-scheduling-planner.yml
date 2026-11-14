@@ -1,0 +1,110 @@
+name: Habitat Scheduling Heuristic Baseline
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-scheduling-planner/**"
+      - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+      - ".github/workflows/habitat-scheduling-planner.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/habitat-scheduling-planner/**"
+      - "docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+      - ".github/workflows/habitat-scheduling-planner.yml"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checked-heuristic-scheduler:
+    name: Checked heuristic schedule baseline
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt
+          rustup default 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/habitat-scheduling-planner/Cargo.toml -- --check
+
+      - name: Run heuristic, validator, and epistemic-status tests
+        run: cargo test --locked --manifest-path tools/habitat-scheduling-planner/Cargo.toml
+
+      - name: Verify all output schedules are independently checked
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="docs/research/fixtures/HABITAT_SCHEDULING_MICRO_ORACLE_V0_1.json"
+          report="$RUNNER_TEMP/habitat-scheduling-planner-report.json"
+          oracle_report="$RUNNER_TEMP/habitat-scheduling-exact-report.json"
+          cargo run --locked \
+            --manifest-path tools/habitat-scheduling-oracle/Cargo.toml -- \
+            "$fixture" > "$oracle_report"
+          cargo run --locked \
+            --manifest-path tools/habitat-scheduling-planner/Cargo.toml -- \
+            "$fixture" > "$report"
+
+          jq -e \
+            --arg claim_ceiling \
+              "synthetic_heuristic_schedule_candidates_not_optimality_construction_or_safety_authority" \
+            --arg robust_status \
+              "ROBUST_INFEASIBILITY_PROVEN_BY_LOWER_BOUND_OR_HARD_CONSTRAINT" '
+            .schema_version == "luminous.habitat_schedule_planner_report.v0.1" and
+            .case_count == 10 and
+            .all_returned_schedules_independently_validated == true and
+            .claim_ceiling == $claim_ceiling and
+            all(.case_results[];
+              .optimality_claim == "NOT_PROVEN" and
+              all([.nominal, .upper_duration_unconstrained, .upper_duration_with_deadline][];
+                (.schedule | length) == 0 or
+                .validation_status == "INDEPENDENT_VALIDATOR_PASSED"
+              )
+            ) and
+            ((.case_results[] |
+              select(.case_id == "independent_tasks_distinct_crews") |
+              .nominal.makespan) == 6) and
+            ((.case_results[] |
+              select(.case_id == "independent_tasks_shared_exclusive_crew") |
+              .nominal.makespan) == 10) and
+            ((.case_results[] |
+              select(.case_id == "nominally_fast_but_not_upper_scenario_robust") |
+              .robust_status) == $robust_status) and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.priority_only_status) == "NO_CANDIDATE_FOUND_NOT_PROOF_OF_INFEASIBILITY") and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.status) == "BOUNDED_FALLBACK_FEASIBLE_NOT_PROVEN_OPTIMAL") and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.makespan) == 19) and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal.fallback_search_complete) == true) and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .optimality_claim) == "NOT_PROVEN")
+          ' "$report" >/dev/null
+
+          jq -e '
+            .all_expected_outcomes_match == true and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .feasible) == true) and
+            ((.case_results[] |
+              select(.case_id == "priority_rules_miss_feasible_schedule") |
+              .nominal_optimal_makespan) == 19)
+          ' "$oracle_report" >/dev/null
+          echo "Exact oracle proves the heuristic blind-spot instance feasible; heuristic correctly declines an infeasibility claim."

@@ -1,0 +1,138 @@
+{
+  "schema_version": "luminous.habitat_calendar_provenance_fixture.v0.1",
+  "suite_id": "HABITAT-CALENDAR-PROVENANCE-V0.1",
+  "synthetic_only": true,
+  "claim_ceiling": "calendar_artifact_metadata_and_payload_digest_integrity_only_not_timezone_conversion_conformance",
+  "templates": [
+    {
+      "case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "manifest": {
+        "source_uri": "synthetic://calendars/jhb-weekday",
+        "source_revision": "fixture-v0.1",
+        "source_payload": "tzid=Africa/Johannesburg;weekdays=MO,TU,WE,TH,FR;start=08:00;end=17:00;break=12:00-13:00",
+        "source_sha256": "38f64c15ae65ce49eaf8f4750b0fdc95af573d234c1b58501cdbb02c675bc415",
+        "iana_zone": "Africa/Johannesburg",
+        "tzdb_release": "2026e",
+        "tzdb_payload": "tzdb-release=2026e;zone=Africa/Johannesburg;test-fixture-only",
+        "tzdb_sha256": "612996eb0bdca4910d7184f5bcb5da085cae6737f01b0f034b0b9556818c8d00",
+        "time_basis": "IANA_LOCAL_WALL_CLOCK",
+        "expansion_start_utc_epoch_seconds": 1798761600,
+        "expansion_end_utc_epoch_seconds": 1799000000,
+        "ambiguous_local_time_policy": "REJECT",
+        "nonexistent_local_time_policy": "REJECT",
+        "parser_version": "habitat-civil-calendar-parser/0.1.0",
+        "compiler_version": "habitat-calendar-compiler/0.1.0",
+        "expanded_intervals_payload": "synthetic-expanded-intervals:weekdays-2027-v1",
+        "expanded_intervals_sha256": "d4c66548e793773c626475882169327839aba1a510bdf7543f69437272958a4d",
+        "expanded_interval_count": 2
+      },
+      "expected_status": "METADATA_PROVENANCE_PASS_NOT_TZDB_CONFORMANCE"
+    },
+    {
+      "case_id": "META-002-new-york-fold-has-explicit-policy",
+      "manifest": {
+        "source_uri": "synthetic://calendars/ny-fallback",
+        "source_revision": "fixture-v0.1",
+        "source_payload": "tzid=America/New_York;date=2026-11-01;start=01:30;end=02:30;fall-back-test",
+        "source_sha256": "04f7e784ce62663e88e5dc7f43e628ceadd4cc8ee2c3c9978699c4aa0cd760e9",
+        "iana_zone": "America/New_York",
+        "tzdb_release": "2026e",
+        "tzdb_payload": "tzdb-release=2026e;zone=America/New_York;test-fixture-only",
+        "tzdb_sha256": "1c879d62c07a5c1047e065a4992c019b5cbce645000203eeaec9c61c454bd1d0",
+        "time_basis": "IANA_LOCAL_WALL_CLOCK",
+        "expansion_start_utc_epoch_seconds": 1793500000,
+        "expansion_end_utc_epoch_seconds": 1793600000,
+        "ambiguous_local_time_policy": "RFC5545_FIRST_OCCURRENCE",
+        "nonexistent_local_time_policy": "RFC5545_OFFSET_BEFORE_GAP",
+        "parser_version": "habitat-civil-calendar-parser/0.1.0",
+        "compiler_version": "habitat-calendar-compiler/0.1.0",
+        "expanded_intervals_payload": "synthetic-expanded-intervals:dst-fold-first-occurrence-v1",
+        "expanded_intervals_sha256": "4e634bbeb6d269f287c38f4dc0da466ce1ce5e8cb0e3abdd292269d1916c2c2d",
+        "expanded_interval_count": 1
+      },
+      "expected_status": "METADATA_PROVENANCE_PASS_NOT_TZDB_CONFORMANCE"
+    }
+  ],
+  "negative_controls": [
+    {
+      "case_id": "META-NC-001-missing-tzdb-release",
+      "template_case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "mutation": {
+        "op": "replace",
+        "field": "tzdb_release",
+        "value": null
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-002-floating-local-time",
+      "template_case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "mutation": {
+        "op": "replace",
+        "field": "time_basis",
+        "value": "FLOATING_LOCAL_TIME"
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-003-fixed-offset-instead-of-iana-zone",
+      "template_case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "mutation": {
+        "op": "replace",
+        "field": "iana_zone",
+        "value": "+02:00"
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-004-corrupt-source-digest",
+      "template_case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "mutation": {
+        "op": "replace",
+        "field": "source_sha256",
+        "value": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-005-missing-expansion-horizon",
+      "template_case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "mutation": {
+        "op": "replace",
+        "field": "expansion_end_utc_epoch_seconds",
+        "value": null
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-006-ambiguous-time-policy-omitted",
+      "template_case_id": "META-002-new-york-fold-has-explicit-policy",
+      "mutation": {
+        "op": "replace",
+        "field": "ambiguous_local_time_policy",
+        "value": null
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-007-corrupt-expanded-interval-digest",
+      "template_case_id": "META-002-new-york-fold-has-explicit-policy",
+      "mutation": {
+        "op": "replace",
+        "field": "expanded_intervals_sha256",
+        "value": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "expected_status": "REJECTED"
+    },
+    {
+      "case_id": "META-NC-008-unknown-unreviewed-policy-field",
+      "template_case_id": "META-001-johannesburg-pinned-civil-calendar",
+      "mutation": {
+        "op": "add_unknown_field",
+        "field": "silent_dst_correction",
+        "value": true
+      },
+      "expected_status": "REJECTED"
+    }
+  ]
+}

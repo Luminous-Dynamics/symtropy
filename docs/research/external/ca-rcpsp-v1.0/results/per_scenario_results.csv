@@ -1,0 +1,37 @@
+scenario,solver,makespan_hours,solve_time_s,success,calendar_compliance,resource_utilization,notes
+tiny_manufacturing_demo,maxplus,1.84,0.002,True,1.0,0.782,
+tiny_manufacturing_demo,ortools,2.73,0.016,True,0.889,0.56,
+tiny_manufacturing_demo,gurobi,2.31,0.0371,True,0.944,0.547,
+tiny_assembly_demo,maxplus,2.62,0.002,True,1.0,0.777,
+tiny_assembly_demo,ortools,3.86,0.0161,True,0.895,0.553,
+tiny_assembly_demo,gurobi,3.35,0.0504,True,0.953,0.546,
+tiny_quality_demo,maxplus,1.42,0.002,True,1.0,0.766,
+tiny_quality_demo,ortools,2.29,0.0173,True,0.898,0.564,
+tiny_quality_demo,gurobi,1.89,0.043,True,0.946,0.553,
+small_disrupted_manufacturing_25,maxplus,3.05,0.12,True,1.0,0.687,
+small_disrupted_manufacturing_25,ortools,4.9,0.0081,True,0.919,0.604,
+small_disrupted_manufacturing_25,gurobi,3.74,0.001,True,0.87,0.617,
+small_multi_resource_35,maxplus,2.57,0.189,True,1.0,0.685,
+small_multi_resource_35,ortools,3.88,0.0077,True,0.914,0.597,
+small_multi_resource_35,gurobi,3.41,0.0011,True,0.901,0.614,
+small_shift_operations_40,maxplus,2.52,0.19,True,1.0,0.675,
+small_shift_operations_40,ortools,4.06,0.0072,True,0.92,0.595,
+small_shift_operations_40,gurobi,3.45,0.001,True,0.894,0.629,
+medium_complex_manufacturing_120,maxplus,2.58,3.984,True,1.0,0.703,
+medium_complex_manufacturing_120,ortools,4.12,0.0386,True,0.844,0.657,
+medium_complex_manufacturing_120,gurobi,3.3,0.0149,True,0.842,0.676,
+medium_multi_shift_factory_150,maxplus,3.0,5.578,True,1.0,0.698,
+medium_multi_shift_factory_150,ortools,4.6,0.0465,True,0.869,0.67,
+medium_multi_shift_factory_150,gurobi,4.04,0.0149,True,0.878,0.692,
+medium_supply_chain_180,maxplus,2.86,6.088,True,1.0,0.705,
+medium_supply_chain_180,ortools,4.3,0.0511,True,0.837,0.683,
+medium_supply_chain_180,gurobi,3.59,0.0142,True,0.855,0.679,
+large_industrial_scale_500,maxplus,2.73,694.669,True,1.0,0.731,
+large_industrial_scale_500,ortools,,,False,,,timeout >3600s
+large_industrial_scale_500,gurobi,,,False,,,timeout >3600s
+large_enterprise_manufacturing_750,maxplus,3.06,1093.963,True,1.0,0.737,
+large_enterprise_manufacturing_750,ortools,,,False,,,timeout >3600s
+large_enterprise_manufacturing_750,gurobi,,,False,,,timeout >3600s
+large_mega_scale_factory_1000,maxplus,3.84,1342.211,True,1.0,0.75,
+large_mega_scale_factory_1000,ortools,,,False,,,timeout >3600s
+large_mega_scale_factory_1000,gurobi,,,False,,,timeout >3600s
