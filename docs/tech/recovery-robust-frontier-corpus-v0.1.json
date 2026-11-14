@@ -1,0 +1,288 @@
+{
+  "schema_version": "robust-recovery-frontier-v0.1",
+  "decision_profile_id": "forest_salvage_synthetic_case_v0.1",
+  "case_id": "RPF-FOREST-001",
+  "status": "synthetic-logic-fixture",
+  "algorithm_id": "interval-box-strict-dominance-v0.1",
+  "objective_schema": [
+    {
+      "id": "total_cost",
+      "unit": "synthetic_eur_cents_per_qualified_unit",
+      "direction": "minimize",
+      "interpretation": "full-chain cost per qualified usable timber unit"
+    },
+    {
+      "id": "energy_use",
+      "unit": "synthetic_kwh_per_qualified_unit",
+      "direction": "minimize",
+      "interpretation": "full-chain energy per qualified usable timber unit"
+    },
+    {
+      "id": "ecological_disturbance",
+      "unit": "synthetic_disturbance_points",
+      "direction": "minimize",
+      "interpretation": "illustrative profile-specific disturbance index"
+    }
+  ],
+  "uncertainty_semantics": "Each interval is a declared inclusive bound. Robust interval-separated dominance is certified only when A.upper <= B.lower for every objective and strict inequality holds for at least one objective. No probability distribution is assumed.",
+  "claim_ceiling": {
+    "expected_actuation": false,
+    "real_world_measurements": false,
+    "field_accuracy_claimed": false,
+    "execution_authority": "NO_ACTUATION_AUTHORIZED"
+  },
+  "plans": [
+    {
+      "id": "local_sorted_reuse",
+      "domain_profile_id": "forest_salvage_synthetic_case_v0.1",
+      "mandatory_gates": [
+        {
+          "gate": "permissions",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_PERMISSIONS_PASS"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_SCREEN_PASS"
+        },
+        {
+          "gate": "worker_safety",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_WORK_PLAN_PASS"
+        }
+      ],
+      "objective_intervals": {
+        "total_cost": {
+          "unit": "synthetic_eur_cents_per_qualified_unit",
+          "lower": 100,
+          "upper": 110
+        },
+        "energy_use": {
+          "unit": "synthetic_kwh_per_qualified_unit",
+          "lower": 20,
+          "upper": 25
+        },
+        "ecological_disturbance": {
+          "unit": "synthetic_disturbance_points",
+          "lower": 1,
+          "upper": 2
+        }
+      },
+      "expected_feasible": true
+    },
+    {
+      "id": "remote_haul_and_process",
+      "domain_profile_id": "forest_salvage_synthetic_case_v0.1",
+      "mandatory_gates": [
+        {
+          "gate": "permissions",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_PERMISSIONS_PASS"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_SCREEN_PASS"
+        },
+        {
+          "gate": "worker_safety",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_WORK_PLAN_PASS"
+        }
+      ],
+      "objective_intervals": {
+        "total_cost": {
+          "unit": "synthetic_eur_cents_per_qualified_unit",
+          "lower": 150,
+          "upper": 170
+        },
+        "energy_use": {
+          "unit": "synthetic_kwh_per_qualified_unit",
+          "lower": 35,
+          "upper": 40
+        },
+        "ecological_disturbance": {
+          "unit": "synthetic_disturbance_points",
+          "lower": 3,
+          "upper": 4
+        }
+      },
+      "expected_feasible": true
+    },
+    {
+      "id": "fast_local_specialist",
+      "domain_profile_id": "forest_salvage_synthetic_case_v0.1",
+      "mandatory_gates": [
+        {
+          "gate": "permissions",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_PERMISSIONS_PASS"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_SCREEN_PASS"
+        },
+        {
+          "gate": "worker_safety",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_WORK_PLAN_PASS"
+        }
+      ],
+      "objective_intervals": {
+        "total_cost": {
+          "unit": "synthetic_eur_cents_per_qualified_unit",
+          "lower": 80,
+          "upper": 105
+        },
+        "energy_use": {
+          "unit": "synthetic_kwh_per_qualified_unit",
+          "lower": 30,
+          "upper": 40
+        },
+        "ecological_disturbance": {
+          "unit": "synthetic_disturbance_points",
+          "lower": 2,
+          "upper": 3
+        }
+      },
+      "expected_feasible": true
+    },
+    {
+      "id": "unsafe_quick_disassembly",
+      "domain_profile_id": "forest_salvage_synthetic_case_v0.1",
+      "mandatory_gates": [
+        {
+          "gate": "permissions",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_PERMISSIONS_PASS"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_SCREEN_PASS"
+        },
+        {
+          "gate": "worker_safety",
+          "status": "BLOCK",
+          "reason_code": "MANDATORY_SAFETY_REVIEW_BLOCKED"
+        }
+      ],
+      "objective_intervals": {
+        "total_cost": {
+          "unit": "synthetic_eur_cents_per_qualified_unit",
+          "lower": 1,
+          "upper": 1
+        },
+        "energy_use": {
+          "unit": "synthetic_kwh_per_qualified_unit",
+          "lower": 1,
+          "upper": 1
+        },
+        "ecological_disturbance": {
+          "unit": "synthetic_disturbance_points",
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      "expected_feasible": false
+    },
+    {
+      "id": "permit_unknown_airlift",
+      "domain_profile_id": "forest_salvage_synthetic_case_v0.1",
+      "mandatory_gates": [
+        {
+          "gate": "permissions",
+          "status": "UNKNOWN",
+          "reason_code": "PERMISSION_NOT_ESTABLISHED"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_SCREEN_PASS"
+        },
+        {
+          "gate": "worker_safety",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_WORK_PLAN_PASS"
+        }
+      ],
+      "objective_intervals": {
+        "total_cost": {
+          "unit": "synthetic_eur_cents_per_qualified_unit",
+          "lower": 0,
+          "upper": 0
+        },
+        "energy_use": {
+          "unit": "synthetic_kwh_per_qualified_unit",
+          "lower": 0,
+          "upper": 0
+        },
+        "ecological_disturbance": {
+          "unit": "synthetic_disturbance_points",
+          "lower": 0,
+          "upper": 0
+        }
+      },
+      "expected_feasible": false
+    },
+    {
+      "id": "uncertain_remote_extraction",
+      "domain_profile_id": "forest_salvage_synthetic_case_v0.1",
+      "mandatory_gates": [
+        {
+          "gate": "permissions",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_PERMISSIONS_PASS"
+        },
+        {
+          "gate": "ecological_review",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_RETENTION_SCREEN_PASS"
+        },
+        {
+          "gate": "worker_safety",
+          "status": "PASS",
+          "reason_code": "SYNTHETIC_WORK_PLAN_PASS"
+        }
+      ],
+      "objective_intervals": {
+        "total_cost": {
+          "unit": "synthetic_eur_cents_per_qualified_unit",
+          "lower": 90,
+          "upper": 220
+        },
+        "energy_use": {
+          "unit": "synthetic_kwh_per_qualified_unit",
+          "lower": 15,
+          "upper": 60
+        },
+        "ecological_disturbance": {
+          "unit": "synthetic_disturbance_points",
+          "lower": 0,
+          "upper": 6
+        }
+      },
+      "expected_feasible": true
+    }
+  ],
+  "expected_feasible_plan_ids": [
+    "fast_local_specialist",
+    "local_sorted_reuse",
+    "remote_haul_and_process",
+    "uncertain_remote_extraction"
+  ],
+  "expected_frontier": [
+    "fast_local_specialist",
+    "local_sorted_reuse",
+    "uncertain_remote_extraction"
+  ],
+  "expected_dominance_certificates": [
+    {
+      "dominator": "local_sorted_reuse",
+      "dominated": "remote_haul_and_process"
+    }
+  ],
+  "plan_count": 6
+}

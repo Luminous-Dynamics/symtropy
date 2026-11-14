@@ -1,0 +1,73 @@
+name: Recovery Robust Frontier Audit
+
+on:
+  push:
+    branches: ["feat/recovery-robust-frontier-v0-1"]
+    paths:
+      - "docs/tech/recovery-robust-frontier-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_ROBUST_FRONTIER_V0_1.md"
+      - "tools/recovery-robust-frontier-audit/**"
+      - ".github/workflows/recovery-robust-frontier-audit.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/recovery-robust-frontier-corpus-v0.1.json"
+      - "docs/tech/RECOVERY_ROBUST_FRONTIER_V0_1.md"
+      - "tools/recovery-robust-frontier-audit/**"
+      - ".github/workflows/recovery-robust-frontier-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recovery-robust-frontier-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  robust-frontier-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Run independent robustness tests
+        run: cargo test --manifest-path tools/recovery-robust-frontier-audit/Cargo.toml
+      - name: Compute frontier receipt from exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/recovery-robust-frontier-audit/Cargo.toml -- \
+            docs/tech/recovery-robust-frontier-corpus-v0.1.json \
+            --source-commit "$source_commit" > recovery-robust-frontier-receipt.json
+          jq -e '
+            .result == "pass"
+            and .schema_version == "robust-recovery-frontier-v0.1"
+            and .plan_count == 6
+            and .objective_count == 3
+            and .feasible_plan_count == 4
+            and .expected_frontier_matches == true
+            and .expected_certificates_match == true
+            and (.ineligible_plans | length == 2)
+            and .frontier == ["fast_local_specialist", "local_sorted_reuse", "uncertain_remote_extraction"]
+            and (.dominance_certificates | length == 1)
+            and .all_plan_only == true
+            and .claim_ceiling == "NO_ACTUATION_AUTHORIZED"
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.errors | length == 0)
+          ' recovery-robust-frontier-receipt.json
+      - name: Upload exact-input frontier receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-robust-frontier-receipt
+          path: recovery-robust-frontier-receipt.json
+          if-no-files-found: error
