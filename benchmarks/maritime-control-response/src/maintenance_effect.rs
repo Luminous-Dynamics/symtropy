@@ -1252,6 +1252,6 @@ mod tests {
             corpus["schema_version"],
             "symtropy-marine-maintenance-effect-cases-v0.1"
         );
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 10);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
     }
 }
