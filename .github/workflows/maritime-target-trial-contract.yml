@@ -1,0 +1,82 @@
+name: Maritime Observational Target-Trial Contract
+
+on:
+  pull_request:
+    branches: [research/maritime-maintenance-effect-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/target_trial_contract.rs"
+      - "benchmarks/maritime-control-response/src/lib.rs"
+      - "benchmarks/maritime-control-response/target-trial-*"
+      - "docs/tech/MARITIME_OBSERVATIONAL_TARGET_TRIAL_V0_1.md"
+      - ".github/workflows/maritime-target-trial-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maritime-target-trial-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  observational-target-trial-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Install pinned JSON Schema validator
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Validate target-trial protocol, diagnostics, report and cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("benchmarks/maritime-control-response")
+          protocol = json.loads((root / "target-trial-v0.1.json").read_text())
+          protocol_schema = json.loads((root / "target-trial-protocol.schema.json").read_text())
+          diagnostics_schema = json.loads((root / "target-trial-diagnostics.schema.json").read_text())
+          report_schema = json.loads((root / "target-trial-report.schema.json").read_text())
+          corpus = json.loads((root / "target-trial-cases-v0.1.json").read_text())
+          for schema in (protocol_schema, diagnostics_schema, report_schema):
+              Draft202012Validator.check_schema(schema)
+              assert schema["additionalProperties"] is False
+          assert protocol["schema_version"] == "symtropy-marine-observational-target-trial-v0.1"
+          assert len(protocol["hard_gates"]) >= 30
+          assert len(corpus["cases"]) == 16
+          assert len({case["case_id"] for case in corpus["cases"]}) == 16
+          assert protocol_schema["properties"]["align_eligibility_assignment_followup_at_time_zero"]["const"] is True
+          assert report_schema["properties"]["causal_effect_estimated"]["const"] is False
+          print("Observational target-trial protocol/schema/case checks: PASS")
+          PY
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Verify full crate formatting
+        working-directory: benchmarks/maritime-control-response
+        run: cargo fmt -- --check
+
+      - name: Run complete library regression suite
+        working-directory: benchmarks/maritime-control-response
+        run: cargo test --locked --lib
+
+      - name: Run strict library Clippy
+        working-directory: benchmarks/maritime-control-response
+        run: cargo clippy --locked --lib -- -D warnings
