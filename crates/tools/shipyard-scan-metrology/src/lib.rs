@@ -303,9 +303,7 @@ fn validate_calibration(input: &ProfilePairInput) -> Result<(), RejectReason> {
     {
         return Err(RejectReason::CalibrationNotValidAtCapture);
     }
-    if calibration.reference_artifact_error_um
-        > calibration.maximum_reference_artifact_error_um
-    {
+    if calibration.reference_artifact_error_um > calibration.maximum_reference_artifact_error_um {
         return Err(RejectReason::ReferenceArtifactOutOfTolerance);
     }
     Ok(())
@@ -332,8 +330,7 @@ fn validate_registration(input: &ProfilePairInput) -> Result<(), RejectReason> {
     if !registration.stable_datum_verified {
         return Err(RejectReason::UnstableDatum);
     }
-    if registration.fit_region != "stable_datum"
-        && registration.fit_region != "reference_artifact"
+    if registration.fit_region != "stable_datum" && registration.fit_region != "reference_artifact"
     {
         return Err(RejectReason::RegistrationFitUsesChangingSurface);
     }
@@ -343,9 +340,7 @@ fn validate_registration(input: &ProfilePairInput) -> Result<(), RejectReason> {
     if registration.check_point_count < 3 {
         return Err(RejectReason::TooFewIndependentCheckPoints);
     }
-    if registration.independent_check_point_error_um
-        > registration.maximum_check_point_error_um
-    {
+    if registration.independent_check_point_error_um > registration.maximum_check_point_error_um {
         return Err(RejectReason::CheckPointErrorTooLarge);
     }
     if registration.scale_deviation_ppm > registration.maximum_scale_deviation_ppm {
@@ -355,7 +350,8 @@ fn validate_registration(input: &ProfilePairInput) -> Result<(), RejectReason> {
 }
 
 fn validate_profile(input: &ProfilePairInput) -> Result<(), RejectReason> {
-    if is_empty(&input.surface_compatibility.surface_condition) || is_empty(&input.comparison_frame) {
+    if is_empty(&input.surface_compatibility.surface_condition) || is_empty(&input.comparison_frame)
+    {
         return Err(RejectReason::EmptyIdentity);
     }
     if !input.surface_compatibility.within_qualified_surface_range {
@@ -375,9 +371,7 @@ fn validate_profile(input: &ProfilePairInput) -> Result<(), RejectReason> {
     Ok(())
 }
 
-pub fn evaluate_profile_pair(
-    input: &ProfilePairInput,
-) -> Result<MeasurementReport, RejectReason> {
+pub fn evaluate_profile_pair(input: &ProfilePairInput) -> Result<MeasurementReport, RejectReason> {
     validate_identity(input)?;
     validate_calibration(input)?;
     validate_registration(input)?;
@@ -458,8 +452,7 @@ pub fn evaluate_profile_pair(
         .checked_mul(1_000)
         .ok_or(RejectReason::NumericOverflow)?
         / expected;
-    let coverage_permille =
-        u16::try_from(coverage).map_err(|_| RejectReason::NumericOverflow)?;
+    let coverage_permille = u16::try_from(coverage).map_err(|_| RejectReason::NumericOverflow)?;
     if coverage_permille < input.minimum_coverage_permille {
         return Err(RejectReason::CoverageBelowMinimum);
     }
@@ -485,24 +478,21 @@ pub fn evaluate_profile_pair(
 
     absolute_displacements.sort_unstable();
     let percentile_rank = (95 * absolute_displacements.len()).div_ceil(100);
-    let percentile_95_absolute_displacement_um = u64::try_from(
-        absolute_displacements[percentile_rank.saturating_sub(1)],
-    )
-    .map_err(|_| RejectReason::NumericOverflow)?;
+    let percentile_95_absolute_displacement_um =
+        u64::try_from(absolute_displacements[percentile_rank.saturating_sub(1)])
+            .map_err(|_| RejectReason::NumericOverflow)?;
     let maximum_absolute_displacement_um = u64::try_from(
-        *absolute_displacements.last().ok_or(RejectReason::NoValidMeasuredSpan)?,
+        *absolute_displacements
+            .last()
+            .ok_or(RejectReason::NoValidMeasuredSpan)?,
     )
     .map_err(|_| RejectReason::NumericOverflow)?;
 
-    let mean_displacement_interval_um =
-        checked_interval(mean_signed_displacement_um, uncertainty)?;
+    let mean_displacement_interval_um = checked_interval(mean_signed_displacement_um, uncertainty)?;
     let area_uncertainty = uncertainty
         .checked_mul(valid_span_length_um)
         .ok_or(RejectReason::NumericOverflow)?;
-    let signed_area_interval_um2 = checked_area_interval(
-        signed_area_change_um2,
-        area_uncertainty,
-    )?;
+    let signed_area_interval_um2 = checked_area_interval(signed_area_change_um2, area_uncertainty)?;
 
     Ok(MeasurementReport {
         pair_id: input.pair_id.clone(),

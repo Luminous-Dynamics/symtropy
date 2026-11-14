@@ -1,14 +1,13 @@
 use serde::Deserialize;
 use shipyard_scan_metrology::{
-    evaluate_profile_pair, MeasurementReport, ProfilePairInput, BENCHMARK_ID,
+    BENCHMARK_ID, MeasurementReport, ProfilePairInput, evaluate_profile_pair,
 };
 use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-const DEFAULT_CORPUS: &str =
-    "benchmarks/shipyard/scan-metrology/paired-profile-v0.1.json";
+const DEFAULT_CORPUS: &str = "benchmarks/shipyard/scan-metrology/paired-profile-v0.1.json";
 
 #[derive(Debug, Deserialize)]
 struct NegativeControl {
@@ -50,7 +49,10 @@ fn verify_corpus(corpus: &BenchmarkCorpus) -> Result<MeasurementReport, String> 
             ));
         }
         if control.mutation.trim().is_empty() || control.expected_disposition.trim().is_empty() {
-            return Err(format!("{} has an empty mutation contract", control.control_id));
+            return Err(format!(
+                "{} has an empty mutation contract",
+                control.control_id
+            ));
         }
     }
 
