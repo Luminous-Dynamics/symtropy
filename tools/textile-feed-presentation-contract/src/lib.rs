@@ -519,6 +519,28 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_feed_run_example_deserializes_and_qualifies() {
+        const EXAMPLE: &str = include_str!("../feed-run.example.json");
+        const SCHEMA: &str = include_str!("../feed-run.schema.json");
+        let run: FeedRun =
+            serde_json::from_str(EXAMPLE).expect("feed run example must deserialize");
+        let schema: serde_json::Value =
+            serde_json::from_str(SCHEMA).expect("feed run schema must be valid JSON");
+        assert_eq!(
+            schema["properties"]["run_id"]["type"].as_str(),
+            Some("string")
+        );
+        assert!(run.validate().valid, "{:#?}", run.validate().findings);
+        assert_eq!(
+            run.metrics().unwrap().first_pass_single_presentation,
+            CountRate {
+                numerator: 1,
+                denominator: 2
+            }
+        );
+    }
+
+    #[test]
     fn missing_terminal_item_is_not_dropped_from_denominator() {
         let mut run = valid_run();
         run.terminal_dispositions.pop();
