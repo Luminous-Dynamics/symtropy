@@ -1246,12 +1246,22 @@ mod tests {
     }
 
     #[test]
-    fn treatment_version_mismatch_is_rejected_by_dataset_contract() {
+    fn treatment_version_mismatch_returns_not_identified_reason() {
         let (mut dataset, _) = fixture();
         dataset.units[0].strategy_version_id = "temporary-repair-v0".into();
-        assert!(matches!(
-            dataset.validate(),
-            Err(TargetTrialValidationError::InvalidProtocol(_))
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::TreatmentVersionMismatch
+        ));
+    }
+
+    #[test]
+    fn missing_assumption_review_reference_returns_not_identified_reason() {
+        let (mut dataset, _) = fixture();
+        dataset.protocol.exchangeability_review_ref.clear();
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::AssumptionReviewReferenceMissing
         ));
     }
 
@@ -1289,7 +1299,7 @@ mod tests {
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["scope"]["causal_estimates_enabled"], false);
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
-        assert_eq!(protocol["cases"].as_array().unwrap().len(), 14);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 14);
+        assert_eq!(protocol["cases"].as_array().unwrap().len(), 15);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 15);
     }
 }
