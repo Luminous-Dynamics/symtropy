@@ -1,0 +1,61 @@
+name: Manufacturing MTConnect QIF semantic mapping reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-interop/interop.rs"
+      - "tools/manufacturing-interop/README.md"
+      - "tools/manufacturing-interop/expected.csv"
+      - "tools/manufacturing-interop/joined-expected.csv"
+      - "tools/manufacturing-interop/assets-expected.csv"
+      - ".github/workflows/manufacturing-interop.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/manufacturing-interop/interop.rs"
+      - "tools/manufacturing-interop/README.md"
+      - "tools/manufacturing-interop/expected.csv"
+      - "tools/manufacturing-interop/joined-expected.csv"
+      - "tools/manufacturing-interop/assets-expected.csv"
+      - ".github/workflows/manufacturing-interop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semantic-mapping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run mapping tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/manufacturing-interop/interop.rs -o "$RUNNER_TEMP/mfg-interop-tests"
+          "$RUNNER_TEMP/mfg-interop-tests"
+      - name: Build and verify semantic mapping
+        run: |
+          rustc --edition=2024 -D warnings tools/manufacturing-interop/interop.rs -o "$RUNNER_TEMP/mfg-interop"
+          "$RUNNER_TEMP/mfg-interop" --verify
+      - name: Compare deterministic mapping output with golden table
+        run: |
+          "$RUNNER_TEMP/mfg-interop" --csv > "$RUNNER_TEMP/mfg-interop-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --csv > "$RUNNER_TEMP/mfg-interop-b.csv"
+          diff -u "$RUNNER_TEMP/mfg-interop-a.csv" "$RUNNER_TEMP/mfg-interop-b.csv"
+          diff -u tools/manufacturing-interop/expected.csv "$RUNNER_TEMP/mfg-interop-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --assets-csv > "$RUNNER_TEMP/mfg-interop-assets-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --assets-csv > "$RUNNER_TEMP/mfg-interop-assets-b.csv"
+          diff -u "$RUNNER_TEMP/mfg-interop-assets-a.csv" "$RUNNER_TEMP/mfg-interop-assets-b.csv"
+          diff -u tools/manufacturing-interop/assets-expected.csv "$RUNNER_TEMP/mfg-interop-assets-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --joined-csv > "$RUNNER_TEMP/mfg-interop-joined-a.csv"
+          "$RUNNER_TEMP/mfg-interop" --joined-csv > "$RUNNER_TEMP/mfg-interop-joined-b.csv"
+          diff -u "$RUNNER_TEMP/mfg-interop-joined-a.csv" "$RUNNER_TEMP/mfg-interop-joined-b.csv"
+          diff -u tools/manufacturing-interop/joined-expected.csv "$RUNNER_TEMP/mfg-interop-joined-a.csv"
+          cat "$RUNNER_TEMP/mfg-interop-a.csv"
+          cat "$RUNNER_TEMP/mfg-interop-assets-a.csv"
+          cat "$RUNNER_TEMP/mfg-interop-joined-a.csv"
+      - name: Emit source and output digests
+        run: |
+          sha256sum tools/manufacturing-interop/interop.rs tools/manufacturing-interop/expected.csv tools/manufacturing-interop/assets-expected.csv tools/manufacturing-interop/joined-expected.csv "$RUNNER_TEMP/mfg-interop-a.csv" "$RUNNER_TEMP/mfg-interop-assets-a.csv" "$RUNNER_TEMP/mfg-interop-joined-a.csv"
