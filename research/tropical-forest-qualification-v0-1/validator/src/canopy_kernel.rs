@@ -6,6 +6,8 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+const MAX_PATCH_CELLS: usize = 1_000_000;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CanopyCohort {
     id: String,
@@ -30,8 +32,13 @@ pub struct CanopyPatch {
 
 impl CanopyPatch {
     pub fn new(width: usize, height: usize) -> Result<Self, String> {
-        if width == 0 || height == 0 || width.checked_mul(height).is_none() {
-            return Err("canopy dimensions must be non-zero and fit addressable memory".to_string());
+        let Some(cell_count) = width.checked_mul(height) else {
+            return Err("canopy dimensions overflow addressable memory".to_string());
+        };
+        if width == 0 || height == 0 || cell_count > MAX_PATCH_CELLS {
+            return Err(format!(
+                "canopy dimensions must contain between 1 and {MAX_PATCH_CELLS} cells"
+            ));
         }
         Ok(Self { width, height, cohorts: BTreeMap::new() })
     }
@@ -67,6 +74,17 @@ impl CanopyPatch {
         for (x, y) in &support {
             if *x >= self.width || *y >= self.height {
                 return Err(format!("cohort {id} support cell ({x}, {y}) is outside the patch"));
+            }
+        }
+        let added_total = lai_per_cell * support.len() as f64;
+        if !added_total.is_finite() || !(self.total_lai() + added_total).is_finite() {
+            return Err("cohort LAI would overflow the patch-wide biomass-light state".to_string());
+        }
+        let current_field = self.lai_field();
+        for (x, y) in &support {
+            let projected = current_field[y * self.width + x] + lai_per_cell;
+            if !projected.is_finite() {
+                return Err(format!("cohort {id} would overflow LAI at cell ({x}, {y})"));
             }
         }
 
@@ -275,5 +293,14 @@ mod tests {
         assert!(patch.transmittance_field(-0.1).is_err());
         assert!(patch.transmittance_field(f64::INFINITY).is_err());
         assert!(patch.understory_light_eligible_cells(0.5, 1.1).is_err());
+    }
+
+    #[test]
+    fn patch_size_and_lai_overflow_fail_closed() {
+        assert!(CanopyPatch::new(1_000_001, 1).is_err());
+        let mut patch = CanopyPatch::new(2, 1).unwrap();
+        assert!(patch.add_cohort("huge", [(0, 0), (1, 0)], f64::MAX).is_err());
+        patch.add_cohort("first", [(0, 0)], f64::MAX).unwrap();
+        assert!(patch.add_cohort("overflow", [(0, 0)], f64::MAX).is_err());
     }
 }
