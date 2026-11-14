@@ -885,17 +885,17 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
 }
 
 fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
-    let expected: BTreeMap<&'static str, &'static str> = [
-        ("FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-001", "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"),
-        ("FOREST-MSA-RECRUITMENT-GROWTH-ALIASING-001", "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"),
-        ("FOREST-MSA-DELAYED-RESPONSE-001", "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"),
-        ("FOREST-MSA-SIZE-DEPENDENT-MORTALITY-001", "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"),
-        ("FOREST-MSA-SEED-LIMITATION-001", "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"),
-        ("FOREST-MSA-SPATIAL-CANOPY-TOPOLOGY-001", "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"),
-        ("FOREST-MSA-DISTURBANCE-CLIMATE-INTERACTION-001", "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"),
-        ("FOREST-MSA-OBSERVATION-PROCESS-SHIFT-001", "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"),
-        ("FOREST-MSA-CROSS-REGION-TRANSFER-001", "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"),
-        ("FOREST-MSA-COMMON-STRUCTURAL-OMISSION-001", "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"),
+    let expected_families: BTreeMap<&'static str, &'static str> = [
+        ("growth_mortality_compensation", "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"),
+        ("recruitment_growth_aliasing", "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"),
+        ("delayed_response", "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"),
+        ("size_dependent_mortality", "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"),
+        ("seed_or_propagule_limitation", "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"),
+        ("spatial_canopy_topology", "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"),
+        ("disturbance_climate_interaction", "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"),
+        ("observation_process_shift", "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"),
+        ("cross_region_parameter_transfer", "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"),
+        ("common_structural_omission", "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"),
     ]
     .into_iter()
     .collect();
@@ -938,43 +938,49 @@ fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, Stri
         "public development corpus must not claim sealed/blind generator truth",
     );
 
+    let mut family_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut variant_ids = BTreeSet::new();
     for (index, case) in cases.iter().enumerate() {
-        let id = case
-            .get("case_id")
-            .and_then(Value::as_str)
-            .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
-        let family = case
-            .get("family")
-            .and_then(Value::as_str)
-            .ok_or_else(|| format!("cases[{index}].family must be a string"))?;
-        let condition = case
-            .get("condition")
-            .and_then(Value::as_str)
-            .ok_or_else(|| format!("cases[{index}].condition must be a string"))?;
-        let disposition = case
-            .get("expected_disposition")
-            .and_then(Value::as_str)
-            .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
-        let unique = seen.insert(id.to_string());
-        let expected_disposition = expected
-            .iter()
-            .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
-        let known_case = expected_disposition == Some(disposition);
+        let id = string_at(case, &["case_id"])?;
+        let family = string_at(case, &["family"])?;
+        let variant_id = string_at(case, &["variant_id"])?;
+        let condition = string_at(case, &["condition"])?;
+        let disposition = string_at(case, &["expected_disposition"])?;
+        let unique = seen.insert(id.clone());
+        let unique_variant = variant_ids.insert(variant_id.clone());
+        *family_counts.entry(family.clone()).or_default() += 1;
+        let expected_disposition = expected_families.get(family.as_str()).copied();
+        let known_case = expected_disposition == Some(disposition.as_str());
         push_check(
             &mut checks,
             "MODEL-SET-CASE-SEMANTICS-001",
-            unique && known_case && !family.trim().is_empty() && !condition.trim().is_empty(),
+            unique
+                && unique_variant
+                && known_case
+                && !condition.trim().is_empty(),
             format!(
-                "case={id}; expected={}; declared={disposition}; unique={unique}",
-                expected_disposition.unwrap_or("UNKNOWN_CASE")
+                "case={id}; family={family}; expected={}; declared={disposition}; unique={unique}; unique_variant={unique_variant}",
+                expected_disposition.unwrap_or("UNKNOWN_FAMILY")
             ),
         );
     }
+    let three_per_family = expected_families.keys().all(|family| {
+        family_counts.get(*family).copied().unwrap_or_default() == 3
+    });
     push_check(
         &mut checks,
-        "MODEL-SET-CASE-COVERAGE-001",
-        seen.len() == expected.len() && cases.len() == expected.len(),
-        format!("{} unique cases; {} required", seen.len(), expected.len()),
+        "MODEL-SET-THIRTY-CASE-COVERAGE-001",
+        seen.len() == 30
+            && variant_ids.len() == 30
+            && cases.len() == 30
+            && family_counts.len() == expected_families.len()
+            && three_per_family,
+        format!(
+            "{} unique cases, {} unique variants, {} families; three variants per family required",
+            seen.len(),
+            variant_ids.len(),
+            family_counts.len()
+        ),
     );
 
     let runner = string_at(manifest, &["execution", "validator"])?;
@@ -1016,6 +1022,8 @@ fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, Stri
         "checks_passed": checks.iter().filter(|check| check.passed).count(),
         "checks_total": checks.len(),
         "checks": check_values,
+        "public_case_count": seen.len(),
+        "public_family_count": family_counts.len(),
         "blind_test_created": false,
         "hidden_truth_published": false,
         "empirical_model_set_adequacy": "NOT_ESTABLISHED"
@@ -2722,12 +2730,24 @@ mod tests {
 
 
     #[test]
-    fn model_set_public_manifest_has_ten_case_families_and_no_blind_claim() {
+    fn model_set_public_manifest_has_thirty_cases_and_no_blind_claim() {
         let receipt = evaluate(MODEL_SET_FIXTURE.as_bytes()).expect("model-set manifest parses");
         assert_eq!(receipt["result"], "MANIFEST_VALID");
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
         assert_eq!(receipt["blind_test_created"], false);
         assert_eq!(receipt["hidden_truth_published"], false);
+        assert_eq!(receipt["public_case_count"], 30);
+        assert_eq!(receipt["public_family_count"], 10);
+    }
+
+    #[test]
+    fn model_set_unknown_family_mutation_is_rejected() {
+        let mut manifest: Value =
+            serde_json::from_str(MODEL_SET_FIXTURE).expect("valid model-set manifest");
+        manifest["cases"][0]["family"] = json!("unregistered_mechanism");
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated model-set manifest");
+        let receipt = evaluate(&bytes).expect("well-formed manifest returns a receipt");
+        assert_eq!(receipt["result"], "FAIL");
     }
 
     #[test]
