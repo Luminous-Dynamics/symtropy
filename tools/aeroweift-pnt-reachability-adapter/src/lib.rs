@@ -153,10 +153,16 @@ pub struct AdapterInput {
     pub primary: Option<NavigationClaim>,
     /// Independent fallback claim, if supplied.
     pub fallback: Option<NavigationClaim>,
-    /// Assessment time, normalized to the declared assessment scale.
-    pub assessment_time_utc_ms: u64,
+    /// Lower bound of the assessment-time interval, normalized by Mycelix #435.
+    pub assessment_time_lower_utc_ms: u64,
+    /// Upper bound of the assessment-time interval, normalized by Mycelix #435.
+    pub assessment_time_upper_utc_ms: u64,
     /// Assessment time-scale identity.
     pub assessment_time_scale_id: String,
+    /// Qualification of the evaluation clock correlation.
+    pub assessment_clock_qualification: ClockQualification,
+    /// Digest syntax for the evaluation clock-correlation artifact.
+    pub assessment_clock_correlation_sha256: Option<String>,
     /// Exact upstream PNT service-state receipt digest syntax.
     pub service_state_receipt_sha256: String,
     /// Active operation/reachability policy.
@@ -186,8 +192,14 @@ pub enum NotAssessableReason {
     SampleAgeExceedsProfileLimit,
     /// The sample and assessment time-scale identities do not match.
     TimeScaleMismatch,
+    /// The evaluation clock correlation is missing or unqualified.
+    AssessmentClockUnqualified,
+    /// The assessment-time interval is reversed.
+    InvalidAssessmentTimeInterval,
     /// Clock correlation is not qualified.
     ClockCorrelationUnqualified,
+    /// Clock correlation state is unknown.
+    ClockCorrelationUnknown,
     /// Clock correlation identity or digest is absent.
     MissingClockCorrelation,
     /// Independence evidence is shared, unknown, or contradictory.
@@ -334,8 +346,25 @@ fn evaluate_claim(
     {
         return Err(NotAssessableReason::TimeScaleMismatch);
     }
-    if claim.clock_qualification != ClockQualification::Qualified {
-        return Err(NotAssessableReason::ClockCorrelationUnqualified);
+    if input.assessment_time_lower_utc_ms > input.assessment_time_upper_utc_ms {
+        return Err(NotAssessableReason::InvalidAssessmentTimeInterval);
+    }
+    if input.assessment_clock_qualification != ClockQualification::Qualified
+        || !input
+            .assessment_clock_correlation_sha256
+            .as_deref()
+            .is_some_and(is_sha256)
+    {
+        return Err(NotAssessableReason::AssessmentClockUnqualified);
+    }
+    match claim.clock_qualification {
+        ClockQualification::Qualified => {}
+        ClockQualification::Unqualified => {
+            return Err(NotAssessableReason::ClockCorrelationUnqualified);
+        }
+        ClockQualification::Unknown => {
+            return Err(NotAssessableReason::ClockCorrelationUnknown);
+        }
     }
     let Some(correlation_id) = claim.clock_correlation_id.as_deref() else {
         return Err(NotAssessableReason::MissingClockCorrelation);
@@ -368,21 +397,23 @@ fn evaluate_claim(
     if claim.sample_time_lower_utc_ms > claim.sample_time_upper_utc_ms {
         return Err(NotAssessableReason::InvalidSampleTimeInterval);
     }
-    if claim.sample_time_upper_utc_ms > input.assessment_time_utc_ms {
+    if claim.sample_time_upper_utc_ms > input.assessment_time_lower_utc_ms {
         return Err(NotAssessableReason::SampleTimeOverlapsAssessmentEpoch);
     }
 
     let oldest_possible_age_ms =
-        input.assessment_time_utc_ms - claim.sample_time_lower_utc_ms;
+        input.assessment_time_upper_utc_ms - claim.sample_time_lower_utc_ms;
     if oldest_possible_age_ms > input.policy.maximum_sample_age_ms {
         return Err(NotAssessableReason::SampleAgeExceedsProfileLimit);
     }
 
     let elapsed_min_ms =
-        input.assessment_time_utc_ms - claim.sample_time_upper_utc_ms;
+        input.assessment_time_lower_utc_ms - claim.sample_time_upper_utc_ms;
     let elapsed_max_ms = oldest_possible_age_ms;
-    let elapsed_seconds = elapsed_interval_seconds(elapsed_min_ms, elapsed_max_ms)
-        .map_err(|_| NotAssessableReason::ArithmeticFailure)?;
+    let Some(elapsed_seconds) = elapsed_interval_seconds(elapsed_min_ms, elapsed_max_ms)
+    else {
+        return Err(NotAssessableReason::ArithmeticFailure);
+    };
 
     let position = PositionBounds {
         east_m: claim
@@ -426,16 +457,16 @@ fn evaluate_claim(
 fn elapsed_interval_seconds(
     lower_ms: u64,
     upper_ms: u64,
-) -> Result<Interval, ()> {
+) -> Option<Interval> {
     if lower_ms > upper_ms {
-        return Err(());
+        return None;
     }
     // Accepted profile ages are deliberately bounded by the operation policy,
     // and therefore lie inside the exact integer range of binary64.
     let lower_nearest = lower_ms as f64 / 1_000.0;
     let upper_nearest = upper_ms as f64 / 1_000.0;
     if !lower_nearest.is_finite() || !upper_nearest.is_finite() {
-        return Err(());
+        return None;
     }
 
     // Preserve an exact zero lower bound. Otherwise widen the rounded
@@ -447,7 +478,7 @@ fn elapsed_interval_seconds(
         next_down(lower_nearest)
     };
     let upper = next_up(upper_nearest);
-    Interval::new(lower, upper).map_err(|_| ())
+    Interval::new(lower, upper).ok()
 }
 
 fn is_sha256(value: &str) -> bool {
