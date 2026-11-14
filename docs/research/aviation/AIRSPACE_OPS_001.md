@@ -90,3 +90,9 @@ Cross-links:
 No live flight plans, surveillance feeds, actual NOTAM or weather updates, operational separation thresholds, cockpit/ATC interface, automatic rerouting, dispatch authorization, or flight-control commands. The first dataset is synthetic and deliberately fictional. The crate must remain unconnected to operational systems.
 
 Before even evaluating any real-world planning application, require a separately reproduced mathematical oracle, independent aviation-domain review, authoritative and licensed data sources, verified frame transformations, qualified trajectory/uncertainty models, system-level assurance evidence and all applicable regulatory/operator approvals.
+
+## Next model-qualification stage — AeroWeft Kinematics (2026-11-14)
+
+The current v0.1 trajectory kernel still audits supplied piecewise-linear paths with constant uncertainty bounds; it does not establish that an aircraft can dynamically execute those paths. The next research increment is [AEROWEFT-KINEMATICS-001 #5163](https://github.com/Luminous-Dynamics/symtropy/issues/5163), with the [kinematic reachability RFC](AEROWEFT_KINEMATIC_TUBES_001.md).
+
+That contract proposes one synthetic fixed-wing coordinated-turn profile, set-valued initial state/control/wind inputs, conservative outer reachable occupancy tubes, separately attributable uncertainty and numerical enclosure error, and independent soundness oracles. It explicitly distinguishes tube membership from a dynamically realizable trajectory witness. This is a design contract only; no executable aircraft reachability model or operational claim is added by the RFC.
