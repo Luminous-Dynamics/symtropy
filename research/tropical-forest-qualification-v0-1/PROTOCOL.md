@@ -169,6 +169,8 @@ For each, score forecast calibration, decision regret, out-of-domain detection, 
 
 ### T0 — semantic and data admission
 
+The next gates are specified in [OBSERVATION_ADMISSION_CONTRACT_V0_1.md](OBSERVATION_ADMISSION_CONTRACT_V0_1.md), [VARIABLE_AWARE_AGGREGATION_V0_1.md](VARIABLE_AWARE_AGGREGATION_V0_1.md), and [cross-modal consilience #5257](https://github.com/Luminous-Dynamics/symtropy/issues/5257). Admission, support conversion, variable semantics and source dependence are distinct checks. Multiple products are not independent evidence solely because their product IDs differ.
+
 The record-level gate is specified in [OBSERVATION_ADMISSION_CONTRACT_V0_1.md](OBSERVATION_ADMISSION_CONTRACT_V0_1.md) and exercised by the eleven-case synthetic corpus. This is an admission contract for descriptors, not a production adapter or a rights adjudicator. The next support-conversion work is tracked separately in [FOREST-SUPPORT-INTERSECTION-QUAL-001 #5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237).
 
 - Each variable declares unit, spatial support, temporal support, source, transformation, quality, uncertainty, and valid domain.
@@ -219,6 +221,8 @@ Once baseline variance, sample size and cluster structure are known, preregister
 
 ## First concrete sequence
 
+0. Complete variable-aware aggregation over intensive fields, extensive stocks, probability-sample counts and categorical classes; preserve coverage and uncertainty with each value.
+0. Benchmark cross-modal consilience and source dependence before quantitative data fusion (#5257); compose with existing observation lineage and EVSI owners.
 0. Freeze and review the record-level observation-admission contract; keep production adapters, source authentication, geometry and rights adjudication explicitly separate.
 0. Implement cross-scale support conversion in [#5237](https://github.com/Luminous-Dynamics/symtropy/issues/5237) before any plot/footprint/pixel score comparison.
 1. Audit each current code variable/process as **measured**, **derived**, **illustrative**, or **unimplemented**.
