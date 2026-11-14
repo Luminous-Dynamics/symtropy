@@ -88,7 +88,7 @@ Causal repair-effect claims require an appropriate controlled or counterfactual 
 
 ## Synthetic known-answer contract
 
-The evaluator currently contains 22 Rust tests and a 12-case machine-readable challenge manifest. The cases cover:
+The evaluator currently contains 20 Rust tests and a 12-case machine-readable challenge manifest. The cases cover:
 - verified restoration under matched conditions and a consistent independent reference measurement path;
 - pre/post measurement-path changes and diagnostic-dependency reuse;
 - time-of-observation/availability and calibration-record completeness;
@@ -161,6 +161,15 @@ Initial aspirations (not measured results):
 - 100% of accepted restoration results use an independent calibrated measurement path;
 - zero unreported non-target capability regressions;
 - 100% of restoration claims bind a diagnosis revision, repair record, post-test evidence and acceptance-envelope digest.
+
+## Exact-head verification
+
+**Qualified source head:** `30377783009702f0401b65afe0234b77f78f0d99`
+
+- [Maritime Repair Restoration Contract — run 43566650325](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43566650325): protocol/schema/corpus validation, Rust formatting, complete library suite (**164 passed, 0 failed**) and strict Clippy passed.
+- [Maritime control-response evaluator — run 43566650340](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43566650340): benchmark evaluator suite (**164 library tests + 8 DX2027 profile tests**) and strict Clippy passed; parent corpus suite (**9 + 12 tests**) and strict Clippy passed.
+
+This is Rust source/contract qualification on the exact PR head. It is not a marine-engine physical repair, field outcome, durability or causal-effect result.
 
 ## Claim ceiling and next steps
 
