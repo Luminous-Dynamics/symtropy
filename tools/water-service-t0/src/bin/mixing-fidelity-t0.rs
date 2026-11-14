@@ -41,7 +41,11 @@ fn number_array(value: &Value, key: &str) -> Result<Vec<f64>, String> {
         .collect()
 }
 
-fn require(condition: bool, message: &str) -> Result<(), String> {\n    if condition { Ok(()) } else { Err(message.to_owned()) }\n}\n\nfn close(left: f64, right: f64) -> bool {
+fn require(condition: bool, message: &str) -> Result<(), String> {
+    if condition { Ok(()) } else { Err(message.to_owned()) }
+}
+
+fn close(left: f64, right: f64) -> bool {
     (left - right).abs() <= 1.0e-9 * left.abs().max(right.abs()).max(1.0)
 }
 
