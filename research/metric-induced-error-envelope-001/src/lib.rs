@@ -24,6 +24,7 @@ pub mod kkt_residual;
 pub use kkt_residual::{
     ConstrainedKktResidualReceiptV1,
     KktResidualClaimScopeV1,
+    KktResidualEvidenceStatusV1,
     evaluate_constrained_kkt_residual,
 };
 
