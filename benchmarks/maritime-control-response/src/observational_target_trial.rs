@@ -1181,6 +1181,16 @@ mod tests {
     }
 
     #[test]
+    fn missing_baseline_covariate_is_not_identified() {
+        let (mut dataset, _) = fixture();
+        dataset.units[0].baseline_covariates.pop();
+        let report = evaluate_observational_target_trial_design(&dataset).unwrap();
+        assert!(report.not_identified_reasons.contains(
+            &TargetTrialNotIdentifiedReason::MissingBaselineCovariate
+        ));
+    }
+
+    #[test]
     fn post_treatment_covariate_leakage_is_not_identified() {
         let (mut dataset, _) = fixture();
         dataset.units[0].baseline_covariates[0].temporal_role =
