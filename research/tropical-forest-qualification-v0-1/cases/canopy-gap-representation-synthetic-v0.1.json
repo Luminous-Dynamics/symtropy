@@ -1,0 +1,89 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "case_corpus_id": "CANOPY-GAP-REPRESENTATION-001",
+  "status": "ANALYTICAL_SYNTHETIC_FIXTURES_NOT_YET_EXECUTED",
+  "claim_ceiling": "Checks aggregate-versus-spatial topology semantics only; the light-transmittance law and parameters are synthetic and are not calibrated plant physiology.",
+  "grid": {
+    "width": 8,
+    "height": 8,
+    "cell_area_m2": 1,
+    "adjacency": "four_neighbour"
+  },
+  "synthetic_light_law": {
+    "equation": "T(x,y) = exp(-k * LAI(x,y))",
+    "extinction_coefficient_k": 0.5,
+    "calibrated": false,
+    "claim": "analytical geometric fixture only"
+  },
+  "arrangements": [
+    {
+      "arrangement_id": "CHECKERBOARD-001",
+      "occupied_cell_count": 32,
+      "open_cell_count": 32,
+      "occupied_lai": 2,
+      "open_lai": 0,
+      "total_lai": 64,
+      "mean_lai": 1,
+      "open_component_count_four_neighbour": 32,
+      "expected_spatial_transmittance": {
+        "occupied": 0.36787944117144233,
+        "open": 1
+      },
+      "expected_uniform_patch_transmittance": null
+    },
+    {
+      "arrangement_id": "CLUSTERED-BLOCK-001",
+      "occupied_cell_count": 32,
+      "open_cell_count": 32,
+      "occupied_lai": 2,
+      "open_lai": 0,
+      "total_lai": 64,
+      "mean_lai": 1,
+      "open_component_count_four_neighbour": 1,
+      "expected_spatial_transmittance": {
+        "occupied": 0.36787944117144233,
+        "open": 1
+      },
+      "expected_uniform_patch_transmittance": null
+    }
+  ],
+  "uniform_patch_baseline": {
+    "mean_lai": 1,
+    "predicted_transmittance_every_cell": 0.6065306597126334,
+    "expected_to_miss_spatial_gap_topology": true
+  },
+  "negative_controls": [
+    {
+      "case_id": "AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001",
+      "expected": "SAME_TOTAL_LAI_DIFFERENT_GAP_TOPOLOGY"
+    },
+    {
+      "case_id": "SINGLE-COHORT-MORTALITY-LOCAL-GAP-001",
+      "expected": "ONLY_SUPPORTED_CANOPY_CELLS_CHANGE"
+    },
+    {
+      "case_id": "DISCONNECTED-CONTROL-PATCH-001",
+      "expected": "EXACTLY_UNCHANGED"
+    },
+    {
+      "case_id": "RENDERER-INDEPENDENCE-001",
+      "expected": "CANONICAL_ECOLOGY_IDENTICAL_ACROSS_CAMERA_AND_LOD_SETTINGS"
+    },
+    {
+      "case_id": "GLOBAL-LAI-INSUFFICIENT-FOR-RECRUITMENT-001",
+      "expected": "REPRESENTATION_PROMOTION_OR_ABSTENTION"
+    },
+    {
+      "case_id": "TRANSLATION-SYMMETRY-001",
+      "expected": "EQUIVALENT_OUTPUT_UNDER_SYMMETRIC_BOUNDARIES"
+    }
+  ],
+  "execution": {
+    "runner": "NOT_IMPLEMENTED",
+    "external_data_used": false,
+    "field_calibration": "NOT_RUN",
+    "empirical_validation": "NOT_RUN",
+    "published_lpJ_guess_sec_reproduction": "NOT_RUN"
+  }
+}
