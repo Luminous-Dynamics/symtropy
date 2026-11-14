@@ -1,0 +1,69 @@
+name: Physical Solver Handoff Contract
+
+on:
+  push:
+    branches: ["research/physical-solver-handoff-contract-v0-1"]
+    paths:
+      - "schemas/physical-transformation/**"
+      - "docs/research/PHYSICAL_SOLVER_HANDOFF_CONTRACT_V0_1.md"
+      - ".github/workflows/physical-solver-contract.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "schemas/physical-transformation/**"
+      - "docs/research/PHYSICAL_SOLVER_HANDOFF_CONTRACT_V0_1.md"
+      - ".github/workflows/physical-solver-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-solver-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate JSON syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq empty schemas/physical-transformation/solver-request-v0.1.schema.json
+          jq empty schemas/physical-transformation/solver-receipt-v0.1.schema.json
+          jq empty schemas/physical-transformation/solver-validation-receipt-v0.1.schema.json
+          jq empty schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json
+          jq empty schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json
+          jq empty schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json
+
+      - name: Check pinned schema and fixture contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+                 and .properties.schema_version.const == "physical-solver-request-v0.1"
+                 and (.properties.requested_physics.items.enum | index("fracture") != null)'             schemas/physical-transformation/solver-request-v0.1.schema.json
+          jq -e '.["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+                 and .properties.schema_version.const == "physical-solver-receipt-v0.1"
+                 and (.properties.status.enum | index("UNRESOLVED") != null)'             schemas/physical-transformation/solver-receipt-v0.1.schema.json
+          jq -e '.properties.request_validation.const == "PASS"
+                 and .properties.physical_result_status.const == "UNRESOLVED"
+                 and .properties.solver_invoked.const == false'             schemas/physical-transformation/solver-validation-receipt-v0.1.schema.json
+          jq -e '.model_fidelity == "analytical_linear_elastic"
+                 and .requested_physics == ["static_linear_elastic"]
+                 and .units.length == "m"
+                 and .units.force == "N"'             schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json
+          jq -e '(.requested_physics | index("dynamic_response") != null)
+                 and (.requested_physics | index("fracture") != null)
+                 and .model_fidelity == "analytical_linear_elastic"'             schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json
+          jq -e '.status == "UNRESOLVED"
+                 and (.claim_ceiling | test("UNRESOLVED"))
+                 and (.physics_omitted | index("fracture") != null)
+                 and (.outputs | length == 0)'             schemas/physical-transformation/fixtures/unresolved-receipt-v0.1.json

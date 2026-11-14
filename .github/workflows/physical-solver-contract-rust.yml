@@ -1,0 +1,80 @@
+name: Physical Solver Request Contract
+
+on:
+  push:
+    branches: ["research/physical-solver-handoff-contract-v0-1"]
+    paths:
+      - "research/physical-solver-contract/**"
+      - "schemas/physical-transformation/**"
+      - ".github/workflows/physical-solver-contract-rust.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/physical-solver-contract/**"
+      - "schemas/physical-transformation/**"
+      - ".github/workflows/physical-solver-contract-rust.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physical-solver-contract-rust-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  request-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/physical-solver-contract/Cargo.toml --all -- --check
+      - name: Test semantic validation and negative controls
+        run: cargo test --locked --manifest-path research/physical-solver-contract/Cargo.toml
+      - name: Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path research/physical-solver-contract/Cargo.toml --all-targets -- -D warnings
+      - name: Validate fixtures at exact head and assert unresolved claim ceiling
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request schemas/physical-transformation/fixtures/analytical-bar-request-v0.1.json \
+            --validator-revision "$source_commit" > solver-contract-supported-receipt.json
+          jq -e --arg source_commit "$source_commit" '
+            .schema_version == "physical-solver-validation-receipt-v0.1"
+            and .request_validation == "PASS"
+            and .validator_revision == $source_commit
+            and .solver_invoked == false
+            and .physical_result_status == "UNRESOLVED"
+            and .physics_omitted == []
+            and (.request_sha256 | test("^[0-9a-f]{64}$"))
+          ' solver-contract-supported-receipt.json
+          cargo run --quiet --locked --manifest-path research/physical-solver-contract/Cargo.toml -- \
+            --request schemas/physical-transformation/fixtures/unsupported-dynamic-fracture-request-v0.1.json \
+            --validator-revision "$source_commit" > solver-contract-unsupported-receipt.json
+          jq -e '
+            .request_validation == "PASS"
+            and .solver_invoked == false
+            and .physical_result_status == "UNRESOLVED"
+            and (.physics_omitted | index("dynamic_response") != null)
+            and (.physics_omitted | index("fracture") != null)
+          ' solver-contract-unsupported-receipt.json
+      - name: Upload validation receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: physical-solver-contract-receipts
+          path: solver-contract-*-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
