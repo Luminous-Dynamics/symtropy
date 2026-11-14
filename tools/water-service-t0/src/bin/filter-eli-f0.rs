@@ -29,7 +29,7 @@ fn valid_revision(value: &str) -> bool {
 
 fn run() -> Result<i32, String> {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.len() > 4 {
+    if args.len() > 5 {
         return Err(
             "usage: filter-eli-f0 [INPUTS] [ORACLE] [SCHEMA] [MANIFEST] [RECEIPT]".to_owned(),
         );
