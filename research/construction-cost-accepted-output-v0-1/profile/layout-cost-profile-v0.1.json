@@ -1,0 +1,65 @@
+{
+  "schema_version": "construction-cost-profile-v0.1",
+  "profile_id": "layout-cost-profile-v0.1",
+  "version": "0.1.0",
+  "status": "proposed",
+  "task_family": "construction_layout_printing",
+  "source_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/3631",
+  "accepted_output_profile_id": "layout-accepted-output-v0.1",
+  "reporting_currency": "to_be_selected_per_project",
+  "currency_minor_unit_exponent": 2,
+  "cost_categories": [
+    "capital_acquisition",
+    "financing_interest",
+    "software_licence",
+    "connectivity_remote_operations",
+    "insurance",
+    "training",
+    "labour",
+    "telehandler_forklift_and_support_equipment",
+    "fuel_and_energy",
+    "materials",
+    "consumables",
+    "wear_parts_and_tooling",
+    "survey_and_calibration",
+    "planned_maintenance",
+    "unplanned_repair",
+    "spares_and_service_travel",
+    "logistics_and_replenishment",
+    "rework_rejection_and_replacement",
+    "downtime_and_schedule_disruption"
+  ],
+  "required_source_classes": [
+    "actual_invoice",
+    "actual_payroll",
+    "metered_measurement",
+    "signed_contract",
+    "supplier_quote",
+    "vendor_published_price",
+    "allocation_model",
+    "engineering_estimate",
+    "assumption"
+  ],
+  "mandatory_reporting": [
+    "total_cost_by_category",
+    "cost_per_finally_accepted_unit",
+    "robot_operating_cost_per_hour",
+    "direct_site_cost_per_crew_hour",
+    "total_workflow_cost_per_accepted_unit",
+    "matched_baseline_incremental_cost",
+    "break_even_utilisation",
+    "assumption_sensitivity"
+  ],
+  "double_count_guard": {
+    "human_time_must_link_to_accepted_output_time_entry": true,
+    "loaded_labour_rates_must_disclose_embedded_overhead": true,
+    "shared_resource_costs_require_explicit_allocation_policy": true,
+    "one_source_cost_entry_must_not_be_allocated_twice": true
+  },
+  "safety_separation": {
+    "safety_verdict_external": true,
+    "safety_costs_included_not_compensated": true,
+    "composite_safety_economics_score_prohibited": true
+  },
+  "execution_status": "not_executed"
+}

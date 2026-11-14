@@ -1,0 +1,399 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Luminous-Dynamics/symtropy/main/research/construction-cost-accepted-output-v0-1/schema/construction-cost-ledger-v0.1.schema.json",
+  "title": "Construction Cost Ledger V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_id",
+    "accepted_output_record_digest",
+    "profile_id",
+    "reporting_currency",
+    "currency_minor_unit_exponent",
+    "price_period",
+    "economic_basis",
+    "cost_entries",
+    "allocation_policies",
+    "safety_separation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-cost-ledger-v0.1"
+    },
+    "ledger_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accepted_output_record_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reporting_currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "currency_minor_unit_exponent": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "price_period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_date",
+        "end_date",
+        "price_date_basis"
+      ],
+      "properties": {
+        "start_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "price_date_basis": {
+          "enum": [
+            "actual_transaction_date",
+            "invoice_date",
+            "contract_date",
+            "estimate_date",
+            "assumption_date"
+          ]
+        }
+      }
+    },
+    "economic_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tax_basis",
+        "price_basis",
+        "discount_rate_status",
+        "useful_life_status",
+        "residual_value_status"
+      ],
+      "properties": {
+        "tax_basis": {
+          "enum": [
+            "tax_inclusive",
+            "tax_exclusive",
+            "tax_mixed_separately_identified"
+          ]
+        },
+        "price_basis": {
+          "enum": [
+            "nominal",
+            "real"
+          ]
+        },
+        "discount_rate_status": {
+          "enum": [
+            "not_applicable",
+            "not_selected",
+            "declared_in_assumptions"
+          ]
+        },
+        "useful_life_status": {
+          "enum": [
+            "not_applicable",
+            "not_selected",
+            "declared_in_assumptions"
+          ]
+        },
+        "residual_value_status": {
+          "enum": [
+            "not_applicable",
+            "not_selected",
+            "declared_in_assumptions"
+          ]
+        }
+      }
+    },
+    "cost_entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entry_id",
+          "category",
+          "amount_minor_units",
+          "source_class",
+          "cost_basis",
+          "price_date",
+          "allocation_method",
+          "allocation_policy_id",
+          "rate_includes_labor",
+          "rate_includes_overhead",
+          "included_cost_categories",
+          "evidence_refs",
+          "entry_direction"
+        ],
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "enum": [
+              "capital_acquisition",
+              "options_and_upgrades",
+              "shipping_import_and_tariffs",
+              "installation_commissioning",
+              "financing_interest",
+              "lease",
+              "depreciation",
+              "residual_value_credit",
+              "software_licence",
+              "connectivity_remote_operations",
+              "cybersecurity_support",
+              "insurance",
+              "training",
+              "facility_and_site_modifications",
+              "labour",
+              "telehandler_forklift_and_support_equipment",
+              "fuel_and_energy",
+              "materials",
+              "consumables",
+              "wear_parts_and_tooling",
+              "survey_and_calibration",
+              "planned_maintenance",
+              "unplanned_repair",
+              "spares_and_service_travel",
+              "logistics_and_replenishment",
+              "rework_rejection_and_replacement",
+              "downtime_and_schedule_disruption",
+              "decommissioning_and_disposal",
+              "other"
+            ]
+          },
+          "amount_minor_units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_class": {
+            "enum": [
+              "actual_invoice",
+              "actual_payroll",
+              "metered_measurement",
+              "signed_contract",
+              "supplier_quote",
+              "vendor_published_price",
+              "allocation_model",
+              "engineering_estimate",
+              "assumption"
+            ]
+          },
+          "cost_basis": {
+            "enum": [
+              "direct_observed",
+              "contractual_rate",
+              "quantity_times_rate",
+              "allocated_fixed_cost",
+              "modelled_lifecycle_cost",
+              "assumed_scenario"
+            ]
+          },
+          "price_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "allocation_method": {
+            "enum": [
+              "direct_to_work_package",
+              "metered_usage",
+              "resource_hours",
+              "robot_operating_hours",
+              "capacity_reserved_share",
+              "accepted_output_units",
+              "area_or_quantity_share",
+              "project_share",
+              "other"
+            ]
+          },
+          "allocation_policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allocation_policy_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "resource_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "work_unit_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "time_entry_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "rate_includes_labor": {
+            "type": "boolean"
+          },
+          "rate_includes_overhead": {
+            "type": "boolean"
+          },
+          "included_cost_categories": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "notes": {
+            "type": "string"
+          },
+          "entry_direction": {
+            "enum": [
+              "cost",
+              "credit"
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "entry_direction": {
+                  "const": "credit"
+                }
+              },
+              "required": [
+                "entry_direction"
+              ]
+            },
+            "then": {
+              "properties": {
+                "category": {
+                  "const": "residual_value_credit"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "category": {
+                  "const": "residual_value_credit"
+                }
+              },
+              "required": [
+                "category"
+              ]
+            },
+            "then": {
+              "properties": {
+                "entry_direction": {
+                  "const": "credit"
+                }
+              },
+              "required": [
+                "entry_direction"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "allocation_policies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "policy_id",
+          "policy_digest",
+          "method",
+          "rationale",
+          "double_count_check"
+        ],
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "method": {
+            "enum": [
+              "direct_to_work_package",
+              "metered_usage",
+              "resource_hours",
+              "robot_operating_hours",
+              "capacity_reserved_share",
+              "accepted_output_units",
+              "area_or_quantity_share",
+              "project_share",
+              "other"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 20
+          },
+          "double_count_check": {
+            "const": true
+          }
+        }
+      }
+    },
+    "safety_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "safety_verdict_external",
+        "safety_costs_included_not_compensated",
+        "composite_safety_economics_score_prohibited"
+      ],
+      "properties": {
+        "safety_verdict_external": {
+          "const": true
+        },
+        "safety_costs_included_not_compensated": {
+          "const": true
+        },
+        "composite_safety_economics_score_prohibited": {
+          "const": true
+        }
+      }
+    },
+    "execution_status": {
+      "const": "not_executed"
+    }
+  }
+}
