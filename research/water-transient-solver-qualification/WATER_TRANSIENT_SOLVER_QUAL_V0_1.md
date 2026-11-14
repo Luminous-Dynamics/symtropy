@@ -43,6 +43,33 @@ Bentley documentation for 2026 describes MOC as its default system-wide transien
 
 HAMMER is a commercial comparator, not ground truth. Every comparison must disclose its exact build, settings, boundaries, wave speed, friction model and numerical tolerances.
 
+### Additional commercial transient references
+
+**Deltares WANDA 4** is a second major commercial comparator. Current product documentation describes steady and dynamic analysis of liquid, heat and slurry pipeline networks; cavitation and variable fluid properties; operational controls; and use in drinking-water networks, wastewater, hydropower and cooling-water systems. Deltares describes validation against measurements and provides an online manual with separate validation and transient-mode topics.
+
+- [WANDA product overview](https://www.deltares.nl/en/software-and-data/products/wanda-software)
+- [WANDA 4 online documentation](https://deltares-wanda-core.readthedocs-hosted.com/en/latest/)
+
+**AFT Impulse / Datacor Impulse** is a third useful comparator, particularly for pump and valve transients. Official product documentation describes an MOC-based solver, transient cavitation and column separation, wave-speed/system elasticity, pump inertia and four-quadrant curves, time-varying valve characteristics, check-valve dynamics, relief valves, and surge-protection devices. Its published verification methodology includes open-literature comparisons and a check that the transient solver reproduces the steady-state initial condition before the event starts.
+
+- [Impulse product capability overview](https://www.datacor.com/products/impulse)
+- [AFT Impulse technical overview](https://docs.aft.com/impulse/Overview_of_AFT_Impulse.html)
+- [AFT verification methodology](https://docs.aft.com/impulse10/Verification/Verification_Methodology.html)
+
+These product pages document vendor-stated scope and workflow, not independent proof that a particular version is accurate for our network or use case. Do not treat WANDA, AFT Impulse, HAMMER or EPANET-AWH as ground truth. Record exact product version, licence/access conditions, numerical options, component models, initialisation behavior, friction/viscoelastic assumptions, cavitation/air treatment, time-step rules and input/output semantics.
+
+#### Fair comparison matrix
+
+| Reference | Published / documented method and strengths | Main benchmark risk to control |
+|---|---|---|
+| EPANET-AWH | Algebraic Water Hammer, quasi-adaptive G-GGA/AWH, one computational element per pipe | Solver-to-solver agreement is not physical validation; test feature limits and discretization assumptions |
+| Bentley HAMMER | System-wide MOC; rigid-column option for selected applications | Commercial configuration, time-step/wave-speed settings and device-model parity |
+| Deltares WANDA 4 | Dynamic liquid/heat/slurry networks, controls, cavitation, variable properties | Rich component scope can make nominally matched inputs non-equivalent; pin exact modules and models |
+| AFT Impulse | MOC, cavitation/column separation, pump inertia/four-quadrant curves, time-dependent valves and relief devices | Verify actual enabled modules, boundary conditions, transient model settings and version |
+| Physical reference | Calibrated laboratory pressure traces, event timing and measured flow | Instrument bandwidth, wave-speed uncertainty, repeatability, fixture geometry and raw-data rights |
+
+Do not rank the tools by feature count or runtime alone. A vendor's additional physics are relevant only when the benchmark scenario activates and independently measures that physics. For every paired case, publish a **feature activation record**: required phenomenon, whether each solver supports it, whether it was enabled, relevant model option/version, and any simplification or unsupported state. A result from a reduced feature set must not be compared as though it represented the same physical system.
+
 ### Independent physical references
 
 - Fox et al. (2014), *Experimental Proof of Contaminant Ingress into a Leaking Pipe During a Transient Event*, DOI [10.1016/j.proeng.2014.02.073](https://doi.org/10.1016/j.proeng.2014.02.073). Rapid upstream valve closure produced a pressure transient in a loop with an engineered leak surrounded by porous media; externally introduced pollutant entered and was transported downstream.
