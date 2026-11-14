@@ -644,6 +644,17 @@ mod tests {
     }
 
     #[test]
+    fn malformed_expected_convention_profile_digest_is_rejected() {
+        let mut profile = expected_profile();
+        profile.profile_sha256 = "not-a-sha256".into();
+        let errors = normalize(&input(), &profile).unwrap_err();
+        assert!(contains_error(
+            &errors,
+            ValidationError::InvalidSha256("convention_profile_sha256")
+        ));
+    }
+
+    #[test]
     fn explicitly_declared_weber_flux_is_divided_by_two_pi_once() {
         let mut source = input();
         source.flux_unit = FluxUnit::Weber;
