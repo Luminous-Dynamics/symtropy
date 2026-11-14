@@ -454,6 +454,158 @@ mod tests {
         }
     }
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct Rat {
+        numerator: i128,
+        denominator: i128,
+    }
+
+    impl Rat {
+        fn new(numerator: i128, denominator: i128) -> Self {
+            assert_ne!(denominator, 0);
+            let sign = if denominator < 0 { -1 } else { 1 };
+            let numerator = numerator * sign;
+            let denominator = denominator.abs();
+            let divisor = gcd(numerator.abs(), denominator);
+            Self {
+                numerator: numerator / divisor,
+                denominator: denominator / divisor,
+            }
+        }
+
+        fn add(self, other: Self) -> Self {
+            Self::new(
+                self.numerator * other.denominator
+                    + other.numerator * self.denominator,
+                self.denominator * other.denominator,
+            )
+        }
+
+        fn sub(self, other: Self) -> Self {
+            self.add(Self::new(-other.numerator, other.denominator))
+        }
+
+        fn mul(self, other: Self) -> Self {
+            Self::new(
+                self.numerator * other.numerator,
+                self.denominator * other.denominator,
+            )
+        }
+    }
+
+    fn gcd(mut left: i128, mut right: i128) -> i128 {
+        while right != 0 {
+            let remainder = left % right;
+            left = right;
+            right = remainder;
+        }
+        left.max(1)
+    }
+
+    fn r(numerator: i128, denominator: i128) -> Rat {
+        Rat::new(numerator, denominator)
+    }
+
+    #[test]
+    fn exact_rational_oracle_checks_force_delassus_and_acceleration_chain_rules() {
+        let zero = r(0, 1);
+        let one = r(1, 1);
+        let half = r(1, 2);
+        let quarter = r(1, 4);
+
+        // At g1=1/2 and beta=1/2, Dphi = [[1,0],[1/2,1]].
+        let t = [[one, zero], [half, one]];
+        let jacobian = [
+            [half, quarter, zero],
+            [r(-1, 4), zero, one],
+        ];
+        let jacobian_new = [
+            jacobian[0],
+            [
+                half.mul(jacobian[0][0]).add(jacobian[1][0]),
+                half.mul(jacobian[0][1]).add(jacobian[1][1]),
+                half.mul(jacobian[0][2]).add(jacobian[1][2]),
+            ],
+        ];
+        assert_eq!(jacobian_new[1], [zero, quarter.mul(half), one]);
+
+        let lambda_old = [half, r(3, 4)];
+        // T^-T = [[1,-1/2],[0,1]].
+        let lambda_new = [
+            lambda_old[0].sub(half.mul(lambda_old[1])),
+            lambda_old[1],
+        ];
+        let force_old = [
+            jacobian[0][0]
+                .mul(lambda_old[0])
+                .add(jacobian[1][0].mul(lambda_old[1])),
+            jacobian[0][1]
+                .mul(lambda_old[0])
+                .add(jacobian[1][1].mul(lambda_old[1])),
+            jacobian[0][2]
+                .mul(lambda_old[0])
+                .add(jacobian[1][2].mul(lambda_old[1])),
+        ];
+        let force_new = [
+            jacobian_new[0][0]
+                .mul(lambda_new[0])
+                .add(jacobian_new[1][0].mul(lambda_new[1])),
+            jacobian_new[0][1]
+                .mul(lambda_new[0])
+                .add(jacobian_new[1][1].mul(lambda_new[1])),
+            jacobian_new[0][2]
+                .mul(lambda_new[0])
+                .add(jacobian_new[1][2].mul(lambda_new[1])),
+        ];
+        assert_eq!(force_old, force_new);
+        assert_eq!(force_old, [r(1, 16), r(1, 8), r(3, 4)]);
+
+        let w_old = [
+            [r(5, 16), r(-1, 8)],
+            [r(-1, 8), r(17, 16)],
+        ];
+        let w_new_expected = [
+            [r(5, 16), r(1, 32)],
+            [r(1, 32), r(65, 64)],
+        ];
+        let w_new_direct = [
+            [
+                jacobian_new[0][0].mul(jacobian_new[0][0])
+                    .add(jacobian_new[0][1].mul(jacobian_new[0][1]))
+                    .add(jacobian_new[0][2].mul(jacobian_new[0][2])),
+                jacobian_new[0][0].mul(jacobian_new[1][0])
+                    .add(jacobian_new[0][1].mul(jacobian_new[1][1]))
+                    .add(jacobian_new[0][2].mul(jacobian_new[1][2])),
+            ],
+            [
+                jacobian_new[1][0].mul(jacobian_new[0][0])
+                    .add(jacobian_new[1][1].mul(jacobian_new[0][1]))
+                    .add(jacobian_new[1][2].mul(jacobian_new[0][2])),
+                jacobian_new[1][0].mul(jacobian_new[1][0])
+                    .add(jacobian_new[1][1].mul(jacobian_new[1][1]))
+                    .add(jacobian_new[1][2].mul(jacobian_new[1][2])),
+            ],
+        ];
+        assert_eq!(w_new_direct, w_new_expected);
+
+        // For g_dot=(1/2,-1/4), g_ddot=(3/4,1/2), beta=1/2:
+        // T*g_ddot + (0, 2*beta*g_dot_1^2) = (3/4, 9/8).
+        let g_dot = [half, r(-1, 4)];
+        let g_ddot = [r(3, 4), half];
+        let linear = [
+            g_ddot[0],
+            half.mul(g_ddot[0]).add(g_ddot[1]),
+        ];
+        let curvature = [zero, half];
+        let transformed_ddot = [
+            linear[0].add(curvature[0]),
+            linear[1].add(curvature[1]),
+        ];
+        assert_eq!(transformed_ddot, [r(3, 4), r(9, 8)]);
+        assert_eq!(t[1][0].mul(g_dot[0]).add(t[1][1].mul(g_dot[1])), zero);
+        let _ = w_old;
+    }
+
     #[test]
     fn nonlinear_mixing_map_has_exact_global_inverse_and_preserves_zero_set() {
         let mapping = chart();
