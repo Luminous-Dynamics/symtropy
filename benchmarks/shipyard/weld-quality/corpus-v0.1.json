@@ -127,7 +127,9 @@
         "reinspection_status": "accepted_synthetic",
         "reinspection_region_id": "REGION-01",
         "final_release_ref": "SYNTH-RELEASE-01",
-        "final_release_status": "accepted_synthetic"
+        "final_release_status": "accepted_synthetic",
+        "reinspection_at_utc": "2026-11-14T04:55:00Z",
+        "final_release_at_utc": "2026-11-14T04:58:00Z"
       },
       "learning": {
         "model_id": "SYNTH-MODEL-01",
@@ -625,6 +627,30 @@
         }
       ],
       "expected_code": "BLOCK_UNAUTHORIZED_PROMOTION"
+    },
+    {
+      "id": "WQL-040",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/reinspection_at_utc",
+          "op": "set",
+          "value": "2026-11-14T04:45:00Z"
+        }
+      ],
+      "expected_code": "BLOCK_REINSPECTION"
+    },
+    {
+      "id": "WQL-041",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/final_release_at_utc",
+          "op": "set",
+          "value": "2026-11-14T04:54:00Z"
+        }
+      ],
+      "expected_code": "BLOCK_FINAL_RELEASE"
     }
   ]
 }
