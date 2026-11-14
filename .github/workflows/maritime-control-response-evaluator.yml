@@ -44,8 +44,24 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Check benchmark crate formatting
+      - name: Apply canonical benchmark crate formatting for repair handoff
+        run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all
+
+      - name: Verify formatted benchmark crate
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
+
+      - name: Package formatted benchmark Rust source for exact-head repair
+        run: |
+          set -euo pipefail
+          tar -czf "$RUNNER_TEMP/maritime-control-response-formatted-src.tar.gz" benchmarks/maritime-control-response/src
+
+      - name: Upload formatted source handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-control-response-formatted-src-${{ github.sha }}
+          path: ${{ runner.temp }}/maritime-control-response-formatted-src.tar.gz
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Run benchmark crate tests
         run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
