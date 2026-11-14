@@ -1,0 +1,447 @@
+{
+  "schema_version": "beverage-adaptive-sensing-scenarios-v1",
+  "status": "synthetic_policy_contract_not_plant_evidence",
+  "description": "Synthetic stress cases for adaptive selection of fermentation measurements under cost, delay, uncertainty, missingness, and safety constraints. They are evaluator contracts only, not measured beverage data.",
+  "scenarios": [
+    {
+      "id": "SENSE-001",
+      "name": "stable_nominal_batch_with_low_decision_uncertainty",
+      "scenario_family": "nominal_efficiency",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "offline_sugar_assay"
+      ],
+      "sample_budget_fraction": 0.75,
+      "critical_test_due": false,
+      "expected_disposition": "DEFER_DISCRETIONARY_SAMPLE",
+      "guards": [
+        "minimum_sampling_schedule_preserved",
+        "decision_risk_below_preregistered_threshold",
+        "next_review_time_bounded"
+      ],
+      "claim_ceiling": "Deferring a discretionary sample in this synthetic case does not justify reducing any validated plant-required test."
+    },
+    {
+      "id": "SENSE-002",
+      "name": "high_consequence_uncertainty_with_affordable_informative_channel",
+      "scenario_family": "consequence_weighted_value",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "offline_sugar_assay",
+        "off_gas"
+      ],
+      "sample_budget_fraction": 0.7,
+      "critical_test_due": false,
+      "expected_disposition": "SAMPLE_HIGH_VALUE_CHANNEL",
+      "guards": [
+        "expected_value_of_information_includes_decision_consequence",
+        "channel_is_available_and_calibrated",
+        "budget_and_delay_costs_disclosed"
+      ],
+      "claim_ceiling": "A simulated value-of-information score is not proof of improved batch outcomes."
+    },
+    {
+      "id": "SENSE-003",
+      "name": "single_sensor_drift_mimics_process_abnormality",
+      "scenario_family": "sensor_fault",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "sensor_calibration_log"
+      ],
+      "sample_budget_fraction": 0.6,
+      "critical_test_due": false,
+      "expected_disposition": "SAMPLE_INDEPENDENT_CHANNEL",
+      "guards": [
+        "sensor_fault_hypothesis_retained",
+        "calibration_age_checked",
+        "residual_not_promoted_to_contamination_diagnosis"
+      ],
+      "claim_ceiling": "Independent-channel agreement can strengthen a process-shift hypothesis but is not a microbiological diagnosis."
+    },
+    {
+      "id": "SENSE-004",
+      "name": "predeclared_critical_assay_is_due",
+      "scenario_family": "safety_floor",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "required_lab_assay"
+      ],
+      "sample_budget_fraction": 0.05,
+      "critical_test_due": true,
+      "expected_disposition": "PRESERVE_FIXED_SAFETY_TEST",
+      "guards": [
+        "hard_minimum_schedule_is_non_compensatory",
+        "optimizer_cannot_cancel_required_assay",
+        "escalation_does_not_depend_on_discretionary_budget"
+      ],
+      "claim_ceiling": "This contract protects a declared minimum schedule; it does not define which tests are legally or process-required."
+    },
+    {
+      "id": "SENSE-005",
+      "name": "two_channels_have_nearly_redundant_information",
+      "scenario_family": "consequence_weighted_value",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature_probe_a",
+        "temperature_probe_b",
+        "off_gas"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "SAMPLE_HIGH_VALUE_CHANNEL",
+      "guards": [
+        "conditional_information_not_raw_channel_count_used",
+        "correlated_sensor_uncertainty_accounted_for",
+        "channel_choice_logged"
+      ],
+      "claim_ceiling": "A synthetic correlation structure does not establish real sensor independence or observability."
+    },
+    {
+      "id": "SENSE-006",
+      "name": "expensive_assay_has_low_expected_decision_value",
+      "scenario_family": "nominal_efficiency",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "high_cost_chromatography"
+      ],
+      "sample_budget_fraction": 0.8,
+      "critical_test_due": false,
+      "expected_disposition": "DEFER_DISCRETIONARY_SAMPLE",
+      "guards": [
+        "assay_cost_and_result_delay_included",
+        "minimum_quality_and_safety_testing_preserved",
+        "decision_consequence_not_hidden_in_arbitrary_scalar"
+      ],
+      "claim_ceiling": "Cost-based deferral is permissible only for discretionary measurements under the declared protocol."
+    },
+    {
+      "id": "SENSE-007",
+      "name": "result_turnaround_exceeds_action_deadline",
+      "scenario_family": "sampling_delay",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "off_gas",
+        "offline_microbiology_assay"
+      ],
+      "sample_budget_fraction": 0.4,
+      "critical_test_due": false,
+      "expected_disposition": "ESCALATE_AND_SAMPLE",
+      "guards": [
+        "result_latency_compared_with_decision_deadline",
+        "immediate_safe_fallback_retained",
+        "sample_request_and_escalation_timestamped"
+      ],
+      "claim_ceiling": "An urgent sample does not make an offline result available sooner and cannot replace a validated response procedure."
+    },
+    {
+      "id": "SENSE-008",
+      "name": "unrecorded_interval_must_not_be_encoded_as_zero",
+      "scenario_family": "missingness",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "missing_is_distinct_from_zero",
+        "missingness_reason_and_interval_retained",
+        "policy_does_not_impute_certainty_without_validation"
+      ],
+      "claim_ceiling": "A synthetic missingness test does not establish how missing plant records arose or what their values were."
+    },
+    {
+      "id": "SENSE-009",
+      "name": "tank_spatial_gradient_invalidates_single_point_confidence",
+      "scenario_family": "spatial_heterogeneity",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "core_temperature",
+        "wall_temperature",
+        "top_density",
+        "bottom_density"
+      ],
+      "sample_budget_fraction": 0.6,
+      "critical_test_due": false,
+      "expected_disposition": "SAMPLE_INDEPENDENT_CHANNEL",
+      "guards": [
+        "spatial_sampling_location_recorded",
+        "single_point_reading_not_assumed_representative",
+        "heterogeneity_trigger_predeclared"
+      ],
+      "claim_ceiling": "Synthetic spatial disagreement motivates validation; it does not quantify real tank stratification."
+    },
+    {
+      "id": "SENSE-010",
+      "name": "severe_alarm_occurs_after_discretionary_budget_is_exhausted",
+      "scenario_family": "budget_allocation",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "off_gas",
+        "operator_observation"
+      ],
+      "sample_budget_fraction": 0,
+      "critical_test_due": false,
+      "expected_disposition": "ESCALATE_AND_SAMPLE",
+      "guards": [
+        "safety_reserve_not_spent_on_discretionary_samples",
+        "budget_exhaustion_never_silences_escalation",
+        "human_review_and_safe_fallback_available"
+      ],
+      "claim_ceiling": "Synthetic policy behavior does not authorize an actuator action or replace a site response plan."
+    },
+    {
+      "id": "SENSE-011",
+      "name": "new_product_family_or_strain_outside_validation_domain",
+      "scenario_family": "distribution_shift",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "off_gas"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "ABSTAIN_UNTIL_EVIDENCE",
+      "guards": [
+        "applicability_domain_checked",
+        "out_of_domain_flag_emitted",
+        "reference_sampling_schedule_retained"
+      ],
+      "claim_ceiling": "A policy tested on one product, strain, or facility is not assumed to transfer to another."
+    },
+    {
+      "id": "SENSE-012",
+      "name": "sampling_policy_uses_future_lab_result_to_choose_earlier_sample",
+      "scenario_family": "temporal_leakage",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "offline_sugar_assay"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "REJECT_POLICY",
+      "guards": [
+        "decision_time_cutoff_enforced",
+        "lab_result_availability_time_checked",
+        "evaluation_uses_no_future_features_or_labels"
+      ],
+      "claim_ceiling": "Any future-information leakage invalidates the adaptive-sampling benchmark result."
+    },
+    {
+      "id": "SENSE-013",
+      "name": "policy_requests_sensor_channel_not_installed_at_site",
+      "scenario_family": "channel_feasibility",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density"
+      ],
+      "sample_budget_fraction": 0.8,
+      "critical_test_due": false,
+      "expected_disposition": "REJECT_POLICY",
+      "guards": [
+        "site_channel_inventory_pinned",
+        "unavailable_channel_never_assumed_observed",
+        "fallback_choice_logged"
+      ],
+      "claim_ceiling": "A benchmark cannot grant a plant access to a sensor or laboratory capability it does not have."
+    },
+    {
+      "id": "SENSE-014",
+      "name": "policy_replay_has_no_dense_reference_for_unobserved_values",
+      "scenario_family": "reference_data",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "intermittent_density"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "unobserved_outcomes_not_fabricated",
+        "offline_policy_score_requires_reference_or_identified_missingness_model",
+        "counterfactual_limit_disclosed"
+      ],
+      "claim_ceiling": "Without dense reference or a validated counterfactual method, fewer observed samples alone cannot prove preserved detection or quality."
+    },
+    {
+      "id": "SENSE-015",
+      "name": "decision_rule_and_seed_are_not_auditable",
+      "scenario_family": "policy_auditability",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "off_gas"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "REJECT_POLICY",
+      "guards": [
+        "policy_version_and_config_pinned",
+        "seed_and_input_digest_recorded",
+        "every_sample_decision_has_timestamp_and_reason"
+      ],
+      "claim_ceiling": "A replay that cannot be reproduced is not accepted as a decision-policy comparison."
+    },
+    {
+      "id": "SENSE-016",
+      "name": "online_replay_overweights_easy_batches_and_starves_difficult_batches",
+      "scenario_family": "budget_allocation",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "off_gas",
+        "offline_sugar_assay"
+      ],
+      "sample_budget_fraction": 0.3,
+      "critical_test_due": false,
+      "expected_disposition": "REJECT_POLICY",
+      "guards": [
+        "per_batch_minimums_and_cohort_budget_reported",
+        "worst_batch_and_subgroup_metrics_reported",
+        "difficult_batches_not_dropped_after_policy_failure"
+      ],
+      "claim_ceiling": "An aggregate cost reduction does not compensate for starving hard cases of necessary evidence."
+    },
+    {
+      "id": "SENSE-017",
+      "name": "uncalibrated_model_claims_high_confidence_and_defers_measurement",
+      "scenario_family": "evaluation_integrity",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "offline_sugar_assay"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "USE_SAFE_FIXED_FALLBACK",
+      "guards": [
+        "calibration_gate_precedes_uncertainty_based_deferral",
+        "worst_batch_coverage_reported",
+        "fallback_schedule_not_weakened"
+      ],
+      "claim_ceiling": "Confidence scores are not trustworthy merely because they are numerically narrow."
+    },
+    {
+      "id": "SENSE-018",
+      "name": "fixed_schedule_and_adaptive_policy_trade_false_alarms_for_missed_events",
+      "scenario_family": "evaluation_integrity",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "off_gas"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "missed_event_rate_and_false_alarms_per_batch_both_reported",
+        "noninferiority_margins_preregistered",
+        "paired_batch_level_uncertainty_reported"
+      ],
+      "claim_ceiling": "A lower assay count is not a win if important abnormal events are missed or false alarms exceed the declared ceiling."
+    },
+    {
+      "id": "SENSE-019",
+      "name": "policy_cancels_a_required_test_to_meet_cost_target",
+      "scenario_family": "safety_floor",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "required_lab_assay"
+      ],
+      "sample_budget_fraction": 0.9,
+      "critical_test_due": true,
+      "expected_disposition": "PRESERVE_FIXED_SAFETY_TEST",
+      "guards": [
+        "required_schedule_is_separate_from_discretionary_budget",
+        "utility_score_cannot_override_hard_gate",
+        "cancellation_attempt_recorded_as_contract_violation"
+      ],
+      "claim_ceiling": "The evaluator tests a stated hard floor; it does not decide whether the floor itself is adequate or compliant."
+    },
+    {
+      "id": "SENSE-020",
+      "name": "policy_has_too_few_independent_batches_for_reliable_comparison",
+      "scenario_family": "evaluation_integrity",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "offline_sugar_assay"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "INDETERMINATE",
+      "guards": [
+        "independent_unit_count_and_cluster_structure_reported",
+        "precision_or_power_basis_declared",
+        "no_batch_level_pseudoreplication"
+      ],
+      "claim_ceiling": "Repeated timestamps from one batch do not substitute for independent batches or facilities."
+    },
+    {
+      "id": "SENSE-021",
+      "name": "expected_loss_reduction_does_not_cover_sampling_and_delay_cost",
+      "scenario_family": "consequence_weighted_value",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "high_cost_lab_assay"
+      ],
+      "sample_budget_fraction": 0.4,
+      "critical_test_due": false,
+      "expected_disposition": "REJECT_POLICY",
+      "guards": [
+        "all_value_terms_use_same_preregistered_loss_units",
+        "expected_net_value_must_be_strictly_positive",
+        "required_sampling_floor_unchanged"
+      ],
+      "claim_ceiling": "A positive uncertainty or information score does not establish positive net decision value after sample and delay costs."
+    },
+    {
+      "id": "SENSE-022",
+      "name": "sample_result_arrives_after_deadline_for_decision_it_claims_to_inform",
+      "scenario_family": "sampling_delay",
+      "evidence_class": "SYNTHETIC",
+      "available_channels": [
+        "temperature",
+        "density",
+        "offline_lab_assay"
+      ],
+      "sample_budget_fraction": 0.5,
+      "critical_test_due": false,
+      "expected_disposition": "REJECT_POLICY",
+      "guards": [
+        "decision_deadline_and_result_availability_timestamped",
+        "late_result_not_credited_to_current_decision",
+        "future_decision_value_must_use_separate_declared_pathway"
+      ],
+      "claim_ceiling": "A measurement that arrives too late cannot reduce the loss of a decision already due, though it may inform a separately evaluated future decision."
+    }
+  ]
+}
