@@ -327,8 +327,12 @@ fn dominates(a:&Value,b:&Value)->bool {
     let bm=metric_value(b,"worst_case_minimum_model_separation",0.0);
     let ac=metric_value(a,"cost_units",f64::INFINITY);
     let bc=metric_value(b,"cost_units",f64::INFINITY);
-    let no_worse=al>=bl && asg>=bsg && am>=bm && ac<=bc;
-    let strictly=al>bl || asg>bsg || am>bm || ac<bc;
+    let an=metric_value(a,"sensor_count",f64::INFINITY);
+    let bn=metric_value(b,"sensor_count",f64::INFINITY);
+    let at=metric_value(a,"duration_minutes",f64::INFINITY);
+    let bt=metric_value(b,"duration_minutes",f64::INFINITY);
+    let no_worse=al>=bl && asg>=bsg && am>=bm && ac<=bc && an<=bn && at<=bt;
+    let strictly=al>bl || asg>bsg || am>bm || ac<bc || an<bn || at<bt;
     no_worse && strictly
 }
 fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<(),String> {
@@ -547,5 +551,13 @@ mod tests {
             if result["within_budget"]==true { continue; }
             assert!(!ids.iter().any(|id|id==&result["design_id"]));
         }
+    }
+    #[test] fn pareto_dominance_includes_sensor_count_and_duration() {
+        let lean=json!({"worst_case_log_determinant":1.0,"worst_case_minimum_singular_value":1.0,
+            "worst_case_minimum_model_separation":1.0,"cost_units":2.0,"sensor_count":2,"duration_minutes":10.0});
+        let wasteful=json!({"worst_case_log_determinant":1.0,"worst_case_minimum_singular_value":1.0,
+            "worst_case_minimum_model_separation":1.0,"cost_units":2.0,"sensor_count":3,"duration_minutes":15.0});
+        assert!(dominates(&lean,&wasteful));
+        assert!(!dominates(&wasteful,&lean));
     }
 }
