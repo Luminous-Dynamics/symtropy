@@ -13,6 +13,7 @@ fixtures/aeroweift-surveillance-observability/tiny-coverage-gap-v0.json
 - A report becomes a qualified track only when it matches a qualified source claim for the same class/cell/tick and is current/integrity-qualified.
 - Cooperative coverage cannot be re-used as non-cooperative coverage.
 - A no-report result never becomes empty airspace, even when class-specific coverage is qualified.
+- Explicitly degraded source claims cannot contribute to full-coverage family counts.
 - An invalid, stale or unsupported report leaves possible occupancy unresolved.
 - The oracle can accept separately qualified cooperative and non-cooperative positive controls.
 
