@@ -1,0 +1,239 @@
+//! Tiny finite reference oracle for AeroWeft surveillance observability claims.
+//!
+//! It checks whether a set of scoped sensor claims supports observability for
+//! one traffic class, spatial cell and time tick. It distinguishes coverage
+//! claims from observed tracks and ensures that no report never becomes an
+//! empty-airspace assertion.
+//!
+//! This is not an ADS-B, radar, TDoA, EO/IR or acoustic detector, sensor model,
+//! DAA system, collision-avoidance algorithm, surveillance service or flight
+//! authority. All values and identifiers in the tests are synthetic.
+
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+
+use std::collections::BTreeSet;
+
+/// Traffic class covered by a surveillance claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TrafficClass {
+    /// Aircraft that emit a supported cooperative position report.
+    CooperativeCrewed,
+    /// Crewed aircraft not assumed to emit a cooperative position report.
+    NonCooperativeCrewed,
+    /// Uncrewed traffic, only where the claim profile explicitly supports it.
+    UncrewedProfileQualified,
+    /// Target class is unresolved.
+    Unknown,
+}
+
+/// Sensor modality represented by a synthetic coverage claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SensorModality {
+    /// Automatic Dependent Surveillance-Broadcast.
+    Adsb,
+    /// Time Difference of Arrival / multilateration receiver network.
+    TdoaMlat,
+    /// Electro-optical / infrared sensor.
+    Eoir,
+    /// Ground-based radar.
+    GroundRadar,
+}
+
+/// Coverage evidence status for a traffic class/cell/time request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageStatus {
+    /// Admitted evidence meets the exact declared profile for this class/cell/time.
+    QualifiedCoverage,
+    /// Some qualified evidence exists, but the declared profile's family floor is not met.
+    PartialCoverage,
+    /// A relevant evidence dependency is unknown, incomplete, stale or contradictory.
+    Indeterminate,
+    /// No admitted claim covers this class/cell/time or a declared condition is out of scope.
+    NotQualified,
+}
+
+/// Result of an observation/track lookup, kept separate from coverage status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservationStatus {
+    /// A current, integrity-qualified track matches an admitted claim.
+    QualifiedTrack,
+    /// No report/track arrived for the requested class/cell/time.
+    NoObservation,
+    /// A report exists but is stale, invalid, unsupported or not covered by an admitted claim.
+    InvalidOrStaleTrack,
+}
+
+/// A finite coverage claim for one traffic class, cell and half-open validity interval.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CoverageClaim {
+    /// Stable claim identifier.
+    pub claim_id: &'static str,
+    /// Sensor/receiver source identity.
+    pub source_id: &'static str,
+    /// Sensor modality.
+    pub modality: SensorModality,
+    /// Traffic class the claim explicitly supports.
+    pub traffic_class: TrafficClass,
+    /// Synthetic spatial cell identity.
+    pub cell_id: &'static str,
+    /// Inclusive first validity tick.
+    pub start_tick: u16,
+    /// Exclusive final validity tick.
+    pub end_tick: u16,
+    /// Whether the source profile supports the claimed target class/range in this cell.
+    pub coverage_qualified: bool,
+    /// Whether current weather, lighting, clutter and obstruction fit the claim profile.
+    pub environment_qualified: bool,
+    /// Whether PNT and time dependencies are qualified for this claim.
+    pub pnt_time_qualified: bool,
+    /// Whether the relevant source dependency inventory is complete.
+    pub dependency_inventory_complete: bool,
+    /// Independent failure-domain family identifier, if known.
+    pub independent_family_id: Option<&'static str>,
+}
+
+/// One observed track/report presented for qualification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Observation {
+    /// Stable track/report identity.
+    pub observation_id: &'static str,
+    /// Source sensor/receiver identity.
+    pub source_id: &'static str,
+    /// Traffic class attributed by the observation source.
+    pub traffic_class: TrafficClass,
+    /// Synthetic spatial cell identity.
+    pub cell_id: &'static str,
+    /// Observation tick.
+    pub tick: u16,
+    /// Whether the report is current within the operation profile.
+    pub current: bool,
+    /// Whether integrity, time and source checks have qualified this report.
+    pub integrity_qualified: bool,
+}
+
+/// Result of the scoped surveillance-observability evaluation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ObservabilityAssessment {
+    /// Coverage status for the requested class/cell/time.
+    pub coverage_status: CoverageStatus,
+    /// Track/report status, independently of coverage.
+    pub observation_status: ObservationStatus,
+    /// Number of distinct, fully qualified failure-domain families.
+    pub independent_family_count: usize,
+    /// Whether possible traffic occupancy remains unresolved for downstream planning.
+    pub unresolved_possible_occupancy: bool,
+}
+
+/// Typed error for invalid evaluation requests.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservabilityError {
+    /// A zero family floor cannot define a meaningful coverage policy.
+    InvalidMinimumIndependentFamilies,
+    /// The requested traffic class is unknown and cannot be qualified as a positive class.
+    UnknownTrafficClass,
+}
+
+/// Evaluate class-specific coverage and one optional observation.
+///
+/// A claim only contributes if its traffic class, cell and half-open validity
+/// interval match the request. A report is a qualified track only if it matches
+/// a currently valid, fully qualified source claim of the same class/cell/time.
+///
+/// A coverage result never implies that a no-report cell is physically empty.
+/// No report always retains unresolved possible occupancy.
+pub fn evaluate(
+    claims: &[CoverageClaim],
+    observation: Option<&Observation>,
+    traffic_class: TrafficClass,
+    cell_id: &str,
+    tick: u16,
+    minimum_independent_families: usize,
+) -> Result<ObservabilityAssessment, ObservabilityError> {
+    if minimum_independent_families == 0 {
+        return Err(ObservabilityError::InvalidMinimumIndependentFamilies);
+    }
+    if traffic_class == TrafficClass::Unknown {
+        return Err(ObservabilityError::UnknownTrafficClass);
+    }
+
+    let relevant: Vec<_> = claims
+        .iter()
+        .filter(|claim| {
+            claim.traffic_class == traffic_class
+                && claim.cell_id == cell_id
+                && claim.start_tick <= tick
+                && tick < claim.end_tick
+        })
+        .collect();
+
+    let mut independent_families = BTreeSet::new();
+    let mut unknown_dependency = false;
+
+    for claim in &relevant {
+        if !claim.coverage_qualified || !claim.environment_qualified {
+            continue;
+        }
+        if !claim.pnt_time_qualified || !claim.dependency_inventory_complete {
+            unknown_dependency = true;
+            continue;
+        }
+        let Some(family_id) = claim.independent_family_id else {
+            unknown_dependency = true;
+            continue;
+        };
+        if family_id.trim().is_empty() {
+            unknown_dependency = true;
+            continue;
+        }
+        independent_families.insert(family_id);
+    }
+
+    let independent_family_count = independent_families.len();
+
+    let coverage_status = if independent_family_count >= minimum_independent_families {
+        CoverageStatus::QualifiedCoverage
+    } else if unknown_dependency {
+        CoverageStatus::Indeterminate
+    } else if independent_family_count > 0 {
+        CoverageStatus::PartialCoverage
+    } else {
+        CoverageStatus::NotQualified
+    };
+
+    let observation_status = match observation {
+        None => ObservationStatus::NoObservation,
+        Some(report) => {
+            let matching_claim = relevant.iter().any(|claim| {
+                claim.source_id == report.source_id
+                    && claim.coverage_qualified
+                    && claim.environment_qualified
+                    && claim.pnt_time_qualified
+                    && claim.dependency_inventory_complete
+                    && claim.independent_family_id.is_some()
+            });
+
+            if report.traffic_class == traffic_class
+                && report.cell_id == cell_id
+                && report.tick == tick
+                && report.current
+                && report.integrity_qualified
+                && matching_claim
+            {
+                ObservationStatus::QualifiedTrack
+            } else {
+                ObservationStatus::InvalidOrStaleTrack
+            }
+        }
+    };
+
+    let unresolved_possible_occupancy = observation_status != ObservationStatus::QualifiedTrack
+        || coverage_status != CoverageStatus::QualifiedCoverage;
+
+    Ok(ObservabilityAssessment {
+        coverage_status,
+        observation_status,
+        independent_family_count,
+        unresolved_possible_occupancy,
+    })
+}
