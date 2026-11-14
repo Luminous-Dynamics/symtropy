@@ -1,0 +1,630 @@
+{
+  "corpus_id": "luminous.symtropy.shipyard-weld-quality-loop",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "Synthetic NDT/repair evidence contract only. REVIEW_CANDIDATE is a source-bound engineering-review signal, not defect truth, root cause, NDT acceptance, WPS/PQR change or weld release.",
+  "base_cases": {
+    "valid_chain": {
+      "case_id": "WQL-BASE-001",
+      "fixture_kind": "synthetic_fixture",
+      "evaluation_cutoff_utc": "2026-11-14T05:00:00Z",
+      "dataset_group": "SYNTH-CAMPAIGN-A",
+      "subject": {
+        "asset_id": "SYNTH-ASSET-01",
+        "component_id": "SYNTH-COMP-01",
+        "serial_id": "SYNTH-SERIAL-01",
+        "joint_id": "SYNTH-JOINT-01",
+        "workpiece_revision": "REV-A",
+        "weld_region_id": "REGION-01",
+        "pass_ids": [
+          "PASS-01",
+          "PASS-02",
+          "PASS-03"
+        ],
+        "material_group": "S355J2+N",
+        "material_heat_lot": "SYNTH-HEAT-01",
+        "process_family": "TANDEM-GMAW",
+        "thickness_class": "20mm"
+      },
+      "inspection": {
+        "inspection_id": "SYNTH-INSP-01",
+        "revision": "R1",
+        "method": {
+          "method_id": "ultrasonic_phased_array",
+          "technique_id": "PAUT",
+          "procedure_ref": "SYNTH-PAUT-PROC-01",
+          "procedure_revision": "R1",
+          "qualified_scope": "SYNTH-SCOPE-01",
+          "material_scope": "S355J2+N",
+          "thickness_scope": "20mm",
+          "process_scope": "TANDEM-GMAW"
+        },
+        "coverage": {
+          "plan_ref": "SYNTH-SCAN-PLAN-01",
+          "required_extent": "complete_synthetic",
+          "actual_extent": "complete_synthetic",
+          "inspected_length_mm": 1000,
+          "required_length_mm": 1000,
+          "sampling_plan_ref": "SYNTH-SAMPLE-01",
+          "batch_id": "SYNTH-BATCH-01"
+        },
+        "acceptance_basis": {
+          "project_spec_ref": "SYNTH-PROJECT-SPEC-01",
+          "revision": "R1",
+          "criteria_ref": "SYNTH-NDT-ACCEPTANCE-01",
+          "criteria_revision": "R1",
+          "quality_level": "SYNTH-QUALITY-LEVEL-B",
+          "ndt_acceptance_level": "SYNTH-NDT-LEVEL-2",
+          "basis_relationship": "separately_declared_not_equivalent"
+        },
+        "equipment": {
+          "equipment_id": "SYNTH-PAUT-UNIT-01",
+          "probe_id": "SYNTH-PROBE-01",
+          "software_revision": "PROC-SW-1",
+          "calibration_ref": "SYNTH-CAL-01",
+          "calibration_state": "current",
+          "calibration_valid_until_utc": "2027-01-01T00:00:00Z"
+        },
+        "examiner": {
+          "examiner_id": "SYNTH-EXAMINER-01",
+          "qualification_ref": "SYNTH-QUAL-01",
+          "qualification_scope": "PAUT:S355J2+N:20mm",
+          "status": "current",
+          "valid_until_utc": "2027-01-01T00:00:00Z",
+          "issuer": "SYNTH-QUAL-ISSUER"
+        },
+        "timing": {
+          "observed_at_utc": "2026-11-14T04:00:00Z",
+          "acquired_at_utc": "2026-11-14T04:10:00Z",
+          "evaluated_at_utc": "2026-11-14T04:20:00Z",
+          "report_issued_at_utc": "2026-11-14T04:30:00Z",
+          "retrieved_at_utc": "2026-11-14T04:40:00Z"
+        },
+        "artifact": {
+          "raw_artifact_ref": "synthetic://raw/WQL-INSP-01",
+          "raw_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "derivative_ref": "synthetic://processed/WQL-INSP-01",
+          "derivative_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "processing_revision": "SYNTH-PROCESSOR-R1",
+          "rights_status": "synthetic_not_applicable",
+          "issuer_authentication": "synthetic_issuer_declared"
+        },
+        "indications": [
+          {
+            "indication_id": "IND-01",
+            "weld_region_id": "REGION-01",
+            "pass_id": "PASS-02",
+            "location_ref": "SYNTH-LOCATION-01",
+            "reported_type": "lack_of_fusion_synthetic",
+            "extent_mm": 3.2,
+            "uncertainty_mm": 0.4,
+            "confidence": "synthetic_high",
+            "artifact_ref": "synthetic://processed/WQL-INSP-01#IND-01"
+          }
+        ],
+        "disposition": {
+          "status": "rejected",
+          "criteria_ref": "SYNTH-NDT-ACCEPTANCE-01",
+          "issuer": "SYNTH-NDT-REVIEWER",
+          "authority_scope": "SYNTHETIC-NDT-DISPOSITION",
+          "reason_ref": "SYNTH-REASON-01",
+          "supersedes_ref": null,
+          "revocation_ref": null
+        }
+      },
+      "repair": {
+        "required": true,
+        "route_ref": "SYNTH-REPAIR-ROUTE-01",
+        "route_revision": "R1",
+        "authority_ref": "SYNTH-REPAIR-AUTHORITY-01",
+        "authority_status": "approved_synthetic",
+        "source_indication_ref": "IND-01",
+        "workpiece_revision_after": "REV-B",
+        "repair_region_id": "REGION-01",
+        "execution_trace_ref": "synthetic://repair/TRACE-01",
+        "execution_trace_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "completed_at_utc": "2026-11-14T04:50:00Z",
+        "reinspection_ref": "SYNTH-INSP-02",
+        "reinspection_status": "accepted_synthetic",
+        "reinspection_region_id": "REGION-01",
+        "final_release_ref": "SYNTH-RELEASE-01",
+        "final_release_status": "accepted_synthetic"
+      },
+      "learning": {
+        "model_id": "SYNTH-MODEL-01",
+        "model_revision": "R1",
+        "training_group": "TRAIN-CAMPAIGN-A",
+        "evaluation_group": "HELDOUT-CAMPAIGN-B",
+        "evaluation_split": "held_out",
+        "physical_weld_group": "SYNTH-JOINT-01",
+        "prediction_task": "risk_hypothesis_only",
+        "hypothesis_status": "proposal_pending_review",
+        "proposed_change_ref": null,
+        "owner_authorization_ref": null,
+        "inspection_method_group": "ultrasonic_phased_array",
+        "coverage_group": "complete_synthetic",
+        "denominator_kind": "inspected_weld_length"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "WQL-000",
+      "base": "valid_chain",
+      "mutations": [],
+      "expected_code": "REVIEW_CANDIDATE"
+    },
+    {
+      "id": "WQL-001",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/subject/joint_id",
+          "op": "set",
+          "value": ""
+        }
+      ],
+      "expected_code": "BLOCK_SUBJECT_IDENTITY"
+    },
+    {
+      "id": "WQL-002",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/subject/workpiece_revision",
+          "op": "set",
+          "value": ""
+        }
+      ],
+      "expected_code": "BLOCK_SUBJECT_IDENTITY"
+    },
+    {
+      "id": "WQL-003",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/indications/0/weld_region_id",
+          "op": "set",
+          "value": "WRONG-REGION"
+        }
+      ],
+      "expected_code": "BLOCK_INDICATION_IDENTITY"
+    },
+    {
+      "id": "WQL-004",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/indications/0/pass_id",
+          "op": "set",
+          "value": "PASS-99"
+        }
+      ],
+      "expected_code": "BLOCK_INDICATION_IDENTITY"
+    },
+    {
+      "id": "WQL-005",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/method/qualified_scope",
+          "op": "set",
+          "value": "OUT-OF-SCOPE"
+        }
+      ],
+      "expected_code": "BLOCK_METHOD_SCOPE"
+    },
+    {
+      "id": "WQL-006",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/method/material_scope",
+          "op": "set",
+          "value": "AUSTENITIC-STEEL"
+        }
+      ],
+      "expected_code": "BLOCK_METHOD_SCOPE"
+    },
+    {
+      "id": "WQL-007",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/method/thickness_scope",
+          "op": "set",
+          "value": "6mm"
+        }
+      ],
+      "expected_code": "BLOCK_METHOD_SCOPE"
+    },
+    {
+      "id": "WQL-008",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/method/process_scope",
+          "op": "set",
+          "value": "SAW-ONLY"
+        }
+      ],
+      "expected_code": "BLOCK_METHOD_SCOPE"
+    },
+    {
+      "id": "WQL-009",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/coverage/actual_extent",
+          "op": "set",
+          "value": "partial_synthetic"
+        }
+      ],
+      "expected_code": "BLOCK_COVERAGE"
+    },
+    {
+      "id": "WQL-010",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/coverage/inspected_length_mm",
+          "op": "set",
+          "value": 800
+        }
+      ],
+      "expected_code": "BLOCK_COVERAGE"
+    },
+    {
+      "id": "WQL-011",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/coverage/sampling_plan_ref",
+          "op": "set",
+          "value": ""
+        }
+      ],
+      "expected_code": "BLOCK_COVERAGE"
+    },
+    {
+      "id": "WQL-012",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/acceptance_basis/criteria_ref",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "BLOCK_ACCEPTANCE_BASIS"
+    },
+    {
+      "id": "WQL-013",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/acceptance_basis/basis_relationship",
+          "op": "set",
+          "value": "direct_equivalence"
+        }
+      ],
+      "expected_code": "BLOCK_ACCEPTANCE_BASIS"
+    },
+    {
+      "id": "WQL-014",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/equipment/calibration_state",
+          "op": "set",
+          "value": "expired"
+        }
+      ],
+      "expected_code": "BLOCK_EQUIPMENT_CALIBRATION"
+    },
+    {
+      "id": "WQL-015",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/equipment/calibration_valid_until_utc",
+          "op": "set",
+          "value": "2026-11-13T00:00:00Z"
+        }
+      ],
+      "expected_code": "BLOCK_EQUIPMENT_CALIBRATION"
+    },
+    {
+      "id": "WQL-016",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/examiner/status",
+          "op": "set",
+          "value": "expired"
+        }
+      ],
+      "expected_code": "BLOCK_EXAMINER_AUTHORITY"
+    },
+    {
+      "id": "WQL-017",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/examiner/qualification_scope",
+          "op": "set",
+          "value": "VT-ONLY"
+        }
+      ],
+      "expected_code": "BLOCK_EXAMINER_AUTHORITY"
+    },
+    {
+      "id": "WQL-018",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/artifact/issuer_authentication",
+          "op": "set",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "BLOCK_ISSUER_AUTHENTICATION"
+    },
+    {
+      "id": "WQL-019",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/artifact/raw_artifact_sha256",
+          "op": "set",
+          "value": "bad-digest"
+        }
+      ],
+      "expected_code": "BLOCK_ARTIFACT_INTEGRITY"
+    },
+    {
+      "id": "WQL-020",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/artifact/rights_status",
+          "op": "set",
+          "value": "review_required"
+        }
+      ],
+      "expected_code": "BLOCK_RIGHTS"
+    },
+    {
+      "id": "WQL-021",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/disposition/supersedes_ref",
+          "op": "set",
+          "value": "SYNTH-INSP-OLD"
+        }
+      ],
+      "expected_code": "BLOCK_REPORT_SUPERSEDED"
+    },
+    {
+      "id": "WQL-022",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/disposition/revocation_ref",
+          "op": "set",
+          "value": "SYNTH-REVOKE-01"
+        }
+      ],
+      "expected_code": "BLOCK_REPORT_REVOKED"
+    },
+    {
+      "id": "WQL-023",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/timing/report_issued_at_utc",
+          "op": "set",
+          "value": "2026-11-14T05:30:00Z"
+        }
+      ],
+      "expected_code": "BLOCK_TEMPORAL_LEAKAGE"
+    },
+    {
+      "id": "WQL-024",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/timing/evaluated_at_utc",
+          "op": "set",
+          "value": "2026-11-14T04:05:00Z"
+        }
+      ],
+      "expected_code": "BLOCK_TEMPORAL_LEAKAGE"
+    },
+    {
+      "id": "WQL-025",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/inspection/disposition/status",
+          "op": "set",
+          "value": "inconclusive"
+        }
+      ],
+      "expected_code": "BLOCK_DISPOSITION"
+    },
+    {
+      "id": "WQL-026",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/required",
+          "op": "set",
+          "value": false
+        }
+      ],
+      "expected_code": "BLOCK_REPAIR_REQUIRED"
+    },
+    {
+      "id": "WQL-027",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/route_ref",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "BLOCK_REPAIR_ROUTE"
+    },
+    {
+      "id": "WQL-028",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/authority_status",
+          "op": "set",
+          "value": "revoked"
+        }
+      ],
+      "expected_code": "BLOCK_REPAIR_AUTHORITY"
+    },
+    {
+      "id": "WQL-029",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/source_indication_ref",
+          "op": "set",
+          "value": "IND-99"
+        }
+      ],
+      "expected_code": "BLOCK_REPAIR_LINEAGE"
+    },
+    {
+      "id": "WQL-030",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/repair_region_id",
+          "op": "set",
+          "value": "REGION-99"
+        }
+      ],
+      "expected_code": "BLOCK_REPAIR_LINEAGE"
+    },
+    {
+      "id": "WQL-031",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/execution_trace_sha256",
+          "op": "set",
+          "value": null
+        }
+      ],
+      "expected_code": "BLOCK_REPAIR_EVIDENCE"
+    },
+    {
+      "id": "WQL-032",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/reinspection_status",
+          "op": "set",
+          "value": "inconclusive"
+        }
+      ],
+      "expected_code": "BLOCK_REINSPECTION"
+    },
+    {
+      "id": "WQL-033",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/reinspection_region_id",
+          "op": "set",
+          "value": "REGION-99"
+        }
+      ],
+      "expected_code": "BLOCK_REINSPECTION"
+    },
+    {
+      "id": "WQL-034",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/repair/final_release_status",
+          "op": "set",
+          "value": "pending"
+        }
+      ],
+      "expected_code": "BLOCK_FINAL_RELEASE"
+    },
+    {
+      "id": "WQL-035",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/learning/training_group",
+          "op": "set",
+          "value": "HELDOUT-CAMPAIGN-B"
+        }
+      ],
+      "expected_code": "BLOCK_SPLIT_LEAKAGE"
+    },
+    {
+      "id": "WQL-036",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/learning/inspection_method_group",
+          "op": "set",
+          "value": "radiography"
+        }
+      ],
+      "expected_code": "BLOCK_FEEDBACK_CONFOUNDING"
+    },
+    {
+      "id": "WQL-037",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/learning/coverage_group",
+          "op": "set",
+          "value": "partial_synthetic"
+        }
+      ],
+      "expected_code": "BLOCK_FEEDBACK_CONFOUNDING"
+    },
+    {
+      "id": "WQL-038",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/learning/prediction_task",
+          "op": "set",
+          "value": "root_cause_ranking"
+        }
+      ],
+      "expected_code": "BLOCK_UNAUTHORIZED_PROMOTION"
+    },
+    {
+      "id": "WQL-039",
+      "base": "valid_chain",
+      "mutations": [
+        {
+          "path": "/learning/proposed_change_ref",
+          "op": "set",
+          "value": "CHANGE-WPS-99"
+        },
+        {
+          "path": "/learning/owner_authorization_ref",
+          "op": "set",
+          "value": "MISSING"
+        }
+      ],
+      "expected_code": "BLOCK_UNAUTHORIZED_PROMOTION"
+    }
+  ]
+}
