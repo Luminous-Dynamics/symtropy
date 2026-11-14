@@ -113,6 +113,12 @@ pub enum HoldReason {
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct DriftReport {
     pub sequence_id: String,
+    pub instrument_id: String,
+    pub calibration_revision: String,
+    pub reference_artifact_id: String,
+    pub characteristic_id: String,
+    pub first_observation_at_ms: u64,
+    pub evaluated_through_ms: u64,
     pub decision: Decision,
     pub hold_reason: Option<HoldReason>,
     pub observation_count: usize,
@@ -328,6 +334,12 @@ pub fn evaluate_drift_sequence(
         if pointwise_guard > policy.maximum_absolute_error_um {
             return Ok(DriftReport {
                 sequence_id: input.sequence_id.clone(),
+                instrument_id: policy.instrument_id.clone(),
+                calibration_revision: policy.calibration_revision.clone(),
+                reference_artifact_id: policy.artifact_id.clone(),
+                characteristic_id: policy.characteristic_id.clone(),
+                first_observation_at_ms: input.observations[0].captured_at_ms,
+                evaluated_through_ms: observation.captured_at_ms,
                 decision: Decision::HoldForMetrologyReview,
                 hold_reason: Some(HoldReason::PointwiseGuardExceeded),
                 observation_count: observation_digests.len(),
@@ -397,6 +409,12 @@ pub fn evaluate_drift_sequence(
         if ewma_guard > policy.ewma_limit_um {
             return Ok(DriftReport {
                 sequence_id: input.sequence_id.clone(),
+                instrument_id: policy.instrument_id.clone(),
+                calibration_revision: policy.calibration_revision.clone(),
+                reference_artifact_id: policy.artifact_id.clone(),
+                characteristic_id: policy.characteristic_id.clone(),
+                first_observation_at_ms: input.observations[0].captured_at_ms,
+                evaluated_through_ms: observation.captured_at_ms,
                 decision: Decision::HoldForMetrologyReview,
                 hold_reason: Some(HoldReason::EwmaGuardExceeded),
                 observation_count: observation_digests.len(),
@@ -418,6 +436,16 @@ pub fn evaluate_drift_sequence(
 
     Ok(DriftReport {
         sequence_id: input.sequence_id.clone(),
+        instrument_id: policy.instrument_id.clone(),
+        calibration_revision: policy.calibration_revision.clone(),
+        reference_artifact_id: policy.artifact_id.clone(),
+        characteristic_id: policy.characteristic_id.clone(),
+        first_observation_at_ms: input.observations[0].captured_at_ms,
+        evaluated_through_ms: input
+            .observations
+            .last()
+            .ok_or(HoldReason::TooFewObservations)?
+            .captured_at_ms,
         decision: Decision::ContinueWithinDeclaredCheckLimits,
         hold_reason: None,
         observation_count: input.observations.len(),
@@ -499,6 +527,18 @@ mod tests {
             observations,
             claim_ceiling: CLAIM_CEILING.to_owned(),
         }
+    }
+
+    #[test]
+    fn report_exports_identity_and_evaluated_time_window_for_receipt_binding() {
+        let input = base_input(&[2, -1, 3, 0]);
+        let report = evaluate_drift_sequence(&input).expect("stable sequence should evaluate");
+        assert_eq!(report.instrument_id, "SCANNER-SYNTH-01");
+        assert_eq!(report.calibration_revision, "CAL-R1");
+        assert_eq!(report.reference_artifact_id, "ARTIFACT-SYNTH-01");
+        assert_eq!(report.characteristic_id, "LENGTH-X-100MM");
+        assert_eq!(report.first_observation_at_ms, 1_000);
+        assert_eq!(report.evaluated_through_ms, 4_000);
     }
 
     #[test]
