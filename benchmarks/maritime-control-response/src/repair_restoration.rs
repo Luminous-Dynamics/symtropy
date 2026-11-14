@@ -896,8 +896,8 @@ mod tests {
                 75.0,
                 80.0,
                 25.0,
-                ["shaft-torque", "pressure-tap"],
-                ["bench-da1", "bench-da2"],
+                ["torque-flange", "pressure-tap"],
+                ["independent-daq", "independent-pressure-logger"],
             ),
             post_repair_episode: episode(
                 "post",
