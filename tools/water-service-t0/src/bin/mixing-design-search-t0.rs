@@ -128,6 +128,8 @@ struct Metrics{
 }
 fn metrics(info:&Matrix,tolerance:f64)->Result<Metrics,String>{
     let eig=symmetric_eigenvalues(info.clone())?;
+    let scale=eig.first().copied().unwrap_or(0.0).abs().max(1.0);
+    if eig.iter().any(|v|*v < -1.0e-9*scale){return Err("nuisance-adjusted target information is not positive semidefinite".into());}
     let max=eig.first().copied().unwrap_or(0.0).max(0.0);
     let singular=eig.iter().map(|v|v.max(0.0).sqrt()).collect::<Vec<_>>();
     let rank=if max<=0.0{0}else{singular.iter().filter(|s|**s>max*tolerance).count()};
@@ -160,10 +162,10 @@ fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,Strin
     if target==0||target>=p{return Err("invalid target/nuisance dimension".into());}
     let rows=array(input,"blocks")?;let expected=array(oracle,"blocks")?;
     let ids=array(manifest,"block_ids")?;
+    if rows.len()>MAX_EXACT_BLOCKS{return Err("exact subset limit exceeded".into());}
     if rows.len()!=BLOCK_COUNT||expected.len()!=BLOCK_COUNT||usize_value(manifest,"block_count")?!=BLOCK_COUNT{
         return Err("frozen block count mismatch".into());
     }
-    if rows.len()>MAX_EXACT_BLOCKS{return Err("exact subset limit exceeded".into());}
     let pairs=array(input,"model_pair_ids")?.iter().map(|x|x.as_str().map(str::to_owned).ok_or_else(||"model pair id must be text".to_owned())).collect::<Result<BTreeSet<_>,_>>()?;
     if pairs.is_empty(){return Err("model_pair_ids cannot be empty".into());}
     let mut out=Vec::new();let mut seen=BTreeSet::new();
@@ -184,20 +186,25 @@ fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<Vec<Block>,Strin
             return Err(format!("block {id} information matrix is not positive semidefinite"));
         }
         let raw=field(row,"model_separation_squared")?.as_object().ok_or_else(||"model_separation_squared must be an object".to_owned())?;
+        if raw.len()!=pairs.len(){return Err(format!("block {id} has unexpected model-pair keys"));}
         let mut separation=BTreeMap::new();
         for pair in &pairs{
             let value=raw.get(pair).and_then(Value::as_f64).filter(|v|v.is_finite()&&*v>=0.0)
                 .ok_or_else(||format!("block {id} missing/invalid model pair {pair}"))?;
             separation.insert(pair.clone(),value);
         }
-        let sensors=array(row,"sensor_ids")?.iter().map(|x|x.as_str().filter(|s|!s.trim().is_empty()).map(str::to_owned)
+        let sensor_rows=array(row,"sensor_ids")?;
+        let sensors=sensor_rows.iter().map(|x|x.as_str().filter(|s|!s.trim().is_empty()).map(str::to_owned)
             .ok_or_else(||"sensor id must be non-empty text".to_owned())).collect::<Result<BTreeSet<_>,_>>()?;
         if sensors.is_empty(){return Err(format!("block {id} has no sensor identity"));}
-        out.push(Block{
-            id,information:fim,separation,
-            cost:number(row,"cost_units")?,duration:number(row,"duration_minutes")?,
-            calibration:number(row,"calibration_units")?,sensors,
-        });
+        if sensors.len()!=sensor_rows.len(){return Err(format!("block {id} contains duplicate sensor identities"));}
+        let cost=number(row,"cost_units")?;
+        let duration=number(row,"duration_minutes")?;
+        let calibration=number(row,"calibration_units")?;
+        if cost<=0.0||duration<0.0||calibration<0.0{
+            return Err(format!("block {id} has invalid resource cost/duration/calibration"));
+        }
+        out.push(Block{id,information:fim,separation,cost,duration,calibration,sensors});
     }
     let oracle_ids=expected.iter().map(|x|text(x,"block_id").map(str::to_owned)).collect::<Result<BTreeSet<_>,_>>()?;
     let manifest_ids=ids.iter().map(|x|x.as_str().map(str::to_owned).ok_or_else(||"manifest block id must be text".to_owned())).collect::<Result<BTreeSet<_>,_>>()?;
@@ -504,7 +511,8 @@ mod tests{
     }
     #[test]fn exact_search_refuses_oversized_candidate_pools(){
         let mut input=load("input");input["blocks"]=json!(vec![input["blocks"][0].clone();13]);
-        assert!(validate(&input,&load("oracle"),&load("manifest")).is_err());
+        let error=validate(&input,&load("oracle"),&load("manifest")).unwrap_err();
+        assert!(error.contains("exact subset limit exceeded"));
     }
     #[test]fn resource_budgets_are_hard_constraints(){
         let exact=result()["exact_best_by_nuisance_adjusted_D_optimality"].clone();
