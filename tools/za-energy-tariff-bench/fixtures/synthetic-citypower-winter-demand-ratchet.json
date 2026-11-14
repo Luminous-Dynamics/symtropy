@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "profile_id": "ZA-ENERGY-MARKET-SIGNAL-2026-27-V0.1",
+  "source_note": "Synthetic billing counterexample based on the budget-published City Power FY2026/27 schedule. Not an actual customer account or bill. Tariff eligibility and contract confirmation are hypothetical fixture assumptions only.",
+  "cases": [
+    {
+      "case_id": "before-peak-shift",
+      "description": "Synthetic winter weekday with 100 kWh consumed in peak and 100 kWh off-peak; previous top-three monthly demands average 125 kVA.",
+      "billing_month": 7,
+      "account": {
+        "distributor": "City Power Johannesburg",
+        "voltage_class": "lv",
+        "supply_capacity_kva": 160,
+        "industrial_tou_application_approved": true,
+        "contract_confirmed": true
+      },
+      "measured_monthly_max_demand_kva": 95,
+      "previous_twelve_month_top_three_kva": [
+        125,
+        125,
+        125
+      ],
+      "power_factor": 0.98,
+      "reactive_energy_kvarh": 0,
+      "apply_business_lpu_surcharge": true,
+      "surcharge_basis": null,
+      "vat_rate": null,
+      "intervals": [
+        {
+          "day_type": "weekday",
+          "start_minute": 450,
+          "duration_minutes": 30,
+          "energy_kwh": 100,
+          "maximum_demand_kva": 95
+        },
+        {
+          "day_type": "weekday",
+          "start_minute": 1380,
+          "duration_minutes": 30,
+          "energy_kwh": 100,
+          "maximum_demand_kva": 80
+        }
+      ],
+      "surcharge_basis_confirmed": false,
+      "vat_basis_confirmed": false
+    },
+    {
+      "case_id": "after-peak-shift",
+      "description": "Synthetic winter weekday shifts the 100 kWh peak block to off-peak; measured monthly maximum falls to 80 kVA but the previous top-three demand ratchet remains 100 kVA.",
+      "billing_month": 7,
+      "account": {
+        "distributor": "City Power Johannesburg",
+        "voltage_class": "lv",
+        "supply_capacity_kva": 160,
+        "industrial_tou_application_approved": true,
+        "contract_confirmed": true
+      },
+      "measured_monthly_max_demand_kva": 80,
+      "previous_twelve_month_top_three_kva": [
+        125,
+        125,
+        125
+      ],
+      "power_factor": 0.98,
+      "reactive_energy_kvarh": 0,
+      "apply_business_lpu_surcharge": true,
+      "surcharge_basis": null,
+      "vat_rate": null,
+      "intervals": [
+        {
+          "day_type": "weekday",
+          "start_minute": 1380,
+          "duration_minutes": 30,
+          "energy_kwh": 200,
+          "maximum_demand_kva": 80
+        }
+      ],
+      "surcharge_basis_confirmed": false,
+      "vat_basis_confirmed": false
+    }
+  ]
+}
