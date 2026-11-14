@@ -1026,7 +1026,7 @@ mod tests {
             protocol["validity_conditions"]["channel"]
                 .as_str()
                 .unwrap()
-                .contains("not supported")
+                .contains("unsupported")
         );
         assert_eq!(protocol["familywise_control"]["method"], "bonferroni");
         assert_eq!(
