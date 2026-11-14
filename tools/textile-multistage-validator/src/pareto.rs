@@ -1380,7 +1380,7 @@ mod tests {
             .unwrap();
         damage.evidence.lot_id = input_lot_id;
         let report = evaluate_tournament(&[candidate.clone()]);
-        assert!(report.pareto_fronts.len() == 1, "{:?}", report.assessments[0].findings);
+        assert_eq!(report.pareto_fronts.len(), 1, "{:?}", report.assessments[0].findings);
 
         let mut bad = candidate;
         bad.objectives
