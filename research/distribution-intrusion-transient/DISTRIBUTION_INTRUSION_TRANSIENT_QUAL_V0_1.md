@@ -197,13 +197,20 @@ Do not set a percentage “better than SOTA” target until the physical reprodu
 
 ## 10. South African deployment boundary
 
-For a South African site-specific profile, use the applicable current SANS 241 edition, the controlled SABS text and exact Water Services Institution obligations. Rand Water has published a 2026 migration presentation specifically addressing SANS 241:2015 to SANS 241:2025; the benchmark must obtain and verify the controlled standard before encoding numerical limits.
+For a South African site-specific profile, use the applicable current SANS 241 edition, the controlled SABS text and exact Water Services Institution obligations. Rand Water has published a 2026 migration presentation specifically addressing SANS 241:2015 to SANS 241:2025 and describes the change as an integrated risk-assessment, monitoring, response and evidence model. Obtain the controlled SABS standard and verify its current edition, clauses and applicability before encoding numerical water-quality limits.
 
-The Revised Compulsory National Water and Sanitation Services Standards (Government Gazette 52814, 6 June 2025) provide the related water-safety-plan, monitoring, laboratory, incident-response and continuity context. The WHO Guidelines for Drinking-water Quality 2026 provide the current international health-based / water-safety-plan framework. None of these obligations is replaced by this research software.
+The Revised Compulsory National Water and Sanitation Services Standards (Government Gazette 52814, 6 June 2025) provide quantitative service-floor anchors for South African scenarios, in the scope set by the Regulations:
+
+- Basic water service: at least 6 kL per household per month, at no less than 10 L/min, available at least 358 days per year, and not interrupted for more than 48 consecutive hours; supplied water must meet the applicable SANS 241 prescripts.
+- Where supply is interrupted for more than 48 hours: alternative potable supply of at least 15 L per person per day at strategically selected, relatively convenient and safe delivery points.
+- Water Services Institutions must maintain water safety plans, review them at least annually and when risk changes, and maintain a monitoring programme specifying sampling locations, frequency and parameters. Laboratory analysis must use ISO/IEC 17025-accredited water-analysis methods or another qualifying credible/reliable system; incidents and advisories have defined notification and response duties.
+- The Regulations also require provision for generators or similar at critical water and wastewater infrastructure during power disruptions, development of alternative electricity sources, and protection of that infrastructure.
+
+These are South African regulatory service obligations, not universal global design values and not proof that a specific local service is currently achieving them. The benchmark should represent them as hard, versioned scenario constraints, keep quality separate from quantity/continuity, and measure the worst-served area rather than allow high service elsewhere to compensate. The WHO Guidelines for Drinking-water Quality 2026 provide the current international health-based / water-safety-plan framework. None of these obligations is replaced by this research software.
 
 - [Rand Water: Migrating from SANS 241:2015 to SANS 241:2025](https://www.randwater.co.za/media/forums/presentations/RW%20-%20Migrating%20from%20SANS%20241%202015%20to%20SANS%20241%202025.pdf)
 - [Government Gazette 52814 (2025)](https://www.gov.za/sites/default/files/gcis_document/202506/52814gon6292.pdf)
-- [WHO Guidelines for Drinking-water Quality (2026)](https://www.who.int/publications/i/item/9789240114600)
+- [WHO Guidelines for Drinking-water Quality (2026)](https://www.who.int/publications/i/item/9789240121225)
 
 ## 11. Nonclaims
 
