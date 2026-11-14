@@ -1,0 +1,450 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-VARIABLE-AWARE-AGGREGATION-001",
+  "status": "PUBLIC_SYNTHETIC_VARIABLE_AGGREGATION_CASES",
+  "claim_ceiling": "Synthetic known-truth cases only. Intensive means refer only to valid observed area; stock integration converts density to mass over observed overlap; count totals require declared probability inclusion probabilities; categorical classes remain labels. No production raster, survey design, real data, or ecological validation is established.",
+  "cases": [
+    {
+      "case_id": "AGG-INTENSIVE-WEIGHTED-MEAN-001",
+      "kind": "intensive_mean",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "observed_mean": 15,
+        "unit": "Mg/ha",
+        "geometric_coverage_fraction": 1,
+        "valid_data_coverage_fraction": 1,
+        "valid_observed_area_m2": 100
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "a",
+            "bounds": [
+              0,
+              0,
+              5,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value": 10,
+          "unit": "Mg/ha"
+        },
+        {
+          "support": {
+            "sample_id": "b",
+            "bounds": [
+              5,
+              0,
+              10,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value": 20,
+          "unit": "Mg/ha"
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-INTENSIVE-PARTIAL-NO-EXTRAPOLATION-001",
+      "kind": "intensive_mean",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "observed_mean": 18,
+        "unit": "Mg/ha",
+        "geometric_coverage_fraction": 0.5,
+        "valid_data_coverage_fraction": 0.5,
+        "valid_observed_area_m2": 50
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "half",
+            "bounds": [
+              0,
+              0,
+              5,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value": 18,
+          "unit": "Mg/ha"
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-INTENSIVE-ALL-MASKED-001",
+      "kind": "intensive_mean",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "observed_mean": null,
+        "unit": "Mg/ha",
+        "geometric_coverage_fraction": 1,
+        "valid_data_coverage_fraction": 0,
+        "valid_observed_area_m2": 0
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "cloud",
+            "bounds": [
+              0,
+              0,
+              10,
+              10
+            ],
+            "valid": false,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value": 0,
+          "unit": "Mg/ha"
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-INTENSIVE-UNIT-MISMATCH-001",
+      "kind": "intensive_mean",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected_error": "UnitMismatch",
+      "samples": [
+        {
+          "support": {
+            "sample_id": "a",
+            "bounds": [
+              0,
+              0,
+              10,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value": 4,
+          "unit": "kg"
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-STOCK-DENSITY-INTEGRAL-001",
+      "kind": "stock_integral",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "observed_stock_mg": 0.15,
+        "geometric_coverage_fraction": 1,
+        "valid_data_coverage_fraction": 1,
+        "valid_observed_area_m2": 100
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "a",
+            "bounds": [
+              0,
+              0,
+              5,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value_mg_per_ha": 20
+        },
+        {
+          "support": {
+            "sample_id": "b",
+            "bounds": [
+              5,
+              0,
+              10,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value_mg_per_ha": 10
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-STOCK-PARTIAL-NO-EXTRAPOLATION-001",
+      "kind": "stock_integral",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "observed_stock_mg": 0.1,
+        "geometric_coverage_fraction": 0.5,
+        "valid_data_coverage_fraction": 0.5,
+        "valid_observed_area_m2": 50
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "half",
+            "bounds": [
+              0,
+              0,
+              5,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "value_mg_per_ha": 20
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-COUNT-HORVITZ-THOMPSON-001",
+      "kind": "count_total",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "expected": {
+        "horvitz_thompson_total": 28,
+        "sampled_unit_count": 2,
+        "uncertainty_status": "NOT_ESTIMATED_REQUIRES_SECOND_ORDER_INCLUSION_PROBABILITIES"
+      },
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-COUNT-ZERO-INCLUSION-PROBABILITY-001",
+      "kind": "count_total",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "expected_error": "InvalidInclusionProbability",
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-COUNT-NONPROBABILITY-DESIGN-001",
+      "kind": "count_total",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "expected_error": "NonProbabilityDesign",
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "convenience_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-CATEGORICAL-FRACTIONS-001",
+      "kind": "categorical_areas",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "geometric_coverage_fraction": 1,
+        "valid_data_coverage_fraction": 1,
+        "valid_observed_area_m2": 100,
+        "classes": [
+          {
+            "class_id": "forest",
+            "valid_area_m2": 20,
+            "fraction_of_valid_observed_area": 0.2
+          },
+          {
+            "class_id": "degraded_forest",
+            "valid_area_m2": 80,
+            "fraction_of_valid_observed_area": 0.8
+          }
+        ]
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "a",
+            "bounds": [
+              0,
+              0,
+              2,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "class_id": "forest"
+        },
+        {
+          "support": {
+            "sample_id": "b",
+            "bounds": [
+              2,
+              0,
+              10,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "class_id": "degraded_forest"
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-CATEGORICAL-MASKED-PRESERVES-GAP-001",
+      "kind": "categorical_areas",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected": {
+        "geometric_coverage_fraction": 1,
+        "valid_data_coverage_fraction": 0.5,
+        "valid_observed_area_m2": 50,
+        "classes": [
+          {
+            "class_id": "forest",
+            "valid_area_m2": 50,
+            "fraction_of_valid_observed_area": 1
+          }
+        ]
+      },
+      "samples": [
+        {
+          "support": {
+            "sample_id": "valid",
+            "bounds": [
+              0,
+              0,
+              5,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "class_id": "forest"
+        },
+        {
+          "support": {
+            "sample_id": "masked",
+            "bounds": [
+              5,
+              0,
+              10,
+              10
+            ],
+            "valid": false,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "class_id": "unknown"
+        }
+      ]
+    },
+    {
+      "case_id": "AGG-CATEGORICAL-EMPTY-CLASS-001",
+      "kind": "categorical_areas",
+      "target_crs": "LOCAL_METRE_GRID_A",
+      "target_bounds": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "expected_error": "EmptyCategory",
+      "samples": [
+        {
+          "support": {
+            "sample_id": "a",
+            "bounds": [
+              0,
+              0,
+              10,
+              10
+            ],
+            "valid": true,
+            "crs": "LOCAL_METRE_GRID_A"
+          },
+          "class_id": " "
+        }
+      ]
+    }
+  ],
+  "execution": {
+    "runner": "VARIABLE_AWARE_AGGREGATION_KERNEL",
+    "external_data_ingested": false,
+    "survey_design_variance": "NOT_IMPLEMENTED",
+    "raster_affine_transform": "NOT_IMPLEMENTED",
+    "arbitrary_polygon_support": "NOT_IMPLEMENTED"
+  }
+}
