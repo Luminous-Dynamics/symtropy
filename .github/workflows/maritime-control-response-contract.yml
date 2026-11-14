@@ -64,6 +64,7 @@ jobs:
             (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
             (.event_evaluation.temporal_uncertainty_status == "point_annotations_not_yet_interval_qualified") and
             (.event_evaluation.physical_latency_precision_claim_allowed == false) and
+            (.temporal_evidence_contract.event_annotation_uncertainty == "not_yet_interval_qualified") and
             (.event_evaluation.required_before_latency_precision_claim | length == 4) and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.status == "protocol_only_not_executed") and
@@ -95,6 +96,13 @@ jobs:
             (.streaming_contract.timestamp_uncertainty_is_not_clock_sync == true) and
             (.streaming_contract.temporal_contract_version == "bounded-event-time-v0.1") and
             (.streaming_contract.historical_output_mutation == false) and
+            (.temporal_evidence_contract.status == "source_authored_ci_pending") and
+            (.temporal_evidence_contract.module == "src/temporal.rs") and
+            (.temporal_evidence_contract.interval_rule | contains("earliest(current_event)")) and
+            (.temporal_evidence_contract.overlap_disposition == "not_evaluable") and
+            (.temporal_evidence_contract.clock_synchronization_implemented == false) and
+            (.temporal_evidence_contract.clock_qualification_authentication_implemented == false) and
+            (.temporal_evidence_contract.event_annotation_uncertainty == "not_yet_interval_qualified") and
             (.streaming_contract.rust_core_direct_submission_compatible == false) and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
             (.external_dataset_track.status == "archive_payload_audited_no_model_evaluation") and
@@ -176,6 +184,10 @@ jobs:
             .schema_version == "liu-ice-streaming-contract-v0.1" and
             .temporal_contract_version == "bounded-event-time-v0.1" and
             .status == "protocol_only_not_executed" and
+            (.event_time_claim_boundary.streaming_samples == "bounded_intervals_and_qualified_timebase_required") and
+            (.event_time_claim_boundary.event_annotations == "point_timestamps_only_not_interval_qualified") and
+            (.event_time_claim_boundary.event_latency_claim | contains("must remain limited")) and
+            (.event_time_claim_boundary.clock_qualification | contains("upstream responsibilities")) and
             (.stream_invariants.temporal_order | contains("strictly later")) and
             (.stream_invariants.timebase_identity | contains("qualification SHA-256")) and
             ([.receipt.fields[]] | index("timestamp_uncertainty_seconds") != null) and
