@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/robotics/mission_series_v0_1.schema.json",
+  "title": "Robotics Persistent Mission Series v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "claim_ceiling", "series"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "benchmark_id": { "const": "robotics-persistent-mission-series-v0.1" },
+    "claim_ceiling": { "const": "mission_series_audit_does_not_establish_physical_reliability_or_safety" },
+    "series": { "type": "array", "minItems": 8, "items": { "$ref": "#/$defs/series" } }
+  },
+  "$defs": {
+    "nonnegative": { "type": "number", "minimum": 0 },
+    "token": { "type": "string", "minLength": 1 },
+    "evidenceClass": {
+      "enum": ["synthetic_contract_fixture", "simulator", "hardware_in_loop", "physical_field", "independently_reviewed"]
+    },
+    "role": { "enum": ["conservative_baseline", "candidate"] },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sequence_index", "mission_id", "mission_success", "useful_work_units",
+        "battery_start_wh", "energy_used_wh", "energy_charged_wh", "battery_end_wh",
+        "elapsed_minutes", "recovery_minutes", "maintenance_minutes",
+        "operator_interventions", "safety_violation", "reset_occurred", "reset_authorized",
+        "reset_reason", "state_epoch", "prior_state_token", "state_token"
+      ],
+      "properties": {
+        "sequence_index": { "type": "integer", "minimum": 1 },
+        "mission_id": { "type": "string", "minLength": 1 },
+        "mission_success": { "type": "boolean" },
+        "useful_work_units": { "$ref": "#/$defs/nonnegative" },
+        "battery_start_wh": { "$ref": "#/$defs/nonnegative" },
+        "energy_used_wh": { "$ref": "#/$defs/nonnegative" },
+        "energy_charged_wh": { "$ref": "#/$defs/nonnegative" },
+        "battery_end_wh": { "$ref": "#/$defs/nonnegative" },
+        "elapsed_minutes": { "$ref": "#/$defs/nonnegative" },
+        "recovery_minutes": { "$ref": "#/$defs/nonnegative" },
+        "maintenance_minutes": { "$ref": "#/$defs/nonnegative" },
+        "operator_interventions": { "type": "integer", "minimum": 0 },
+        "safety_violation": { "type": "boolean" },
+        "reset_occurred": { "type": "boolean" },
+        "reset_authorized": { "type": "boolean" },
+        "reset_reason": { "type": "string" },
+        "state_epoch": { "type": "integer", "minimum": 0 },
+        "prior_state_token": { "$ref": "#/$defs/token" },
+        "state_token": { "$ref": "#/$defs/token" }
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "series_id", "comparison_group_id", "scenario_family", "policy_id", "role",
+        "seed", "evidence_class", "battery_capacity_wh", "initial_energy_wh",
+        "energy_tolerance_wh", "initial_state_epoch", "initial_state_token", "missions"
+      ],
+      "properties": {
+        "series_id": { "type": "string", "minLength": 1 },
+        "comparison_group_id": { "type": "string", "minLength": 1 },
+        "scenario_family": { "type": "string", "minLength": 1 },
+        "policy_id": { "type": "string", "minLength": 1 },
+        "role": { "$ref": "#/$defs/role" },
+        "seed": { "type": "integer", "minimum": 0 },
+        "evidence_class": { "$ref": "#/$defs/evidenceClass" },
+        "battery_capacity_wh": { "type": "number", "exclusiveMinimum": 0 },
+        "initial_energy_wh": { "$ref": "#/$defs/nonnegative" },
+        "energy_tolerance_wh": { "type": "number", "exclusiveMinimum": 0 },
+        "initial_state_epoch": { "type": "integer", "minimum": 0 },
+        "initial_state_token": { "$ref": "#/$defs/token" },
+        "missions": { "type": "array", "minItems": 4, "items": { "$ref": "#/$defs/mission" } }
+      }
+    }
+  }
+}
