@@ -191,6 +191,8 @@ pub struct NormalizationReceipt {
     pub task_kind: TaskKind,
     pub geometry_sha256: String,
     pub source_artifact_sha256: String,
+    /// Always false in v0.1: the crate checks declared identity, not raw source bytes.
+    pub source_artifact_payload_verified: bool,
     pub source_flux_unit: FluxUnit,
     pub source_axis_unit: AxisUnit,
     pub source_time_unit: TimeUnit,
@@ -371,6 +373,7 @@ pub fn normalize(
         task_kind: input.task_kind,
         geometry_sha256: input.geometry_sha256.clone(),
         source_artifact_sha256: input.source_artifact_sha256.clone(),
+        source_artifact_payload_verified: false,
         source_flux_unit: input.flux_unit,
         source_axis_unit: input.axis_unit,
         source_time_unit: input.time_unit,
@@ -572,6 +575,12 @@ mod tests {
             normalized.claim_ceiling,
             ClaimCeiling::AdapterContractAndSyntheticFixtureOnly
         );
+    }
+
+    #[test]
+    fn declared_digest_is_not_misrepresented_as_payload_verification() {
+        let normalized = normalize(&input(), convention()).unwrap();
+        assert!(!normalized.receipt.source_artifact_payload_verified);
     }
 
     #[test]
