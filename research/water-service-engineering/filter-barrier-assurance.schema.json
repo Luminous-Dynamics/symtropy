@@ -21,7 +21,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 8,
+      "minItems": 9,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -46,7 +46,8 @@
               "sensor_health",
               "media_service_state",
               "maintenance_state",
-              "lab_sample_state"
+              "lab_sample_state",
+              "calibration_state"
             ],
             "properties": {
               "requested_claim_scope": {
@@ -119,6 +120,13 @@
                   "not_available",
                   "sample_result_present",
                   "sample_flagged_for_authority_review"
+                ]
+              },
+              "calibration_state": {
+                "enum": [
+                  "current",
+                  "expired",
+                  "unknown"
                 ]
               }
             }
