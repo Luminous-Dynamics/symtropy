@@ -52,6 +52,7 @@ fn bounds(t:u64,u:u64)->Option<(u64,u64)> { Some((t.checked_sub(u)?,t.checked_ad
 struct EventResult {
     case_id:String, class_id:String, label_status:String, false_unique:bool,
     missed_components:usize, false_positive_components:usize,
+    sample_count:u64, episode_count:u64,
     delay_bounds_ms:Option<(u64,u64)>, ens:f64, critical_availability:f64, recovery:f64, reserve:f64,
 }
 fn taxonomy_map(corpus:&Value)->Check<BTreeMap<String,(BTreeSet<String>,BTreeSet<String>)>>{
@@ -77,7 +78,7 @@ fn taxonomy_map(corpus:&Value)->Check<BTreeMap<String,(BTreeSet<String>,BTreeSet
     }
     Ok(map)
 }
-fn evaluate_case(case:&Value,truth:&BTreeMap<String,(BTreeSet<String>,BTreeSet<String>)>,asset_sha:&str,timebase_id:&str,max_uncertainty:u64)->Check<EventResult>{
+fn evaluate_case(case:&Value,truth:&BTreeMap<String,(BTreeSet<String>,BTreeSet<String>)>,asset_sha:&str,timebase_id:&str,timebase_sha:&str,max_uncertainty:u64)->Check<EventResult>{
     let at="$.cases[]";
     exact(case,&["case_id","class_id","evidence_role","measurement_window","truth","diagnosis","timing","recommendation","consequences"],at)?;
     let case_id=txt(case,"case_id",at)?.to_owned();
@@ -99,7 +100,11 @@ fn evaluate_case(case:&Value,truth:&BTreeMap<String,(BTreeSet<String>,BTreeSet<S
     if sample_interval==0||sample_count==0||episode_count!=1||episode_count>sample_count{
         return Err(format!("{case_id}: synthetic episode and sample counts invalid"));
     }
-    if !valid_sha(txt(measurement,"episode_definition_sha256",at)?){return Err(format!("{case_id}: invalid episode-definition digest"));}
+    if txt(measurement,"timebase_qualification_sha256",at)?!=timebase_sha
+        ||!valid_sha(txt(measurement,"episode_definition_sha256",at)?)
+        ||txt(measurement,"episode_definition_id",at)?.is_empty(){
+        return Err(format!("{case_id}: timebase/episode-definition identity does not match corpus"));
+    }
     let truth_obj=field(case,"truth",at)?;
     exact(truth_obj,&["physical_fault_ids","information_fault_ids"],&format!("{at}.truth"))?;
     let truth_p=ids(truth_obj,"physical_fault_ids",at)?;
@@ -170,7 +175,8 @@ fn evaluate_case(case:&Value,truth:&BTreeMap<String,(BTreeSet<String>,BTreeSet<S
     if ens<0.0||!(0.0..=100.0).contains(&critical)||recovery<0.0{return Err(format!("{case_id}: consequence values outside declared ranges"));}
     Ok(EventResult{
         case_id,class_id,label_status:label_status.to_owned(),false_unique,
-        missed_components:missed,false_positive_components:extra,delay_bounds_ms:delay_bounds,
+        missed_components:missed,false_positive_components:extra,sample_count,episode_count,
+        delay_bounds_ms:delay_bounds,
         ens,critical_availability:critical,recovery,reserve
     })
 }
@@ -184,11 +190,16 @@ fn evaluate(corpus:&Value,source_commit:&str,input_sha:&str)->Check<Value>{
     let asset=field(corpus,"asset","$")?;
     exact(asset,&["asset_id","configuration_revision","configuration_sha256"],"$.asset")?;
     let asset_sha=txt(asset,"configuration_sha256","$.asset")?;
-    if !valid_sha(asset_sha){return Err("invalid asset configuration digest".into());}
+    if txt(asset,"asset_id","$.asset")?.is_empty()||txt(asset,"configuration_revision","$.asset")?.is_empty()||!valid_sha(asset_sha){
+        return Err("invalid asset identity/configuration digest".into());
+    }
     let clock=field(corpus,"timebase","$")?;
     exact(clock,&["timebase_id","qualification_state","qualification_id","qualification_sha256"],"$.timebase")?;
     let timebase=txt(clock,"timebase_id","$.timebase")?;
-    if txt(clock,"qualification_state","$.timebase")? != "QUALIFIED" || !valid_sha(txt(clock,"qualification_sha256","$.timebase")?) {
+    let timebase_sha=txt(clock,"qualification_sha256","$.timebase")?;
+    if txt(clock,"qualification_state","$.timebase")? != "QUALIFIED"
+        || txt(clock,"qualification_id","$.timebase")?.is_empty()
+        || !valid_sha(timebase_sha) {
         return Err("common timebase is not qualified".into());
     }
     let max_uncertainty=uint(corpus,"maximum_timestamp_uncertainty_ms","$")?;
@@ -201,7 +212,7 @@ fn evaluate(corpus:&Value,source_commit:&str,input_sha:&str)->Check<Value>{
     for case in cases{
         let id=txt(case,"case_id","$.cases[]")?.to_owned();
         if !seen.insert(id.clone()){return Err(format!("duplicate case ID {id}"));}
-        let result=evaluate_case(case,&taxonomy,asset_sha,timebase,max_uncertainty)?;
+        let result=evaluate_case(case,&taxonomy,asset_sha,timebase,timebase_sha,max_uncertainty)?;
         if result.label_status!="EXACT_SET_MATCH"{return Err(format!("{}: diagnosis set mismatch {}",result.case_id,result.label_status));}
         results.push(result);
     }
@@ -223,6 +234,7 @@ fn evaluate(corpus:&Value,source_commit:&str,input_sha:&str)->Check<Value>{
     let median_delay=if delays.is_empty(){Value::Null}else{json!(delays[delays.len()/2])};
     let case_receipts:Vec<Value>=results.iter().map(|r|json!({
         "case_id":r.case_id,"class_id":r.class_id,"diagnosis_status":r.label_status,
+        "raw_sample_count":r.sample_count,"independent_episode_count":r.episode_count,
         "false_unique_cause":r.false_unique,"missed_components":r.missed_components,
         "false_positive_components":r.false_positive_components,
         "detection_delay_interval_ms":r.delay_bounds_ms.map(|(a,b)|json!([a,b])).unwrap_or(Value::Null),
@@ -234,6 +246,8 @@ fn evaluate(corpus:&Value,source_commit:&str,input_sha:&str)->Check<Value>{
         "source_commit":source_commit,"corpus_sha256":input_sha,
         "scenario_count":results.len(),"taxonomy_class_count":taxonomy.len(),
         "exact_diagnosis_set_match_count":results.len(),
+        "raw_sample_count":results.iter().map(|r|r.sample_count).sum::<u64>(),
+        "independent_episode_count":results.iter().map(|r|r.episode_count).sum::<u64>(),
         "false_unique_cause_count":results.iter().filter(|r|r.false_unique).count(),
         "missed_component_count":results.iter().map(|r|r.missed_components).sum::<usize>(),
         "false_positive_component_count":results.iter().map(|r|r.false_positive_components).sum::<usize>(),
@@ -297,6 +311,13 @@ mod tests{
         assert_eq!(r["algorithm_compute_time_is_not_end_to_end_latency"],true);
     }
     #[test]
+    fn raw_samples_are_not_counted_as_independent_episodes(){
+        let r=eval(&corpus()).unwrap();
+        assert_eq!(r["raw_sample_count"],5400);
+        assert_eq!(r["independent_episode_count"],12);
+    }
+
+    #[test]
     fn future_or_overlapping_diagnostic_time_is_rejected(){
         let mut c=corpus();c["cases"][2]["timing"]["diagnostic_emitted_ms"]=json!(c["cases"][2]["timing"]["event_onset_ms"]);
         assert!(eval(&c).unwrap_err().contains("detection order not proven"));
@@ -305,6 +326,12 @@ mod tests{
     fn asset_configuration_mismatch_is_rejected(){
         let mut c=corpus();c["cases"][2]["measurement_window"]["asset_configuration_sha256"]=json!("d".repeat(64));
         assert!(eval(&c).unwrap_err().contains("configuration/timebase/measurement-quality admission failed"));
+    }
+    #[test]
+    fn case_clock_certificate_must_match_corpus_certificate(){
+        let mut c=corpus();
+        c["cases"][2]["measurement_window"]["timebase_qualification_sha256"]=json!("d".repeat(64));
+        assert!(eval(&c).unwrap_err().contains("timebase/episode-definition identity does not match corpus"));
     }
     #[test]
     fn authority_boundary_violation_is_rejected(){
