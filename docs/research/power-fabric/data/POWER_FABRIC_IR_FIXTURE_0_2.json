@@ -1,0 +1,105 @@
+{
+  "schema_version": { "major": 0, "minor": 2, "patch": 0 },
+  "document_id": "pf:fixture:residential-hybrid:001",
+  "revision_id": "rev:2026-11-14:001",
+  "objects": [
+    {
+      "stable_id": "asset:utility-incomer",
+      "external_identifiers": {
+        "urn:site:designation": "=UT+INCOMER",
+        "urn:fixture:source": "synthetic-grid"
+      },
+      "kind": { "namespace": "urn:luminous:power-fabric:asset", "local_name": "utility_source" },
+      "claims": [
+        {
+          "claim_id": "claim:utility:declared-voltage",
+          "property_id": "nominal_voltage",
+          "domain": "declared",
+          "state": { "state": "value", "value": { "type": "decimal", "lexical": "230", "unit": "V" } },
+          "provenance": { "source_id": "fixture:manufacturer-record", "evidence_id": "evidence:fixture:nameplate:001", "recorded_at": "2026-11-14T10:00:00+02:00" }
+        },
+        {
+          "claim_id": "claim:utility:observed-voltage",
+          "property_id": "nominal_voltage",
+          "domain": "observed",
+          "state": { "state": "value", "value": { "type": "decimal", "lexical": "229.8", "unit": "V" } },
+          "provenance": { "source_id": "fixture:meter-record", "evidence_id": "evidence:fixture:measurement:001", "recorded_at": "2026-11-14T10:05:00+02:00" }
+        },
+        {
+          "claim_id": "claim:utility:unknown-runtime",
+          "property_id": "backup_runtime",
+          "domain": "declared",
+          "state": { "state": "unknown" },
+          "provenance": { "source_id": "fixture:unresolved-record", "evidence_id": null, "recorded_at": null }
+        }
+      ]
+    },
+    {
+      "stable_id": "asset:hybrid-inverter",
+      "external_identifiers": {
+        "urn:vendor:model": "SYNTHETIC-HYBRID-INV",
+        "urn:vendor:hardware-revision": "R2"
+      },
+      "kind": { "namespace": "urn:luminous:power-fabric:asset", "local_name": "converter" },
+      "claims": [
+        {
+          "claim_id": "claim:inverter:mode",
+          "property_id": "grid_forming_capability",
+          "domain": "declared",
+          "state": { "state": "unknown" },
+          "provenance": { "source_id": "fixture:datasheet-gap", "evidence_id": null, "recorded_at": null }
+        }
+      ]
+    },
+    {
+      "stable_id": "service:lighting",
+      "external_identifiers": { "urn:site:designation": "=LIGHTING" },
+      "kind": { "namespace": "urn:luminous:power-fabric:service", "local_name": "critical_load" },
+      "claims": [
+        {
+          "claim_id": "claim:lighting:priority",
+          "property_id": "service_priority",
+          "domain": "design_intent",
+          "state": { "state": "value", "value": { "type": "text", "value": "essential" } },
+          "provenance": { "source_id": "fixture:requirements", "evidence_id": null, "recorded_at": "2026-11-14T09:00:00+02:00" }
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "rel:utility-to-inverter",
+      "from_object_id": "asset:utility-incomer",
+      "to_object_id": "asset:hybrid-inverter",
+      "kind": { "namespace": "urn:luminous:power-fabric:relationship", "local_name": "declared_supply_association" },
+      "direction": "directed",
+      "domain": "declared",
+      "provenance": { "source_id": "fixture:single-line-diagram", "evidence_id": null, "recorded_at": "2026-11-14T10:00:00+02:00" }
+    },
+    {
+      "relationship_id": "rel:inverter-to-lighting",
+      "from_object_id": "asset:hybrid-inverter",
+      "to_object_id": "service:lighting",
+      "kind": { "namespace": "urn:luminous:power-fabric:relationship", "local_name": "declared_service_association" },
+      "direction": "directed",
+      "domain": "declared",
+      "provenance": { "source_id": "fixture:single-line-diagram", "evidence_id": null, "recorded_at": "2026-11-14T10:00:00+02:00" }
+    }
+  ],
+  "extensions": [
+    {
+      "extension_id": "extension:vendor:001",
+      "namespace": "urn:synthetic-vendor:configuration",
+      "media_type": "application/xml",
+      "owner": { "scope": "object", "object_id": "asset:hybrid-inverter" },
+      "payload": "<VendorConfiguration revision=\"R2\"><OpaqueField>preserve-me</OpaqueField></VendorConfiguration>"
+    },
+    {
+      "extension_id": "extension:profile:001",
+      "namespace": "urn:fixture:unmapped-profile",
+      "media_type": "application/json",
+      "owner": { "scope": "document" },
+      "payload": "{\"profile\":\"synthetic-only\",\"unknown_property\":{\"retain\":true}}"
+    }
+  ]
+}
