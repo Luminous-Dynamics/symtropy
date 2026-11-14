@@ -1,0 +1,297 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-TRANSIENT-SOLVER-QUAL-001",
+  "snapshot_date": "2026-11-14",
+  "evidence_class": "vendor_documentation_and_published_paper_scope",
+  "evidence_ceiling": "vendor_stated_or_paper_reported_capabilities_only_not_independent_solver_verification",
+  "interpretation_rules": [
+    "vendor_stated_support_is_not_independent_qualification",
+    "unlisted_or_undocumented_feature_is_unknown_not_unsupported",
+    "exact_product_build_and_enabled_modules_must_be_recorded_per_trial",
+    "feature_parity_is_required_for_paired_results",
+    "runtime_without_accuracy_and_feature_parity_is_not_a_win",
+    "physical_pressure_records_are_the_experimental_reference_not_a_solver"
+  ],
+  "references": [
+    {
+      "id": "epanet_awh_paper",
+      "url": "https://doi.org/10.1016/j.jwpe.2026.110770",
+      "source_class": "peer_reviewed_paper",
+      "date": "2026-10",
+      "verification_status": "published_claim_requires_reproduction"
+    },
+    {
+      "id": "hammer_transient_docs",
+      "url": "https://docs.bentley.com/LiveContent/web/OpenFlows%20Water%20-%20WaterCAD-v2026/Help/en/topics/1481500/GUID-C77555E732074D47B2A30C4E38067B79.html",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "wanda_product",
+      "url": "https://www.deltares.nl/en/software-and-data/products/wanda-software",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "wanda_docs",
+      "url": "https://deltares-wanda-core.readthedocs-hosted.com/en/latest/",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "aft_product",
+      "url": "https://www.datacor.com/products/impulse",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_stated_scope"
+    },
+    {
+      "id": "aft_verification",
+      "url": "https://docs.aft.com/impulse10/Verification/Verification_Methodology.html",
+      "source_class": "vendor_documentation",
+      "verification_status": "vendor_described_verification_method"
+    }
+  ],
+  "references_by_solver": [
+    {
+      "solver_id": "epanet_awh",
+      "display_name": "EPANET-AWH",
+      "method_family": "algebraic_water_hammer_with_quasi_adaptive_steady_transient_switch",
+      "source_ref": "epanet_awh_paper",
+      "source_revision": "not_pinned",
+      "licence_state": "must_inspect_exact_repository_revision",
+      "published_comparison": {
+        "networks": 2,
+        "event_classes": [
+          "valve_closure",
+          "pump_shutdown",
+          "pump_startup",
+          "sudden_50_L_s_withdrawal"
+        ],
+        "comparator": "Bentley HAMMER",
+        "reported_nse_max": 0.9,
+        "large_network_pipes": 1489,
+        "event_horizon_s": 40,
+        "runtime_s": 1490,
+        "hammer_runtime_s": 2013,
+        "runtime_reduction_fraction": 0.26,
+        "physical_validation": "not_established_by_solver_to_solver_comparison"
+      },
+      "feature_claims": [
+        {
+          "feature": "algebraic_water_hammer",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "steady_state_g_gg_a",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "quasi_adaptive_mode_switch",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "single_computational_element_per_pipe",
+          "status": "paper_reported"
+        },
+        {
+          "feature": "unsteady_friction",
+          "status": "paper_reported_instantaneous_acceleration_based"
+        },
+        {
+          "feature": "moc_spatial_discretization",
+          "status": "not_used_in_described_awh_method"
+        }
+      ],
+      "verification_required": [
+        "exact_source_revision_and_licence",
+        "build_and_dependency_reproducibility",
+        "pump_and_valve_characteristic_support",
+        "air_cavitation_column_separation_scope",
+        "branched_network_wave_reflection_parity",
+        "numerical_and_physical_validation"
+      ]
+    },
+    {
+      "solver_id": "bentley_hammer",
+      "display_name": "Bentley OpenFlows HAMMER",
+      "method_family": "method_of_characteristics_default_with_selected_rigid_column_options",
+      "source_ref": "hammer_transient_docs",
+      "exact_build": "must_pin_per_trial",
+      "licence_state": "commercial_access_and_export_rights_must_be_recorded",
+      "feature_claims": [
+        {
+          "feature": "system_wide_moc",
+          "status": "vendor_documented_default"
+        },
+        {
+          "feature": "rigid_column_method",
+          "status": "vendor_documented_selected_applications"
+        },
+        {
+          "feature": "analytical_and_physical_calibration_workflow",
+          "status": "vendor_documented"
+        }
+      ],
+      "verification_required": [
+        "exact_release_and_hotfix",
+        "moc_time_step_and_wave_speed_settings",
+        "device_models_and_boundary_assumptions",
+        "exportable_raw_time_histories",
+        "licence_and_reproducibility_conditions"
+      ]
+    },
+    {
+      "solver_id": "deltares_wanda_4",
+      "display_name": "Deltares WANDA 4",
+      "method_family": "dynamic_pipeline_network_simulation",
+      "source_refs": [
+        "wanda_product",
+        "wanda_docs"
+      ],
+      "exact_build": "must_pin_per_trial",
+      "licence_state": "commercial_trial_or_access_terms_must_be_recorded",
+      "feature_claims": [
+        {
+          "feature": "dynamic_liquid_networks",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "heat_and_slurry_flows",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "cavitation",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "variable_fluid_properties",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "operational_controls",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "measurement_validation",
+          "status": "vendor_claimed"
+        }
+      ],
+      "verification_required": [
+        "exact_module_and_build",
+        "moc_or_other_transient_numerical_method",
+        "cavitation_and_air_pocket_formulation",
+        "friction_and_viscoelastic_models",
+        "exportable_raw_time_histories",
+        "licence_and_reproducibility_conditions"
+      ]
+    },
+    {
+      "solver_id": "aft_impulse",
+      "display_name": "AFT Impulse / Datacor Impulse",
+      "method_family": "method_of_characteristics_transient_solver",
+      "source_refs": [
+        "aft_product",
+        "aft_verification"
+      ],
+      "exact_build": "must_pin_per_trial",
+      "licence_state": "commercial_access_and_export_rights_must_be_recorded",
+      "feature_claims": [
+        {
+          "feature": "method_of_characteristics",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "transient_cavitation_and_column_separation",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "wave_speed_and_system_elasticity",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "pump_inertia_and_four_quadrant_curves",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "time_dependent_valve_characteristics",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "check_valve_dynamics",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "relief_valves_and_surge_devices",
+          "status": "vendor_documented"
+        },
+        {
+          "feature": "open_literature_verification",
+          "status": "vendor_described_method"
+        }
+      ],
+      "verification_required": [
+        "exact_build_and_enabled_addons",
+        "physical_validation_dataset_and_results",
+        "time_step_and_wave_speed_settings",
+        "cavitation_and_column_separation_settings",
+        "input_output_export_rights"
+      ]
+    },
+    {
+      "solver_id": "physical_reference",
+      "display_name": "Calibrated physical pressure trace",
+      "method_family": "experimental_measurement",
+      "source_refs": [
+        "https://doi.org/10.1016/j.proeng.2014.02.073",
+        "https://doi.org/10.1061/(ASCE)HY.1943-7900.0001040"
+      ],
+      "exact_build": "rig_and_instrument_configuration_revision_required",
+      "licence_state": "raw_data_rights_and_publication_terms_must_be_confirmed",
+      "feature_claims": [
+        {
+          "feature": "measured_pressure_waveform",
+          "status": "physical_reference"
+        },
+        {
+          "feature": "measured_event_timing",
+          "status": "physical_reference"
+        },
+        {
+          "feature": "calibrated_flow_observation",
+          "status": "physical_reference_when_recorded"
+        },
+        {
+          "feature": "intrusion_tracer_measurement",
+          "status": "separate_physical_measurement_when_recorded"
+        }
+      ],
+      "verification_required": [
+        "instrument_bandwidth_and_calibration",
+        "clock_synchronization",
+        "fixture_and_material_revision",
+        "repeat_runs_and_uncertainty",
+        "raw_data_rights_and_chain_of_custody"
+      ]
+    }
+  ],
+  "required_feature_activation_record": [
+    "trial_id_and_pair_id",
+    "solver_id_exact_build_and_source_revision",
+    "enabled_modules_and_model_options",
+    "network_and_pipe_configuration_digest",
+    "required_physical_phenomena_per_scenario",
+    "feature_support_state_supported_not_supported_unknown",
+    "feature_activation_state_enabled_disabled_not_applicable",
+    "parameter_values_and_boundary_conditions",
+    "solver_timestep_mesh_or_algebraic_discretization",
+    "simplifications_and_unsupported_physics",
+    "raw_output_digest_and_execution_receipt"
+  ],
+  "hard_gates": [
+    "no_solver_to_solver_agreement_called_physical_validation",
+    "no_feature_count_or_runtime_only_leaderboard",
+    "no_unknown_feature_silently_treated_as_supported",
+    "no_paired_score_when_feature_activation_or_system_boundary_is_non_equivalent",
+    "physical_reference_keeps_measurement_uncertainty_and_raw_data_provenance"
+  ]
+}
