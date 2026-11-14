@@ -962,6 +962,24 @@ mod tests {
     }
 
     #[test]
+    fn deferred_strategy_must_not_record_a_physical_treatment_start() {
+        let mut data = diagnostics();
+        data.unit_timelines[20].treatment_start_at_seconds = Some(100.0);
+        let report = evaluate_observational_target_trial(&protocol(), &data);
+        assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+        assert!(report.blockers.iter().any(|item| item.contains("deferred/usual-care")));
+    }
+
+    #[test]
+    fn duplicate_strategy_arm_count_metadata_is_rejected() {
+        let mut data = diagnostics();
+        data.strategy_arm_counts.push(data.strategy_arm_counts[0].clone());
+        let report = evaluate_observational_target_trial(&protocol(), &data);
+        assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
+        assert!(report.blockers.iter().any(|item| item.contains("unknown or duplicated")));
+    }
+
+    #[test]
     fn followup_completeness_below_preregistered_threshold_prevents_qualification() {
         let mut data = diagnostics();
         data.followup_completeness_fraction = 0.6;
@@ -992,6 +1010,6 @@ mod tests {
         let corpus: serde_json::Value =
             serde_json::from_str(include_str!("../target-trial-cases-v0.1.json")).unwrap();
         assert_eq!(schema["additionalProperties"], false);
-        assert_eq!(corpus["cases"].as_array().unwrap().len(), 10);
+        assert_eq!(corpus["cases"].as_array().unwrap().len(), 16);
     }
 }
