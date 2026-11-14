@@ -297,3 +297,13 @@ References:
 - NASA Digital Trajectory Rerouting Capability: https://www.nasa.gov/directorates/armd/aosp/atms/digital-trajectory-rerouting-capability-tech-transfer/
 - Zonotopic reachable flight regions: https://doi.org/10.1016/j.ifacol.2017.08.716
 - ETH Zurich reach-avoid research: https://control.ee.ethz.ch/research/applications/air-traffic-control.html
+
+
+The concrete maneuverability-aware resource scheduling benchmark is
+[AEROWEFT-DCB-001 #5186](https://github.com/Luminous-Dynamics/symtropy/issues/5186),
+specified in [AEROWEFT_DCB_001.md](AEROWEFT_DCB_001.md). It uses sequential
+DCB-Vertiport / DCB-Waypoint / speed-delay policy classes as reference baselines,
+and tests joint batch space-time allocation while measuring retained
+maneuverability and recovery options. It composes existing optimizer and
+aircraft-model owners; it does not create another generic optimizer or flight
+dynamics model.
