@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-INTRUSION-COUPLING-QUAL-001",
+  "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5192",
+  "status": "research_design_and_synthetic_interface_vectors",
+  "evidence_class": "design_and_synthetic_only",
+  "evidence_ceiling": "interface_and_provenance_contracts_only_no_physical_model_qualification_no_potability_or_release",
+  "input_file": "coupling-t0-cases-v0.1.json",
+  "oracle_file": "coupling-t0-oracle-v0.1.json",
+  "interface_contract_file": "model-coupling-interface-contract-v0.1.json",
+  "scenario_count": 8,
+  "scenario_ids": [
+    "WC-T0-001-valid-five-stage-evidence-chain",
+    "WC-T0-002-modelled-pressure-cannot-substitute-for-measured-pressure",
+    "WC-T0-003-timebase-mismatch-between-pressure-and-tracer",
+    "WC-T0-004-upstream-output-digest-mismatch",
+    "WC-T0-005-transient-stage-out-of-domain",
+    "WC-T0-006-chemical-fate-stage-missing",
+    "WC-T0-007-ingress-uncertainty-unbounded",
+    "WC-T0-008-observation-raw-digest-missing"
+  ],
+  "required_stage_order": [
+    "initial_state",
+    "transient_pressure",
+    "defect_ingress",
+    "network_transport",
+    "chemical_fate"
+  ],
+  "required_observation_kinds": [
+    "pressure_trace",
+    "signed_defect_flow",
+    "tracer_sample"
+  ],
+  "non_compensable_invariants": [
+    "missing_chemical_fate_model_is_not_assumed_inert",
+    "out_of_domain_upstream_stage_blocks_downstream_chain_acceptance",
+    "upstream_output_digest_must_match_exact_consumed_input_digest",
+    "timebase_mismatch_never_silently_aligns_observations",
+    "measured_observation_requires_raw_digest_calibration_and_valid_method",
+    "a_model_output_is_never_relabelled_as_a_sensor_or_lab_observation",
+    "a_valid_chain_contract_is_not_a_qualified_physical_model",
+    "no_chain_result_authorizes_potability_or_release"
+  ]
+}
