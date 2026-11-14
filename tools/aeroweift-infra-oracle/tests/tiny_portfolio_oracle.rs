@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use aeroweift_infra_oracle::{
     failure_set, minimal_failure_sets, portfolio_has_complete_chain,
     site_complete_chain_available, site_landing_available, FailureDomain, OracleError,
