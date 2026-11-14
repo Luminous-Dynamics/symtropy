@@ -38,5 +38,22 @@
       "D-nuisance-two-calibration"
     ],
     "random_best_state": "ELIGIBLE_DESIGN"
-  }
+  },
+  "blocks": [
+    {
+      "block_id": "A-inlet-one"
+    },
+    {
+      "block_id": "B-inlet-two"
+    },
+    {
+      "block_id": "C-nuisance-one-calibration"
+    },
+    {
+      "block_id": "D-nuisance-two-calibration"
+    },
+    {
+      "block_id": "E-high-information-low-discrimination"
+    }
+  ]
 }
