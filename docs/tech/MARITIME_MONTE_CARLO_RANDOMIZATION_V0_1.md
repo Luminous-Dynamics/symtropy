@@ -36,7 +36,7 @@ SplitMix was described by Steele, Lea and Flood as a fast splittable pseudorando
 
 The result binds:
 - the frozen trial assignment-plan digest;
-- a canonical randomization-frame digest over trial ID, strata, planned allocation counts, unit IDs, observed assignment arms, observed outcomes and outcome units;
+- a canonical randomization-frame digest over the full serialized trial, after sorting observations by unit ID and allocations by stratum ID (therefore binding the full source, calibration, timing, quality and uncertainty contract);
 - the algorithm ID/version, unsigned 64-bit seed and fixed draw count;
 - a digest over every sampled assignment in canonical unit-ID order;
 - exceedance count, plus-one p-value, raw tail estimate, Monte Carlo standard error and Wilson interval.
