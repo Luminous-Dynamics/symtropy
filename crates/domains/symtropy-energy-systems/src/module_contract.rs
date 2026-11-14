@@ -516,13 +516,19 @@ pub enum CompatibilityReason {
     DcPolarityMismatch,
 }
 
-/// Common connection envelope returned only after all required checks pass.
+/// Common declared port intersection returned only after all required checks pass.
+///
+/// The current and power limits are independent maxima taken from the two
+/// declarations. They are not a coupled voltage-current operating curve or a
+/// substitute for device-specific power-factor, thermal, protection or
+/// transient envelopes.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ConnectionEnvelope {
     interface: ElectricalInterfaceKind,
     voltage_v: QuantityRange,
     frequency_hz: Option<QuantityRange>,
     phase_count: Option<u8>,
+    dc_polarity: Option<DcPolarity>,
     maximum_current_a: f64,
     maximum_power_w: f64,
 }
@@ -542,6 +548,10 @@ impl ConnectionEnvelope {
 
     pub const fn phase_count(&self) -> Option<u8> {
         self.phase_count
+    }
+
+    pub const fn dc_polarity(&self) -> Option<DcPolarity> {
+        self.dc_polarity
     }
 
     pub const fn maximum_current_a(&self) -> f64 {
@@ -838,6 +848,7 @@ fn assess_ac_ports(
                 voltage_v,
                 frequency_hz: Some(frequency_hz),
                 phase_count: Some(phase_count),
+                dc_polarity: None,
                 maximum_current_a: current,
                 maximum_power_w: power,
             })
@@ -871,14 +882,27 @@ fn assess_dc_ports(
         }
     };
 
-    match (left.polarity, right.polarity) {
-        (Some(DcPolarity::Reversible), Some(_))
-        | (Some(_), Some(DcPolarity::Reversible))
-        | (Some(DcPolarity::PositiveToNegative), Some(DcPolarity::PositiveToNegative))
-        | (Some(DcPolarity::NegativeToPositive), Some(DcPolarity::NegativeToPositive)) => {}
-        (Some(_), Some(_)) => reasons.push(CompatibilityReason::DcPolarityMismatch),
-        _ => reasons.push(CompatibilityReason::MissingDcPolarity),
-    }
+    let polarity = match (left.polarity, right.polarity) {
+        (Some(DcPolarity::Reversible), Some(other)) => Some(other),
+        (Some(other), Some(DcPolarity::Reversible)) => Some(other),
+        (Some(DcPolarity::PositiveToNegative), Some(DcPolarity::PositiveToNegative)) => {
+            Some(DcPolarity::PositiveToNegative)
+        }
+        (Some(DcPolarity::NegativeToPositive), Some(DcPolarity::NegativeToPositive)) => {
+            Some(DcPolarity::NegativeToPositive)
+        }
+        (Some(DcPolarity::Reversible), Some(DcPolarity::Reversible)) => {
+            Some(DcPolarity::Reversible)
+        }
+        (Some(_), Some(_)) => {
+            reasons.push(CompatibilityReason::DcPolarityMismatch);
+            None
+        }
+        _ => {
+            reasons.push(CompatibilityReason::MissingDcPolarity);
+            None
+        }
+    };
 
     let current = match (left.maximum_current_a, right.maximum_current_a) {
         (Some(left), Some(right)) => Some(left.min(right)),
@@ -895,13 +919,14 @@ fn assess_dc_ports(
         }
     };
 
-    match (voltage, current, power) {
-        (Some(voltage_v), Some(current), Some(power)) if reasons.is_empty() => {
+    match (voltage, polarity, current, power) {
+        (Some(voltage_v), Some(dc_polarity), Some(current), Some(power)) if reasons.is_empty() => {
             Some(ConnectionEnvelope {
                 interface: ElectricalInterfaceKind::Dc,
                 voltage_v,
                 frequency_hz: None,
                 phase_count: None,
+                dc_polarity: Some(dc_polarity),
                 maximum_current_a: current,
                 maximum_power_w: power,
             })
@@ -930,6 +955,7 @@ mod tests {
         ModuleIdentity::new(id, "rev-a", format!("sha256:{id}"), current).unwrap()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn ac_port(
         id: &str,
         direction: PortDirection,
@@ -1241,6 +1267,10 @@ mod tests {
         assert_eq!(
             result.status(),
             CompatibilityStatus::CompatibleWithinDeclaredEnvelope
+        );
+        assert_eq!(
+            result.envelope().unwrap().dc_polarity(),
+            Some(DcPolarity::PositiveToNegative)
         );
     }
 
