@@ -1,0 +1,59 @@
+name: Water service recovery verification
+
+on:
+  push:
+    paths:
+      - "tools/water-service-t0/**"
+      - "research/water-service-engineering/recovery-verification/**"
+      - ".github/workflows/water-recovery-verification.yml"
+  pull_request:
+    paths:
+      - "tools/water-service-t0/**"
+      - "research/water-service-engineering/recovery-verification/**"
+      - ".github/workflows/water-recovery-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-recovery-verification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust, rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --package water-service-t0 -- --check
+      - name: Run frozen recovery and adversarial tests
+        run: cargo test --locked --package water-service-t0
+      - name: Run strict Clippy
+        run: cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
+      - name: Evaluate exact checked-out recovery corpus
+        env:
+          WATER_RECOVERY_VERIFICATION_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-recovery-verification -- \
+            research/water-service-engineering/recovery-verification/scenarios-v0.1.json \
+            research/water-service-engineering/recovery-verification/scenarios-v0.1.schema.json \
+            research/water-service-engineering/recovery-verification/disposition-oracle-v0.1.json \
+            artifacts/water-recovery-verification/receipt.json
+      - name: Upload exact-head corpus, lockfile and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-recovery-verification-exact-head-evidence
+          path: |
+            research/water-service-engineering/recovery-verification/scenarios-v0.1.json
+            research/water-service-engineering/recovery-verification/scenarios-v0.1.schema.json
+            research/water-service-engineering/recovery-verification/disposition-oracle-v0.1.json
+            Cargo.lock
+            artifacts/water-recovery-verification/receipt.json
+          if-no-files-found: warn

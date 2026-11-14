@@ -121,3 +121,13 @@ See [sparse-sensor control robustness protocol](./pump-control-robustness/PUMP_C
 A new synthetic challenge pack [#5045](https://github.com/Luminous-Dynamics/symtropy/issues/5045) consumes candidate layouts from #4006 and qualifies them under topology revision changes, sensor dropout, shared calibration/power/gateway/clock domains, estimator ill-conditioning and independent measurement fallback. It distinguishes direct observation, numerical estimator qualification, structural-only observability, unobservability, invalid topology certificates and indeterminate time evidence.
 
 See [protocol](./observability-qualification/OBSERVABILITY_QUALIFICATION_V0_1.md), [12-case scenarios](./observability-qualification/scenarios-v0.1.json), [schema](./observability-qualification/scenarios-v0.1.schema.json) and [separate oracle](./observability-qualification/disposition-oracle-v0.1.json). All IDs, topology, failure domains and thresholds are synthetic and non-normative. The challenge does not implement another sensor-placement optimizer.
+
+## Independent service-restoration verification
+
+The new [#5069 recovery-verification benchmark](./recovery-verification/RECOVERY_VERIFICATION_V0_1.md) defines a 13-case synthetic corpus and separate oracle. It distinguishes work-order closure, alarm clearance, current telemetry, candidate recovery, per-area floor verification and independent stable-dwell restoration. Water quality remains explicitly outside this T0 evaluator.
+
+See the [scenario pack](./recovery-verification/scenarios-v0.1.json), [schema](./recovery-verification/scenarios-v0.1.schema.json) and [disposition oracle](./recovery-verification/disposition-oracle-v0.1.json). Every profile, area, evidence path, threshold and value is synthetic/non-normative.
+
+ 
+The recovery-verification T0 evaluator is implemented in `tools/water-service-t0/src/water_recovery_verification.rs` with CLI `water-recovery-verification`. It recomputes per-area floor states, independent evidence-path pairs across five failure domains, freshness, coverage, area binding, stable dwell and overall restoration status. It emits a digest-bound receipt with `qualification_status=NotRun`; native execution remains unverified until exact-head CI evidence is available.
+

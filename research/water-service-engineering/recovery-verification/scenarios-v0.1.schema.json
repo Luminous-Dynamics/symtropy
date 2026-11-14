@@ -1,0 +1,475 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/recovery-verification/scenarios-v0.1.schema.json",
+  "title": "Water Service Recovery Verification Scenario Schema v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "profile",
+    "scenarios",
+    "interpretation_rules",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "water-service-recovery-verification-v0.1"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "evidence_class",
+        "required_area_ids",
+        "metric",
+        "unit",
+        "minimum_floor",
+        "maximum_observation_age_seconds",
+        "minimum_stable_dwell_seconds",
+        "minimum_independent_paths",
+        "values_are_normative",
+        "quality_assessment"
+      ],
+      "properties": {
+        "profile_id": {
+          "const": "SYNTHETIC-RECOVERY-PROFILE-V0"
+        },
+        "evidence_class": {
+          "const": "synthetic_design_profile"
+        },
+        "required_area_ids": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "metric": {
+          "const": "delivered_demand_fraction"
+        },
+        "unit": {
+          "const": "fraction_of_required_volume_over_declared_window"
+        },
+        "minimum_floor": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_observation_age_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_stable_dwell_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_independent_paths": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "values_are_normative": {
+          "const": false
+        },
+        "quality_assessment": {
+          "const": "not_in_scope_quality_must_be_qualified_separately"
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "scenario_class",
+          "event_ref",
+          "event_lineage_ref",
+          "areas",
+          "repair_ticket",
+          "alarm_status",
+          "active_failed_domains",
+          "unresolved_conflicting_evidence",
+          "prior_restoration_claim",
+          "aggregate_diagnostic",
+          "expected_overall_disposition",
+          "note"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^WRV-[0-9]{3}$"
+          },
+          "scenario_class": {
+            "enum": [
+              "complete_verified_restoration",
+              "closed_ticket_service_breach",
+              "single_independent_path",
+              "dwell_incomplete",
+              "aggregate_masks_local_breach",
+              "stale_observation_after_recovery",
+              "missing_required_area_observation",
+              "interval_crosses_service_floor",
+              "shared_gateway_false_independence",
+              "stale_service_area_binding",
+              "known_breach_plus_unknown",
+              "alarm_still_active_after_candidate_service",
+              "recurrence_after_prior_restoration_claim"
+            ]
+          },
+          "event_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_lineage_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "areas": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "area_id",
+                "required",
+                "floor_ref",
+                "metric",
+                "unit",
+                "minimum_floor",
+                "observation_lower_bound",
+                "observation_upper_bound",
+                "evidence_state",
+                "coverage_numerator",
+                "coverage_denominator",
+                "observation_age_seconds",
+                "observation_ref",
+                "validity_window_ref",
+                "geometry_revision_ref",
+                "topology_revision_ref",
+                "area_binding_status",
+                "evidence_paths",
+                "stable_dwell_seconds",
+                "expected_area_disposition",
+                "diagnostic_weight"
+              ],
+              "properties": {
+                "area_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "required": {
+                  "const": true
+                },
+                "floor_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "metric": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minimum_floor": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "observation_lower_bound": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "observation_upper_bound": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "evidence_state": {
+                  "enum": [
+                    "observed_current",
+                    "missing",
+                    "stale",
+                    "conflicting"
+                  ]
+                },
+                "coverage_numerator": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "coverage_denominator": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                },
+                "observation_age_seconds": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "observation_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "validity_window_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "geometry_revision_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "topology_revision_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "area_binding_status": {
+                  "enum": [
+                    "current",
+                    "stale",
+                    "unverified"
+                  ]
+                },
+                "evidence_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "path_ref",
+                      "source_family",
+                      "measurement_principle",
+                      "evidence_state",
+                      "failure_domains"
+                    ],
+                    "properties": {
+                      "path_ref": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "source_family": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "measurement_principle": {
+                        "enum": [
+                          "magnetic_flow_meter",
+                          "ultrasonic_flow_meter",
+                          "portable_pressure_logger",
+                          "customer_outlet_measurement"
+                        ]
+                      },
+                      "evidence_state": {
+                        "enum": [
+                          "current",
+                          "stale",
+                          "failed",
+                          "unverified"
+                        ]
+                      },
+                      "failure_domains": {
+                        "type": "array",
+                        "minItems": 5,
+                        "maxItems": 5,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "domain_type",
+                            "domain_id"
+                          ],
+                          "properties": {
+                            "domain_type": {
+                              "enum": [
+                                "physical_interface",
+                                "calibration_lineage",
+                                "power_supply",
+                                "communications_path",
+                                "clock_domain"
+                              ]
+                            },
+                            "domain_id": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "stable_dwell_seconds": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "expected_area_disposition": {
+                  "enum": [
+                    "meets_floor",
+                    "breached_floor",
+                    "candidate_restored",
+                    "indeterminate",
+                    "invalid"
+                  ]
+                },
+                "diagnostic_weight": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          },
+          "repair_ticket": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "ticket_ref"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "open",
+                  "closed",
+                  "unknown"
+                ]
+              },
+              "ticket_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "alarm_status": {
+            "enum": [
+              "active",
+              "cleared",
+              "unknown"
+            ]
+          },
+          "active_failed_domains": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "domain_type",
+                "domain_id"
+              ],
+              "properties": {
+                "domain_type": {
+                  "enum": [
+                    "physical_interface",
+                    "calibration_lineage",
+                    "power_supply",
+                    "communications_path",
+                    "clock_domain"
+                  ]
+                },
+                "domain_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "unresolved_conflicting_evidence": {
+            "type": "boolean"
+          },
+          "prior_restoration_claim": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "aggregate_diagnostic": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "method",
+              "authoritative"
+            ],
+            "properties": {
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "method": {
+                "enum": [
+                  "weighted_average_by_synthetic_connection_count",
+                  "not_computable"
+                ]
+              },
+              "authoritative": {
+                "const": false
+              }
+            }
+          },
+          "expected_overall_disposition": {
+            "enum": [
+              "verified_restored",
+              "candidate_restored",
+              "not_restored",
+              "breached_with_indeterminate",
+              "indeterminate",
+              "invalid"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "interpretation_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

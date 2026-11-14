@@ -1,0 +1,3433 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "water-service-recovery-verification-v0.1",
+  "profile": {
+    "profile_id": "SYNTHETIC-RECOVERY-PROFILE-V0",
+    "evidence_class": "synthetic_design_profile",
+    "required_area_ids": [
+      "DMA-A",
+      "DMA-B",
+      "DMA-C"
+    ],
+    "metric": "delivered_demand_fraction",
+    "unit": "fraction_of_required_volume_over_declared_window",
+    "minimum_floor": 0.8,
+    "maximum_observation_age_seconds": 600,
+    "minimum_stable_dwell_seconds": 3600,
+    "minimum_independent_paths": 2,
+    "values_are_normative": false,
+    "quality_assessment": "not_in_scope_quality_must_be_qualified_separately"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "WRV-001",
+      "scenario_class": "complete_verified_restoration",
+      "event_ref": "SYNTHETIC-EVENT-WRV-001",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-001",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.89,
+          "observation_upper_bound": 0.89,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-001"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.9066666666666666,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "verified_restored",
+      "note": "All required areas meet the floor with complete current observations, two independent paths each, current area/topology binding and sufficient dwell."
+    },
+    {
+      "scenario_id": "WRV-002",
+      "scenario_class": "closed_ticket_service_breach",
+      "event_ref": "SYNTHETIC-EVENT-WRV-002",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-002",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.94,
+          "observation_upper_bound": 0.94,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.61,
+          "observation_upper_bound": 0.61,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.93,
+          "observation_upper_bound": 0.93,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-002"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.8266666666666667,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "not_restored",
+      "note": "The work order is closed, but DMA-B's current conservative upper bound is below its service floor."
+    },
+    {
+      "scenario_id": "WRV-003",
+      "scenario_class": "single_independent_path",
+      "event_ref": "SYNTHETIC-EVENT-WRV-003",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-003",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "candidate_restored",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-003"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.91,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "candidate_restored",
+      "note": "Values are above floor but DMA-A has only one independent measurement path."
+    },
+    {
+      "scenario_id": "WRV-004",
+      "scenario_class": "dwell_incomplete",
+      "event_ref": "SYNTHETIC-EVENT-WRV-004",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-004",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 900,
+          "expected_area_disposition": "candidate_restored",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-004"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.91,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "candidate_restored",
+      "note": "All values appear above floor but DMA-A has not completed the stable dwell period."
+    },
+    {
+      "scenario_id": "WRV-005",
+      "scenario_class": "aggregate_masks_local_breach",
+      "event_ref": "SYNTHETIC-EVENT-WRV-005",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-005",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.99,
+          "observation_upper_bound": 0.99,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 1000
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.98,
+          "observation_upper_bound": 0.98,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 1000
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.22,
+          "observation_upper_bound": 0.22,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 2
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-005"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.9842357642357643,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "not_restored",
+      "note": "A high weighted mean (98.42%) cannot compensate for DMA-C's known service-floor breach at 22%."
+    },
+    {
+      "scenario_id": "WRV-006",
+      "scenario_class": "stale_observation_after_recovery",
+      "event_ref": "SYNTHETIC-EVENT-WRV-006",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-006",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.93,
+          "observation_upper_bound": 0.93,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.94,
+          "observation_upper_bound": 0.94,
+          "evidence_state": "stale",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 3600,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-006"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": null,
+        "method": "not_computable",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "indeterminate",
+      "note": "DMA-B's apparently normal signal is stale and cannot support restoration."
+    },
+    {
+      "scenario_id": "WRV-007",
+      "scenario_class": "missing_required_area_observation",
+      "event_ref": "SYNTHETIC-EVENT-WRV-007",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-007",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.93,
+          "observation_upper_bound": 0.93,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": null,
+          "observation_upper_bound": null,
+          "evidence_state": "missing",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": null,
+          "validity_window_ref": null,
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-007"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": null,
+        "method": "not_computable",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "indeterminate",
+      "note": "A required area has no observation; it cannot be omitted or imputed from another area."
+    },
+    {
+      "scenario_id": "WRV-008",
+      "scenario_class": "interval_crosses_service_floor",
+      "event_ref": "SYNTHETIC-EVENT-WRV-008",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-008",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.94,
+          "observation_upper_bound": 0.94,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.67,
+          "observation_upper_bound": 0.88,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-008"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.8366666666666667,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "indeterminate",
+      "note": "DMA-B's conservative interval crosses the floor."
+    },
+    {
+      "scenario_id": "WRV-009",
+      "scenario_class": "shared_gateway_false_independence",
+      "event_ref": "SYNTHETIC-EVENT-WRV-009",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-009",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.93,
+          "observation_upper_bound": 0.93,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "SHARED-GATEWAY-01"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "SHARED-GATEWAY-01"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "candidate_restored",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-009"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.92,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "candidate_restored",
+      "note": "DMA-A has two device IDs but both paths share one gateway failure domain."
+    },
+    {
+      "scenario_id": "WRV-010",
+      "scenario_class": "stale_service_area_binding",
+      "event_ref": "SYNTHETIC-EVENT-WRV-010",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-010",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.93,
+          "observation_upper_bound": 0.93,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "stale",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-010"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": null,
+        "method": "not_computable",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "indeterminate",
+      "note": "DMA-B cannot be bound to the current service-area/topology revision."
+    },
+    {
+      "scenario_id": "WRV-011",
+      "scenario_class": "known_breach_plus_unknown",
+      "event_ref": "SYNTHETIC-EVENT-WRV-011",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-011",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.93,
+          "observation_upper_bound": 0.93,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.6,
+          "observation_upper_bound": 0.6,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": null,
+          "observation_upper_bound": null,
+          "evidence_state": "missing",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": null,
+          "validity_window_ref": null,
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "indeterminate",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-011"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": null,
+        "method": "not_computable",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "breached_with_indeterminate",
+      "note": "DMA-B is known to breach while DMA-C remains unknown; both conditions must be retained."
+    },
+    {
+      "scenario_id": "WRV-012",
+      "scenario_class": "alarm_still_active_after_candidate_service",
+      "event_ref": "SYNTHETIC-EVENT-WRV-012",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-012",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.91,
+          "observation_upper_bound": 0.91,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.89,
+          "observation_upper_bound": 0.89,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-012"
+      },
+      "alarm_status": "active",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": null,
+      "aggregate_diagnostic": {
+        "value": 0.9066666666666666,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "candidate_restored",
+      "note": "Measurements appear restored but the incident alarm remains active or unresolved."
+    },
+    {
+      "scenario_id": "WRV-013",
+      "scenario_class": "recurrence_after_prior_restoration_claim",
+      "event_ref": "SYNTHETIC-EVENT-WRV-013",
+      "event_lineage_ref": "SYNTHETIC-EVENT-LINEAGE-WRV-013",
+      "areas": [
+        {
+          "area_id": "DMA-A",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.92,
+          "observation_upper_bound": 0.92,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-A",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-A-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-A-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-A-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-A-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-A-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-A-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-A-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-B",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.58,
+          "observation_upper_bound": 0.58,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-B",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-B-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-B-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-B-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-B-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-B-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-B-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-B-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "breached_floor",
+          "diagnostic_weight": 100
+        },
+        {
+          "area_id": "DMA-C",
+          "required": true,
+          "floor_ref": "SYNTHETIC-SERVICE-FLOOR-0.1",
+          "metric": "delivered_demand_fraction",
+          "unit": "fraction_of_required_volume_over_declared_window",
+          "minimum_floor": 0.8,
+          "observation_lower_bound": 0.9,
+          "observation_upper_bound": 0.9,
+          "evidence_state": "observed_current",
+          "coverage_numerator": 100,
+          "coverage_denominator": 100,
+          "observation_age_seconds": 120,
+          "observation_ref": "SYNTHETIC-OBS-DMA-C",
+          "validity_window_ref": "SYNTHETIC-WINDOW-DMA-C-01",
+          "geometry_revision_ref": "SYNTHETIC-GEOMETRY-REV-01",
+          "topology_revision_ref": "SYNTHETIC-TOPOLOGY-REV-01",
+          "area_binding_status": "current",
+          "evidence_paths": [
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-1",
+              "source_family": "utility_flow_telemetry",
+              "measurement_principle": "magnetic_flow_meter",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-1"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-1"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-1"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-1"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-1"
+                }
+              ]
+            },
+            {
+              "path_ref": "SYNTHETIC-PATH-DMA-C-2",
+              "source_family": "independent_field_measurement",
+              "measurement_principle": "portable_pressure_logger",
+              "evidence_state": "current",
+              "failure_domains": [
+                {
+                  "domain_type": "physical_interface",
+                  "domain_id": "DMA-C-PHYS-2"
+                },
+                {
+                  "domain_type": "calibration_lineage",
+                  "domain_id": "DMA-C-CAL-2"
+                },
+                {
+                  "domain_type": "power_supply",
+                  "domain_id": "DMA-C-PWR-2"
+                },
+                {
+                  "domain_type": "communications_path",
+                  "domain_id": "DMA-C-COM-2"
+                },
+                {
+                  "domain_type": "clock_domain",
+                  "domain_id": "DMA-C-CLK-2"
+                }
+              ]
+            }
+          ],
+          "stable_dwell_seconds": 7200,
+          "expected_area_disposition": "meets_floor",
+          "diagnostic_weight": 100
+        }
+      ],
+      "repair_ticket": {
+        "status": "closed",
+        "ticket_ref": "SYNTHETIC-WO-WRV-013"
+      },
+      "alarm_status": "cleared",
+      "active_failed_domains": [],
+      "unresolved_conflicting_evidence": false,
+      "prior_restoration_claim": {
+        "restoration_claim_ref": "SYNTHETIC-PRIOR-RESTORE-01",
+        "claimed_at": "2026-11-13T10:00:00Z"
+      },
+      "aggregate_diagnostic": {
+        "value": 0.8,
+        "method": "weighted_average_by_synthetic_connection_count",
+        "authoritative": false
+      },
+      "expected_overall_disposition": "not_restored",
+      "note": "A recurrence occurs after a previous restoration claim; the old claim cannot suppress the new breach."
+    }
+  ],
+  "interpretation_rules": [
+    "Every required area appears exactly once in every scenario; a missing row is invalid, not an omitted obligation.",
+    "A known service breach requires current valid complete observation evidence; otherwise the result remains indeterminate.",
+    "An area above floor is only candidate_restored until two independent current paths and the stable dwell gate are satisfied.",
+    "Independent paths require distinct source families and must not share any active failed domain across physical interface, calibration, power, communications or clock.",
+    "Stale, failed, unverified or common-cause-dependent paths do not count as surviving independent evidence.",
+    "Stale or unverified service-area/topology binding cannot certify area-level restoration.",
+    "Work-order closure, operator statement, model estimate, cleared alarm or controller restart is not independent proof of service restoration.",
+    "A known breach and a separate unknown area must remain breached_with_indeterminate.",
+    "An active alarm or unresolved conflict blocks verified_restored even if measured values appear above floor.",
+    "A recurrence belongs to a new event lineage and cannot be suppressed by a prior restoration claim.",
+    "Aggregate weighted mean is diagnostic only and cannot override a required-area breach or unknown.",
+    "Potable-water quality, sanitation, health and regulation are outside this evaluator; hydraulic delivery does not imply safe water for use.",
+    "All IDs, metrics, values, paths, thresholds and timing constants are synthetic and non-normative."
+  ],
+  "claim_ceiling": "Synthetic service-restoration semantic contract only. No physical repair, restored service, potable quality, health, regulatory or utility outcome is measured."
+}

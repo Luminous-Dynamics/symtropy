@@ -44,23 +44,24 @@ fn run() -> Result<i32, String> {
     let oracle_path = PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
         "research/water-service-engineering/observability-qualification/disposition-oracle-v0.1.json",
     ));
-    let receipt_path = PathBuf::from(args.get(3).map(String::as_str).unwrap_or(
-        "artifacts/water-observability-qualification/receipt.json",
-    ));
+    let receipt_path = PathBuf::from(
+        args.get(3)
+            .map(String::as_str)
+            .unwrap_or("artifacts/water-observability-qualification/receipt.json"),
+    );
 
     let (scenarios_bytes, scenarios) = read_json(&scenarios_path)?;
     let (schema_bytes, schema) = read_json(&schema_path)?;
     let (oracle_bytes, oracle) = read_json(&oracle_path)?;
-    let evaluation = evaluate(&scenarios, &schema, &oracle)
-        .map_err(|errors| errors.join("\n"))?;
+    let evaluation = evaluate(&scenarios, &schema, &oracle).map_err(|errors| errors.join("\n"))?;
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let manifest_path = manifest_dir.join("Cargo.toml");
     let lock_path = manifest_dir.join("../../Cargo.lock");
     let manifest_bytes = fs::read(&manifest_path)
         .map_err(|error| format!("read {}: {error}", manifest_path.display()))?;
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
     let revision = env::var("WATER_OBSERVABILITY_REVISION")
         .or_else(|_| env::var("GITHUB_SHA"))
         .ok()
