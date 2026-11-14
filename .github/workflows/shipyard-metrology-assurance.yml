@@ -1,0 +1,42 @@
+name: Shipyard Metrology Assurance
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-metrology-assurance/**"
+      - "docs/tech/SHIPYARD_METROLOGY_ASSURANCE_V0_1*"
+      - ".github/workflows/shipyard-metrology-assurance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-metrology-assurance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify conservative geometry uncertainty decisions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-metrology-assurance/Cargo.toml --all -- --check
+
+      - name: Run metrology decision oracle tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-metrology-assurance/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-metrology-assurance/Cargo.toml --all-targets -- -D warnings
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
