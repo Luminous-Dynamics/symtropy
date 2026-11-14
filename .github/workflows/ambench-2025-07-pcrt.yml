@@ -1,0 +1,42 @@
+name: NIST AM-Bench 2025-07 PCRTAM thermal observable reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/ambench-thermal/pcrt_07.rs"
+      - "tools/ambench-thermal/README.md"
+      - ".github/workflows/ambench-2025-07-pcrt.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ambench-thermal/pcrt_07.rs"
+      - "tools/ambench-thermal/README.md"
+      - ".github/workflows/ambench-2025-07-pcrt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pcrt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile and run NIST thermal extraction tests with warnings denied
+        run: |
+          rustc --version
+          rustc --edition=2024 -D warnings --test tools/ambench-thermal/pcrt_07.rs -o "$RUNNER_TEMP/pcrt-tests"
+          "$RUNNER_TEMP/pcrt-tests"
+      - name: Build and verify synthetic known-answer
+        run: |
+          rustc --edition=2024 -D warnings tools/ambench-thermal/pcrt_07.rs -o "$RUNNER_TEMP/pcrt"
+          "$RUNNER_TEMP/pcrt" --verify
+      - name: Verify deterministic comparison arrays and emit digests
+        run: |
+          "$RUNNER_TEMP/pcrt" --csv > "$RUNNER_TEMP/pcrt-a.csv"
+          "$RUNNER_TEMP/pcrt" --csv > "$RUNNER_TEMP/pcrt-b.csv"
+          diff -u "$RUNNER_TEMP/pcrt-a.csv" "$RUNNER_TEMP/pcrt-b.csv"
+          sha256sum tools/ambench-thermal/pcrt_07.rs "$RUNNER_TEMP/pcrt-a.csv"
+          cat "$RUNNER_TEMP/pcrt-a.csv"
