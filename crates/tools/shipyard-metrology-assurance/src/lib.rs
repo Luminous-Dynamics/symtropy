@@ -275,9 +275,7 @@ fn validate_measurement(
     })
 }
 
-fn combine_budgets(
-    budgets: &[&ValidatedBudget],
-) -> Result<(u64, Vec<String>), AdmissionError> {
+fn combine_budgets(budgets: &[&ValidatedBudget]) -> Result<(u64, Vec<String>), AdmissionError> {
     let mut total = 0u64;
     let mut all_ids = HashSet::new();
     let mut source_ids = Vec::new();
@@ -389,16 +387,10 @@ pub fn decide_difference(
         .value_units
         .checked_sub(before.value_units)
         .ok_or(AdmissionError::ArithmeticOverflow)?;
-    let (uncertainty_bound_units, source_ids) = combine_budgets(&[
-        &before.uncertainty,
-        &after.uncertainty,
-        &transform,
-        &datum,
-    ])?;
-    let interval_lower_units =
-        i128::from(difference_units) - i128::from(uncertainty_bound_units);
-    let interval_upper_units =
-        i128::from(difference_units) + i128::from(uncertainty_bound_units);
+    let (uncertainty_bound_units, source_ids) =
+        combine_budgets(&[&before.uncertainty, &after.uncertainty, &transform, &datum])?;
+    let interval_lower_units = i128::from(difference_units) - i128::from(uncertainty_bound_units);
+    let interval_upper_units = i128::from(difference_units) + i128::from(uncertainty_bound_units);
     let conformity = classify_interval(
         interval_lower_units,
         interval_upper_units,
@@ -497,10 +489,22 @@ mod tests {
         let delta_scope = "DELTA-TRANSFORM";
         DifferenceRequest {
             before: measurement(
-                "M-BEFORE", "SCAN-BEFORE", before_scope, before_value, 100, 2, 0x11
+                "M-BEFORE",
+                "SCAN-BEFORE",
+                before_scope,
+                before_value,
+                100,
+                2,
+                0x11,
             ),
             after: measurement(
-                "M-AFTER", "SCAN-AFTER", after_scope, after_value, 110, 3, 0x33
+                "M-AFTER",
+                "SCAN-AFTER",
+                after_scope,
+                after_value,
+                110,
+                3,
+                0x33,
             ),
             difference_scope_id: delta_scope.to_owned(),
             transform_budget: UncertaintyBudget {
@@ -677,8 +681,7 @@ mod tests {
     #[test]
     fn transform_budget_accepts_only_registration_contributions() {
         let mut request = base_request(200, 260);
-        request.transform_budget.contributions[0].kind =
-            UncertaintyKind::SensorCalibration;
+        request.transform_budget.contributions[0].kind = UncertaintyKind::SensorCalibration;
         assert_eq!(
             decide_difference(&request),
             Err(AdmissionError::UncertaintyKindMismatch)
@@ -688,8 +691,7 @@ mod tests {
     #[test]
     fn datum_budget_accepts_only_datum_contributions() {
         let mut request = base_request(200, 260);
-        request.datum_budget.contributions[0].kind =
-            UncertaintyKind::Registration;
+        request.datum_budget.contributions[0].kind = UncertaintyKind::Registration;
         assert_eq!(
             decide_difference(&request),
             Err(AdmissionError::UncertaintyKindMismatch)
