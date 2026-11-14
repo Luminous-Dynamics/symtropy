@@ -321,6 +321,32 @@ It owns only an aviation-specific adapter and measurement protocol. It does not 
 
 The adapter's accepted inputs are mathematical claims under synthetic profiles, not certified navigation integrity, detector accuracy, aircraft physical truth or operational separation assurance.
 
+
+### Track M — cooperative / non-cooperative surveillance observability
+
+Question: when a traffic report is absent, what evidence supports the claim that a particular traffic class is observable in that volume/time—and what unresolved possible occupancy must remain when a sensor, class, environment, clock or common-mode dependency is not qualified?
+
+This track is owned by [AEROWEFT-SURVEILLANCE-OBSERVABILITY-001 #5275](https://github.com/Luminous-Dynamics/symtropy/issues/5275). It supplies coverage-claim and unresolved-occupancy evidence to #2279/#2297/#5163 and candidate policy scoring in #5186. It does not implement ADS-B/radar/TDoA/EO-IR detection, a DAA system, a sensor-fusion engine or an avoidance controller.
+
+**Metrics**
+- Qualified/partial/degraded/unknown coverage by traffic class, cell, environment and validity interval.
+- Cooperative and non-cooperative coverage measured separately.
+- Receiver/sensor independent failure-domain families; never count raw receiver IDs as independent sources.
+- Current qualified tracks, no-observation, stale/invalid and unresolved states.
+- Coverage-volume/time fraction, false alarms, detection/track latency and continuity only where truth and sampling support such metrics.
+- Blind/unobserved cell-time volume and possible-occupancy intervals delivered downstream.
+- False-empty outcome count, with target zero.
+
+**Initial targets**
+- 100% exact agreement with an independent finite claim oracle on the tiny corpus.
+- Zero no-report, not-qualified, stale or indeterminate cases converted to empty occupancy.
+- Zero cooperative-only claims promoted to non-cooperative traffic coverage.
+- Zero shared/unknown common-mode dependencies treated as independent.
+- Every qualified claim binds traffic class, cell/volume, time, sensor/profile, environment and source lineage.
+- A qualified coverage claim plus no report remains NO_OBSERVATION; it is not proof of zero traffic.
+
+This is an observability/evidence adapter, not a DAA sensor-performance qualification or operational airspace-safety result.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -336,6 +362,10 @@ The adapter's accepted inputs are mathematical claims under synthetic profiles, 
 | [2026 joint backup-site planning](https://doi.org/10.1016/j.tre.2026.105075) | Joint vertiport and backup-landing-site selection, flight routes and contingency assignments; diversion-time, low-altitude conflict and passenger-disruption safety costs | Direct baseline for backup-site planning; AeroWeft must demonstrate additional value from source-qualified common-cause dependencies, complete recovery chains and fleet-level non-anticipative recoverability |
 
 
+
+| [ASTM F3442-25 DAA performance specification](https://doi.org/10.1520/F3442-25) | Smaller UA/crewed-aircraft encounters in stated lower-risk scope; expects mixed cooperative and non-cooperative traffic; no tactical ATC separation; scope excludes UA-to-UA and terrain/birds | Bounded system-performance reference only; this track stops at qualified observability and does not implement the standard's end-to-end DAA system |
+| [FAA Part 107 DAA evaluation information](https://www.faa.gov/sites/faa.gov/files/uas/commercial_operators/part_107_waivers/Part-107-Waiver-Section-Specific-Evaluation-Information.pdf) | Evaluates the system end state after avoidance and requires cooperative/non-cooperative performance measured independently | Evaluation principle; AeroWeft supplies the evidence/occupancy interface and does not implement avoidance manoeuvres |
+| [EUROCAE ED-267 OSED for VLL DAA](https://www.eurocae.net/product/ed-267-osed-for-detect-and-avoid-in-very-low-level-operations/) | Operational services/environment definition for VLL DAA and external supporting-service relationships | Operational-design baseline, not a sensor-level accuracy score |
 | [2026 measurement-limited GNSS spoofing benchmark](https://doi.org/10.1016/j.nexres.2026.102604) | 22 real Baghdad FIR flight geometries with **synthetic** spoofing injection and modelled signal-power features; derives a model-specific detectability bound and compares D3QN with threshold/residual/supervised methods | Important measurement-limited comparator; 99.74% bound is specific to the injected 4,000 m / 12 dB reference attack and link-budget model; power-matched attack evades all tested methods; not field spoofing evidence or a universal detector ceiling |
 | [2025 ADS-B spoofing TDoA multilateration study](https://doi.org/10.1016/j.trpro.2025.10.010) | ADS-B TDoA multilateration and global receiver-network redundancy analysis using OpenSky | Surveillance cross-check comparator; its own paper identifies receiver-network redundancy as a prerequisite; independent clock/site/power/network domains still require separate evidence |
 | [EUROCONTROL GUID-203 (2026)](https://www.eurocontrol.int/publication/eurocontrol-guidelines-guid-203-operational-response-gnss-degradations) | Operational process reference for preparedness, detection, coordination, response and recovery, including AIS/ATS/ATFCM procedures | Operational guidance, not a detector score or a matched executable benchmark |
@@ -383,6 +413,11 @@ Current 2026 UAM research that should remain in the comparison matrix:
 - [EUROCONTROL Performance Review Report 2025](https://www.eurocontrol.int/sites/default/files/2026-03/eurocontrol-performance-review-report-2025.pdf): reports an 80% rise in reported GNSS interference cases in 2025 versus 2024 and describes impacts extending to terrain awareness, altimetry, ADS-B, CPDLC, clocks and display systems. This is occurrence reporting, not a universal risk rate.
 - [Albaidhani (2026), measurement-limited civil-aviation spoofing benchmark](https://doi.org/10.1016/j.nexres.2026.102604): synthetic spoofing was injected into 22 real-flight geometries, while received-power features came from a link-budget measurement model. The paper derives a scenario-specific detectability bound; simpler residual/supervised approaches reached it, D3QN did not, and power-matched attacks defeated the tested detectors. Use as a measurement-limit and honest-abstention lesson, not a transferable accuracy target.
 - [2025 ADS-B TDoA multilateration spoofing countermeasure](https://doi.org/10.1016/j.trpro.2025.10.010): studies receiver-network coverage/redundancy as a condition for multilateration-based spoofing detection. Receiver count alone does not establish independent clocks, sites, power, networks or data pipelines.
+- [ASTM F3442-25](https://doi.org/10.1520/F3442-25): active DAA performance specification, with mixed cooperative/non-cooperative crewed traffic in its defined smaller-UA/lower-risk scope; excludes UA-to-UA and birds/terrain.
+- [FAA DAA system-level evaluation guidance](https://www.faa.gov/sites/faa.gov/files/uas/commercial_operators/part_107_waivers/Part-107-Waiver-Section-Specific-Evaluation-Information.pdf): cooperative and non-cooperative aircraft performance must be measured separately; sensor detection alone is not the end-state safety metric.
+- [EUROCAE ED-267](https://www.eurocae.net/product/ed-267-osed-for-detect-and-avoid-in-very-low-level-operations/): operational-services/environment reference for VLL DAA and supporting-service interoperability.
+- [NASA EO/IR DAA surveillance range research](https://ntrs.nasa.gov/citations/20210025061): sensor-specific surveillance range and coverage assumptions for cooperative/non-cooperative traffic; not a transferable detection-range guarantee.
+
 
 - [Nagrare & Lieb (2026), vertiport throughput with taxiing and parking levels](https://doi.org/10.3390/aerospace13010109): charging duration and parking capacity affect turnaround, schedule flexibility and throughput.
 - [Sengupta et al. (2025), UAM research challenges and opportunities](https://doi.org/10.1146/annurev-control-022823-031353): identifies finite parking/blocking and the interaction of airborne holding, battery state, charging and parking occupancy as cross-layer capacity issues.
