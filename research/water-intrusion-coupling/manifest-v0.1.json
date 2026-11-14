@@ -70,5 +70,20 @@
   "chemical_fate_oracle_file": "chemical-fate-t0-oracle-v0.1.json",
   "chemical_fate_comparator_register_file": "chemical-fate-comparator-register-v0.1.json",
   "chemical_fate_scenario_count": 12,
-  "chemical_fate_evidence_ceiling": "analytical_reaction_and_model_scope_contracts_only_no_physical_chemical_qualification"
+  "chemical_fate_evidence_ceiling": "analytical_reaction_and_model_scope_contracts_only_no_physical_chemical_qualification",
+  "chemical_fate_scenario_ids": [
+    "CF-T0-001-first-order-decay-known-answer",
+    "CF-T0-002-sequential-reaction-unequal-rate-constants",
+    "CF-T0-003-sequential-reaction-equal-rate-limit",
+    "CF-T0-004-langmuir-bulk-wall-equilibrium",
+    "CF-T0-005-conserved-moiety-ledger-complete",
+    "CF-T0-006-missing-residual-stream-does-not-force-closure",
+    "CF-T0-007-missing-water-matrix-temperature-and-ph",
+    "CF-T0-008-missing-reaction-kinetic-parameter",
+    "CF-T0-009-wall-species-requested-in-mixed-tank",
+    "CF-T0-010-pressure-driven-input-required-but-not-supplied-by-msx",
+    "CF-T0-011-dispersion-required-but-disabled",
+    "CF-T0-012-negative-concentration-or-rate"
+  ],
+  "chemical_fate_snapshot_date": "2026-11-14"
 }
