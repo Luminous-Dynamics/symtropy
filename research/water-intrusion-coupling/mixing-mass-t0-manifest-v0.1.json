@@ -1,0 +1,25 @@
+{
+  "schema_version": "mixing-mass-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-MASS-ACCOUNTING-QUAL-001",
+  "case_count": 18,
+  "case_ids": [
+    "MMA-T0-001-full-boundary-exact-closure",
+    "MMA-T0-002-truncated-window-forty-percent-unresolved",
+    "MMA-T0-003-measured-physical-inventory-closes",
+    "MMA-T0-004-delayed-tail-recovery",
+    "MMA-T0-005-missing-outlet",
+    "MMA-T0-006-sample-line-loss-is-not-inventory",
+    "MMA-T0-007-correlated-measurement-covariance",
+    "MMA-T0-008-open-positive-residual",
+    "MMA-T0-009-residual-within-uncertainty",
+    "MMA-T0-010-unit-mismatch",
+    "MMA-T0-011-uncalibrated-measurement",
+    "MMA-T0-012-unbound-provenance",
+    "MMA-T0-013-positive-scale-metamorphic-control",
+    "MMA-T0-014-negative-recovery-mass",
+    "MMA-T0-015-duplicate-stream-identity",
+    "MMA-T0-016-non_positive_definite_covariance",
+    "MMA-T0-017-declared-outlet-set-contradiction",
+    "MMA-T0-018-over_recovery-negative-residual"
+  ]
+}
