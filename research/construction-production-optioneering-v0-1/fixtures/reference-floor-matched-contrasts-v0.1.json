@@ -1,0 +1,438 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "reference-floor-partition-method-scheduler-contrast-v1",
+  "functional_contract": {
+    "contract_id": "partition-accepted-m2-v1",
+    "contract_digest": "fixture:partition-accepted-m2-contract-v1",
+    "project_context_digest": "fixture:reference-floor-project-context-v1",
+    "unit_class_id": "non-loadbearing-partition",
+    "unit_symbol": "m2",
+    "required_units": 100,
+    "acceptance_contract_ref": "acceptance:partition-fire-acoustic-interface-v1",
+    "currency_code": "USD",
+    "carbon_assessment_boundary_ref": "lca:cradle-to-end-of-life-v1",
+    "assessment_horizon_months": 240,
+    "required_gate_ids": [
+      "design-authority",
+      "fire-performance"
+    ],
+    "performance_requirements": [
+      {
+        "metric_id": "fire-rating-minutes",
+        "unit_symbol": "min",
+        "scale": 1,
+        "minimum_value": 60
+      },
+      {
+        "metric_id": "acoustic-insulation",
+        "unit_symbol": "dB",
+        "scale": 1,
+        "minimum_value": 45
+      }
+    ]
+  },
+  "stage_decisions": [
+    {
+      "tier": "avoid",
+      "disposition": "closed_no_viable_alternative",
+      "accountable_owner_ref": "decision-owner:client-need-review",
+      "project_context_digest": "fixture:reference-floor-project-context-v1",
+      "evidence_refs": [
+        "evidence:client-need-confirmation-v1",
+        "evidence:existing-asset-survey-v1"
+      ],
+      "rationale": "For this frozen comparison case the client need and existing-asset review do not qualify an avoid/reuse alternative; the switch tier is opened for comparison. This is a synthetic gate disposition, not a real project decision."
+    },
+    {
+      "tier": "switch",
+      "disposition": "open_for_evaluation",
+      "accountable_owner_ref": "decision-owner:design-method-review",
+      "project_context_digest": "fixture:reference-floor-project-context-v1",
+      "evidence_refs": [
+        "evidence:method-screen-v1"
+      ],
+      "rationale": "Evaluate equal-output design and method variants against the same accepted-partition contract and outage scenario."
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "nominal"
+    },
+    {
+      "scenario_id": "outage-rework"
+    }
+  ],
+  "options": [
+    {
+      "option_id": "baseline-in-situ",
+      "tier": "switch",
+      "functional_contract_id": "partition-accepted-m2-v1",
+      "functional_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+      "option_design_digest": "design:partition-in-situ-v1",
+      "method_profile_digest": "method:in-situ-install-v1",
+      "scheduler_profile_digest": "scheduler:reference-v1",
+      "fleet_profile_digest": "fleet:reference-fleet-v1",
+      "scenario_results": {
+        "nominal": {
+          "scenario_id": "nominal",
+          "option_design_digest": "design:partition-in-situ-v1",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-in-situ-v1",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-in-situ-v1:nominal",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-in-situ-v1:nominal"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-in-situ-v1:nominal",
+              "receipt_ref": "receipt:design-authority:design:partition-in-situ-v1:nominal"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-in-situ-v1:nominal",
+              "receipt_ref": "receipt:fire-performance:design:partition-in-situ-v1:nominal"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 10000,
+          "shared_cost_minor_units": 300,
+          "maintenance_cost_minor_units": 100,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 100,
+          "elapsed_minutes": 1000,
+          "workflow_crew_minutes": 600,
+          "energy_wh": 2000,
+          "carbon_gco2e": 1500,
+          "material_mass_kg_milli": 150000,
+          "rework_units": 2
+        },
+        "outage-rework": {
+          "scenario_id": "outage-rework",
+          "option_design_digest": "design:partition-in-situ-v1",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-in-situ-v1",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-in-situ-v1:outage-rework",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-in-situ-v1:outage-rework"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-in-situ-v1:outage-rework",
+              "receipt_ref": "receipt:design-authority:design:partition-in-situ-v1:outage-rework"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-in-situ-v1:outage-rework",
+              "receipt_ref": "receipt:fire-performance:design:partition-in-situ-v1:outage-rework"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 11000,
+          "shared_cost_minor_units": 300,
+          "maintenance_cost_minor_units": 100,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 100,
+          "elapsed_minutes": 1200,
+          "workflow_crew_minutes": 700,
+          "energy_wh": 2200,
+          "carbon_gco2e": 1600,
+          "material_mass_kg_milli": 150000,
+          "rework_units": 3
+        }
+      }
+    },
+    {
+      "option_id": "scheduler-only",
+      "tier": "switch",
+      "functional_contract_id": "partition-accepted-m2-v1",
+      "functional_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+      "option_design_digest": "design:partition-in-situ-v1",
+      "method_profile_digest": "method:in-situ-install-v1",
+      "scheduler_profile_digest": "scheduler:optimized-v1",
+      "fleet_profile_digest": "fleet:reference-fleet-v1",
+      "scenario_results": {
+        "nominal": {
+          "scenario_id": "nominal",
+          "option_design_digest": "design:partition-in-situ-v1",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-in-situ-v1",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-in-situ-v1:nominal",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-in-situ-v1:nominal"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-in-situ-v1:nominal",
+              "receipt_ref": "receipt:design-authority:design:partition-in-situ-v1:nominal"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-in-situ-v1:nominal",
+              "receipt_ref": "receipt:fire-performance:design:partition-in-situ-v1:nominal"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 10000,
+          "shared_cost_minor_units": 300,
+          "maintenance_cost_minor_units": 100,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 100,
+          "elapsed_minutes": 800,
+          "workflow_crew_minutes": 500,
+          "energy_wh": 1900,
+          "carbon_gco2e": 1450,
+          "material_mass_kg_milli": 150000,
+          "rework_units": 2
+        },
+        "outage-rework": {
+          "scenario_id": "outage-rework",
+          "option_design_digest": "design:partition-in-situ-v1",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-in-situ-v1",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-in-situ-v1:outage-rework",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-in-situ-v1:outage-rework"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-in-situ-v1:outage-rework",
+              "receipt_ref": "receipt:design-authority:design:partition-in-situ-v1:outage-rework"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-in-situ-v1:outage-rework",
+              "receipt_ref": "receipt:fire-performance:design:partition-in-situ-v1:outage-rework"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 11000,
+          "shared_cost_minor_units": 300,
+          "maintenance_cost_minor_units": 100,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 100,
+          "elapsed_minutes": 950,
+          "workflow_crew_minutes": 580,
+          "energy_wh": 2000,
+          "carbon_gco2e": 1500,
+          "material_mass_kg_milli": 150000,
+          "rework_units": 2
+        }
+      },
+      "matched_reference_option_id": "baseline-in-situ"
+    },
+    {
+      "option_id": "prefabricated-method",
+      "tier": "switch",
+      "functional_contract_id": "partition-accepted-m2-v1",
+      "functional_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+      "option_design_digest": "design:partition-prefab-v1",
+      "method_profile_digest": "method:prefabricated-panel-v1",
+      "scheduler_profile_digest": "scheduler:reference-v1",
+      "fleet_profile_digest": "fleet:reference-fleet-v1",
+      "scenario_results": {
+        "nominal": {
+          "scenario_id": "nominal",
+          "option_design_digest": "design:partition-prefab-v1",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-prefab-v1",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-prefab-v1:nominal",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-prefab-v1:nominal"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-prefab-v1:nominal",
+              "receipt_ref": "receipt:design-authority:design:partition-prefab-v1:nominal"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-prefab-v1:nominal",
+              "receipt_ref": "receipt:fire-performance:design:partition-prefab-v1:nominal"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 8000,
+          "shared_cost_minor_units": 250,
+          "maintenance_cost_minor_units": 80,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 80,
+          "elapsed_minutes": 700,
+          "workflow_crew_minutes": 450,
+          "energy_wh": 1600,
+          "carbon_gco2e": 1100,
+          "material_mass_kg_milli": 145000,
+          "rework_units": 1
+        },
+        "outage-rework": {
+          "scenario_id": "outage-rework",
+          "option_design_digest": "design:partition-prefab-v1",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-prefab-v1",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-prefab-v1:outage-rework",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-prefab-v1:outage-rework"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-prefab-v1:outage-rework",
+              "receipt_ref": "receipt:design-authority:design:partition-prefab-v1:outage-rework"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-prefab-v1:outage-rework",
+              "receipt_ref": "receipt:fire-performance:design:partition-prefab-v1:outage-rework"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 9000,
+          "shared_cost_minor_units": 250,
+          "maintenance_cost_minor_units": 80,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 80,
+          "elapsed_minutes": 850,
+          "workflow_crew_minutes": 500,
+          "energy_wh": 1700,
+          "carbon_gco2e": 1150,
+          "material_mass_kg_milli": 145000,
+          "rework_units": 1
+        }
+      },
+      "matched_reference_option_id": "baseline-in-situ"
+    },
+    {
+      "option_id": "prefabricated-plus-robot",
+      "tier": "switch",
+      "functional_contract_id": "partition-accepted-m2-v1",
+      "functional_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+      "option_design_digest": "design:partition-prefab-robot-v2",
+      "method_profile_digest": "method:prefabricated-panel-v2",
+      "scheduler_profile_digest": "scheduler:optimized-v1",
+      "fleet_profile_digest": "fleet:robot-panel-cell-v2",
+      "scenario_results": {
+        "nominal": {
+          "scenario_id": "nominal",
+          "option_design_digest": "design:partition-prefab-robot-v2",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-prefab-robot-v2",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-prefab-robot-v2:nominal",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-prefab-robot-v2:nominal"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-prefab-robot-v2:nominal",
+              "receipt_ref": "receipt:design-authority:design:partition-prefab-robot-v2:nominal"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-prefab-robot-v2:nominal",
+              "receipt_ref": "receipt:fire-performance:design:partition-prefab-robot-v2:nominal"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 7500,
+          "shared_cost_minor_units": 250,
+          "maintenance_cost_minor_units": 75,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 70,
+          "elapsed_minutes": 600,
+          "workflow_crew_minutes": 400,
+          "energy_wh": 1400,
+          "carbon_gco2e": 1000,
+          "material_mass_kg_milli": 142000,
+          "rework_units": 1
+        },
+        "outage-rework": {
+          "scenario_id": "outage-rework",
+          "option_design_digest": "design:partition-prefab-robot-v2",
+          "assessment_horizon_months": 240,
+          "acceptance_contract_digest": "fixture:partition-accepted-m2-contract-v1",
+          "accepted_option_design_digest": "design:partition-prefab-robot-v2",
+          "acceptance": {
+            "kind": "qualified",
+            "authority_ref": "authority:independent-acceptance:design:partition-prefab-robot-v2:outage-rework",
+            "receipt_ref": "receipt:independent-acceptance:design:partition-prefab-robot-v2:outage-rework"
+          },
+          "hard_gate_results": {
+            "design-authority": {
+              "kind": "qualified",
+              "authority_ref": "authority:design-authority:design:partition-prefab-robot-v2:outage-rework",
+              "receipt_ref": "receipt:design-authority:design:partition-prefab-robot-v2:outage-rework"
+            },
+            "fire-performance": {
+              "kind": "qualified",
+              "authority_ref": "authority:fire-performance:design:partition-prefab-robot-v2:outage-rework",
+              "receipt_ref": "receipt:fire-performance:design:partition-prefab-robot-v2:outage-rework"
+            }
+          },
+          "accepted_units": 100,
+          "performance_values": {
+            "fire-rating-minutes": 90,
+            "acoustic-insulation": 50
+          },
+          "direct_cost_minor_units": 8200,
+          "shared_cost_minor_units": 250,
+          "maintenance_cost_minor_units": 75,
+          "repair_cost_minor_units": 0,
+          "end_of_life_cost_minor_units": 70,
+          "elapsed_minutes": 750,
+          "workflow_crew_minutes": 450,
+          "energy_wh": 1500,
+          "carbon_gco2e": 1050,
+          "material_mass_kg_milli": 142000,
+          "rework_units": 1
+        }
+      },
+      "matched_reference_option_id": "baseline-in-situ"
+    }
+  ]
+}
