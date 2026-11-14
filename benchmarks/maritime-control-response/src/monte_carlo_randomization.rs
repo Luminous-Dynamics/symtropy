@@ -737,6 +737,49 @@ mod tests {
     }
 
     #[test]
+    fn unit_limit_rejects_a_valid_trial_above_ten_thousand_units() {
+        let mut oversized = trial();
+        let template = oversized.observations[0].clone();
+        oversized.observations.clear();
+        oversized.stratum_allocations = vec![StratumAllocation {
+            stratum_id: "large-fleet".into(),
+            planned_treatment_count: 5_001,
+            planned_control_count: 5_000,
+        }];
+        for index in 0..10_001 {
+            let mut observation = template.clone();
+            observation.unit_id = format!("fleet-asset-{index:05}");
+            observation.stratum_id = "large-fleet".into();
+            observation.assigned_arm = if index < 5_001 {
+                AssignedArm::Treatment
+            } else {
+                AssignedArm::Control
+            };
+            observation.assignment_evidence_sha256 = format!("{:064x}", 10_000 + index);
+            observation.baseline_evidence_sha256 = format!("{:064x}", 30_000 + index);
+            observation.baseline_source_id = format!("baseline-source-{index}");
+            observation.baseline_calibration_record_sha256 =
+                format!("{:064x}", 50_000 + index);
+            observation.outcome_evidence_sha256 = format!("{:064x}", 70_000 + index);
+            observation.outcome_source_id = format!("outcome-source-{index}");
+            observation.outcome_calibration_record_sha256 =
+                format!("{:064x}", 90_000 + index);
+            oversized.observations.push(observation);
+        }
+
+        assert_eq!(
+            estimate_monte_carlo_randomization_p_value(
+                &oversized,
+                MonteCarloRandomizationConfig {
+                    seed_u64: 123,
+                    draw_count: 100,
+                }
+            ),
+            Err(MonteCarloRandomizationError::TooManyUnits(10_001))
+        );
+    }
+
+    #[test]
     fn invalid_draw_counts_fail_closed() {
         let trial = trial();
         for draw_count in [0, MIN_MONTE_CARLO_DRAWS - 1, MAX_MONTE_CARLO_DRAWS + 1] {
