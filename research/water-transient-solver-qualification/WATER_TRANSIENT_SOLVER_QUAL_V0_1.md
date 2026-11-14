@@ -172,19 +172,35 @@ Mechanical pressure containment, relief paths, restraints, trapped-pressure rele
 
 ## 7. Models to compare
 
-The dated vendor-scope register is [reference-feature-matrix-v0.1.json](reference-feature-matrix-v0.1.json). It records the documented/paper-reported model families for EPANET-AWH, Bentley HAMMER, Deltares WANDA 4 and AFT Impulse, alongside the physical-reference class. Vendor statements remain `vendor_stated` evidence until independently verified on a pinned product build and enabled configuration.
+The dated, machine-readable register is [reference-feature-matrix-v0.1.json](reference-feature-matrix-v0.1.json). It records EPANET-AWH, Bentley HAMMER, Deltares WANDA 4, AFT Impulse, TSNet, PTSNet and the physical-reference class. Paper-reported method claims, vendor-stated scope, package metadata and independently observed code are separate evidence types; none becomes solver qualification merely by appearing in this register.
 
-Every paired solver trial must carry a **feature activation record**: scenario-required physical phenomena; exact solver/build/source revision; modules and numerical options enabled; support state (supported / not supported / unknown); activation state; parameter and boundary assumptions; discretization/time-step; simplifications; and raw output digest. Unknown is not supported. Feature count and runtime cannot compensate for missing or disabled physics.
+### Open MOC references
 
+**TSNet (Xing & Sela, 2020)** is an open Python MOC package that imports EPANET INP networks, initializes steady state through WNTR, and models valve/pump operation, pipe bursts, background leakage, surge tanks and steady/quasi-steady/unsteady friction. Its MIT licence was found in the repository. The source `setup.py` says version 0.3.1, while its embedded README says 0.2.2 and the history lists 0.3.0; pin the exact source and dependencies rather than trusting one displayed version. Its documented pressure-dependent-demand initialization sets demand to zero at negative pressure under an assumption of a backflow preventer at each node. That is not a bidirectional intrusion boundary and must not be used as evidence that external water cannot enter a pipe.
 
+**PTSNet (Riaño-Briceño et al., 2022)** is an open Python MOC implementation using vectorization and distributed-memory parallelism. Its paper reports a BWSN-II network with 14,824 pipes and nearly (6 \times 10^{11}) solution points, with speedups in the thousands for sufficiently dense grids compared with sequential MOC. This is a scalability reference, not a direct speed contest against one-element-per-pipe algebraic AWH. Report its exact grid, hardware, MPI process count, memory, output accuracy and strong/weak scaling. The inspected setup metadata says version 0.1.7 and has an Unlicense classifier, but no root licence text was found in the inspected repository paths; confirm the actual licence and author rights before copying or adapting code.
 
-- closed-form analytical cases;
-- EPANET-AWH after exact source/revision/licence and feature verification;
-- Bentley HAMMER MOC with exact release/settings;
-- independent/public-domain MOC implementation if rights and scope permit;
-- direct calibrated laboratory pressure records as the physical reference.
+Both tools are external research comparators only. They do not introduce Python into the Luminous production runtime.
 
-MOC itself needs spatial/time-step convergence checks. EPANET-AWH versus HAMMER is model-to-model comparison, not physical validation. EPANET steady-state / extended-period hydraulics is not a substitute for transient analysis.
+### Comparison set
+
+- Closed-form analytical cases.
+- EPANET-AWH after exact source/revision/licence and feature verification.
+- TSNet MOC with pinned source, WNTR and dependency versions.
+- PTSNet distributed/vectorized MOC with pinned package, MPI configuration and rights status.
+- Bentley HAMMER MOC with exact release/settings.
+- Deltares WANDA 4 and AFT Impulse with exact release/modules/settings.
+- Direct calibrated laboratory pressure records as the experimental reference.
+
+### Fairness: accuracy–compute–memory Pareto, not a runtime leaderboard
+
+An algebraic solver, a single-threaded MOC solver and a distributed MOC solver perform different numerical work. Do not compare raw seconds without matching physical boundaries and reporting numerical fidelity. For MOC runs, publish spatial reach count, common time step, wave speed, Courant condition, mesh/time refinement and convergence. For vectorized/MPI runs, additionally publish process count, hardware, memory, communication overhead, scaling efficiency and total solution points. For AWH, report its pipe-level algebraic formulation, celerity and transient step as actually configured.
+
+Every paired experiment must use the same physical network, geometry, material/wave speed, initial state, pump/valve trajectory, fluid properties, boundary conditions and requested phenomena. If a solver lacks a required feature, label the case unsupported or compare a clearly bounded reduced-physics subcase; do not silently change topology or omit the phenomenon. Where a commercial import inserts stub pipes or modifies boundaries, retain the native input and quantify the topology delta before interpreting results.
+
+Every paired solver trial must carry a **feature activation record**: scenario-required physical phenomena; exact solver/build/source revision; modules and numerical options enabled; support state (supported / not supported / unknown); activation state; parameter and boundary assumptions; MOC reach/time-step or AWH formulation; simplifications; memory/runtime environment; and raw output digest. Unknown is not supported. Feature count and runtime cannot compensate for missing or disabled physics.
+
+MOC itself needs spatial/time-step convergence checks. Solver-to-solver agreement is not physical validation. EPANET steady-state / extended-period hydraulics is not a substitute for transient analysis.
 
 Feature matrix must separately record support/validation for:
 - wave propagation and unsteady friction;
@@ -195,7 +211,9 @@ Feature matrix must separately record support/validation for:
 - viscoelastic pipe response;
 - leak/orifice boundary interaction and external head;
 - branched-network reflections and reservoir/tank boundaries;
-- unsteady demand, flow reversal and source boundary.
+- unsteady demand, flow reversal and source boundary;
+- negative-pressure demand, backflow prevention and bidirectional ingress semantics;
+- spatial discretization, common timestep, MPI scaling and memory bounds.
 
 No untested feature is silently credited.
 
