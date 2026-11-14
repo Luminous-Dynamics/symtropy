@@ -310,13 +310,16 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         let invariant = case.get("invariant").and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].invariant must be a string"))?;
         let unique = seen.insert(id.to_string());
-        let exact_disposition = expected.get(id).copied() == Some(disposition);
+        let expected_disposition = expected
+            .iter()
+            .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
+        let exact_disposition = expected_disposition == Some(disposition);
         push_check(
             &mut checks,
             "OBS-CASE-SEMANTICS-001",
             unique && exact_disposition && !condition.trim().is_empty() && !invariant.trim().is_empty(),
             format!("case={id}; expected={}; declared={disposition}; unique={unique}",
-                expected.get(id).copied().unwrap_or("UNKNOWN_CASE")),
+                expected_disposition.unwrap_or("UNKNOWN_CASE")),
         );
     }
     push_check(&mut checks, "OBS-CASE-COVERAGE-001",
@@ -591,14 +594,17 @@ fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, Stri
             .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
         let unique = seen.insert(id.to_string());
-        let known_case = expected.get(id).copied() == Some(disposition);
+        let expected_disposition = expected
+            .iter()
+            .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
+        let known_case = expected_disposition == Some(disposition);
         push_check(
             &mut checks,
             "MODEL-SET-CASE-SEMANTICS-001",
             unique && known_case && !family.trim().is_empty() && !condition.trim().is_empty(),
             format!(
                 "case={id}; expected={}; declared={disposition}; unique={unique}",
-                expected.get(id).copied().unwrap_or("UNKNOWN_CASE")
+                expected_disposition.unwrap_or("UNKNOWN_CASE")
             ),
         );
     }
