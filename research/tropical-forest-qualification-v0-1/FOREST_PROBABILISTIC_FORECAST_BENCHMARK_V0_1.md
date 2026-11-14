@@ -21,6 +21,7 @@ An October 2026 review of digital-twin forestry identifies tropical and boreal e
 ## 2. Kernel scope
 
 The Rust module `validator/src/forecast_kernel.rs` provides:
+- a full confidence-ranked CRPS risk–coverage curve with deterministic forecast-ID tie-breaking;
 - Brier score for binary event probabilities, paired baseline Brier skill and fixed-width reliability bins;
 - empirical CRPS for equally weighted finite ensemble samples;
 - nearest-rank median and central 50%, 80% and 95% prediction intervals;
@@ -29,7 +30,7 @@ The Rust module `validator/src/forecast_kernel.rs` provides:
 - interval coverage and average interval width;
 - explicit abstention accounting and forecast coverage.
 
-The six-case public corpus is `cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json`.
+The six-case public corpus is `cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json`; it includes a separate six-case selective-risk slice with confidence scores and known CRPS risks.
 The binary-event extension is `cases/forest-binary-event-brier-synthetic-v0.1.json` and uses a separate event/horizon evaluation slice.
 
 ### CRPS
@@ -166,7 +167,7 @@ Not implemented:
 - multi-year process forecast evaluation;
 - real source-data adapters, rights adjudication, field calibration or prospective forecasts.
 
-The next extension should add confidence-ranked risk–coverage curves based on a declared acceptance score, proper interval scores/WIS, PIT diagnostics and block-bootstrap uncertainty. It should compose with the shared forecast and uncertainty owners rather than creating a second ecological forecasting engine.
+Next extensions should add proper interval scores/WIS, PIT diagnostics, calibration intervals for the confidence score and block-bootstrap uncertainty. It should compose with the shared forecast and uncertainty owners rather than creating a second ecological forecasting engine.
 
 ## 8. Claim ceiling
 
