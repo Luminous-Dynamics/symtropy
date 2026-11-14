@@ -235,6 +235,31 @@ This track is aviation-specific measurement over candidate schedules from #5186.
 
 These targets apply only to finite synthetic option/action domains. They do not establish continuous-time aircraft viability, real separation or an operational safety margin.
 
+
+### Track J — endogenous demand, queueing and service-quality feedback
+
+Question: when vertiport/pad capacity, access, fare, reliability and waiting time change, how does passenger mode choice feed back into the demand that the service must then handle?
+
+This track is owned by [AEROWEFT-SERVICE-QUALITY-001 #5248](https://github.com/Luminous-Dynamics/symtropy/issues/5248). It consumes exact candidate schedules and resource-event traces from #5186 and provides qualified user-service outcomes to the existing multimodal optimizer #1601. It does not create another MNL estimator, general queueing library, bilevel solver, capacity planner or optimizer.
+
+**Metrics**
+- Potential, chosen, served, switched, deferred, denied and unresolved trips by anonymous cohort.
+- Door-to-door generalized cost, affordability and access floors by cohort.
+- p50/p90/p95/p99 wait, queue length, missed connection and unused capacity.
+- Pad/stand/charger utilization and resource bottleneck attribution.
+- Fixed-point count, convergence residual, cycle detection and initialization dependence.
+- Operator private benefit, user generalized cost and declared public/network externality kept separate.
+
+**Initial targets**
+- 100% exact agreement with an independent finite choice/event-queue oracle on the frozen tiny corpus.
+- Every fixed point rechecked by one exact application of the update operator.
+- Every repeated state reported as a cycle, not silently treated as convergence.
+- Adding a server cannot increase wait for an otherwise identical fixed arrival/service trace.
+- Zero dropped demand cohorts and no hard #5186 capacity/airspace constraint relaxed by demand reduction.
+- No aggregate score can conceal a cohort affordability/access-floor breach.
+
+Synthetic fixed points and cycles are correctness controls, not adoption forecasts. Empirical preference coefficients require rights-cleared, representative, group-split data and calibration.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -248,6 +273,9 @@ These targets apply only to finite synthetic option/action domains. They do not 
 | EUROCONTROL trajectory-prediction requirements and NASA formal-methods / ATM research | Scope, modelling, verification and operational-system expectations | Reference specifications / research, not directly comparable executable products |
 | [2026 Dubai integrated UAM MIP](https://doi.org/10.1016/j.trip.2026.101945) | Joint site, fleet, route, schedule and partial-recharge decisions; multi-trip and speed-dependent battery discharge | Paper reports 4–30% improvement over its studied heuristics; vertiport simultaneous landing/parking capacity is omitted and charging-plug availability is simplified; data/implementation/assumptions must be pinned before reproduction |
 | [2026 joint backup-site planning](https://doi.org/10.1016/j.tre.2026.105075) | Joint vertiport and backup-landing-site selection, flight routes and contingency assignments; diversion-time, low-altitude conflict and passenger-disruption safety costs | Direct baseline for backup-site planning; AeroWeft must demonstrate additional value from source-qualified common-cause dependencies, complete recovery chains and fleet-level non-anticipative recoverability |
+
+| [2026 Lyu & Feng vertiport/vertipad capacity](https://doi.org/10.1016/j.tra.2026.105027) | Joint location + pad-capacity planning with MNL demand, multi-server queueing and Lagrangian relaxation/Benders decomposition | Required service-quality baseline; Shanghai case and on-request data are not a direct reproducer; match wait definition, choice coefficients and server assumptions |
+| [2026 Qin et al. vertiport capacity/commuter behaviour](https://doi.org/10.1016/j.tre.2026.105103) | Bilevel capacity/commuter-choice linkage; market underinvestment and policy-backfire analysis | Required model-class comparator; full-text assumptions and welfare estimand must be audited before numerical comparison |
 | [2026 demand-uncertain vertiport planning](https://doi.org/10.1016/j.tra.2026.104957) | Risk-based two-stage site selection and fleet optimization; route-extension sensitivity under airspace restrictions; existing heliport use | Paper-level comparator until exact formulation, uncertainty set, data and code are reviewed |
 | [2026 TU Delft / Île-de-France integrated planning](https://doi.org/10.1016/j.jtrangeo.2026.104611) | Land-use, aeronautical feasibility and community-acceptance screening plus bidirectional demand-supply, infrastructure, fleet, dispatch and repositioning | Large-scale integrated reference; do not claim reproduction without matched source, data, assumptions and solver setup |
 | [2026 data-driven vertiport siting (Shenzhen)](https://doi.org/10.1007/s42524-026-5302-4) | K-means candidate generation, revealed/stated preference surveys, binomial-logit adoption model and three-phase multi-objective integer programming; reports 88.21% demand coverage in its case study | Match the demand-coverage definition and data, not just the percentage; do not transfer its reported uptake/coverage to another city |
@@ -281,6 +309,11 @@ Each dataset must have a rights state such as CANDIDATE, RIGHTS_PENDING, RIGHTS_
 Current 2026 UAM research that should remain in the comparison matrix:
 
 - [Dubai integrated site/fleet/routing/recharging optimization](https://doi.org/10.1016/j.trip.2026.101945): mixed-integer planning for sites, fleet, multi-trip routes and partial charging; the published 4–30% gain is relative to the study's own heuristics and scenario assumptions.
+- [Lyu & Feng vertiport and vertipad capacity planning](https://doi.org/10.1016/j.tra.2026.105027): choice-based demand and multi-server queue waiting feed strategic site and pad-capacity decisions; this is the reference for Track J.
+- [Qin et al. vertiport capacity and commuter behaviour](https://doi.org/10.1016/j.tre.2026.105103): bilevel service-capacity/commuter-choice interaction; market and policy results remain model- and context-specific.
+- [Gottschalg et al. demand-uncertain airport-shuttle planning](https://doi.org/10.1016/j.tra.2026.104957): risk-averse two-stage site/fleet planning with recourse under realized demand.
+- [Salt Lake City parcel-level vertiport suitability](https://doi.org/10.1016/j.cities.2026.107255): almost 60 spatial datasets and fewer than 1% highly suitable parcels in the studied geography.
+
 - [Demand-uncertain vertiport location planning](https://doi.org/10.1016/j.tra.2026.104957): risk-based two-stage site selection and eVTOL fleet planning, with findings on airspace route extensions and use of existing heliports.
 - [TU Delft / Île-de-France integrated design and operation](https://doi.org/10.1016/j.jtrangeo.2026.104611): candidate-site knock-out criteria, land-use/aeronautical/community acceptance, bidirectional demand-supply, fleet and dispatch/repositioning interactions.
 - [Shenzhen data-driven vertiport location optimization](https://doi.org/10.1007/s42524-026-5302-4): RP/SP choice modeling, adoption probability, K-means demand candidates and three-phase multi-objective location optimization; the paper reports 88.21% demand coverage in its case study.
@@ -296,7 +329,7 @@ These studies have different objective functions, geography, aircraft assumption
 - NASA's 2026 ATMS project explicitly researches a shift from tactical to strategic traffic-flow and trajectory management while safely integrating new air vehicles with traditional operations.
 - Commercial vendors also advertise low-latency vehicle-to-vehicle and multi-domain tactical deconfliction. Such vendor performance claims should be treated as claims until independently measured on a matched workload.
 
-**Regulatory snapshots must be versioned.** The U.S. FAA BVLOS final rule (RIN 2120-AL82) was listed as Pending Review on OIRA's 14 November 2026 page (received 10 July 2026); this is a snapshot, not an indication that the rule is in force. South Africa's official Government Gazette 55226 (21 August 2026), Notice 7844, contains the Thirty-Third Amendment of the Civil Aviation Regulations 2026. It substitutes Part 101 regulation 101.01.2: the private-operation carve-out is limited to R-VLOS with a Class 1A or 1B RPA and prohibits dangerous goods aboard a UA. This is a narrow private-operations provision, not the complete rules for commercial/BVLOS operations or all medical cargo. Payload classification, exact consolidated Part 101 text, commencement and operation-specific permissions must be reviewed with SACAA / aviation counsel before any real deployment or compliance statement.
+**Regulatory snapshots must be versioned.** The U.S. FAA BVLOS final rule (RIN 2120-AL82) was listed as Pending Review on OIRA's 14 November 2026 page (received 10 July 2026); this is a snapshot, not an indication that the rule is in force. South Africa's official Government Gazette 55226 (21 August 2026), Notice 7844, contains the Thirty-Third Amendment of the Civil Aviation Regulations 2026. It substitutes Part 101 regulation 101.01.2: the private-operation carve-out is limited to R-VLOS with a Class 1A or 1B RPA and prohibits dangerous goods aboard a UA. This is a narrow private-operations provision, not the complete rules for commercial/BVLOS operations or all medical cargo. Payload classification, exact consolidated Part 101 text, commencement and operation-specific permissions must be reviewed with SACAA / aviation counsel before any real deployment or compliance statement. For South Africa, preserve the additional distinction between **BVLOS** and **BRLOS**: SACAA's UAS page lists BVLOS under RLOS and says BRLOS is reserved for future use; the official 26th Amendment / Gazette 48228, Part 101.05.11, describes conditional Director approval for B-VLOS under a UASOC operations manual and SA-CATS 101, with VMC / below-400-ft conditions unless otherwise approved. BVLOS is not BRLOS, and neither source grants blanket permission. Store visual flight rule, radio-link scope, operator category and approval status as separate fields. See https://www.caa.co.za/industry-information/uas/ and https://www.gov.za/sites/default/files/gcis_document/202303/48228rg11556gon3170.pdf.
 
 ## 6. Confirmatory protocol
 
