@@ -20,5 +20,9 @@
   "exact_enumeration_used": false,
   "maintenance_authorized": false,
   "physical_restoration_authorized": false,
-  "operating_restriction_clearance_authorized": false
+  "operating_restriction_clearance_authorized": false,
+  "analysis_plan_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "preregistration_record_ref": "synthetic-example-only://preregistration",
+  "seed_commitment_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "configuration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 }
