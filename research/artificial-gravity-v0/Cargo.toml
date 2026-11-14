@@ -1,0 +1,9 @@
+[package]
+name = "symtropy-artificial-gravity"
+version = "0.1.0"
+edition = "2024"
+description = "Dependency-free rotating-frame kinematics reference model for artificial-gravity research"
+license = "Apache-2.0 OR MIT"
+publish = false
+
+[workspace]
