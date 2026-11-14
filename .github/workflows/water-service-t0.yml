@@ -8,6 +8,7 @@ on:
       - "Cargo.lock"
       - "research/water-service-engineering/**"
       - "research/distribution-intrusion-transient/**"
+      - "research/water-intrusion-coupling/**"
       - ".github/workflows/water-service-t0.yml"
   pull_request:
     paths:
@@ -16,6 +17,7 @@ on:
       - "Cargo.lock"
       - "research/water-service-engineering/**"
       - "research/distribution-intrusion-transient/**"
+      - "research/water-intrusion-coupling/**"
       - ".github/workflows/water-service-t0.yml"
   workflow_dispatch:
 
@@ -64,6 +66,29 @@ jobs:
             research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json \
             research/distribution-intrusion-transient/manifest-v0.1.json \
             artifacts/distribution-intrusion-t0/receipt.json
+      - name: Evaluate intrusion model-coupling T0 exact checked-out revision
+        id: coupling
+        env:
+          WATER_INTRUSION_COUPLING_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin intrusion-coupling-t0 -- \
+            research/water-intrusion-coupling/coupling-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/coupling-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/model-coupling-interface-contract-v0.1.json \
+            research/water-intrusion-coupling/manifest-v0.1.json \
+            artifacts/water-intrusion-coupling-t0/receipt.json
+      - name: Evaluate chemical-fate analytical T0 exact checked-out revision
+        id: chemical_fate
+        env:
+          WATER_CHEMICAL_FATE_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin chemical-fate-t0 -- \
+            research/water-intrusion-coupling/chemical-fate-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/manifest-v0.1.json \
+            artifacts/water-chemical-fate-t0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipts
         if: always()
         uses: actions/upload-artifact@v4
@@ -78,14 +103,28 @@ jobs:
             research/distribution-intrusion-transient/intrusion-t0-oracle-v0.1.json
             research/distribution-intrusion-transient/manifest-v0.1.json
             research/distribution-intrusion-transient/REVERSE_FLOW_BOUNDARY_T0_V0_1.md
+            research/water-intrusion-coupling/COUPLING_QUAL_V0_1.md
+            research/water-intrusion-coupling/coupling-t0-cases-v0.1.json
+            research/water-intrusion-coupling/coupling-t0-oracle-v0.1.json
+            research/water-intrusion-coupling/model-coupling-interface-contract-v0.1.json
+            research/water-intrusion-coupling/manifest-v0.1.json
+            research/water-intrusion-coupling/CHEMICAL_FATE_BENCHMARK_PROTOCOL_V0_1.md
+            research/water-intrusion-coupling/chemical-fate-comparator-register-v0.1.json
+            research/water-intrusion-coupling/chemical-fate-t0-cases-v0.1.json
+            research/water-intrusion-coupling/chemical-fate-t0-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
             artifacts/distribution-intrusion-t0/receipt.json
+            artifacts/water-chemical-fate-t0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           INTRUSION_OUTCOME: ${{ steps.intrusion.outcome }}
+          COUPLING_OUTCOME: ${{ steps.coupling.outcome }}
+          CHEMICAL_FATE_OUTCOME: ${{ steps.chemical_fate.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$INTRUSION_OUTCOME" = "success"
+          test "$COUPLING_OUTCOME" = "success"
+          test "$CHEMICAL_FATE_OUTCOME" = "success"

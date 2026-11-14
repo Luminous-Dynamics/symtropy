@@ -1,0 +1,83 @@
+{
+  "schema_version": "0.1.0",
+  "programme_id": "WATER-INTRUSION-COUPLING-QUAL-001",
+  "interface_contract_id": "LUMINOUS-WATER-INTRUSION-CHAIN-0.1",
+  "evidence_class": "synthetic_contract_only",
+  "evidence_ceiling": "not_solver_qualification_not_physical_intrusion_or_water_quality_evidence",
+  "required_stage_order": [
+    "initial_state",
+    "transient_pressure",
+    "defect_ingress",
+    "network_transport",
+    "chemical_fate"
+  ],
+  "required_dependencies": {
+    "initial_state": [],
+    "transient_pressure": [
+      "initial_state"
+    ],
+    "defect_ingress": [
+      "transient_pressure"
+    ],
+    "network_transport": [
+      "transient_pressure",
+      "defect_ingress"
+    ],
+    "chemical_fate": [
+      "network_transport"
+    ]
+  },
+  "required_observation_kinds": [
+    "pressure_trace",
+    "signed_defect_flow",
+    "tracer_sample"
+  ],
+  "stage_contract_fields": [
+    "stage_id",
+    "model_id",
+    "model_revision",
+    "consumed_upstream_outputs",
+    "output_digest",
+    "timebase_id",
+    "clock_uncertainty_ms",
+    "validity_state",
+    "uncertainty_state",
+    "uncertainty_coverage_percent",
+    "digest_origin"
+  ],
+  "observation_contract_fields": [
+    "observation_id",
+    "kind",
+    "raw_data_digest_marker",
+    "timebase_id",
+    "evidence_class",
+    "observation_origin",
+    "digest_origin",
+    "calibration_state",
+    "method_state"
+  ],
+  "digest_contract": "In T0, output_digest and raw_data_digest_marker are synthetic_fixture_marker values formatted as 64 lowercase hex characters; they are not hashes of raw data or actual model outputs. Production interfaces must use SHA-256 of exact serialized stage outputs and raw observation bytes.",
+  "timebase_contract": "all time-dependent stages and measured observations share one declared timebase_id; clock_uncertainty_ms must be explicit",
+  "evidence_contract": "all T0 observation rows carry evidence_class=synthetic_fixture. observation_origin=measurement_channel denotes the required future measured channel, not evidence that data were acquired. observation_origin=modelled is intentionally rejected as a substitute. No physical observations are claimed.",
+  "uncertainty_contract": "each stage declares bounded or unbounded uncertainty; unbounded upstream uncertainty prevents a bounded chain acceptance",
+  "noncompensable_invariants": [
+    "missing_chemical_fate_model_is_not_assumed_inert",
+    "out_of_domain_upstream_stage_blocks_downstream_chain_acceptance",
+    "upstream_output_digest_must_match_exact_consumed_input_digest",
+    "timebase_mismatch_never_silently_aligns_observations",
+    "measured_observation_requires_raw_digest_calibration_and_valid_method",
+    "a_model_output_is_never_relabelled_as_a_sensor_or_lab_observation",
+    "a_valid_chain_contract_is_not_a_qualified_physical_model",
+    "no_chain_result_authorizes_potability_or_release",
+    "synthetic_fixture_marker_is_not_a_raw_data_or_model_output_SHA256",
+    "synthetic_fixture_evidence_class_never_claims_physical_measurement_acquisition",
+    "observation_origin_modelled_never_satisfies_a_measured_observation_requirement",
+    "synthetic_fixture_marker_is_not_a_raw_data_or_model_output_SHA256",
+    "synthetic_fixture_evidence_class_never_claims_physical_measurement_acquisition",
+    "observation_origin_modelled_never_satisfies_a_measurement_channel_requirement"
+  ],
+  "observation_origin_values": {
+    "measurement_channel": "synthetic fixture describing the type of observation required; not an acquired measurement",
+    "modelled": "synthetic fixture representing a model output, which cannot satisfy a measured-observation requirement"
+  }
+}

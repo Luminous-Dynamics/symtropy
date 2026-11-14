@@ -1,0 +1,966 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "WATER-INTRUSION-COUPLING-QUAL-001",
+  "evidence_class": "synthetic_only",
+  "evidence_ceiling": "interface_and_provenance_contracts_only_no_physical_model_qualification",
+  "profile": {
+    "profile_id": "LUMINOUS-WATER-INTRUSION-COUPLING-T0",
+    "revision": "0.1",
+    "all_values_are_fictional": true,
+    "units": {
+      "pressure": "kPa_gauge",
+      "head": "m_water",
+      "flow": "L/s",
+      "signed_flow": "L/s",
+      "concentration": "mg/L",
+      "time": "s",
+      "clock_uncertainty": "ms"
+    }
+  },
+  "cases": [
+    {
+      "case_id": "WC-T0-001-valid-five-stage-evidence-chain",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-002-modelled-pressure-cannot-substitute-for-measured-pressure",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "modelled",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-003-timebase-mismatch-between-pressure-and-tracer",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-OTHER-002",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-004-upstream-output-digest-mismatch",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "9999999999999999999999999999999999999999999999999999999999999999",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-005-transient-stage-out-of-domain",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "out_of_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-006-chemical-fate-stage-missing",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-007-ingress-uncertainty-unbounded",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "unbounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WC-T0-008-observation-raw-digest-missing",
+      "inputs": {
+        "stages": [
+          {
+            "stage_id": "initial_state",
+            "model_id": "epanet-initial-state",
+            "model_revision": "EPANET-2.2+network-config",
+            "consumed_upstream_outputs": {},
+            "output_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "transient_pressure",
+            "model_id": "transient-pressure",
+            "model_revision": "TSNet-or-qualified-MOC",
+            "consumed_upstream_outputs": {
+              "initial_state": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            "output_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "defect_ingress",
+            "model_id": "defect-ingress",
+            "model_revision": "defect-flow-model",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222"
+            },
+            "output_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "network_transport",
+            "model_id": "network-transport",
+            "model_revision": "EPANET-transport-or-compatible",
+            "consumed_upstream_outputs": {
+              "transient_pressure": "2222222222222222222222222222222222222222222222222222222222222222",
+              "defect_ingress": "3333333333333333333333333333333333333333333333333333333333333333"
+            },
+            "output_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "stage_id": "chemical_fate",
+            "model_id": "chemical-fate",
+            "model_revision": "EPANET-MSX-or-compatible",
+            "consumed_upstream_outputs": {
+              "network_transport": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            "output_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "clock_uncertainty_ms": 1,
+            "validity_state": "in_domain",
+            "uncertainty_state": "bounded",
+            "uncertainty_coverage_percent": 95,
+            "digest_origin": "synthetic_fixture_marker"
+          }
+        ],
+        "observations": [
+          {
+            "observation_id": "OBS-PRESSURE-001",
+            "kind": "pressure_trace",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "observation_id": "OBS-FLOW-001",
+            "kind": "signed_defect_flow",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "event_time_s": 5,
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker"
+          },
+          {
+            "observation_id": "OBS-TRACER-001",
+            "kind": "tracer_sample",
+            "timebase_id": "TB-2026-COUPLING-001",
+            "evidence_class": "synthetic_fixture",
+            "calibration_state": "current",
+            "method_state": "valid",
+            "sample_time_s": 45,
+            "sample_result": "detected",
+            "observation_origin": "measurement_channel",
+            "digest_origin": "synthetic_fixture_marker",
+            "raw_data_digest_marker": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ]
+      }
+    }
+  ]
+}
