@@ -1,0 +1,260 @@
+{
+  "schema_version": "symtropy.ai-datacentre-baseline-fixtures.v1",
+  "protocol": "GRID-BASELINE-MV-001",
+  "claim_class": "SYNTHETIC_KNOWN_TRUTH",
+  "units": {
+    "power": "kW",
+    "energy": "kWh",
+    "time": "ns",
+    "rates": "basis_points"
+  },
+  "fold_contract": {
+    "calibration_partition_digest": "sha256:calibration",
+    "evaluation_partition_digest": "sha256:evaluation",
+    "training_partition_digest": "sha256:training",
+    "calibration_groups_disjoint_from_evaluation": true,
+    "forecast_issue_at_or_before_target_start": true,
+    "no_dispatch_observations_only": true,
+    "calibration_residual": "observed_power - expanded_meter_uncertainty - predicted_no_dispatch_power",
+    "block_reduction": "minimum_interval_residual_per_independence_group",
+    "evaluation_coverage": "group_passes_only_if_every_interval_is_covered",
+    "false_positive": "group_fails_if_any_interval_mints_minimum_reduction_without_dispatch"
+  },
+  "cases": [
+    {
+      "case_id": "perfect-baseline",
+      "calibration_groups": 40,
+      "evaluation_groups": 20,
+      "residuals_kw": {
+        "all": 0
+      },
+      "expected": {
+        "qualified": true,
+        "lower_residual_quantile_kw": 0,
+        "coverage_basis_points": 10000,
+        "false_positive_basis_points": 0
+      }
+    },
+    {
+      "case_id": "positive-baseline-bias",
+      "calibration_groups": 40,
+      "evaluation_groups": 20,
+      "prediction_bias_kw": 10,
+      "expected": {
+        "qualified": false,
+        "normalized_bias_over_limit": true,
+        "false_positive_rate_basis_points": 0
+      }
+    },
+    {
+      "case_id": "evaluation-distribution-shift",
+      "calibration_residual_kw": 0,
+      "evaluation_actual_minus_predicted_kw": -20,
+      "expected": {
+        "qualified": false,
+        "coverage_basis_points": 0,
+        "false_positive_reduction": true
+      }
+    },
+    {
+      "case_id": "autocorrelated-session-block-minimum",
+      "calibration_groups": 40,
+      "one_group_interval_count": 3,
+      "one_group_interval_residual_kw": -20,
+      "other_group_residual_kw": 0,
+      "expected": {
+        "group_count": 40,
+        "lower_residual_quantile_kw": 0
+      }
+    },
+    {
+      "case_id": "calibration-evaluation-group-overlap",
+      "shared_group_ids": [
+        "same-site-day"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "calibration_evaluation_group_overlap"
+      }
+    },
+    {
+      "case_id": "evaluation-regime-without-calibration",
+      "calibration_regime": "normal",
+      "evaluation_regime": "heatwave",
+      "expected": {
+        "accepted": false,
+        "reason": "evaluation_regime_missing_calibration"
+      }
+    },
+    {
+      "case_id": "source-digest-mismatch",
+      "fold": "Evaluation",
+      "sample_source_digest": "sha256:wrong",
+      "pinned_partition_digest": "sha256:evaluation",
+      "expected": {
+        "accepted": false,
+        "reason": "source_digest_mismatch"
+      }
+    },
+    {
+      "case_id": "pcc-meter-uncertainty-propagation",
+      "predicted_no_dispatch_kw": 100,
+      "observed_no_dispatch_kw": 100,
+      "observed_expanded_uncertainty_kw": 2,
+      "expected": {
+        "calibration_residual_kw": -2
+      }
+    },
+    {
+      "case_id": "event-lower-bound-with-meter-uncertainty",
+      "predicted_no_dispatch_kw": 100,
+      "baseline_residual_lower_quantile_kw": 0,
+      "measured_dispatch_kw": 85,
+      "metrology_expanded_uncertainty_kw": 2,
+      "expected": {
+        "baseline_lower_kw": 100,
+        "measured_upper_kw": 87,
+        "reduction_lower_bound_kw": 13
+      }
+    },
+    {
+      "case_id": "event-rebound",
+      "intervals": [
+        {
+          "baseline_kw": 100,
+          "observed_kw": 80,
+          "duration_hours": 1
+        },
+        {
+          "baseline_kw": 100,
+          "observed_kw": 110,
+          "duration_hours": 1
+        }
+      ],
+      "expected": {
+        "gross_reduction_kwh": 20,
+        "gross_rebound_kwh": 10,
+        "net_point_estimate_kwh": 10,
+        "conservative_signed_interval_energy_kwh": [
+          20,
+          -10
+        ]
+      }
+    },
+    {
+      "case_id": "incomplete-recovery-horizon",
+      "event_and_recovery_horizon_complete": false,
+      "expected": {
+        "event_qualified": false,
+        "event_horizon_complete": false
+      }
+    },
+    {
+      "case_id": "non_contiguous_recovery",
+      "interval_starts_ns": [
+        0,
+        2000
+      ],
+      "interval_duration_ns": 1000,
+      "expected": {
+        "accepted": false,
+        "reason": "non_contiguous_event_intervals"
+      }
+    },
+    {
+      "case_id": "recovery-evidence-missing",
+      "phases": [
+        "Dispatch"
+      ],
+      "event_end_ns": 1000,
+      "observation_end_ns": 2000,
+      "expected": {
+        "accepted": false,
+        "reason": "missing_recovery_intervals"
+      }
+    },
+    {
+      "case_id": "dispatch-interval-straddles-end",
+      "dispatch_end_ns": 1000,
+      "interval": {
+        "start_ns": 0,
+        "end_ns": 2000,
+        "phase": "Dispatch"
+      },
+      "expected": {
+        "accepted": false,
+        "reason": "event_interval_straddles_dispatch_end"
+      }
+    },
+    {
+      "case_id": "trace-ends-before-recovery-evidence",
+      "declared_observation_horizon_end_ns": 3000,
+      "actual_trace_end_ns": 2000,
+      "expected": {
+        "accepted": false,
+        "reason": "event_horizon_end_mismatch"
+      }
+    },
+    {
+      "case_id": "dispatch-resumes-after-recovery",
+      "phases": [
+        "Dispatch",
+        "Recovery",
+        "Dispatch"
+      ],
+      "expected": {
+        "accepted": false,
+        "reason": "dispatch_recovery_phase_order_violation"
+      }
+    }
+  ],
+  "negative_controls": [
+    "future_feature_timestamp",
+    "dispatch_active_sample_in_baseline_fold",
+    "duplicate_sample_id",
+    "identical_training_and_calibration_partition_digest",
+    "identical_calibration_and_evaluation_partition_digest",
+    "group_id_overlap_between_calibration_and_evaluation",
+    "too_few_independent_calibration_groups_for_tail_quantile",
+    "too_few_independent_evaluation_groups",
+    "missing_regime_calibration",
+    "baseline_source_digest_mismatch",
+    "event_baseline_identity_mismatch",
+    "event_pcc_metrology_uncertainty_omitted",
+    "rebound_dropped_from_event_accounting",
+    "recovery_horizon_not_declared_complete",
+    "event_recovery_evidence_missing",
+    "dispatch_end_not_aligned_to_interval_boundary",
+    "recovery_trace_does_not_reach_declared_observation_end",
+    "dispatch_phase_resumes_after_recovery",
+    "no_recovery_interval_in_trace",
+    "event_performance_fraction_uses_recovery_intervals_in_denominator"
+  ],
+  "event_protocol": {
+    "phase_values": [
+      "Dispatch",
+      "Recovery"
+    ],
+    "required_horizon_evidence": {
+      "event_start_ns": 0,
+      "dispatch_end_ns": 3600000000000,
+      "observation_horizon_end_ns": 7200000000000,
+      "evidence_id": "sha256:recovery-receipt-id",
+      "source_digest": "sha256:recovery-source",
+      "workload_obligations_reconciled": true,
+      "physical_resource_states_reconciled": true
+    },
+    "validation": [
+      "first trace interval starts at event_start_ns",
+      "final trace interval ends at observation_horizon_end_ns",
+      "trace is contiguous",
+      "at least one Dispatch interval exists",
+      "at least one Recovery interval exists",
+      "no interval straddles dispatch_end_ns",
+      "Dispatch intervals cannot resume after Recovery begins",
+      "response fraction denominator includes Dispatch intervals only",
+      "gross reduction and rebound energy include both phases",
+      "event qualification requires both workload and physical-state reconciliation"
+    ]
+  }
+}
