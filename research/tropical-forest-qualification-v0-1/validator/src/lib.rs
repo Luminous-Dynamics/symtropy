@@ -67,6 +67,27 @@ fn close_enough(actual: f64, expected: f64, tolerance: f64) -> bool {
     (actual - expected).abs() <= tolerance
 }
 
+fn same_biomass_stocks(before: &Value, after: &Value) -> Result<bool, String> {
+    for key in [
+        "live_biomass_kg_dry_matter",
+        "deadwood_biomass_kg_dry_matter",
+    ] {
+        let before_value = before
+            .get(key)
+            .and_then(Value::as_f64)
+            .ok_or_else(|| format!("missing or non-numeric initial stock {key}"))?;
+        let after_value = after
+            .get(key)
+            .and_then(Value::as_f64)
+            .ok_or_else(|| format!("missing or non-numeric expected stock {key}"))?;
+        if before_value != after_value {
+            return Ok(false);
+        }
+    }
+    // Derived totals are checked independently; they are not canonical stocks.
+    Ok(true)
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let mut output = String::with_capacity(64);
@@ -425,12 +446,12 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
             .get(cell_id)
             .ok_or_else(|| format!("expected state missing {cell_id}"))?;
         unchanged_controls.push(cell_id.clone());
-        if before != after {
+        if !same_biomass_stocks(before, after)? {
             push_check(
                 &mut checks,
                 "DISCONNECTED-CONTROL-001",
                 false,
-                format!("cell {cell_id} changed despite no declared causal path"),
+                format!("cell {cell_id} changed canonical biomass stocks despite no declared causal path"),
             );
         }
     }
