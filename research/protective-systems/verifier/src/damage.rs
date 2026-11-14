@@ -96,7 +96,7 @@ pub fn apply_change(
         if claim.claim_id.trim().is_empty() {
             return Err(StateError::EmptyClaimIdentity);
         }
-        if !ids.insert(claim.claim_id.as_str()) {
+        if !ids.insert(claim.claim_id.clone()) {
             return Err(StateError::DuplicateClaimIdentity);
         }
     }
