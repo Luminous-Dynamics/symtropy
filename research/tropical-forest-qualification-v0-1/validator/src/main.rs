@@ -39,7 +39,11 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt");
         }
     }
 
-    if receipt["result"] != "PASS" {
+    let successful_result = matches!(
+        receipt["result"].as_str(),
+        Some("PASS") | Some("MANIFEST_VALID") | Some("PASS_SYNTHETIC_GEOMETRY")
+    );
+    if !successful_result {
         process::exit(1);
     }
 }
