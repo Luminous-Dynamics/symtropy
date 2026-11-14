@@ -43,6 +43,16 @@ Question: does a declared model enclose all states reachable within its declared
 
 These targets apply only to the frozen mathematical domain. They do not prove that the model covers real aircraft behavior.
 
+### Deterministic / probabilistic dual-envelope rule
+
+Where a model supports both, preserve two distinct outputs:
+- deterministic outer enclosure for bounded worst-case exclusion;
+- calibrated probabilistic prediction envelope for efficiency and planning.
+
+A probabilistic 95% volume is not a worst-case guarantee. The uncontained tail remains possible; it cannot be re-labelled unreachable. Report nesting, volume ratio, calibration, tail misses and unsupported conditions separately. See [AeroWeft Kinematic Tubes §4.1](AEROWEFT_KINEMATIC_TUBES_001.md).
+
+Existing reachability research already includes zonotopic state estimation coupled with reachable-tube prediction for aircraft, with preliminary CALC landing-challenge simulations. Backward reach-avoid tubes have also been explored for aircraft conflict management. AeroWeft must not claim to invent reachable sets; its research target is independently checked, profile-qualified, provenance-preserving composition across the aircraft model, spatial context, airspace constraints and network allocation.
+
 ### Track B — probabilistic prediction and conformance
 
 Question: when the model reports probabilities or confidence intervals, do they mean what they say?
@@ -271,3 +281,19 @@ verification. Do not duplicate fixed-wing equations or physical model
 parameters in Symtropy. The model/profile adapter must preserve exact profile
 revision, operating regime, units, frames, vertical datum, state/control/
 disturbance domain, dependency lineage and evidence scope.
+
+
+### Current research comparator — NASA corridor flexibility and demand/capacity balancing
+
+NASA's 2025 flight evaluation (NASA/TP-20250003243) tested strategic path-planning automation with two helicopter surrogate aircraft and up to 330 cooperating virtual traffic aircraft. It reports successful core intent-based conflict functions but notes that corridor-constrained maneuvers were less successful in part because tighter volumes reduced maneuvering degrees of freedom. The benchmark should therefore measure **retained maneuverability / contingency reserve**, not only corridor occupancy or throughput.
+
+NASA's 2024 DCB-Waypoint work resolves capacity at vertiports and en-route waypoints sequentially, one flight and waypoint at a time; DCB-Airborne-Delays additionally uses speed changes within aircraft speed ranges. These are useful matched baseline classes for the new [AEROWEFT-DCB-001 #5186](https://github.com/Luminous-Dynamics/symtropy/issues/5186).
+
+NASA's 2026 Digital Trajectory Rerouting Capability is a separate commercial-airline/ATM reference: it has been operationally evaluated with FAA and airline partners and uses a shared digital picture and end-to-end reroute coordination. It is not a UAM or drone benchmark; AeroWeft should compare coordination/evidence architecture, not lift its performance numbers into a different workload.
+
+References:
+- NASA/TP-20250003243: https://ntrs.nasa.gov/citations/20250003243
+- NASA DCB: https://ntrs.nasa.gov/citations/20240011341
+- NASA Digital Trajectory Rerouting Capability: https://www.nasa.gov/directorates/armd/aosp/atms/digital-trajectory-rerouting-capability-tech-transfer/
+- Zonotopic reachable flight regions: https://doi.org/10.1016/j.ifacol.2017.08.716
+- ETH Zurich reach-avoid research: https://control.ee.ethz.ch/research/applications/air-traffic-control.html
