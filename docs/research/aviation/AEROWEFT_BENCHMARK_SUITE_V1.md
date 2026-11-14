@@ -317,3 +317,13 @@ records must keep mission intent, physical model/configuration, environment,
 predicted trajectory, deterministic reachable enclosure, probabilistic
 prediction envelope, resource reservation and external authority decision as
 separate typed claims. A checksum or reservation receipt is not authorization.
+
+
+### Mature operational coordination comparator — NASA Digital Trajectory Rerouting
+
+NASA's 1 July 2026 technology-transfer page reports that its Digital Trajectory Rerouting Capability was operationally validated over four years of live operations across the North Texas Metroplex (DFW/DAL) and Houston (IAH), with FAA and three major airlines. NASA reports 3,870 candidate reroutes at Houston I90 TRACON in FY25, 62% airline approval, runway prediction accuracy above 90%, and close to one hour of aggregate metroplex delay saved per rerouted flight. These are NASA-reported results for a commercial-airline/FAA rerouting workload, not AeroWeft results and not a directly matched UAS/UAM comparator.
+
+AeroWeft should learn from its shared digital picture, candidate identification and end-to-end coordination workflow. The correct comparison is architectural: event freshness, provider/authority boundaries, candidate-generation quality, human approval, end-to-end delay, evidence and reproducibility. Do not copy its numerical performance targets into a different aircraft class or workload.
+
+Source: NASA Digital Trajectory Rerouting Capability, page updated 1 July 2026:
+https://www.nasa.gov/directorates/armd/aosp/atms/digital-trajectory-rerouting-capability-tech-transfer/
