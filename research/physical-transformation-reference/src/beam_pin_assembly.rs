@@ -45,6 +45,8 @@ pub enum BeamPinDofKind {
     NodeTranslationX { node_id: String },
     NodeTranslationY { node_id: String },
     MemberEndRotation { member_id: String, at_start: bool },
+    /// A rotational DOF shared by adjacent finite elements of one physical member.
+    MemberInteriorRotation { member_id: String, interior_node_index: usize },
 }
 
 /// A globally indexed generalized coordinate, preserved in each receipt.
