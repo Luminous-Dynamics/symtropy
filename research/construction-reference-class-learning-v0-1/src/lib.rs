@@ -1261,6 +1261,24 @@ mod tests {
             .collect()
     }
 
+    fn effect_for(case_ids: &[&str]) -> EffectEstimate {
+        EffectEstimate {
+            functional_contract_digest: unit().contract_digest,
+            comparison_case_ids: case_ids.iter().map(|id| (*id).to_owned()).collect(),
+            metric_id: "total-workflow-crew-minutes-per-accepted-m2".to_owned(),
+            unit_symbol: "crew-min/m2".to_owned(),
+            scale: 1,
+            estimate: -25,
+            lower_bound: -40,
+            upper_bound: -10,
+            estimate_method_ref: "estimator:matched-difference-v1".to_owned(),
+            interval_method_ref: "interval:cluster-bootstrap-v1".to_owned(),
+            source_report_ref: "report:study-001".to_owned(),
+            observation_count: 20,
+            independent_cluster_count: 4,
+        }
+    }
+
     fn matched_manifest() -> ComparisonManifest {
         let cases = vec![
             case("treated-1", "project-a", "site-a", CaseRole::Treatment),
@@ -1283,21 +1301,7 @@ mod tests {
                 balance_report_ref: "balance-report:matched-001".to_owned(),
                 balance_disposition: DiagnosticDisposition::Passed,
             },
-            effects: vec![EffectEstimate {
-                functional_contract_digest: unit().contract_digest,
-                comparison_case_ids: vec!["treated-1".to_owned(), "control-1".to_owned()],
-                metric_id: "total-workflow-crew-minutes-per-accepted-m2".to_owned(),
-                unit_symbol: "crew-min/m2".to_owned(),
-                scale: 1,
-                estimate: -25,
-                lower_bound: -40,
-                upper_bound: -10,
-                estimate_method_ref: "estimator:matched-difference-v1".to_owned(),
-                interval_method_ref: "interval:cluster-bootstrap-v1".to_owned(),
-                source_report_ref: "report:matched-study-001".to_owned(),
-                observation_count: 20,
-                independent_cluster_count: 4,
-            }],
+            effects: vec![effect_for(&["treated-1", "control-1"])],
             replication: None,
         }
     }
@@ -1463,7 +1467,7 @@ mod tests {
                     DiagnosticKind::CommonCauseReview,
                 ]),
             },
-            effects: Vec::new(),
+            effects: vec![effect_for(&["pre-1", "post-1"])],
             replication: None,
         }
     }
@@ -1496,9 +1500,18 @@ mod tests {
     #[test]
     fn independent_replication_requires_two_sites_projects_and_assessors() {
         let mut manifest = matched_manifest();
+        let replication_cases = vec![
+            case("rep-treated", "project-c", "site-c", CaseRole::Treatment),
+            case("rep-control", "project-d", "site-d", CaseRole::Control),
+        ];
+        manifest
+            .partition_assignments
+            .extend(assignments(&replication_cases));
+        manifest.cases.extend(replication_cases);
         manifest.replication = Some(ReplicationEvidence {
+            replication_study_digest: "git-blob-sha1:independent-replication-study".to_owned(),
             replication_protocol_ref: "replication-protocol:v1".to_owned(),
-            included_case_ids: vec!["treated-1".to_owned(), "control-1".to_owned()],
+            included_case_ids: vec!["rep-treated".to_owned(), "rep-control".to_owned()],
             independent_assessor_refs: vec![
                 "assessor:independent-a".to_owned(),
                 "assessor:independent-b".to_owned(),
@@ -1538,6 +1551,73 @@ mod tests {
                 "total-workflow-crew-minutes-per-accepted-m2".to_owned()
             ))
         );
+    }
+
+    #[test]
+    fn matched_balance_not_evaluated_remains_local_not_reference_promoted() {
+        let mut manifest = matched_manifest();
+        let StudyDesign::MatchedObservational {
+            balance_disposition, ..
+        } = &mut manifest.study_design
+        else {
+            panic!("matched design");
+        };
+        *balance_disposition = DiagnosticDisposition::NotEvaluated;
+        let report = evaluate_comparison(&manifest).expect("unassessed matching is local");
+        assert_eq!(report.promotion, PromotionDisposition::LocalDescriptiveOnly);
+        assert_eq!(report.causal_claim, CausalClaimDisposition::NotSupported);
+    }
+
+    #[test]
+    fn effect_must_bind_exact_functional_contract_and_case_set() {
+        let mut wrong_contract = matched_manifest();
+        wrong_contract.effects[0].functional_contract_digest =
+            "git-blob-sha1:other-contract".to_owned();
+        assert_eq!(
+            evaluate_comparison(&wrong_contract),
+            Err(LearningError::EffectContractMismatch(
+                "total-workflow-crew-minutes-per-accepted-m2".to_owned()
+            ))
+        );
+
+        let mut wrong_cases = matched_manifest();
+        wrong_cases.effects[0].comparison_case_ids = vec!["treated-1".to_owned()];
+        assert_eq!(
+            evaluate_comparison(&wrong_cases),
+            Err(LearningError::EffectCaseSetMismatch(
+                "total-workflow-crew-minutes-per-accepted-m2".to_owned()
+            ))
+        );
+    }
+
+    #[test]
+    fn quasi_experimental_design_without_effect_report_is_design_only() {
+        let mut manifest = quasi_manifest();
+        manifest.effects.clear();
+        let report = evaluate_comparison(&manifest).expect("design-only record");
+        assert_eq!(report.evidence_class, EvidenceClass::QuasiExperimental);
+        assert_eq!(report.causal_claim, CausalClaimDisposition::NotSupported);
+        assert_eq!(report.promotion, PromotionDisposition::LocalDescriptiveOnly);
+    }
+
+    #[test]
+    fn replicated_cases_must_be_separate_from_the_primary_study() {
+        let mut manifest = matched_manifest();
+        manifest.replication = Some(ReplicationEvidence {
+            replication_study_digest: manifest.study_digest.clone(),
+            replication_protocol_ref: "replication-protocol:v1".to_owned(),
+            included_case_ids: vec!["treated-1".to_owned(), "control-1".to_owned()],
+            independent_assessor_refs: vec![
+                "assessor:independent-a".to_owned(),
+                "assessor:independent-b".to_owned(),
+            ],
+        });
+        let report = evaluate_comparison(&manifest).expect("non-independent replication is reported");
+        assert_eq!(
+            report.replication,
+            ReplicationDisposition::InsufficientEvidence
+        );
+        assert_eq!(report.promotion, PromotionDisposition::MatchedReferenceCandidate);
     }
 
     #[test]
