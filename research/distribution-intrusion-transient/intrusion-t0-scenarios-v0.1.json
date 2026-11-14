@@ -5,7 +5,7 @@
   "evidence_ceiling": "state_semantics_and_declared_tracer_arithmetic_only_no_physical_or_health_claim",
   "profile": {
     "profile_id": "LUMINOUS-DISTRIBUTION-INTRUSION-T0-SYNTHETIC",
-    "revision": "0.1",
+    "revision": "0.2",
     "all_values_are_fictional": true,
     "units": {
       "pressure": "kPa_gauge",
@@ -13,7 +13,9 @@
       "volume": "L",
       "concentration": "mg/L",
       "mass": "mg",
-      "time": "s"
+      "time": "s",
+      "flow": "L/s",
+      "signed_flow": "L/s"
     }
   },
   "dispositions": [
@@ -205,6 +207,71 @@
         "sample_coverage_complete": true,
         "sample_result": "not_detected",
         "detection_limit_mg_l": 0.001,
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-013-model-zero-demand-and-leak-but-direct-tracer-confirms-reverse-ingress",
+      "description": "PDD demand and leak-emitter discharge are zero under assumed backflow prevention, but direct signed defect flow and unique external tracer observations confirm ingress. Model-side zeros must not override physical evidence.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 0.5,
+        "pressure_event_duration_s": 5,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "physical_backflow_preventer_state": "absent",
+        "pdd_customer_demand_lps": 0,
+        "model_leak_emitter_discharge_lps": 0,
+        "physical_signed_defect_flow_lps": 0.2,
+        "flow_sign_convention": "positive_into_main",
+        "sample_coverage_complete": true,
+        "sample_result": "detected",
+        "sample_concentration_mg_l": 0.04,
+        "method_quantification_limit_mg_l": 0.005,
+        "tracer_source_attribution": "unique",
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-014-model-zero-demand-and-leak-without-physical-observation",
+      "description": "PDD and leak-emitter outputs are zero, but the physical backflow-prevention state, signed defect flow and tracer samples are not established. The model-side zeros cannot establish absence of ingress.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 0.5,
+        "pressure_event_duration_s": 5,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "physical_backflow_preventer_state": "unknown",
+        "pdd_customer_demand_lps": 0,
+        "model_leak_emitter_discharge_lps": 0,
+        "physical_signed_defect_flow_lps": null,
+        "sample_coverage_complete": false,
+        "sample_result": "not_sampled",
+        "instrument_calibration_current": true,
+        "method_valid_for_tracer": true
+      }
+    },
+    {
+      "case_id": "DI-T0-015-reverse-flow-observed-but-downstream-tracer-sample-missing",
+      "description": "Positive signed reverse flow is physically measured through a confirmed defect, but the far-end tracer sample is missing. Reverse flow alone does not establish contaminant transport or permit a no-ingress conclusion.",
+      "inputs": {
+        "external_head_m": 2,
+        "internal_minimum_head_m": 0.5,
+        "pressure_event_duration_s": 5,
+        "pathway_state": "confirmed_connected_defect",
+        "external_tracer_present": true,
+        "physical_backflow_preventer_state": "absent",
+        "pdd_customer_demand_lps": 0,
+        "model_leak_emitter_discharge_lps": 0,
+        "physical_signed_defect_flow_lps": 0.2,
+        "flow_sign_convention": "positive_into_main",
+        "sample_coverage_complete": false,
+        "missing_sample_points": [
+          "far_end"
+        ],
+        "sample_result": "not_sampled",
         "instrument_calibration_current": true,
         "method_valid_for_tracer": true
       }
