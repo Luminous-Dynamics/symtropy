@@ -86,3 +86,12 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    - name: Test WPT spatial matrix atlas
+      run: cargo test --locked -p wpt-matrix-atlas
+
+    - name: Run WPT matrix atlas known-truth CLI
+      run: cargo run --locked -p wpt-matrix-atlas -- benchmarks/wpt-matrix-atlas/v1/synthetic-known-truth.json 5.0 PASSIVE_CERTIFIED_CONDITIONAL
+
+    - name: Run WPT matrix atlas empirical-only CLI
+      run: cargo run --locked -p wpt-matrix-atlas -- benchmarks/wpt-matrix-atlas/v1/synthetic-two-coil-atlas.json 5.0 EMPIRICAL_MARGIN_POSITIVE
