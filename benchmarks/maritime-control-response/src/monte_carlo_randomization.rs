@@ -208,6 +208,8 @@ fn randomization_frame_sha256(
         for index in indices {
             let observation = &trial.observations[*index];
             update_len_prefixed(&mut hasher, &observation.unit_id);
+            update_len_prefixed(&mut hasher, &observation.stratum_id);
+            hasher.update([u8::from(observation.assigned_arm == AssignedArm::Treatment)]);
             hasher.update(observation.observed_outcome_value.to_bits().to_le_bytes());
             update_len_prefixed(&mut hasher, &observation.outcome_unit);
         }
@@ -370,7 +372,9 @@ pub fn estimate_monte_carlo_randomization_p_value(
     let mut rng = SplitMix64::new(config.seed_u64);
     let mut hasher = Sha256::new();
     hasher.update(b"symtropy-marine-monte-carlo-assignment-stream-v1\0");
+    hasher.update(frame_sha256.as_bytes());
     hasher.update(trial.assignment_plan_sha256.as_bytes());
+    hasher.update(MONTE_CARLO_RANDOMIZATION_ALGORITHM.as_bytes());
     hasher.update(config.seed_u64.to_le_bytes());
     hasher.update((config.draw_count as u64).to_le_bytes());
 
@@ -539,6 +543,69 @@ mod tests {
             trial.observations.push(observation);
         }
         trial
+    }
+
+    #[test]
+    fn splitmix64_v1_matches_frozen_golden_vector() {
+        let mut rng = SplitMix64::new(0);
+        assert_eq!(rng.next_u64(), 0xE220_A839_7B1D_CDAF);
+        assert_eq!(rng.next_u64(), 0x6E78_9E6A_A1B9_65F4);
+    }
+
+    #[test]
+    fn frame_and_assignment_stream_digests_ignore_input_row_order() {
+        let original = trial();
+        let mut reordered = original.clone();
+        reordered.observations.reverse();
+        reordered.stratum_allocations.reverse();
+        let config = MonteCarloRandomizationConfig {
+            seed_u64: 0x1234_5678,
+            draw_count: 2_000,
+        };
+        let first = estimate_monte_carlo_randomization_p_value(&original, config).unwrap();
+        let second = estimate_monte_carlo_randomization_p_value(&reordered, config).unwrap();
+        assert_eq!(first.randomization_frame_sha256, second.randomization_frame_sha256);
+        assert_eq!(first.sampled_assignments_sha256, second.sampled_assignments_sha256);
+        assert_eq!(first.p_value_plus_one, second.p_value_plus_one);
+    }
+
+    #[test]
+    fn total_unit_draw_budget_fails_closed_before_sampling() {
+        assert_eq!(
+            validate_work_budget(10_000, 10_001),
+            Err(MonteCarloRandomizationError::WorkBudgetExceeded {
+                draw_count: 10_001,
+                unit_count: 10_000,
+                maximum_unit_draws: MAX_TOTAL_UNIT_DRAWS,
+            })
+        );
+        assert_eq!(validate_work_budget(10_000, 10_000), Ok(()));
+    }
+
+    #[test]
+    fn partial_fisher_yates_sampler_covers_all_small_subsets_without_block_violations() {
+        let trial = trial();
+        let groups = stratum_indices(&trial);
+        let mut rng = SplitMix64::new(2026);
+        let mut counts = BTreeMap::<u8, usize>::new();
+        for _ in 0..12_000 {
+            let assignment = sample_blocked_assignment(&trial, &groups, &mut rng).unwrap();
+            for indices in groups.values() {
+                let mask = indices.iter().enumerate().fold(0u8, |mask, (position, index)| {
+                    if assignment[*index] {
+                        mask | (1 << position)
+                    } else {
+                        mask
+                    }
+                });
+                *counts.entry(mask).or_default() += 1;
+            }
+            assert!(groups.values().all(|indices| {
+                indices.iter().filter(|index| assignment[**index]).count() == 2
+            }));
+        }
+        assert_eq!(counts.len(), 6);
+        assert!(counts.values().all(|count| (1_700..=2_300).contains(count)));
     }
 
     #[test]
