@@ -11427,7 +11427,9 @@ dependencies = [
 name = "wpt-empirical-validator"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "serde_json",
+ "url",
 ]
 
 [[package]]
