@@ -57,7 +57,11 @@ fn required_string(value: &Value, key: &str, context: &str) -> Result<String, St
     }
 }
 
-fn required_array<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a Vec<Value>, String> {
+fn required_array<'a>(
+    value: &'a Value,
+    key: &str,
+    context: &str,
+) -> Result<&'a Vec<Value>, String> {
     value
         .get(key)
         .and_then(Value::as_array)
@@ -107,7 +111,9 @@ fn nullable_unsigned_integer(
         Some(item) if item.is_null() => Ok(None),
         Some(item) => match item.as_u64() {
             Some(number) => Ok(Some(number)),
-            None => Err(format!("{context}: {key} must be an unsigned integer or null")),
+            None => Err(format!(
+                "{context}: {key} must be an unsigned integer or null"
+            )),
         },
     }
 }
@@ -130,13 +136,15 @@ fn parse_profile(scenarios: &Value) -> Result<Profile, String> {
     if get_str(profile, "profile_id") != Some("SYNTHETIC-RECOVERY-PROFILE-V0")
         || get_str(profile, "evidence_class") != Some("synthetic_design_profile")
         || get_str(profile, "metric") != Some("delivered_demand_fraction")
-        || get_str(profile, "unit")
-            != Some("fraction_of_required_volume_over_declared_window")
+        || get_str(profile, "unit") != Some("fraction_of_required_volume_over_declared_window")
         || get_str(profile, "quality_assessment")
             != Some("not_in_scope_quality_must_be_qualified_separately")
         || profile.get("values_are_normative").and_then(Value::as_bool) != Some(false)
     {
-        return Err("profile identity, metric, unit, quality boundary or non-normative marker changed".to_owned());
+        return Err(
+            "profile identity, metric, unit, quality boundary or non-normative marker changed"
+                .to_owned(),
+        );
     }
 
     let area_values = required_array(profile, "required_area_ids", "profile")?;
@@ -148,11 +156,14 @@ fn parse_profile(scenarios: &Value) -> Result<Profile, String> {
                 .as_str()
                 .filter(|text| !text.trim().is_empty())
                 .map(str::to_owned)
-                .ok_or_else(|| format!("profile.required_area_ids[{index}] must be a non-empty string"))
+                .ok_or_else(|| {
+                    format!("profile.required_area_ids[{index}] must be a non-empty string")
+                })
         })
         .collect::<Result<_, _>>()?;
     let required_set: BTreeSet<String> = required_area_ids.iter().cloned().collect();
-    let canonical_set: BTreeSet<String> = REQUIRED_AREAS.iter().map(|id| (*id).to_owned()).collect();
+    let canonical_set: BTreeSet<String> =
+        REQUIRED_AREAS.iter().map(|id| (*id).to_owned()).collect();
     if required_area_ids.len() != REQUIRED_AREAS.len()
         || required_set.len() != required_area_ids.len()
         || required_set != canonical_set
@@ -175,7 +186,9 @@ fn parse_profile(scenarios: &Value) -> Result<Profile, String> {
         || minimum_stable_dwell_seconds != 3600
         || minimum_independent_paths != 2
     {
-        return Err("synthetic v0.1 floor/freshness/dwell/independent-path constants changed".to_owned());
+        return Err(
+            "synthetic v0.1 floor/freshness/dwell/independent-path constants changed".to_owned(),
+        );
     }
 
     Ok(Profile {
@@ -194,7 +207,9 @@ fn validate_schema_contract(schema: &Value) -> Result<(), String> {
         || get_str(schema, "type") != Some("object")
         || schema.get("additionalProperties").and_then(Value::as_bool) != Some(false)
     {
-        return Err("schema must declare a closed JSON Schema Draft 2020-12 object root".to_owned());
+        return Err(
+            "schema must declare a closed JSON Schema Draft 2020-12 object root".to_owned(),
+        );
     }
     let root_required: BTreeSet<&str> = schema
         .get("required")
@@ -292,19 +307,20 @@ fn parse_active_failed_domains(
         let kind = required_string(row, "domain_type", context)?;
         let id = required_string(row, "domain_id", context)?;
         if !FAILURE_DOMAINS.contains(&kind.as_str()) {
-            return Err(format!("{context}: unsupported active failure domain {kind}"));
+            return Err(format!(
+                "{context}: unsupported active failure domain {kind}"
+            ));
         }
         if !domains.insert((kind.clone(), id.clone())) {
-            return Err(format!("{context}: duplicate active failed domain {kind}/{id}"));
+            return Err(format!(
+                "{context}: duplicate active failed domain {kind}/{id}"
+            ));
         }
     }
     Ok(domains)
 }
 
-fn parse_evidence_paths(
-    area: &Value,
-    context: &str,
-) -> Result<Vec<EvidencePath>, String> {
+fn parse_evidence_paths(area: &Value, context: &str) -> Result<Vec<EvidencePath>, String> {
     let rows = required_array(area, "evidence_paths", context)?;
     let mut path_refs = BTreeSet::new();
     let mut paths = Vec::with_capacity(rows.len());
@@ -325,12 +341,19 @@ fn parse_evidence_paths(
             return Err(format!("{context}: unsupported measurement principle"));
         }
         if !path_refs.insert(path_ref.clone()) {
-            return Err(format!("{context}: duplicate evidence path reference {path_ref}"));
+            return Err(format!(
+                "{context}: duplicate evidence path reference {path_ref}"
+            ));
         }
 
         let evidence_state = required_string(row, "evidence_state", context)?;
-        if !is_one_of(&evidence_state, &["current", "stale", "failed", "unverified"]) {
-            return Err(format!("{context}/{path_ref}: unsupported path evidence_state"));
+        if !is_one_of(
+            &evidence_state,
+            &["current", "stale", "failed", "unverified"],
+        ) {
+            return Err(format!(
+                "{context}/{path_ref}: unsupported path evidence_state"
+            ));
         }
 
         let dependency_rows = required_array(row, "failure_domains", context)?;
@@ -340,10 +363,14 @@ fn parse_evidence_paths(
             let domain_type = required_string(dependency, "domain_type", context)?;
             let domain_id = required_string(dependency, "domain_id", context)?;
             if !FAILURE_DOMAINS.contains(&domain_type.as_str()) {
-                return Err(format!("{context}/{path_ref}: unsupported failure domain {domain_type}"));
+                return Err(format!(
+                    "{context}/{path_ref}: unsupported failure domain {domain_type}"
+                ));
             }
             if !dependency_types.insert(domain_type.clone()) {
-                return Err(format!("{context}/{path_ref}: duplicate failure-domain type {domain_type}"));
+                return Err(format!(
+                    "{context}/{path_ref}: duplicate failure-domain type {domain_type}"
+                ));
             }
             failure_domains.insert((domain_type, domain_id));
         }
@@ -352,7 +379,9 @@ fn parse_evidence_paths(
                 .iter()
                 .any(|domain| !dependency_types.contains(*domain))
         {
-            return Err(format!("{context}/{path_ref}: every path must declare all five failure domains exactly once"));
+            return Err(format!(
+                "{context}/{path_ref}: every path must declare all five failure domains exactly once"
+            ));
         }
 
         paths.push(EvidencePath {
@@ -419,7 +448,9 @@ fn area_disposition(
     let context = format!("{scenario_context}/{area_id}");
 
     if !required_bool(area, "required", &context)? {
-        return Err(format!("{context}: every profile area must remain required"));
+        return Err(format!(
+            "{context}: every profile area must remain required"
+        ));
     }
 
     let floor_ref = area
@@ -457,15 +488,16 @@ fn area_disposition(
 
     let binding_status = required_string(area, "area_binding_status", &context)?;
     if !is_one_of(&binding_status, &["current", "stale", "unverified"]) {
-        return Err(format!("{context}: unsupported service-area binding status"));
+        return Err(format!(
+            "{context}: unsupported service-area binding status"
+        ));
     }
 
     let coverage_numerator = unsigned_integer(area, "coverage_numerator", &context)?;
-    let coverage_denominator =
-        nullable_unsigned_integer(area, "coverage_denominator", &context)?;
-    if coverage_denominator.is_some_and(|denominator| {
-        denominator == 0 || coverage_numerator > denominator
-    }) {
+    let coverage_denominator = nullable_unsigned_integer(area, "coverage_denominator", &context)?;
+    if coverage_denominator
+        .is_some_and(|denominator| denominator == 0 || coverage_numerator > denominator)
+    {
         return Err(format!("{context}: invalid coverage numerator/denominator"));
     }
 
@@ -478,7 +510,9 @@ fn area_disposition(
         }
     }
     if matches!((lower, upper), (Some(lower), Some(upper)) if lower > upper) {
-        return Err(format!("{context}: lower observation bound exceeds upper bound"));
+        return Err(format!(
+            "{context}: lower observation bound exceeds upper bound"
+        ));
     }
 
     let observation_ref = area
@@ -496,7 +530,9 @@ fn area_disposition(
         return Err(format!("{context}: diagnostic_weight must be positive"));
     }
     if geometry_ref.is_empty() || topology_ref.is_empty() {
-        return Err(format!("{context}: geometry/topology revisions must be non-empty"));
+        return Err(format!(
+            "{context}: geometry/topology revisions must be non-empty"
+        ));
     }
 
     let paths = parse_evidence_paths(area, &context)?;
@@ -546,14 +582,20 @@ fn overall_disposition(
     if area_dispositions.iter().any(|state| state == "invalid") {
         return "invalid".to_owned();
     }
-    let breach = area_dispositions.iter().any(|state| state == "breached_floor");
-    let unknown = area_dispositions.iter().any(|state| state == "indeterminate");
+    let breach = area_dispositions
+        .iter()
+        .any(|state| state == "breached_floor");
+    let unknown = area_dispositions
+        .iter()
+        .any(|state| state == "indeterminate");
     match (breach, unknown) {
         (true, true) => "breached_with_indeterminate".to_owned(),
         (true, false) => "not_restored".to_owned(),
         (false, true) => "indeterminate".to_owned(),
         (false, false) => {
-            if area_dispositions.iter().any(|state| state == "candidate_restored")
+            if area_dispositions
+                .iter()
+                .any(|state| state == "candidate_restored")
                 || alarm_status != "cleared"
                 || unresolved_conflict
             {
@@ -575,13 +617,17 @@ fn verify_aggregate(
         .get("aggregate_diagnostic")
         .ok_or_else(|| format!("{context}: aggregate_diagnostic is missing"))?;
     if required_bool(diagnostic, "authoritative", context)? {
-        return Err(format!("{context}: aggregate diagnostic must remain non-authoritative"));
+        return Err(format!(
+            "{context}: aggregate diagnostic must remain non-authoritative"
+        ));
     }
     let method = required_string(diagnostic, "method", context)?;
     match method.as_str() {
         "not_computable" => {
             if !diagnostic.get("value").is_some_and(Value::is_null) {
-                return Err(format!("{context}: not_computable aggregate must have null value"));
+                return Err(format!(
+                    "{context}: not_computable aggregate must have null value"
+                ));
             }
         }
         "weighted_average_by_synthetic_connection_count" => {
@@ -594,10 +640,8 @@ fn verify_aggregate(
                     .and_then(Value::as_f64)
                     .filter(|value| value.is_finite());
                 let weight = finite_number(area, "diagnostic_weight", context)?;
-                let evidence_current =
-                    get_str(area, "evidence_state") == Some("observed_current");
-                let binding_current =
-                    get_str(area, "area_binding_status") == Some("current");
+                let evidence_current = get_str(area, "evidence_state") == Some("observed_current");
+                let binding_current = get_str(area, "area_binding_status") == Some("current");
                 let complete_coverage = match (
                     area.get("coverage_numerator").and_then(Value::as_u64),
                     area.get("coverage_denominator").and_then(Value::as_u64),
@@ -623,23 +667,25 @@ fn verify_aggregate(
                 denominator += weight;
             }
             if denominator <= 0.0 {
-                return Err(format!("{context}: weighted diagnostic has no positive weight"));
+                return Err(format!(
+                    "{context}: weighted diagnostic has no positive weight"
+                ));
             }
             let recomputed = numerator / denominator;
             if (recomputed - declared).abs() > 1.0e-8 {
                 return Err(format!("{context}: weighted aggregate arithmetic mismatch"));
             }
         }
-        _ => return Err(format!("{context}: unsupported aggregate diagnostic method")),
+        _ => {
+            return Err(format!(
+                "{context}: unsupported aggregate diagnostic method"
+            ));
+        }
     }
     Ok(())
 }
 
-pub fn evaluate(
-    scenarios: &Value,
-    schema: &Value,
-    oracle: &Value,
-) -> Result<Value, Vec<String>> {
+pub fn evaluate(scenarios: &Value, schema: &Value, oracle: &Value) -> Result<Value, Vec<String>> {
     let mut errors = Vec::new();
     if let Err(error) = validate_schema_contract(schema) {
         errors.push(error);
@@ -664,7 +710,11 @@ pub fn evaluate(
 
     let cases = match scenarios.get("scenarios").and_then(Value::as_array) {
         Some(cases) => cases,
-        None => return Err(vec!["scenario corpus.scenarios must be an array".to_owned()]),
+        None => {
+            return Err(vec![
+                "scenario corpus.scenarios must be an array".to_owned(),
+            ]);
+        }
     };
     let oracle_rows = match oracle.get("results").and_then(Value::as_array) {
         Some(rows) => rows,
@@ -687,9 +737,13 @@ pub fn evaluate(
         if oracle_by_id.insert(id.to_owned(), row).is_some() {
             errors.push(format!("duplicate oracle scenario_id {id}"));
         }
-        if row.get("repair_ticket_is_restoration_evidence").and_then(Value::as_bool)
+        if row
+            .get("repair_ticket_is_restoration_evidence")
+            .and_then(Value::as_bool)
             != Some(false)
-            || row.get("alarm_clearance_is_restoration_evidence").and_then(Value::as_bool)
+            || row
+                .get("alarm_clearance_is_restoration_evidence")
+                .and_then(Value::as_bool)
                 != Some(false)
             || get_str(row, "quality_assessment") != Some("not_in_scope")
             || get_str(row, "evidence_ceiling") != Some("synthetic_design_only")
@@ -714,8 +768,8 @@ pub fn evaluate(
         if !scenario_id.starts_with("WRV-") || !scenario_ids.insert(scenario_id.to_owned()) {
             errors.push(format!("{context}: invalid or duplicate scenario ID"));
         }
-        let scenario_class = required_string(case, "scenario_class", &context)
-            .unwrap_or_else(|error| {
+        let scenario_class =
+            required_string(case, "scenario_class", &context).unwrap_or_else(|error| {
                 errors.push(error);
                 String::new()
             });
@@ -740,7 +794,9 @@ pub fn evaluate(
             errors.push(format!("{context}: unsupported scenario_class"));
         }
         if scenario_class == "recurrence_after_prior_restoration_claim" {
-            let prior = case.get("prior_restoration_claim").filter(|value| value.is_object());
+            let prior = case
+                .get("prior_restoration_claim")
+                .filter(|value| value.is_object());
             let prior_ref = prior.and_then(|value| get_str(value, "restoration_claim_ref"));
             let prior_time = prior.and_then(|value| get_str(value, "claimed_at"));
             if prior_ref.is_none()
@@ -761,25 +817,26 @@ pub fn evaluate(
         }
         if let Ok(lineage_ref) = event_lineage_ref {
             if !event_lineage_refs.insert(lineage_ref.clone()) {
-                errors.push(format!("{context}: duplicate event_lineage_ref {lineage_ref}"));
+                errors.push(format!(
+                    "{context}: duplicate event_lineage_ref {lineage_ref}"
+                ));
             }
         } else {
             errors.push(format!("{context}: event lineage identity is required"));
         }
         let ticket = case.get("repair_ticket").unwrap_or(&Value::Null);
-        let ticket_status = required_string(ticket, "status", &context)
-            .unwrap_or_else(|error| {
-                errors.push(error);
-                "unknown".to_owned()
-            });
+        let ticket_status = required_string(ticket, "status", &context).unwrap_or_else(|error| {
+            errors.push(error);
+            "unknown".to_owned()
+        });
         if !is_one_of(&ticket_status, &["open", "closed", "unknown"]) {
             errors.push(format!("{context}: unsupported repair ticket status"));
         }
         if required_string(ticket, "ticket_ref", &context).is_err() {
             errors.push(format!("{context}: repair ticket reference is required"));
         }
-        let alarm_status = required_string(case, "alarm_status", &context)
-            .unwrap_or_else(|error| {
+        let alarm_status =
+            required_string(case, "alarm_status", &context).unwrap_or_else(|error| {
                 errors.push(error);
                 "unknown".to_owned()
             });
@@ -844,7 +901,9 @@ pub fn evaluate(
             }
         }
         if seen_area_ids != profile.required_area_ids {
-            errors.push(format!("{context}: required area ID set is incomplete or different"));
+            errors.push(format!(
+                "{context}: required area ID set is incomplete or different"
+            ));
         }
 
         let geometry_revisions: BTreeSet<String> = areas
@@ -856,7 +915,9 @@ pub fn evaluate(
             .filter_map(|area| get_str(area, "topology_revision_ref").map(str::to_owned))
             .collect();
         if geometry_revisions.len() != 1 || topology_revisions.len() != 1 {
-            errors.push(format!("{context}: service-area vector mixes geometry/topology revisions"));
+            errors.push(format!(
+                "{context}: service-area vector mixes geometry/topology revisions"
+            ));
         }
 
         if let Err(error) = verify_aggregate(case, areas, &profile, &context) {
@@ -867,11 +928,7 @@ pub fn evaluate(
             .iter()
             .map(|result| result.disposition.clone())
             .collect();
-        let overall = overall_disposition(
-            &area_dispositions,
-            &alarm_status,
-            unresolved_conflict,
-        );
+        let overall = overall_disposition(&area_dispositions, &alarm_status, unresolved_conflict);
         let expected_overall = get_str(case, "expected_overall_disposition").unwrap_or("");
         if !is_one_of(
             expected_overall,
@@ -884,7 +941,9 @@ pub fn evaluate(
                 "invalid",
             ],
         ) {
-            errors.push(format!("{context}: unsupported expected overall disposition"));
+            errors.push(format!(
+                "{context}: unsupported expected overall disposition"
+            ));
         }
         if overall != expected_overall {
             errors.push(format!(
@@ -897,7 +956,9 @@ pub fn evaluate(
             errors.push(format!("{context}: scenario missing from separate oracle"));
         } else if let Some(row) = oracle_row {
             if get_str(row, "expected_overall_disposition") != Some(overall.as_str()) {
-                errors.push(format!("{context}: overall result differs from separate oracle"));
+                errors.push(format!(
+                    "{context}: overall result differs from separate oracle"
+                ));
             }
             let expected_areas = row
                 .get("expected_area_dispositions")
@@ -919,10 +980,14 @@ pub fn evaluate(
                     }
                 }
             } else {
-                errors.push(format!("{context}: oracle expected_area_dispositions must be an array"));
+                errors.push(format!(
+                    "{context}: oracle expected_area_dispositions must be an array"
+                ));
             }
             if expected_by_id.len() != profile.required_area_ids.len() {
-                errors.push(format!("{context}: oracle must contain exactly three area rows"));
+                errors.push(format!(
+                    "{context}: oracle must contain exactly three area rows"
+                ));
             }
             for result in &area_results {
                 if expected_by_id.get(&result.area_id) != Some(&result.disposition) {
@@ -993,12 +1058,15 @@ pub fn evaluate(
 mod tests {
     use super::*;
 
-    const SCENARIOS: &str =
-        include_str!("../../../../research/water-service-engineering/recovery-verification/scenarios-v0.1.json");
-    const SCHEMA: &str =
-        include_str!("../../../../research/water-service-engineering/recovery-verification/scenarios-v0.1.schema.json");
-    const ORACLE: &str =
-        include_str!("../../../../research/water-service-engineering/recovery-verification/disposition-oracle-v0.1.json");
+    const SCENARIOS: &str = include_str!(
+        "../../../../research/water-service-engineering/recovery-verification/scenarios-v0.1.json"
+    );
+    const SCHEMA: &str = include_str!(
+        "../../../../research/water-service-engineering/recovery-verification/scenarios-v0.1.schema.json"
+    );
+    const ORACLE: &str = include_str!(
+        "../../../../research/water-service-engineering/recovery-verification/disposition-oracle-v0.1.json"
+    );
 
     fn fixtures() -> (Value, Value, Value) {
         (
@@ -1030,71 +1098,104 @@ mod tests {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
         assert_eq!(result["results"][4]["overall_disposition"], "not_restored");
-        assert_eq!(result["results"][4]["aggregate_diagnostic_authoritative"], false);
+        assert_eq!(
+            result["results"][4]["aggregate_diagnostic_authoritative"],
+            false
+        );
     }
 
     #[test]
     fn single_independent_path_only_yields_candidate_restored() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][2]["area_results"][0]["disposition"], "candidate_restored");
+        assert_eq!(
+            result["results"][2]["area_results"][0]["disposition"],
+            "candidate_restored"
+        );
     }
 
     #[test]
     fn shared_gateway_does_not_count_as_two_independent_paths() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][8]["area_results"][0]["independent_pair_count"], 0);
-        assert_eq!(result["results"][8]["area_results"][0]["disposition"], "candidate_restored");
+        assert_eq!(
+            result["results"][8]["area_results"][0]["independent_pair_count"],
+            0
+        );
+        assert_eq!(
+            result["results"][8]["area_results"][0]["disposition"],
+            "candidate_restored"
+        );
     }
 
     #[test]
     fn incomplete_dwell_blocks_restored_area() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][3]["area_results"][0]["disposition"], "candidate_restored");
+        assert_eq!(
+            result["results"][3]["area_results"][0]["disposition"],
+            "candidate_restored"
+        );
     }
 
     #[test]
     fn stale_observation_cannot_verify_restoration() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][5]["area_results"][1]["disposition"], "indeterminate");
+        assert_eq!(
+            result["results"][5]["area_results"][1]["disposition"],
+            "indeterminate"
+        );
     }
 
     #[test]
     fn missing_required_observation_cannot_verify_restoration() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][6]["area_results"][1]["disposition"], "indeterminate");
+        assert_eq!(
+            result["results"][6]["area_results"][1]["disposition"],
+            "indeterminate"
+        );
     }
 
     #[test]
     fn interval_crossing_floor_is_indeterminate() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][7]["area_results"][1]["disposition"], "indeterminate");
+        assert_eq!(
+            result["results"][7]["area_results"][1]["disposition"],
+            "indeterminate"
+        );
     }
 
     #[test]
     fn stale_service_area_binding_is_indeterminate() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][9]["area_results"][1]["disposition"], "indeterminate");
+        assert_eq!(
+            result["results"][9]["area_results"][1]["disposition"],
+            "indeterminate"
+        );
     }
 
     #[test]
     fn breach_and_unknown_are_both_preserved() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][10]["overall_disposition"], "breached_with_indeterminate");
+        assert_eq!(
+            result["results"][10]["overall_disposition"],
+            "breached_with_indeterminate"
+        );
     }
 
     #[test]
     fn active_alarm_blocks_verified_restoration() {
         let (scenarios, schema, oracle) = fixtures();
         let result = evaluate(&scenarios, &schema, &oracle).expect("fixture validates");
-        assert_eq!(result["results"][11]["overall_disposition"], "candidate_restored");
+        assert_eq!(
+            result["results"][11]["overall_disposition"],
+            "candidate_restored"
+        );
     }
 
     #[test]
@@ -1109,15 +1210,26 @@ mod tests {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][0]["areas"][2]["area_id"] = json!("DMA-B");
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("duplicate area must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate area_id")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate area_id"))
+        );
     }
 
     #[test]
     fn omitted_required_area_is_rejected() {
         let (mut scenarios, schema, oracle) = fixtures();
-        scenarios["scenarios"][0]["areas"].as_array_mut().expect("areas").pop();
+        scenarios["scenarios"][0]["areas"]
+            .as_array_mut()
+            .expect("areas")
+            .pop();
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("missing area must fail");
-        assert!(errors.iter().any(|error| error.contains("required area ID set is incomplete")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("required area ID set is incomplete"))
+        );
     }
 
     #[test]
@@ -1125,7 +1237,12 @@ mod tests {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][0]["areas"][0]["unit"] = json!("m3/day");
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("wrong unit must fail");
-        assert!(errors.iter().any(|error| error.contains("expected area disposition") || error.contains("invalid")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("expected area disposition")
+                    || error.contains("invalid"))
+        );
     }
 
     #[test]
@@ -1133,8 +1250,13 @@ mod tests {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][0]["areas"][0]["observation_lower_bound"] = json!(0.95);
         scenarios["scenarios"][0]["areas"][0]["observation_upper_bound"] = json!(0.70);
-        let errors = evaluate(&scenarios, &schema, &oracle).expect_err("inverted interval must fail");
-        assert!(errors.iter().any(|error| error.contains("lower observation bound exceeds upper bound")));
+        let errors =
+            evaluate(&scenarios, &schema, &oracle).expect_err("inverted interval must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("lower observation bound exceeds upper bound"))
+        );
     }
 
     #[test]
@@ -1142,16 +1264,26 @@ mod tests {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][0]["areas"][0]["evidence_paths"][0]["failure_domains"][4]["domain_type"] =
             json!("clock_domain");
-        let errors = evaluate(&scenarios, &schema, &oracle).expect_err("duplicate domain type must fail");
-        assert!(errors.iter().any(|error| error.contains("duplicate failure-domain type")));
+        let errors =
+            evaluate(&scenarios, &schema, &oracle).expect_err("duplicate domain type must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate failure-domain type"))
+        );
     }
 
     #[test]
     fn aggregate_arithmetic_is_recomputed() {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][4]["aggregate_diagnostic"]["value"] = json!(0.9);
-        let errors = evaluate(&scenarios, &schema, &oracle).expect_err("incorrect aggregate must fail");
-        assert!(errors.iter().any(|error| error.contains("weighted aggregate arithmetic mismatch")));
+        let errors =
+            evaluate(&scenarios, &schema, &oracle).expect_err("incorrect aggregate must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("weighted aggregate arithmetic mismatch"))
+        );
     }
 
     #[test]
@@ -1159,15 +1291,24 @@ mod tests {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][0]["areas"][0]["evidence_state"] = json!("stale");
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("stale aggregate must fail");
-        assert!(errors.iter().any(|error| error.contains("weighted diagnostic cannot use stale")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("weighted diagnostic cannot use stale"))
+        );
     }
 
     #[test]
     fn non_normative_profile_is_required() {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["profile"]["values_are_normative"] = json!(true);
-        let errors = evaluate(&scenarios, &schema, &oracle).expect_err("normative profile must fail");
-        assert!(errors.iter().any(|error| error.contains("non-normative marker changed")));
+        let errors =
+            evaluate(&scenarios, &schema, &oracle).expect_err("normative profile must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("non-normative marker changed"))
+        );
     }
 
     #[test]
@@ -1175,25 +1316,40 @@ mod tests {
         let (scenarios, schema, mut oracle) = fixtures();
         oracle["results"][0]["expected_overall_disposition"] = json!("candidate_restored");
         let errors = evaluate(&scenarios, &schema, &oracle).expect_err("altered oracle must fail");
-        assert!(errors.iter().any(|error| error.contains("overall result differs from separate oracle")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("overall result differs from separate oracle"))
+        );
     }
 
     #[test]
     fn shared_failed_domain_removes_path_from_independent_count() {
         let (mut scenarios, schema, oracle) = fixtures();
-        let domain = scenarios["scenarios"][0]["areas"][0]["evidence_paths"][0]["failure_domains"][3].clone();
+        let domain = scenarios["scenarios"][0]["areas"][0]["evidence_paths"][0]["failure_domains"]
+            [3]
+        .clone();
         scenarios["scenarios"][0]["active_failed_domains"] = json!([domain]);
         let errors = evaluate(&scenarios, &schema, &oracle)
             .expect_err("failed shared domain must change result");
-        assert!(errors.iter().any(|error| error.contains("area result differs from separate oracle")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("area result differs from separate oracle"))
+        );
     }
 
     #[test]
     fn quality_assessment_remains_out_of_scope() {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["profile"]["quality_assessment"] = json!("potable_water_verified");
-        let errors = evaluate(&scenarios, &schema, &oracle).expect_err("quality boundary change must fail");
-        assert!(errors.iter().any(|error| error.contains("quality boundary")));
+        let errors =
+            evaluate(&scenarios, &schema, &oracle).expect_err("quality boundary change must fail");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("quality boundary"))
+        );
     }
     #[test]
     fn missing_repair_ticket_status_is_rejected() {
@@ -1201,7 +1357,11 @@ mod tests {
         scenarios["scenarios"][0]["repair_ticket"]["status"] = Value::Null;
         let errors = evaluate(&scenarios, &schema, &oracle)
             .expect_err("missing ticket status must fail closed");
-        assert!(errors.iter().any(|error| error.contains("repair_ticket.status")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("repair_ticket.status"))
+        );
     }
 
     #[test]
@@ -1209,9 +1369,13 @@ mod tests {
         let (mut scenarios, schema, oracle) = fixtures();
         scenarios["scenarios"][1]["event_lineage_ref"] =
             scenarios["scenarios"][0]["event_lineage_ref"].clone();
-        let errors = evaluate(&scenarios, &schema, &oracle)
-            .expect_err("event lineage must be unique");
-        assert!(errors.iter().any(|error| error.contains("duplicate event_lineage_ref")));
+        let errors =
+            evaluate(&scenarios, &schema, &oracle).expect_err("event lineage must be unique");
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("duplicate event_lineage_ref"))
+        );
     }
 
     #[test]
@@ -1220,7 +1384,11 @@ mod tests {
         scenarios["scenarios"][12]["prior_restoration_claim"] = Value::Null;
         let errors = evaluate(&scenarios, &schema, &oracle)
             .expect_err("recurrence must bind the prior restoration claim");
-        assert!(errors.iter().any(|error| error.contains("recurrence must bind a prior claim/time")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("recurrence must bind a prior claim/time"))
+        );
     }
-
 }
+
