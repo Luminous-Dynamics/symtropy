@@ -86,11 +86,11 @@ jobs:
 
           if inputs["policy"]["allow_release_authorization"] is not False:
               raise SystemExit("WATER_BARRIER_F0_RELEASE_POLICY_MUST_BE_FALSE")
-          if manifest["case_count"] != 18 or len(inputs["cases"]) != 18 or len(oracle["cases"]) != 18:
+          if manifest["case_count"] != 19 or len(inputs["cases"]) != 19 or len(oracle["cases"]) != 19:
               raise SystemExit("WATER_BARRIER_F0_CASE_COUNT_FAIL")
           ids = [case["case_id"] for case in inputs["cases"]]
           oracle_by_id = {row["case_id"]: row["expected"] for row in oracle["cases"]}
-          if len(set(ids)) != 18 or len(oracle_by_id) != 18 or sorted(ids) != sorted(oracle_by_id):
+          if len(set(ids)) != 19 or len(oracle_by_id) != 19 or sorted(ids) != sorted(oracle_by_id):
               raise SystemExit("WATER_BARRIER_F0_CASE_IDENTITY_FAIL")
           if any("expected" in case for case in inputs["cases"]):
               raise SystemExit("WATER_BARRIER_F0_INPUTS_EMBED_ORACLE_FAIL")
@@ -129,9 +129,6 @@ jobs:
                   reasons.append("SOURCE_HAZARD_UNKNOWN")
 
               required = {h["hazard_id"]: h for h in source["hazards"] if h["status"] == "DETECTED"}
-              for hazard, minimum in thresholds.items():
-                  required.setdefault(hazard, {"hazard_id": hazard, "status": "DETECTED", "_required_log": minimum})
-
               usable = []
               for module in i["modules"]:
                   module_id = module["module_id"]
@@ -162,6 +159,9 @@ jobs:
                   microbial = hazard_id in thresholds
                   minimum = thresholds[hazard_id] if microbial else hazard.get("minimum_required_reduction_percent", 0)
                   unit = "log10" if microbial else "percent_reduction"
+                  required_protocol_id = hazard["required_protocol_id"]
+                  required_protocol_version = hazard["required_protocol_version"]
+                  required_claim_basis = hazard["required_claim_basis"]
                   evidence = []
                   for module in usable:
                       for claim in module["claims"]:
@@ -171,6 +171,9 @@ jobs:
                               and claim["evidence_id"]
                               and claim["claim_unit"] == unit
                               and claim["claim_value"] >= minimum
+                              and claim["protocol_id"] == required_protocol_id
+                              and claim["protocol_version"] == required_protocol_version
+                              and claim["claim_basis"] == required_claim_basis
                           ):
                               evidence.append({
                                   "module_id": module["module_id"],
@@ -245,7 +248,7 @@ jobs:
                   )
               if actual["release_authorized"] or actual["potability_claim_permitted"]:
                   raise SystemExit(f"WATER_BARRIER_F0_FALSE_ASSURANCE: {case['case_id']}")
-          print("WATER_BARRIER_F0_PASS: 18 cases match independent replay and separate oracle; no release/potability authorization")
+          print("WATER_BARRIER_F0_PASS: 19 cases match independent replay and separate oracle; no release/potability authorization")
           PY
       - name: Evaluate water barrier F0 at exact revision
         id: water_barrier_f0
