@@ -133,9 +133,9 @@ impl CanopyPatch {
         }
         let field = self.lai_field();
         let mut open = BTreeSet::new();
-        for y in 0..self.height {
-            for x in 0..self.width {
-                if field[y * self.width + x] <= maximum_lai { open.insert((x, y)); }
+        for (index, lai) in field.iter().enumerate() {
+            if *lai <= maximum_lai {
+                open.insert((index % self.width, index / self.width));
             }
         }
         Ok(open)
@@ -181,11 +181,9 @@ impl CanopyPatch {
         }
         let transmittance = self.transmittance_field(extinction_coefficient)?;
         let mut eligible = BTreeSet::new();
-        for y in 0..self.height {
-            for x in 0..self.width {
-                if transmittance[y * self.width + x] >= minimum_transmittance {
-                    eligible.insert((x, y));
-                }
+        for (index, value) in transmittance.iter().enumerate() {
+            if *value >= minimum_transmittance {
+                eligible.insert((index % self.width, index / self.width));
             }
         }
         Ok(eligible)
