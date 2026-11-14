@@ -352,7 +352,9 @@ fn validate_protocol(protocol: &TargetTrialProtocol) -> Vec<String> {
         || !finite_non_negative(thresholds.minimum_arm_effective_sample_size)
         || !finite_non_negative(thresholds.maximum_absolute_standardized_mean_difference)
         || !finite_non_negative(thresholds.maximum_stabilized_weight)
-        || !thresholds.minimum_followup_completeness_fraction.is_finite()
+        || !thresholds
+            .minimum_followup_completeness_fraction
+            .is_finite()
         || !(0.0..=1.0).contains(&thresholds.minimum_followup_completeness_fraction)
     {
         blockers.push("identification thresholds are invalid".into());
@@ -381,7 +383,10 @@ fn validate_assumptions(
                 assessment.domain
             ));
         }
-        if by_domain.insert(assessment.domain, assessment.status).is_some() {
+        if by_domain
+            .insert(assessment.domain, assessment.status)
+            .is_some()
+        {
             blockers.push(format!(
                 "assumption is assessed more than once: {:?}",
                 assessment.domain
@@ -464,8 +469,7 @@ fn validate_timelines(
         }
         let time_zero = timeline.eligible_at_seconds;
         if (timeline.strategy_assignment_at_seconds - time_zero).abs() > TIME_TOLERANCE_SECONDS
-            || (timeline.followup_start_at_seconds - time_zero).abs()
-                > TIME_TOLERANCE_SECONDS
+            || (timeline.followup_start_at_seconds - time_zero).abs() > TIME_TOLERANCE_SECONDS
         {
             blockers.push(format!(
                 "unit {} does not align eligibility, assignment and follow-up at time zero",
@@ -501,8 +505,7 @@ fn validate_timelines(
                 || treatment_start < time_zero - TIME_TOLERANCE_SECONDS
                 || treatment_start
                     > time_zero + strategy.grace_period_seconds + TIME_TOLERANCE_SECONDS
-                || treatment_start
-                    > timeline.followup_end_at_seconds + TIME_TOLERANCE_SECONDS
+                || treatment_start > timeline.followup_end_at_seconds + TIME_TOLERANCE_SECONDS
             {
                 blockers.push(format!(
                     "unit {} has treatment start outside its declared strategy window",
@@ -538,8 +541,7 @@ fn validate_timelines(
             if covariate.available_at_seconds > time_zero + TIME_TOLERANCE_SECONDS {
                 blockers.push(format!(
                     "unit {} uses covariate {} that became available after time zero",
-                    timeline.emulation_unit_id,
-                    covariate.covariate_id
+                    timeline.emulation_unit_id, covariate.covariate_id
                 ));
             }
         }
@@ -552,9 +554,8 @@ fn validate_timelines(
     }
 
     if diagnostics.unit_timelines.len() != diagnostics.eligible_emulation_entry_count {
-        blockers.push(
-            "timeline row count does not match the declared emulation-entry count".into(),
-        );
+        blockers
+            .push("timeline row count does not match the declared emulation-entry count".into());
     }
     if asset_ids.len() != diagnostics.independent_cluster_count {
         blockers.push(
@@ -632,9 +633,7 @@ pub fn evaluate_observational_target_trial(
     {
         blockers.push("overlap diagnostics contain invalid numeric values".into());
     } else {
-        if overlap.common_support_fraction
-            < protocol.thresholds.minimum_common_support_fraction
-        {
+        if overlap.common_support_fraction < protocol.thresholds.minimum_common_support_fraction {
             blockers.push("common-support coverage is below the preregistered threshold".into());
         }
         if overlap.minimum_arm_effective_sample_size
@@ -643,7 +642,9 @@ pub fn evaluate_observational_target_trial(
             blockers.push("effective sample size is below the preregistered threshold".into());
         }
         if overlap.maximum_absolute_standardized_mean_difference
-            > protocol.thresholds.maximum_absolute_standardized_mean_difference
+            > protocol
+                .thresholds
+                .maximum_absolute_standardized_mean_difference
         {
             blockers.push("covariate balance is outside the preregistered threshold".into());
         }
@@ -663,7 +664,8 @@ pub fn evaluate_observational_target_trial(
     }
 
     if diagnostics.negative_control_status != AssessmentStatus::Supported {
-        blockers.push("negative control is unknown or violates its preregistered expectation".into());
+        blockers
+            .push("negative control is unknown or violates its preregistered expectation".into());
     }
     if !is_sha256_hex(&diagnostics.negative_control_evidence_sha256)
         || diagnostics.negative_control_reviewer_ref.trim().is_empty()
@@ -674,9 +676,13 @@ pub fn evaluate_observational_target_trial(
         blockers.push("sensitivity analysis is missing, unknown or incomplete".into());
     }
     if !is_sha256_hex(&diagnostics.sensitivity_analysis_evidence_sha256)
-        || diagnostics.sensitivity_analysis_reviewer_ref.trim().is_empty()
+        || diagnostics
+            .sensitivity_analysis_reviewer_ref
+            .trim()
+            .is_empty()
     {
-        blockers.push("sensitivity-analysis assessment lacks an evidence digest or reviewer".into());
+        blockers
+            .push("sensitivity-analysis assessment lacks an evidence digest or reviewer".into());
     }
 
     let disposition = if protocol_incomplete {
@@ -898,7 +904,12 @@ mod tests {
         data.unit_timelines[0].followup_start_at_seconds = 101.0;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("time zero")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("time zero"))
+        );
     }
 
     #[test]
@@ -907,7 +918,12 @@ mod tests {
         data.unit_timelines[0].baseline_covariates[0].available_at_seconds = 105.0;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("after time zero")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("after time zero"))
+        );
     }
 
     #[test]
@@ -915,8 +931,16 @@ mod tests {
         let mut spec = protocol();
         spec.baseline_covariates[0].timing = CovariateTiming::PostTreatment;
         let report = evaluate_observational_target_trial(&spec, &diagnostics());
-        assert_eq!(report.disposition, TargetTrialDisposition::ProtocolIncomplete);
-        assert!(report.blockers.iter().any(|item| item.contains("not an admissible baseline")));
+        assert_eq!(
+            report.disposition,
+            TargetTrialDisposition::ProtocolIncomplete
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("not an admissible baseline"))
+        );
     }
 
     #[test]
@@ -935,8 +959,18 @@ mod tests {
         data.overlap.minimum_arm_effective_sample_size = 8.0;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("common-support")));
-        assert!(report.blockers.iter().any(|item| item.contains("effective sample size")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("common-support"))
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("effective sample size"))
+        );
     }
 
     #[test]
@@ -944,8 +978,16 @@ mod tests {
         let mut spec = protocol();
         spec.treatment_strategies[0].grace_period_seconds = 300.0;
         let report = evaluate_observational_target_trial(&spec, &diagnostics());
-        assert_eq!(report.disposition, TargetTrialDisposition::ProtocolIncomplete);
-        assert!(report.blockers.iter().any(|item| item.contains("clone-censor-weight")));
+        assert_eq!(
+            report.disposition,
+            TargetTrialDisposition::ProtocolIncomplete
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("clone-censor-weight"))
+        );
     }
 
     #[test]
@@ -955,7 +997,12 @@ mod tests {
         data.independent_cluster_count = 39;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("parallel-group")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("parallel-group"))
+        );
     }
 
     #[test]
@@ -964,7 +1011,12 @@ mod tests {
         data.unit_timelines[0].followup_end_at_seconds = 500.0;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("premature administrative")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("premature administrative"))
+        );
     }
 
     #[test]
@@ -972,8 +1024,16 @@ mod tests {
         let mut spec = protocol();
         spec.cluster_group_key = "telemetry_row_id".into();
         let report = evaluate_observational_target_trial(&spec, &diagnostics());
-        assert_eq!(report.disposition, TargetTrialDisposition::ProtocolIncomplete);
-        assert!(report.blockers.iter().any(|item| item.contains("cluster unit")));
+        assert_eq!(
+            report.disposition,
+            TargetTrialDisposition::ProtocolIncomplete
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("cluster unit"))
+        );
     }
 
     #[test]
@@ -981,8 +1041,16 @@ mod tests {
         let mut spec = protocol();
         spec.cluster_robust_inference_declared = false;
         let report = evaluate_observational_target_trial(&spec, &diagnostics());
-        assert_eq!(report.disposition, TargetTrialDisposition::ProtocolIncomplete);
-        assert!(report.blockers.iter().any(|item| item.contains("cluster-robust")));
+        assert_eq!(
+            report.disposition,
+            TargetTrialDisposition::ProtocolIncomplete
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("cluster-robust"))
+        );
     }
 
     #[test]
@@ -999,7 +1067,12 @@ mod tests {
         data.sensitivity_analysis_status = AssessmentStatus::Unknown;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("sensitivity analysis")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("sensitivity analysis"))
+        );
     }
 
     #[test]
@@ -1008,7 +1081,12 @@ mod tests {
         data.unit_timelines[20].treatment_start_at_seconds = Some(100.0);
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("deferred/usual-care")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("deferred/usual-care"))
+        );
     }
 
     #[test]
@@ -1018,17 +1096,33 @@ mod tests {
         data.negative_control_reviewer_ref.clear();
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("negative-control assessment")));
-        assert!(report.blockers.iter().any(|item| item.contains("sensitivity-analysis assessment")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("negative-control assessment"))
+        );
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("sensitivity-analysis assessment"))
+        );
     }
 
     #[test]
     fn duplicate_strategy_arm_count_metadata_is_rejected() {
         let mut data = diagnostics();
-        data.strategy_arm_counts.push(data.strategy_arm_counts[0].clone());
+        data.strategy_arm_counts
+            .push(data.strategy_arm_counts[0].clone());
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("unknown or duplicated")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("unknown or duplicated"))
+        );
     }
 
     #[test]
@@ -1037,7 +1131,12 @@ mod tests {
         data.followup_completeness_fraction = 0.6;
         let report = evaluate_observational_target_trial(&protocol(), &data);
         assert_eq!(report.disposition, TargetTrialDisposition::NotIdentified);
-        assert!(report.blockers.iter().any(|item| item.contains("follow-up completeness")));
+        assert!(
+            report
+                .blockers
+                .iter()
+                .any(|item| item.contains("follow-up completeness"))
+        );
     }
 
     #[test]
