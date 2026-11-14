@@ -906,7 +906,10 @@ mod tests {
         assert_eq!(result.net_voi_minor_units, 1_650);
         assert_eq!(result.action_id.as_deref(), Some("scan-clear"));
         assert_eq!(result.loss_currency_code, "USD");
-        assert_eq!(result.observation_cost_currency_code.as_deref(), Some("USD"));
+        assert_eq!(
+            result.observation_cost_currency_code.as_deref(),
+            Some("USD")
+        );
         assert_eq!(result.observation_duration_minutes, 10);
         assert_eq!(result.observation_crew_minutes, 5);
         assert_eq!(result.observation_energy_wh, 50);
