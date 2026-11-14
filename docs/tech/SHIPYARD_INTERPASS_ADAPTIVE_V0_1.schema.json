@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic inter-pass planner input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "observation",
+    "active_state",
+    "decision_boundary",
+    "procedure_envelope",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-INTERPASS-ADAPTIVE-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_contract_only"
+    },
+    "observation": {
+      "$ref": "#/$defs/observation"
+    },
+    "active_state": {
+      "$ref": "#/$defs/active_state"
+    },
+    "decision_boundary": {
+      "$ref": "#/$defs/decision_boundary"
+    },
+    "procedure_envelope": {
+      "$ref": "#/$defs/procedure_envelope"
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_INTERPASS_PLAN_CONTRACT_ONLY"
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "after_pass_id",
+        "scan_id",
+        "coordinate_frame",
+        "residual_fill_area_units",
+        "uncertainty_bound_units",
+        "observed_at_tick",
+        "registered",
+        "coverage_permille",
+        "minimum_coverage_permille",
+        "occlusion_permille",
+        "maximum_occlusion_permille",
+        "registration_error_units",
+        "maximum_registration_error_units",
+        "scan_sha256",
+        "registration_receipt_sha256"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string"
+        },
+        "joint_revision": {
+          "type": "string"
+        },
+        "layer_id": {
+          "type": "string"
+        },
+        "after_pass_id": {
+          "type": "string"
+        },
+        "scan_id": {
+          "type": "string"
+        },
+        "coordinate_frame": {
+          "type": "string"
+        },
+        "residual_fill_area_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uncertainty_bound_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observed_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "registered": {
+          "type": "boolean"
+        },
+        "coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "occlusion_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maximum_occlusion_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "registration_error_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_registration_error_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "active_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "expected_predecessor_pass_id"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string"
+        },
+        "joint_revision": {
+          "type": "string"
+        },
+        "layer_id": {
+          "type": "string"
+        },
+        "expected_predecessor_pass_id": {
+          "type": "string"
+        }
+      }
+    },
+    "decision_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_at_tick",
+        "maximum_observation_age_ticks",
+        "future_information_used",
+        "model_domain_supported",
+        "live_execution_requested",
+        "maximum_accepted_uncertainty_units"
+      ],
+      "properties": {
+        "decision_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_observation_age_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "future_information_used": {
+          "const": false
+        },
+        "model_domain_supported": {
+          "const": true
+        },
+        "live_execution_requested": {
+          "const": false
+        },
+        "maximum_accepted_uncertainty_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "procedure_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "procedure_id",
+        "revision",
+        "scope",
+        "minimum_deposition_area_units",
+        "maximum_deposition_area_units",
+        "live_execution_authorized"
+      ],
+      "properties": {
+        "procedure_id": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "scope": {
+          "const": "synthetic_envelope_only"
+        },
+        "minimum_deposition_area_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_deposition_area_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "live_execution_authorized": {
+          "const": false
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id",
+        "source_scan_id",
+        "procedure_id",
+        "procedure_revision",
+        "deposition_area_units",
+        "duration_units",
+        "material_units",
+        "energy_units",
+        "robustness_risk_units",
+        "within_declared_procedure_envelope",
+        "resource_feasible",
+        "path_reachable",
+        "collision_free",
+        "source_scan_sha256",
+        "source_registration_receipt_sha256"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string"
+        },
+        "joint_revision": {
+          "type": "string"
+        },
+        "layer_id": {
+          "type": "string"
+        },
+        "predecessor_pass_id": {
+          "type": "string"
+        },
+        "source_scan_id": {
+          "type": "string"
+        },
+        "procedure_id": {
+          "type": "string"
+        },
+        "procedure_revision": {
+          "type": "string"
+        },
+        "deposition_area_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duration_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "material_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "energy_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_risk_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "within_declared_procedure_envelope": {
+          "type": "boolean"
+        },
+        "resource_feasible": {
+          "type": "boolean"
+        },
+        "path_reachable": {
+          "type": "boolean"
+        },
+        "collision_free": {
+          "type": "boolean"
+        },
+        "source_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
