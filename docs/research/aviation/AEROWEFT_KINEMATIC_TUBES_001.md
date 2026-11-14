@@ -238,3 +238,34 @@ The initial test corpus must remain synthetic. Any later real geography, airfiel
 No live traffic, surveillance or flight-plan ingestion; no operational weather feed; no aircraft-performance certification; no approved separation minima; no tactical instructions; no automated manoeuvre; no dispatch/clearance; no ATC/UTM connection; no onboard control; no airworthiness or regulatory conclusion; no physical trials.
 
 **AeroWeft's first success condition is not finding a route. It is being honest about the set of futures the declared model can and cannot rule out.**
+
+
+## 12. First executable foundation — 2026-11-14
+
+An isolated, dependency-free Rust research crate now exists at
+`tools/aeroweft-reachability` on the AeroWeft kinematic branch. It propagates
+finite position intervals through contiguous, caller-supplied, per-axis
+bounded-velocity intervals and emits an axis-aligned occupancy box for each
+time slice. The crate keeps additive nominal, state, model, control and
+disturbance contributions separately represented in the request. It expands
+binary64 addition and multiplication results outward by one representable
+step, rejects non-finite/overflow cases, and carries profile, frame and
+vertical-datum identifiers.
+
+The first corpus contains eight unit-test definitions and one separately
+compiled integration test using an integer-millimetre / integer-millisecond
+reference calculation. The dedicated workflow runs format, Clippy and locked
+tests for this standalone workspace.
+
+**This is only an interval integration foundation.** It does not derive
+velocity bounds from bank angle, airspeed, aircraft performance, weather or
+any real aircraft model. It does not implement the synthetic coordinated-turn
+profile described above. The caller must establish that every supplied
+velocity interval contains all instantaneous velocities over the entire
+slice. Axis-aligned interval propagation discards correlation and may become
+very conservative. A one-ULP arithmetic enclosure is not a proof of the
+physical model or all model/transform uncertainty.
+
+No exact-head Rust execution result has been established by this authoring
+session. The test definitions and workflow are present; they are not claimed
+as passed evidence.
