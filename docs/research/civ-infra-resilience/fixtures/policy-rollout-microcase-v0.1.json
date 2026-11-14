@@ -1,0 +1,97 @@
+{
+  "schema_version": "civ-infra-policy-rollout/0.1",
+  "fixture_id": "CIV-INFRA-ROLLOUT-MICRO-001",
+  "classification": "synthetic_only",
+  "claim_ceiling": "A deterministic, single-scenario software semantics check. Not evidence of physical robot safety, construction productivity, field reliability, or authority to dispatch.",
+  "horizon_ticks": 12,
+  "resources": [
+    { "resource_id": "robot-a", "capacity": 1, "resource_kind": "mobile-manipulator" },
+    { "resource_id": "robot-b", "capacity": 1, "resource_kind": "mobile-manipulator" },
+    { "resource_id": "crane", "capacity": 1, "resource_kind": "lifting-tool" },
+    { "resource_id": "inspector", "capacity": 1, "resource_kind": "inspection-platform" }
+  ],
+  "evidence_vocabulary": [
+    "prepared-panel-candidate",
+    "prefabrication-candidate",
+    "installation-check-candidate",
+    "final-inspection-pass-candidate"
+  ],
+  "tasks": [
+    {
+      "task_id": "prepare-panel",
+      "duration_ticks": 2,
+      "requires": [],
+      "resource_alternatives": ["robot-a", "robot-b"],
+      "acceptance_evidence": ["prepared-panel-candidate"]
+    },
+    {
+      "task_id": "prefabricate-components",
+      "duration_ticks": 2,
+      "requires": [],
+      "resource_alternatives": ["robot-b"],
+      "acceptance_evidence": ["prefabrication-candidate"]
+    },
+    {
+      "task_id": "install-assembly",
+      "duration_ticks": 1,
+      "requires": ["prepare-panel", "prefabricate-components"],
+      "resource_alternatives": ["crane"],
+      "acceptance_evidence": ["installation-check-candidate"]
+    },
+    {
+      "task_id": "inspect-assembly",
+      "duration_ticks": 1,
+      "requires": ["install-assembly"],
+      "resource_alternatives": ["inspector"],
+      "acceptance_evidence": ["final-inspection-pass-candidate"]
+    }
+  ],
+  "disturbance": {
+    "event_id": "E-001-robot-a-drive-fault",
+    "injection_tick": 1,
+    "observable_tick": 2,
+    "affected_resource": "robot-a",
+    "available_again_tick": 4,
+    "interrupted_work_is_lost": true,
+    "description": "Robot A suffers a repairable drive fault during panel preparation. Hardware protection interrupts the active attempt at tick 1; the planner may use the event only from tick 2. Robot A is declared available again at tick 4 after the synthetic repair interval."
+  },
+  "required_invariants": [
+    "policy_replanning_never_precedes_observation",
+    "interrupted_attempt_progress_is_discarded",
+    "accepted_synthetic_work_requires_every_task_and_final_inspection",
+    "capacity_one_resources_are_never_double_booked",
+    "synthetic_completion_does_not_claim_physical_qualification"
+  ],
+  "expected_outcomes": [
+    {
+      "policy_id": "B0",
+      "status": "protective_stop_no_accepted_output",
+      "accepted_synthetic_work": false,
+      "makespan_ticks": null,
+      "completed_task_count": 0,
+      "interrupted_attempt_count": 1,
+      "resource_reassignments": 0,
+      "replan_tick": null
+    },
+    {
+      "policy_id": "B1",
+      "status": "synthetic_acceptance_complete",
+      "accepted_synthetic_work": true,
+      "makespan_ticks": 8,
+      "completed_task_count": 4,
+      "interrupted_attempt_count": 1,
+      "resource_reassignments": 0,
+      "replan_tick": null
+    },
+    {
+      "policy_id": "B2",
+      "status": "synthetic_acceptance_complete",
+      "accepted_synthetic_work": true,
+      "makespan_ticks": 6,
+      "completed_task_count": 4,
+      "interrupted_attempt_count": 1,
+      "resource_reassignments": 1,
+      "replan_tick": 2
+    }
+  ]
+}
