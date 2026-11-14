@@ -54,7 +54,7 @@ fn make_candidate(states: &[&str]) -> ComponentCandidate {
             subject_ref: "component/synthetic-article".to_owned(),
             subject_revision: "design-r1".to_owned(),
             scope_ref: (*scope).to_owned(),
-            content_sha256: if index % 2 == 0 { HASH_A } else { HASH_B }.to_owned(),
+            content_sha256: (if index % 2 == 0 { HASH_A } else { HASH_B }).to_owned(),
             class: EvidenceClass::SyntheticFixture,
         })
         .collect::<Vec<_>>();
