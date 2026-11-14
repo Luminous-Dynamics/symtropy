@@ -1,0 +1,59 @@
+name: EV Session Export Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-session-audit/**"
+      - ".github/workflows/ev-session-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-session-audit/**"
+      - ".github/workflows/ev-session-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-session-audit/Cargo.toml --all -- --check
+      - name: Validate JSON fixture and schema
+        run: |
+          jq empty tools/ev-session-audit/fixtures/acn_style_synthetic_v0_1.json
+          jq empty tools/ev-session-audit/schemas/acn_style_export_v0_1.schema.json
+      - name: Run tests
+        run: cargo test --manifest-path tools/ev-session-audit/Cargo.toml --all-targets
+      - name: Run synthetic fixture and assert accounting invariants
+        run: |
+          cargo run --quiet --manifest-path tools/ev-session-audit/Cargo.toml -- \
+            tools/ev-session-audit/fixtures/acn_style_synthetic_v0_1.json \
+            --dataset-id synthetic-fixture-v0.1 \
+            --source-uri https://ev.caltech.edu/dataset \
+            --evidence-class synthetic > ev-session-audit-report.json
+          jq -e '.input_rows == 4 and .valid_rows == 2 and (.invalid_rows | length == 2) and .overall.valid_session_count == 2 and .overall.energy_delivered_kwh_total == 20 and .overall.connected_dwell_minutes.p50 == 105 and .overall.active_charging_minutes.p50 == 60 and .overall.post_charge_occupancy_minutes.p50 == 90 and .evidence_class_declared_by_caller == "synthetic"' ev-session-audit-report.json
+          ! grep -Eq 'fixture-session-|fixture-user-' ev-session-audit-report.json
+      - name: Hash tool, fixture and report
+        run: |
+          sha256sum tools/ev-session-audit/Cargo.toml tools/ev-session-audit/src/main.rs tools/ev-session-audit/fixtures/acn_style_synthetic_v0_1.json tools/ev-session-audit/schemas/acn_style_export_v0_1.schema.json tools/ev-session-audit/README.md ev-session-audit-report.json > ev-session-audit.sha256
+      - name: Upload reproducible audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-session-audit-${{ github.sha }}
+          path: |
+            ev-session-audit-report.json
+            ev-session-audit.sha256
+            tools/ev-session-audit/Cargo.toml
+            tools/ev-session-audit/src/main.rs
+            tools/ev-session-audit/fixtures/acn_style_synthetic_v0_1.json
+            tools/ev-session-audit/schemas/acn_style_export_v0_1.schema.json
+            tools/ev-session-audit/README.md
+          if-no-files-found: error
+          retention-days: 14
