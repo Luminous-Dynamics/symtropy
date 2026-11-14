@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/crates/tools/legal-scenario-compiler/schemas/generated-corpus-v0.1.schema.json",
+  "title": "Legal Scenario Compiler Generated Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_kind",
+    "generator_version",
+    "ruleset_id",
+    "ruleset_sha256",
+    "seed",
+    "cases",
+    "metamorphic_pairs",
+    "generator_source_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "dataset_kind": {
+      "const": "synthetic_only"
+    },
+    "generator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ruleset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ruleset_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 576,
+      "maxItems": 576,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "metamorphic_pairs": {
+      "type": "array",
+      "minItems": 534,
+      "maxItems": 534,
+      "items": {
+        "$ref": "#/$defs/pair"
+      }
+    },
+    "generator_source_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "$defs": {
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_id",
+        "role",
+        "span_id"
+      ],
+      "properties": {
+        "authority_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "binding_in_scope",
+            "persuasive_only",
+            "policy_only",
+            "metadata_only",
+            "unverified"
+          ]
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_permission",
+        "competence_confirmed",
+        "current_authority_available",
+        "required_fact_present",
+        "authority_conflict",
+        "wording_variant",
+        "reasoning_depth"
+      ],
+      "properties": {
+        "source_permission": {
+          "type": "string",
+          "enum": [
+            "allowed",
+            "denied",
+            "unknown"
+          ]
+        },
+        "competence_confirmed": {
+          "type": "boolean"
+        },
+        "current_authority_available": {
+          "type": "boolean"
+        },
+        "required_fact_present": {
+          "type": "boolean"
+        },
+        "authority_conflict": {
+          "type": "boolean"
+        },
+        "wording_variant": {
+          "type": "boolean"
+        },
+        "reasoning_depth": {
+          "type": "integer",
+          "enum": [
+            0,
+            1,
+            2,
+            4,
+            6,
+            8
+          ]
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "reason_code",
+        "claim_codes",
+        "citations",
+        "derived_facts",
+        "inference_trace",
+        "applicable_decision_rule_ids"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "answer",
+            "clarify",
+            "abstain",
+            "reject_source"
+          ]
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "derived_facts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "inference_trace": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "applicable_decision_rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "family",
+        "partition",
+        "scenario",
+        "prompt",
+        "expected",
+        "generated_inference_rules"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^GEN-D(0|1|2|4|6|8)-P[ADU]-C[01]-A[01]-F[01]-X[01]-W[01]$"
+        },
+        "family": {
+          "const": "fictional_jurisdiction_source_use_depth"
+        },
+        "partition": {
+          "type": "string",
+          "enum": [
+            "train",
+            "dev",
+            "test"
+          ]
+        },
+        "scenario": {
+          "$ref": "#/$defs/scenario"
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        },
+        "generated_inference_rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/inferenceRule"
+          }
+        }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source_case_id",
+        "target_case_id",
+        "relation",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relation": {
+          "type": "string",
+          "enum": [
+            "action_must_change",
+            "action_must_match",
+            "evidence_must_change",
+            "output_must_match"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "inferenceRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "requires",
+        "produces",
+        "rationale"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "produces": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
