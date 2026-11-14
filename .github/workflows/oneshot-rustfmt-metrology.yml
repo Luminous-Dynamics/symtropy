@@ -1,0 +1,54 @@
+name: One-shot Rust 1.96 formatting (metrology assurance)
+
+on:
+  push:
+    branches:
+      - "research/shipyard-metrology-assurance-v0-1"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Temporarily exclude nested verifier workspace for formatting
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("Cargo.toml")
+          content = path.read_text()
+          marker = 'exclude = [\n'
+          entry = '    "crates/tools/shipyard-metrology-assurance",\n'
+          if entry not in content:
+              if marker not in content:
+                  raise SystemExit("root workspace exclude list is missing")
+              content = content.replace(marker, marker + entry, 1)
+              path.write_text(content)
+          PY
+
+      - name: Apply pinned rustfmt
+        run: cargo fmt --manifest-path crates/tools/shipyard-metrology-assurance/Cargo.toml --all
+
+      - name: Commit formatter-only changes
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          if git diff --quiet -- crates/tools/shipyard-metrology-assurance/src/lib.rs; then
+            echo "Rust source already matches rustfmt 1.96"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add crates/tools/shipyard-metrology-assurance/src/lib.rs
+          git commit -m "style: apply Rust 1.96 formatting to metrology verifier"
+          git push origin "HEAD:${TARGET_BRANCH}"
