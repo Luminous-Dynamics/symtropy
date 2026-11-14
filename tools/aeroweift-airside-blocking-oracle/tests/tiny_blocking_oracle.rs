@@ -94,7 +94,7 @@ const RESERVATIONS: [Reservation; 10] = [
     },
 ];
 
-const EVENTS: [Event; 21] = [
+const EVENTS: [Event; 23] = [
     Event {
         event_id: "event-b-stand-acquire",
         aircraft_id: "aircraft-b",
@@ -177,12 +177,21 @@ const EVENTS: [Event; 21] = [
         blocker_aircraft_id: None,
     },
     Event {
+        event_id: "event-a-taxi-release",
+        aircraft_id: "aircraft-a",
+        resource_id: "taxi-link-1",
+        kind: EventKind::Release,
+        tick: 11,
+        predecessor: Some("event-a-taxi-acquire"),
+        blocker_aircraft_id: None,
+    },
+    Event {
         event_id: "event-a-stand-acquire",
         aircraft_id: "aircraft-a",
         resource_id: "stand-1",
         kind: EventKind::Acquire,
         tick: 11,
-        predecessor: Some("event-a-taxi-acquire"),
+        predecessor: Some("event-a-taxi-release"),
         blocker_aircraft_id: None,
     },
     Event {
@@ -258,12 +267,21 @@ const EVENTS: [Event; 21] = [
         blocker_aircraft_id: None,
     },
     Event {
+        event_id: "event-c-taxi-release",
+        aircraft_id: "aircraft-c",
+        resource_id: "taxi-link-1",
+        kind: EventKind::Release,
+        tick: 20,
+        predecessor: Some("event-c-taxi-acquire"),
+        blocker_aircraft_id: None,
+    },
+    Event {
         event_id: "event-c-stand-acquire",
         aircraft_id: "aircraft-c",
         resource_id: "stand-1",
         kind: EventKind::Acquire,
         tick: 20,
-        predecessor: Some("event-c-taxi-acquire"),
+        predecessor: Some("event-c-taxi-release"),
         blocker_aircraft_id: None,
     },
     Event {
@@ -284,7 +302,6 @@ const EVENTS: [Event; 21] = [
         predecessor: Some("event-c-charge-acquire"),
         blocker_aircraft_id: None,
     },
-    // The stand release is represented as the terminal event in a companion assertion.
 ];
 
 
