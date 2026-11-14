@@ -22,6 +22,7 @@ pub enum ForecastError {
     InvalidProbability,
     EmptyEventIdentity,
     MixedEventSlice,
+    InvalidConfidenceScore,
 }
 
 impl fmt::Display for ForecastError {
@@ -330,6 +331,75 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
 }
 
 
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SelectiveRiskCase {
+    pub forecast_id: String,
+    /// Declared confidence / acceptance score in [0, 1], higher ranks first.
+    pub confidence_score: f64,
+    pub forecast_samples: Vec<f64>,
+    pub observed: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RiskCoveragePoint {
+    pub selected_count: usize,
+    pub coverage_fraction: f64,
+    pub mean_crps_risk: f64,
+}
+
+/// Return the full deterministic risk–coverage curve.
+///
+/// Cases are ranked by descending confidence score. Ties are broken by forecast ID so
+/// input order cannot change the curve. Risk is empirical CRPS on the selected prefix.
+/// This is an offline benchmark diagnostic: every eligible case must provide a candidate
+/// forecast, including cases that would have been operationally abstained.
+pub fn selective_risk_coverage_curve(
+    cases: &[SelectiveRiskCase],
+) -> Result<Vec<RiskCoveragePoint>, ForecastError> {
+    if cases.is_empty() {
+        return Err(ForecastError::InvalidEnsembleSize);
+    }
+    let mut ids = BTreeSet::new();
+    let mut ranked = Vec::with_capacity(cases.len());
+    for case in cases {
+        if case.forecast_id.trim().is_empty() {
+            return Err(ForecastError::EmptyForecastIdentity);
+        }
+        if !ids.insert(case.forecast_id.as_str()) {
+            return Err(ForecastError::DuplicateForecastIdentity);
+        }
+        if !case.confidence_score.is_finite()
+            || !(0.0..=1.0).contains(&case.confidence_score)
+        {
+            return Err(ForecastError::InvalidConfidenceScore);
+        }
+        let crps = empirical_crps(&case.forecast_samples, case.observed)?;
+        ranked.push((case.forecast_id.as_str(), case.confidence_score, crps));
+    }
+    ranked.sort_by(|left, right| {
+        right
+            .1
+            .total_cmp(&left.1)
+            .then_with(|| left.0.cmp(right.0))
+    });
+
+    let denominator = count_as_f64(ranked.len())?;
+    let mut cumulative_risk = 0.0;
+    let mut curve = Vec::with_capacity(ranked.len());
+    for (index, (_, _, risk)) in ranked.iter().enumerate() {
+        cumulative_risk += risk;
+        let selected_count = index + 1;
+        let selected_as_f64 = count_as_f64(selected_count)?;
+        curve.push(RiskCoveragePoint {
+            selected_count,
+            coverage_fraction: selected_as_f64 / denominator,
+            mean_crps_risk: cumulative_risk / selected_as_f64,
+        });
+    }
+    Ok(curve)
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct BinaryEventForecast {
     pub forecast_id: String,
@@ -538,6 +608,38 @@ mod tests {
         }
     }
 
+
+
+    #[test]
+    fn risk_coverage_curve_ranks_high_confidence_forecasts_first() {
+        let cases = [
+            SelectiveRiskCase { forecast_id: "a".to_string(), confidence_score: 0.9, forecast_samples: vec![0.0, 1.0], observed: 0.5 },
+            SelectiveRiskCase { forecast_id: "b".to_string(), confidence_score: 0.8, forecast_samples: vec![2.0, 2.0], observed: 3.0 },
+            SelectiveRiskCase { forecast_id: "c".to_string(), confidence_score: 0.7, forecast_samples: vec![0.0, 2.0], observed: 1.0 },
+        ];
+        let curve = selective_risk_coverage_curve(&cases).expect("risk-coverage curve");
+        assert_eq!(curve.len(), 3);
+        assert_eq!(curve[0].coverage_fraction, 1.0 / 3.0);
+        assert!((curve[0].mean_crps_risk - 0.25).abs() < 1e-12);
+        assert!((curve[1].mean_crps_risk - 0.625).abs() < 1e-12);
+    }
+
+    #[test]
+    fn risk_coverage_curve_is_input_order_invariant_with_id_tie_breaks() {
+        let a = SelectiveRiskCase { forecast_id: "a".to_string(), confidence_score: 0.8, forecast_samples: vec![0.0], observed: 1.0 };
+        let b = SelectiveRiskCase { forecast_id: "b".to_string(), confidence_score: 0.8, forecast_samples: vec![0.0], observed: 2.0 };
+        let left = selective_risk_coverage_curve(&[a.clone(), b.clone()]).unwrap();
+        let right = selective_risk_coverage_curve(&[b, a]).unwrap();
+        assert_eq!(left, right);
+    }
+
+    #[test]
+    fn risk_coverage_curve_rejects_out_of_range_confidence() {
+        let result = selective_risk_coverage_curve(&[
+            SelectiveRiskCase { forecast_id: "bad".to_string(), confidence_score: 1.1, forecast_samples: vec![0.0], observed: 0.0 },
+        ]);
+        assert_eq!(result, Err(ForecastError::InvalidConfidenceScore));
+    }
 
     #[test]
     fn brier_score_matches_known_binary_probabilities() {
