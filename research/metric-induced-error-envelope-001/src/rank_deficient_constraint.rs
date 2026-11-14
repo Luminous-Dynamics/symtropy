@@ -14,10 +14,8 @@
 
 use core::marker::PhantomData;
 
-use crate::{
-    CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent,
-};
 use super::{ConstraintMultiplierV1, ConstraintResidualV1};
+use crate::{CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstraintQuotientProfileV1 {
@@ -149,9 +147,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
     }
 }
 
-fn validate_profile(
-    profile: ConstraintQuotientProfileV1,
-) -> Result<(), ConstraintQuotientErrorV1> {
+fn validate_profile(profile: ConstraintQuotientProfileV1) -> Result<(), ConstraintQuotientErrorV1> {
     if !profile.relative_rank_tolerance.is_finite()
         || profile.relative_rank_tolerance <= 0.0
         || profile.relative_rank_tolerance >= 1.0
@@ -199,11 +195,7 @@ fn h_norm<Space: CoordinateFrame, const K: usize>(
     Ok(squared.sqrt())
 }
 
-fn build_h_orthonormal_range_basis<
-    Space: CoordinateFrame,
-    const N: usize,
-    const K: usize,
->(
+fn build_h_orthonormal_range_basis<Space: CoordinateFrame, const N: usize, const K: usize>(
     jacobian: &[[f64; N]; K],
     residual_metric: &Metric<Space, K>,
     relative_rank_tolerance: f64,
@@ -307,9 +299,7 @@ fn cholesky_reduced<const K: usize>(
         .fold(0.0_f64, f64::max);
     let threshold = relative_pivot_tolerance * scale;
     if !scale.is_finite() || scale == 0.0 || !threshold.is_finite() {
-        return Err(ConstraintQuotientErrorV1::ReducedOperatorNotPositiveDefinite {
-            pivot: 0,
-        });
+        return Err(ConstraintQuotientErrorV1::ReducedOperatorNotPositiveDefinite { pivot: 0 });
     }
 
     let mut lower = [[0.0; K]; K];
@@ -325,9 +315,11 @@ fn cholesky_reduced<const K: usize>(
             }
             if row == column {
                 if value <= threshold {
-                    return Err(ConstraintQuotientErrorV1::ReducedOperatorNotPositiveDefinite {
-                        pivot: row,
-                    });
+                    return Err(
+                        ConstraintQuotientErrorV1::ReducedOperatorNotPositiveDefinite {
+                            pivot: row,
+                        },
+                    );
                 }
                 lower[row][column] = value.sqrt();
                 minimum_pivot = minimum_pivot.min(value);
@@ -443,18 +435,13 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             }
         }
 
-        let (
-            range_basis,
-            rank,
-            orthogonality_defect,
-            rank_resolved,
-            unresolved_relative_pivot,
-        ) = build_h_orthonormal_range_basis(
-            &jacobian,
-            residual_metric,
-            profile.relative_rank_tolerance,
-            profile.rank_uncertainty_factor,
-        )?;
+        let (range_basis, rank, orthogonality_defect, rank_resolved, unresolved_relative_pivot) =
+            build_h_orthonormal_range_basis(
+                &jacobian,
+                residual_metric,
+                profile.relative_rank_tolerance,
+                profile.rank_uncertainty_factor,
+            )?;
 
         // H U is the dual basis. In these coordinates the reduced quotient
         // operator K_r = U^T H W H U is positive definite on range(W).
@@ -475,7 +462,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         for left_axis in 0..rank {
             let left = std::array::from_fn(|coordinate| dual_range_basis[coordinate][left_axis]);
             for right_axis in left_axis..rank {
-                let right = std::array::from_fn(|coordinate| dual_range_basis[coordinate][right_axis]);
+                let right =
+                    std::array::from_fn(|coordinate| dual_range_basis[coordinate][right_axis]);
                 let mapped = mat_vec(&delassus, &right)?;
                 let value = crate::dot(&left, &mapped);
                 if !value.is_finite() {
@@ -486,11 +474,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             }
         }
 
-        let (reduced_cholesky, minimum_pivot) = cholesky_reduced(
-            &reduced,
-            rank,
-            profile.relative_reduced_pivot_tolerance,
-        )?;
+        let (reduced_cholesky, minimum_pivot) =
+            cholesky_reduced(&reduced, rank, profile.relative_reduced_pivot_tolerance)?;
 
         Ok(Self {
             mass: *mass,
@@ -537,9 +522,10 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
     ) -> Result<f64, ConstraintQuotientErrorV1> {
         let mapped = mat_vec(&self.delassus, multiplier.components())?;
         let squared = crate::dot(multiplier.components(), &mapped);
-        let scale = crate::vector_euclidean(multiplier.components())
-            * crate::vector_euclidean(&mapped);
-        if !squared.is_finite() || !scale.is_finite()
+        let scale =
+            crate::vector_euclidean(multiplier.components()) * crate::vector_euclidean(&mapped);
+        if !squared.is_finite()
+            || !scale.is_finite()
             || squared < -self.profile.relative_rank_tolerance * scale
         {
             return Err(ConstraintQuotientErrorV1::NegativeQuotientQuadraticForm);
@@ -635,9 +621,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         }
 
         let dual_pairing = crate::dot(&multiplier_components, &residual_components);
-        if !dual_pairing.is_finite()
-            || dual_pairing < -tolerance * residual_norm.max(1.0)
-        {
+        if !dual_pairing.is_finite() || dual_pairing < -tolerance * residual_norm.max(1.0) {
             return Err(ConstraintQuotientErrorV1::NegativeQuotientQuadraticForm);
         }
         let residual_dual_norm = dual_pairing.max(0.0).sqrt();
@@ -648,7 +632,9 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
                 generalized_force[dof] += self.jacobian[row][dof] * multiplier_components[row];
             }
         }
-        let correction = self.mass.raise(&Cotangent::<Frame, N>::new(generalized_force)?)?;
+        let correction = self
+            .mass
+            .raise(&Cotangent::<Frame, N>::new(generalized_force)?)?;
         let kinetic_norm = self.mass.tangent_norm(&correction)?;
 
         let mut reconstructed = [0.0; K];
@@ -756,24 +742,28 @@ mod tests {
         let velocity = [0.1, -0.2, 0.3];
         let jacobian = redundant_jacobian();
         std::array::from_fn(|row| {
-            (0..3).map(|column| jacobian[row][column] * velocity[column]).sum()
+            (0..3)
+                .map(|column| jacobian[row][column] * velocity[column])
+                .sum()
         })
     }
     fn close(left: f64, right: f64, tolerance: f64) {
         let scale = 1.0_f64.max(left.abs()).max(right.abs());
-        assert!((left - right).abs() <= tolerance * scale, "{left} != {right}");
+        assert!(
+            (left - right).abs() <= tolerance * scale,
+            "{left} != {right}"
+        );
     }
 
     #[test]
     fn duplicated_rows_create_multiplier_quotient_but_unique_physical_correction() {
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                redundant_jacobian(),
-                &residual_metric(),
-                quotient_profile(),
-            )
-            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            redundant_jacobian(),
+            &residual_metric(),
+            quotient_profile(),
+        )
+        .unwrap();
         assert_eq!(quotient.rank(), 2);
         assert_eq!(quotient.nullity(), 1);
 
@@ -797,14 +787,13 @@ mod tests {
 
     #[test]
     fn null_multiplier_shifts_preserve_quotient_norm_and_generalized_force() {
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                redundant_jacobian(),
-                &residual_metric(),
-                quotient_profile(),
-            )
-            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            redundant_jacobian(),
+            &residual_metric(),
+            quotient_profile(),
+        )
+        .unwrap();
         let lambda =
             ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([0.5, -0.75, 1.25]).unwrap();
         let shifted =
@@ -827,14 +816,13 @@ mod tests {
 
     #[test]
     fn incompatible_residual_is_never_silently_projected() {
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                redundant_jacobian(),
-                &residual_metric(),
-                quotient_profile(),
-            )
-            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            redundant_jacobian(),
+            &residual_metric(),
+            quotient_profile(),
+        )
+        .unwrap();
         let residual =
             ConstraintResidualV1::<OldConstraintSpace, 3>::new([0.4, -0.7, 0.41]).unwrap();
         let solved = quotient.solve_residual(&residual).unwrap();
@@ -849,11 +837,13 @@ mod tests {
         let h_old = residual_metric::<OldConstraintSpace>();
         let j_old = redundant_jacobian();
         let residual_old = compatible_residual();
-        let q_old =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass, j_old, &h_old, quotient_profile(),
-            )
-            .unwrap();
+        let q_old = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass,
+            j_old,
+            &h_old,
+            quotient_profile(),
+        )
+        .unwrap();
         let solved_old = q_old
             .solve_residual(
                 &ConstraintResidualV1::<OldConstraintSpace, 3>::new(residual_old).unwrap(),
@@ -878,11 +868,13 @@ mod tests {
             residual_old[1],
             residual_old[2],
         ];
-        let q_new =
-            RankDeficientDelassusQuotientV1::<Cartesian, NewConstraintSpace, 3, 3>::new(
-                &mass, j_new, &h_new, quotient_profile(),
-            )
-            .unwrap();
+        let q_new = RankDeficientDelassusQuotientV1::<Cartesian, NewConstraintSpace, 3, 3>::new(
+            &mass,
+            j_new,
+            &h_new,
+            quotient_profile(),
+        )
+        .unwrap();
         let solved_new = q_new
             .solve_residual(
                 &ConstraintResidualV1::<NewConstraintSpace, 3>::new(residual_new).unwrap(),
@@ -896,8 +888,14 @@ mod tests {
         );
         for dof in 0..3 {
             close(
-                solved_old.minimum_kinetic_correction().unwrap().components()[dof],
-                solved_new.minimum_kinetic_correction().unwrap().components()[dof],
+                solved_old
+                    .minimum_kinetic_correction()
+                    .unwrap()
+                    .components()[dof],
+                solved_new
+                    .minimum_kinetic_correction()
+                    .unwrap()
+                    .components()[dof],
                 2.0e-9,
             );
         }
@@ -905,14 +903,13 @@ mod tests {
 
     #[test]
     fn exact_rational_delassus_fixture_matches_independent_oracle() {
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                redundant_jacobian(),
-                &residual_metric(),
-                quotient_profile(),
-            )
-            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            redundant_jacobian(),
+            &residual_metric(),
+            quotient_profile(),
+        )
+        .unwrap();
         let expected = [
             [7.0 / 10.0, -1.0 / 5.0, 7.0 / 10.0],
             [-1.0 / 5.0, 23.0 / 15.0, -1.0 / 5.0],
@@ -920,25 +917,25 @@ mod tests {
         ];
         for row in 0..3 {
             for column in 0..3 {
-                close(quotient.matrix()[row][column], expected[row][column], 2.0e-13);
+                close(
+                    quotient.matrix()[row][column],
+                    expected[row][column],
+                    2.0e-13,
+                );
             }
         }
 
         // Exact rational solution class: (71/155, -123/310, 0) plus
         // arbitrary multiples of the null multiplier (1, 0, -1).
-        let exact_representative =
-            ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([
-                71.0 / 155.0,
-                -123.0 / 310.0,
-                0.0,
-            ])
-            .unwrap();
+        let exact_representative = ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([
+            71.0 / 155.0,
+            -123.0 / 310.0,
+            0.0,
+        ])
+        .unwrap();
         let residual =
             ConstraintResidualV1::<OldConstraintSpace, 3>::new([0.4, -0.7, 0.4]).unwrap();
-        let dual_pairing = crate::dot(
-            exact_representative.components(),
-            residual.components(),
-        );
+        let dual_pairing = crate::dot(exact_representative.components(), residual.components());
         close(dual_pairing, 1429.0 / 3100.0, 2.0e-13);
 
         let solved = quotient.solve_residual(&residual).unwrap();
@@ -953,18 +950,16 @@ mod tests {
     #[test]
     fn multiplier_quotient_norm_is_invariant_under_constraint_basis_change() {
         let h_old = residual_metric::<OldConstraintSpace>();
-        let q_old =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                redundant_jacobian(),
-                &h_old,
-                quotient_profile(),
-            )
-            .unwrap();
+        let q_old = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            redundant_jacobian(),
+            &h_old,
+            quotient_profile(),
+        )
+        .unwrap();
         let s = [[1.0, -2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         let rebasis =
-            Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(s, metric_profile())
-                .unwrap();
+            Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(s, metric_profile()).unwrap();
         let h_new = rebasis.metric_to_to(&h_old, metric_profile()).unwrap();
         let j_old = redundant_jacobian();
         let mut j_new = [[0.0; 3]; 3];
@@ -973,23 +968,19 @@ mod tests {
             j_new[1][column] = j_old[1][column];
             j_new[2][column] = j_old[2][column];
         }
-        let q_new =
-            RankDeficientDelassusQuotientV1::<Cartesian, NewConstraintSpace, 3, 3>::new(
-                &mass(),
-                j_new,
-                &h_new,
-                quotient_profile(),
-            )
-            .unwrap();
+        let q_new = RankDeficientDelassusQuotientV1::<Cartesian, NewConstraintSpace, 3, 3>::new(
+            &mass(),
+            j_new,
+            &h_new,
+            quotient_profile(),
+        )
+        .unwrap();
 
         let lambda_old =
             ConstraintMultiplierV1::<OldConstraintSpace, 3>::new([0.5, -0.75, 1.25]).unwrap();
-        let lambda_covector = Cotangent::<OldConstraintSpace, 3>::new(
-            *lambda_old.components(),
-        )
-        .unwrap();
-        let lambda_new_components =
-            rebasis.cotangent_to_to(&lambda_covector).unwrap();
+        let lambda_covector =
+            Cotangent::<OldConstraintSpace, 3>::new(*lambda_old.components()).unwrap();
+        let lambda_new_components = rebasis.cotangent_to_to(&lambda_covector).unwrap();
         let lambda_new = ConstraintMultiplierV1::<NewConstraintSpace, 3>::new(
             *lambda_new_components.components(),
         )
@@ -1023,25 +1014,24 @@ mod tests {
         assert_eq!(solved_q.status(), ConstraintResidualStatusV1::Compatible);
 
         // Independent generalized-coordinate rebase q = S y.
-        let generalized_rebasis =
-            Rebasis::<Cartesian, DenseFrame, 3>::new(
-                [[1.0, 2.0, 1.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]],
-                metric_profile(),
-            )
+        let generalized_rebasis = Rebasis::<Cartesian, DenseFrame, 3>::new(
+            [[1.0, 2.0, 1.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]],
+            metric_profile(),
+        )
+        .unwrap();
+        let mass_y = generalized_rebasis
+            .metric_to_to(&mass_q, metric_profile())
             .unwrap();
-        let mass_y = generalized_rebasis.metric_to_to(&mass_q, metric_profile()).unwrap();
-        let j_y =
-            crate::constraint_metric::rebase_constraint_jacobian(&j_q, &generalized_rebasis)
-                .unwrap();
+        let j_y = crate::constraint_metric::rebase_constraint_jacobian(&j_q, &generalized_rebasis)
+            .unwrap();
 
         // Independent constraint-equation rebase r_new = T r_old.
         let constraint_s = [[1.0, -2.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-        let constraint_rebasis =
-            Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(
-                constraint_s,
-                metric_profile(),
-            )
-            .unwrap();
+        let constraint_rebasis = Rebasis::<OldConstraintSpace, NewConstraintSpace, 3>::new(
+            constraint_s,
+            metric_profile(),
+        )
+        .unwrap();
         let h_new = constraint_rebasis
             .metric_to_to(&h_old, metric_profile())
             .unwrap();
@@ -1070,7 +1060,10 @@ mod tests {
                 &ConstraintResidualV1::<NewConstraintSpace, 3>::new(residual_new).unwrap(),
             )
             .unwrap();
-        assert_eq!(solved_y_new.status(), ConstraintResidualStatusV1::Compatible);
+        assert_eq!(
+            solved_y_new.status(),
+            ConstraintResidualStatusV1::Compatible
+        );
         assert_eq!(solved_y_new.numerical_rank(), solved_q.numerical_rank());
         close(
             solved_y_new.residual_dual_norm().unwrap(),
@@ -1083,7 +1076,10 @@ mod tests {
             .unwrap();
         for dof in 0..3 {
             close(
-                solved_y_new.minimum_kinetic_correction().unwrap().components()[dof],
+                solved_y_new
+                    .minimum_kinetic_correction()
+                    .unwrap()
+                    .components()[dof],
                 correction_y_expected.components()[dof],
                 3.0e-9,
             );
@@ -1099,25 +1095,25 @@ mod tests {
             relative_reduced_pivot_tolerance: 1.0e-12,
         };
         let near_dependent = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 5.0e-8, 1.0]];
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                near_dependent,
-                &residual_metric(),
-                profile,
-            )
-            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            near_dependent,
+            &residual_metric(),
+            profile,
+        )
+        .unwrap();
         let receipt = quotient.receipt();
         assert_eq!(receipt.numerical_rank, 2);
         assert!(!receipt.rank_resolved);
         assert!(receipt.unresolved_relative_pivot.is_some());
 
-        let residual = ConstraintResidualV1::<OldConstraintSpace, 3>::new(
-            std::array::from_fn(|row| {
-                (0..3).map(|column| near_dependent[row][column] * [0.1, -0.2, 0.3][column]).sum()
-            }),
-        )
-        .unwrap();
+        let residual =
+            ConstraintResidualV1::<OldConstraintSpace, 3>::new(std::array::from_fn(|row| {
+                (0..3)
+                    .map(|column| near_dependent[row][column] * [0.1, -0.2, 0.3][column])
+                    .sum()
+            }))
+            .unwrap();
         let outcome = quotient.solve_residual(&residual).unwrap();
         assert_eq!(outcome.status(), ConstraintResidualStatusV1::Inconclusive);
         assert!(outcome.minimum_kinetic_correction().is_none());
@@ -1133,14 +1129,13 @@ mod tests {
             relative_reduced_pivot_tolerance: 1.0e-12,
         };
         let full_rank = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0], [1.0, 1.0e-4, 1.0]];
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
-                &mass(),
-                full_rank,
-                &residual_metric(),
-                profile,
-            )
-            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 3>::new(
+            &mass(),
+            full_rank,
+            &residual_metric(),
+            profile,
+        )
+        .unwrap();
         assert_eq!(quotient.rank(), 3);
         assert!(quotient.receipt().rank_resolved);
         assert_eq!(quotient.nullity(), 0);
@@ -1149,16 +1144,15 @@ mod tests {
     #[test]
     fn rank_zero_jacobian_accepts_only_zero_residual() {
         let zero_j = [[0.0; 3]; 2];
-        let h = Metric::<OldConstraintSpace, 2>::admit(
-            [[1.0, 0.0], [0.0, 1.0]],
-            metric_profile(),
+        let h = Metric::<OldConstraintSpace, 2>::admit([[1.0, 0.0], [0.0, 1.0]], metric_profile())
+            .unwrap();
+        let quotient = RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 2>::new(
+            &mass(),
+            zero_j,
+            &h,
+            quotient_profile(),
         )
         .unwrap();
-        let quotient =
-            RankDeficientDelassusQuotientV1::<Cartesian, OldConstraintSpace, 3, 2>::new(
-                &mass(), zero_j, &h, quotient_profile(),
-            )
-            .unwrap();
         assert_eq!(quotient.rank(), 0);
         let zero = ConstraintResidualV1::<OldConstraintSpace, 2>::new([0.0, 0.0]).unwrap();
         assert_eq!(
