@@ -94,5 +94,15 @@
   ],
   "input_file": "intrusion-t0-scenarios-v0.1.json",
   "oracle_file": "intrusion-t0-oracle-v0.1.json",
-  "profile_revision": "0.2"
+  "profile_revision": "0.2",
+  "reverse_flow_boundary_design_file": "REVERSE_FLOW_BOUNDARY_T0_V0_1.md",
+  "evidence_status_snapshot": {
+    "snapshot_date": "2026-11-14",
+    "synthetic_t0_case_count": 15,
+    "source_level_oracle_replay": "pending_final_independent_replay",
+    "native_rust_build_tests_rustfmt_clippy": "pending_exact_head_hosted_workflow",
+    "physical_t1_reverse_flow_measurement": "not_performed",
+    "physical_t1_tracer_transport": "not_performed",
+    "potable_water_or_health_qualification": "not_performed"
+  }
 }
