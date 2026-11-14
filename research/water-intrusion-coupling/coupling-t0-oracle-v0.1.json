@@ -11,9 +11,9 @@
         "interface_disposition": "CHAIN_CONTRACT_VALID_FOR_BOUNDED_MODEL_COMPARISON",
         "qualification_status": "NotRun",
         "stage_count": 5,
-        "measured_observation_count": 3,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "observation_channel_count": 3
       }
     },
     {
