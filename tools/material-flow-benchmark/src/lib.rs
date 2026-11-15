@@ -657,7 +657,7 @@ impl ScenarioManifest {
                     .into(),
             );
         }
-        check_nonempty(&mut *errors, "authorization.actions", auth.actions.len());
+        check_nonempty(errors, "authorization.actions", auth.actions.len());
         check_unique(
             errors,
             "authorization.actions",
@@ -670,6 +670,9 @@ impl ScenarioManifest {
             errors.push(
                 "authorization.actions: ReceiveExternalPackage is required".into(),
             );
+        }
+        if !auth.actions.contains(&AuthorizationAction::TransferToTote) {
+            errors.push("authorization.actions: TransferToTote is required".into());
         }
         let required_destination_action = match self.location(&self.flow.destination_node_id) {
             Some(location) => match location.kind {
