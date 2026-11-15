@@ -328,7 +328,8 @@
       ],
       "predecessor_event_ids": [
         "event-delivered-001"
-      ]
+      ],
+      "location_ref": "location-cabinet-east"
     },
     {
       "event_id": "event-reconciled-001",
@@ -361,7 +362,8 @@
       ],
       "predecessor_event_ids": [
         "event-reconciled-001"
-      ]
+      ],
+      "location_ref": "location-cabinet-east"
     },
     {
       "event_id": "event-delivered-002",
@@ -393,7 +395,8 @@
       ],
       "predecessor_event_ids": [
         "event-delivered-002"
-      ]
+      ],
+      "location_ref": "location-cabinet-east"
     },
     {
       "event_id": "event-reconciled-late",
@@ -442,7 +445,8 @@
       ],
       "predecessor_event_ids": [
         "event-wrong-delivered"
-      ]
+      ],
+      "location_ref": "location-cabinet-east"
     },
     {
       "event_id": "event-duplicate-assignment",
@@ -459,7 +463,8 @@
       "predecessor_event_ids": [
         "event-design-slot-02",
         "event-installed-001"
-      ]
+      ],
+      "location_ref": "location-cabinet-spare"
     },
     {
       "event_id": "event-design-slot-02",
@@ -540,7 +545,8 @@
       ],
       "predecessor_event_ids": [
         "event-rev-b-delivered"
-      ]
+      ],
+      "location_ref": "location-cabinet-east"
     }
   ],
   "scenarios": [
