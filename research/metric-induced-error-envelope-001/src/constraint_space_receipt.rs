@@ -22,14 +22,16 @@
 
 use core::marker::PhantomData;
 
-use crate::constraint_metric::{ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1};
+use crate::constraint_metric::{
+    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1, rebase_constraint_jacobian,
+};
+use crate::operator::{OperatorConditionErrorV1, OperatorConditionProfileV1};
 use crate::rectangular_operator::{
     RectangularOperatorConditionReceiptV1, RectangularOperatorStatusV1,
     RectangularTangentToTangentOperator,
 };
 use crate::{
-    CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, OperatorConditionErrorV1,
-    OperatorConditionProfileV1, Rebasis, Tangent,
+    CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -378,7 +380,6 @@ pub fn rebase_constraint_jacobian_both<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constraint_metric::rebase_constraint_jacobian;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct CartesianQ;
