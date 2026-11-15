@@ -91,7 +91,30 @@ cargo fmt --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo clippy --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml --all-targets -- -D warnings
 ```
 
-## 5. Research tournament and proposed targets
+## 5. Covariance-aware uncertainty consumer (composes #4652 / PR #4654)
+
+A ratio is not uncertainty-free just because its numerator and denominator each have standard errors. For turnover (T=P/S), where (P) is annual productivity and (S) is standing stock, the first-order Jacobian at ((P_0,S_0)) is:
+
+`J = [1/S_0, -P_0/S_0^2]`
+
+The first-order variance is:
+
+`Var(T) ≈ J Σ Jᵀ`
+
+The off-diagonal covariance term is essential. Positive covariance between numerator and denominator can reduce ratio uncertainty; negative covariance can increase it. Source identities or a shared dependence-group label do not determine the numerical covariance. The covariance matrix must come from admitted measurement/sampling evidence.
+
+The AFEX consumer has been added to the existing generic covariance engine rather than implementing a second one:
+- [#4652 — correlated uncertainty propagation](https://github.com/Luminous-Dynamics/symtropy/issues/4652);
+- [PR #4654 — first-order covariance/Jacobian engine](https://github.com/Luminous-Dynamics/symtropy/pull/4654);
+- [AFEX sweep extension](https://github.com/Luminous-Dynamics/symtropy/blob/research/civdyn-uncertainty-propagation-v0-1/research/civdyn-self-correction/src/bin/uncertainty_propagation_sweep.rs).
+
+Its known-answer case uses dimensionless normalized reference coordinates at (P_0=1.2), (S_0=1.0), with (operatorname{Var}(P)=0.04), (operatorname{Var}(S)=0.01), and (operatorname{Cov}(P,S)=0.005). The affine first-order representation carries the local offset as a deterministic third input, so the propagated estimate is 1.2 and variance is 0.0424. Explicit zero-covariance ablation yields 0.0544; negative covariance -0.005 yields 0.0664. These are synthetic dimensionless checks, not AFEX uncertainty estimates.
+
+The v0.1 engine requires one canonical input coordinate/unit. Therefore the AFEX ratio example is dimensionlessly normalized, with physical unit/scale transforms registered separately before use; the corresponding physical output scale is yr⁻¹.
+
+**Important limitation:** first-order propagation is not a full ratio distribution. Before using this result for a field claim, the denominator must be demonstrably positive over the declared uncertainty support. When denominator uncertainty is large or the interval approaches zero, the delta approximation is not enough; use an appropriate Fieller interval or nonlinear Monte Carlo/ensemble propagation, or abstain as NotAssessed. This nonlinear ratio method remains a research follow-on, not implemented by the current linear covariance engine.
+
+## 6. Research tournament and proposed targets
 
 Once corresponding-author stock values and plot-level productivity files are admitted, compare:
 - stock-only model;
@@ -110,6 +133,6 @@ Proposed targets (not achieved):
 - calibrated uncertainty propagated through numerator/denominator covariance once raw measurement uncertainty is admitted;
 - replicated treatment response on a separate site or experiment before transfer claims.
 
-## 6. Claim ceiling
+## 7. Claim ceiling
 
 Synthetic PASS means only arithmetic and support-pairing logic passed. The published summary effect sizes are source-transcribed literature facts with arithmetic crosschecks, not independent raw-data reproduction. Root stock data used by the 2026 paper are not in the public EIDC dataset according to its data-availability statement. No raw-data reanalysis, causal re-estimation, forest calibration, cross-site transfer or SOTA superiority is claimed.
