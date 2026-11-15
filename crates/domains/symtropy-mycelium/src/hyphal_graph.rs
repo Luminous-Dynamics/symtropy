@@ -133,6 +133,12 @@ pub struct FusionEvent {
     pub second_segment: SegmentId,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum AppliedGraphEvent {
+    Branch(BranchEvent),
+    Fusion(FusionEvent),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum GraphError {
     NonFinitePosition,
@@ -147,6 +153,7 @@ pub enum GraphError {
     InvalidAttachmentFraction,
     NotActiveTip(NodeId),
     SameFusionTip,
+    EventIdConflict(EventId),
 }
 
 impl fmt::Display for GraphError {
@@ -164,6 +171,7 @@ impl fmt::Display for GraphError {
             Self::InvalidAttachmentFraction => write!(f, "branch attachment fraction must be inside (0, 1)"),
             Self::NotActiveTip(id) => write!(f, "node {:?} is not an active tip", id),
             Self::SameFusionTip => write!(f, "fusion requires two distinct tips"),
+            Self::EventIdConflict(id) => write!(f, "event ID {:?} was reused with a different payload", id),
         }
     }
 }
@@ -179,7 +187,7 @@ impl std::error::Error for GraphError {}
 pub struct HyphalGraph {
     nodes: BTreeMap<NodeId, HyphalNode>,
     segments: BTreeMap<SegmentId, HyphalSegment>,
-    applied_events: BTreeSet<EventId>,
+    applied_events: BTreeMap<EventId, AppliedGraphEvent>,
 }
 
 impl HyphalGraph {
@@ -212,7 +220,7 @@ impl HyphalGraph {
     }
 
     pub fn contains_event(&self, id: EventId) -> bool {
-        self.applied_events.contains(&id)
+        self.applied_events.contains_key(&id)
     }
 
     pub fn total_length_mm(&self) -> f64 {
@@ -250,8 +258,12 @@ impl HyphalGraph {
 
     /// Apply a branch transactionally. A repeated event ID is idempotent.
     pub fn apply_branch(&mut self, event: BranchEvent) -> Result<ApplyOutcome, GraphError> {
-        if self.applied_events.contains(&event.id) {
-            return Ok(ApplyOutcome::AlreadyApplied);
+        if let Some(applied) = self.applied_events.get(&event.id) {
+            return if *applied == AppliedGraphEvent::Branch(event) {
+                Ok(ApplyOutcome::AlreadyApplied)
+            } else {
+                Err(GraphError::EventIdConflict(event.id))
+            };
         }
         if !event.attachment_fraction.is_finite()
             || event.attachment_fraction <= 0.0
@@ -323,7 +335,7 @@ impl HyphalGraph {
             diameter_mm: parent.diameter_mm,
             state: HyphalSegmentState::Active,
         })?;
-        next.applied_events.insert(event.id);
+        next.applied_events.insert(event.id, AppliedGraphEvent::Branch(event));
         *self = next;
         Ok(ApplyOutcome::Applied)
     }
@@ -331,8 +343,12 @@ impl HyphalGraph {
     /// Fuse two active tips transactionally. The new connecting segment
     /// diameters remain unknown rather than being inferred from either parent.
     pub fn apply_fusion(&mut self, event: FusionEvent) -> Result<ApplyOutcome, GraphError> {
-        if self.applied_events.contains(&event.id) {
-            return Ok(ApplyOutcome::AlreadyApplied);
+        if let Some(applied) = self.applied_events.get(&event.id) {
+            return if *applied == AppliedGraphEvent::Fusion(event) {
+                Ok(ApplyOutcome::AlreadyApplied)
+            } else {
+                Err(GraphError::EventIdConflict(event.id))
+            };
         }
         if event.first_tip == event.second_tip {
             return Err(GraphError::SameFusionTip);
@@ -394,7 +410,7 @@ impl HyphalGraph {
             diameter_mm: None,
             state: HyphalSegmentState::Active,
         })?;
-        next.applied_events.insert(event.id);
+        next.applied_events.insert(event.id, AppliedGraphEvent::Fusion(event));
         *self = next;
         Ok(ApplyOutcome::Applied)
     }
@@ -547,6 +563,33 @@ mod tests {
         assert_eq!(graph.apply_branch(event).unwrap(), ApplyOutcome::Applied);
         let snapshot = graph.clone();
         assert_eq!(graph.apply_branch(event).unwrap(), ApplyOutcome::AlreadyApplied);
+        assert_eq!(graph, snapshot);
+    }
+
+    #[test]
+    fn reusing_event_id_with_a_different_payload_is_rejected() {
+        let mut graph = linear_graph();
+        let original = BranchEvent {
+            id: EventId(13),
+            parent_segment: SegmentId(1),
+            attachment_fraction: 0.5,
+            branch_node: NodeId(3),
+            branch_tip: NodeId(4),
+            proximal_segment: SegmentId(2),
+            distal_segment: SegmentId(3),
+            branch_segment: SegmentId(4),
+            branch_tip_position: Position3Mm::new(5.0, 5.0, 0.0),
+        };
+        graph.apply_branch(original).unwrap();
+        let snapshot = graph.clone();
+        let conflicting = BranchEvent {
+            branch_tip_position: Position3Mm::new(5.0, 6.0, 0.0),
+            ..original
+        };
+        assert_eq!(
+            graph.apply_branch(conflicting),
+            Err(GraphError::EventIdConflict(EventId(13)))
+        );
         assert_eq!(graph, snapshot);
     }
 
