@@ -199,7 +199,7 @@ fn valid_nonnegative(value: f64) -> bool {
 
 fn valid_utc_timestamp(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() == 20
+    let shape_is_valid = bytes.len() == 20
         && bytes[4] == b'-'
         && bytes[7] == b'-'
         && bytes[10] == b'T'
@@ -208,7 +208,45 @@ fn valid_utc_timestamp(value: &str) -> bool {
         && bytes[19] == b'Z'
         && bytes.iter().enumerate().all(|(index, byte)| {
             matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
-        })
+        });
+    if !shape_is_valid {
+        return false;
+    }
+
+    let Some(year) = value[0..4].parse::<u32>().ok() else {
+        return false;
+    };
+    let Some(month) = value[5..7].parse::<u32>().ok() else {
+        return false;
+    };
+    let Some(day) = value[8..10].parse::<u32>().ok() else {
+        return false;
+    };
+    let Some(hour) = value[11..13].parse::<u32>().ok() else {
+        return false;
+    };
+    let Some(minute) = value[14..16].parse::<u32>().ok() else {
+        return false;
+    };
+    let Some(second) = value[17..19].parse::<u32>().ok() else {
+        return false;
+    };
+
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+
+    year > 0
+        && day >= 1
+        && day <= days_in_month
+        && hour <= 23
+        && minute <= 59
+        && second <= 59
 }
 
 fn observation_is_metrologically_scoreable(
@@ -850,10 +888,10 @@ mod tests {
     }
 
     #[test]
-    fn frozen_fixture_matches_all_thirteen_dispositions() {
+    fn frozen_fixture_matches_all_fifteen_dispositions() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(report.scenario_count, 13);
-        assert_eq!(report.matched_expectations, 13);
+        assert_eq!(report.scenario_count, 15);
+        assert_eq!(report.matched_expectations, 15);
         assert_eq!(report.mismatched_expectations, 0);
         assert_eq!(report.evidence_class, "synthetic");
         assert!(!report.physical_measurements);
@@ -1060,6 +1098,37 @@ mod tests {
         assert_eq!(
             result_for(&report, "synthetic-balanced-accounting-positive").disposition,
             "BLOCKED"
+        );
+    }
+
+
+    #[test]
+    fn invalid_calendar_date_in_calibration_receipt_is_blocked() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(
+            result_for(&report, "blocked-invalid-calendar-date").disposition,
+            "BLOCKED"
+        );
+    }
+
+    #[test]
+    fn failed_cross_sensitivity_qualification_is_rejected() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(
+            result_for(&report, "rejected-cross-sensitivity-failure").disposition,
+            "REJECTED"
+        );
+    }
+
+    #[test]
+    fn present_but_wrong_calibration_identity_is_rejected() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["product"]["calibration_ref"] =
+            serde_json::json!("different-calibration");
+        let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
+        assert_eq!(
+            result_for(&report, "synthetic-balanced-accounting-positive").disposition,
+            "REJECTED"
         );
     }
 
