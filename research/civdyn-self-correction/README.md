@@ -288,6 +288,13 @@ The propagated output state validates independently after remapping source linea
 2. Explicit zero covariance ablation, showing the difference between a registered zero-covariance assumption and a supplied nonzero covariance.
 3. Shared calibration error with covariance \`[[4,4],[4,4]]\`: uncertainty reinforces in the sum (variance 16) and cancels in the difference (variance 0).
 4. Explicit spatial-crosswalk adjustment as a second uncertain input, including covariance with the original sampled estimate. Output estimate is 102 with variance 6.
+5. AFEX fine-root turnover as a nonlinear ratio, approximated by a first-order Taylor/Jacobian transform at normalized productivity 1.2 and stock 1.0. The linearization includes a deterministic affine offset input so the output mean is the ratio estimate, not merely the local increment.
+   - Positive productivity/stock covariance 0.005 with variances 0.04 and 0.01 gives turnover estimate 1.2 and propagated variance 0.0424.
+   - Explicit zero covariance gives variance 0.0544.
+   - Negative covariance -0.005 gives variance 0.0664.
+   - The full covariance matrix and source receipts are retained. The dependence-group label does not manufacture covariance; the off-diagonal matrix entry is authoritative.
+
+The AFEX values are synthetic and dimensionlessly normalized reference coordinates. Before empirical use, source-specific unit/scale transforms must be separately registered and the physical turnover scale restored as yr⁻¹. The example demonstrates the first-order uncertainty propagation contract; it is not an estimate from AFEX plot-level data.
 
 ### Claim boundaries
 
