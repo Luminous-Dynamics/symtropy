@@ -371,25 +371,29 @@ pub fn global_morans_i(
     if !denominator.is_finite() {
         return Err(SpatialLocalizationError::NumericOverflow);
     }
-    if denominator <= f64::EPSILON {
+    if denominator == 0.0 {
         return Ok(None);
     }
 
     let mut spatial_lag_product = 0.0;
     let mut weight_sum = 0.0;
-    for left_index in 0..points.len() {
-        for right_index in 0..points.len() {
+    for (left_index, (left_point, left_residual)) in
+        points.iter().zip(centered.iter()).enumerate()
+    {
+        for (right_index, (right_point, right_residual)) in
+            points.iter().zip(centered.iter()).enumerate()
+        {
             if left_index == right_index {
                 continue;
             }
-            let dx = points[left_index].x_m - points[right_index].x_m;
-            let dy = points[left_index].y_m - points[right_index].y_m;
+            let dx = left_point.x_m - right_point.x_m;
+            let dy = left_point.y_m - right_point.y_m;
             let distance = dx.hypot(dy);
             if !distance.is_finite() {
                 return Err(SpatialLocalizationError::NumericOverflow);
             }
             if distance <= neighbour_radius_m {
-                spatial_lag_product += centered[left_index] * centered[right_index];
+                spatial_lag_product += left_residual * right_residual;
                 weight_sum += 1.0;
             }
         }
@@ -575,6 +579,7 @@ mod tests {
             Err(SpatialLocalizationError::InvalidResidual)
         );
     }
+
     fn residual_point(id: &str, x_m: f64, residual: f64) -> SpatialResidualPoint {
         SpatialResidualPoint {
             point_id: id.to_string(),
