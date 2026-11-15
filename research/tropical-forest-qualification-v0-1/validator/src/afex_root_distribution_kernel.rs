@@ -134,8 +134,18 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         return Err("AFEX root-distribution corpus identity mismatch".to_string());
     }
     let claim_ceiling = string_at(manifest, "claim_ceiling")?;
-    if !claim_ceiling.contains("not estimated from AFEX raw plot-level observations") {
-        return Err("AFEX root-distribution claim ceiling missing".to_string());
+    if !claim_ceiling.contains("not estimated from AFEX raw plot-level observations")
+        || string_at(manifest, "evidence_class")? != "synthetic_analytic_known_truth" {
+        return Err("AFEX root-distribution claim ceiling or evidence class invalid".to_string());
+    }
+    let execution = manifest.get("execution").ok_or_else(|| "execution metadata required".to_string())?;
+    if execution.get("analytic_reference_calculated_independently").and_then(Value::as_bool) != Some(true)
+        || execution.get("monte_carlo_engine_invoked").and_then(Value::as_bool) != Some(false)
+        || execution.get("empirical_marginals_admitted").and_then(Value::as_bool) != Some(false)
+        || execution.get("empirical_covariance_admitted").and_then(Value::as_bool) != Some(false)
+        || execution.get("monte_carlo_engine_owner_issue").and_then(Value::as_u64) != Some(3973)
+        || execution.get("first_order_covariance_engine_owner_issue").and_then(Value::as_u64) != Some(4652) {
+        return Err("AFEX root-distribution execution boundary metadata invalid".to_string());
     }
 
     let model = manifest.get("measurement_model")
@@ -263,8 +273,8 @@ mod tests {
         let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest).expect("analytic receipt");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_AFEX_ROOT_DISTRIBUTION_ORACLE");
         assert_eq!(receipt["scenario_count"], 3);
-        assert_eq!(receipt["checks_passed"], 33);
-        assert_eq!(receipt["checks_total"], 33);
+        assert_eq!(receipt["checks_passed"], 36);
+        assert_eq!(receipt["checks_total"], 36);
         assert_eq!(receipt["monte_carlo_engine_invoked"], false);
         assert_eq!(receipt["empirical_afex_uncertainty"], "NOT_ESTABLISHED");
     }
@@ -279,13 +289,18 @@ mod tests {
     }
 
     #[test]
-    fn raw_afex_data_cannot_be_claimed_as_ingested() {
+    fn raw_afex_distribution_claim_is_rejected() {
         let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
         manifest["execution"]["empirical_marginals_admitted"] = json!(true);
         let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
-        // This mutation does not alter the declared source ceiling, but it is intentionally
-        // visible only as untrusted execution metadata. The evaluator does not consume it.
-        let receipt = validate_corpus(&raw, &manifest).expect("semantic receipt");
-        assert_eq!(receipt["empirical_distribution_established"], false);
+        assert!(validate_corpus(&raw, &manifest).is_err());
+    }
+
+    #[test]
+    fn monte_carlo_cannot_be_claimed_to_have_run() {
+        let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        manifest["execution"]["monte_carlo_engine_invoked"] = json!(true);
+        let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
+        assert!(validate_corpus(&raw, &manifest).is_err());
     }
 }
