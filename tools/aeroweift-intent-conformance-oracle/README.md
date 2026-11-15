@@ -13,6 +13,7 @@ fixtures/aeroweift-conformance/tiny-intent-conformance-v0.json
 - Classifies observations as definitely inside, definitely outside, or ambiguous.
 - Separately accumulates definite, possible, unassessable and unobserved duration.
 - Calculates sample age from observed-at time, not receipt time.
+- Reports definite outside exposure as a lower bound over the full evaluation window and possible exposure as an upper bound that includes unobserved/unassessable duration.
 - Rejects stale, PNT-unqualified, surveillance-unqualified and frame/datum-mismatched observations.
 - Detects superseded, expired or withdrawn authorization and intersecting dynamic restrictions.
 - Produces CONTINGENT after the configured contact timeout; no arbitrary global timeout is embedded.
