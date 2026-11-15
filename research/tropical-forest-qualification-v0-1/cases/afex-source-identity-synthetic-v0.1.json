@@ -1,0 +1,268 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-SOURCE-IDENTITY-001",
+  "evidence_class": "synthetic_join_policy_known_truth",
+  "claim_ceiling": "All entity IDs and documented aliases in this fixture are synthetic. No real AFEX plot/site crosswalk has been ingested. The 80 km versus 100 km source descriptions remain unresolved; this corpus tests policy only and does not adjudicate the physical site.",
+  "experiment_contract": {
+    "experiment_id": "AFEX",
+    "core_plot_count": 32,
+    "block_count": 4,
+    "treatments_per_block": 8,
+    "assignment_unit": "plot"
+  },
+  "cases": [
+    {
+      "case_id": "EXACT_PLOT_CONTEXT_MATCH",
+      "requested_join_scope": "plot_context",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-AFEX-SITE-A",
+        "site_description": "synthetic site A",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "tree_census",
+        "sample_frame_id": "tree-individuals",
+        "support_level": "plot",
+        "depth_cm": null,
+        "time_support": "annual-census-2018"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-AFEX-SITE-A",
+        "site_description": "synthetic site A",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "litter_traps",
+        "sample_frame_id": "five-traps-plot-mean",
+        "support_level": "plot",
+        "depth_cm": null,
+        "time_support": "2018-annual"
+      },
+      "expected_disposition": "EXACT_SOURCE_KEY_MATCH",
+      "expected_reason": "Same experiment/site/block/plot/treatment; only plot context is joined, and the source-native sample frames remain separate."
+    },
+    {
+      "case_id": "UNRESOLVED_80KM_100KM_SITE_DESCRIPTIONS",
+      "requested_join_scope": "plot_context",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": null,
+        "site_description": "BDFFP approximately 80 km north of Manaus",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "tree_census",
+        "sample_frame_id": "trees",
+        "support_level": "plot",
+        "depth_cm": null,
+        "time_support": "2018"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": null,
+        "site_description": "BDFFP approximately 100 km north of Manaus",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "ant_subplots",
+        "sample_frame_id": "five-1m2-subplots",
+        "support_level": "subplot",
+        "depth_cm": null,
+        "time_support": "2018-10"
+      },
+      "expected_disposition": "UNRESOLVED_IDENTITY",
+      "expected_reason": "Approximate site descriptions differ and neither row carries an authoritative common site ID; AFEX collection membership does not authorize fusion."
+    },
+    {
+      "case_id": "SAME_PLOT_STRING_DIFFERENT_SITE",
+      "requested_join_scope": "plot_context",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "root_cores",
+        "sample_frame_id": "cores",
+        "support_level": "plot",
+        "depth_cm": [
+          0,
+          10
+        ],
+        "time_support": "2018-02"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-B",
+        "site_description": "site B",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "root_cores",
+        "sample_frame_id": "cores",
+        "support_level": "plot",
+        "depth_cm": [
+          0,
+          10
+        ],
+        "time_support": "2018-02"
+      },
+      "expected_disposition": "SITE_OR_SUPPORT_CONFLICT",
+      "expected_reason": "Plot ID equality cannot override an explicit site identity conflict."
+    },
+    {
+      "case_id": "SAME_NESTED_ID_DIFFERENT_FRAME",
+      "requested_join_scope": "observation",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B2",
+        "plot_id": "P11",
+        "treatment_id": "N1-P0-C0",
+        "sample_frame_type": "ant_subplot",
+        "sample_frame_id": "S01",
+        "support_level": "subplot",
+        "depth_cm": null,
+        "time_support": "2018-10"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B2",
+        "plot_id": "P11",
+        "treatment_id": "N1-P0-C0",
+        "sample_frame_type": "seedling_subplot",
+        "sample_frame_id": "S01",
+        "support_level": "subplot",
+        "depth_cm": null,
+        "time_support": "2019-04"
+      },
+      "expected_disposition": "SITE_OR_SUPPORT_CONFLICT",
+      "expected_reason": "A nested ID reused in different sample-frame types is not the same observation unit."
+    },
+    {
+      "case_id": "DOCUMENTED_PLOT_ALIAS",
+      "requested_join_scope": "plot_context",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B3",
+        "plot_id": "OLD-P17",
+        "treatment_id": "N0-P1-C1",
+        "sample_frame_type": "root_cores",
+        "sample_frame_id": "composite",
+        "support_level": "plot",
+        "depth_cm": [
+          0,
+          10
+        ],
+        "time_support": "2018-02"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B3",
+        "plot_id": "P17",
+        "treatment_id": "N0-P1-C1",
+        "sample_frame_type": "root_cores",
+        "sample_frame_id": "composite",
+        "support_level": "plot",
+        "depth_cm": [
+          0,
+          10
+        ],
+        "time_support": "2018-02"
+      },
+      "alias_evidence": {
+        "evidence_id": "SYNTHETIC-PROTOCOL-MAP-001",
+        "source_reference": "synthetic://afex-protocol-map/alias-001",
+        "scope": "plot",
+        "left_plot_id": "OLD-P17",
+        "right_plot_id": "P17",
+        "site_id": "SYNTHETIC-SITE-A",
+        "block_id": "B3",
+        "treatment_id": "N0-P1-C1"
+      },
+      "expected_disposition": "DOCUMENTED_ALIAS_MATCH",
+      "expected_reason": "The synthetic alias mapping cites an explicit source record and is bounded to one site/block/treatment/plot scope."
+    },
+    {
+      "case_id": "TREATMENT_LABEL_MATCH_BLOCK_CONFLICT",
+      "requested_join_scope": "plot_context",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B1",
+        "plot_id": "P01",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "tree_census",
+        "sample_frame_id": "trees",
+        "support_level": "plot",
+        "depth_cm": null,
+        "time_support": "2018"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B2",
+        "plot_id": "P09",
+        "treatment_id": "N0-P0-C0",
+        "sample_frame_type": "tree_census",
+        "sample_frame_id": "trees",
+        "support_level": "plot",
+        "depth_cm": null,
+        "time_support": "2018"
+      },
+      "expected_disposition": "SITE_OR_SUPPORT_CONFLICT",
+      "expected_reason": "Same treatment label does not authorize a join across different block/plot assignments."
+    },
+    {
+      "case_id": "OBSERVATION_INTERVAL_CONFLICT",
+      "requested_join_scope": "observation",
+      "left": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B4",
+        "plot_id": "P30",
+        "treatment_id": "N1-P1-C1",
+        "sample_frame_type": "root_composite",
+        "sample_frame_id": "root-sample",
+        "support_level": "plot_depth",
+        "depth_cm": [
+          0,
+          10
+        ],
+        "time_support": "2018-02"
+      },
+      "right": {
+        "experiment_id": "AFEX",
+        "site_id": "SYNTHETIC-SITE-A",
+        "site_description": "site A",
+        "block_id": "B4",
+        "plot_id": "P30",
+        "treatment_id": "N1-P1-C1",
+        "sample_frame_type": "root_composite",
+        "sample_frame_id": "root-sample",
+        "support_level": "plot_depth",
+        "depth_cm": [
+          10,
+          30
+        ],
+        "time_support": "2018-02"
+      },
+      "expected_disposition": "SITE_OR_SUPPORT_CONFLICT",
+      "expected_reason": "Same plot and sample frame but different depth support; retain as separate strata."
+    }
+  ]
+}
