@@ -214,8 +214,10 @@ fn evaluate_case(
         let observed_flows = flow_values(observed);
         let predicted_flows = flow_values(predicted);
         let mut period_flow_errors = Vec::with_capacity(6);
-        for flow_index in 0..6 {
-            let error = (observed_flows[flow_index] - predicted_flows[flow_index]).abs();
+        for (flow_index, (observed_flow, predicted_flow)) in
+            observed_flows.iter().zip(predicted_flows.iter()).enumerate()
+        {
+            let error = (observed_flow - predicted_flow).abs();
             cumulative_flow_absolute_errors[flow_index] += error;
             maximum_flow_absolute_error = maximum_flow_absolute_error.max(error);
             flow_absolute_error_sum += error;
@@ -244,6 +246,9 @@ fn evaluate_case(
     }
 
     let candidate_not_closed = candidate.maximum_absolute_balance_residual > budget_tolerance;
+    let interval_count = u32::try_from(reference.intervals.len())
+        .map_err(|_| format!("{case_id}: interval count exceeds u32"))?;
+    let interval_count_f64 = f64::from(interval_count);
     let disposition = if candidate_not_closed {
         "BUDGET_NOT_CLOSED"
     } else if maximum_stock_absolute_error > stock_tolerance {
@@ -272,10 +277,10 @@ fn evaluate_case(
         "interval_count": reference.intervals.len(),
         "maximum_stock_absolute_error": maximum_stock_absolute_error,
         "mean_stock_absolute_error_per_pool_period": stock_absolute_error_sum
-            / (2.0 * reference.intervals.len() as f64),
+            / (2.0 * interval_count_f64),
         "maximum_flow_absolute_error": maximum_flow_absolute_error,
         "mean_flow_absolute_error_per_flow_period": flow_absolute_error_sum
-            / (6.0 * reference.intervals.len() as f64),
+            / (6.0 * interval_count_f64),
         "cumulative_flow_absolute_errors": {
             "growth": cumulative_flow_absolute_errors[0],
             "recruitment": cumulative_flow_absolute_errors[1],
