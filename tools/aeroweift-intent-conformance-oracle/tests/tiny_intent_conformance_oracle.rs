@@ -252,8 +252,7 @@ fn fresh_receipt_does_not_make_stale_observed_at_time_fresh() {
 
 #[test]
 fn last_valid_observation_beyond_contact_timeout_is_contingent() {
-    let mut request = input(vec![observation("last-track", 0, 20, (1, 2))]);
-    request.policy.evaluation_tick = 50;
+    let request = input(vec![observation("last-track", 0, 20, (1, 2))]);
     let result = evaluate(&request);
     assert_status(
         &result,
@@ -405,6 +404,9 @@ fn deviation_expansion_cannot_extend_before_authorization_activation() {
     let mut request = input(vec![observation("pre-activation", 5, 6, (1, 2))]);
     request.authorization.activated_at_tick = 10;
     request.policy.deviation_expansion.time = 5;
+    // Keep the contact-loss timeout out of this test: the target property is
+    // that deviation expansion cannot extend before authorization activation.
+    request.policy.contact_loss_timeout_ticks = 100;
 
     let result = evaluate(&request);
     assert_status(
