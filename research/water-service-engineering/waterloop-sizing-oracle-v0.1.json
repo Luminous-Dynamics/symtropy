@@ -1,0 +1,477 @@
+{
+  "schema_version": "waterloop-sizing-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_storage_sizing_and_pump_power_arithmetic_only_no_site_or_equipment_qualification",
+  "cases": [
+    {
+      "case_id": "WLS-T0-001-balanced-demand-inflow",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "SIZED_WITHIN_DECLARED_TOLERANCE",
+        "reason": "TIME_RESOLVED_ADMITTED_DEMAND_AND_INFLOW_TRACE",
+        "circuit_id": "GREYWATER",
+        "use_profile_id": "toilet_flushing_v1",
+        "timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "horizon_hours": 2,
+        "time_step_count": 4,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "raw_source_inflow_total_m3": 0.15000000000000002,
+        "admitted_source_inflow_total_m3": 0.15000000000000002,
+        "rejected_source_inflow_total_m3": 0,
+        "total_demand_m3": 0.7,
+        "minimum_required_usable_capacity_m3": 0.5499999999767169,
+        "gross_installed_volume_m3": 0.769999999976717,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "capacity_search_gap_m3": 8.149081409669634e-11,
+        "search_iteration_count": 33,
+        "search_converged": true,
+        "delivered_m3_per_step": [
+          0.1,
+          0.1,
+          0.2,
+          0.29999999997671684
+        ],
+        "unmet_m3_per_step": [
+          0,
+          0,
+          0,
+          2.3283153183228933e-11
+        ],
+        "overflow_m3_per_step": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "end_storage_m3_per_step": [
+          0.4499999999767169,
+          0.39999999997671687,
+          0.24999999997671685,
+          0
+        ],
+        "total_delivered_m3": 0.6999999999767168,
+        "total_unmet_m3": 2.3283153183228933e-11,
+        "total_overflow_m3": 0,
+        "minimum_capacity_feasible_within_tolerance": true,
+        "declared_max_usable_capacity_m3": null,
+        "declared_max_capacity_unmet_m3": null,
+        "declared_max_capacity_overflow_m3": null,
+        "source_inflow_credit_disposition": "ADMITTED"
+      }
+    },
+    {
+      "case_id": "WLS-T0-002-time-shifted-inflow",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "SIZED_WITHIN_DECLARED_TOLERANCE",
+        "reason": "TIME_RESOLVED_ADMITTED_DEMAND_AND_INFLOW_TRACE",
+        "circuit_id": "GREYWATER",
+        "use_profile_id": "toilet_flushing_v1",
+        "timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "horizon_hours": 2,
+        "time_step_count": 4,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "raw_source_inflow_total_m3": 0.4,
+        "admitted_source_inflow_total_m3": 0.4,
+        "rejected_source_inflow_total_m3": 0,
+        "total_demand_m3": 0.6,
+        "minimum_required_usable_capacity_m3": 0.3,
+        "gross_installed_volume_m3": 0.3,
+        "dead_volume_m3": 0,
+        "freeboard_m3": 0,
+        "measurement_uncertainty_allowance_m3": 0,
+        "contingency_allowance_m3": 0,
+        "capacity_search_tolerance_m3": 1e-10,
+        "capacity_search_gap_m3": 6.984918199393064e-11,
+        "search_iteration_count": 33,
+        "search_converged": true,
+        "delivered_m3_per_step": [
+          0.3,
+          0,
+          0.2,
+          0.09999999999999998
+        ],
+        "unmet_m3_per_step": [
+          0,
+          0,
+          0,
+          2.7755575615628914e-17
+        ],
+        "overflow_m3_per_step": [
+          0,
+          0.10000000000000003,
+          0,
+          0
+        ],
+        "end_storage_m3_per_step": [
+          0,
+          0.3,
+          0.09999999999999998,
+          0
+        ],
+        "total_delivered_m3": 0.6,
+        "total_unmet_m3": 2.7755575615628914e-17,
+        "total_overflow_m3": 0.10000000000000003,
+        "minimum_capacity_feasible_within_tolerance": true,
+        "declared_max_usable_capacity_m3": null,
+        "declared_max_capacity_unmet_m3": null,
+        "declared_max_capacity_overflow_m3": null,
+        "source_inflow_credit_disposition": "ADMITTED"
+      }
+    },
+    {
+      "case_id": "WLS-T0-003-unqualified-source-no-credit",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "SIZED_WITHIN_DECLARED_TOLERANCE",
+        "reason": "UNADMITTED_SOURCE_INFLOW_EXCLUDED_FROM_CREDIT",
+        "circuit_id": "GREYWATER",
+        "use_profile_id": "toilet_flushing_v1",
+        "timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "horizon_hours": 2,
+        "time_step_count": 4,
+        "source_quality_admitted": false,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "raw_source_inflow_total_m3": 0.4,
+        "admitted_source_inflow_total_m3": 0,
+        "rejected_source_inflow_total_m3": 0.4,
+        "total_demand_m3": 0.2,
+        "minimum_required_usable_capacity_m3": 0.19999999990686776,
+        "gross_installed_volume_m3": 0.4199999999068678,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "capacity_search_gap_m3": 9.313225191043273e-11,
+        "search_iteration_count": 31,
+        "search_converged": true,
+        "delivered_m3_per_step": [
+          0.05,
+          0.05,
+          0.05,
+          0.04999999990686774
+        ],
+        "unmet_m3_per_step": [
+          0,
+          0,
+          0,
+          9.313226578822054e-11
+        ],
+        "overflow_m3_per_step": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "end_storage_m3_per_step": [
+          0.14999999990686774,
+          0.09999999990686774,
+          0.04999999990686774,
+          0
+        ],
+        "total_delivered_m3": 0.19999999990686776,
+        "total_unmet_m3": 9.313226578822054e-11,
+        "total_overflow_m3": 0,
+        "minimum_capacity_feasible_within_tolerance": true,
+        "declared_max_usable_capacity_m3": null,
+        "declared_max_capacity_unmet_m3": null,
+        "declared_max_capacity_overflow_m3": null,
+        "source_inflow_credit_disposition": "EXCLUDED"
+      }
+    },
+    {
+      "case_id": "WLS-T0-004-circuit-mismatch-reject",
+      "family": "storage_sizing",
+      "expected": {
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null,
+        "sizing_disposition": "REJECT",
+        "reason": "CIRCUIT_IDENTITY_MISMATCH",
+        "demand_circuit_id": "POTABLE",
+        "storage_circuit_id": "GREYWATER"
+      }
+    },
+    {
+      "case_id": "WLS-T0-005-use-profile-mismatch-reject",
+      "family": "storage_sizing",
+      "expected": {
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null,
+        "sizing_disposition": "REJECT",
+        "reason": "INTENDED_USE_PROFILE_MISMATCH",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "irrigation_v1"
+      }
+    },
+    {
+      "case_id": "WLS-T0-006-negative-demand-reject",
+      "family": "storage_sizing",
+      "expected": {
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null,
+        "sizing_disposition": "REJECT",
+        "reason": "NEGATIVE_DEMAND_VOLUME",
+        "invalid_time_step_index": 1
+      }
+    },
+    {
+      "case_id": "WLS-T0-007-trace-length-mismatch-reject",
+      "family": "storage_sizing",
+      "expected": {
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null,
+        "sizing_disposition": "REJECT",
+        "reason": "DEMAND_INFLOW_TRACE_LENGTH_MISMATCH",
+        "demand_step_count": 3,
+        "inflow_step_count": 2
+      }
+    },
+    {
+      "case_id": "WLS-T0-008-volume-allowances-separate",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "SIZED_WITHIN_DECLARED_TOLERANCE",
+        "reason": "TIME_RESOLVED_ADMITTED_DEMAND_AND_INFLOW_TRACE",
+        "circuit_id": "GREYWATER",
+        "use_profile_id": "toilet_flushing_v1",
+        "timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "horizon_hours": 2,
+        "time_step_count": 4,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "raw_source_inflow_total_m3": 0.15000000000000002,
+        "admitted_source_inflow_total_m3": 0.15000000000000002,
+        "rejected_source_inflow_total_m3": 0,
+        "total_demand_m3": 0.7,
+        "minimum_required_usable_capacity_m3": 0.5499999999767169,
+        "gross_installed_volume_m3": 0.8499999999767169,
+        "dead_volume_m3": 0.08,
+        "freeboard_m3": 0.12,
+        "measurement_uncertainty_allowance_m3": 0.03,
+        "contingency_allowance_m3": 0.07,
+        "capacity_search_tolerance_m3": 1e-10,
+        "capacity_search_gap_m3": 8.149081409669634e-11,
+        "search_iteration_count": 33,
+        "search_converged": true,
+        "delivered_m3_per_step": [
+          0.1,
+          0.1,
+          0.2,
+          0.29999999997671684
+        ],
+        "unmet_m3_per_step": [
+          0,
+          0,
+          0,
+          2.3283153183228933e-11
+        ],
+        "overflow_m3_per_step": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "end_storage_m3_per_step": [
+          0.4499999999767169,
+          0.39999999997671687,
+          0.24999999997671685,
+          0
+        ],
+        "total_delivered_m3": 0.6999999999767168,
+        "total_unmet_m3": 2.3283153183228933e-11,
+        "total_overflow_m3": 0,
+        "minimum_capacity_feasible_within_tolerance": true,
+        "declared_max_usable_capacity_m3": null,
+        "declared_max_capacity_unmet_m3": null,
+        "declared_max_capacity_overflow_m3": null,
+        "source_inflow_credit_disposition": "ADMITTED"
+      }
+    },
+    {
+      "case_id": "WLS-T0-009-declared-capacity-limit-infeasible",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "INFEASIBLE_DECLARED_CAPACITY_LIMIT",
+        "reason": "MINIMUM_REQUIRED_CAPACITY_EXCEEDS_DECLARED_MAXIMUM",
+        "circuit_id": "GREYWATER",
+        "use_profile_id": "toilet_flushing_v1",
+        "timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "horizon_hours": 1.5,
+        "time_step_count": 3,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "raw_source_inflow_total_m3": 0,
+        "admitted_source_inflow_total_m3": 0,
+        "rejected_source_inflow_total_m3": 0,
+        "total_demand_m3": 0.6000000000000001,
+        "minimum_required_usable_capacity_m3": 0.5999999999301509,
+        "gross_installed_volume_m3": 0.8199999999301509,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "capacity_search_gap_m3": 6.984912648277941e-11,
+        "search_iteration_count": 33,
+        "search_converged": true,
+        "delivered_m3_per_step": [
+          0.2,
+          0.2,
+          0.19999999993015083
+        ],
+        "unmet_m3_per_step": [
+          0,
+          0,
+          6.984918199393064e-11
+        ],
+        "overflow_m3_per_step": [
+          0,
+          0,
+          0
+        ],
+        "end_storage_m3_per_step": [
+          0.39999999993015084,
+          0.19999999993015083,
+          0
+        ],
+        "total_delivered_m3": 0.5999999999301509,
+        "total_unmet_m3": 6.984918199393064e-11,
+        "total_overflow_m3": 0,
+        "minimum_capacity_feasible_within_tolerance": true,
+        "declared_max_usable_capacity_m3": 0.5,
+        "declared_max_capacity_unmet_m3": 0.10000000000000003,
+        "declared_max_capacity_overflow_m3": 0,
+        "source_inflow_credit_disposition": "ADMITTED"
+      }
+    },
+    {
+      "case_id": "WLS-T0-010-zero-demand-zero-capacity",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "SIZED_WITHIN_DECLARED_TOLERANCE",
+        "reason": "TIME_RESOLVED_ADMITTED_DEMAND_AND_INFLOW_TRACE",
+        "circuit_id": "GREYWATER",
+        "use_profile_id": "toilet_flushing_v1",
+        "timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "horizon_hours": 1,
+        "time_step_count": 2,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "raw_source_inflow_total_m3": 0,
+        "admitted_source_inflow_total_m3": 0,
+        "rejected_source_inflow_total_m3": 0,
+        "total_demand_m3": 0,
+        "minimum_required_usable_capacity_m3": 0,
+        "gross_installed_volume_m3": 0,
+        "dead_volume_m3": 0,
+        "freeboard_m3": 0,
+        "measurement_uncertainty_allowance_m3": 0,
+        "contingency_allowance_m3": 0,
+        "capacity_search_tolerance_m3": 1e-10,
+        "capacity_search_gap_m3": 0,
+        "search_iteration_count": 0,
+        "search_converged": true,
+        "delivered_m3_per_step": [
+          0,
+          0
+        ],
+        "unmet_m3_per_step": [
+          0,
+          0
+        ],
+        "overflow_m3_per_step": [
+          0,
+          0
+        ],
+        "end_storage_m3_per_step": [
+          0,
+          0
+        ],
+        "total_delivered_m3": 0,
+        "total_unmet_m3": 0,
+        "total_overflow_m3": 0,
+        "minimum_capacity_feasible_within_tolerance": true,
+        "declared_max_usable_capacity_m3": null,
+        "declared_max_capacity_unmet_m3": null,
+        "declared_max_capacity_overflow_m3": null,
+        "source_inflow_credit_disposition": "ADMITTED"
+      }
+    },
+    {
+      "case_id": "WLS-T0-011-timebase-mismatch-reject",
+      "family": "storage_sizing",
+      "expected": {
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null,
+        "sizing_disposition": "REJECT",
+        "reason": "TIMEBASE_MISMATCH",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "UTC_hourly_aggregated"
+      }
+    },
+    {
+      "case_id": "WLS-T0-012-pump-hydraulic-power-lower-bound",
+      "family": "pump_power",
+      "expected": {
+        "pump_power_disposition": "ADMITTED_LOWER_BOUND_ARITHMETIC",
+        "reason": "DECLARED_EFFICIENCY_INPUT_ADMITTED",
+        "design_flow_m3_per_hour": 1.2,
+        "flow_m3_per_second": 0.0003333333333333333,
+        "total_dynamic_head_m": 18,
+        "water_density_kg_per_m3": 1000,
+        "gravity_m_per_s2": 9.80665,
+        "pump_efficiency": 0.55,
+        "pump_efficiency_evidence_admitted": true,
+        "hydraulic_power_kw": 0.0588399,
+        "electrical_input_lower_bound_kw": 0.10698163636363636,
+        "nonclaims": [
+          "This result is an idealized hydraulic/electrical power lower-bound calculation only.",
+          "It does not select a pump or establish pump curve, operating point, NPSH, transient, motor/drive, piping, control or field duty."
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-013-pump-efficiency-invalid-reject",
+      "family": "pump_power",
+      "expected": {
+        "pump_power_disposition": "REJECT",
+        "reason": "PUMP_EFFICIENCY_OUTSIDE_ZERO_ONE",
+        "pump_efficiency": 1.05,
+        "hydraulic_power_kw": null,
+        "electrical_input_lower_bound_kw": null
+      }
+    },
+    {
+      "case_id": "WLS-T0-014-unadmitted-demand-measurement",
+      "family": "storage_sizing",
+      "expected": {
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null,
+        "sizing_disposition": "INDETERMINATE",
+        "reason": "DEMAND_MEASUREMENT_NOT_ADMITTED",
+        "raw_source_inflow_total_m3": 0.4,
+        "admitted_source_inflow_total_m3": 0,
+        "rejected_source_inflow_total_m3": 0.4
+      }
+    }
+  ]
+}
