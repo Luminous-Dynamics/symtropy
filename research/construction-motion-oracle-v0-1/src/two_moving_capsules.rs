@@ -233,7 +233,7 @@ mod tests {
         )
         .unwrap();
         assert!((closest.distance_mm - 4.0).abs() < 1.0e-9);
-        assert!(!closest.distance_mm.le(&(moving.radius_mm + obstacle.radius_mm)));
+        assert!(!closest.is_contact(moving.radius_mm, obstacle.radius_mm));
     }
 
     #[test]
