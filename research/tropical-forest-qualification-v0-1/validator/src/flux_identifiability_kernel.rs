@@ -131,6 +131,14 @@ fn gcd(mut left: i128, mut right: i128) -> i128 {
     left.max(1)
 }
 
+/// Exact rational rank shared with noise-aware practical-identifiability diagnostics.
+pub(crate) fn exact_structural_rank_for_observation_rows(
+    matrix: &[Vec<i64>],
+    column_count: usize,
+) -> Result<usize, String> {
+    exact_rank(matrix, column_count)
+}
+
 fn exact_rank(matrix: &[Vec<i64>], column_count: usize) -> Result<usize, String> {
     if column_count == 0 || column_count > MAX_VARIABLES {
         return Err(format!("column count must be in 1..={MAX_VARIABLES}"));
