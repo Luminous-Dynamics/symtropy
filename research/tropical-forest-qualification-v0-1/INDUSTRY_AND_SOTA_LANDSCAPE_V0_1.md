@@ -374,6 +374,7 @@ The first executable AFEX slice is intentionally bounded:
 - [factorial design and measurement-semantics protocol](AFEX_FACTORIAL_DESIGN_V0_1.md);
 - [32-plot synthetic complete-block fixture](cases/afex-factorial-design-synthetic-v0.1.json);
 - [Rust design/anti-pseudoreplication validator](validator/src/afex_design_kernel.rs).
+- [Multi-stream support and observation-operator crosswalk](AFEX_DATA_SUPPORT_CROSSWALK_V0_1.md), covering five separately registered child datasets plus the parent collection.
 
 The current validator tests the synthetic 2×2×2 allocation, four complete blocks, 11-column fixed-effect design rank, 21 residual degrees of freedom, treatment-unit hierarchy, exact census/recruitment semantics, raw dendrometer quantity and rain-related missingness. It is not a fitted causal estimator. The official AFEX archive has not been ingested, plot IDs and treatment assignments have not been reconciled, and no empirical treatment response is claimed.
 
