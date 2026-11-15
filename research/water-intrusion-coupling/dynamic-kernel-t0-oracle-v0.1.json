@@ -1,0 +1,665 @@
+{
+  "schema_version": "dynamic-kernel-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-DYNAMIC-OPERATOR-001",
+  "physical_operator_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "DK-T0-001-static-zero-delay-limit",
+      "expected": {
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-002-delayed-outlet-specific-response",
+      "expected": {
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0,
+            0,
+            0.4,
+            0,
+            0
+          ],
+          [
+            0,
+            0.6,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0,
+            0,
+            0.4,
+            0,
+            0
+          ],
+          [
+            0,
+            0.6,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-003-substochastic-kernel-open-residual",
+      "expected": {
+        "operator_disposition": "OPEN_MASS_RESIDUAL",
+        "reason": "SIGNED_RESIDUAL_EXCEEDS_DECLARED_UNCERTAINTY",
+        "injected_mass": 1,
+        "physical_outlet_mass": 0.8,
+        "sensor_observed_outlet_mass": 0.8,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0.19999999999999996,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 19.999999999999996,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          0.8,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.5,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.5,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-004-truncated-temporal-window",
+      "expected": {
+        "operator_disposition": "PARTIAL_TEMPORAL_WINDOW",
+        "reason": "KERNEL_OR_SENSOR_TAIL_NOT_FULLY_OBSERVED",
+        "injected_mass": 1,
+        "physical_outlet_mass": 0,
+        "sensor_observed_outlet_mass": 0,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 1,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 100,
+        "predicted_physical_tail_mass": 1,
+        "predicted_sensor_tail_mass": 1,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-005-measured-physical-inventory",
+      "expected": {
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "injected_mass": 1,
+        "physical_outlet_mass": 0.8,
+        "sensor_observed_outlet_mass": 0.8,
+        "known_inventory_mass": 0.2,
+        "signed_mass_residual": -5.551115123125783e-17,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 5.551115123125783e-15,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          0.8,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.5,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.5,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-006-sensor-response-uncalibrated",
+      "expected": {
+        "operator_disposition": "SENSOR_RESPONSE_UNRESOLVED",
+        "reason": "SENSOR_RESPONSE_CALIBRATION_NOT_AVAILABLE",
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": null,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 1,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 100,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": null,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": null,
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-007-calibrated-sensor-lag",
+      "expected": {
+        "operator_disposition": "OPEN_MASS_RESIDUAL",
+        "reason": "SIGNED_RESIDUAL_EXCEEDS_DECLARED_UNCERTAINTY",
+        "injected_mass": 0.8,
+        "physical_outlet_mass": 0.4,
+        "sensor_observed_outlet_mass": 0.4,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0.4,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 40,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.2,
+            0.2,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.1,
+            0.2,
+            0.1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-008-flow-reversal-unobserved",
+      "expected": {
+        "operator_disposition": "ABSTAIN_FLOW_DIRECTION_UNOBSERVED",
+        "reason": "FLOW_REVERSAL_DIRECTION_NOT_MEASURED",
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-009-out-of-domain",
+      "expected": {
+        "operator_disposition": "OUT_OF_DOMAIN",
+        "reason": "OPERATING_STATE_OUTSIDE_QUALIFIED_DOMAIN",
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-010-negative-kernel-coefficient",
+      "expected": {
+        "operator_disposition": "INVALID_KERNEL",
+        "reason": "NEGATIVE_KERNEL_COEFFICIENT",
+        "physical_outlet_mass": null,
+        "sensor_observed_outlet_mass": null,
+        "known_inventory_mass": null,
+        "signed_mass_residual": null,
+        "predicted_physical_tail_mass": null,
+        "predicted_sensor_tail_mass": null,
+        "per_inlet_kernel_area": null,
+        "predicted_physical_outlet_flux": null,
+        "predicted_sensor_outlet_flux": null,
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-011-same-steady-gain-different-delay",
+      "expected": {
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "INSUFFICIENT",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-012-temporal-resolution-inadequate",
+      "expected": {
+        "operator_disposition": "TEMPORAL_RESOLUTION_INADEQUATE",
+        "reason": "SENSOR_BANDWIDTH_OR_SAMPLING_CANNOT_RESOLVE_KERNEL",
+        "injected_mass": 1,
+        "physical_outlet_mass": null,
+        "sensor_observed_outlet_mass": null,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": null,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": null,
+        "predicted_physical_tail_mass": null,
+        "predicted_sensor_tail_mass": null,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0,
+            null,
+            null,
+            null
+          ],
+          [
+            0,
+            null,
+            null,
+            null
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0,
+            null,
+            null,
+            null
+          ],
+          [
+            0,
+            null,
+            null,
+            null
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-013-partial-outlet-boundary",
+      "expected": {
+        "operator_disposition": "PARTIAL_OUTLET_BOUNDARY",
+        "reason": "ONE_OR_MORE_OUTLETS_NOT_OBSERVED",
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}
