@@ -812,3 +812,23 @@ fn cross_implementation_comparison_still_requires_semantic_equivalence() {
     assert!(reason(&result, "cross-implementation-no-equivalence")
         .contains(&RejectionReason::SemanticEquivalenceNotEstablished));
 }
+
+
+#[test]
+fn reported_hypothesis_pair_count_uses_the_frozen_separation_floor() {
+    let mut candidate = candidate("policy-threshold-pair-count");
+    candidate.hypothesis_groups.push(HypothesisGroup {
+        hypothesis_id: "hypothesis-c".into(),
+        hypothesis_sha256: digest('0'),
+        group_id: "model-family-c".into(),
+    });
+    candidate.hypothesis_contrasts.push(HypothesisContrast {
+        left_hypothesis_id: "hypothesis-a".into(),
+        right_hypothesis_id: "hypothesis-c".into(),
+        separation_lower_bound: 0.19,
+        contrast_estimate_sha256: digest('a'),
+    });
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert_eq!(result.pareto_front.len(), 1);
+    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 1);
+}
