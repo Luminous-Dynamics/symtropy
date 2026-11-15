@@ -202,7 +202,7 @@
       },
       "claim": {
         "proposition": "wearer_fit_mobility_and_thermal_usability_record_is_complete",
-        "performance_claim_permitted": false
+        "performance_claim_permitted": true
       },
       "standard": {
         "id": "NIJ-0101.07",
