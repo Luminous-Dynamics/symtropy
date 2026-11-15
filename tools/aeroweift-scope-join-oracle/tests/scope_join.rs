@@ -151,21 +151,30 @@ fn exact_operation_authority_and_query_scope_matches() {
 fn pnt_from_another_flight_instance_cannot_join() {
     let mut input = valid_input();
     input.operation_claims[0].scope.flight_instance_id = "FLIGHT-OTHER";
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Pnt));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Pnt),
+    );
 }
 
 #[test]
 fn same_aircraft_with_a_different_flight_instance_is_not_the_same_subject() {
     let mut input = valid_input();
     input.operation_claims[1].scope.flight_instance_id = "FLIGHT-OTHER";
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Reachability));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Reachability),
+    );
 }
 
 #[test]
 fn same_flight_with_a_different_intent_cannot_join() {
     let mut input = valid_input();
     input.operation_claims[2].scope.intent_id = "INTENT-OTHER";
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Intent),
+    );
 }
 
 #[test]
@@ -572,28 +581,40 @@ fn blank_dependency_snapshot_reference_is_not_accepted() {
 fn different_operator_cannot_satisfy_authorization_scope() {
     let mut input = valid_input();
     input.operation_claims[2].scope.operator_id = "OPERATOR-OTHER";
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Intent),
+    );
 }
 
 #[test]
 fn different_issuing_ussp_cannot_satisfy_authorization_scope() {
     let mut input = valid_input();
     input.operation_claims[2].scope.issuing_ussp_id = "USSP-OTHER";
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Intent),
+    );
 }
 
 #[test]
 fn different_intent_revision_cannot_satisfy_authorization_scope() {
     let mut input = valid_input();
     input.operation_claims[2].scope.intent_revision = 3;
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Intent),
+    );
 }
 
 #[test]
 fn different_authorization_artifact_digest_cannot_join() {
     let mut input = valid_input();
     input.operation_claims[2].scope.authorization_digest = "AUTH-SHA256-OTHER";
-    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+    assert_rejected(
+        input,
+        Reason::OperationScopeMismatch(EvidenceOwner::Intent),
+    );
 }
 
 #[test]
