@@ -63,7 +63,7 @@ jobs:
         with:
           name: operator-spectrum-exact-oracle-${{ github.sha }}
           path: |
-            "$RUNNER_TEMP/operator-spectrum-candidate.json"
-            "$RUNNER_TEMP/operator-spectrum-oracle.json"
-            "$RUNNER_TEMP/operator-spectrum-validation.json"
+            ${{ runner.temp }}/operator-spectrum-candidate.json
+            ${{ runner.temp }}/operator-spectrum-oracle.json
+            ${{ runner.temp }}/operator-spectrum-validation.json
           if-no-files-found: error
