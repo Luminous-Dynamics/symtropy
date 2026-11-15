@@ -310,6 +310,22 @@ pub fn evaluate_cycle(
         .collect::<BTreeSet<_>>()
         .len();
 
+    if sensors.len() < 2 {
+        gaps.insert(TemporalGap::InsufficientSensors);
+        return Ok(TemporalAssessment {
+            acquisition_cycle_id: cycle_id,
+            disposition: TemporalDisposition::ModalitySpecificOnly,
+            modality_count,
+            measurement_metadata_complete: sensors.iter().all(|sensor| {
+                sensor.calibration_profile_sha256.as_deref().is_some_and(is_sha256)
+            }),
+            maximum_pairwise_skew_ns: None,
+            sensor_ids,
+            gaps: gaps.into_iter().collect(),
+            policy_sha256: policy.policy_sha256.clone(),
+        });
+    }
+
     for sensor in sensors {
         if sensor.calibration_profile_sha256.as_deref().is_none_or(|value| !is_sha256(value)) {
             gaps.insert(TemporalGap::CalibrationProfileMissing);
