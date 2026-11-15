@@ -1065,7 +1065,7 @@ mod tests {
     fn search_budget_exhaustion_is_not_reported_as_optimal_or_infeasible() {
         let actions = vec![
             action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
-            action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
+            action("scan-b", &["b"], 2_000, "r-b", (0, 60_000), 5, 100),
             action("scan-c", &["c"], 4_000, "r-c", (0, 60_000), 5, 100),
         ];
         let needs = vec![
@@ -1086,7 +1086,7 @@ mod tests {
     fn planning_does_not_mutate_live_resource_or_occupancy_books() {
         let actions = vec![
             action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
-            action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
+            action("scan-b", &["b"], 2_000, "r-b", (0, 60_000), 5, 100),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
         let (occupancy, reservations) = books(&actions, 1);
@@ -1103,7 +1103,7 @@ mod tests {
     fn mixed_currencies_are_rejected_before_search() {
         let mut actions = vec![
             action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
-            action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
+            action("scan-b", &["b"], 2_000, "r-b", (0, 60_000), 5, 100),
         ];
         actions[1].cost_currency_code = "EUR".to_owned();
         let (occupancy, reservations) = books(&actions, 1);
@@ -1224,7 +1224,7 @@ mod tests {
     fn duplicate_occupancy_and_reservation_ids_are_rejected() {
         let mut actions = vec![
             action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100),
-            action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
+            action("scan-b", &["b"], 2_000, "r-b", (0, 60_000), 5, 100),
         ];
         actions[1].occupancy.occupancy_id = actions[0].occupancy.occupancy_id.clone();
         let (occupancy, reservations) = books(&actions, 1);
