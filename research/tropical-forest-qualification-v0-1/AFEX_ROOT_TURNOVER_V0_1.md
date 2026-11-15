@@ -133,6 +133,21 @@ Proposed targets (not achieved):
 - calibrated uncertainty propagated through numerator/denominator covariance once raw measurement uncertainty is admitted;
 - replicated treatment response on a separate site or experiment before transfer claims.
 
-## 7. Claim ceiling
+## 7. Nonlinear distribution-UQ follow-on and executable analytic oracle
+
+The AFEX-specific nonlinear uncertainty consumer is tracked in [#5436](https://github.com/Luminous-Dynamics/symtropy/issues/5436). It composes two existing owners:
+- [#4652 / PR #4654](https://github.com/Luminous-Dynamics/symtropy/pull/4654): first-order covariance/Jacobian propagation;
+- [#3973](https://github.com/Luminous-Dynamics/symtropy/issues/3973): correlated nonlinear distribution propagation by Monte Carlo.
+
+New artifacts:
+- [AFEX root-ratio distribution protocol](AFEX_ROOT_DISTRIBUTION_UQ_V0_1.md);
+- [three-case analytic lognormal ratio fixture](cases/afex-root-ratio-distribution-analytic-v0.1.json);
+- `validator/src/afex_root_distribution_kernel.rs`: exact closed-form oracle, wired into the top-level validator and CLI.
+
+The analytic oracle checks three synthetic log-space dependence cases (+0.6, 0, −0.6), with identical marginal distributions. The expected turnover 95% interval widens from 0.948–1.519 to 0.843–1.709 to 0.772–1.864 as the correlation moves from positive through zero to negative. Lifespan distributions are computed from the same ratio. The fixture has 36 analytic field checks and an exact SHA-256-bound receipt.
+
+The verifier explicitly records `monte_carlo_engine_invoked: false`, `empirical_marginals_admitted: false` and `empirical_covariance_admitted: false`. It is an analytic reference only. The generic #3973 Monte Carlo consumer, convergence receipt, and real source-derived distributions remain outstanding. The linearized #4652 consumer does not replace nonlinear distribution propagation.
+
+## 8. Claim ceiling
 
 Synthetic PASS means only arithmetic and support-pairing logic passed. The published summary effect sizes are source-transcribed literature facts with arithmetic crosschecks, not independent raw-data reproduction. Root stock data used by the 2026 paper are not in the public EIDC dataset according to its data-availability statement. No raw-data reanalysis, causal re-estimation, forest calibration, cross-site transfer or SOTA superiority is claimed.
