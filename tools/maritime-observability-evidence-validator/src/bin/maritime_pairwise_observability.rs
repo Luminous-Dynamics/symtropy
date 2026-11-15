@@ -35,6 +35,7 @@ struct Channel {
 struct EvaluationContext<'a> {
     evidence_class: PairEvidenceClass,
     asset_sha256: &'a str,
+    regime_id: &'a str,
     regime_qualified: bool,
     max_timestamp_uncertainty_ms: f64,
 }
@@ -636,6 +637,7 @@ fn run_case(case:&Value,source:&str,digest:&str)->Result<Value,String>{
     let context=EvaluationContext{
         evidence_class,
         asset_sha256:asset_sha,
+        regime_id: &regime,
         regime_qualified,
         max_timestamp_uncertainty_ms:max_timestamp_uncertainty,
     };
