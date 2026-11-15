@@ -741,7 +741,6 @@ fn conflict_screen_cannot_add_an_unrequired_traffic_class() {
     );
 }
 
-
 #[test]
 fn receipt_must_be_valid_at_its_own_evaluation_time() {
     let mut receipts = graph();
