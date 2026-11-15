@@ -35,7 +35,9 @@ fn main() -> ExitCode {
                 "PASS: {} frozen rows; required identities, expected dispositions, and mutation classes present",
                 REQUIRED_CASES.len()
             );
-            println!("SCOPE: structural corpus audit only; library behavior and physical correctness are not evaluated");
+            println!(
+                "SCOPE: structural corpus audit only; library behavior and physical correctness are not evaluated"
+            );
             ExitCode::SUCCESS
         }
         Err(error) => {
@@ -70,7 +72,9 @@ fn audit() -> Result<(), String> {
             return Err(format!("empty or duplicate case_id: {case_id}"));
         }
         if expected != "ACCEPT" && expected != "REJECT" {
-            return Err(format!("invalid expected disposition for {case_id}: {expected}"));
+            return Err(format!(
+                "invalid expected disposition for {case_id}: {expected}"
+            ));
         }
         if mutation.is_empty() {
             return Err(format!("missing mutation class for {case_id}"));
@@ -109,7 +113,9 @@ fn audit() -> Result<(), String> {
         "stale_geometry",
     ] {
         if !mutations.contains(required_mutation) {
-            return Err(format!("required mutation class missing: {required_mutation}"));
+            return Err(format!(
+                "required mutation class missing: {required_mutation}"
+            ));
         }
     }
 
