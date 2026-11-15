@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-human-comprehension-0.1.json",
+  "title": "Power Fabric Human Comprehension Benchmark Fixtures",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["benchmark_id", "schema_version", "status", "safety_boundary", "scoring_policy", "scenarios"],
+  "properties": {
+    "benchmark_id": {"const": "POWER-FABRIC-HUMAN-COMPREHENSION-001"},
+    "schema_version": {"const": "0.1.0"},
+    "status": {"const": "synthetic_fixture_only"},
+    "safety_boundary": {"type": "string", "minLength": 1},
+    "scoring_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_metrics", "critical_failure_rule", "report_by_cohort", "do_not_pool_accessibility_groups_without_reporting_disaggregated_results"],
+      "properties": {
+        "primary_metrics": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "critical_failure_rule": {"type": "string", "minLength": 1},
+        "report_by_cohort": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "do_not_pool_accessibility_groups_without_reporting_disaggregated_results": {"type": "boolean"}
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "category", "audience", "setup", "reference_truth", "task", "required_concepts", "forbidden_claims", "critical_failure_conditions", "expected_system_state"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^PF-HF-[0-9]{3}-[a-z0-9-]+$"},
+          "category": {"type": "string", "minLength": 1},
+          "audience": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "setup": {"type": "string", "minLength": 1},
+          "reference_truth": {"type": "object", "minProperties": 1},
+          "task": {"type": "string", "minLength": 1},
+          "required_concepts": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "forbidden_claims": {"type": "array", "items": {"type": "string"}},
+          "critical_failure_conditions": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "expected_system_state": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
