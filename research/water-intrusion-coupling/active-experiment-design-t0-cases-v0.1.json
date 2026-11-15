@@ -1,0 +1,486 @@
+{
+  "schema_version": "active-experiment-design-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-ACTIVE-EXPERIMENT-DESIGN-001",
+  "cases": [
+    {
+      "case_id": "AED-T0-001-orthogonal-versus-collinear",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "orthogonal_low_dose",
+            "tracer_dose_units": 1,
+            "duration_seconds": 15,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          },
+          {
+            "candidate_id": "collinear_high_dose",
+            "tracer_dose_units": 4,
+            "duration_seconds": 30,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                3
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-002-rank-deficient-only",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "same_time_identical_inlets",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                1
+              ],
+              [
+                2,
+                2
+              ],
+              [
+                3,
+                3
+              ]
+            ]
+          },
+          {
+            "candidate_id": "repeated_collinear_code",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                0.5,
+                0.5
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1.5,
+                1.5
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-003-sensor-bandwidth-limit",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "fast_sequence_above_bandwidth",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 2,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ]
+          },
+          {
+            "candidate_id": "slow_resolvable_sequence",
+            "tracer_dose_units": 2,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-004-missing-outlet-channel",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "unobserved_outlet",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": false,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-005-dose-duration-budget",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "high_dose",
+            "tracer_dose_units": 6,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                5,
+                0
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                5,
+                5
+              ]
+            ]
+          },
+          {
+            "candidate_id": "low_dose",
+            "tracer_dose_units": 2,
+            "duration_seconds": 25,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                2,
+                0
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                2,
+                2
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-006-regime-transition",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "flow_step_and_pulse",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "hydraulic_transition",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-007-flow-reversal-unobserved",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "reversal_without_signed_flow",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": true,
+            "all_port_directions_observed": false,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              1
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "AED-T0-008-invalid-variance",
+      "inputs": {
+        "constraints": {
+          "maximum_tracer_dose_units": 5,
+          "maximum_duration_seconds": 60,
+          "rank_relative_tolerance": 1e-8,
+          "maximum_condition_number": 10000
+        },
+        "candidates": [
+          {
+            "candidate_id": "zero_variance_contract",
+            "tracer_dose_units": 1,
+            "duration_seconds": 20,
+            "sample_interval_seconds": 0.05,
+            "minimum_resolvable_delay_seconds": 0.1,
+            "minimum_delay_of_interest_seconds": 0.5,
+            "complete_outlet_boundary": true,
+            "sensor_calibration_state": "calibrated",
+            "sensor_response_applied": true,
+            "operating_regime_state": "fixed_regime",
+            "flow_reversal_present": false,
+            "all_port_directions_observed": true,
+            "domain_state": "in_domain",
+            "observation_variance": [
+              1,
+              0
+            ],
+            "sensitivity_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
