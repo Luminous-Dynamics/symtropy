@@ -364,6 +364,42 @@
             "quantified",
             "incomplete"
           ]
+        },
+        "design_decision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "active_constraint",
+            "minimum_radius_m",
+            "resulting_rpm",
+            "resulting_body_gradient_fraction",
+            "resulting_coriolis_fraction"
+          ],
+          "properties": {
+            "active_constraint": {
+              "enum": [
+                "body_gradient",
+                "maximum_rpm",
+                "coriolis_motion"
+              ]
+            },
+            "minimum_radius_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "resulting_rpm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "resulting_body_gradient_fraction": {
+              "type": "number",
+              "minimum": 0
+            },
+            "resulting_coriolis_fraction": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
         }
       }
     },
