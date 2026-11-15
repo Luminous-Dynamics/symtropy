@@ -99,3 +99,18 @@ The module distinguishes:
 The evidence identifier is a caller-supplied reference, not a verified proof digest. The Jacobian operator norm remains a numerical singular-value estimate under the declared Jacobi profile. Therefore the emitted total is conditional on both pieces of evidence and is not a formal floating-point certificate.
 
 Tests cover an analytic quadratic map, interval-backed remainder arithmetic, the empirical-only and missing-evidence abstention paths, adjoint observable sensitivity, dense domain/codomain re-basing invariance, and the fact that a non-injective Jacobian can still have a useful forward operator-norm estimate.
+
+
+## Nonlinear state and observable coverage ladder
+
+The `nonlinear_sensitivity_ladder` example evaluates five exact one-dimensional maps
+`F(x) = a*x + 0.5*h*x^2` over six symmetric metric-radius tiers. For each 2,000-interval deterministic grid it compares the sampled maximum state and scalar-observable changes to the declared analytic Taylor envelopes. The observable is `phi(y)=g*y`, so its composite curvature is exactly `|g*h|`.
+
+The ladder reports:
+- sampled state and observable maxima;
+- declared state and observable upper estimates;
+- sampled coverage booleans;
+- tightness ratios (upper estimate / sampled maximum);
+- the evidence-status label.
+
+This is a small exact synthetic diagnostic, not a simulator or industry comparison. The sample grid checks the implementation arithmetic on known maps; it does not prove a general curvature theorem. The analytic constants are known by construction and are labelled as such. The CI workflow runs this ladder on the exact triggering revision.
