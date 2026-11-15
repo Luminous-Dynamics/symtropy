@@ -1,0 +1,15 @@
+{
+  "schema_version": "active-experiment-design-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-ACTIVE-EXPERIMENT-DESIGN-001",
+  "case_count": 8,
+  "case_ids": [
+    "AED-T0-001-orthogonal-versus-collinear",
+    "AED-T0-002-rank-deficient-only",
+    "AED-T0-003-sensor-bandwidth-limit",
+    "AED-T0-004-missing-outlet-channel",
+    "AED-T0-005-dose-duration-budget",
+    "AED-T0-006-regime-transition",
+    "AED-T0-007-flow-reversal-unobserved",
+    "AED-T0-008-invalid-variance"
+  ]
+}
