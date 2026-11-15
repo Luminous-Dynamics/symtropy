@@ -455,3 +455,16 @@ The AFEX programme now records an eight-model tournament (treatment-only, direct
 - [Rust tournament specification validator](validator/src/afex_root_pathway_tournament_kernel.rs).
 
 The organic nutrient and fungal carbon-cost pathways are explicitly marked unidentifiable from the current AFEX register. These comparators inform the benchmark design; none has yet been calibrated or run on AFEX data.
+
+
+### AFEX multi-pathway observability: model complexity must be earned by measurements
+
+The eight-model AFEX root pathway tournament now has a linked exact structural-identifiability challenge [#5449](https://github.com/Luminous-Dynamics/symtropy/issues/5449). In a deliberately simplified common-rate model, AM colonisation fraction is a covariate, not a flux equation. Hypothetical total uptake across multiple colonisation fractions can identify the direct-root coefficient and a combined fungal term, but the fungal inorganic and organic pathways remain exactly aliased; host-to-fungal carbon cost is entirely unobserved.
+
+The synthetic observation matrices have exact ranks 0, 2, 3 and 4 as measurement channels are added:
+- current AFEX trait proxies alone: rank 0 for the four pathway-rate unknowns;
+- total uptake across varied AM colonisation fractions: rank 2;
+- plus a source-specific mycorrhizal inorganic tracer: rank 3;
+- plus independent host-to-fungal carbon allocation: rank 4.
+
+This is an algebraic property of a simplified operator, not an empirical AFEX result. It gives Symtropy a useful benchmark advantage to test: detect pathway non-identifiability and recommend the measurement that resolves it before fitting or ranking a high-complexity model. The protocol, exact-rank fixture and Rust validator are [here](AFEX_PATHWAY_IDENTIFIABILITY_V0_1.md), [here](cases/afex-root-pathway-identifiability-synthetic-v0.1.json), and [here](validator/src/afex_root_pathway_identifiability_kernel.rs).
