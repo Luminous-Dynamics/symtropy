@@ -173,7 +173,7 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
     let mut not_comparable = Vec::new();
     let mut feedstock_balance_residual_g = None;
     let mut reagent_balance_residual_g = None;
-    let mut synthetic_grid_energy_wh_per_kg_o2 = None;
+    let mut accepted_o2_mass_g = None;
 
     if !non_empty(&scenario.id) {
         rejected.push("scenario identity is empty".to_owned());
@@ -275,11 +275,14 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
     }
 
     if let Some(product) = &scenario.product {
+        let mut product_scoreable = true;
         if !non_empty(&product.product_id) {
             rejected.push("product identity is empty".to_owned());
+            product_scoreable = false;
         }
         if product.species != "O2" {
             rejected.push("the accepted product contract requires O2 as a distinct species".to_owned());
+            product_scoreable = false;
         }
 
         match (
@@ -295,20 +298,26 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                     || purity <= 0.0 || purity > 1.0 || !pressure.is_finite() || pressure <= 0.0
                 {
                     rejected.push("product mass, purity or pressure is outside the valid domain".to_owned());
+                    product_scoreable = false;
                 }
                 if !non_empty(contract) || !non_empty(measurement) || !non_empty(calibration) {
                     blocked.push("product contract, quantitative measurement or calibration reference is absent".to_owned());
+                    product_scoreable = false;
                 } else if let Some(observation) = observations.iter().find(|obs| obs.observation_id == measurement) {
                     if observation.species != "O2" {
                         rejected.push("product measurement refers to a different gas species".to_owned());
-                    } else if !observation.method.to_ascii_lowercase().contains("quantitative")
+                        product_scoreable = false;
+                    } else if observation.evidence_class != "synthetic"
+                        || !observation.method.to_ascii_lowercase().contains("quantitative")
                         || !(observation.method.to_ascii_lowercase().contains("gas")
                             || observation.method.to_ascii_lowercase().contains("mass_flow"))
                     {
-                        blocked.push("product measurement is not a quantitative gas or mass-flow observation".to_owned());
+                        blocked.push("product measurement is not a synthetic quantitative gas or mass-flow observation".to_owned());
+                        product_scoreable = false;
                     }
                 } else {
                     blocked.push("product quantitative measurement reference does not resolve to an observation".to_owned());
+                    product_scoreable = false;
                 }
 
                 if let Some(balance) = &scenario.feedstock_mass_balance {
@@ -316,18 +325,28 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                         .filter(|stream| stream.kind == "accepted_o2_product").collect();
                     if product_streams.len() != 1 {
                         blocked.push("feedstock balance must contain exactly one accepted O2 product stream".to_owned());
+                        product_scoreable = false;
                     } else if !close_enough(product_streams[0].mass_g, mass, balance.tolerance_g) {
                         rejected.push("accepted O2 product mass does not match its feedstock output stream".to_owned());
+                        product_scoreable = false;
                     }
+                } else {
+                    blocked.push("accepted O2 product has no reconciled feedstock mass-balance stream".to_owned());
+                    product_scoreable = false;
                 }
 
-                if scenario.evidence_class == "synthetic" && mass.is_finite() && mass > 0.0 {
-                    if let Some(total_energy) = total_grid_energy_wh {
-                        synthetic_grid_energy_wh_per_kg_o2 = Some(total_energy / (mass / 1000.0));
-                    }
+                if total_grid_energy_wh.is_none() {
+                    blocked.push("complete grid-to-product energy boundary is required to score accepted O2".to_owned());
+                    product_scoreable = false;
+                }
+                if product_scoreable {
+                    accepted_o2_mass_g = Some(mass);
                 }
             }
-            _ => blocked.push("accepted O2 product is missing mass, purity, pressure, contract, quantitative measurement or calibration".to_owned()),
+            _ => {
+                blocked.push("accepted O2 product is missing mass, purity, pressure, contract, quantitative measurement or calibration".to_owned());
+                product_scoreable = false;
+            }
         }
     }
 
@@ -379,6 +398,15 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
         ("NOT_COMPARABLE".to_owned(), not_comparable)
     } else {
         ("SYNTHETIC_ACCOUNTING_PASS".to_owned(), Vec::new())
+    };
+
+    let synthetic_grid_energy_wh_per_kg_o2 = if disposition == "SYNTHETIC_ACCOUNTING_PASS" {
+        match (total_grid_energy_wh, accepted_o2_mass_g) {
+            (Some(energy_wh), Some(mass_g)) if mass_g > 0.0 => Some(energy_wh / (mass_g / 1000.0)),
+            _ => None,
+        }
+    } else {
+        None
     };
 
     ScenarioResult {
@@ -580,7 +608,9 @@ mod tests {
         let mut value = fixture_value();
         value["scenarios"][0]["product"]["quantitative_measurement_ref"] = json!("synthetic-oes-o2");
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
-        assert_eq!(result_for(&report, "synthetic-balanced-accounting-positive").disposition, "BLOCKED");
+        let result = result_for(&report, "synthetic-balanced-accounting-positive");
+        assert_eq!(result.disposition, "BLOCKED");
+        assert_eq!(result.synthetic_grid_energy_wh_per_kg_o2, None);
     }
 
     #[test]
