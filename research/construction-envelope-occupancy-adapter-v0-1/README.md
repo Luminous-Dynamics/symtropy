@@ -55,3 +55,7 @@ No physical swept-volume truth, localization/stopping accuracy, collision freedo
 - `cargo bench --manifest-path research/construction-envelope-occupancy-adapter-v0-1/Cargo.toml --bench projection`
 
 The benchmark reports projection, read-only occupancy candidate and exact conflict query latencies separately. It is not a deployed robot or construction productivity benchmark.
+
+## Benchmark interpretation
+
+Batch-insert figures are amortized per record over a fresh index build; query figures are repeated read-only calls against the populated synthetic index. The current fixture deliberately spaces entries apart to isolate indexing behavior. A separate dense/adversarial workload is required before generalizing query performance. Allocation counts are not currently instrumented.
