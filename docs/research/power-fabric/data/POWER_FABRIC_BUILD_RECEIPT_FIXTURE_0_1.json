@@ -1,0 +1,57 @@
+{
+  "receipt_version": 1,
+  "canonicalization_profile": "serde-json-struct-order-btree-map-values-sorted-arrays-v1",
+  "digest_algorithm": "sha256",
+  "compiler_id": "symtropy-energy-systems",
+  "compiler_version": "0.1.0",
+  "toolchain_fingerprint": "rustc:1.96.0;target:x86_64-unknown-linux-gnu",
+  "dependency_lock_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_document_id": "document:synthetic-home",
+  "source_document_revision_id": "revision:ir:1",
+  "source_schema_version": {
+    "major": 0,
+    "minor": 2,
+    "patch": 0
+  },
+  "mapping_profile_id": "profile:residential-service-graph",
+  "mapping_profile_version": "0.1",
+  "graph_id": "graph:synthetic-home",
+  "graph_revision_id": "revision:graph:1",
+  "graph_maturity": "DesignOnly",
+  "declared_graph_content_digest": "sha256:synthetic-declared-graph-revision-input",
+  "source_document_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "mapping_profile_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "service_graph_payload_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "standard_profiles": [
+    {
+      "profile_id": "profile:prosumer-pei",
+      "profile_version": "0.1",
+      "standard": {
+        "standard_id": "IEC 60364-8-82",
+        "part": "8-82",
+        "edition": "2022",
+        "amendments": [
+          "AMD1:2026"
+        ],
+        "publication_status": "published",
+        "jurisdiction": null,
+        "corrections": [
+          "CORRECTED VERSION 2026-11"
+        ]
+      },
+      "registry_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "applicability_rules_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "upstream_artifacts": [
+    {
+      "artifact_id": "artifact:module-catalogue",
+      "revision_id": "revision:catalogue:1",
+      "role": "module identity catalogue",
+      "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    }
+  ],
+  "build_lock_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "compiler_source_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "build_configuration_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+}

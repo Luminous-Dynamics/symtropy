@@ -25,6 +25,7 @@ pub struct StandardReference {
     part: Option<String>,
     edition: String,
     amendments: Vec<String>,
+    corrections: Vec<String>,
     publication_status: StandardPublicationStatus,
     jurisdiction: Option<String>,
 }
@@ -49,13 +50,32 @@ impl StandardReference {
         if amendments.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(AdapterError::DuplicateStandardAmendment);
         }
-        Ok(Self { standard_id, part, edition, amendments, publication_status, jurisdiction })
+        Ok(Self { standard_id, part, edition, amendments, corrections: Vec::new(), publication_status, jurisdiction })
     }
 
     pub fn standard_id(&self) -> &str { &self.standard_id }
     pub fn part(&self) -> Option<&str> { self.part.as_deref() }
     pub fn edition(&self) -> &str { &self.edition }
     pub fn amendments(&self) -> &[String] { &self.amendments }
+    pub fn corrections(&self) -> &[String] { &self.corrections }
+
+    /// Pin IEC/ISO correction notices or consolidated-copy correction labels
+    /// separately from edition and amendment identifiers.
+    pub fn with_corrections(
+        mut self,
+        mut corrections: Vec<String>,
+    ) -> Result<Self, AdapterError> {
+        for correction in &corrections {
+            require_non_empty("standard_correction", correction)?;
+        }
+        corrections.sort();
+        if corrections.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(AdapterError::DuplicateStandardCorrection);
+        }
+        self.corrections = corrections;
+        Ok(self)
+    }
+
     pub const fn publication_status(&self) -> StandardPublicationStatus { self.publication_status }
     pub fn jurisdiction(&self) -> Option<&str> { self.jurisdiction.as_deref() }
 }
@@ -486,6 +506,7 @@ fn require_non_empty(field: &'static str, value: &str) -> Result<(), AdapterErro
 pub enum AdapterError {
     EmptyField { field: &'static str },
     DuplicateStandardAmendment,
+    DuplicateStandardCorrection,
     MappingOutcomeShapeMismatch { outcome: MappingOutcome },
     DuplicateLossPath,
     ExtensionDispositionShapeMismatch { disposition: ExtensionDisposition },
@@ -671,6 +692,36 @@ mod tests {
             true, 0, 2, Vec::new(), vec![opaque_extension(), opaque_extension()]),
             Err(AdapterError::DuplicateSourceExtension { .. })));
     }
+
+    #[test]
+    fn correction_notices_are_independently_pinned_and_deduplicated() {
+        let standard = StandardReference::new(
+            "IEC 60364-8-82",
+            Some("8-82".into()),
+            "2022",
+            vec!["AMD1:2026".into()],
+            StandardPublicationStatus::Published,
+            None,
+        ).unwrap();
+        let corrected = standard.clone().with_corrections(vec![
+            "ERRATA 2026-10".into(),
+            "CORRECTED VERSION 2026-11".into(),
+        ]).unwrap();
+        assert_eq!(corrected.edition(), "2022");
+        assert_eq!(corrected.amendments(), &["AMD1:2026".to_owned()]);
+        assert_eq!(
+            corrected.corrections(),
+            &["CORRECTED VERSION 2026-11".to_owned(), "ERRATA 2026-10".to_owned()]
+        );
+        assert!(matches!(
+            standard.with_corrections(vec![
+                "CORRECTED VERSION 2026-11".into(),
+                "CORRECTED VERSION 2026-11".into(),
+            ]),
+            Err(AdapterError::DuplicateStandardCorrection)
+        ));
+    }
+
     #[test]
     fn amendments_are_ordered_and_duplicates_rejected() {
         let standard = StandardReference::new("IEC", None, "2025",

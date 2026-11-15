@@ -10,7 +10,8 @@
         "AMD1:2022"
       ],
       "publication_status": "published",
-      "jurisdiction": null
+      "jurisdiction": null,
+      "corrections": []
     },
     "adapter_version": "cim-adapter:0.1.0",
     "target_schema": {

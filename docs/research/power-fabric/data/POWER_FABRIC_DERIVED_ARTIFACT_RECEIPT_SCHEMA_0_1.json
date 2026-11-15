@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-derived-artifact-receipt-0.1.schema.json",
+  "title": "Power Fabric Derived Artifact Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_version",
+    "artifact_id",
+    "artifact_revision_id",
+    "artifact_kind",
+    "output_format",
+    "generator_id",
+    "generator_version",
+    "source_build_lock_digest",
+    "source_graph_id",
+    "source_graph_revision_id",
+    "source_graph_declared_content_digest",
+    "source_graph_payload_digest",
+    "output_digest",
+    "generator_source_digest",
+    "generator_configuration_digest",
+    "source_compiler_version",
+    "source_mapping_profile_version",
+    "dependency_ids",
+    "dependency_inventory_complete"
+  ],
+  "properties": {
+    "receipt_version": {
+      "const": 1
+    },
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifact_kind": {
+      "enum": [
+        "resident_view",
+        "operator_view",
+        "qualified_practitioner_view",
+        "emergency_responder_view",
+        "single_line_diagram",
+        "circuit_directory",
+        "source_map",
+        "commissioning_dossier",
+        "interchange_export",
+        "other"
+      ]
+    },
+    "output_format": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generator_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generator_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_build_lock_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_graph_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_graph_revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_graph_declared_content_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_graph_payload_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "output_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "generator_source_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "generator_configuration_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_mapping_profile_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dependency_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "dependency_inventory_complete": {
+      "type": "boolean"
+    },
+    "source_compiler_version": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}
