@@ -8,7 +8,7 @@ fixtures/aeroweift-conformance/tiny-intent-conformance-v0.json
 ## Semantics
 
 - Compares observed 4D occupancy windows against an immutable authorization revision.
-- Applies only an explicit profile-owned spatial/time deviation expansion.
+- Applies only an explicit profile-owned spatial/time deviation expansion, clipped to the authorization's activation/expiry interval.
 - Uses integer coordinates and half-open time windows.
 - Classifies observations as definitely inside, definitely outside, or ambiguous.
 - Separately accumulates definite, possible, unassessable and unobserved duration.
