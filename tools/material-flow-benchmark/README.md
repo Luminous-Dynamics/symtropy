@@ -7,7 +7,7 @@ A standalone, dependency-light Rust contract parser and validator for MFB scenar
 - Schema version and strict unknown-field rejection.
 - Opaque identifier shape and SHA-256 / Git commit digest shape.
 - Unique actor, asset, location, segment, action, event and fault identifiers.
-- Package-to-tote axis-aligned fit and gross-mass limits.
+- Package-to-tote and tote-to-asset axis-aligned fit, container gross-mass and asset payload-mass limits.
 - Cargo handling/seal class against final storage class.
 - Actor roles, receiver endpoint, grant validity window and required actions.
 - Transfer-chain continuity and declared asset/mode compatibility.
