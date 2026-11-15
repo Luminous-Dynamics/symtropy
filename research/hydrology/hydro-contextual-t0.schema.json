@@ -48,8 +48,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 21,
-      "maxItems": 21,
+      "minItems": 26,
+      "maxItems": 26,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -69,7 +69,10 @@
               "prior_ensemble",
               "calibration_reference",
               "contextual_attainment",
-              "split_integrity"
+              "split_integrity",
+              "event_metrics",
+              "low_flow_metrics",
+              "interval_metrics"
             ]
           },
           "inputs": {
