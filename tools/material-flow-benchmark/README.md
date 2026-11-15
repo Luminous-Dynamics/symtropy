@@ -48,9 +48,16 @@ The result prints an L1 JSON record containing the final package position, speed
 
 This is an actual headless rigid-body simulation, but it is a **reduced-order stationary receiving scene**, not a complete logistics simulation. It does not model package deformation, a robot/gripper, carrier dynamics, aircraft, routes, sensor noise, actuator control, human exposure, or physical metrology. Bitwise replay is asserted only for two runs on the same host/build; cross-platform determinism is not claimed.
 
+
+### First L1 baseline (2026-11-15)
+
+The exact-head workflow run [43768458267](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267) passed the 53-test Rust suite, Clippy, both fixture validators and the nominal L1 simulation. The L1 evidence artifact is `mfb-l1-evidence-c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1` (artifact ID `14183207787`), containing raw `result.json` and `environment.txt`.
+
+Observed nominal outputs: package centre `[-0.0024414, 0.0455627, -0.0003204] m`; final linear/angular speed `0`; same-host bitwise replay `true`; safe containment `true`; transaction `completed`; accepted `true`; non-finite bodies `0`; maximum contact penetration `0.0102563 m` (10.26 mm); rotation orthogonality error `3.33e-15`. The 10.26 mm penetration is a baseline to improve, not a high-fidelity contact claim. The code currently permits 40 mm in this demonstrator; issue [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469) tracks tighter contact/convergence validation.
+
 ## What it does not prove
 
-This validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve 3D packing, run a physical simulator, prove safety, or qualify HIL / field performance. A valid manifest means only that its declared contracts are internally consistent.
+The contract validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve general 3D packing, prove safety, or qualify HIL / field performance. The separate L1 simulator executes one reduced-order stationary receiving scene; a valid manifest or successful L1 episode is not a physical safety case or field qualification.
 
 All identifiers in public fixtures are synthetic opaque test identifiers. Do not place names, addresses, real DIDs, household inventories or raw sensor values in public scenarios.
 
