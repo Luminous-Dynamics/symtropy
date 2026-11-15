@@ -18,7 +18,7 @@ The schema does not verify the referenced bytes, compute metrics, or prove physi
 
 ## Synthetic fixture
 
-`fixtures/synthetic-run-v0.1.json` is shape-only: placeholder digests, no measured timings, inconclusive results, missing curvature evidence, no upper bound, and no production authority.
+`fixtures/synthetic-run-v0.1.json` is shape-only: placeholder digests, no measured timings (unmeasured metrics are null), inconclusive results, missing curvature evidence, no upper bound, and no production authority.
 
 ## Baseline families
 
