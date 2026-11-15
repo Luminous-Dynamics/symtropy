@@ -26,6 +26,7 @@ pub enum PhysicalIdentityError {
     DuplicateEvidence { evidence_id: String },
     DuplicateEvent { event_id: String },
     UnknownProduct { product_id: String },
+    ManufacturerMismatch { instance_id: String, expected: String, actual: String },
     UnknownSlot { slot_id: String },
     UnknownPhysicalInstance { instance_id: String },
     UnknownEvidence { evidence_id: String },
@@ -162,6 +163,8 @@ impl ProductModel {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct DesignSlot {
     slot_id: String,
+    source_node_id: String,
+    module_contract_id: String,
     expected_location_id: String,
     accepted_hardware_revisions: BTreeMap<String, BTreeSet<String>>,
     max_active_instances: usize,
@@ -170,17 +173,23 @@ pub struct DesignSlot {
 impl DesignSlot {
     pub fn new(
         slot_id: impl Into<String>,
+        source_node_id: impl Into<String>,
+        module_contract_id: impl Into<String>,
         expected_location_id: impl Into<String>,
         accepted_hardware_revisions: BTreeMap<String, BTreeSet<String>>,
         max_active_instances: usize,
     ) -> Result<Self, PhysicalIdentityError> {
         let value = Self {
             slot_id: slot_id.into(),
+            source_node_id: source_node_id.into(),
+            module_contract_id: module_contract_id.into(),
             expected_location_id: expected_location_id.into(),
             accepted_hardware_revisions,
             max_active_instances,
         };
         require_non_empty("slot_id", &value.slot_id)?;
+        require_non_empty("source_node_id", &value.source_node_id)?;
+        require_non_empty("module_contract_id", &value.module_contract_id)?;
         require_non_empty("expected_location_id", &value.expected_location_id)?;
         if value.accepted_hardware_revisions.is_empty()
             || value.max_active_instances == 0
@@ -198,6 +207,14 @@ impl DesignSlot {
 
     pub fn slot_id(&self) -> &str {
         &self.slot_id
+    }
+
+    pub fn source_node_id(&self) -> &str {
+        &self.source_node_id
+    }
+
+    pub fn module_contract_id(&self) -> &str {
+        &self.module_contract_id
     }
 
     pub fn expected_location_id(&self) -> &str {
@@ -222,6 +239,7 @@ impl DesignSlot {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PhysicalInstance {
     physical_instance_id: String,
+    manufacturer: String,
     identity_namespace: String,
     serial_identifier: String,
     product_id: String,
@@ -233,6 +251,7 @@ impl PhysicalInstance {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         physical_instance_id: impl Into<String>,
+        manufacturer: impl Into<String>,
         identity_namespace: impl Into<String>,
         serial_identifier: impl Into<String>,
         product_id: impl Into<String>,
@@ -241,6 +260,7 @@ impl PhysicalInstance {
     ) -> Result<Self, PhysicalIdentityError> {
         let value = Self {
             physical_instance_id: physical_instance_id.into(),
+            manufacturer: manufacturer.into(),
             identity_namespace: identity_namespace.into(),
             serial_identifier: serial_identifier.into(),
             product_id: product_id.into(),
@@ -248,6 +268,7 @@ impl PhysicalInstance {
             configuration_sha256: configuration_sha256.into(),
         };
         require_non_empty("physical_instance_id", &value.physical_instance_id)?;
+        require_non_empty("manufacturer", &value.manufacturer)?;
         require_non_empty("identity_namespace", &value.identity_namespace)?;
         require_non_empty("serial_identifier", &value.serial_identifier)?;
         require_non_empty("product_id", &value.product_id)?;
@@ -258,6 +279,10 @@ impl PhysicalInstance {
 
     pub fn physical_instance_id(&self) -> &str {
         &self.physical_instance_id
+    }
+
+    pub fn manufacturer(&self) -> &str {
+        &self.manufacturer
     }
 
     pub fn identity_namespace(&self) -> &str {
@@ -361,6 +386,8 @@ pub struct PhysicalEvent {
     pub physical_instance_id: Option<String>,
     pub previous_physical_instance_id: Option<String>,
     pub location_id: Option<String>,
+    pub observed_identity_namespace: Option<String>,
+    pub observed_serial_identifier: Option<String>,
     pub from_location_id: Option<String>,
     pub to_location_id: Option<String>,
     pub new_configuration_sha256: Option<String>,
@@ -389,6 +416,8 @@ impl PhysicalEvent {
             physical_instance_id: None,
             previous_physical_instance_id: None,
             location_id: None,
+            observed_identity_namespace: None,
+            observed_serial_identifier: None,
             from_location_id: None,
             to_location_id: None,
             new_configuration_sha256: None,
@@ -410,6 +439,16 @@ impl PhysicalEvent {
 
     pub fn with_location(mut self, location_id: impl Into<String>) -> Self {
         self.location_id = Some(location_id.into());
+        self
+    }
+
+    pub fn with_observed_identity(
+        mut self,
+        identity_namespace: impl Into<String>,
+        serial_identifier: impl Into<String>,
+    ) -> Self {
+        self.observed_identity_namespace = Some(identity_namespace.into());
+        self.observed_serial_identifier = Some(serial_identifier.into());
         self
     }
 
@@ -445,8 +484,15 @@ pub struct ReviewScope {
     pub installation_id: String,
     pub installation_revision: String,
     pub slot_id: String,
+    pub source_node_id: String,
+    pub module_contract_id: String,
+    pub design_location_id: String,
     pub physical_instance_id: String,
+    pub manufacturer: String,
+    pub identity_namespace: String,
+    pub serial_identifier: String,
     pub product_id: String,
+    pub catalogue_revision: String,
     pub hardware_revision: String,
     pub configuration_sha256: String,
     pub location_id: String,
@@ -510,6 +556,10 @@ pub enum PhysicalIdentityDiagnosticCode {
     IdentityObservationWithoutDeliveryOrAssignment,
     ExplicitConflictDeclared,
     ActiveInstanceLimitExceeded,
+    EvidenceAdmissionRejected,
+    EvidenceAdmissionUnknown,
+    InstallationLocationDiffersFromDesign,
+    ObservedIdentityMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
