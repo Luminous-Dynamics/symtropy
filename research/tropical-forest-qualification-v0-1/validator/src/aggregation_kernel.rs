@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::support_kernel::{
-    qualify_rectangular_support, CoverageDisposition, Rect, SupportError, SupportSample,
+    CoverageDisposition, Rect, SupportError, SupportSample, qualify_rectangular_support,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -91,8 +91,10 @@ pub fn aggregate_intensive_mean(
         }
     }
 
-    let support_samples: Vec<SupportSample> =
-        samples.iter().map(|sample| sample.support.clone()).collect();
+    let support_samples: Vec<SupportSample> = samples
+        .iter()
+        .map(|sample| sample.support.clone())
+        .collect();
     let support_report = qualify_rectangular_support(target_crs, target, &support_samples)?;
 
     let mut ordered: Vec<&IntensiveSample> = samples.iter().collect();
@@ -173,8 +175,10 @@ pub fn integrate_density_to_observed_stock(
         }
     }
 
-    let support_samples: Vec<SupportSample> =
-        samples.iter().map(|sample| sample.support.clone()).collect();
+    let support_samples: Vec<SupportSample> = samples
+        .iter()
+        .map(|sample| sample.support.clone())
+        .collect();
     let support_report = qualify_rectangular_support(target_crs, target, &support_samples)?;
 
     let mut ordered: Vec<&DensitySample> = samples.iter().collect();
@@ -339,8 +343,10 @@ pub fn aggregate_categorical_areas(
         }
     }
 
-    let support_samples: Vec<SupportSample> =
-        samples.iter().map(|sample| sample.support.clone()).collect();
+    let support_samples: Vec<SupportSample> = samples
+        .iter()
+        .map(|sample| sample.support.clone())
+        .collect();
     let support_report = qualify_rectangular_support(target_crs, target, &support_samples)?;
 
     let mut ordered: Vec<&CategoricalSample> = samples.iter().collect();
@@ -402,8 +408,16 @@ mod tests {
     fn intensive_mean_is_area_weighted() {
         let target = rect(0.0, 0.0, 10.0, 10.0);
         let samples = [
-            IntensiveSample { support: support("a", rect(0.0, 0.0, 5.0, 10.0), true), value: 10.0, unit: "Mg/ha".to_string() },
-            IntensiveSample { support: support("b", rect(5.0, 0.0, 10.0, 10.0), true), value: 20.0, unit: "Mg/ha".to_string() },
+            IntensiveSample {
+                support: support("a", rect(0.0, 0.0, 5.0, 10.0), true),
+                value: 10.0,
+                unit: "Mg/ha".to_string(),
+            },
+            IntensiveSample {
+                support: support("b", rect(5.0, 0.0, 10.0, 10.0), true),
+                value: 20.0,
+                unit: "Mg/ha".to_string(),
+            },
         ];
         let result = aggregate_intensive_mean("LOCAL_METRE_GRID_A", target, &samples, "Mg/ha")
             .expect("weighted mean");
@@ -416,9 +430,14 @@ mod tests {
         let result = aggregate_intensive_mean(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[IntensiveSample { support: support("half", rect(0.0, 0.0, 5.0, 10.0), true), value: 18.0, unit: "Mg/ha".to_string() }],
+            &[IntensiveSample {
+                support: support("half", rect(0.0, 0.0, 5.0, 10.0), true),
+                value: 18.0,
+                unit: "Mg/ha".to_string(),
+            }],
             "Mg/ha",
-        ).expect("partial mean");
+        )
+        .expect("partial mean");
         assert_eq!(result.observed_mean, Some(18.0));
         assert_eq!(result.valid_data_coverage_fraction, 0.5);
         assert_eq!(result.valid_observed_area_m2, 50.0);
@@ -429,9 +448,14 @@ mod tests {
         let result = aggregate_intensive_mean(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[IntensiveSample { support: support("cloud", rect(0.0, 0.0, 10.0, 10.0), false), value: 0.0, unit: "Mg/ha".to_string() }],
+            &[IntensiveSample {
+                support: support("cloud", rect(0.0, 0.0, 10.0, 10.0), false),
+                value: 0.0,
+                unit: "Mg/ha".to_string(),
+            }],
             "Mg/ha",
-        ).expect("masked sample");
+        )
+        .expect("masked sample");
         assert_eq!(result.observed_mean, None);
         assert_eq!(result.geometric_coverage_fraction, 1.0);
         assert_eq!(result.valid_data_coverage_fraction, 0.0);
@@ -442,7 +466,11 @@ mod tests {
         let result = aggregate_intensive_mean(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[IntensiveSample { support: support("a", rect(0.0, 0.0, 10.0, 10.0), true), value: 4.0, unit: "kg".to_string() }],
+            &[IntensiveSample {
+                support: support("a", rect(0.0, 0.0, 10.0, 10.0), true),
+                value: 4.0,
+                unit: "kg".to_string(),
+            }],
             "Mg/ha",
         );
         assert_eq!(result, Err(AggregationError::UnitMismatch));
@@ -453,7 +481,11 @@ mod tests {
         let result = aggregate_intensive_mean(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[IntensiveSample { support: support("a", rect(0.0, 0.0, 10.0, 10.0), true), value: f64::NAN, unit: "Mg/ha".to_string() }],
+            &[IntensiveSample {
+                support: support("a", rect(0.0, 0.0, 10.0, 10.0), true),
+                value: f64::NAN,
+                unit: "Mg/ha".to_string(),
+            }],
             "Mg/ha",
         );
         assert_eq!(result, Err(AggregationError::InvalidValue));
@@ -462,10 +494,25 @@ mod tests {
     #[test]
     fn intensive_results_are_order_independent() {
         let target = rect(0.0, 0.0, 10.0, 10.0);
-        let a = IntensiveSample { support: support("a", rect(0.0, 0.0, 5.0, 10.0), true), value: 12.0, unit: "Mg/ha".to_string() };
-        let b = IntensiveSample { support: support("b", rect(5.0, 0.0, 10.0, 10.0), true), value: 18.0, unit: "Mg/ha".to_string() };
-        let left = aggregate_intensive_mean("LOCAL_METRE_GRID_A", target, &[a.clone(), b.clone()], "Mg/ha").unwrap();
-        let right = aggregate_intensive_mean("LOCAL_METRE_GRID_A", target, &[b, a], "Mg/ha").unwrap();
+        let a = IntensiveSample {
+            support: support("a", rect(0.0, 0.0, 5.0, 10.0), true),
+            value: 12.0,
+            unit: "Mg/ha".to_string(),
+        };
+        let b = IntensiveSample {
+            support: support("b", rect(5.0, 0.0, 10.0, 10.0), true),
+            value: 18.0,
+            unit: "Mg/ha".to_string(),
+        };
+        let left = aggregate_intensive_mean(
+            "LOCAL_METRE_GRID_A",
+            target,
+            &[a.clone(), b.clone()],
+            "Mg/ha",
+        )
+        .unwrap();
+        let right =
+            aggregate_intensive_mean("LOCAL_METRE_GRID_A", target, &[b, a], "Mg/ha").unwrap();
         assert_eq!(left, right);
     }
 
@@ -475,10 +522,17 @@ mod tests {
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
             &[
-                DensitySample { support: support("a", rect(0.0, 0.0, 5.0, 10.0), true), value_mg_per_ha: 20.0 },
-                DensitySample { support: support("b", rect(5.0, 0.0, 10.0, 10.0), true), value_mg_per_ha: 10.0 },
+                DensitySample {
+                    support: support("a", rect(0.0, 0.0, 5.0, 10.0), true),
+                    value_mg_per_ha: 20.0,
+                },
+                DensitySample {
+                    support: support("b", rect(5.0, 0.0, 10.0, 10.0), true),
+                    value_mg_per_ha: 10.0,
+                },
             ],
-        ).expect("integrated stock");
+        )
+        .expect("integrated stock");
         assert!((result.observed_stock_mg - 0.15).abs() < 1e-12);
         assert_eq!(result.valid_data_coverage_fraction, 1.0);
     }
@@ -488,8 +542,12 @@ mod tests {
         let result = integrate_density_to_observed_stock(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[DensitySample { support: support("half", rect(0.0, 0.0, 5.0, 10.0), true), value_mg_per_ha: 20.0 }],
-        ).expect("partial integrated stock");
+            &[DensitySample {
+                support: support("half", rect(0.0, 0.0, 5.0, 10.0), true),
+                value_mg_per_ha: 20.0,
+            }],
+        )
+        .expect("partial integrated stock");
         assert!((result.observed_stock_mg - 0.1).abs() < 1e-12);
         assert_eq!(result.valid_data_coverage_fraction, 0.5);
         assert_eq!(result.valid_observed_area_m2, 50.0);
@@ -500,7 +558,10 @@ mod tests {
         let result = integrate_density_to_observed_stock(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[DensitySample { support: support("negative", rect(0.0, 0.0, 10.0, 10.0), true), value_mg_per_ha: -1.0 }],
+            &[DensitySample {
+                support: support("negative", rect(0.0, 0.0, 10.0, 10.0), true),
+                value_mg_per_ha: -1.0,
+            }],
         );
         assert_eq!(result, Err(AggregationError::InvalidValue));
     }
@@ -508,20 +569,46 @@ mod tests {
     #[test]
     fn horvitz_thompson_uses_first_order_inclusion_probabilities() {
         let samples = [
-            CountSample { sample_unit_id: "a".to_string(), sampling_frame_id: "frame".to_string(), sampling_design_id: "design".to_string(), design_kind: "probability_sample".to_string(), observed_count: 4, inclusion_probability: 0.5 },
-            CountSample { sample_unit_id: "b".to_string(), sampling_frame_id: "frame".to_string(), sampling_design_id: "design".to_string(), design_kind: "probability_sample".to_string(), observed_count: 5, inclusion_probability: 0.25 },
+            CountSample {
+                sample_unit_id: "a".to_string(),
+                sampling_frame_id: "frame".to_string(),
+                sampling_design_id: "design".to_string(),
+                design_kind: "probability_sample".to_string(),
+                observed_count: 4,
+                inclusion_probability: 0.5,
+            },
+            CountSample {
+                sample_unit_id: "b".to_string(),
+                sampling_frame_id: "frame".to_string(),
+                sampling_design_id: "design".to_string(),
+                design_kind: "probability_sample".to_string(),
+                observed_count: 5,
+                inclusion_probability: 0.25,
+            },
         ];
         let result = estimate_probability_sample_count_total("frame", "design", 10, &samples)
             .expect("probability sample total");
         assert_eq!(result.horvitz_thompson_total, 28.0);
-        assert_eq!(result.uncertainty_status, "NOT_ESTIMATED_REQUIRES_SECOND_ORDER_INCLUSION_PROBABILITIES");
+        assert_eq!(
+            result.uncertainty_status,
+            "NOT_ESTIMATED_REQUIRES_SECOND_ORDER_INCLUSION_PROBABILITIES"
+        );
     }
 
     #[test]
     fn horvitz_thompson_rejects_zero_inclusion_probability() {
         let result = estimate_probability_sample_count_total(
-            "frame", "design", 10,
-            &[CountSample { sample_unit_id: "a".to_string(), sampling_frame_id: "frame".to_string(), sampling_design_id: "design".to_string(), design_kind: "probability_sample".to_string(), observed_count: 4, inclusion_probability: 0.0 }],
+            "frame",
+            "design",
+            10,
+            &[CountSample {
+                sample_unit_id: "a".to_string(),
+                sampling_frame_id: "frame".to_string(),
+                sampling_design_id: "design".to_string(),
+                design_kind: "probability_sample".to_string(),
+                observed_count: 4,
+                inclusion_probability: 0.0,
+            }],
         );
         assert_eq!(result, Err(AggregationError::InvalidInclusionProbability));
     }
@@ -529,23 +616,55 @@ mod tests {
     #[test]
     fn horvitz_thompson_rejects_non_probability_design() {
         let result = estimate_probability_sample_count_total(
-            "frame", "design", 10,
-            &[CountSample { sample_unit_id: "a".to_string(), sampling_frame_id: "frame".to_string(), sampling_design_id: "design".to_string(), design_kind: "convenience_sample".to_string(), observed_count: 4, inclusion_probability: 0.5 }],
+            "frame",
+            "design",
+            10,
+            &[CountSample {
+                sample_unit_id: "a".to_string(),
+                sampling_frame_id: "frame".to_string(),
+                sampling_design_id: "design".to_string(),
+                design_kind: "convenience_sample".to_string(),
+                observed_count: 4,
+                inclusion_probability: 0.5,
+            }],
         );
         assert_eq!(result, Err(AggregationError::NonProbabilityDesign));
     }
 
     #[test]
     fn horvitz_thompson_rejects_duplicate_and_mixed_frame_units() {
-        let duplicated = CountSample { sample_unit_id: "a".to_string(), sampling_frame_id: "frame".to_string(), sampling_design_id: "design".to_string(), design_kind: "probability_sample".to_string(), observed_count: 4, inclusion_probability: 0.5 };
+        let duplicated = CountSample {
+            sample_unit_id: "a".to_string(),
+            sampling_frame_id: "frame".to_string(),
+            sampling_design_id: "design".to_string(),
+            design_kind: "probability_sample".to_string(),
+            observed_count: 4,
+            inclusion_probability: 0.5,
+        };
         let duplicate_result = estimate_probability_sample_count_total(
-            "frame", "design", 10, &[duplicated.clone(), duplicated.clone()],
+            "frame",
+            "design",
+            10,
+            &[duplicated.clone(), duplicated.clone()],
         );
-        assert_eq!(duplicate_result, Err(AggregationError::DuplicateSampleIdentity));
+        assert_eq!(
+            duplicate_result,
+            Err(AggregationError::DuplicateSampleIdentity)
+        );
 
-        let wrong_frame = CountSample { sample_unit_id: "b".to_string(), sampling_frame_id: "other".to_string(), sampling_design_id: "design".to_string(), design_kind: "probability_sample".to_string(), observed_count: 5, inclusion_probability: 0.5 };
+        let wrong_frame = CountSample {
+            sample_unit_id: "b".to_string(),
+            sampling_frame_id: "other".to_string(),
+            sampling_design_id: "design".to_string(),
+            design_kind: "probability_sample".to_string(),
+            observed_count: 5,
+            inclusion_probability: 0.5,
+        };
         let mixed_result = estimate_probability_sample_count_total(
-            "frame", "design", 10, &[duplicated, wrong_frame],
+            "frame",
+            "design",
+            10,
+            &[duplicated, wrong_frame],
         );
         assert_eq!(mixed_result, Err(AggregationError::InvalidSamplingFrame));
     }
@@ -556,10 +675,17 @@ mod tests {
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
             &[
-                CategoricalSample { support: support("a", rect(0.0, 0.0, 2.0, 10.0), true), class_id: "forest".to_string() },
-                CategoricalSample { support: support("b", rect(2.0, 0.0, 10.0, 10.0), true), class_id: "degraded_forest".to_string() },
+                CategoricalSample {
+                    support: support("a", rect(0.0, 0.0, 2.0, 10.0), true),
+                    class_id: "forest".to_string(),
+                },
+                CategoricalSample {
+                    support: support("b", rect(2.0, 0.0, 10.0, 10.0), true),
+                    class_id: "degraded_forest".to_string(),
+                },
             ],
-        ).expect("categorical composition");
+        )
+        .expect("categorical composition");
         assert_eq!(result.classes.len(), 2);
         assert_eq!(result.classes[0].class_id, "degraded_forest");
         assert_eq!(result.classes[0].fraction_of_valid_observed_area, 0.8);
@@ -573,10 +699,17 @@ mod tests {
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
             &[
-                CategoricalSample { support: support("valid", rect(0.0, 0.0, 5.0, 10.0), true), class_id: "forest".to_string() },
-                CategoricalSample { support: support("masked", rect(5.0, 0.0, 10.0, 10.0), false), class_id: "unknown".to_string() },
+                CategoricalSample {
+                    support: support("valid", rect(0.0, 0.0, 5.0, 10.0), true),
+                    class_id: "forest".to_string(),
+                },
+                CategoricalSample {
+                    support: support("masked", rect(5.0, 0.0, 10.0, 10.0), false),
+                    class_id: "unknown".to_string(),
+                },
             ],
-        ).expect("masked categorical composition");
+        )
+        .expect("masked categorical composition");
         assert_eq!(result.geometric_coverage_fraction, 1.0);
         assert_eq!(result.valid_data_coverage_fraction, 0.5);
         assert_eq!(result.classes.len(), 1);
@@ -589,7 +722,10 @@ mod tests {
         let empty = aggregate_categorical_areas(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[CategoricalSample { support: support("a", rect(0.0, 0.0, 10.0, 10.0), true), class_id: " ".to_string() }],
+            &[CategoricalSample {
+                support: support("a", rect(0.0, 0.0, 10.0, 10.0), true),
+                class_id: " ".to_string(),
+            }],
         );
         assert_eq!(empty, Err(AggregationError::EmptyCategory));
 
@@ -597,11 +733,22 @@ mod tests {
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
             &[
-                CategoricalSample { support: support("a", rect(0.0, 0.0, 6.0, 10.0), true), class_id: "forest".to_string() },
-                CategoricalSample { support: support("b", rect(4.0, 0.0, 10.0, 10.0), true), class_id: "water".to_string() },
+                CategoricalSample {
+                    support: support("a", rect(0.0, 0.0, 6.0, 10.0), true),
+                    class_id: "forest".to_string(),
+                },
+                CategoricalSample {
+                    support: support("b", rect(4.0, 0.0, 10.0, 10.0), true),
+                    class_id: "water".to_string(),
+                },
             ],
         );
-        assert_eq!(overlap, Err(AggregationError::Support(SupportError::OverlappingSourceSupports)));
+        assert_eq!(
+            overlap,
+            Err(AggregationError::Support(
+                SupportError::OverlappingSourceSupports
+            ))
+        );
     }
 
     #[test]
@@ -609,10 +756,17 @@ mod tests {
         let result = aggregate_categorical_areas(
             "LOCAL_METRE_GRID_A",
             rect(0.0, 0.0, 10.0, 10.0),
-            &[CategoricalSample { support: support("masked", rect(0.0, 0.0, 10.0, 10.0), false), class_id: "unknown".to_string() }],
-        ).expect("all masked");
+            &[CategoricalSample {
+                support: support("masked", rect(0.0, 0.0, 10.0, 10.0), false),
+                class_id: "unknown".to_string(),
+            }],
+        )
+        .expect("all masked");
         assert!(result.classes.is_empty());
         assert_eq!(result.valid_data_coverage_fraction, 0.0);
-        assert_eq!(result.disposition, CoverageDisposition::GeometricallyCompleteButDataIncomplete);
+        assert_eq!(
+            result.disposition,
+            CoverageDisposition::GeometricallyCompleteButDataIncomplete
+        );
     }
 }
