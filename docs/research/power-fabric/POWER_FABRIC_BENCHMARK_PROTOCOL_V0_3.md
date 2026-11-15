@@ -138,3 +138,24 @@ Sources checked for this snapshot on 2026-11-14:
 - South African Department of Employment and Labour CoC notice (2025-10-22): https://www.gov.za/news/media-statements/employment-and-labour-electrical-installation-laws-and-certificate-compliance
 
 The referenced publications establish scope and publication metadata, not a complete standards-compliance rule set. Standards access, edition, amendment, national adoption, applicability and licensing must be checked before normative rules or conformance claims are implemented.
+
+
+## 6. Machine-readable corpus v0.2 (2026-11-15)
+
+The frozen v0.1 registry remains unchanged at 36 cases and seven families. The versioned v0.2 registry expands this to **50 synthetic cases across eight families**:
+
+| Family | Cases |
+|---|---:|
+| IR contract | 5 |
+| Standards adapter | 5 |
+| Change impact | 5 |
+| Resilience | 5 |
+| Human projection | 4 |
+| Reproducible build receipt | 7 |
+| Derived artifact | 5 |
+| Physical identity and temporal reconciliation | 14 |
+| **Total** | **50** |
+
+The v0.2 machine files are `POWER_FABRIC_BENCHMARK_SCENARIOS_0_2.json` and `POWER_FABRIC_BENCHMARK_SCENARIOS_SCHEMA_0_2.json`. Their measurement status is `scenario_registry_authored_not_executed`. These are synthetic expected-outcome cases, not executed test results, measured performance, independent reproductions, physical observations or safety evidence. The digest strings in physical identity fixtures are explicitly marked as placeholders rather than content commitments to real evidence.
+
+Keep v0.1 immutable for reproducibility. Benchmark reports must name the exact corpus version and digest, not merely say "Power Fabric benchmark corpus".
