@@ -144,3 +144,15 @@ Every throughput lane must publish both fixed-batch comparisons and each engine'
 ### Contact residual reference-scale correction
 
 For active contacts, the attained normal velocity is intentionally near the target and can be approximately zero. Normalizing slack only by the attained or target speed is therefore ill-conditioned: a roundoff-sized negative slack divided by a roundoff-sized attained velocity can appear to be a 100% violation. The primal and complementarity residuals now include the pre-contact free normal velocity `J_i v_free` in their row-local characteristic speed. This preserves a meaningful scale when contact resolution removes most of the incoming normal speed. A regression uses a `-9e-17` residual against a `2 m/s` incoming free normal velocity and requires both dimensionless residuals below `1e-15`.
+
+## Independent energy/work ledger replay
+
+The contact reference now exposes `audit_discrete_energy_ledger`. This is a separate audit path from the solver's ledger-construction helper. Given the frozen `DiscreteStepInput` and accepted `DiscreteStepResult`, it:
+
+- independently derives the next position as `q + h v_next` and checks the returned position;
+- independently derives each normal velocity as `J_i v_next`, the unilateral target as `-gap_i/h`, and slack as their difference;
+- reconstructs kinetic/potential changes, external force work, damping dissipation, mass/stiffness increment terms, contact impulse work and the contact-target/complementarity decomposition;
+- compares all 15 published ledger fields under an explicit absolute/relative audit profile;
+- rejects non-finite intermediates, mismatched shapes, altered position/slack and any ledger-field mismatch.
+
+The audit receipt is a replay record, not a formal proof: it uses f64 arithmetic and a declared tolerance profile. It does not certify the solver's contact complementarity, KKT accuracy, physical-model fit, frictional dissipation or time-discretization error. Those remain separate evidence obligations.
