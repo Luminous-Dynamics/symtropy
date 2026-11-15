@@ -30,14 +30,6 @@ jobs:
           components: rustfmt, clippy
       - name: Format check
         run: cargo fmt --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml -- --check
-      - name: Generate standalone dependency lockfile
-        run: cargo generate-lockfile --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml
-      - name: Export exact Cargo.lock for repository update
-        run: |
-          echo "CARGO_LOCK_BASE64_BEGIN"
-          base64 -w0 crates/tools/lunar-plasma-isru-evaluator/Cargo.lock
-          echo
-          echo "CARGO_LOCK_BASE64_END"
       - name: Unit tests
         run: cargo test --locked --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml
       - name: Strict Clippy
