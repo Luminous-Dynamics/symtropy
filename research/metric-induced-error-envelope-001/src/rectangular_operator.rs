@@ -855,11 +855,7 @@ mod tests {
                 let expected_delassus = congruence_2(delassus_y.matrix(), &transform);
                 for (row, expected_row) in expected_delassus.iter().enumerate() {
                     for (column, expected_value) in expected_row.iter().enumerate() {
-                        close(
-                            delassus_new.matrix()[row][column],
-                            *expected_value,
-                            2.0e-10,
-                        );
+                        close(delassus_new.matrix()[row][column], *expected_value, 2.0e-10);
                     }
                 }
 
