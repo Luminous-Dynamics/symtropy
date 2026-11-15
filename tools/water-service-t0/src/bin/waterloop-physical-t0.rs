@@ -906,7 +906,7 @@ mod tests {
     }
 
     #[test]
-    fn all_fifteen_cases_match_the_separate_oracle() {
+    fn all_twenty_five_cases_match_the_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluation completes");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1011,11 +1011,60 @@ mod tests {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &oracle)
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 14);
+        assert_eq!(result["matched_case_count"], 24);
         assert_eq!(
             result["mismatches"].as_array().expect("mismatches").len(),
             1
         );
+    }
+
+
+    #[test]
+    fn continuity_allocates_essential_demand_before_discretionary() {
+        let case = fixture("inputs")["cases"][19].clone();
+        let actual = compute(&case).expect("synthetic compound-demand case");
+        assert_eq!(actual["essential_delivered_l"], 60.0);
+        assert_eq!(actual["discretionary_delivered_l"], 50.0);
+        assert_eq!(actual["end_storage_l"], 10.0);
+        assert_eq!(actual["critical_interval_availability"], 1.0);
+    }
+
+    #[test]
+    fn continuity_abstains_without_stored_water_use_quality() {
+        let case = fixture("inputs")["cases"][23].clone();
+        let actual = compute(&case).expect("synthetic quality-admission case");
+        assert_eq!(actual["service_disposition"], "INDETERMINATE");
+        assert_eq!(actual["reason"], "STORED_WATER_QUALITY_NOT_ADMITTED");
+        assert_eq!(actual["essential_delivered_l"], Value::Null);
+        assert!(!actual["credit_eligible"].as_bool().expect("credit boolean"));
+    }
+
+    #[test]
+    fn continuity_excludes_unqualified_source_inflow() {
+        let case = fixture("inputs")["cases"][24].clone();
+        let actual = compute(&case).expect("synthetic source-inflow case");
+        assert_eq!(actual["admitted_source_inflow_l"], 0.0);
+        assert_eq!(actual["rejected_source_inflow_l"], 50.0);
+        assert_eq!(actual["essential_delivered_l"], 20.0);
+    }
+
+    #[test]
+    fn continuity_abstains_on_unadmitted_service_measurement() {
+        let case = fixture("inputs")["cases"][22].clone();
+        let actual = compute(&case).expect("synthetic metrology case");
+        assert_eq!(actual["service_disposition"], "INDETERMINATE");
+        assert_eq!(actual["reason"], "SERVICE_MEASUREMENT_NOT_ADMITTED");
+        assert_eq!(actual["end_storage_l"], Value::Null);
+    }
+
+    #[test]
+    fn continuity_does_not_credit_service_below_pressure_flow_floor() {
+        let case = fixture("inputs")["cases"][21].clone();
+        let actual = compute(&case).expect("synthetic service-floor case");
+        assert_eq!(actual["essential_delivered_l"], 30.0);
+        assert_eq!(actual["essential_unmet_l"], 30.0);
+        assert_eq!(actual["first_essential_shortfall_step"], 2);
+        assert_eq!(actual["hours_to_first_essential_shortfall"], 24.0);
     }
 
     #[test]
