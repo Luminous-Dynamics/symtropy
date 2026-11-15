@@ -494,3 +494,18 @@ The new synthetic kernel:
 This aligns with 2026 optimal-design work that separates practical parameter identifiability from model discrimination (Liu, Maini & Baker, DOI 10.1016/j.mbs.2026.109710), and 2026 ecological sampling research that shows replication versus coverage depends on response-shape knowledge and sampling task (Schweiger et al., DOI 10.1038/s41598-026-38541-4). These are methodological comparators, not AFEX benchmarks or prescriptions for the randomized block design.
 
 The conditional synthetic minimum-risk portfolio adds a mycorrhizal inorganic tracer and a host-to-fungal carbon-allocation tracer. Cost, noise, parameter prior and decision weights are invented in the fixture. No real assay recommendation or AFEX parameter precision is claimed.
+
+
+### AFEX source-identity qualification: collection membership is not join authority
+
+The AFEX parent collection lists 15 child datasets. The current candidate register tracks all 15 child records individually, plus the parent collection and 2026 root-turnover publication (17 AFEX-related entries). However, child records have different site descriptions, catalogue spatial resolutions, nested sampling frames and time windows.
+
+The 80 km versus 100 km north-of-Manaus descriptions in official EIDC records are unresolved, not proof of either identical or different field sites. A shared AFEX label, treatment string or coincident plot ID must not auto-authorize a join.
+
+New executable gate:
+- [#5470 source/site/plot identity issue](https://github.com/Luminous-Dynamics/symtropy/issues/5470)
+- [Identity gate protocol](AFEX_SOURCE_IDENTITY_GATE_V0_1.md)
+- [Seven-case synthetic corpus](cases/afex-source-identity-synthetic-v0.1.json)
+- [Rust validator](validator/src/afex_source_identity_kernel.rs)
+
+The gate separates experiment/site/block/plot/subplot/sample-frame/campaign/observation identity and has explicit dispositions for exact match, documented alias, unresolved identity and support conflict. The synthetic alias case is fictional; no real AFEX aliases or exact child plot joins have been admitted.
