@@ -1,0 +1,661 @@
+{
+  "schema_version": "0.1",
+  "corpus_id": "power-fabric-physical-identity-synthetic-v0.1",
+  "installation": {
+    "installation_id": "installation-synthetic-home-001",
+    "revision": "design-r1",
+    "source_ir_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "graph_id": "service-graph-synthetic-home-001",
+    "graph_revision": "graph-r1",
+    "graph_payload_digest": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "products": [
+    {
+      "product_id": "product-inverter-a",
+      "manufacturer": "Synthetic Manufacturer A",
+      "catalogue_identifier": "SYN-INV-A",
+      "catalogue_revision": "catalogue-2026-01",
+      "hardware_revisions": [
+        "A",
+        "B"
+      ]
+    },
+    {
+      "product_id": "product-inverter-b",
+      "manufacturer": "Synthetic Manufacturer B",
+      "catalogue_identifier": "SYN-INV-B",
+      "catalogue_revision": "catalogue-2026-02",
+      "hardware_revisions": [
+        "C"
+      ]
+    }
+  ],
+  "design_slots": [
+    {
+      "slot_id": "slot-inverter-01",
+      "source_node_id": "node-inverter-01",
+      "module_contract_id": "contract-inverter-hybrid-v1",
+      "location_ref": "location-cabinet-east",
+      "accepted_products": [
+        {
+          "product_id": "product-inverter-a",
+          "hardware_revisions": [
+            "A"
+          ]
+        }
+      ],
+      "max_active_instances": 1
+    },
+    {
+      "slot_id": "slot-inverter-02",
+      "source_node_id": "node-inverter-02",
+      "module_contract_id": "contract-inverter-hybrid-v1",
+      "location_ref": "location-cabinet-spare",
+      "accepted_products": [
+        {
+          "product_id": "product-inverter-a",
+          "hardware_revisions": [
+            "A"
+          ]
+        }
+      ],
+      "max_active_instances": 1
+    }
+  ],
+  "physical_instances": [
+    {
+      "physical_instance_id": "instance-inverter-001",
+      "identity_namespace": "synthetic-manufacturer-a",
+      "manufacturer": "Synthetic Manufacturer A",
+      "product_id": "product-inverter-a",
+      "serial_identifier": "SYN-A-INV-0001",
+      "hardware_revision": "A",
+      "configuration_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "fixture_identity_only": true
+    },
+    {
+      "physical_instance_id": "instance-inverter-002",
+      "identity_namespace": "synthetic-manufacturer-a",
+      "manufacturer": "Synthetic Manufacturer A",
+      "product_id": "product-inverter-a",
+      "serial_identifier": "SYN-A-INV-0002",
+      "hardware_revision": "A",
+      "configuration_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "fixture_identity_only": true
+    },
+    {
+      "physical_instance_id": "instance-inverter-wrong",
+      "identity_namespace": "synthetic-manufacturer-b",
+      "manufacturer": "Synthetic Manufacturer B",
+      "product_id": "product-inverter-b",
+      "serial_identifier": "SYN-B-INV-0099",
+      "hardware_revision": "C",
+      "configuration_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "fixture_identity_only": true
+    }
+  ],
+  "actors": [
+    {
+      "actor_ref": "actor-design-system",
+      "actor_kind": "design_system"
+    },
+    {
+      "actor_ref": "actor-supplier",
+      "actor_kind": "supplier"
+    },
+    {
+      "actor_ref": "actor-installer",
+      "actor_kind": "installer"
+    },
+    {
+      "actor_ref": "actor-observer",
+      "actor_kind": "observer"
+    },
+    {
+      "actor_ref": "actor-reviewer",
+      "actor_kind": "qualified_reviewer"
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_ref": "evidence-source-ir",
+      "evidence_kind": "source_ir",
+      "digest_algorithm": "sha256",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "captured_at": "2026-11-10T08:00:00Z",
+      "received_at": "2026-11-10T08:00:00Z",
+      "source_receipt_ref": "receipt-source-ir-r1",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-delivery-001",
+      "evidence_kind": "delivery_record",
+      "digest_algorithm": "sha256",
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "captured_at": "2026-11-11T10:00:00Z",
+      "received_at": "2026-11-11T10:15:00Z",
+      "source_receipt_ref": "receipt-delivery-001",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-label-001",
+      "evidence_kind": "serial_label_observation",
+      "digest_algorithm": "sha256",
+      "digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "captured_at": "2026-11-12T09:00:00Z",
+      "received_at": "2026-11-12T09:05:00Z",
+      "source_receipt_ref": "receipt-label-001",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-install-001",
+      "evidence_kind": "installation_observation",
+      "digest_algorithm": "sha256",
+      "digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "captured_at": "2026-11-13T12:00:00Z",
+      "received_at": "2026-11-13T12:10:00Z",
+      "source_receipt_ref": "receipt-install-001",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-review-001",
+      "evidence_kind": "independent_reconciliation_record",
+      "digest_algorithm": "sha256",
+      "digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "captured_at": "2026-11-14T10:00:00Z",
+      "received_at": "2026-11-14T10:10:00Z",
+      "source_receipt_ref": "receipt-review-001",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-delivery-002",
+      "evidence_kind": "delivery_record",
+      "digest_algorithm": "sha256",
+      "digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "captured_at": "2026-11-14T13:00:00Z",
+      "received_at": "2026-11-14T13:10:00Z",
+      "source_receipt_ref": "receipt-delivery-002",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-install-002",
+      "evidence_kind": "installation_observation",
+      "digest_algorithm": "sha256",
+      "digest": "abababababababababababababababababababababababababababababababab",
+      "captured_at": "2026-11-14T14:00:00Z",
+      "received_at": "2026-11-14T14:10:00Z",
+      "source_receipt_ref": "receipt-install-002",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-review-late",
+      "evidence_kind": "independent_reconciliation_record",
+      "digest_algorithm": "sha256",
+      "digest": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "captured_at": "2026-11-14T15:00:00Z",
+      "received_at": "2026-11-15T07:00:00Z",
+      "source_receipt_ref": "receipt-review-late",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-wrong-delivery",
+      "evidence_kind": "delivery_record",
+      "digest_algorithm": "sha256",
+      "digest": "dededededededededededededededededededededededededededededededede",
+      "captured_at": "2026-11-14T16:00:00Z",
+      "received_at": "2026-11-14T16:05:00Z",
+      "source_receipt_ref": "receipt-wrong-delivery",
+      "fixture_digest_only": true
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event-design-slot-01",
+      "event_type": "design_slot_created",
+      "occurred_at": "2026-11-10T08:00:00Z",
+      "recorded_at": "2026-11-10T08:00:00Z",
+      "actor_ref": "actor-design-system",
+      "slot_id": "slot-inverter-01",
+      "identity_resolution_method": "design_document_binding",
+      "evidence_refs": [
+        "evidence-source-ir"
+      ],
+      "predecessor_event_ids": []
+    },
+    {
+      "event_id": "event-delivered-001",
+      "event_type": "unit_delivered",
+      "occurred_at": "2026-11-11T10:00:00Z",
+      "recorded_at": "2026-11-11T10:15:00Z",
+      "actor_ref": "actor-supplier",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "supplier_record",
+      "evidence_refs": [
+        "evidence-delivery-001"
+      ],
+      "predecessor_event_ids": [
+        "event-design-slot-01"
+      ]
+    },
+    {
+      "event_id": "event-label-001",
+      "event_type": "identity_observed",
+      "occurred_at": "2026-11-12T09:00:00Z",
+      "recorded_at": "2026-11-12T09:05:00Z",
+      "actor_ref": "actor-observer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "serial_label_scan",
+      "evidence_refs": [
+        "evidence-label-001"
+      ],
+      "predecessor_event_ids": [
+        "event-delivered-001"
+      ]
+    },
+    {
+      "event_id": "event-installed-001",
+      "event_type": "unit_installed",
+      "occurred_at": "2026-11-13T12:00:00Z",
+      "recorded_at": "2026-11-13T12:10:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-001"
+      ],
+      "predecessor_event_ids": [
+        "event-delivered-001"
+      ]
+    },
+    {
+      "event_id": "event-reconciled-001",
+      "event_type": "independent_reconciliation_recorded",
+      "occurred_at": "2026-11-14T10:00:00Z",
+      "recorded_at": "2026-11-14T10:10:00Z",
+      "actor_ref": "actor-reviewer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "independent_reconciliation",
+      "evidence_refs": [
+        "evidence-review-001"
+      ],
+      "review_attestation_ref": "attestation-synthetic-review-001",
+      "predecessor_event_ids": [
+        "event-installed-001"
+      ]
+    },
+    {
+      "event_id": "event-remove-001",
+      "event_type": "unit_removed",
+      "occurred_at": "2026-11-14T12:30:00Z",
+      "recorded_at": "2026-11-14T12:35:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-001"
+      ],
+      "predecessor_event_ids": [
+        "event-reconciled-001"
+      ]
+    },
+    {
+      "event_id": "event-delivered-002",
+      "event_type": "unit_delivered",
+      "occurred_at": "2026-11-14T13:00:00Z",
+      "recorded_at": "2026-11-14T13:10:00Z",
+      "actor_ref": "actor-supplier",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-002",
+      "identity_resolution_method": "supplier_record",
+      "evidence_refs": [
+        "evidence-delivery-002"
+      ],
+      "predecessor_event_ids": [
+        "event-remove-001"
+      ]
+    },
+    {
+      "event_id": "event-installed-002",
+      "event_type": "unit_installed",
+      "occurred_at": "2026-11-14T14:00:00Z",
+      "recorded_at": "2026-11-14T14:10:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-002",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-002"
+      ],
+      "predecessor_event_ids": [
+        "event-delivered-002"
+      ]
+    },
+    {
+      "event_id": "event-reconciled-late",
+      "event_type": "independent_reconciliation_recorded",
+      "occurred_at": "2026-11-14T15:00:00Z",
+      "recorded_at": "2026-11-15T07:00:00Z",
+      "actor_ref": "actor-reviewer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-002",
+      "identity_resolution_method": "independent_reconciliation",
+      "evidence_refs": [
+        "evidence-review-late"
+      ],
+      "review_attestation_ref": "attestation-synthetic-review-002",
+      "predecessor_event_ids": [
+        "event-installed-002"
+      ]
+    },
+    {
+      "event_id": "event-wrong-delivered",
+      "event_type": "unit_delivered",
+      "occurred_at": "2026-11-14T16:00:00Z",
+      "recorded_at": "2026-11-14T16:05:00Z",
+      "actor_ref": "actor-supplier",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-wrong",
+      "identity_resolution_method": "supplier_record",
+      "evidence_refs": [
+        "evidence-wrong-delivery"
+      ],
+      "predecessor_event_ids": [
+        "event-design-slot-01"
+      ]
+    },
+    {
+      "event_id": "event-wrong-installed",
+      "event_type": "unit_installed",
+      "occurred_at": "2026-11-14T17:00:00Z",
+      "recorded_at": "2026-11-14T17:05:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-wrong",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-002"
+      ],
+      "predecessor_event_ids": [
+        "event-wrong-delivered"
+      ]
+    },
+    {
+      "event_id": "event-duplicate-assignment",
+      "event_type": "unit_installed",
+      "occurred_at": "2026-11-14T18:00:00Z",
+      "recorded_at": "2026-11-14T18:05:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-02",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-001"
+      ],
+      "predecessor_event_ids": [
+        "event-design-slot-01"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "scenario-design-only",
+      "description": "A design slot exists without a procured or installed physical instance.",
+      "as_known_at": "2026-11-10T09:00:00Z",
+      "event_ids": [
+        "event-design-slot-01"
+      ],
+      "expected_status": "declared_only",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "physical_instance_absent"
+      ]
+    },
+    {
+      "scenario_id": "scenario-delivery-only",
+      "description": "A supplier delivery record names an individual unit but no installed assignment exists.",
+      "as_known_at": "2026-11-11T11:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-001"
+      ],
+      "expected_status": "delivered_unreconciled",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-resident-view-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "delivery_not_installation"
+      ]
+    },
+    {
+      "scenario_id": "scenario-label-only",
+      "description": "The serial label was observed, but no installation or independent reconciliation exists.",
+      "as_known_at": "2026-11-12T10:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-001",
+        "event-label-001"
+      ],
+      "expected_status": "delivered_unreconciled",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-resident-view-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "label_observation_not_installation"
+      ]
+    },
+    {
+      "scenario_id": "scenario-installed-unreviewed",
+      "description": "An installation assignment is recorded but the independent reconciliation event is absent.",
+      "as_known_at": "2026-11-13T13:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-001",
+        "event-installed-001"
+      ],
+      "expected_status": "installed_unreconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-001",
+          "location_ref": "location-cabinet-east"
+        }
+      ],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01",
+        "output-commissioning-dossier-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "independent_reconciliation_missing"
+      ]
+    },
+    {
+      "scenario_id": "scenario-reconciled",
+      "description": "Installation is reconciled under an explicit synthetic review-attestation reference.",
+      "as_known_at": "2026-11-14T11:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-001",
+        "event-installed-001",
+        "event-reconciled-001"
+      ],
+      "expected_status": "reconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-001",
+          "location_ref": "location-cabinet-east"
+        }
+      ],
+      "expected_invalidated_output_ids": [],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": []
+    },
+    {
+      "scenario_id": "scenario-replacement",
+      "description": "The reconciled first unit is removed and a second unit is installed without yet reconciling the replacement.",
+      "as_known_at": "2026-11-14T14:30:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-001",
+        "event-installed-001",
+        "event-reconciled-001",
+        "event-remove-001",
+        "event-delivered-002",
+        "event-installed-002"
+      ],
+      "expected_status": "installed_unreconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-002",
+          "location_ref": "location-cabinet-east"
+        }
+      ],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01",
+        "output-commissioning-dossier-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "replacement_requires_new_reconciliation"
+      ]
+    },
+    {
+      "scenario_id": "scenario-late-evidence-before-receipt",
+      "description": "A reconciliation observation occurred before the cutoff but was not received until later; it is invisible to this historical as-known-at view.",
+      "as_known_at": "2026-11-14T18:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-002",
+        "event-installed-002"
+      ],
+      "expected_status": "installed_unreconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-002",
+          "location_ref": "location-cabinet-east"
+        }
+      ],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01",
+        "output-commissioning-dossier-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "review_evidence_received_after_cutoff"
+      ]
+    },
+    {
+      "scenario_id": "scenario-late-evidence-after-receipt",
+      "description": "The later projection may use the previously late-arriving reconciliation evidence.",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-002",
+        "event-installed-002",
+        "event-reconciled-late"
+      ],
+      "expected_status": "reconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-002",
+          "location_ref": "location-cabinet-east"
+        }
+      ],
+      "expected_invalidated_output_ids": [],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": []
+    },
+    {
+      "scenario_id": "scenario-wrong-model",
+      "description": "A physical unit of a product model not accepted by the design slot is recorded as installed.",
+      "as_known_at": "2026-11-14T18:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-wrong-delivered",
+        "event-wrong-installed"
+      ],
+      "expected_status": "conflicted",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01",
+        "output-commissioning-dossier-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "product_model_not_accepted_by_slot"
+      ]
+    },
+    {
+      "scenario_id": "scenario-duplicate-active-assignment",
+      "description": "The same physical instance is assigned to two distinct slots without a removal/transfer event.",
+      "as_known_at": "2026-11-14T19:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-installed-001",
+        "event-duplicate-assignment"
+      ],
+      "expected_status": "conflicted",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "physical_instance_active_assignment_collision"
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic identity/event semantics only. These fixtures do not prove product authenticity, physical installation, engineering correctness, electrical safety, regulatory conformity, reviewer authority or a Certificate of Compliance. Digest strings are valid-shape synthetic placeholders, not commitments to supplied evidence bytes."
+}
