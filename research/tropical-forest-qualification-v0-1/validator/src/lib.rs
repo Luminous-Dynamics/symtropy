@@ -20,6 +20,7 @@ pub mod practical_identifiability_kernel;
 pub mod forestpaths_crosswalk_kernel;
 pub mod afex_design_kernel;
 pub mod afex_root_turnover_kernel;
+pub mod afex_root_distribution_kernel;
 
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -3870,6 +3871,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return afex_root_turnover_kernel::validate_corpus(raw, &manifest);
     }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("AFEX-ROOT-DISTRIBUTION-UQ-001")
+    {
+        return afex_root_distribution_kernel::validate_corpus(raw, &manifest);
+    }
     if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
     }
@@ -4960,6 +4966,17 @@ mod tests {
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_ROOT_TURNOVER");
         assert_eq!(receipt["case_count"], 4);
         assert_eq!(receipt["published_summary_effect_count"], 7);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
+    
+    #[test]
+    fn afex_root_distribution_dispatches_and_checks_three_logratio_oracles() {
+        let bytes = include_str!("../../cases/afex-root-ratio-distribution-analytic-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("AFEX analytic ratio distribution dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_AFEX_ROOT_DISTRIBUTION_ORACLE");
+        assert_eq!(receipt["scenario_count"], 3);
+        assert_eq!(receipt["checks_passed"], 36);
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
