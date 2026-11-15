@@ -51,8 +51,10 @@ B1 must not be mistaken for any of these conformity mechanisms. A NIST V50 curve
 2. Verify the complete archive against the repository-published SHA-256 before extraction.
 3. Preserve the original archive unchanged. Compute and record a SHA-256 for every extracted file.
 4. Parse the six CSV files without silently coercing, dropping or reordering rows. Record row counts, min/max velocity, unique outcome labels, missing values, duplicate rows and parser version.
-5. Reproduce the NISTIR 7760 logistic, probit and complementary log-log analyses using the same per-system observations and documented assumptions.
-6. Compare estimates, uncertainty intervals and model outputs with the report. Record every discrepancy; do not tune an implementation merely to hide a difference.
+5. Audit the archive README, CSV headers and row structure for panel identity before selecting any validation split. NISTIR 7760's validation held out one panel at a time, fitted on the remaining panels and evaluated on the withheld panel. If the public archive has no explicit panel key, record panel-wise reproduction as NOT_REPRODUCIBLE_FROM_RELEASED_FIELDS. Do not reconstruct panel IDs from row order, filenames, velocities or outcomes.
+6. Reproduce the NISTIR 7760 logistic, probit and complementary log-log GLMs using the same per-system observations and documented assumptions. Use maximum-likelihood estimation; compare coefficients and standard errors; reproduce Wald coefficient intervals and Fieller confidence intervals for V50 where the report provides the necessary inputs.
+7. Reproduce the report's AIC, deviance/log-likelihood, threshold misclassification and leave-one-panel-out error only where the archive preserves the identity required for each calculation. Distinguish a reproduction result from a method that is merely similar.
+8. Compare estimates, uncertainty intervals and model outputs with the report wherever the source archive matches the report's dataset. Reproduce V50 and V02 summaries and uncertainty where supported, plus pointwise probabilities at reported reference values. Record every discrepancy; do not tune an implementation merely to hide a difference.
 
 Acceptance is exact source identity plus a reproducible analysis trail. The NIST paper is the reference for reproducing its analysis, not proof that any model is suitable for present-day product decisions.
 
@@ -80,7 +82,9 @@ The mandatory matched baselines are:
 2. Probit response model.
 3. Complementary log-log response model.
 
-These are the three published NISTIR 7760 model families. Implement and verify them before adding new methods. Reproduction should include the report's maximum-likelihood estimation and Fieller V50 confidence intervals; report any software/version or interval-method differences explicitly.
+These are the three published NISTIR 7760 model families. Implement and verify them before adding new methods. Reproduction should include maximum-likelihood estimation, Wald coefficient intervals, Fieller V50 confidence intervals, V02 summaries where supported, AIC, deviance/log-likelihood and panel-held-out prediction error where panel identity is available. Report any software/version or interval-method differences explicitly.
+
+NISTIR 7760 found no link function uniformly best across its studied armour systems and conditions. Logit, probit and complementary log-log fits can be close around V50 yet diverge more in tail estimates. Do not select a universal winner from a small AIC difference or headline V50 alone.
 
 Candidate extensions may include monotone nonparametric calibration and Bayesian uncertainty estimates, but only when they use the same allowed inputs and the same frozen folds. A Symthaea-derived candidate must compete on the identical data, target, compute budget and split. A more complex HDC/CfC or other learned representation is not a meaningful advantage on this two-column, small-sample dataset merely because it is architecturally novel.
 
@@ -90,7 +94,7 @@ Candidate extensions may include monotone nonparametric calibration and Bayesian
 |---|---|---|
 | Probabilistic prediction | Log loss and Brier score, per system and aggregate | Scores the full probability, not only a hard class |
 | Calibration | Calibration intercept/slope and reliability plot; ECE only as a secondary diagnostic | Detects confident but wrong probabilities |
-| Ballistic-limit summary | V50 estimate, uncertainty interval and method | Makes the familiar summary explicit without treating it as the whole distribution |
+| Ballistic-limit summary | V50 and V02 estimates, uncertainty intervals and methods where supported; pointwise probabilities at declared reference values within source support | Shows central and lower-tail summaries without treating one scalar as the whole response curve |
 | Uncertainty | Predictive interval coverage and interval width at declared nominal levels | Penalises under-reporting of uncertainty |
 | Robustness | Results by system and held-out velocity region; sensitivity to fit assumptions | Reveals dependence on a convenient subset |
 | Provenance | Source/archive/file hashes, code revision, environment, split digest and run configuration | Makes every score reproducible |
@@ -102,7 +106,7 @@ Accuracy and AUC may be included as secondary descriptive metrics. Neither is su
 
 These are **prospective targets**, not achieved results or acceptance claims for the current six-system dataset:
 
-- Reproduce all three published NISTIR 7760 baselines and explain any numeric discrepancy.
+- Reproduce all three published NISTIR 7760 baselines, panel-wise CV where panel identity exists, V50/V02 summaries where supported, and explain each numeric discrepancy.
 - On a genuinely independent, pre-registered holdout, seek at least a 10% relative improvement in log loss over the strongest matched baseline, with a paired uncertainty interval that excludes no improvement. Require replication on a second independent dataset before describing the result as general.
 - Keep nominal 90% predictive-interval coverage close to 90% on independent data, reporting interval width and sample uncertainty alongside coverage.
 - Demonstrate calibration under a held-out velocity region, not merely calibration on the same observations used to fit the model.
