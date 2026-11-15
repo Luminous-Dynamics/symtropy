@@ -1,0 +1,35 @@
+name: Factory Reconfiguration Replay
+
+on:
+  push:
+    branches:
+      - research/factory-reconfig-acceptance-v0-1
+    paths:
+      - "tools/factory-reconfig-replay/**"
+      - ".github/workflows/factory-reconfig-replay.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tools/factory-reconfig-replay/**"
+      - ".github/workflows/factory-reconfig-replay.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    name: deterministic-reconfiguration-replay
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --manifest-path tools/factory-reconfig-replay/Cargo.toml --all -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/factory-reconfig-replay/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Unit tests
+        run: cargo test --manifest-path tools/factory-reconfig-replay/Cargo.toml --locked --all-targets
