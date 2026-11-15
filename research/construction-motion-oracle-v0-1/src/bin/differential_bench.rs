@@ -14,76 +14,6 @@ const SAMPLES: usize = 101;
 fn percentile(values: &[Duration], percentile: usize) -> Duration {
     let index = ((values.len() - 1) * percentile).div_ceil(100);
     values[index]
-    let translating = Capsule::new(
-        Vec3::new(-10.0, -2.0, 0.0),
-        Vec3::new(-10.0, 2.0, 0.0),
-        0.5,
-    )
-    .expect("valid translating capsule fixture");
-    let stationary = Capsule::new(
-        Vec3::new(0.0, -2.0, 0.0),
-        Vec3::new(0.0, 2.0, 0.0),
-        0.5,
-    )
-    .expect("valid stationary capsule fixture");
-    let translation = Vec3::new(20.0, 0.0, 0.0);
-    let closest = translating_capsule_vs_capsule(
-        black_box(translating),
-        black_box(translation),
-        black_box(stationary),
-    )
-    .expect("valid translating capsule narrow-phase query");
-    println!(
-        "translating-capsule,analytic_collision,{}",
-        translating_capsule_capsule_collision(
-            black_box(translating),
-            black_box(translation),
-            black_box(stationary),
-        )
-        .expect("valid translating capsule query")
-    );
-    println!(
-        "translating-capsule,endpoint_collision,{}",
-        endpoints_only_translating_capsule_collision(
-            black_box(translating),
-            black_box(translation),
-            black_box(stationary),
-        )
-        .expect("valid translating capsule endpoint baseline")
-    );
-    println!(
-        "translating-capsule,closest_time,{}",
-        closest.time_parameter
-    );
-    println!(
-        "translating-capsule,minimum_distance_mm,{}",
-        closest.distance_mm
-    );
-    measure("translating-capsule-capsule-narrow-phase", || {
-        translating_capsule_vs_capsule(
-            black_box(translating),
-            black_box(translation),
-            black_box(stationary),
-        )
-        .expect("valid translating capsule narrow-phase query");
-    });
-    measure("translating-capsule-capsule-endpoint-only", || {
-        endpoints_only_translating_capsule_collision(
-            black_box(translating),
-            black_box(translation),
-            black_box(stationary),
-        )
-        .expect("valid translating capsule endpoint baseline");
-    });
-    measure("translating-capsule-capsule-aabb-broad-phase", || {
-        translating_capsule_aabb_candidate(
-            black_box(translating),
-            black_box(translation),
-            black_box(stationary),
-        )
-        .expect("valid translating capsule broad-phase query");
-    });
-
 }
 
 fn measure(label: &str, mut operation: impl FnMut()) {
@@ -224,4 +154,74 @@ fn main() {
             black_box(20.0),
         );
     });
+    let translating = Capsule::new(
+        Vec3::new(-10.0, -2.0, 0.0),
+        Vec3::new(-10.0, 2.0, 0.0),
+        0.5,
+    )
+    .expect("valid translating capsule fixture");
+    let stationary = Capsule::new(
+        Vec3::new(0.0, -2.0, 0.0),
+        Vec3::new(0.0, 2.0, 0.0),
+        0.5,
+    )
+    .expect("valid stationary capsule fixture");
+    let translation = Vec3::new(20.0, 0.0, 0.0);
+    let closest = translating_capsule_vs_capsule(
+        black_box(translating),
+        black_box(translation),
+        black_box(stationary),
+    )
+    .expect("valid translating capsule narrow-phase query");
+    println!(
+        "translating-capsule,analytic_collision,{}",
+        translating_capsule_capsule_collision(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule query")
+    );
+    println!(
+        "translating-capsule,endpoint_collision,{}",
+        endpoints_only_translating_capsule_collision(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule endpoint baseline")
+    );
+    println!(
+        "translating-capsule,closest_time,{}",
+        closest.time_parameter
+    );
+    println!(
+        "translating-capsule,minimum_distance_mm,{}",
+        closest.distance_mm
+    );
+    measure("translating-capsule-capsule-narrow-phase", || {
+        translating_capsule_vs_capsule(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule narrow-phase query");
+    });
+    measure("translating-capsule-capsule-endpoint-only", || {
+        endpoints_only_translating_capsule_collision(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule endpoint baseline");
+    });
+    measure("translating-capsule-capsule-aabb-broad-phase", || {
+        translating_capsule_aabb_candidate(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule broad-phase query");
+    });
+
 }
