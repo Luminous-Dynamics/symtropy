@@ -339,7 +339,16 @@ pub fn evaluate_claim(
     if claim.validated_at_effective > cutoff.effective_at || claim.recorded_at > cutoff.known_at {
         return Err(EvaluationError::ClaimNotAvailableAtCutoff);
     }
-    validate_events(events)?;
+    let eligible_events: Vec<ChangeEvent> = events
+        .iter()
+        .filter(|event| {
+            event.effective_at <= cutoff.effective_at && event.recorded_at <= cutoff.known_at
+        })
+        .cloned()
+        .collect();
+    // Events outside either requested cutoff were not part of this historical view.
+    // They must not poison an earlier as-known assessment.
+    validate_events(&eligible_events)?;
     validate_coverage(coverage)?;
     if !is_sha256(&policy.policy_sha256) {
         return Err(EvaluationError::InvalidClaim);
@@ -356,12 +365,7 @@ pub fn evaluate_claim(
 
     // Source sequence controls causal digest succession; effective and recorded times
     // only control whether an event is visible at the requested bitemporal cutoff.
-    let mut ordered_events: Vec<&ChangeEvent> = events
-        .iter()
-        .filter(|event| {
-            event.effective_at <= cutoff.effective_at && event.recorded_at <= cutoff.known_at
-        })
-        .collect();
+    let mut ordered_events: Vec<&ChangeEvent> = eligible_events.iter().collect();
     ordered_events.sort_by(|left, right| {
         (
             left.source_id.as_str(),
