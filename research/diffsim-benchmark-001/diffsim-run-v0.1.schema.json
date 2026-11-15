@@ -694,6 +694,17 @@
                   "type": "null"
                 }
               ]
+            },
+            "upper_bound_value": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         },
@@ -986,66 +997,6 @@
     {
       "if": {
         "properties": {
-          "results": {
-            "properties": {
-              "error_envelope": {
-                "properties": {
-                  "upper_bound_emitted": {
-                    "const": true
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "derivative_contract": {
-            "properties": {
-              "curvature_evidence_class": {
-                "enum": [
-                  "analytic_upper_bound",
-                  "interval_upper_bound"
-                ]
-              },
-              "curvature_evidence_sha256": {
-                "type": "string",
-                "pattern": "^[a-f0-9]{64}$"
-              }
-            }
-          },
-          "results": {
-            "properties": {
-              "error_envelope": {
-                "properties": {
-                  "upper_bound_claim_conditional": {
-                    "const": true
-                  }
-                }
-              }
-            }
-          },
-          "claim_boundary": {
-            "properties": {
-              "claims": {
-                "properties": {
-                  "error_bound_claim": {
-                    "enum": [
-                      "conditional_analytic_remainder",
-                      "conditional_interval_remainder"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
           "fixture_mode": {
             "const": "synthetic_example"
           }
@@ -1132,6 +1083,179 @@
               "cpu_time_ms": {
                 "type": "number",
                 "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_emitted": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "derivative_contract": {
+            "properties": {
+              "curvature_evidence_class": {
+                "enum": [
+                  "analytic_upper_bound",
+                  "interval_upper_bound"
+                ]
+              },
+              "curvature_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_value": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "upper_bound_claim_conditional": {
+                    "const": true
+                  },
+                  "evidence_class": {
+                    "enum": [
+                      "analytic_upper_bound",
+                      "interval_upper_bound"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "derivative_contract": {
+                "properties": {
+                  "curvature_evidence_class": {
+                    "const": "analytic_upper_bound"
+                  }
+                }
+              },
+              "results": {
+                "properties": {
+                  "error_envelope": {
+                    "properties": {
+                      "evidence_class": {
+                        "const": "analytic_upper_bound"
+                      }
+                    }
+                  }
+                }
+              },
+              "claim_boundary": {
+                "properties": {
+                  "claims": {
+                    "properties": {
+                      "error_bound_claim": {
+                        "const": "conditional_analytic_remainder"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "derivative_contract": {
+                "properties": {
+                  "curvature_evidence_class": {
+                    "const": "interval_upper_bound"
+                  }
+                }
+              },
+              "results": {
+                "properties": {
+                  "error_envelope": {
+                    "properties": {
+                      "evidence_class": {
+                        "const": "interval_upper_bound"
+                      }
+                    }
+                  }
+                }
+              },
+              "claim_boundary": {
+                "properties": {
+                  "claims": {
+                    "properties": {
+                      "error_bound_claim": {
+                        "const": "conditional_interval_remainder"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_emitted": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_value": {
+                    "type": "null"
+                  },
+                  "upper_bound_claim_conditional": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          "claim_boundary": {
+            "properties": {
+              "claims": {
+                "properties": {
+                  "error_bound_claim": {
+                    "enum": [
+                      "none",
+                      "first_order_estimate"
+                    ]
+                  }
+                }
               }
             }
           }
