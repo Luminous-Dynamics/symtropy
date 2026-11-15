@@ -1,61 +1,141 @@
-//! Independent consumer-side closed-form oracle for the synthetic baseline.
+//! Independent consumer-side state-space oracle for the synthetic transient.
 //!
-//! This integration test is a separate crate target from the implementation.
-//! The oracle uses the reduced-mass state-space matrix exponential, not the
-//! implementation's RK4 stages or energy accumulator.
+//! This integration target is separate from the implementation. It propagates
+//! the relative coordinate with a closed-form matrix exponential and handles
+//! the intermediate constant-force interval when one restraint releases first.
 
 use ors_dynamic_support_reference::{Scenario, evaluate, parse_corpus};
 
-fn exact_state_space(scenario: &Scenario, elapsed_s: f64) -> (f64, f64) {
-    let reduced_mass = (scenario.mass_stream_kg * scenario.mass_support_kg)
-        / (scenario.mass_stream_kg + scenario.mass_support_kg);
-    let alpha = scenario.damping_n_s_m / (2.0 * reduced_mass);
-    let omega_n_squared = scenario.stiffness_n_m / reduced_mass;
+fn propagate_relative(
+    initial_separation_m: f64,
+    initial_velocity_mps: f64,
+    elapsed_s: f64,
+    equilibrium_separation_m: f64,
+    reduced_mass_kg: f64,
+    stiffness_n_m: f64,
+    damping_n_s_m: f64,
+) -> (f64, f64) {
+    let alpha = damping_n_s_m / (2.0 * reduced_mass_kg);
+    let omega_n_squared = stiffness_n_m / reduced_mass_kg;
     let omega_d_squared = omega_n_squared - alpha * alpha;
     assert!(
-        omega_d_squared >= 0.0,
-        "oracle supports underdamped fixtures only"
+        omega_d_squared > 0.0,
+        "frozen oracle cases must be underdamped"
     );
 
     let omega_d = omega_d_squared.sqrt();
-    let initial_separation = scenario.preload_n / scenario.stiffness_n_m;
-    let decay = (-alpha * elapsed_s).exp();
+    let initial_offset = initial_separation_m - equilibrium_separation_m;
+    let sine_coefficient = (initial_velocity_mps + alpha * initial_offset) / omega_d;
     let angle = omega_d * elapsed_s;
     let cosine = angle.cos();
-    let sine_over_frequency = if omega_d == 0.0 {
-        elapsed_s
+    let sine = angle.sin();
+    let decay = (-alpha * elapsed_s).exp();
+
+    let offset = decay * (initial_offset * cosine + sine_coefficient * sine);
+    let velocity = decay
+        * (-alpha * (initial_offset * cosine + sine_coefficient * sine)
+            - initial_offset * omega_d * sine
+            + sine_coefficient * omega_d * cosine);
+    (equilibrium_separation_m + offset, velocity)
+}
+
+fn exact_relative_state(scenario: &Scenario) -> (f64, f64, f64) {
+    let reduced_mass_kg = (scenario.mass_stream_kg * scenario.mass_support_kg)
+        / (scenario.mass_stream_kg + scenario.mass_support_kg);
+    let initial_separation_m = scenario.preload_n / scenario.stiffness_n_m;
+    let first_release_s = scenario
+        .release_stream_time_s
+        .min(scenario.release_support_time_s);
+    let second_release_s = scenario
+        .release_stream_time_s
+        .max(scenario.release_support_time_s);
+
+    // Until the first restraint releases, equal-and-opposite restraints hold
+    // the preloaded spring stationary.
+    let mut separation_m = initial_separation_m;
+    let mut velocity_mps = 0.0;
+    let skew_s = second_release_s - first_release_s;
+
+    // Between release events, exactly one external restraint remains.
+    if skew_s > 0.0 && scenario.preload_n > 0.0 {
+        let equilibrium_separation_m = if scenario.release_stream_time_s
+            < scenario.release_support_time_s
+        {
+            // Stream restraint releases first; the support-side restraint is -F0.
+            reduced_mass_kg * scenario.preload_n
+                / (scenario.mass_support_kg * scenario.stiffness_n_m)
+        } else {
+            // Support restraint releases first; the stream-side restraint is +F0.
+            reduced_mass_kg * scenario.preload_n
+                / (scenario.mass_stream_kg * scenario.stiffness_n_m)
+        };
+        (separation_m, velocity_mps) = propagate_relative(
+            separation_m,
+            velocity_mps,
+            skew_s,
+            equilibrium_separation_m,
+            reduced_mass_kg,
+            scenario.stiffness_n_m,
+            scenario.damping_n_s_m,
+        );
+    }
+
+    // After both restraints release, no external relative force remains.
+    let free_flight_s = scenario.duration_s - second_release_s;
+    (separation_m, velocity_mps) = propagate_relative(
+        separation_m,
+        velocity_mps,
+        free_flight_s,
+        0.0,
+        reduced_mass_kg,
+        scenario.stiffness_n_m,
+        scenario.damping_n_s_m,
+    );
+
+    let expected_external_impulse_n_s = if scenario.preload_n == 0.0 {
+        0.0
+    } else if scenario.release_stream_time_s < scenario.release_support_time_s {
+        -scenario.preload_n * skew_s
+    } else if scenario.release_support_time_s < scenario.release_stream_time_s {
+        scenario.preload_n * skew_s
     } else {
-        angle.sin() / omega_d
+        0.0
     };
 
-    // Matrix exponential:
-    // exp([0,1;-wn²,-2alpha]t) = exp(-alpha*t) * (I*cos(wd*t) + B*sin(wd*t)/wd)
-    // for B = [alpha,1;-wn²,-alpha], with B² = -wd² I.
-    let separation = initial_separation * decay * (cosine + alpha * sine_over_frequency);
-    let velocity = -initial_separation * decay * omega_n_squared * sine_over_frequency;
-    (separation, velocity)
+    (separation_m, velocity_mps, expected_external_impulse_n_s)
 }
 
 #[test]
 fn consumer_side_state_space_oracle_matches_all_frozen_cases() {
-    let corpus = include_str!("../cases-v0.1.csv");
-    let cases = parse_corpus(corpus).expect("frozen corpus must parse");
-    assert_eq!(cases.len(), 7);
+    let cases = parse_corpus(include_str!("../cases-v0.1.csv")).expect("frozen corpus");
+    assert_eq!(cases.len(), 9);
 
     for case in cases {
-        let result = evaluate(&case.scenario).expect("synthetic evaluation succeeds");
-        let elapsed = case.scenario.duration_s - case.scenario.release_time_s;
-        let (expected_separation, expected_velocity) = exact_state_space(&case.scenario, elapsed);
+        let report = evaluate(&case.scenario).expect("synthetic evaluation succeeds");
+        let (expected_separation, expected_velocity, expected_impulse) =
+            exact_relative_state(&case.scenario);
 
         assert!(
-            (result.final_separation_m - expected_separation).abs() <= case.absolute_tolerance,
-            "{} separation differs from independent state-space oracle",
+            (report.final_separation_m - expected_separation).abs()
+                <= case.absolute_tolerance,
+            "{} separation differs from independent piecewise oracle",
             case.scenario.case_id
         );
         assert!(
-            (result.final_relative_velocity_mps - expected_velocity).abs()
+            (report.final_relative_velocity_mps - expected_velocity).abs()
                 <= case.absolute_tolerance,
-            "{} relative velocity differs from independent state-space oracle",
+            "{} relative velocity differs from independent piecewise oracle",
+            case.scenario.case_id
+        );
+        assert!(
+            (report.final_external_impulse_n_s - expected_impulse).abs()
+                <= case.absolute_tolerance * case.scenario.preload_n.max(1.0),
+            "{} external impulse differs from independent oracle",
+            case.scenario.case_id
+        );
+        assert!(
+            report.max_abs_linear_momentum_residual_kg_mps < 1.0e-7,
+            "{} total momentum does not close against external impulse",
             case.scenario.case_id
         );
     }
@@ -99,8 +179,8 @@ fn identical_reduced_mass_gives_identical_relative_response() {
     let original = evaluate(&baseline.scenario).expect("baseline response");
 
     let mut alternative = baseline.scenario.clone();
-    // (1000 * 2000)/(1000 + 2000) = (2000 * 1000)/(2000 + 1000);
-    // exchange the two inertias. The relative coordinate equation is unchanged.
+    // The relative-coordinate equation depends on the reduced mass; exchange
+    // the two lumped inertias while preserving that reduced mass.
     std::mem::swap(
         &mut alternative.mass_stream_kg,
         &mut alternative.mass_support_kg,
