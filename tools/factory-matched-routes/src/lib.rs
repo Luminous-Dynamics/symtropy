@@ -63,6 +63,7 @@ pub struct GateOverride { pub role: ModuleRole, pub gate: Gate, pub status: Gate
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scenario {
     pub id: &'static str,
+    pub disabled_module_ids: Vec<&'static str>,
     pub disabled_roles: Vec<ModuleRole>,
     pub unavailable_partner_nodes: Vec<&'static str>,
     pub gate_overrides: Vec<GateOverride>,
@@ -70,7 +71,8 @@ pub struct Scenario {
 
 impl Scenario {
     fn disables(&self, module: &Module) -> bool {
-        self.disabled_roles.contains(&module.role)
+        self.disabled_module_ids.contains(&module.id)
+            || self.disabled_roles.contains(&module.role)
             || module.partner_node.is_some_and(|node| self.unavailable_partner_nodes.contains(&node))
     }
 
@@ -369,18 +371,18 @@ pub fn reference_scenarios() -> Vec<Scenario> {
     use GateStatus::*;
     use ModuleRole::*;
     vec![
-        Scenario { id: "BASELINE", disabled_roles: vec![], unavailable_partner_nodes: vec![], gate_overrides: vec![] },
-        Scenario { id: "PRIMARY_MACHINING_OUTAGE", disabled_roles: vec![PrimaryMachining], unavailable_partner_nodes: vec![], gate_overrides: vec![] },
-        Scenario { id: "SHARED_CELL_OUTAGE", disabled_roles: vec![SharedCell], unavailable_partner_nodes: vec![], gate_overrides: vec![] },
-        Scenario { id: "PARTNER_NODE_OUTAGE", disabled_roles: vec![], unavailable_partner_nodes: vec!["PARTNER-PRECISION"], gate_overrides: vec![] },
-        Scenario { id: "METROLOGY_CALIBRATION_STALE", disabled_roles: vec![], unavailable_partner_nodes: vec![],
+        Scenario { id: "BASELINE", disabled_module_ids: vec![], disabled_roles: vec![], unavailable_partner_nodes: vec![], gate_overrides: vec![] },
+        Scenario { id: "PRIMARY_MACHINING_OUTAGE", disabled_module_ids: vec!["DL-CNC", "JS-CNC-PRIMARY", "MF-SHARED-CELL", "HY-PARTNER-CNC"], disabled_roles: vec![], unavailable_partner_nodes: vec![], gate_overrides: vec![] },
+        Scenario { id: "SHARED_CELL_OUTAGE", disabled_module_ids: vec![], disabled_roles: vec![SharedCell], unavailable_partner_nodes: vec![], gate_overrides: vec![] },
+        Scenario { id: "PARTNER_NODE_OUTAGE", disabled_module_ids: vec![], disabled_roles: vec![], unavailable_partner_nodes: vec!["PARTNER-PRECISION"], gate_overrides: vec![] },
+        Scenario { id: "METROLOGY_CALIBRATION_STALE", disabled_module_ids: vec![], disabled_roles: vec![], unavailable_partner_nodes: vec![],
             gate_overrides: vec![
                 GateOverride { role: Metrology, gate: Calibration, status: Stale },
                 GateOverride { role: BackupMetrology, gate: Calibration, status: Stale },
             ] },
-        Scenario { id: "PRESSURE_TEST_SKILL_UNKNOWN", disabled_roles: vec![], unavailable_partner_nodes: vec![],
+        Scenario { id: "PRESSURE_TEST_SKILL_UNKNOWN", disabled_module_ids: vec![], disabled_roles: vec![], unavailable_partner_nodes: vec![],
             gate_overrides: vec![GateOverride { role: PressureTest, gate: Workforce, status: Unknown }] },
-        Scenario { id: "POWER_UTILITY_INTERRUPTION", disabled_roles: vec![], unavailable_partner_nodes: vec![],
+        Scenario { id: "POWER_UTILITY_INTERRUPTION", disabled_module_ids: vec![], disabled_roles: vec![], unavailable_partner_nodes: vec![],
             gate_overrides: vec![
                 GateOverride { role: PrimaryMachining, gate: Utilities, status: Stale },
                 GateOverride { role: BackupMachining, gate: Utilities, status: Stale },
@@ -452,8 +454,13 @@ mod tests {
     }
 
     #[test]
-    fn dedicated_line_loses_pump_route_after_primary_machine_outage() {
+    fn primary_machine_outage_is_matched_to_each_architecture() {
+        // The same functional bottleneck is mapped to each architecture's
+        // designated primary cell; only the job shop has a backup machine.
         assert_eq!(eval("DEDICATED_LINE", "PUMP_VALVE_SUBASSEMBLY", "PRIMARY_MACHINING_OUTAGE").disposition, Disposition::Blocked);
+        assert_eq!(eval("FUNCTIONAL_JOB_SHOP", "PUMP_VALVE_SUBASSEMBLY", "PRIMARY_MACHINING_OUTAGE").disposition, Disposition::SyntheticAccepted);
+        assert_eq!(eval("MULTIPURPOSE_MICROFACTORY", "PUMP_VALVE_SUBASSEMBLY", "PRIMARY_MACHINING_OUTAGE").disposition, Disposition::Blocked);
+        assert_eq!(eval("HYBRID_LOCAL_PARTNER", "PUMP_VALVE_SUBASSEMBLY", "PRIMARY_MACHINING_OUTAGE").disposition, Disposition::Blocked);
     }
 
     #[test]
