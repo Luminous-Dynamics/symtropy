@@ -67,10 +67,6 @@ impl TimeInterval {
         self.end <= other.start || other.end <= self.start
     }
 
-    fn intersects(self, other: Self) -> bool {
-        !self.is_disjoint(other)
-    }
-
     fn expand(self, amount: i64) -> Option<Self> {
         Some(Self {
             start: self.start.checked_sub(amount)?,
