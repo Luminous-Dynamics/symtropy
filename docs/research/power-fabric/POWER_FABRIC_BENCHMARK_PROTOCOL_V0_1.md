@@ -91,13 +91,6 @@ Report p50/p95:
 
 Do not claim byte-identical canonical output until canonical serialization and cryptographic digest contracts are implemented and qualified. Current deterministic BTreeMap ordering is not RFC 8785 canonical JSON.
 
-### I. Integration effort and lifecycle economics
-Compare matched tasks with manual/vendor-specific integration workflows. Measure engineer hours, adapter creation/maintenance, unresolved semantics, manual reconciliation, stale drawing discovery, rework, and change propagation time.
-
-Candidate hypothesis: reduce measured integration/reconciliation effort by 30% without increasing critical error rate. Preregister before observing results; this is a target to test, not an achieved outcome.
-
-
-
 ### G. Reproducible build receipts
 For each frozen IR/graph fixture:
 - Pin compiler source digest, compiler version, toolchain, build configuration digest, Cargo.lock digest, mapping profile, module hardware/configuration identities, standard profile editions/amendments/correction labels and upstream inputs.
@@ -115,6 +108,14 @@ For every view, drawing, circuit directory, emergency map, dossier and interchan
 - Connect receipt dependencies to the change-impact DAG; a mutation marks all dependent outputs stale until regenerated.
 
 Targets: 100% derived-output digest match for unmodified bytes; 100% stale marking recall across the frozen dependency oracle; zero stale output retained as current.
+
+
+### I. Integration effort and lifecycle economics
+Compare matched tasks with manual/vendor-specific integration workflows. Measure engineer hours, adapter creation/maintenance, unresolved semantics, manual reconciliation, stale drawing discovery, rework, and change propagation time.
+
+Candidate hypothesis: reduce measured integration/reconciliation effort by 30% without increasing critical error rate. Preregister before observing results; this is a target to test, not an achieved outcome.
+
+
 
 
 Only the seven correctness-oriented scenario families (IR contract, adapter, change impact, resilience, human projection, build receipt and derived artifact) are represented as individual JSON cases in the v0.1 machine corpus. Performance scaling and integration/lifecycle economics are separate comparative study dimensions: they require benchmark hardware, matched incumbent workflows and/or participant/practitioner data, not just synthetic JSON fixtures.
