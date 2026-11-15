@@ -866,3 +866,39 @@ fn knowledge_coverage_must_include_claim_recorded_time() {
         vec![DependencyKind::SensorStack]
     );
 }
+
+
+#[test]
+fn future_recorded_duplicate_does_not_poison_earlier_knowledge_snapshot() {
+    let first = event!(
+        "same-event-id",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '7',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let mut late_duplicate = first.clone();
+    late_duplicate.recorded_at = 60;
+
+    let earlier = assess(
+        &claim(),
+        &[first.clone(), late_duplicate.clone()],
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
+    assert_eq!(earlier.status, ClaimStatus::RequalificationRequired);
+
+    let later = assess(
+        &claim(),
+        &[first, late_duplicate],
+        &complete_coverage(),
+        cutoff(50, 70),
+    );
+    assert_eq!(later, Err(EvaluationError::DuplicateEventId));
+}
