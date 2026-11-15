@@ -82,7 +82,9 @@ fn observation(
         time_scale_id: "SYNTHETIC-TIME".to_owned(),
         position: pos(east),
         pnt_time_qualified: true,
+        pnt_qualification_reference: "synthetic-pnt-qualification-v0".to_owned(),
         surveillance_qualified: true,
+        surveillance_qualification_reference: "synthetic-surveillance-qualification-v0".to_owned(),
         horizontal_frame_id: "SYNTHETIC-ENU-01".to_owned(),
         vertical_datum_id: "SYNTHETIC-UP-01".to_owned(),
     }
@@ -317,6 +319,10 @@ fn effective_dynamic_restriction_intersecting_intent_requires_reauthorization() 
     let mut request = input(vec![observation("restricted", 0, 100, (1, 2))]);
     request.dynamic_restriction = Some(DynamicRestriction {
         restriction_id: "restriction-intersection".to_owned(),
+        issuer_reference: "synthetic-restriction-authority".to_owned(),
+        snapshot_revision: 1,
+        restriction_sha256: "b".repeat(64),
+        time_scale_id: "SYNTHETIC-TIME".to_owned(),
         effective_window: ti(50, 60),
         volume: Volume4D {
             east: ci(5, 6),
@@ -338,6 +344,10 @@ fn restriction_outside_authorized_volume_does_not_invalidate_authorization() {
     let mut request = input(vec![observation("not-restricted", 0, 100, (1, 2))]);
     request.dynamic_restriction = Some(DynamicRestriction {
         restriction_id: "restriction-outside".to_owned(),
+        issuer_reference: "synthetic-restriction-authority".to_owned(),
+        snapshot_revision: 1,
+        restriction_sha256: "c".repeat(64),
+        time_scale_id: "SYNTHETIC-TIME".to_owned(),
         effective_window: ti(50, 60),
         volume: Volume4D {
             east: ci(20, 30),
@@ -355,6 +365,10 @@ fn dynamic_restriction_effective_interval_must_intersect_authorized_time() {
     let mut request = input(vec![observation("restriction-late", 0, 100, (1, 2))]);
     request.dynamic_restriction = Some(DynamicRestriction {
         restriction_id: "restriction-effective-late".to_owned(),
+        issuer_reference: "synthetic-restriction-authority".to_owned(),
+        snapshot_revision: 2,
+        restriction_sha256: "d".repeat(64),
+        time_scale_id: "SYNTHETIC-TIME".to_owned(),
         effective_window: ti(120, 130),
         volume: Volume4D {
             east: ci(5, 6),
@@ -406,6 +420,63 @@ fn overlapping_observation_windows_are_rejected_not_double_counted() {
     );
 }
 
+
+
+#[test]
+fn missing_upstream_qualification_receipts_are_not_admissible() {
+    let mut pnt_missing = observation("pnt-ref-missing", 0, 100, (1, 2));
+    pnt_missing.pnt_qualification_reference.clear();
+    let result = evaluate(&input(vec![pnt_missing]));
+    assert_status(
+        &result,
+        ConformanceStatus::NotAssessable,
+        Some(ConformanceReason::MissingPntQualificationReference),
+    );
+
+    let mut surveillance_missing = observation("surv-ref-missing", 0, 100, (1, 2));
+    surveillance_missing.surveillance_qualification_reference.clear();
+    let result = evaluate(&input(vec![surveillance_missing]));
+    assert_status(
+        &result,
+        ConformanceStatus::NotAssessable,
+        Some(ConformanceReason::MissingSurveillanceQualificationReference),
+    );
+}
+
+#[test]
+fn dynamic_restriction_requires_issuer_revision_digest_and_matching_time_scale() {
+    let mut request = input(vec![observation("restriction-lineage", 0, 100, (1, 2))]);
+    request.dynamic_restriction = Some(DynamicRestriction {
+        restriction_id: "restriction-no-issuer".to_owned(),
+        issuer_reference: String::new(),
+        snapshot_revision: 1,
+        restriction_sha256: "e".repeat(64),
+        time_scale_id: "SYNTHETIC-TIME".to_owned(),
+        effective_window: ti(50, 60),
+        volume: Volume4D {
+            east: ci(20, 30),
+            north: ci(20, 30),
+            up: ci(20, 30),
+            time: ti(50, 60),
+        },
+    });
+    let result = evaluate(&request);
+    assert_status(
+        &result,
+        ConformanceStatus::NotAssessable,
+        Some(ConformanceReason::InvalidDynamicRestriction),
+    );
+
+    request.dynamic_restriction.as_mut().unwrap().issuer_reference =
+        "synthetic-restriction-authority".to_owned();
+    request.dynamic_restriction.as_mut().unwrap().time_scale_id = "OTHER-TIME".to_owned();
+    let result = evaluate(&request);
+    assert_status(
+        &result,
+        ConformanceStatus::NotAssessable,
+        Some(ConformanceReason::DynamicRestrictionTimeScaleMismatch),
+    );
+}
 
 #[test]
 fn future_receipt_and_future_observation_are_not_accepted() {
