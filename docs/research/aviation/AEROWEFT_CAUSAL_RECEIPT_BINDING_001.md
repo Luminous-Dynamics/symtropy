@@ -41,7 +41,8 @@ Byte-integrity recomputation, signature verification, issuer authority and key r
 
 - 100% agreement with an independently authored finite graph oracle.
 - Zero cross-subject or cross-authorization receipt splices accepted.
-- Zero parent digest/owner/role substitutions, cycles, orphans, forks, causal-time or validity violations accepted.
+- Zero parent digest/owner/role substitutions, cycles, orphans, forks, causal-time or validity violations accepted;
+- Zero receipt claims accepted outside their own validity windows or with observation-arrival/evaluation inversion.
 - Zero cross-class surveillance relabelling, duplicate required-class occupancy or contradictory report/no-report evidence accepted.
 - Zero permutation-induced semantic variance.
 - Evidence deletion, scope narrowing, validity expiry and revision supersession cannot improve admissibility.
