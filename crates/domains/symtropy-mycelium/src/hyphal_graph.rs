@@ -1327,6 +1327,61 @@ mod tests {
     }
 
     #[test]
+    fn active_graph_criticality_handles_a_long_chain_iteratively() {
+        let mut graph = HyphalGraph::new();
+        const NODE_COUNT: u64 = 4_096;
+        for id in 1..=NODE_COUNT {
+            graph
+                .add_node(node(id, HyphalNodeKind::Anchor, id as f64, 0.0, 0.0))
+                .unwrap();
+        }
+        for id in 1..NODE_COUNT {
+            graph
+                .add_segment(segment(id, id, id + 1, 1.0))
+                .unwrap();
+        }
+
+        let criticality = graph.active_graph_criticality();
+        assert_eq!(criticality.bridge_segments.len(), (NODE_COUNT - 1) as usize);
+        assert_eq!(criticality.articulation_nodes.len(), (NODE_COUNT - 2) as usize);
+    }
+
+    #[test]
+    fn active_graph_criticality_is_independent_of_insertion_order() {
+        let build = |reverse: bool| {
+            let mut graph = HyphalGraph::new();
+            let mut nodes = vec![
+                node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0),
+                node(2, HyphalNodeKind::Anchor, 1.0, 0.0, 0.0),
+                node(3, HyphalNodeKind::Anchor, 2.0, 0.0, 0.0),
+                node(4, HyphalNodeKind::Anchor, 3.0, 0.0, 0.0),
+            ];
+            let mut segments = vec![
+                segment(1, 1, 2, 1.0),
+                segment(2, 2, 3, 1.0),
+                segment(3, 3, 1, 1.0),
+                segment(4, 3, 4, 1.0),
+            ];
+            if reverse {
+                nodes.reverse();
+                segments.reverse();
+            }
+            for item in nodes {
+                graph.add_node(item).unwrap();
+            }
+            for item in segments {
+                graph.add_segment(item).unwrap();
+            }
+            graph
+        };
+
+        assert_eq!(
+            build(false).active_graph_criticality(),
+            build(true).active_graph_criticality()
+        );
+    }
+
+    #[test]
     fn inactive_segments_do_not_create_active_bridges() {
         let mut graph = HyphalGraph::new();
         graph
