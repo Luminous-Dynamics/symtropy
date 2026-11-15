@@ -54,7 +54,23 @@ The analysis must retain the factorial interactions. A nutrient response may be 
 
 The primary estimand should be the intention-to-treat effect of plot assignment. Actual application, adherence, timing and dose are additional evidence fields and should not silently replace randomized assignment.
 
-## 4. Process-resolved outcomes and measurement semantics
+## 4.1 Experimental application and causal-claim contract
+
+The 2026 AFEX root-dynamics paper describes 32 plots (four blocks, eight 50 m × 50 m plots per block; four plot replicates per exact treatment). It reports three equal applications per wet season, with the first application between May and June 2017. Its quoted annual application rates are N 125 kg ha⁻¹ yr⁻¹ as urea, P 50 kg ha⁻¹ yr⁻¹ as triple superphosphate, and base cations as Ca 50, Mg 20 (dolomitic limestone) and K 50 kg ha⁻¹ yr⁻¹ (KCl). Preserve the paper's product/element wording and verify exact protocol rate semantics before converting to elemental nutrient amounts or aggregating doses.
+
+The primary estimand should be intention-to-treat by randomized plot assignment. Retain separately:
+- assigned N/P/cation factors and block;
+- actual application dates, batch, dose, application crew and any deviations;
+- plot access/attrition and measurement availability;
+- post-treatment measurements and mediator definitions.
+
+Randomization supports the treatment-assignment contrast only under the design's assumptions. It does not by itself prove that treatment application was delivered exactly as assigned, that plots do not interfere, or that missingness is harmless. Evaluate potential nutrient movement, plot-edge/buffer effects, spillover via water/roots, accidental treatment contamination, and campaign-specific missingness. Do not condition the primary total-effect estimate on post-randomization mediators such as root biomass, LAI or soil nutrient concentrations; analyze mediation as a separate assumption-bearing task.
+
+The paper's root analysis reports mixed-effects comparisons with nutrient main and interaction terms, year terms, plot/block random effects, and within-year block random effects. A serious reproduction must preserve an **as-published lane** (same response definitions, interval pairing, random-effect structure and reported model simplification) separately from a **preregistered robustness lane** (full factorial terms, design-based/randomization checks, assumption sensitivity and no outcome-driven term elimination). Differences between lanes are results to report, not an excuse to replace the published analysis silently.
+
+The experimental unit count for a treatment is not the number of trees, cores, LAI points or repeated readings. For exact treatment combinations there are four independent plot assignments across blocks; for each binary main-effect split there are 16 plots per level, and interaction contrasts use the corresponding factorial cells. Keep those denominators visible.
+
+## 5. Process-resolved outcomes and measurement semantics
 
 Potential outcomes include:
 - repeated stem circumference increment from dendrometer bands;
