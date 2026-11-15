@@ -270,7 +270,179 @@ pub struct FaultInjection {
     pub at_segment_id: Option<String>,
 }
 
+/// Safe terminal oracle for an individual injected failure episode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExpectedTerminalState {
+    Rejected,
+    SafeHold,
+    ReconciliationRequired,
+}
+
+/// A campaign is a fixed matrix of independent fault episodes over one
+/// versioned base scenario. It is an executable test-plan contract, not a
+/// simulator result or proof that the fault has been physically exercised.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FaultCampaignManifest {
+    pub schema_version: u16,
+    pub campaign_id: String,
+    pub base_scenario_id: String,
+    pub base_scenario_schema_version: u16,
+    pub base_scenario_source_commit: String,
+    pub episodes: Vec<FaultEpisode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FaultEpisode {
+    pub episode_id: String,
+    pub injection: FaultInjection,
+    pub expected_terminal_state: ExpectedTerminalState,
+}
+
+impl FaultCampaignManifest {
+    /// Validate the exact v1 fault family set against its declared base scenario.
+    pub fn validate_against(&self, scenario: &ScenarioManifest) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+
+        if self.schema_version != SCHEMA_VERSION {
+            errors.push(format!(
+                "campaign.schema_version: expected {SCHEMA_VERSION}, got {}",
+                self.schema_version
+            ));
+        }
+        check_identifier(&mut errors, "campaign.campaign_id", &self.campaign_id);
+        if self.base_scenario_id != scenario.scenario_id {
+            errors.push(
+                "campaign.base_scenario_id: does not match the supplied scenario".into(),
+            );
+        }
+        if self.base_scenario_schema_version != scenario.schema_version {
+            errors.push(
+                "campaign.base_scenario_schema_version: does not match the supplied scenario"
+                    .into(),
+            );
+        }
+        if self.base_scenario_source_commit != scenario.digests.source_commit {
+            errors.push(
+                "campaign.base_scenario_source_commit: does not match the supplied scenario"
+                    .into(),
+            );
+        }
+        check_hex(
+            &mut errors,
+            "campaign.base_scenario_source_commit",
+            &self.base_scenario_source_commit,
+            40,
+            false,
+        );
+
+        const REQUIRED_FAULTS: [FaultKind; 10] = [
+            FaultKind::WrongTote,
+            FaultKind::OverMass,
+            FaultKind::StaleTemperature,
+            FaultKind::BlockedTransferGate,
+            FaultKind::DamagedSeal,
+            FaultKind::DuplicateHandoff,
+            FaultKind::MissingReceiverAcknowledgement,
+            FaultKind::ExpiredGrant,
+            FaultKind::PowerInterruption,
+            FaultKind::NetworkLoss,
+        ];
+
+        if self.episodes.len() != REQUIRED_FAULTS.len() {
+            errors.push(format!(
+                "campaign.episodes: expected exactly {} independent v1 fault episodes, got {}",
+                REQUIRED_FAULTS.len(),
+                self.episodes.len()
+            ));
+        }
+        check_unique(
+            &mut errors,
+            "campaign.episodes.episode_id",
+            self.episodes.iter().map(|episode| episode.episode_id.as_str()),
+        );
+        check_unique(
+            &mut errors,
+            "campaign.episodes.fault_id",
+            self.episodes
+                .iter()
+                .map(|episode| episode.injection.fault_id.as_str()),
+        );
+
+        let mut seen_kinds = HashSet::new();
+        for (index, episode) in self.episodes.iter().enumerate() {
+            let prefix = format!("campaign.episodes[{index}]");
+            check_identifier(
+                &mut errors,
+                &format!("{prefix}.episode_id"),
+                &episode.episode_id,
+            );
+            check_identifier(
+                &mut errors,
+                &format!("{prefix}.injection.fault_id"),
+                &episode.injection.fault_id,
+            );
+            if !seen_kinds.insert(episode.injection.kind) {
+                errors.push(format!(
+                    "{prefix}.injection.kind: duplicate fault family"
+                ));
+            }
+            if let Some(segment_id) = &episode.injection.at_segment_id
+                && !scenario
+                    .flow
+                    .segments
+                    .iter()
+                    .any(|segment| segment.segment_id == *segment_id)
+            {
+                errors.push(format!(
+                    "{prefix}.injection.at_segment_id: undeclared segment"
+                ));
+            }
+
+            let expected = expected_terminal_state(episode.injection.kind);
+            if episode.expected_terminal_state != expected {
+                errors.push(format!(
+                    "{prefix}.expected_terminal_state: {:?} is required for {:?}",
+                    expected, episode.injection.kind
+                ));
+            }
+        }
+
+        for required in REQUIRED_FAULTS {
+            if !seen_kinds.contains(&required) {
+                errors.push(format!(
+                    "campaign.episodes: missing required fault family {:?}",
+                    required
+                ));
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+}
+
+fn expected_terminal_state(kind: FaultKind) -> ExpectedTerminalState {
+    match kind {
+        FaultKind::WrongTote | FaultKind::OverMass | FaultKind::ExpiredGrant => {
+            ExpectedTerminalState::Rejected
+        }
+        FaultKind::StaleTemperature
+        | FaultKind::BlockedTransferGate
+        | FaultKind::DamagedSeal => ExpectedTerminalState::SafeHold,
+        FaultKind::DuplicateHandoff
+        | FaultKind::MissingReceiverAcknowledgement
+        | FaultKind::PowerInterruption
+        | FaultKind::NetworkLoss => ExpectedTerminalState::ReconciliationRequired,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FaultKind {
     WrongTote,
@@ -1026,6 +1198,95 @@ mod tests {
             errors.iter().any(|error| error.contains(expected)),
             "expected error containing {expected:?}, got {errors:?}"
         );
+    }
+
+    const CAMPAIGN_FIXTURE: &str =
+        include_str!("../fixtures/ten-fault-campaign.json");
+
+    fn valid_campaign() -> FaultCampaignManifest {
+        serde_json::from_str(CAMPAIGN_FIXTURE).expect("campaign fixture must deserialize")
+    }
+
+    fn assert_campaign_error(
+        result: Result<(), Vec<String>>,
+        expected: &str,
+    ) {
+        let errors = result.expect_err("expected campaign validation to fail");
+        assert!(
+            errors.iter().any(|error| error.contains(expected)),
+            "expected error containing {expected:?}, got {errors:?}"
+        );
+    }
+
+    #[test]
+    fn ten_fault_campaign_fixture_is_valid() {
+        let scenario = valid_manifest();
+        valid_campaign()
+            .validate_against(&scenario)
+            .expect("ten-fault campaign should validate against nominal scenario");
+    }
+
+    #[test]
+    fn campaign_rejects_missing_fault_episode() {
+        let scenario = valid_manifest();
+        let mut campaign = valid_campaign();
+        campaign.episodes.pop();
+        assert_campaign_error(
+            campaign.validate_against(&scenario),
+            "expected exactly 10 independent v1 fault episodes",
+        );
+    }
+
+    #[test]
+    fn campaign_rejects_duplicate_fault_family() {
+        let scenario = valid_manifest();
+        let mut campaign = valid_campaign();
+        campaign.episodes[1].injection.kind = campaign.episodes[0].injection.kind;
+        assert_campaign_error(
+            campaign.validate_against(&scenario),
+            "duplicate fault family",
+        );
+    }
+
+    #[test]
+    fn campaign_rejects_wrong_terminal_oracle() {
+        let scenario = valid_manifest();
+        let mut campaign = valid_campaign();
+        campaign.episodes[0].expected_terminal_state =
+            ExpectedTerminalState::ReconciliationRequired;
+        assert_campaign_error(
+            campaign.validate_against(&scenario),
+            "is required for",
+        );
+    }
+
+    #[test]
+    fn campaign_rejects_mismatched_base_scenario() {
+        let scenario = valid_manifest();
+        let mut campaign = valid_campaign();
+        campaign.base_scenario_id = "different-scenario".into();
+        assert_campaign_error(
+            campaign.validate_against(&scenario),
+            "does not match the supplied scenario",
+        );
+    }
+
+    #[test]
+    fn campaign_rejects_unknown_segment_reference() {
+        let scenario = valid_manifest();
+        let mut campaign = valid_campaign();
+        campaign.episodes[0].injection.at_segment_id = Some("missing-segment".into());
+        assert_campaign_error(
+            campaign.validate_against(&scenario),
+            "undeclared segment",
+        );
+    }
+
+    #[test]
+    fn campaign_rejects_unknown_json_fields() {
+        let mut value: serde_json::Value = serde_json::from_str(CAMPAIGN_FIXTURE).unwrap();
+        value["unrecognized"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<FaultCampaignManifest>(value).is_err());
     }
 
     #[test]
