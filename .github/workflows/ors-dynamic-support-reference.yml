@@ -59,6 +59,7 @@ jobs:
             sha256sum tools/ors-dynamic-support-reference/Cargo.lock
             sha256sum tools/ors-dynamic-support-reference/src/lib.rs
             sha256sum tools/ors-dynamic-support-reference/src/main.rs
+            sha256sum tools/ors-dynamic-support-reference/tests/closed_form_oracle.rs
             sha256sum tools/ors-dynamic-support-reference/cases-v0.1.csv
             sha256sum ors-dynamic-support-receipt.json
           } > ors-dynamic-support-fingerprints.txt
