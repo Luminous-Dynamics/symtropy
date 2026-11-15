@@ -287,7 +287,9 @@ fn status_for(class: CurvatureEvidenceClassV1) -> NonlinearSensitivityStatusV1 {
 /// For input perturbation radius delta, Jacobian J and a declared uniform
 /// second-derivative norm bound H valid over the entire ball:
 ///
-///     ||F(x+e)-F(x)||_Y <= ||J||_(X->Y) delta + 0.5 H delta^2.
+/// ```text
+/// ||F(x+e)-F(x)||_Y <= ||J||_(X->Y) * delta + 0.5 * H * delta^2
+/// ```
 ///
 /// The Jacobian norm is a numerical singular-value estimate. The total field
 /// is therefore conditional on this estimate and on the caller-supplied
