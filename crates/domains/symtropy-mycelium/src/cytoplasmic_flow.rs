@@ -123,7 +123,8 @@ impl CytoplasmicFlowObservation {
             }
         }
         if let Some(solute) = self.solute {
-            if !solute.concentration_mg_per_mm3.is_finite() || solute.concentration_mg_per_mm3 < 0.0 {
+            if !solute.concentration_mg_per_mm3.is_finite() || solute.concentration_mg_per_mm3 < 0.0
+            {
                 return Err(FlowObservationError::InvalidSoluteConcentration);
             }
         }
