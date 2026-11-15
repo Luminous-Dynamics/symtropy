@@ -752,9 +752,8 @@ impl HyphalGraph {
                 } else {
                     stack.pop();
                     if let Some((parent_node, parent_edge)) = parent.get(&current).copied() {
-                        let current_low = *low
-                            .get(&current)
-                            .expect("visited node has low-link value");
+                        let current_low =
+                            *low.get(&current).expect("visited node has low-link value");
                         let parent_discovery = *discovery
                             .get(&parent_node)
                             .expect("parent node has discovery time");
@@ -1286,7 +1285,10 @@ mod tests {
         graph.add_segment(segment(2, 2, 3, 1.0)).unwrap();
 
         let criticality = graph.active_graph_criticality();
-        assert_eq!(criticality.bridge_segments, vec![SegmentId(1), SegmentId(2)]);
+        assert_eq!(
+            criticality.bridge_segments,
+            vec![SegmentId(1), SegmentId(2)]
+        );
         assert_eq!(criticality.articulation_nodes, vec![NodeId(2)]);
     }
 
