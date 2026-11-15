@@ -1,0 +1,304 @@
+{
+  "schema_version": "artgrav-prestress-cases/0.1",
+  "case_set_id": "ARTGRAV-PRESTRESS-MODAL-v0.1",
+  "claim_ceiling": "ANALYTIC_SYNTHETIC_VERIFICATION_ONLY",
+  "units": "SI",
+  "rpm_to_rad_s": "omega = 2*pi*rpm/60",
+  "warning": "All fixtures use synthetic idealized inputs and closed-form equations. They are not habitat designs, material allowables, measured hardware performance, safety margins, or flight qualification.",
+  "common_assumptions": [
+    "steady constant rotation unless rpm is zero",
+    "small strain linear elasticity",
+    "undeformed reference geometry used for centrifugal loading",
+    "uniform isotropic material properties",
+    "no thermal, pressure, joint, bending, vibration, fatigue, buckling, damage, contact, or human-response model"
+  ],
+  "cases": [
+    {
+      "case_id": "RING-AL-100M-2RPM",
+      "model": "THIN_UNIFORM_RING",
+      "description": "Synthetic aluminium-like thin-ring formula check.",
+      "input": {
+        "density_kg_m3": 2700,
+        "youngs_modulus_pa": 70000000000,
+        "radius_m": 100,
+        "rpm": 2
+      },
+      "expected": {
+        "omega_rad_s": 0.20943951023931953,
+        "hoop_stress_pa": 1184352.528130723,
+        "hoop_strain": 0.000016919321830438897,
+        "radial_extension_m": 0.0016919321830438897
+      }
+    },
+    {
+      "case_id": "RING-AL-100M-4RPM",
+      "model": "THIN_UNIFORM_RING",
+      "description": "Four-RPM scaling case; compared with the 2 RPM case, steady hoop stress and first-order extension scale by four.",
+      "input": {
+        "density_kg_m3": 2700,
+        "youngs_modulus_pa": 70000000000,
+        "radius_m": 100,
+        "rpm": 4
+      },
+      "expected": {
+        "omega_rad_s": 0.41887902047863906,
+        "hoop_stress_pa": 4737410.112522892,
+        "hoop_strain": 0.00006767728732175559,
+        "radial_extension_m": 0.006767728732175559
+      }
+    },
+    {
+      "case_id": "RING-STEEL-250M-1P6RPM",
+      "model": "THIN_UNIFORM_RING",
+      "description": "Second independent material/length/rate scale.",
+      "input": {
+        "density_kg_m3": 7800,
+        "youngs_modulus_pa": 200000000000,
+        "radius_m": 250,
+        "rpm": 1.6
+      },
+      "expected": {
+        "omega_rad_s": 0.16755160819145562,
+        "hoop_stress_pa": 13685851.43617724,
+        "hoop_strain": 0.0000684292571808862,
+        "radial_extension_m": 0.01710731429522155
+      }
+    },
+    {
+      "case_id": "SPOKE-AL-100M-2RPM",
+      "model": "UNIFORM_RADIAL_SPOKE",
+      "description": "Synthetic prismatic radial rod with free tip and fixed hub.",
+      "input": {
+        "density_kg_m3": 2700,
+        "youngs_modulus_pa": 70000000000,
+        "radius_m": 100,
+        "rpm": 2,
+        "area_m2": 0.01,
+        "sample_radii_m": [
+          0,
+          50,
+          100
+        ]
+      },
+      "expected": {
+        "omega_rad_s": 0.20943951023931953,
+        "root_axial_force_n": 5921.762640653614,
+        "root_stress_pa": 592176.2640653615,
+        "tip_extension_m": 0.0005639773943479633,
+        "samples": [
+          {
+            "radius_m": 0,
+            "axial_force_n": 5921.762640653614,
+            "axial_stress_pa": 592176.2640653615
+          },
+          {
+            "radius_m": 50,
+            "axial_force_n": 4441.32198049021,
+            "axial_stress_pa": 444132.1980490211
+          },
+          {
+            "radius_m": 100,
+            "axial_force_n": 0,
+            "axial_stress_pa": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "SPOKE-AL-100M-4RPM",
+      "model": "UNIFORM_RADIAL_SPOKE",
+      "description": "Four-RPM scaling case; compared with the 2 RPM case, force, stress and first-order extension scale by four.",
+      "input": {
+        "density_kg_m3": 2700,
+        "youngs_modulus_pa": 70000000000,
+        "radius_m": 100,
+        "rpm": 4,
+        "area_m2": 0.01,
+        "sample_radii_m": [
+          0,
+          50,
+          100
+        ]
+      },
+      "expected": {
+        "omega_rad_s": 0.41887902047863906,
+        "root_axial_force_n": 23687.050562614455,
+        "root_stress_pa": 2368705.056261446,
+        "tip_extension_m": 0.002255909577391853,
+        "samples": [
+          {
+            "radius_m": 0,
+            "axial_force_n": 23687.050562614455,
+            "axial_stress_pa": 2368705.056261446
+          },
+          {
+            "radius_m": 50,
+            "axial_force_n": 17765.28792196084,
+            "axial_stress_pa": 1776528.7921960845
+          },
+          {
+            "radius_m": 100,
+            "axial_force_n": 0,
+            "axial_stress_pa": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "RING-ZERO-SPIN",
+      "model": "THIN_UNIFORM_RING",
+      "description": "Zero-spin control.",
+      "input": {
+        "density_kg_m3": 2700,
+        "youngs_modulus_pa": 70000000000,
+        "radius_m": 100,
+        "rpm": 0
+      },
+      "expected": {
+        "omega_rad_s": 0,
+        "hoop_stress_pa": 0,
+        "hoop_strain": 0,
+        "radial_extension_m": 0
+      }
+    },
+    {
+      "case_id": "SPOKE-ZERO-SPIN",
+      "model": "UNIFORM_RADIAL_SPOKE",
+      "description": "Zero-spin control.",
+      "input": {
+        "density_kg_m3": 2700,
+        "youngs_modulus_pa": 70000000000,
+        "radius_m": 100,
+        "rpm": 0,
+        "area_m2": 0.01,
+        "sample_radii_m": [
+          0,
+          50,
+          100
+        ]
+      },
+      "expected": {
+        "omega_rad_s": 0,
+        "root_axial_force_n": 0,
+        "root_stress_pa": 0,
+        "tip_extension_m": 0,
+        "samples": [
+          {
+            "radius_m": 0,
+            "axial_force_n": 0,
+            "axial_stress_pa": 0
+          },
+          {
+            "radius_m": 50,
+            "axial_force_n": 0,
+            "axial_stress_pa": 0
+          },
+          {
+            "radius_m": 100,
+            "axial_force_n": 0,
+            "axial_stress_pa": 0
+          }
+        ]
+      }
+    }
+  ],
+  "metamorphic_relations": [
+    {
+      "id": "RPM-SQUARED-RING",
+      "left_case": "RING-AL-100M-2RPM",
+      "right_case": "RING-AL-100M-4RPM",
+      "observable": "hoop_stress_pa",
+      "expected_ratio": 4
+    },
+    {
+      "id": "RPM-SQUARED-RING-EXTENSION",
+      "left_case": "RING-AL-100M-2RPM",
+      "right_case": "RING-AL-100M-4RPM",
+      "observable": "radial_extension_m",
+      "expected_ratio": 4
+    },
+    {
+      "id": "RPM-SQUARED-SPOKE-FORCE",
+      "left_case": "SPOKE-AL-100M-2RPM",
+      "right_case": "SPOKE-AL-100M-4RPM",
+      "observable": "root_axial_force_n",
+      "expected_ratio": 4
+    },
+    {
+      "id": "RPM-SQUARED-SPOKE-EXTENSION",
+      "left_case": "SPOKE-AL-100M-2RPM",
+      "right_case": "SPOKE-AL-100M-4RPM",
+      "observable": "tip_extension_m",
+      "expected_ratio": 4
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NEG-ZERO-RADIUS",
+      "model": "THIN_UNIFORM_RING",
+      "mutation": {
+        "radius_m": 0
+      },
+      "expected_disposition": "REJECT",
+      "reason": "NONPOSITIVE_RADIUS"
+    },
+    {
+      "id": "NEG-NEGATIVE-DENSITY",
+      "model": "THIN_UNIFORM_RING",
+      "mutation": {
+        "density_kg_m3": -1
+      },
+      "expected_disposition": "REJECT",
+      "reason": "NONPOSITIVE_DENSITY"
+    },
+    {
+      "id": "NEG-ZERO-MODULUS",
+      "model": "THIN_UNIFORM_RING",
+      "mutation": {
+        "youngs_modulus_pa": 0
+      },
+      "expected_disposition": "REJECT",
+      "reason": "NONPOSITIVE_MODULUS"
+    },
+    {
+      "id": "NEG-ZERO-AREA",
+      "model": "UNIFORM_RADIAL_SPOKE",
+      "mutation": {
+        "area_m2": 0
+      },
+      "expected_disposition": "REJECT",
+      "reason": "NONPOSITIVE_AREA"
+    },
+    {
+      "id": "NEG-OUTSIDE-SAMPLE",
+      "model": "UNIFORM_RADIAL_SPOKE",
+      "mutation": {
+        "sample_radii_m": [
+          101
+        ]
+      },
+      "expected_disposition": "REJECT",
+      "reason": "SAMPLE_OUTSIDE_DOMAIN"
+    },
+    {
+      "id": "NEG-UNSUPPORTED-BENDING",
+      "model": "THIN_UNIFORM_RING",
+      "mutation": {
+        "enabled_physics": [
+          "BENDING"
+        ]
+      },
+      "expected_disposition": "UNRESOLVED",
+      "reason": "UNSUPPORTED_PHYSICS"
+    },
+    {
+      "id": "NEG-NONFINITE",
+      "model": "THIN_UNIFORM_RING",
+      "mutation": {
+        "density_kg_m3": "NaN"
+      },
+      "expected_disposition": "REJECT",
+      "reason": "NONFINITE_INPUT"
+    }
+  ]
+}
