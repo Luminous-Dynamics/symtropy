@@ -271,11 +271,9 @@ fn inverse(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
         return Err("matrix inverse requires a non-empty square matrix".to_string());
     }
     let mut augmented = vec![vec![0.0; 2 * count]; count];
-    let mut scale: f64 = 0.0;
     for row in 0..count {
         for column in 0..count {
             augmented[row][column] = matrix[row][column];
-            scale = scale.max(matrix[row][column].abs());
         }
         augmented[row][count + row] = 1.0;
     }
@@ -630,6 +628,18 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let full_design = designs.iter().find(|design| {
         design["measurement_count"].as_u64() == Some(option_count_u64)
     }).ok_or_else(|| "full measurement design is missing".to_string())?;
+    let cost_optima_practically_weak = cost_optima.iter().all(|ids| {
+        designs.iter().any(|design| {
+            design["measurement_ids"].as_array().is_some_and(|values| {
+                values.iter().map(Value::as_str).collect::<Option<Vec<_>>>()
+                    .is_some_and(|actual| actual == ids.iter().map(String::as_str).collect::<Vec<_>>())
+            }) && design["practical_status"].as_str() == Some("PRACTICALLY_WEAK")
+        })
+    });
+    let expected = manifest.get("expected")
+        .ok_or_else(|| "expected object is required".to_string())?;
+    let expected_cost_status = string_at(expected, "minimum_cost_design_status")?;
+    let expected_information_status = string_at(expected, "information_optimal_design_status")?;
     let full_design_metrics = json!({
         "measurement_ids": full_design["measurement_ids"],
         "minimum_fisher_eigenvalue": full_design["minimum_fisher_eigenvalue"],
@@ -640,9 +650,9 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         "gls_covariance_diagonal": full_design["gls_covariance_diagonal"],
         "practical_status": full_design["practical_status"]
     });
+    let information_optimal_status_matches =
+        full_design_metrics["practical_status"].as_str() == Some(expected_information_status.as_str());
 
-    let expected = manifest.get("expected")
-        .ok_or_else(|| "expected object is required".to_string())?;
     let expected_baseline_rank = usize_at(expected, "baseline_rank")?;
     let expected_baseline_nullity = usize_at(expected, "baseline_nullity")?;
     let expected_design_count = usize_at(expected, "design_count")?;
@@ -705,6 +715,19 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             "actual_designs": actual_cost_ids,
             "expected_cost": expected_cost,
             "expected_designs": expected_cost_ids
+        }),
+        json!({
+            "id": "COST-OPTIMUM-PRACTICAL-WEAKNESS-001",
+            "passed": cost_optima_practically_weak
+                && expected_cost_status == "PRACTICALLY_WEAK",
+            "all_minimum_cost_designs_are_practically_weak": cost_optima_practically_weak,
+            "expected_status": expected_cost_status
+        }),
+        json!({
+            "id": "INFORMATION-OPTIMUM-STATUS-001",
+            "passed": information_optimal_status_matches,
+            "actual_status": full_design_metrics["practical_status"],
+            "expected_status": expected_information_status
         }),
         json!({
             "id": "D-OPTIMAL-DESIGN-001",
@@ -838,6 +861,21 @@ mod tests {
         ).expect("finite near-collinear information metrics");
         assert_eq!(metrics.practical_status, "PRACTICALLY_WEAK");
         assert!(metrics.condition_number > 30.0);
+    }
+
+    #[test]
+    fn cheapest_full_rank_design_is_weak_while_information_optimum_meets_thresholds() {
+        let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest()).expect("valid corpus");
+        let weak = receipt["designs"].as_array().unwrap().iter()
+            .find(|design| design["synthetic_effort_cost"] == 14
+                && design["measurement_count"] == 4)
+            .expect("minimum-cost full-rank design exists");
+        assert_eq!(weak["structurally_identifiable"], true);
+        assert_eq!(weak["practical_status"], "PRACTICALLY_WEAK");
+        assert_eq!(
+            receipt["all_measurements_metrics"]["practical_status"],
+            "INFORMATION_SUFFICIENT_UNDER_DECLARED_SYNTHETIC_THRESHOLDS"
+        );
     }
 
     #[test]
