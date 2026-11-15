@@ -95,8 +95,12 @@ fn compute(case:&Value)->Result<Value,String>{
     let boundary=field(case,"boundary")?;
     let inlet=array(boundary,"inlets")?;
     let outlet=array(boundary,"outlets")?;
-    if inlet.is_empty()||outlet.is_empty(){
-        return Ok(base("PARTIAL_BOUNDARY","INLET_OR_OUTLET_CHANNEL_SET_EMPTY"));
+    let expected_inlets=usize_value(boundary,"expected_inlet_count")?;
+    let expected_outlets=usize_value(boundary,"expected_outlet_count")?;
+    if expected_inlets==0||expected_outlets==0
+        ||inlet.len()!=expected_inlets||outlet.len()!=expected_outlets
+    {
+        return Ok(base("PARTIAL_BOUNDARY","REQUIRED_INLET_OR_OUTLET_CHANNEL_RECORD_MISSING"));
     }
     let mut ids=BTreeSet::new();
     let mut inferred=Vec::new();
