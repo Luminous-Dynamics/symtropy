@@ -180,3 +180,8 @@ The Zenodo landing page retrieved for this audit exposes file names, sizes and M
 ## 8. Claim ceiling
 
 A successful `PASS_SYNTHETIC_FLUX_IDENTIFIABILITY` receipt establishes exact structural rank, witness and finite design-enumeration arithmetic for the declared two-pool matrix. It does not establish practical identifiability, parameter recovery under noise, forest field efficacy, the cost of any real measurement, a recommended survey, or SOTA superiority. The empirical ForestPaths archive remains a candidate for reproduction, not an ingested or reproduced dataset.
+
+
+## 9. Next stage: practical identifiability under measurement error
+
+The next child is [#5360 — FOREST-FLUX-PRACTICAL-IDENTIFIABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5360). It will extend the exact structural matrix with declared measurement-error standard deviations and covariance; compare whitened singular spectra, Fisher information, uncertainty and synthetic flux-recovery under independent, correlated and common-bias conditions; and distinguish cost-optimal from D-/A-/E-optimal measurement sets. It must preserve the distinction between full structural rank and practically recoverable parameters. All initial noise/covariance scenarios are synthetic, and the experiment must feed decision-loss value into the existing #5223 owner rather than optimize entropy alone.
