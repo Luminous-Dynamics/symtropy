@@ -410,17 +410,26 @@ fn future_receipt_and_future_observation_are_not_accepted() {
 #[test]
 fn accepted_receipt_preserves_authorization_and_observation_lineage() {
     let result = evaluate(&input(vec![observation("lineage-observation", 0, 100, (1, 2))]));
-    assert_eq!(result.lineage.authorization_id, "auth-synthetic-1");
-    assert_eq!(result.lineage.intent_id, "intent-synthetic-1");
-    assert_eq!(result.lineage.intent_revision, 1);
-    assert_eq!(result.lineage.policy_id, "synthetic-conformance-policy-v0");
-    assert_eq!(result.lineage.accepted_observations.len(), 1);
     assert_eq!(
-        result.lineage.accepted_observations[0].observation_id,
-        "lineage-observation"
+        result.lineage.authorization.authorization_id,
+        "auth-synthetic-1"
     );
     assert_eq!(
-        result.lineage.accepted_observations[0].position.east,
+        result.lineage.authorization.intent_id,
+        "intent-synthetic-1"
+    );
+    assert_eq!(result.lineage.authorization.intent_revision, 1);
+    assert_eq!(
+        result.lineage.policy.policy_id,
+        "synthetic-conformance-policy-v0"
+    );
+    assert_eq!(result.lineage.canonicalized_observations.len(), 1);
+    assert_eq!(
+        result.lineage.accepted_observation_ids,
+        vec!["lineage-observation"]
+    );
+    assert_eq!(
+        result.lineage.canonicalized_observations[0].position.east,
         ci(1, 2)
     );
 }
