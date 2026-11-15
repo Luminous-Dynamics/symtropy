@@ -127,7 +127,7 @@ fn run_sweep() -> usize {
     macro_rules! disposition_case {
         ($label:expr, $evidence:expr, $expected:expr) => {{
             cases += 1;
-            if !check_disposition($label, &$evidence, $expected) {
+            if !check_disposition($label, $evidence, $expected) {
                 failures += 1;
             }
         }};
@@ -135,7 +135,7 @@ fn run_sweep() -> usize {
     macro_rules! error_case {
         ($label:expr, $evidence:expr, $expected:expr) => {{
             cases += 1;
-            if !check_error($label, &$evidence, $expected) {
+            if !check_error($label, $evidence, $expected) {
                 failures += 1;
             }
         }};
@@ -144,7 +144,7 @@ fn run_sweep() -> usize {
     // A single unusual telemetry value does not identify its physical cause.
     disposition_case!(
         "telemetry-only-abstains",
-        vec![primary()],
+        &[primary()],
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
@@ -152,7 +152,7 @@ fn run_sweep() -> usize {
     // but still cannot attribute why the primary telemetry was anomalous.
     disposition_case!(
         "independent-agreement-corroborates",
-        vec![
+        &[
             primary(),
             measured(
                 "independent",
@@ -168,7 +168,7 @@ fn run_sweep() -> usize {
 
     disposition_case!(
         "independent-disagreement-preserves-conflict",
-        vec![
+        &[
             primary(),
             measured(
                 "independent-conflict",
@@ -185,7 +185,7 @@ fn run_sweep() -> usize {
     // Independence must not be inferred from different sensor IDs alone.
     disposition_case!(
         "shared-source-is-not-independent",
-        vec![
+        &[
             primary(),
             measured(
                 "same-source",
@@ -201,7 +201,7 @@ fn run_sweep() -> usize {
 
     disposition_case!(
         "shared-gateway-is-not-independent",
-        vec![
+        &[
             primary(),
             measured(
                 "same-gateway",
@@ -217,7 +217,7 @@ fn run_sweep() -> usize {
 
     disposition_case!(
         "shared-trust-root-is-not-independent",
-        vec![
+        &[
             primary(),
             measured(
                 "same-root",
@@ -242,7 +242,7 @@ fn run_sweep() -> usize {
     broker_copy.dependencies.observation_root_id = primary().dependencies.observation_root_id;
     disposition_case!(
         "different-brokers-same-observation-is-correlated",
-        vec![primary(), broker_copy],
+        &[primary(), broker_copy],
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
@@ -257,7 +257,7 @@ fn run_sweep() -> usize {
     mirror_copy.dependencies.upstream_dataset_id = primary().dependencies.upstream_dataset_id;
     disposition_case!(
         "different-gateways-same-upstream-dataset-is-correlated",
-        vec![primary(), mirror_copy],
+        &[primary(), mirror_copy],
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
@@ -272,7 +272,7 @@ fn run_sweep() -> usize {
     same_pipeline.dependencies.processing_lineage_id = primary().dependencies.processing_lineage_id;
     disposition_case!(
         "same-processing-lineage-is-correlated",
-        vec![primary(), same_pipeline],
+        &[primary(), same_pipeline],
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
@@ -287,7 +287,7 @@ fn run_sweep() -> usize {
     unknown_lineage.dependencies.upstream_dataset_id = None;
     disposition_case!(
         "unknown-dependency-does-not-upgrade-to-independent",
-        vec![primary(), unknown_lineage],
+        &[primary(), unknown_lineage],
         CandidateDisposition::AbstainObservationalEquivalence
     );
 
@@ -295,7 +295,7 @@ fn run_sweep() -> usize {
     excessive_transport_lag.ingestion_tick = 13;
     disposition_case!(
         "excessive-event-to-ingestion-lag-is-rejected",
-        vec![excessive_transport_lag],
+        &[excessive_transport_lag],
         CandidateDisposition::RejectEvidence
     );
 
@@ -303,7 +303,7 @@ fn run_sweep() -> usize {
     stale_at_cutoff.event_tick = 1;
     disposition_case!(
         "stale-observation-at-decision-cutoff-is-rejected",
-        vec![stale_at_cutoff],
+        &[stale_at_cutoff],
         CandidateDisposition::RejectEvidence
     );
 
@@ -311,13 +311,13 @@ fn run_sweep() -> usize {
     arrived_after_cutoff.ingestion_tick = 21;
     disposition_case!(
         "recent-observation-arriving-after-cutoff-is-rejected",
-        vec![arrived_after_cutoff],
+        &[arrived_after_cutoff],
         CandidateDisposition::RejectEvidence
     );
 
     disposition_case!(
         "pairwise-cross-check-disagreement-is-conflict",
-        vec![
+        &[
             primary(),
             measured(
                 "side-a",
@@ -343,7 +343,7 @@ fn run_sweep() -> usize {
     wrong_calibration.calibration_revision = "cal-old".to_owned();
     disposition_case!(
         "wrong-calibration-is-rejected",
-        vec![wrong_calibration],
+        &[wrong_calibration],
         CandidateDisposition::RejectEvidence
     );
 
@@ -351,13 +351,13 @@ fn run_sweep() -> usize {
     unauthenticated.authenticated = false;
     disposition_case!(
         "unauthenticated-primary-is-rejected",
-        vec![unauthenticated],
+        &[unauthenticated],
         CandidateDisposition::RejectEvidence
     );
 
     disposition_case!(
         "derived-reconstruction-does-not-corroborate-itself",
-        vec![
+        &[
             primary(),
             EvidenceRecord {
                 evidence_id: "reconstruction".to_owned(),
@@ -381,7 +381,7 @@ fn run_sweep() -> usize {
 
     disposition_case!(
         "independent-self-test-failure-requests-measurement",
-        vec![
+        &[
             primary(),
             EvidenceRecord {
                 evidence_id: "self-test".to_owned(),
@@ -405,7 +405,7 @@ fn run_sweep() -> usize {
 
     disposition_case!(
         "independent-forensic-indicator-requests-integrity-investigation",
-        vec![
+        &[
             primary(),
             EvidenceRecord {
                 evidence_id: "forensic".to_owned(),
@@ -429,13 +429,13 @@ fn run_sweep() -> usize {
 
     error_case!(
         "duplicate-evidence-id-is-rejected",
-        vec![primary(), primary()],
+        &[primary(), primary()],
         IntegrityAuditError::DuplicateEvidenceId
     );
 
     error_case!(
         "missing-primary-is-rejected",
-        vec![measured(
+        &[measured(
             "side-only",
             EvidenceKind::IndependentPhysicalMeasurement,
             50,
@@ -450,7 +450,7 @@ fn run_sweep() -> usize {
     clock_inversion.ingestion_tick = 9;
     error_case!(
         "ingestion-before-event-is-rejected",
-        vec![clock_inversion],
+        &[clock_inversion],
         IntegrityAuditError::InvalidClockOrder
     );
 
