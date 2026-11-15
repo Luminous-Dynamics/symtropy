@@ -258,6 +258,13 @@ fn root_id() -> &'static str {
     "conflict-screen"
 }
 
+fn receipt_mut<'a>(receipts: &'a mut [Receipt], id: &str) -> &'a mut Receipt {
+    receipts
+        .iter_mut()
+        .find(|receipt| receipt.receipt_id == id)
+        .unwrap()
+}
+
 fn verify_graph(
     receipts: &[Receipt],
 ) -> Result<aeroweift_causal_receipt_binding::VerificationResult, VerificationError> {
@@ -356,7 +363,7 @@ fn evaluation_window_splice_is_rejected() {
 #[test]
 fn parent_payload_digest_must_match_exactly() {
     let mut receipts = graph();
-    receipts[9].parents[0].parent_payload_sha256 = digest('f');
+    receipt_mut(&mut receipts, root_id()).parents[0].parent_payload_sha256 = digest('f');
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::ParentDigestMismatch)
@@ -366,7 +373,7 @@ fn parent_payload_digest_must_match_exactly() {
 #[test]
 fn missing_parent_is_rejected() {
     let mut receipts = graph();
-    receipts[9].parents[0].parent_receipt_id = "absent-parent".into();
+    receipt_mut(&mut receipts, root_id()).parents[0].parent_receipt_id = "absent-parent".into();
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::ParentMissing)
@@ -377,7 +384,7 @@ fn missing_parent_is_rejected() {
 fn parent_stage_must_match_the_semantic_role() {
     let mut receipts = graph();
     let pnt = receipts[5].clone();
-    receipts[9].parents[0] = edge(&pnt, ParentRole::ReachableOccupancy);
+    receipt_mut(&mut receipts, root_id()).parents[0] = edge(&pnt, ParentRole::ReachableOccupancy);
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::RoleMismatch)
@@ -387,8 +394,8 @@ fn parent_stage_must_match_the_semantic_role() {
 #[test]
 fn repeated_parent_role_edge_is_rejected() {
     let mut receipts = graph();
-    let duplicate_edge = receipts[9].parents[0].clone();
-    receipts[9].parents.push(duplicate_edge);
+    let duplicate_edge = receipt_mut(&mut receipts, root_id()).parents[0].clone();
+    receipt_mut(&mut receipts, root_id()).parents.push(duplicate_edge);
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::DuplicateParentEdge)
@@ -528,7 +535,7 @@ fn profile_traffic_class_obligations_cannot_be_weakened() {
 #[test]
 fn conflict_must_consume_each_profile_required_class() {
     let mut receipts = graph();
-    receipts[9].parents.retain(|edge| {
+    receipt_mut(&mut receipts, root_id()).parents.retain(|edge| {
         edge.role != ParentRole::TrafficOccupancy(TrafficClass::NonCooperativeCrewed)
     });
     assert_eq!(
