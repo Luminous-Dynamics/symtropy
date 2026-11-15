@@ -174,7 +174,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         "Do not compare R² values",
         "Use plot as the AFEX treatment assignment unit",
         "Keep an explicit no-mediation model",
-        "must improve held-out predictions",
+        "A model with more pathways must beat simpler models",
     ] {
         if !joined_rules.contains(phrase) {
             return Err(format!("mandatory rule missing: {phrase}"));
