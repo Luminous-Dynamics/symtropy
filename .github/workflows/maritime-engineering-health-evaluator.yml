@@ -101,10 +101,11 @@ jobs:
           test "$actual" = "$expected"
 
       - name: Install minimal pinned Rust toolchain for payload audit
-        uses: dtolnay/rust-toolchain@1.96.0
-        with:
-          components: ""
-          toolchain: 1.96.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal
+          echo "RUSTUP_TOOLCHAIN=1.96.0" >> "$GITHUB_ENV"
 
       - name: Set up pinned schema validator
         uses: actions/setup-python@v5
