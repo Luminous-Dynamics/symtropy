@@ -22,8 +22,8 @@
 //! evaluation of this receipt is numerical; it is not an interval proof.
 
 use crate::{
-    ConstraintMultiplierV1, ConstraintResidualV1, CoordinateFrame, Cotangent,
-    DelassusMetricV1, MetricErrorV1, Tangent,
+    ConstraintMultiplierV1, ConstraintResidualV1, CoordinateFrame, Cotangent, DelassusMetricV1,
+    MetricErrorV1, Tangent,
 };
 
 /// Sharp operator constants for the fixed, full-row-rank linear KKT system.
@@ -119,15 +119,11 @@ pub fn certify_linear_constrained_solution<
         .mass_metric()
         .cotangent_norm(&mass_equilibrium_residual)?;
     let constraint_residual_dual_norm = delassus.residual_norm(&constraint_residual)?;
-    let paired_residual_norm =
-        mass_residual_dual_norm.hypot(constraint_residual_dual_norm);
+    let paired_residual_norm = mass_residual_dual_norm.hypot(constraint_residual_dual_norm);
 
-    let acceleration_error_bound =
-        KKT_ACCELERATION_ERROR_CONSTANT_V1 * paired_residual_norm;
-    let multiplier_error_bound =
-        KKT_MULTIPLIER_ERROR_CONSTANT_V1 * paired_residual_norm;
-    let combined_state_error_bound =
-        KKT_COMBINED_STATE_ERROR_CONSTANT_V1 * paired_residual_norm;
+    let acceleration_error_bound = KKT_ACCELERATION_ERROR_CONSTANT_V1 * paired_residual_norm;
+    let multiplier_error_bound = KKT_MULTIPLIER_ERROR_CONSTANT_V1 * paired_residual_norm;
+    let combined_state_error_bound = KKT_COMBINED_STATE_ERROR_CONSTANT_V1 * paired_residual_norm;
 
     if !paired_residual_norm.is_finite()
         || !acceleration_error_bound.is_finite()
@@ -181,8 +177,7 @@ mod tests {
     ) {
         let mass = Metric::admit([[2.0, 0.0], [0.0, 4.0]], profile()).unwrap();
         let jacobian = [[1.0, 0.0]];
-        let delassus =
-            DelassusMetricV1::from_mass_jacobian(&mass, jacobian, profile()).unwrap();
+        let delassus = DelassusMetricV1::from_mass_jacobian(&mass, jacobian, profile()).unwrap();
         let force = Cotangent::new([2.25, -8.0]).unwrap();
         let constraint_rhs = ConstraintResidualV1::new([1.0]).unwrap();
         (mass, delassus, force, constraint_rhs)
@@ -212,7 +207,11 @@ mod tests {
             &[-0.3125, -1.0]
         );
         assert_eq!(receipt.constraint_residual.components(), &[-0.125]);
-        close(receipt.mass_residual_dual_norm.powi(2), 0.298828125, 2.0e-14);
+        close(
+            receipt.mass_residual_dual_norm.powi(2),
+            0.298828125,
+            2.0e-14,
+        );
         close(
             receipt.constraint_residual_dual_norm.powi(2),
             0.03125,
@@ -223,13 +222,11 @@ mod tests {
             exact_acceleration[0] - computed_acceleration.components()[0],
             exact_acceleration[1] - computed_acceleration.components()[1],
         ];
-        let acceleration_error_norm = (2.0 * acceleration_error[0].powi(2)
-            + 4.0 * acceleration_error[1].powi(2))
-        .sqrt();
+        let acceleration_error_norm =
+            (2.0 * acceleration_error[0].powi(2) + 4.0 * acceleration_error[1].powi(2)).sqrt();
         let multiplier_error_norm =
             (0.5 * (exact_multiplier - computed_multiplier.components()[0]).powi(2)).sqrt();
-        let combined_state_error_norm =
-            acceleration_error_norm.hypot(multiplier_error_norm);
+        let combined_state_error_norm = acceleration_error_norm.hypot(multiplier_error_norm);
 
         assert!(acceleration_error_norm <= receipt.acceleration_error_bound);
         assert!(multiplier_error_norm <= receipt.multiplier_error_bound);
@@ -260,18 +257,13 @@ mod tests {
 
     #[test]
     fn acceleration_bound_is_sharp_for_a_constraint_nullspace_error() {
-        let mass = Metric::<CartesianQ, 2>::admit(
-            [[1.0, 0.0], [0.0, 1.0]],
+        let mass = Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 1.0]], profile()).unwrap();
+        let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, 2, 1>::from_mass_jacobian(
+            &mass,
+            [[1.0, 0.0]],
             profile(),
         )
         .unwrap();
-        let delassus =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 2, 1>::from_mass_jacobian(
-                &mass,
-                [[1.0, 0.0]],
-                profile(),
-            )
-            .unwrap();
         let force_rhs = Cotangent::new([0.0, 0.0]).unwrap();
         let constraint_rhs = ConstraintResidualV1::new([0.0]).unwrap();
         let computed_acceleration = Tangent::new([0.0, -1.0]).unwrap();
@@ -320,8 +312,7 @@ mod tests {
 
         let true_acceleration_error = phi;
         let true_multiplier_error = phi * phi;
-        let combined_true_error =
-            true_acceleration_error.hypot(true_multiplier_error);
+        let combined_true_error = true_acceleration_error.hypot(true_multiplier_error);
         close(
             receipt.combined_state_error_bound,
             combined_true_error,
@@ -337,13 +328,12 @@ mod tests {
         )
         .unwrap();
         let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
-        let delassus_q =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q,
-                jacobian_q,
-                profile(),
-            )
-            .unwrap();
+        let delassus_q = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q,
+            jacobian_q,
+            profile(),
+        )
+        .unwrap();
         let rebasis = Rebasis::<CartesianQ, DenseY, 3>::new(
             [[1.0, 2.0, 1.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]],
             profile(),
@@ -351,13 +341,12 @@ mod tests {
         .unwrap();
         let mass_y = rebasis.metric_to_to(&mass_q, profile()).unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
-        let delassus_y =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                jacobian_y,
-                profile(),
-            )
-            .unwrap();
+        let delassus_y = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y,
+            jacobian_y,
+            profile(),
+        )
+        .unwrap();
 
         let exact_acceleration_q = Tangent::new([1.0, -2.0, 0.5]).unwrap();
         let exact_multiplier = [0.25, -0.5];
@@ -388,8 +377,7 @@ mod tests {
         .unwrap();
 
         let force_y = rebasis.cotangent_to_to(&force_q).unwrap();
-        let computed_acceleration_y =
-            rebasis.tangent_to_to(&computed_acceleration_q).unwrap();
+        let computed_acceleration_y = rebasis.tangent_to_to(&computed_acceleration_q).unwrap();
         let receipt_y = certify_linear_constrained_solution(
             &delassus_y,
             &force_y,
@@ -474,8 +462,7 @@ mod tests {
         let mass_y = rebasis.metric_to_to(&mass_q, profile()).unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
         let force_y = rebasis.cotangent_to_to(&force_q).unwrap();
-        let computed_acceleration_y =
-            rebasis.tangent_to_to(&computed_acceleration_q).unwrap();
+        let computed_acceleration_y = rebasis.tangent_to_to(&computed_acceleration_q).unwrap();
 
         // Independent constraint-equation re-description r_new = T r_old,
         // with T = [[1, 2], [0, 1]]. Therefore lambda_new = T^-T lambda_old.
@@ -488,20 +475,18 @@ mod tests {
             target_q.components()[1],
         ])
         .unwrap();
-        let computed_multiplier_y_t =
-            ConstraintMultiplierV1::<RebasedConstraintSpace, 2>::new([
-                computed_multiplier_q.components()[0],
-                computed_multiplier_q.components()[1]
-                    - 2.0 * computed_multiplier_q.components()[0],
-            ])
-            .unwrap();
-        let delassus_y_t = DelassusMetricV1::<
-            DenseY,
-            RebasedConstraintSpace,
-            3,
-            2,
-        >::from_mass_jacobian(&mass_y, jacobian_y_t, profile())
+        let computed_multiplier_y_t = ConstraintMultiplierV1::<RebasedConstraintSpace, 2>::new([
+            computed_multiplier_q.components()[0],
+            computed_multiplier_q.components()[1] - 2.0 * computed_multiplier_q.components()[0],
+        ])
         .unwrap();
+        let delassus_y_t =
+            DelassusMetricV1::<DenseY, RebasedConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_y,
+                jacobian_y_t,
+                profile(),
+            )
+            .unwrap();
 
         let receipt_y_t = certify_linear_constrained_solution(
             &delassus_y_t,
@@ -546,8 +531,7 @@ mod tests {
 
     #[test]
     fn redundant_constraints_fail_before_a_kkt_error_receipt_can_be_issued() {
-        let mass =
-            Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 1.0]], profile()).unwrap();
+        let mass = Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 1.0]], profile()).unwrap();
         let redundant = DelassusMetricV1::<CartesianQ, ConstraintSpace, 2, 2>::from_mass_jacobian(
             &mass,
             [[1.0, 0.0], [2.0, 0.0]],
