@@ -55,8 +55,7 @@ fn point_segment_distance(point: Point, start: Point, end: Point) -> f64 {
     let parameter = if denominator == 0.0 {
         0.0
     } else {
-        (ap.iter().zip(ab).map(|(&a, b)| a * b).sum::<f64>() / denominator)
-            .clamp(0.0, 1.0)
+        (ap.iter().zip(ab).map(|(&a, b)| a * b).sum::<f64>() / denominator).clamp(0.0, 1.0)
     };
     let closest_x = start.x as f64 + ab[0] * parameter;
     let closest_y = start.y as f64 + ab[1] * parameter;
@@ -99,10 +98,7 @@ fn aabb_overlap(
 }
 
 fn point_json(point: Point) -> String {
-    format!(
-        "{{\"x\":{},\"y\":{},\"z\":{}}}",
-        point.x, point.y, point.z
-    )
+    format!("{{\"x\":{},\"y\":{},\"z\":{}}}", point.x, point.y, point.z)
 }
 
 fn margins_json() -> &'static str {
@@ -126,24 +122,37 @@ fn make_case(
     };
     let partition_name = if is_holdout { "holdout" } else { "development" };
     let partition_code = if is_holdout { "VALIDATION" } else { "DEV" };
-    let case_id = format!(
-        "GEN-{family_code}-{partition_code}-{:04}",
-        index + 1
-    );
+    let case_id = format!("GEN-{family_code}-{partition_code}-{:04}", index + 1);
 
     let moving_radius = 20 + rng.range(81);
     let obstacle_radius = 10 + rng.range(61);
 
-    let (start, end, path_extra, obstacle, analytic_distance, endpoint_distance, chord_distance, candidate) =
-        match family {
+    let (
+        start,
+        end,
+        path_extra,
+        obstacle,
+        analytic_distance,
+        endpoint_distance,
+        chord_distance,
+        candidate,
+    ) = match family {
             Family::Linear => {
                 let length = if is_holdout {
                     3_000 + rng.range(3_001)
                 } else {
                     200 + rng.range(2_800)
                 };
-                let start = Point { x: -length, y: 0, z: 0 };
-                let end = Point { x: length, y: 0, z: 0 };
+                let start = Point {
+                    x: -length,
+                    y: 0,
+                    z: 0,
+                };
+                let end = Point {
+                    x: length,
+                    y: 0,
+                    z: 0,
+                };
                 let obstacle = Point {
                     x: -length - 500 + rng.range((2 * length + 1_001) as u32),
                     y: rng.range(1_201) - 600,
@@ -408,7 +417,10 @@ mod tests {
     fn combined_v0_2_manifest_has_exact_case_and_partition_counts() {
         const COMBINED: &str = include_str!("../../fixtures/construction-motion-oracle-v0.2.json");
         assert_eq!(COMBINED.matches("\"case_id\":").count(), 272);
-        assert_eq!(COMBINED.matches("\"partition\": \"development\"").count(), 212);
+        assert_eq!(
+            COMBINED.matches("\"partition\": \"development\"").count(),
+            212
+        );
         assert_eq!(COMBINED.matches("\"partition\": \"holdout\"").count(), 60);
         assert_eq!(COMBINED.matches("\"case_id\": \"GEN-").count(), 260);
     }
