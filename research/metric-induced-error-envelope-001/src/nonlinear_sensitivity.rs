@@ -484,8 +484,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -502,8 +501,16 @@ mod tests {
 
         close(receipt.derivative_operator_norm_estimate, 1.0, 1.0e-14);
         close(receipt.first_order_output_error_estimate, 0.1, 1.0e-14);
-        close(receipt.nonlinear_remainder_upper_estimate.unwrap(), 0.01, 1.0e-14);
-        close(receipt.total_output_error_upper_estimate.unwrap(), 0.11, 1.0e-14);
+        close(
+            receipt.nonlinear_remainder_upper_estimate.unwrap(),
+            0.01,
+            1.0e-14,
+        );
+        close(
+            receipt.total_output_error_upper_estimate.unwrap(),
+            0.11,
+            1.0e-14,
+        );
         assert_eq!(
             receipt.status,
             NonlinearSensitivityStatusV1::DeclaredAnalyticRemainderBound
@@ -520,8 +527,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[3.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[3.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -536,8 +542,16 @@ mod tests {
         )
         .unwrap();
         close(receipt.first_order_output_error_estimate, 0.06, 1.0e-14);
-        close(receipt.nonlinear_remainder_upper_estimate.unwrap(), 0.0008, 1.0e-14);
-        close(receipt.total_output_error_upper_estimate.unwrap(), 0.0608, 1.0e-14);
+        close(
+            receipt.nonlinear_remainder_upper_estimate.unwrap(),
+            0.0008,
+            1.0e-14,
+        );
+        close(
+            receipt.total_output_error_upper_estimate.unwrap(),
+            0.0608,
+            1.0e-14,
+        );
         assert_eq!(
             receipt.status,
             NonlinearSensitivityStatusV1::DeclaredIntervalRemainderBound
@@ -549,8 +563,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -593,10 +606,7 @@ mod tests {
         close(receipt.first_order_output_error_estimate, 0.2, 1.0e-14);
         assert_eq!(receipt.total_output_error_estimate, None);
         assert_eq!(receipt.total_output_error_upper_estimate, None);
-        assert_eq!(
-            receipt.status,
-            NonlinearSensitivityStatusV1::FirstOrderOnly
-        );
+        assert_eq!(receipt.status, NonlinearSensitivityStatusV1::FirstOrderOnly);
     }
 
     #[test]
@@ -640,14 +650,10 @@ mod tests {
     fn output_and_adjoint_sensitivity_are_invariant_under_dense_rebasing() {
         let profile = metric_profile();
         let operator_profile = operator_profile();
-        let metric_x_q =
-            Metric::<CartesianQ, 2>::admit([[2.0, 0.0], [0.0, 3.0]], profile).unwrap();
-        let metric_y_q =
-            Metric::<CartesianQ, 2>::admit([[4.0, 0.0], [0.0, 2.0]], profile).unwrap();
-        let sx =
-            Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [0.0, 1.0]], profile).unwrap();
-        let sy =
-            Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, -1.0], [0.0, 1.0]], profile).unwrap();
+        let metric_x_q = Metric::<CartesianQ, 2>::admit([[2.0, 0.0], [0.0, 3.0]], profile).unwrap();
+        let metric_y_q = Metric::<CartesianQ, 2>::admit([[4.0, 0.0], [0.0, 2.0]], profile).unwrap();
+        let sx = Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [0.0, 1.0]], profile).unwrap();
+        let sy = Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, -1.0], [0.0, 1.0]], profile).unwrap();
         let metric_x_y = sx.metric_to_to(&metric_x_q, profile).unwrap();
         let metric_y_y = sy.metric_to_to(&metric_y_q, profile).unwrap();
         let operator_q = [[1.0, 2.0], [-1.0, 3.0]];
@@ -740,12 +746,11 @@ mod tests {
     fn rank_deficiency_does_not_invalidate_a_forward_norm_estimate() {
         let input = identity_metric::<CartesianQ, 3>();
         let output = identity_metric::<DenseY, 2>();
-        let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 2, 3>::new([
-                [1.0, 0.0, 0.0],
-                [0.0, 2.0, 0.0],
-            ])
-            .unwrap();
+        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 2, 3>::new([
+            [1.0, 0.0, 0.0],
+            [0.0, 2.0, 0.0],
+        ])
+        .unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -760,7 +765,11 @@ mod tests {
         )
         .unwrap();
         close(receipt.derivative_operator_norm_estimate, 2.0, 1.0e-12);
-        close(receipt.total_output_error_upper_estimate.unwrap(), 0.2, 1.0e-12);
+        close(
+            receipt.total_output_error_upper_estimate.unwrap(),
+            0.2,
+            1.0e-12,
+        );
         assert_eq!(
             receipt.operator_condition.status,
             RectangularOperatorStatusV1::NonInjective
