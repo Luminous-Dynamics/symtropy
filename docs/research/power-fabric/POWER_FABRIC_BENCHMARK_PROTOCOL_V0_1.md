@@ -1,6 +1,6 @@
 # Power Fabric reproducible benchmark protocol v0.1
 
-**Status:** benchmark contract and frozen scenario registry; no comparative performance or human-subject outcome claimed  
+**Status:** benchmark contract and frozen scenario registry; seven machine-readable scenario families plus comparative performance and lifecycle-economics study dimensions; no comparative performance or human-subject outcome claimed  
 **Date:** 2026-11-15  
 **Owner issue:** https://github.com/Luminous-Dynamics/symtropy/issues/5241  
 **Parent:** standards adapter PR #5229
@@ -91,7 +91,7 @@ Report p50/p95:
 
 Do not claim byte-identical canonical output until canonical serialization and cryptographic digest contracts are implemented and qualified. Current deterministic BTreeMap ordering is not RFC 8785 canonical JSON.
 
-### G. Integration effort and lifecycle economics
+### I. Integration effort and lifecycle economics
 Compare matched tasks with manual/vendor-specific integration workflows. Measure engineer hours, adapter creation/maintenance, unresolved semantics, manual reconciliation, stale drawing discovery, rework, and change propagation time.
 
 Candidate hypothesis: reduce measured integration/reconciliation effort by 30% without increasing critical error rate. Preregister before observing results; this is a target to test, not an achieved outcome.
@@ -116,6 +116,8 @@ For every view, drawing, circuit directory, emergency map, dossier and interchan
 
 Targets: 100% derived-output digest match for unmodified bytes; 100% stale marking recall across the frozen dependency oracle; zero stale output retained as current.
 
+
+Only the seven correctness-oriented scenario families (IR contract, adapter, change impact, resilience, human projection, build receipt and derived artifact) are represented as individual JSON cases in the v0.1 machine corpus. Performance scaling and integration/lifecycle economics are separate comparative study dimensions: they require benchmark hardware, matched incumbent workflows and/or participant/practitioner data, not just synthetic JSON fixtures.
 
 ## 3. Frozen corpus discipline
 
