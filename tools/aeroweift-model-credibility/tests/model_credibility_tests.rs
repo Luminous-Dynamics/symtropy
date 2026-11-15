@@ -1,7 +1,7 @@
 use aeroweift_model_credibility::{
     Comparator, DatasetManifest, DatasetSplit, EvidenceModality, MetricEvidence, MetricGate,
-    MetricKind, ModelScope, SampleUnit, ValidationDisposition, ValidationError,
-    ValidationPackage, ValidationPolicy, evaluate,
+    MetricKind, ModelScope, SampleUnit, ValidationDisposition, ValidationError, ValidationPackage,
+    ValidationPolicy, evaluate,
 };
 
 fn digest(ch: char) -> String {
@@ -171,8 +171,7 @@ fn model_or_operating_domain_change_is_not_covered() {
 #[test]
 fn calibration_and_confirmatory_flight_groups_must_be_disjoint() {
     let mut candidate = package();
-    candidate.confirmatory.flight_group_ids[0] =
-        candidate.calibration.flight_group_ids[0].clone();
+    candidate.confirmatory.flight_group_ids[0] = candidate.calibration.flight_group_ids[0].clone();
     assert_eq!(
         evaluate(&candidate, &policy()),
         Err(ValidationError::DataLeakage)
@@ -214,7 +213,10 @@ fn metric_result_must_reference_exact_confirmatory_manifest() {
 #[test]
 fn missing_confirmatory_stratum_is_not_pooled_away() {
     let mut candidate = package();
-    candidate.confirmatory.strata.retain(|value| value != "corridor-edge");
+    candidate
+        .confirmatory
+        .strata
+        .retain(|value| value != "corridor-edge");
     assert_eq!(
         evaluate(&candidate, &policy()),
         Err(ValidationError::MissingRequiredStratum)
@@ -339,7 +341,6 @@ fn unrequested_metric_cannot_be_smuggled_into_a_package() {
     );
 }
 
-
 #[test]
 fn confirmatory_sensor_stack_must_match_exact_model_scope() {
     let mut candidate = package();
@@ -369,7 +370,6 @@ fn confirmatory_time_basis_must_match_model_scope() {
         Err(ValidationError::DatasetScopeMismatch)
     );
 }
-
 
 #[test]
 fn evaluator_build_must_match_frozen_validation_policy() {
