@@ -224,7 +224,7 @@ fn evaluate_case(
         for (flow_index, (observed_flow, predicted_flow)) in
             observed_flows.iter().zip(predicted_flows.iter()).enumerate()
         {
-            let error = (observed_flow - predicted_flow).abs();
+            let error = (*observed_flow - *predicted_flow).abs();
             cumulative_flow_absolute_errors[flow_index] += error;
             maximum_flow_absolute_error = maximum_flow_absolute_error.max(error);
             flow_absolute_error_sum += error;
