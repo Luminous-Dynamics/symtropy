@@ -104,7 +104,7 @@ The original claim and its historical evidence are never mutated or deleted. Eve
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 37 tests including:
+The Rust suite currently exercises 36 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
@@ -119,7 +119,9 @@ The Rust suite currently exercises 37 tests including:
 - duplicate event IDs, source-sequence reuse/forks and duplicate coverage;
 - event-array permutation invariance;
 - future-recorded duplicate events and coverage manifests do not poison an earlier as-known query but are rejected once they enter the knowledge cutoff;
+- future-effective and unrelated dependency coverage receipts do not poison the current claim's coverage assessment;
 - assessment output binds the exact claim package, effective cutoff, knowledge cutoff and policy digest;
+- claim-relevant coverage receipts are filtered by dependency/source and effective/knowledge overlap before structural validation;
 - claim dependency permutation produces a canonical identical result;
 - source-sequence digest succession remains deterministic even when a corrective event has an earlier effective time than its predecessor.
 - evaluation before claim existence;
