@@ -36,6 +36,20 @@ The authors explicitly caution that the small gaps among the top three are not s
 
 **Interpretation:** 84.2% is a study-specific adjacent-state accuracy result, not a universal SHM SOTA, deployed alarm accuracy, false-alarm rate, or cross-asset damage detector. The paper reports that fair-weather-only training did not materially improve generalization when the test stream retained weather variability. Its own discussion identifies environmental distribution shift as a major bottleneck and recommends multi-path fusion, domain adaptation/invariant features, healthy-state self-supervision, repeated runs and formal statistical testing.
 
+### Exact reproduction boundary and leakage adversary
+
+The full paper clarifies the scope precisely: the 2026 classifier benchmark uses only propagation path 6-2 on one 53 cm × 53 cm × 3 mm aluminium plate, one central damage location, and thirteen adjacent binary severity-pair tasks. Each pair uses roughly ten days around one transition, with the last five days of the earlier state and first five days of the later state partitioned into three-day training and two-day test windows. It fixes all classifier seeds at 42, uses untuned hyperparameters, and does not report repeated-seed significance tests. It explicitly says this does not establish multi-year, multi-season, cross-structure, cross-layout or cross-damage-location generalization.
+
+One especially important reproduction trap: the paper's fair-weather filtering autoencoder is fitted on the complete five-day segment, which includes the later test windows, even though the test examples themselves are not filtered. The authors identify this as test-window exposure and recommend fitting the filter only on training windows. Therefore the adapter must preserve two distinct baselines:
+1. **Faithful paper reproduction:** replicate the published filtering pipeline exactly and label the transductive test-window exposure.
+2. **Leakage-resistant variant:** fit all preprocessing and filtering models only on training windows, then apply the frozen transform to held-out test windows.
+
+Never compare one policy using the paper-faithful transductive preprocessing against another using training-only preprocessing as though they had equivalent information access.
+
+Dataset details from the source description include eight transmitter–receiver paths (5-1 through 5-4 and 6-1 through 6-4), 2,000-sample waveforms, and approximately 170-second measurement spacing. The 2026 paper states the apparatus is an aluminium plate with eight PZT transducers. Its specific study used only path 6-2 after qualitative path selection; it did not compare the other paths or multi-path fusion.
+
+Source-paper evaluation is a benchmark of adjacent-pair classification accuracy. The Protective Systems adapter adds operational evaluation: false alarms per asset-day, detection delay, calibration, open-set abstention and inspection burden. Do not claim that these measures were assessed in the published 84.2% result.
+
 ## 3. Adapter contract: metadata first, bounded streaming later
 
 The adapter must not require a 100-GB-class eager load or duplicate the owner dataset. It should initially emit a small manifest with:
@@ -84,8 +98,10 @@ Withhold one damage class or environmental regime at a time. Measure whether the
 - Keep the complete test period untouched until code, hyperparameters, thresholds and analysis are frozen.
 - Publish temporal cut dates, excluded intervals, label transitions and the reason for each exclusion.
 - If a method requires healthy-baseline updates, distinguish a fixed pre-damage baseline from an adaptive online baseline. The latter must not silently learn away damage.
-- Use repeated, predeclared seeds and paired temporal folds where the dataset supports them. Do not pretend overlapping temporal windows are independent replicates.
+- Use repeated, predeclared seeds and paired temporal folds where the dataset supports them. Do not pretend the 13 adjacent-state pairs are independent physical assets or independent field campaigns.
+- The classifier paper reports class-balanced pair splits (1,006 test samples per class); accuracy is therefore interpretable for its particular task, but report per-class sensitivity/recall and confusion matrices anyway.
 - Report uncertainty intervals and asset/event-level sample counts, not only window counts.
+- Reproduce the paper-faithful autoencoder preprocessing separately from a strict training-only preprocessing variant; disclose the difference and do not tune on the sealed test windows.
 
 ## 6. Baselines to reproduce and improve upon
 
