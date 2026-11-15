@@ -129,3 +129,6 @@ This is software contract/arithmetic evidence only. It does not qualify a pump, 
 The input/manifest/separate-oracle corpus now includes 10 time-resolved continuity scenarios (25 total). The continuity evaluator allocates essential demand before discretionary demand, protects a declared reserve from discretionary draw, records source inflow that is not qualified for the intended use, and abstains when critical service metrology or stored-water use-quality evidence is not admitted.
 
 The South African GN 6292 Regulation 4 context case represents four people over 72 hours at the regulation's 15 L/person/day alternative drinking-water reference for interruptions longer than 48 hours. This is a context-specific regulatory scenario, not a claim that a private household installation discharges a Water Services Authority's duties or that WaterLoop is potable-water qualified.
+
+
+The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
