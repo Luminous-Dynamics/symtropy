@@ -1,0 +1,68 @@
+name: AeroWeft Assurance Composition Oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aeroweift-assurance-composition-oracle.yml"
+      - "docs/research/aviation/AEROWEFT_ASSURANCE_COMPOSITION_001.md"
+      - "fixtures/aeroweift-assurance-composition/**"
+      - "tools/aeroweift-assurance-composition-oracle/**"
+      - ".github/workflows/aeroweift-scope-join-oracle.yml"
+      - "docs/research/aviation/AEROWEFT_SCOPE_JOIN_001.md"
+      - "fixtures/aeroweift-scope-join/**"
+      - "tools/aeroweift-scope-join-oracle/**"
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/aeroweift-assurance-composition-oracle
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Formatting
+        run: cargo fmt --manifest-path Cargo.toml -- --check
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked --all-targets
+
+  scope-join-rust:
+    if: startsWith(github.head_ref, 'research/aeroweFt-scope-join-')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/aeroweift-scope-join-oracle
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Formatting
+        run: cargo fmt --manifest-path Cargo.toml -- --check
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked --all-targets
