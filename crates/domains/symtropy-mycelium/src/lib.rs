@@ -11,8 +11,8 @@
 //! It is intentionally separate from the legacy field-growth model below.
 
 pub mod bmx_exchange_reference;
-pub mod hyphal_graph;
 pub mod cytoplasmic_flow;
+pub mod hyphal_graph;
 pub mod legacy_accounting;
 pub mod transport;
 
