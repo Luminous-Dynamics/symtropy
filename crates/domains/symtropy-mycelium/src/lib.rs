@@ -11,6 +11,7 @@
 //! It is intentionally separate from the legacy field-growth model below.
 
 pub mod hyphal_graph;
+pub mod transport;
 
 use std::collections::{HashMap, VecDeque};
 
