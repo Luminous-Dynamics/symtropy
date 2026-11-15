@@ -34,6 +34,7 @@ use std::fmt;
 mod energy_audit;
 pub use energy_audit::{
     EnergyAuditError, EnergyAuditProfile, EnergyAuditReceipt, audit_discrete_energy_ledger,
+    canonical_energy_audit_payload,
 };
 
 const MAX_DOF: usize = 12;
