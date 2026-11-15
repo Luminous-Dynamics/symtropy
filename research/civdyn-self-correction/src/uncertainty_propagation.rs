@@ -661,6 +661,56 @@ mod tests {
         }
     }
 
+    fn afex_root_turnover_delta_case(
+        productivity_stock_covariance: f64,
+        case_id: &str,
+    ) -> (UncertaintyState, LinearTransform) {
+        let input = state(
+            case_id,
+            &[
+                "root-productivity-normalized",
+                "root-stock-normalized",
+                "ratio-linearization-offset",
+            ],
+            &[1.2, 1.0, 1.0],
+            vec![
+                vec![0.04, productivity_stock_covariance, 0.0],
+                vec![productivity_stock_covariance, 0.01, 0.0],
+                vec![0.0, 0.0, 0.0],
+            ],
+            vec![
+                source(
+                    "afex-root-productivity",
+                    NumericUncertaintyKind::Measurement,
+                    "sha256-afex-root-productivity-synthetic",
+                    &["root-productivity-normalized"],
+                    Some("afex-plot-campaign-synthetic"),
+                ),
+                source(
+                    "afex-root-stock",
+                    NumericUncertaintyKind::SamplingDesign,
+                    "sha256-afex-root-stock-synthetic",
+                    &["root-stock-normalized"],
+                    Some("afex-plot-campaign-synthetic"),
+                ),
+                source(
+                    "afex-root-ratio-linearization",
+                    NumericUncertaintyKind::OtherRegisteredNumeric,
+                    "sha256-afex-root-ratio-linearization-v1",
+                    &["ratio-linearization-offset"],
+                    None,
+                ),
+            ],
+        );
+        let transform = transform(
+            &input,
+            &["fine-root-turnover-normalized"],
+            vec![vec![1.0, -1.2, 1.2]],
+            &format!("afex-root-turnover-delta-{case_id}"),
+        );
+        (input, transform)
+    }
+
     #[test]
     fn correlated_sum_and_difference_retain_off_diagonal_covariance() {
         let input = state(
@@ -1068,4 +1118,54 @@ mod tests {
         assert_eq!(first.output_state.covariance.values, vec![vec![0.0]]);
         assert_eq!(first.standard_uncertainties, vec![0.0]);
     }
+    #[test]
+    fn afex_root_turnover_delta_method_preserves_numerator_denominator_covariance() {
+        let (input, transform) = afex_root_turnover_delta_case(
+            0.005,
+            "afex-root-turnover-correlated",
+        );
+        let result = propagate_linear_uncertainty(&input, &transform)
+            .expect("positive-semidefinite correlated AFEX ratio covariance");
+        assert_eq!(result.output_state.estimates, vec![1.2]);
+        assert!((result.output_state.covariance.values[0][0] - 0.0424).abs() < 1.0e-12);
+        assert!((result.standard_uncertainties[0] - 0.0424_f64.sqrt()).abs() < 1.0e-12);
+        assert_eq!(result.input_covariance.values[0][1], 0.005);
+        assert_eq!(result.output_state.uncertainty_sources.len(), 3);
+        result.output_state.validate().expect("output lineage remains valid");
+    }
+
+    #[test]
+    fn afex_root_turnover_zero_covariance_ablation_changes_uncertainty() {
+        let (correlated_input, correlated_transform) =
+            afex_root_turnover_delta_case(0.005, "afex-root-correlated");
+        let (independent_input, independent_transform) =
+            afex_root_turnover_delta_case(0.0, "afex-root-independent");
+        let correlated = propagate_linear_uncertainty(&correlated_input, &correlated_transform)
+            .expect("correlated AFEX ratio");
+        let independent = propagate_linear_uncertainty(&independent_input, &independent_transform)
+            .expect("explicit zero-covariance AFEX ratio");
+        assert!((independent.output_state.covariance.values[0][0] - 0.0544).abs() < 1.0e-12);
+        assert!(correlated.output_state.covariance.values[0][0]
+            < independent.output_state.covariance.values[0][0]);
+        assert_ne!(
+            correlated.input_covariance.values[0][1],
+            independent.input_covariance.values[0][1]
+        );
+    }
+
+    #[test]
+    fn afex_root_turnover_negative_covariance_increases_ratio_uncertainty() {
+        let (positive_input, positive_transform) =
+            afex_root_turnover_delta_case(0.005, "afex-root-positive-covariance");
+        let (negative_input, negative_transform) =
+            afex_root_turnover_delta_case(-0.005, "afex-root-negative-covariance");
+        let positive = propagate_linear_uncertainty(&positive_input, &positive_transform)
+            .expect("positive covariance ratio");
+        let negative = propagate_linear_uncertainty(&negative_input, &negative_transform)
+            .expect("negative covariance ratio");
+        assert!((negative.output_state.covariance.values[0][0] - 0.0664).abs() < 1.0e-12);
+        assert!(negative.output_state.covariance.values[0][0]
+            > positive.output_state.covariance.values[0][0]);
+    }
+
 }
