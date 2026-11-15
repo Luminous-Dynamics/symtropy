@@ -1,7 +1,7 @@
 use aeroweift_intent_conformance_oracle::{
-    evaluate, Authorization, ClosedInterval, ConformanceAssessment, ConformanceInput,
-    ConformancePolicy, ConformanceReason, ConformanceStatus, DeviationExpansion,
-    DynamicRestriction, ObservationWindow, PositionBox, TimeInterval, Volume4D,
+    Authorization, ClosedInterval, ConformanceAssessment, ConformanceInput, ConformancePolicy,
+    ConformanceReason, ConformanceStatus, DeviationExpansion, DynamicRestriction,
+    ObservationWindow, PositionBox, TimeInterval, Volume4D, evaluate,
 };
 
 fn ci(lower: i64, upper: i64) -> ClosedInterval {
@@ -67,12 +67,7 @@ fn policy() -> ConformancePolicy {
     }
 }
 
-fn observation(
-    id: &str,
-    start: i64,
-    end: i64,
-    east: (i64, i64),
-) -> ObservationWindow {
+fn observation(id: &str, start: i64, end: i64, east: (i64, i64)) -> ObservationWindow {
     ObservationWindow {
         observation_id: id.to_owned(),
         source_id: "synthetic-receiver-1".to_owned(),
@@ -108,9 +103,8 @@ fn assert_status(
     assert_eq!(result.reason, reason);
 }
 
-const FIXTURE: &str = include_str!(
-    "../../../fixtures/aeroweift-conformance/tiny-intent-conformance-v0.json"
-);
+const FIXTURE: &str =
+    include_str!("../../../fixtures/aeroweift-conformance/tiny-intent-conformance-v0.json");
 
 #[test]
 fn golden_fixture_identity_binds_all_four_d_scenarios() {
@@ -136,7 +130,12 @@ fn fully_inside_authorized_volume_is_conforming() {
 
 #[test]
 fn nominally_outside_but_inside_explicit_deviation_expansion_is_conforming() {
-    let result = evaluate(&input(vec![observation("deviation-margin", 0, 100, (-1, 0))]));
+    let result = evaluate(&input(vec![observation(
+        "deviation-margin",
+        0,
+        100,
+        (-1, 0),
+    )]));
     assert_status(&result, ConformanceStatus::Conforming, None);
     assert_eq!(result.definite_inside_ticks, 100);
 }
@@ -171,7 +170,6 @@ fn definite_outside_duration_above_profile_threshold_is_nonconforming() {
     assert_eq!(result.definite_outside_ppm, 60_000);
 }
 
-
 #[test]
 fn definite_breach_is_not_hidden_by_unassessable_remainder() {
     let mut stale_remainder = observation("unassessable-rest", 6, 100, (1, 2));
@@ -194,7 +192,6 @@ fn definite_breach_is_not_hidden_by_unassessable_remainder() {
     assert_eq!(result.definite_outside_ppm, 60_000);
     assert_eq!(result.possible_outside_ppm, 1_000_000);
 }
-
 
 #[test]
 fn widening_position_uncertainty_cannot_improve_conformance() {
@@ -245,7 +242,12 @@ fn fresh_receipt_does_not_make_stale_observed_at_time_fresh() {
     assert_eq!(result.unassessable_ticks, 100);
     assert_eq!(result.possible_outside_ppm, 1_000_000);
     assert_eq!(result.definite_inside_ticks, 0);
-    assert!(result.lineage.rejected_observation_ids.contains(&"stale".to_owned()));
+    assert!(
+        result
+            .lineage
+            .rejected_observation_ids
+            .contains(&"stale".to_owned())
+    );
 }
 
 #[test]
@@ -398,7 +400,6 @@ fn dynamic_restriction_effective_interval_must_intersect_authorized_time() {
     assert_status(&result, ConformanceStatus::Conforming, None);
 }
 
-
 #[test]
 fn deviation_expansion_cannot_extend_before_authorization_activation() {
     let mut request = input(vec![observation("pre-activation", 5, 6, (1, 2))]);
@@ -454,8 +455,6 @@ fn overlapping_observation_windows_are_rejected_not_double_counted() {
     );
 }
 
-
-
 #[test]
 fn missing_upstream_qualification_receipts_are_not_admissible() {
     let mut pnt_missing = observation("pnt-ref-missing", 0, 100, (1, 2));
@@ -468,7 +467,9 @@ fn missing_upstream_qualification_receipts_are_not_admissible() {
     );
 
     let mut surveillance_missing = observation("surv-ref-missing", 0, 100, (1, 2));
-    surveillance_missing.surveillance_qualification_reference.clear();
+    surveillance_missing
+        .surveillance_qualification_reference
+        .clear();
     let result = evaluate(&input(vec![surveillance_missing]));
     assert_status(
         &result,
@@ -501,8 +502,11 @@ fn dynamic_restriction_requires_issuer_revision_digest_and_matching_time_scale()
         Some(ConformanceReason::InvalidDynamicRestriction),
     );
 
-    request.dynamic_restriction.as_mut().unwrap().issuer_reference =
-        "synthetic-restriction-authority".to_owned();
+    request
+        .dynamic_restriction
+        .as_mut()
+        .unwrap()
+        .issuer_reference = "synthetic-restriction-authority".to_owned();
     request.dynamic_restriction.as_mut().unwrap().time_scale_id = "OTHER-TIME".to_owned();
     let result = evaluate(&request);
     assert_status(
@@ -538,15 +542,17 @@ fn future_receipt_and_future_observation_are_not_accepted() {
 
 #[test]
 fn accepted_receipt_preserves_authorization_and_observation_lineage() {
-    let result = evaluate(&input(vec![observation("lineage-observation", 0, 100, (1, 2))]));
+    let result = evaluate(&input(vec![observation(
+        "lineage-observation",
+        0,
+        100,
+        (1, 2),
+    )]));
     assert_eq!(
         result.lineage.authorization.authorization_id,
         "auth-synthetic-1"
     );
-    assert_eq!(
-        result.lineage.authorization.intent_id,
-        "intent-synthetic-1"
-    );
+    assert_eq!(result.lineage.authorization.intent_id, "intent-synthetic-1");
     assert_eq!(result.lineage.authorization.intent_revision, 1);
     assert_eq!(
         result.lineage.policy.policy_id,

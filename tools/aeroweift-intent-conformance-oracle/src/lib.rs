@@ -1,12 +1,12 @@
 //! Finite reference oracle for operational-intent conformance.
- //!
- //! It compares integer-bounded observed 4D occupancy windows with a versioned
- //! authorization and profile-defined deviation expansion. It separately
- //! reports definite, possible, unassessable and unobserved duration.
- //!
- //! This crate is not a UTM/U-space service, a flight-authority mechanism,
- //! conflict-resolution engine, aircraft model, avoidance policy or controller.
- //! All test values are fictional and synthetic.
+//!
+//! It compares integer-bounded observed 4D occupancy windows with a versioned
+//! authorization and profile-defined deviation expansion. It separately
+//! reports definite, possible, unassessable and unobserved duration.
+//!
+//! This crate is not a UTM/U-space service, a flight-authority mechanism,
+//! conflict-resolution engine, aircraft model, avoidance policy or controller.
+//! All test values are fictional and synthetic.
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -578,8 +578,10 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             observation.observation_id.as_str(),
         )
     });
-    lineage.canonicalized_observations =
-        observations.iter().map(|observation| (**observation).clone()).collect();
+    lineage.canonicalized_observations = observations
+        .iter()
+        .map(|observation| (**observation).clone())
+        .collect();
 
     let mut definite_inside = 0_u64;
     let mut definite_outside = 0_u64;
@@ -652,7 +654,11 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             Some(ConformanceReason::MissingPntQualificationReference)
         } else if !observation.surveillance_qualified {
             Some(ConformanceReason::SurveillanceUnqualified)
-        } else if observation.surveillance_qualification_reference.trim().is_empty() {
+        } else if observation
+            .surveillance_qualification_reference
+            .trim()
+            .is_empty()
+        {
             Some(ConformanceReason::MissingSurveillanceQualificationReference)
         } else if observation.horizontal_frame_id != auth.horizontal_frame_id
             || observation.vertical_datum_id != auth.vertical_datum_id
@@ -746,9 +752,8 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         lineage
             .accepted_observation_ids
             .push(observation.observation_id.clone());
-        last_qualified_end = Some(
-            last_qualified_end.map_or(support.end, |previous| previous.max(support.end)),
-        );
+        last_qualified_end =
+            Some(last_qualified_end.map_or(support.end, |previous| previous.max(support.end)));
     }
 
     let Some(evaluation_duration) = policy.evaluation_window.duration() else {
