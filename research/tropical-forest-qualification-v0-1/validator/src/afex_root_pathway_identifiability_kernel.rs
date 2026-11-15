@@ -136,7 +136,7 @@ fn validate_nullspace(matrix: &[Vec<i128>], basis: &Value, columns: usize) -> Re
             return Err(format!("nullspace vector {index} cannot be zero"));
         }
         for row in matrix {
-            let dot = row.iter().zip(parsed.iter()).map(|(a,b)| a*b).sum::<i128>();
+            let dot = row.iter().zip(parsed.iter()).map(|(a,b)| (*a)*(*b)).sum::<i128>();
             if dot != 0 {
                 return Err(format!("declared nullspace vector {index} is not in the matrix nullspace"));
             }
@@ -162,12 +162,14 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         .ok_or_else(|| "unknown_parameters must be an array".to_string())?;
     let unknown_ids = unknowns.iter().map(|x| string_at(x, "id"))
         .collect::<Result<Vec<_>,_>>()?;
-    if unknown_ids != [
+    let expected_unknown_ids = [
         "k_root_inorganic",
         "k_myc_inorganic",
         "k_myc_organic",
         "c_host_to_fungal"
-    ] {
+    ];
+    if unknown_ids.len() != expected_unknown_ids.len()
+        || unknown_ids.iter().map(String::as_str).ne(expected_unknown_ids.iter().copied()) {
         return Err("unknown pathway parameter identities/order are invalid".to_string());
     }
     let operator = manifest.get("observation_operator")
