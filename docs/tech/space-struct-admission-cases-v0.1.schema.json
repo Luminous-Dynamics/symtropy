@@ -428,7 +428,8 @@
         "expected_model_profile_version",
         "expected_model_profile_digest",
         "expected_backend_generation",
-        "expected_backend_digest"
+        "expected_backend_digest",
+        "qualified_model_profile_id"
       ],
       "properties": {
         "backend_allowlisted": {
@@ -554,6 +555,12 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "qualified_model_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
