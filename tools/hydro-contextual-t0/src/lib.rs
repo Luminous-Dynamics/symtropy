@@ -35,6 +35,14 @@ fn number(value: &Value, key: &str) -> Result<f64, String> {
         .ok_or_else(|| format!("{key}: expected finite number"))
 }
 
+fn positive(value: f64, name: &str) -> Result<f64, String> {
+    if value <= 0.0 {
+        Err(format!("{name}: must be positive"))
+    } else {
+        Ok(value)
+    }
+}
+
 fn boolean(value: &Value, key: &str) -> Result<bool, String> {
     field(value, key)?
         .as_bool()
