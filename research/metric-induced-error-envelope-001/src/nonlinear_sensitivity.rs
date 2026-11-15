@@ -462,11 +462,9 @@ mod tests {
     ) -> [[f64; N]; K] {
         // A_y = S_Y^-1 A_q S_X, using frame-typed tangent maps column-by-column.
         let mut result = [[0.0; N]; K];
-        for column in 0..N {
-            let mut domain_column = [0.0; N];
-            for row in 0..N {
-                domain_column[row] = domain_basis.matrix()[row][column];
-            }
+        for (column, result_column) in result.iter_mut().enumerate() {
+            let domain_column: [f64; N] =
+                std::array::from_fn(|row| domain_basis.matrix()[row][column]);
             let codomain_column: [f64; K] = std::array::from_fn(|row| {
                 (0..N)
                     .map(|inner| operator_q[row][inner] * domain_column[inner])
@@ -474,8 +472,11 @@ mod tests {
             });
             let source_vector = Tangent::<CartesianQ, K>::new(codomain_column).unwrap();
             let target_vector = codomain_basis.tangent_to_to(&source_vector).unwrap();
-            for row in 0..K {
-                result[row][column] = target_vector.components()[row];
+            for (target, value) in result_column
+                .iter_mut()
+                .zip(target_vector.components().iter())
+            {
+                *target = *value;
             }
         }
         result
