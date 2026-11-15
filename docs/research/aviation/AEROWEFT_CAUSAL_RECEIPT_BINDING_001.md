@@ -44,7 +44,7 @@ Byte-integrity recomputation, signature verification, issuer authority and key r
 - Zero parent digest/owner/role substitutions, cycles, orphans, forks, causal-time or validity violations accepted;
 - Zero receipt claims accepted outside their own validity windows or with observation-arrival/evaluation inversion.
 - Zero cross-class surveillance relabelling, duplicate required-class occupancy or contradictory report/no-report evidence accepted.
-- Zero permutation-induced semantic variance.
+- Zero permutation-induced semantic variance, including profile-owned class-set order.
 - Evidence deletion, scope narrowing, validity expiry and revision supersession cannot improve admissibility.
 - Positive controls must pass; reject-all is not success.
 - After correctness passes, measure 10 / 100 / 1,000 / 10,000 receipts with p50/p95/p99 latency and peak memory.
