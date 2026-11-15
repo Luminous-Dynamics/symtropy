@@ -1,0 +1,63 @@
+name: Differentiable simulation benchmark record schema
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "research/diffsim-benchmark-001/**"
+      - ".github/workflows/diffsim-benchmark-schema.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/diffsim-benchmark-001/**"
+      - ".github/workflows/diffsim-benchmark-schema.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diffsim-benchmark-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-contract:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate benchmark schema and claim controls
+        run: |
+          python3 - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          root = Path('research/diffsim-benchmark-001')
+          schema = json.loads((root / 'diffsim-run-v0.1.schema.json').read_text())
+          fixture = json.loads((root / 'fixtures/synthetic-run-v0.1.json').read_text())
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = list(validator.iter_errors(fixture))
+          assert not errors, errors
+          forged = copy.deepcopy(fixture)
+          forged['results']['error_envelope']['upper_bound_emitted'] = True
+          forged['results']['error_envelope']['upper_bound_claim_conditional'] = True
+          forged['claim_boundary']['claims']['error_bound_claim'] = 'conditional_analytic_remainder'
+          assert list(validator.iter_errors(forged)), 'missing-curvature upper-bound claim accepted'
+          forged = copy.deepcopy(fixture)
+          forged['derivative_contract']['curvature_evidence_class'] = 'empirical_estimate'
+          forged['results']['error_envelope']['evidence_class'] = 'empirical_estimate'
+          forged['results']['error_envelope']['upper_bound_emitted'] = True
+          assert list(validator.iter_errors(forged)), 'empirical curvature promoted to upper bound'
+          forged = copy.deepcopy(fixture)
+          forged['results']['error_envelope']['upper_bound_claim_conditional'] = True
+          forged['claim_boundary']['claims']['error_bound_claim'] = 'conditional_analytic_remainder'
+          assert list(validator.iter_errors(forged)), 'conditional upper-bound claim without emitted value accepted'
+          PY

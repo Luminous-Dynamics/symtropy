@@ -1,0 +1,127 @@
+{
+  "schema_version": "luminous.diffsim_benchmark_run.v0.1",
+  "fixture_mode": "synthetic_example",
+  "run_id": "synthetic-shape-only",
+  "case": {
+    "case_id": "synthetic-quadratic-step",
+    "fixture_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "model_semantics_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "initial_state_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "control_input_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "units_profile_id": "SI-v1",
+    "integration_method": "synthetic-map",
+    "time_step_seconds": 0.01,
+    "horizon_steps": 1,
+    "contact_regime": "none",
+    "active_set_sha256": null,
+    "constraint_semantics_sha256": null,
+    "observable_set_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "perturbation_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "engine": {
+    "engine_family": "symtropy_reference",
+    "engine_name": "synthetic-reference",
+    "version": "fixture-only",
+    "source_commit": "0000000000000000000000000000000000000000",
+    "build_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "compiler": "fixture-only",
+    "target_triple": "x86_64-unknown-linux-gnu",
+    "precision": "f64",
+    "configuration_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "linear_algebra_backend": null,
+    "deterministic_mode": true,
+    "thread_count": 1,
+    "hardware_id": "synthetic",
+    "hardware_description": "not measured"
+  },
+  "derivative_contract": {
+    "referent": "finite_computation",
+    "realization": "analytic_derivative",
+    "state_jacobian_status": "INCONCLUSIVE",
+    "control_jacobian_status": "NOT_APPLICABLE",
+    "finite_difference_step": null,
+    "solver_tolerance": 1e-12,
+    "linear_solver_tolerance": null,
+    "max_solver_iterations": null,
+    "solver_convergence_status": "NOT_APPLICABLE",
+    "warmstart_policy": "not_applicable",
+    "checkpoint_policy": "not_applicable",
+    "contact_derivative_policy": "not_applicable",
+    "curvature_evidence_class": "missing",
+    "curvature_evidence_sha256": null,
+    "derivative_settings_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "results": {
+    "primal": {
+      "reference_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "state_error_metric_norm": null,
+      "observable_error_max": null,
+      "replay_status": "INCONCLUSIVE",
+      "trajectory_digest_sha256": null
+    },
+    "derivatives": {
+      "directional_relative_error_max": null,
+      "directional_test_count": 0,
+      "adjoint_dot_product_defect": null,
+      "finite_difference_epsilon_stability": null,
+      "jacobian_digest_sha256": null,
+      "adjoint_gradient_digest_sha256": null
+    },
+    "constraint": {
+      "residual_norm_max": null,
+      "complementarity_defect": null,
+      "active_set_consistency": "NOT_APPLICABLE"
+    },
+    "metric_covariance": {
+      "rebasing_case_count": 0,
+      "tangent_norm_spread": null,
+      "cotangent_norm_spread": null,
+      "operator_spectrum_spread": null,
+      "observable_bound_spread": null,
+      "wrong_variance_negative_control_status": "INCONCLUSIVE",
+      "wrong_metric_negative_control_status": "INCONCLUSIVE"
+    },
+    "error_envelope": {
+      "evidence_class": "missing",
+      "coverage_fraction": null,
+      "tightness_median": null,
+      "upper_bound_emitted": false,
+      "upper_bound_claim_conditional": false,
+      "coverage_sample_count": 0,
+      "out_of_envelope_abstention_fraction": null,
+      "upper_bound_value": null
+    },
+    "abstention": {
+      "status": "INCONCLUSIVE",
+      "reason_codes": [
+        "missing_curvature_evidence"
+      ]
+    }
+  },
+  "resources": {
+    "measurement_status": "synthetic_placeholder",
+    "primal_wall_ms": null,
+    "derivative_wall_ms": null,
+    "adjoint_wall_ms": null,
+    "p50_ms": null,
+    "p95_ms": null,
+    "p99_ms": null,
+    "peak_memory_bytes": null,
+    "checkpoint_bytes": null,
+    "cpu_time_ms": null
+  },
+  "claim_boundary": {
+    "claims": {
+      "derivative_claim": "none",
+      "error_bound_claim": "none",
+      "production_authority": false
+    },
+    "limitations": [
+      "All identifiers are synthetic placeholders and no timings were measured.",
+      "The fixture validates record shape only.",
+      "A derivative referent and backward realization are distinct.",
+      "Missing or empirical curvature evidence cannot emit a total upper bound.",
+      "No production authority is created."
+    ]
+  }
+}

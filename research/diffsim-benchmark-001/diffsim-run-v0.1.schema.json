@@ -1,0 +1,1266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/diffsim-benchmark-001/diffsim-run-v0.1.schema.json",
+  "title": "Luminous differentiable simulation benchmark run v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_mode",
+    "run_id",
+    "case",
+    "engine",
+    "derivative_contract",
+    "results",
+    "resources",
+    "claim_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "luminous.diffsim_benchmark_run.v0.1"
+    },
+    "fixture_mode": {
+      "enum": [
+        "synthetic_example",
+        "measured_run"
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_sha256",
+        "model_semantics_sha256",
+        "initial_state_sha256",
+        "control_input_sha256",
+        "units_profile_id",
+        "integration_method",
+        "time_step_seconds",
+        "horizon_steps",
+        "contact_regime",
+        "observable_set_sha256",
+        "perturbation_profile_sha256"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_semantics_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "initial_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "control_input_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "units_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integration_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_step_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "horizon_steps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contact_regime": {
+          "enum": [
+            "none",
+            "smooth_fixed_active_set",
+            "unilateral_contact",
+            "frictional_contact",
+            "impact_or_mode_switch",
+            "not_applicable"
+          ]
+        },
+        "active_set_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "constraint_semantics_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observable_set_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "perturbation_profile_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine_family",
+        "engine_name",
+        "version",
+        "source_commit",
+        "build_identity_sha256",
+        "compiler",
+        "target_triple",
+        "precision",
+        "configuration_sha256",
+        "deterministic_mode",
+        "thread_count",
+        "hardware_id",
+        "hardware_description"
+      ],
+      "properties": {
+        "engine_family": {
+          "enum": [
+            "symtropy_reference",
+            "mujoco",
+            "pinocchio",
+            "drake",
+            "sundials_cvodes",
+            "other"
+          ]
+        },
+        "engine_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "build_identity_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "compiler": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_triple": {
+          "type": "string",
+          "minLength": 1
+        },
+        "precision": {
+          "enum": [
+            "f32",
+            "f64",
+            "mixed",
+            "extended",
+            "arbitrary"
+          ]
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "linear_algebra_backend": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deterministic_mode": {
+          "type": "boolean"
+        },
+        "thread_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "hardware_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "derivative_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "referent",
+        "realization",
+        "state_jacobian_status",
+        "control_jacobian_status",
+        "solver_tolerance",
+        "solver_convergence_status",
+        "contact_derivative_policy",
+        "curvature_evidence_class",
+        "derivative_settings_sha256"
+      ],
+      "properties": {
+        "referent": {
+          "enum": [
+            "finite_computation",
+            "converged_discrete_equations",
+            "continuous_flow",
+            "none"
+          ]
+        },
+        "realization": {
+          "enum": [
+            "automatic_differentiation",
+            "finite_difference_forward",
+            "finite_difference_central",
+            "equation_level_adjoint",
+            "custom_adjoint",
+            "analytic_derivative",
+            "none"
+          ]
+        },
+        "state_jacobian_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "control_jacobian_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "finite_difference_step": {
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "solver_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "linear_solver_tolerance": {
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_solver_iterations": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "solver_convergence_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "warmstart_policy": {
+          "enum": [
+            "fixed_and_recorded",
+            "disabled",
+            "randomized_seeded",
+            "engine_default_recorded",
+            "not_applicable"
+          ]
+        },
+        "checkpoint_policy": {
+          "enum": [
+            "none",
+            "store_all",
+            "checkpointed",
+            "recompute",
+            "not_applicable"
+          ]
+        },
+        "contact_derivative_policy": {
+          "enum": [
+            "branch_local",
+            "one_sided",
+            "smoothed_contact",
+            "generalized_derivative",
+            "finite_difference_across_switch",
+            "abstain",
+            "not_applicable"
+          ]
+        },
+        "curvature_evidence_class": {
+          "enum": [
+            "missing",
+            "empirical_estimate",
+            "analytic_upper_bound",
+            "interval_upper_bound"
+          ]
+        },
+        "curvature_evidence_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "derivative_settings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primal",
+        "derivatives",
+        "constraint",
+        "metric_covariance",
+        "error_envelope",
+        "abstention"
+      ],
+      "properties": {
+        "primal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reference_identity_sha256",
+            "state_error_metric_norm",
+            "observable_error_max",
+            "replay_status"
+          ],
+          "properties": {
+            "reference_identity_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "state_error_metric_norm": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observable_error_max": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "replay_status": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_APPLICABLE"
+              ]
+            },
+            "trajectory_digest_sha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "derivatives": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "directional_relative_error_max",
+            "directional_test_count",
+            "adjoint_dot_product_defect",
+            "finite_difference_epsilon_stability"
+          ],
+          "properties": {
+            "directional_relative_error_max": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "directional_test_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "adjoint_dot_product_defect": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "finite_difference_epsilon_stability": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "jacobian_digest_sha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "adjoint_gradient_digest_sha256": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "constraint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "residual_norm_max",
+            "complementarity_defect",
+            "active_set_consistency"
+          ],
+          "properties": {
+            "residual_norm_max": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "complementarity_defect": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "active_set_consistency": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_APPLICABLE"
+              ]
+            }
+          }
+        },
+        "metric_covariance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rebasing_case_count",
+            "tangent_norm_spread",
+            "cotangent_norm_spread",
+            "operator_spectrum_spread",
+            "observable_bound_spread",
+            "wrong_variance_negative_control_status",
+            "wrong_metric_negative_control_status"
+          ],
+          "properties": {
+            "rebasing_case_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tangent_norm_spread": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cotangent_norm_spread": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "operator_spectrum_spread": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observable_bound_spread": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "wrong_variance_negative_control_status": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_APPLICABLE"
+              ]
+            },
+            "wrong_metric_negative_control_status": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "INCONCLUSIVE",
+                "NOT_APPLICABLE"
+              ]
+            }
+          }
+        },
+        "error_envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "evidence_class",
+            "coverage_fraction",
+            "tightness_median",
+            "upper_bound_emitted",
+            "upper_bound_claim_conditional",
+            "coverage_sample_count"
+          ],
+          "properties": {
+            "evidence_class": {
+              "enum": [
+                "missing",
+                "empirical_estimate",
+                "analytic_upper_bound",
+                "interval_upper_bound"
+              ]
+            },
+            "coverage_fraction": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tightness_median": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "upper_bound_emitted": {
+              "type": "boolean"
+            },
+            "upper_bound_claim_conditional": {
+              "type": "boolean"
+            },
+            "coverage_sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "out_of_envelope_abstention_fraction": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "upper_bound_value": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "abstention": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason_codes"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "ADMITTED",
+                "ABSTAINED",
+                "INCONCLUSIVE",
+                "NOT_APPLICABLE"
+              ]
+            },
+            "reason_codes": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "singular_metric",
+                  "rank_unresolved",
+                  "condition_out_of_envelope",
+                  "contact_mode_switch",
+                  "missing_curvature_evidence",
+                  "stale_identity",
+                  "solver_not_converged",
+                  "chart_radius_exceeded",
+                  "nonfinite_arithmetic",
+                  "other"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_status",
+        "primal_wall_ms",
+        "derivative_wall_ms",
+        "adjoint_wall_ms",
+        "p50_ms",
+        "p95_ms",
+        "p99_ms",
+        "peak_memory_bytes",
+        "checkpoint_bytes",
+        "cpu_time_ms"
+      ],
+      "properties": {
+        "primal_wall_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "derivative_wall_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "adjoint_wall_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "p50_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "p95_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "p99_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "peak_memory_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checkpoint_bytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cpu_time_ms": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "measurement_status": {
+          "enum": [
+            "measured",
+            "synthetic_placeholder"
+          ]
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claims",
+        "limitations"
+      ],
+      "properties": {
+        "claims": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "derivative_claim",
+            "error_bound_claim",
+            "production_authority"
+          ],
+          "properties": {
+            "derivative_claim": {
+              "enum": [
+                "none",
+                "referent_specific_measured_derivative"
+              ]
+            },
+            "error_bound_claim": {
+              "enum": [
+                "none",
+                "first_order_estimate",
+                "conditional_analytic_remainder",
+                "conditional_interval_remainder"
+              ]
+            },
+            "production_authority": {
+              "const": false
+            }
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "derivative_contract": {
+            "properties": {
+              "referent": {
+                "const": "none"
+              }
+            },
+            "required": [
+              "referent"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "derivative_contract": {
+            "properties": {
+              "realization": {
+                "const": "none"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "derivative_contract": {
+            "properties": {
+              "curvature_evidence_class": {
+                "enum": [
+                  "missing",
+                  "empirical_estimate"
+                ]
+              }
+            },
+            "required": [
+              "curvature_evidence_class"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_emitted": {
+                    "const": false
+                  },
+                  "upper_bound_claim_conditional": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          "claim_boundary": {
+            "properties": {
+              "claims": {
+                "properties": {
+                  "error_bound_claim": {
+                    "enum": [
+                      "none",
+                      "first_order_estimate"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_mode": {
+            "const": "synthetic_example"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resources": {
+            "properties": {
+              "measurement_status": {
+                "const": "synthetic_placeholder"
+              },
+              "primal_wall_ms": {
+                "type": "null"
+              },
+              "derivative_wall_ms": {
+                "type": "null"
+              },
+              "adjoint_wall_ms": {
+                "type": "null"
+              },
+              "p50_ms": {
+                "type": "null"
+              },
+              "p95_ms": {
+                "type": "null"
+              },
+              "p99_ms": {
+                "type": "null"
+              },
+              "peak_memory_bytes": {
+                "type": "null"
+              },
+              "checkpoint_bytes": {
+                "type": "null"
+              },
+              "cpu_time_ms": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_mode": {
+            "const": "measured_run"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resources": {
+            "properties": {
+              "measurement_status": {
+                "const": "measured"
+              },
+              "primal_wall_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "derivative_wall_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "p50_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "p95_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "p99_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "peak_memory_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cpu_time_ms": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_emitted": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "derivative_contract": {
+            "properties": {
+              "curvature_evidence_class": {
+                "enum": [
+                  "analytic_upper_bound",
+                  "interval_upper_bound"
+                ]
+              },
+              "curvature_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_value": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "upper_bound_claim_conditional": {
+                    "const": true
+                  },
+                  "evidence_class": {
+                    "enum": [
+                      "analytic_upper_bound",
+                      "interval_upper_bound"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "derivative_contract": {
+                "properties": {
+                  "curvature_evidence_class": {
+                    "const": "analytic_upper_bound"
+                  }
+                }
+              },
+              "results": {
+                "properties": {
+                  "error_envelope": {
+                    "properties": {
+                      "evidence_class": {
+                        "const": "analytic_upper_bound"
+                      }
+                    }
+                  }
+                }
+              },
+              "claim_boundary": {
+                "properties": {
+                  "claims": {
+                    "properties": {
+                      "error_bound_claim": {
+                        "const": "conditional_analytic_remainder"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "derivative_contract": {
+                "properties": {
+                  "curvature_evidence_class": {
+                    "const": "interval_upper_bound"
+                  }
+                }
+              },
+              "results": {
+                "properties": {
+                  "error_envelope": {
+                    "properties": {
+                      "evidence_class": {
+                        "const": "interval_upper_bound"
+                      }
+                    }
+                  }
+                }
+              },
+              "claim_boundary": {
+                "properties": {
+                  "claims": {
+                    "properties": {
+                      "error_bound_claim": {
+                        "const": "conditional_interval_remainder"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_emitted": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "results": {
+            "properties": {
+              "error_envelope": {
+                "properties": {
+                  "upper_bound_value": {
+                    "type": "null"
+                  },
+                  "upper_bound_claim_conditional": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          "claim_boundary": {
+            "properties": {
+              "claims": {
+                "properties": {
+                  "error_bound_claim": {
+                    "enum": [
+                      "none",
+                      "first_order_estimate"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
