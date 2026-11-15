@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 26;
+pub const CASE_COUNT: usize = 27;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -525,20 +525,16 @@ fn event_peak_metrics(input: &Value) -> Result<Value, String> {
     }
     let obs_window = &observed[start..end];
     let pred_window = &predicted[start..end];
+    let observed_peak = obs_window.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let predicted_peak = pred_window.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let obs_peak_offset = obs_window
         .iter()
-        .enumerate()
-        .max_by(|a, b| a.1.total_cmp(b.1))
-        .map(|(index, _)| index)
+        .position(|value| *value == observed_peak)
         .ok_or_else(|| "event window has no observations".to_owned())?;
     let pred_peak_offset = pred_window
         .iter()
-        .enumerate()
-        .max_by(|a, b| a.1.total_cmp(b.1))
-        .map(|(index, _)| index)
+        .position(|value| *value == predicted_peak)
         .ok_or_else(|| "event window has no predictions".to_owned())?;
-    let observed_peak = obs_window[obs_peak_offset];
-    let predicted_peak = pred_window[pred_peak_offset];
     let magnitude_error_pct = if observed_peak.abs() <= tolerance {
         None
     } else {
@@ -828,7 +824,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twenty_six_cases_match_separate_oracle() {
+    fn all_twenty_seven_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -899,6 +895,15 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][24]).expect("invalid interval");
         assert_eq!(out["interval_disposition"], "REJECT");
         assert_eq!(out["reason"], "LOWER_BOUND_EXCEEDS_UPPER_BOUND");
+    }
+
+
+    #[test]
+    fn event_peak_ties_select_the_earliest_time_step() {
+        let out = compute_case(&fixture("inputs")["cases"][26]).expect("tied event peaks");
+        assert_eq!(out["observed_peak_index"], 1);
+        assert_eq!(out["predicted_peak_index"], 1);
+        assert_eq!(out["signed_peak_timing_error_hours"], 0.0);
     }
 
     #[test]
