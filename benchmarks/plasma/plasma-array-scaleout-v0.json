@@ -1,0 +1,1850 @@
+{
+  "schema_version": "luminous.plasma-array-scaleout.v0.1",
+  "benchmark_id": "PLASMA-ARRAY-SCALEOUT-001",
+  "frozen_at": "2026-11-12",
+  "evidence_class": "synthetic",
+  "physical_measurements": false,
+  "plasma_solver_outputs": false,
+  "service_unit_policy": "application-specific; unlike endpoints are never pooled",
+  "scaleout_reference_scenario_id": "scale-n1-reference",
+  "research_targets": {
+    "minimum_scaleout_efficiency": 0.9,
+    "maximum_active_cell_cv": 0.05,
+    "maximum_neighbor_cross_talk_fraction": 0.05,
+    "minimum_faulted_service_floor": "scenario-specific"
+  },
+  "scenarios": [
+    {
+      "id": "scale-n1-reference",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 1,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 1,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.1,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_APPLICABLE",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "SYNTHETIC_PASS",
+        "reasons": []
+      },
+      "expected_metrics": {
+        "scaleout_efficiency": 1,
+        "active_cell_cv": null
+      }
+    },
+    {
+      "id": "scale-n5-linear",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 4.8,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.96
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.96
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.96
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.96
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.96
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "BLOCKED",
+        "reasons": [
+          "cross-talk coverage has not been measured for the declared multi-cell topology"
+        ]
+      },
+      "expected_metrics": {
+        "scaleout_efficiency": 0.96,
+        "active_cell_cv": 0
+      }
+    },
+    {
+      "id": "scale-n43-manifold-gradient",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 43.09999999999998,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-006",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-007",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-008",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-009",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-010",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-011",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-012",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-013",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-014",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-015",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-016",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-017",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-018",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-019",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-020",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-021",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-022",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.1
+        },
+        {
+          "id": "cell-023",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-024",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-025",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-026",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-027",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-028",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-029",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-030",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-031",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-032",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-033",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-034",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-035",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-036",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-037",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-038",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-039",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-040",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-041",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-042",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-043",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 35,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 4.3,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "active-cell CV exceeds the 5% research target"
+        ]
+      },
+      "expected_metrics": {
+        "scaleout_efficiency": 1.0023255813953489,
+        "active_cell_cv": "computed_from_cells"
+      }
+    },
+    {
+      "id": "scale-n5-hidden-outlier",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 5,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.9
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1.4
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "aggregate mean conceals an outlier cell; CV exceeds target"
+        ]
+      },
+      "expected_metrics": {
+        "scaleout_efficiency": 1,
+        "active_cell_cv": "computed_from_cells"
+      }
+    },
+    {
+      "id": "scale-n100-isolated-failure",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 94.05000000000017,
+        "minimum_total": 90,
+        "healthy_reference_total": 95
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-006",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-007",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-008",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-009",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-010",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-011",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-012",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-013",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-014",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-015",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-016",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-017",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-018",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-019",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-020",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-021",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-022",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-023",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-024",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-025",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-026",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-027",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-028",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-029",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-030",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-031",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-032",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-033",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-034",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-035",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-036",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-037",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-038",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-039",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-040",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-041",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-042",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-043",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-044",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-045",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-046",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-047",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-048",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-049",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-050",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-051",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-052",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-053",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-054",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-055",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-056",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-057",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-058",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-059",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-060",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-061",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-062",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-063",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-064",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-065",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-066",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-067",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-068",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-069",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-070",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-071",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-072",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-073",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-074",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-075",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-076",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-077",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-078",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-079",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-080",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-081",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-082",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-083",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-084",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-085",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-086",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-087",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-088",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-089",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-090",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-091",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-092",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-093",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-094",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-095",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-096",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-097",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-098",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-099",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0.95
+        },
+        {
+          "id": "cell-100",
+          "state": "failed",
+          "observed_state": "isolated",
+          "accepted_service": 0
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 80,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 10,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "BLOCKED",
+        "reasons": [
+          "failed-cell service floor passes in the synthetic case, but cross-talk coverage is not measured"
+        ]
+      },
+      "expected_metrics": {
+        "scaleout_efficiency": 0.9405,
+        "active_cell_cv": 0,
+        "service_retention": 0.99
+      }
+    },
+    {
+      "id": "scale-n5-cross-talk",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 5,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [
+          {
+            "from": "cell-001",
+            "to": "cell-002",
+            "intervention": "synthetic_ignite",
+            "neighbor_output_delta_fraction": 0.12,
+            "pair_id": "cell-001--cell-002"
+          }
+        ],
+        "coverage_status": "COMPLETE",
+        "sampling_plan_id": "synthetic-neighbor-pair-v0",
+        "required_pair_ids": [
+          "cell-001--cell-002"
+        ],
+        "observed_pair_ids": [
+          "cell-001--cell-002"
+        ]
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "cross-talk magnitude exceeds declared 5% limit"
+        ]
+      },
+      "expected_metrics": null
+    },
+    {
+      "id": "scale-n5-stale-cell-telemetry",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 4,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-003",
+          "state": "failed",
+          "observed_state": "active",
+          "accepted_service": 0
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "reported cell state conflicts with synthetic ground-truth state"
+        ]
+      },
+      "expected_metrics": null
+    },
+    {
+      "id": "scale-n5-incomplete-energy-boundary",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 5,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 3.5,
+        "meter_ids": [
+          "grid-inlet",
+          "plasma-supply"
+        ],
+        "boundary_complete": false,
+        "includes_supply_losses": true,
+        "includes_gas_supply": false,
+        "includes_cooling_pumps_controls_exhaust": false
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "BLOCKED",
+        "reasons": [
+          "gas generation and auxiliary loads are outside the declared energy boundary"
+        ]
+      },
+      "expected_metrics": null
+    },
+    {
+      "id": "scale-n5-mixed-service-unit",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_area_unit",
+        "reference_unit": "synthetic_volume_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 5,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "candidate and one-cell baseline service units differ"
+        ]
+      },
+      "expected_metrics": null
+    },
+    {
+      "id": "scale-n5-zero-output",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 0,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 0
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "mean active-cell service is zero; CV and scale-out efficiency are undefined"
+        ]
+      },
+      "expected_metrics": null
+    },
+    {
+      "id": "scale-n5-stale-configuration",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-b",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 5,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "failed_included_in_denominator": true
+      },
+      "expected": {
+        "disposition": "REJECTED",
+        "reasons": [
+          "scenario configuration digest differs from the frozen reference identity"
+        ]
+      },
+      "expected_metrics": null
+    },
+    {
+      "id": "scale-n5-missing-failed-attempts",
+      "evidence_class": "synthetic",
+      "configuration_digest": "sha256:synthetic-array-config-a",
+      "reference_configuration_digest": "sha256:synthetic-array-config-a",
+      "service": {
+        "unit": "synthetic_service_unit",
+        "reference_unit": "synthetic_service_unit",
+        "quality_gate_id": "synthetic-qg-v1",
+        "accepted_total": 5,
+        "minimum_total": null,
+        "healthy_reference_total": null
+      },
+      "baseline": {
+        "scenario_id": "scale-n1-reference",
+        "service_per_cell": 1
+      },
+      "cells": [
+        {
+          "id": "cell-001",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-002",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-003",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-004",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        },
+        {
+          "id": "cell-005",
+          "state": "active",
+          "observed_state": "active",
+          "accepted_service": 1
+        }
+      ],
+      "energy": {
+        "grid_energy_wh": 4.2,
+        "meter_ids": [
+          "grid-inlet",
+          "auxiliary-loads"
+        ],
+        "boundary_complete": true,
+        "includes_supply_losses": true,
+        "includes_gas_supply": true,
+        "includes_cooling_pumps_controls_exhaust": true
+      },
+      "gas": {
+        "consumption_normal_l": 0.5,
+        "unit": "synthetic_normal_l"
+      },
+      "cross_talk": {
+        "max_allowed_fraction": 0.05,
+        "edges": [],
+        "coverage_status": "NOT_MEASURED",
+        "sampling_plan_id": null,
+        "required_pair_ids": [],
+        "observed_pair_ids": []
+      },
+      "attempts": {
+        "attempted": 10,
+        "succeeded": 8,
+        "failed": 0,
+        "failed_included_in_denominator": false
+      },
+      "expected": {
+        "disposition": "BLOCKED",
+        "reasons": [
+          "attempted, succeeded and failed run denominators do not reconcile"
+        ]
+      },
+      "expected_metrics": null
+    }
+  ]
+}
