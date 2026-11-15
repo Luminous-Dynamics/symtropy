@@ -1155,7 +1155,7 @@ mod tests {
                 &evidence
             ),
             Err(CompositionErrorV1::MissingEvidence(
-                EvidenceKindV1::DiscreteStep
+                EvidenceKindV1::EnergyWorkLedger
             ))
         );
     }
