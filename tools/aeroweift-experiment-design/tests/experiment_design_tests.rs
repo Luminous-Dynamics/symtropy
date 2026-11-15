@@ -24,6 +24,7 @@ fn policy() -> ExperimentDesignPolicy {
         minimum_estimate_confidence_level: 0.95,
         required_estimator_build_sha256: digest('e'),
         required_estimate_method_sha256: digest('f'),
+        authorization_required_modalities: vec![ExperimentModality::ControlledFlight],
         resource_budget: ResourceBudget {
             setup_minutes: 100,
             facility_minutes: 100,
@@ -60,8 +61,8 @@ fn candidate(id: &str) -> ExperimentCandidate {
         semantic_equivalence_receipt_sha256: Some(digest('7')),
         selection_evidence_role: SelectionEvidenceRole::AdaptiveDevelopment,
         hypothesis_groups: vec![
-            HypothesisGroup { group_id: "model-family-a".into() },
-            HypothesisGroup { group_id: "model-family-b".into() },
+            HypothesisGroup { hypothesis_id: "hypothesis-a".into(), hypothesis_sha256: digest('8'), group_id: "model-family-a".into() },
+            HypothesisGroup { hypothesis_id: "hypothesis-b".into(), hypothesis_sha256: digest('9'), group_id: "model-family-b".into() },
         ],
         expected_uncertainty_reduction: 0.70,
         expected_model_discrimination: 0.80,
@@ -233,8 +234,8 @@ fn confirmatory_or_challenge_outcomes_cannot_drive_adaptive_selection() {
 fn correlated_hypotheses_do_not_count_as_independent_models() {
     let mut false_diversity = candidate("correlated");
     false_diversity.hypothesis_groups = vec![
-        HypothesisGroup { group_id: "shared-family".into() },
-        HypothesisGroup { group_id: "shared-family".into() },
+        HypothesisGroup { hypothesis_id: "correlated-a".into(), hypothesis_sha256: digest('8'), group_id: "shared-family".into() },
+        HypothesisGroup { hypothesis_id: "correlated-b".into(), hypothesis_sha256: digest('9'), group_id: "shared-family".into() },
     ];
 
     let result = select_experiments(&[false_diversity], &policy()).unwrap();
@@ -299,6 +300,8 @@ fn parameter_identification_does_not_require_two_independent_model_families() {
     let mut parameter_test = candidate("one-family-parameter-test");
     parameter_test.objective = ExperimentObjective::ParameterIdentification;
     parameter_test.hypothesis_groups = vec![HypothesisGroup {
+        hypothesis_id: "parameter-variant-a".into(),
+        hypothesis_sha256: digest('8'),
         group_id: "one-model-family".into(),
     }];
     parameter_test.expected_model_discrimination = 0.0;
@@ -488,4 +491,38 @@ fn confirmatory_and_challenge_partitions_remain_sealed() {
         let result = select_experiments(&[candidate], &policy()).unwrap();
         assert!(reason(&result, id).contains(&RejectionReason::SealedEvidenceUsedForSelection));
     }
+}
+
+
+#[test]
+fn frozen_policy_can_require_authorization_for_hardware_in_the_loop() {
+    let mut frozen = policy();
+    frozen.authorization_required_modalities.push(ExperimentModality::HardwareInLoop);
+    let mut hil = candidate("hil-needs-authority");
+    hil.modality = ExperimentModality::HardwareInLoop;
+    hil.authorization = AuthorizationState::NotRequired;
+    let result = select_experiments(&[hil], &frozen).unwrap();
+    assert!(reason(&result, "hil-needs-authority").contains(&RejectionReason::AuthorizationNotGranted));
+}
+
+#[test]
+fn authorized_hardware_in_the_loop_requires_an_owner_receipt() {
+    let mut frozen = policy();
+    frozen.authorization_required_modalities.push(ExperimentModality::HardwareInLoop);
+    let mut hil = candidate("hil-authorized");
+    hil.modality = ExperimentModality::HardwareInLoop;
+    hil.authorization = AuthorizationState::Authorized;
+    hil.authorization_receipt_sha256 = Some(digest('a'));
+    let result = select_experiments(&[hil], &frozen).unwrap();
+    assert_eq!(result.pareto_front.len(), 1);
+}
+
+#[test]
+fn duplicate_authorization_modalities_in_policy_fail_closed() {
+    let mut frozen = policy();
+    frozen.authorization_required_modalities.push(ExperimentModality::ControlledFlight);
+    assert_eq!(
+        select_experiments(&[candidate("test")], &frozen),
+        Err(aeroweift_experiment_design::DesignError::InvalidPolicy)
+    );
 }
