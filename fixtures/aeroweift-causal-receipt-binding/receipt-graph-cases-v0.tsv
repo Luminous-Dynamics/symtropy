@@ -27,3 +27,4 @@ duplicate-class-occupancy|duplicate-occupancy|DUPLICATE_PARENT_ROLE
 qualified-track-without-observation|missing-track-observation|SURVEILLANCE_EVIDENCE_MISMATCH
 no-report-with-observation|contradictory-no-report|SURVEILLANCE_EVIDENCE_MISMATCH
 unrequired-extra-traffic-class|extra-class|PROFILE_CLASS_MISMATCH
+profile-class-array-permutation|permute-class-set|CAUSALLY_BOUND_ONLY
