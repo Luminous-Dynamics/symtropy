@@ -239,8 +239,7 @@ fn run_sweep() -> usize {
         "gateway-b",
         "trust-root-b",
     );
-    broker_copy.dependencies.observation_root_id =
-        primary().dependencies.observation_root_id;
+    broker_copy.dependencies.observation_root_id = primary().dependencies.observation_root_id;
     disposition_case!(
         "different-brokers-same-observation-is-correlated",
         vec![primary(), broker_copy],
@@ -255,8 +254,7 @@ fn run_sweep() -> usize {
         "gateway-mirror",
         "trust-root-mirror",
     );
-    mirror_copy.dependencies.upstream_dataset_id =
-        primary().dependencies.upstream_dataset_id;
+    mirror_copy.dependencies.upstream_dataset_id = primary().dependencies.upstream_dataset_id;
     disposition_case!(
         "different-gateways-same-upstream-dataset-is-correlated",
         vec![primary(), mirror_copy],
@@ -271,8 +269,7 @@ fn run_sweep() -> usize {
         "gateway-c",
         "trust-root-c",
     );
-    same_pipeline.dependencies.processing_lineage_id =
-        primary().dependencies.processing_lineage_id;
+    same_pipeline.dependencies.processing_lineage_id = primary().dependencies.processing_lineage_id;
     disposition_case!(
         "same-processing-lineage-is-correlated",
         vec![primary(), same_pipeline],
