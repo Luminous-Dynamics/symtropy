@@ -13,8 +13,18 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml -- path/to/fixture-corpus.json
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier -- research/protective-systems/fixtures/body-armor-cases-v0.1.json
 
 ```
+
+The separate `body-armor-cases-v0.1.json` corpus is a synthetic extension of
+the parent record-conformance fixtures. It checks torso-scope and addenda
+handling, prevents NIJ 0123.00 threat-level specifications from being promoted
+to product test methods, makes unresolved SANS currentness abstain, requires
+independent review after a configuration/lot change, and requires separate
+wearer-assessment references for fit/mobility/thermal usability claims.
+`ACCEPT_RECORD_ONLY` still means record completeness only; it is never a
+physical-performance PASS.
 
 With no argument, the binary evaluates the frozen v0.1 corpus embedded at compile
 time. With a path argument, it evaluates that JSON file. It emits a deterministic
