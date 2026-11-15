@@ -17,6 +17,7 @@ fn policy() -> ExperimentDesignPolicy {
         minimum_decision_relevance: 0.40,
         minimum_worst_case_robust_reduction: 0.20,
         minimum_model_discrimination: 0.30,
+        maximum_probability_uninformative: 0.80,
     }
 }
 
@@ -31,7 +32,7 @@ fn candidate(id: &str) -> ExperimentCandidate {
         safety_constraints_clear: true,
         within_declared_envelope: true,
         independent_reference_available: true,
-        semantic_equivalence: SemanticEquivalence::NotRequired,
+        semantic_equivalence: SemanticEquivalence::Established,
         selection_evidence_role: SelectionEvidenceRole::AdaptiveDevelopment,
         hypothesis_groups: vec![
             HypothesisGroup { group_id: "model-family-a".into() },
@@ -345,4 +346,29 @@ fn reject_all_is_an_abstention_not_a_successful_recommendation() {
     assert!(result.pareto_front.is_empty());
     assert!(result.rejected[0].reasons.contains(&RejectionReason::AuthorizationNotGranted));
     assert!(result.rejected[0].reasons.contains(&RejectionReason::SafetyConstraintNotClear));
+}
+
+
+#[test]
+fn model_discrimination_requires_semantically_comparable_outputs() {
+    let mut unmatched = candidate("unmatched-models");
+    unmatched.semantic_equivalence = SemanticEquivalence::NotRequired;
+    let result = select_experiments(&[unmatched], &policy()).unwrap();
+    assert!(reason(&result, "unmatched-models").contains(&RejectionReason::SemanticEquivalenceNotEstablished));
+}
+
+#[test]
+fn excessive_probability_of_uninformative_result_is_a_hard_gate() {
+    let mut low_value = candidate("likely-uninformative");
+    low_value.probability_uninformative = 0.95;
+    let result = select_experiments(&[low_value], &policy()).unwrap();
+    assert!(reason(&result, "likely-uninformative").contains(&RejectionReason::TooLikelyUninformative));
+}
+
+#[test]
+fn empty_hypothesis_correlation_group_is_rejected() {
+    let mut malformed = candidate("empty-group");
+    malformed.hypothesis_groups[0].group_id.clear();
+    let result = select_experiments(&[malformed], &policy()).unwrap();
+    assert!(reason(&result, "empty-group").contains(&RejectionReason::InvalidUtilityVector));
 }
