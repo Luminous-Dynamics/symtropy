@@ -1263,7 +1263,8 @@ mod tests {
         assert_eq!(actual["monthly_water_spend_zar"], 1080.0);
         assert_eq!(actual["monthly_water_spend_burden"], Value::Null);
         assert_eq!(actual["affordability_disposition"], "INDETERMINATE");
-        assert_eq!(actual["economic_preference_eligible"], false);
+        assert_eq!(actual["economic_comparison_disposition"], "ADMITTED");
+        assert_eq!(actual["economic_preference_eligible"], true);
     }
 
 
