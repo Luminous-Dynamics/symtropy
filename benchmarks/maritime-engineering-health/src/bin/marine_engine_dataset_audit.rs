@@ -1272,7 +1272,10 @@ mod tests {
     fn synthetic_baseline_csv(rows: &[&str]) -> String {
         let mut names = vec!["channel".to_string(); BASELINE_COLUMNS];
         names[0] = "Time".into();
-        let symbols = names.iter().map(|name| format!("sym_{name}")).collect::<Vec<_>>();
+        let symbols = names
+            .iter()
+            .map(|name| format!("sym_{name}"))
+            .collect::<Vec<_>>();
         let mut units = vec!["unit".to_string(); BASELINE_COLUMNS];
         units[0] = "sec".into();
         let mut output = format!("{}\n{}\n{}\n", names.join(","), symbols.join(","), units.join(","));
