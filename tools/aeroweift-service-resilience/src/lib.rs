@@ -422,8 +422,19 @@ fn validate_flight_scope(scope: &FlightScope) -> Result<(), ResilienceError> {
             return Err(ResilienceError::InvalidContingencyBinding);
         }
     }
+    Ok(())
+}
+
+fn validate_neighbor_notifications(
+    scope: &FlightScope,
+    cutoff: BitemporalCutoff,
+) -> Result<(), ResilienceError> {
     let mut notified = BTreeSet::new();
-    for notification in &scope.neighbor_notifications {
+    for notification in scope
+        .neighbor_notifications
+        .iter()
+        .filter(|item| item.recorded_at <= cutoff.known_at)
+    {
         if notification.neighbor_flight_id.trim().is_empty()
             || !scope
                 .required_neighbor_flight_ids
@@ -654,6 +665,7 @@ pub fn evaluate_flight(
     if cutoff.effective_at < 0 || cutoff.known_at < 0 {
         return Err(ResilienceError::InvalidCutoff);
     }
+    validate_neighbor_notifications(scope, cutoff)?;
 
     let relevant_capabilities: BTreeSet<Capability> =
         scope.requirements.iter().map(|item| item.capability).collect();
