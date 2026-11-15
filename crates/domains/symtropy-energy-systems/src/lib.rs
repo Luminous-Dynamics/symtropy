@@ -33,6 +33,7 @@ pub use change_impact::{
 pub use build_receipt::{
     compile_ir_to_service_graph_reproducibly, BuildMetadata, BuildReceiptError,
     PowerFabricBuildReceipt, ReproducibleCompilation, ReproducibleCompilationError,
+    BuildReceiptVerificationError,
     Sha256Digest, StandardProfilePin, UpstreamArtifactPin,
 };
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};

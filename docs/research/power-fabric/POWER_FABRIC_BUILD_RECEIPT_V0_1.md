@@ -61,7 +61,7 @@ The lock digest covers:
 - computed ServiceGraph payload digest, including the exact module identities/configuration attached to nodes;
 - all standard profile pins and upstream artifact pins.
 
-The receipt is reproducible: an independent verifier with the same inputs and serialization profile can recompute all four digests and compare them. It is not authentic by itself: SHA-256 does not prove who supplied a source, whether a piece of evidence is truthful, when a measurement occurred, or whether the equipment is physically installed as described.
+The receipt is reproducible: an independent verifier with the same inputs and serialization profile can recompute all four digests, rebuild the receipt, and call verify_serialized_bytes against the supplied canonical receipt bytes. The byte verifier rejects changed fields and noncanonical serialization. It is not authentic by itself: SHA-256 does not prove who supplied a source, whether a piece of evidence is truthful, when a measurement occurred, or whether the equipment is physically installed as described.
 
 ## 5. Why this matters
 
@@ -87,3 +87,8 @@ The IEC Webstore identifies the consolidated IEC 60364-8-82:2022+AMD1:2026 CSV a
 ## Compiler identity and build configuration
 
 Compiler version strings are not sufficient to identify executable code. The receipt therefore requires a SHA-256 digest of the exact compiler source tree and a separate build-configuration digest. The configuration digest should cover enabled Cargo features, release/debug profile, target triple/flags, linker settings and relevant Nix/CI environment declarations. These digests are supplied by the build orchestrator and must be computed from the actual immutable source/configuration inputs, not typed as descriptive labels.
+
+
+## Serialized receipt verification
+
+PowerFabricBuildReceipt::verify_serialized_bytes compares a candidate byte sequence to the exact serde_json serialization of an independently recomputed receipt. This detects altered fields, truncation, appended data and noncanonical whitespace/ordering under the declared v0.1 serialization profile. It does not verify a digital signature, reviewer authority, source authenticity or evidence truth.

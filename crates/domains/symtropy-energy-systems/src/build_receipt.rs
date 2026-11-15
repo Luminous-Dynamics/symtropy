@@ -240,6 +240,24 @@ impl PowerFabricBuildReceipt {
             build_lock_digest,
         })
     }
+
+    /// Verify that externally supplied receipt bytes are exactly the
+    /// deterministic serialization of this independently recomputed receipt.
+    /// This verifies content integrity under the v0.1 serialization profile;
+    /// it does not authenticate a signer or the truth of any input evidence.
+    pub fn verify_serialized_bytes(
+        &self,
+        candidate: &[u8],
+    ) -> Result<(), BuildReceiptVerificationError> {
+        let expected = serde_json::to_vec(self)
+            .map_err(|_| BuildReceiptVerificationError::SerializationFailed)?;
+        if expected == candidate {
+            Ok(())
+        } else {
+            Err(BuildReceiptVerificationError::ReceiptBytesMismatch)
+        }
+    }
+
     pub const fn receipt_version(&self) -> u16 { self.receipt_version }
     pub fn canonicalization_profile(&self) -> &str { &self.canonicalization_profile }
     pub fn digest_algorithm(&self) -> &str { &self.digest_algorithm }
@@ -265,6 +283,20 @@ impl PowerFabricBuildReceipt {
     pub fn upstream_artifacts(&self) -> &[UpstreamArtifactPin] { &self.upstream_artifacts }
     pub fn build_lock_digest(&self) -> &Sha256Digest { &self.build_lock_digest }
 }
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BuildReceiptVerificationError {
+    SerializationFailed,
+    ReceiptBytesMismatch,
+}
+
+impl core::fmt::Display for BuildReceiptVerificationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+impl std::error::Error for BuildReceiptVerificationError {}
 
 #[derive(Serialize)]
 struct BuildLockMaterial<'a> {

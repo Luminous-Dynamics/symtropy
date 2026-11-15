@@ -611,6 +611,38 @@ mod tests {
         ).unwrap()
     }
 
+
+    #[test]
+    fn exact_serialized_receipt_bytes_verify() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let bytes = serde_json::to_vec(built.receipt()).unwrap();
+        assert_eq!(built.receipt().verify_serialized_bytes(&bytes), Ok(()));
+    }
+
+    #[test]
+    fn modified_or_noncanonical_receipt_bytes_are_rejected() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let mut bytes = serde_json::to_vec(built.receipt()).unwrap();
+        bytes.push(b' ');
+        assert_eq!(
+            built.receipt().verify_serialized_bytes(&bytes),
+            Err(crate::BuildReceiptVerificationError::ReceiptBytesMismatch)
+        );
+    }
+
+
     #[test]
     fn mapping_profile_serializes_complex_maps_as_ordered_structured_arrays() {
         let value = serde_json::to_value(profile()).unwrap();
