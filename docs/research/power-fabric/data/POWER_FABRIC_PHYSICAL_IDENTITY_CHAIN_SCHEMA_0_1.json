@@ -422,6 +422,9 @@
           "items": {
             "$ref": "#/$defs/id"
           }
+        },
+        "location_ref": {
+          "$ref": "#/$defs/id"
         }
       },
       "allOf": [
@@ -501,6 +504,44 @@
           "then": {
             "required": [
               "review_attestation_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "enum": [
+                  "unit_installed",
+                  "unit_removed"
+                ]
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "location_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "unit_replaced"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "location_ref",
+              "previous_physical_instance_id"
             ]
           }
         }
