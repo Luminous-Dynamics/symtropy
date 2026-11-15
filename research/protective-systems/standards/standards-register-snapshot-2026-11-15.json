@@ -1,0 +1,291 @@
+{
+  "schema_version": "protective-systems-standards/0.1",
+  "snapshot_date": "2026-11-15",
+  "purpose": "Source-linked applicability inventory for research planning. This 2026-11-15 snapshot adds the Euro NCAP passenger-car 2026-2028 rating cycle. Not legal advice, certification, or a complete interpretation of any standard.",
+  "status_legend": {
+    "CURRENT_PUBLISHED": "Publisher or issuing authority identifies this as a published/current edition at snapshot date.",
+    "CURRENT_WITH_AMENDMENTS": "Use the base edition together with the listed applicable addenda/amendments/TIAs.",
+    "DRAFT_OR_ENQUIRY": "Not a published final amendment; do not treat as normative requirement.",
+    "SNAPSHOT_GUIDANCE": "Current protocol/guidance snapshot; re-check before every comparison.",
+    "VERIFY_LOCALLY": "Edition, adoption, amendment, jurisdiction or applicability needs confirmation from the competent local authority or official catalogue.",
+    "CONTEXT_ONLY": "Exposure/context evidence; not a product test or certification."
+  },
+  "entries": [
+    {
+      "id": "NIJ-0101.07",
+      "domain": "human_worn",
+      "publisher": "US National Institute of Justice",
+      "edition": "0101.07",
+      "status": "CURRENT_WITH_AMENDMENTS",
+      "amendments": [
+        "Addendum 1",
+        "Addendum 2",
+        "Addendum 3"
+      ],
+      "scope": "Ballistic resistance of human torso body armour; do not generalize to limb, accessory, animal or other unqualified form factors.",
+      "interpretation_limit": "Use with NIJ 0123.00 threat specification and applicable addenda. NIJ compliance status is specific to exact listed models/configurations.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/ballistic-resistance-body-armor-nij-standard-010107",
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    },
+    {
+      "id": "NIJ-0123.00",
+      "domain": "human_worn",
+      "publisher": "US National Institute of Justice",
+      "edition": "0123.00",
+      "status": "CURRENT_WITH_AMENDMENTS",
+      "amendments": [
+        "Addendum 1",
+        "Addendum 2"
+      ],
+      "scope": "Ballistic protection level and associated test-threat specification used with applicable equipment test standards.",
+      "interpretation_limit": "Threat specification is not by itself a product pass or certification.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/specification-nij-ballistic-protection-levels-and-associated-test-threats-nij-standard-012300"
+      ]
+    },
+    {
+      "id": "NIJ-0115.00",
+      "domain": "human_worn",
+      "publisher": "US National Institute of Justice",
+      "edition": "0115.00",
+      "status": "VERIFY_LOCALLY",
+      "amendments": [],
+      "scope": "Stab resistance of personal body armour.",
+      "interpretation_limit": "Confirm current NIJ compliance programme status and exact product class before claiming current qualification.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    },
+    {
+      "id": "ISO-13506-1:2024",
+      "domain": "human_worn",
+      "publisher": "International Organization for Standardization",
+      "edition": "2024",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [
+        "Amendment 1 was in draft/enquiry at snapshot date; not a final published amendment."
+      ],
+      "scope": "Evaluation of complete garments/ensembles using an instrumented manikin under defined flame/heat exposures.",
+      "interpretation_limit": "Results apply to the tested garment and exposure conditions; not a universal arc-flash or high-radiant heat test.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.iso.org/standard/75863.html"
+      ]
+    },
+    {
+      "id": "NFPA-1970:2025",
+      "domain": "human_worn",
+      "publisher": "National Fire Protection Association",
+      "edition": "2025",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Structural/proximity firefighting protective ensembles and related equipment, subject to exact scope and applicable TIAs.",
+      "interpretation_limit": "Verify current TIAs, product scope and certification programme requirements.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.nfpa.org/codes-and-standards/nfpa-1970-standard-development/1970"
+      ]
+    },
+    {
+      "id": "NFPA-1850:2026",
+      "domain": "human_worn",
+      "publisher": "National Fire Protection Association",
+      "edition": "2026",
+      "status": "CURRENT_WITH_AMENDMENTS",
+      "amendments": [
+        "TIA 26-4, issued April 15 2026; effective May 5 2026."
+      ],
+      "scope": "Selection, care and maintenance of structural/proximity firefighting ensembles and open-circuit SCBA.",
+      "interpretation_limit": "Care/maintenance standard; not a substitute for product performance testing.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.nfpa.org/codes-and-standards/nfpa-1850-standard-development/1850",
+        "https://docinfofiles.nfpa.org/files/AboutTheCodes/1850/TIA_1850_26_4.pdf"
+      ]
+    },
+    {
+      "id": "ASTM-D7136/D7136M-25",
+      "domain": "cross_domain_materials",
+      "publisher": "ASTM International",
+      "edition": "2025",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Drop-weight impact damage resistance of multidirectional continuous-fibre polymer-matrix composite laminated plates.",
+      "interpretation_limit": "Coupon screening/damage resistance only; not complete armour, vehicle, building or assembly qualification.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://store.astm.org/d7136_d7136m-25.html"
+      ]
+    },
+    {
+      "id": "IIHS-2026-PROTOCOLS",
+      "domain": "vehicle",
+      "publisher": "Insurance Institute for Highway Safety",
+      "edition": "2026 protocol/rating guidance snapshot",
+      "status": "SNAPSHOT_GUIDANCE",
+      "amendments": [],
+      "scope": "Crashworthiness and crash-avoidance evaluation protocols/rating criteria.",
+      "interpretation_limit": "Match vehicle class, weight, body style, model year, trim and protocol version; a rating is not approval of an aftermarket modification.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information",
+        "https://www.iihs.org/news/detail/iihs-pushes-improvements-in-crash-avoidance-with-2026-awards"
+      ]
+    },
+    {
+      "id": "NHTSA-NCAP-MY2027",
+      "domain": "vehicle",
+      "publisher": "US National Highway Traffic Safety Administration",
+      "edition": "Model Year 2027 NCAP procedures/criteria snapshot",
+      "status": "SNAPSHOT_GUIDANCE",
+      "amendments": [],
+      "scope": "Vehicle consumer safety assessment including frontal, side, rollover and updated pedestrian-protection assessment paths.",
+      "interpretation_limit": "NCAP consumer ratings and FMVSS legal compliance are distinct; confirm exact market and model year.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.nhtsa.gov/ratings/resources-related-nhtsas-new-car-assessment-program"
+      ]
+    },
+    {
+      "id": "ICC-500:2023",
+      "domain": "housing",
+      "publisher": "International Code Council / National Storm Shelter Association",
+      "edition": "2023",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Design and construction of storm shelters.",
+      "interpretation_limit": "Shelter-specific standard; adoption and local enforceability vary by jurisdiction.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://shop.iccsafe.org/ansi-icc-500-2023-icc-nssa-standard-for-the-design-and-construction-of-storm-shelters.html"
+      ]
+    },
+    {
+      "id": "FEMA-P-361-5E",
+      "domain": "housing",
+      "publisher": "US Federal Emergency Management Agency",
+      "edition": "Fifth edition, November 2024",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Guidance for safe rooms for tornadoes and hurricanes.",
+      "interpretation_limit": "US hazard/standards context; not a South African building approval or universal building code.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.fema.gov/sites/default/files/documents/fema_p-361_safe-rooms-for-tornadoes-and-hurricanes_122024.pdf"
+      ]
+    },
+    {
+      "id": "ISO-11925-2:2026",
+      "domain": "housing",
+      "publisher": "International Organization for Standardization",
+      "edition": "2026, Edition 5",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Ignitability of products exposed to direct impingement of a single small flame.",
+      "interpretation_limit": "Small-flame ignitability only; does not prove whole-assembly fire resistance.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.iso.org/standard/89109.html"
+      ]
+    },
+    {
+      "id": "ASTM-E84-26a",
+      "domain": "housing",
+      "publisher": "ASTM International",
+      "edition": "2026a",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Comparative surface burning characteristics of building materials.",
+      "interpretation_limit": "Not a full wall/roof assembly fire-resistance test.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://store.astm.org/standards/e84/"
+      ]
+    },
+    {
+      "id": "ASHRAE-55:2023",
+      "domain": "housing",
+      "publisher": "ASHRAE",
+      "edition": "2023",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [
+        "Use applicable published addenda/errata."
+      ],
+      "scope": "Thermal environmental conditions for human occupancy.",
+      "interpretation_limit": "Comfort assessment requires both environmental and occupant factors; do not reduce it to air temperature alone.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.ashrae.org/technical-resources/bookstore/standard-55-thermal-environmental-conditions-for-human-occupancy",
+        "https://www.ashrae.org/technical-resources/standards-and-guidelines/titles-purposes-and-scopes"
+      ]
+    },
+    {
+      "id": "ASHRAE-62.2:2025",
+      "domain": "housing",
+      "publisher": "ASHRAE",
+      "edition": "2025",
+      "status": "CURRENT_PUBLISHED",
+      "amendments": [],
+      "scope": "Minimum mechanical/natural ventilation and other IAQ requirements in nontransient residential dwelling units.",
+      "interpretation_limit": "Meeting requirements does not necessarily guarantee acceptable IAQ in all real operating conditions; thermal comfort is outside this standard's scope.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.ashrae.org/technical-resources/standards-and-guidelines/titles-purposes-and-scopes"
+      ]
+    },
+    {
+      "id": "SANS-10400-APPLICABLE-PARTS",
+      "domain": "housing",
+      "publisher": "South African Bureau of Standards / local building-control authorities",
+      "edition": "To be confirmed per applicable part and project jurisdiction.",
+      "status": "VERIFY_LOCALLY",
+      "amendments": [
+        "Check active SABS catalogue, referenced standards, amendments and local authority adoption before project use."
+      ],
+      "scope": "South African National Building Regulations and applicable deemed-to-satisfy provisions.",
+      "interpretation_limit": "Do not infer a current edition or compliance from a secondary web listing; professional review and local authority confirmation required.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://www.sabs.co.za/"
+      ]
+    },
+    {
+      "id": "CSIR-GREENBOOK",
+      "domain": "housing_context",
+      "publisher": "Council for Scientific and Industrial Research",
+      "edition": "Municipal/settlement adaptation profiles; retrieve exact dataset and vintage per site.",
+      "status": "CONTEXT_ONLY",
+      "amendments": [],
+      "scope": "South African settlement/municipal climate-risk context and adaptation planning.",
+      "interpretation_limit": "Contextual hazard evidence; not a building product test, design approval or certification.",
+      "checked": "2026-11-14",
+      "source_urls": [
+        "https://greenbook.co.za/"
+      ]
+    },
+    {
+      "id": "EURO-NCAP-2026-2028",
+      "domain": "vehicle",
+      "publisher": "European New Car Assessment Programme",
+      "edition": "2026-2028 rating cycle; Overall Assessment v10.1",
+      "status": "SNAPSHOT_GUIDANCE",
+      "amendments": [
+        "Stage-specific test protocols and technical bulletins must be individually version-bound; see EURO_NCAP_2026_2028_CROSSWALK_2026_11_15.json."
+      ],
+      "scope": "Passenger-car safety assessment across Safe Driving, Crash Avoidance, Crash Protection and Post-Crash Safety.",
+      "interpretation_limit": "Four 100-point stage scores and year-specific balance thresholds govern star eligibility; 20/20/50/10 weights are for Best-in-Class ranking only. Applicability, equipment fitment, market area, exact test protocols and backstops must be checked. A consumer rating is not approval of an aftermarket modification.",
+      "checked": "2026-11-15",
+      "source_urls": [
+        "https://www.euroncap.com/general-2026-onwards/",
+        "https://www.euroncap.com/protocols/",
+        "https://www.euroncap.com/media/79890/euro-ncap-rating-review-2023.pdf",
+        "https://www.euroncap.com/media/91774/euro-ncap-protocol-post-crash-v11.pdf"
+      ]
+    }
+  ]
+}
