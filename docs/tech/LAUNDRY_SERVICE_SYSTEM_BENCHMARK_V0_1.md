@@ -138,6 +138,13 @@ Basic wash and dry operation, service instructions, diagnostics and essential se
 
 For South African deployments, test safe pause/recovery after outages, power-quality tolerance, local tariffs, water pressure/quality, local repair availability and parts lead times. PV, battery and time-of-use scheduling may move flexible cycles when useful; they must never compromise safe states or household control.
 
+
+## 4.7 Emerging cleaning-intensification research
+
+A separate evidence screen prioritizes micro-/nanobubble-assisted wash-liquor conditioning for external-loop research, with ultrasound retained only as a localized pretreatment or small-load adjunct and microbubble flotation treated as downstream wastewater polishing—not a washer filter. The research basis, limitations, controls and stop rules are documented in [Laundry Cleaning-Intensification Research Screen v0.1](./LAUNDRY_CLEANING_INTENSIFICATION_SCREEN_V0_1.md).
+
+Do not substitute ozone, plasma, pressure solvents or waterless claims into the first design. Any new mechanism must pass matched cleaning, rinse, textile-care, energy, water, chemical, emissions and service burden tests; all generator/pump/auxiliary energy must be counted.
+
 ## 5. Proposed performance goals
 
 These are **research targets, not achieved results**. They are deliberately compared with the desk references above, but become valid superiority goals only after matched controls, measurement uncertainty, output floors and statistical analysis are frozen.
