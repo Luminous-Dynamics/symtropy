@@ -2,8 +2,10 @@
 //!
 //! This is NOT an orbital-ring, magnetic bearing, levitation, field, or
 //! structural model. It tests only a synthetic linear spring/damper between
-//! two lumped masses. The input and output claim class is
-//! SYNTHETIC_NOT_PHYSICAL.
+//! two lumped masses. Position states are deviations from the relaxed
+//! reference separation (the constant spring free length is omitted), not
+//! absolute spatial or orbital coordinates. The input and output claim class
+//! is SYNTHETIC_NOT_PHYSICAL.
 //!
 //! Equal-and-opposite external bias forces hold the preloaded spring at rest.
 //! At the configured release time both biases are removed. The resulting
