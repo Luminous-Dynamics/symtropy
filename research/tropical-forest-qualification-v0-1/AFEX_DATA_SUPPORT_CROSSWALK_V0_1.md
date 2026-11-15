@@ -97,6 +97,8 @@ Every transformation must retain raw variable, source file, unit, method, suppor
 
 ### 3.4 Preserve temporal and spatial support
 
+Before any cross-stream join, use the executable [AFEX source identity gate](AFEX_SOURCE_IDENTITY_GATE_V0_1.md) and [#5470](https://github.com/Luminous-Dynamics/symtropy/issues/5470). Its dispositions distinguish exact plot-context matches, documented aliases, unresolved identity and hard support conflicts. The gate does not adjudicate the actual 80 km / 100 km discrepancy; that remains unresolved until source-key or field-protocol evidence is admitted.
+
 Before joining streams, compute the exact intersection of:
 - block and plot identity;
 - plot polygon / within-plot point or subplot support;
