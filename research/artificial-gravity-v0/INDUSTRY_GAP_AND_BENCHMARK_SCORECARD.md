@@ -34,6 +34,8 @@ Primary references:
 
 Treat the Vast and Gradient One entries as their authors' published roadmap/proposal values, not independent results. Texas A&M is a terrestrial analogue research capability. NASA CR-181617 is a historical concept study. Tensentric is a published design concept.
 
+Vast's current roadmap also reports that Haven Demo deployed on 2 November 2025, achieved mission success and was deorbited in February 2026; it targets Haven-1 in 2027 and staged Haven-2 configurations in 2030 and 2032 before the 2035 artificial-gravity station. These are company-reported programme milestones and future targets, not artificial-gravity hardware validation. The roadmap's modular station progression is relevant to our manufacturing and integration benchmark, but its published roadmap does not yet establish continuous artificial-gravity operations.
+
 ## New evidence that changes our research priorities
 
 Beverly et al. (published 13 November 2026) exposed young adult male C57BL/6J mice to microgravity or 0.33, 0.67 and 1 g centrifugation during a 30-day ISS mission. The flight groups were small (n=5–6/group); ground habitat controls were n=12. The authors report that 1 g artificial gravity restored measured bone mass, microarchitecture and strength to ground-control levels, while lower levels only partially mitigated several deficits. The result is peer-reviewed in-flight animal evidence, not a human tolerance result. It cautions against assuming that a partial-gravity band that is useful for one physiological endpoint is adequate for bone health or all other systems.
