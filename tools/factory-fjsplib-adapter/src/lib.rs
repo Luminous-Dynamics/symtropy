@@ -727,7 +727,7 @@ mod tests {
 
     #[test]
     fn resource_limits_reject_pathological_declared_counts() {
-        let input = format!("1 {} 1\\n1 1 1 5\\n", MAX_MACHINES + 1);
+        let input = format!("1 {} 1\n1 1 1 5\n", MAX_MACHINES + 1);
         assert_eq!(parse_fjsp("large", None, &input).unwrap_err().kind, ParseErrorKind::ResourceLimitExceeded);
     }
 
