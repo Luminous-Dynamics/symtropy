@@ -64,3 +64,6 @@ The same WaterLoop T0 evaluator now includes 10 additional continuity cases. It 
 The scenarios include normal service, a 72-hour South African Regulation 4 reference profile (4 people × 15 L/person/day), reserve exhaustion, pump outage with gravity fallback, compound demand surge, source restoration, service-floor failure, missing metrology, unqualified stored-water quality and rejected unqualified inflow.
 
 The regulatory profile is a reference scenario only. It does not establish WaterLoop compliance or potable water. Each scenario is deterministic inventory/service arithmetic, not hydraulic simulation or controller qualification.
+
+
+The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
