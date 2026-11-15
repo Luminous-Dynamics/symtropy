@@ -77,6 +77,13 @@ Required scorecard dimensions:
 
 For ballistic torso protection, use the current NIJ 0101.07 text and applicable addenda together with NIJ 0123.00 and its applicable addenda. Do not infer protection for limbs, accessories, animals or other geometries from a torso test. Stab resistance, thermal PPE and other hazards require their own applicable test methods; their outcomes must not be combined into a generic protection rating.
 
+A focused human-worn torso-ballistic research child is now tracked in [BODY-ARMOR-001 #5377](https://github.com/Luminous-Dynamics/symtropy/issues/5377). Its protocol, versioned standards crosswalk and separate synthetic B0 fixture corpus are linked here:
+- [Body armor research protocol v0.1](./human-worn/BODY_ARMOR_RESEARCH_V0_1.md)
+- [NIJ / South African standards and solver crosswalk (2026-11-15)](./human-worn/BODY_ARMOR_STANDARDS_CROSSWALK_2026_11_15.json)
+- [Synthetic body armor evidence-boundary cases](./fixtures/body-armor-cases-v0.1.json)
+
+This child composes the existing materials, wearer/system, product-lineage and evidence owners. It does not create another material ontology, physics solver, certification authority or physical test programme.
+
 ### 5.2 Vehicle occupant protection
 
 Required scorecard dimensions:
