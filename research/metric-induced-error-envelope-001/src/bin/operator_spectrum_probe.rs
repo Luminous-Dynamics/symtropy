@@ -13,7 +13,7 @@ use metric_induced_error_envelope_reference::{
 };
 
 fn identity_matrix<const N: usize>() -> Matrix<N> {
-    std::array::from_fn(|row| std::array::from_fn(|column| f64::from(row == column)))
+    std::array::from_fn(|row| std::array::from_fn(|column| if row == column { 1.0 } else { 0.0 }))
 }
 
 fn identity_metric<Frame: metric_induced_error_envelope_reference::CoordinateFrame, const N: usize>()
