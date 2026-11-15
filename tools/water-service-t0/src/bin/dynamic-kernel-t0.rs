@@ -129,14 +129,14 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     let mut inventory_issue=None;
     match inventory_state{
         "not_measured"=>{
-            if text(inventory,"kind")?!="none"{inventory_issue=Some("UNVERIFIED_INVENTORY_CLASSIFICATION");}
+            if text(inventory,"kind")? != "none"{inventory_issue=Some("UNVERIFIED_INVENTORY_CLASSIFICATION");}
         }
         "measured"=>{
-            if text(inventory,"kind")?!="physical_inventory"{
+            if text(inventory,"kind")? != "physical_inventory"{
                 inventory_issue=Some("MEASUREMENT_SYSTEM_LOSS_IS_NOT_PHYSICAL_INVENTORY");
             }else{
                 let unit=text(case,"mass_unit")?;
-                if text(inventory,"mass_unit")?!=unit{inventory_issue=Some("INVENTORY_UNIT_MISMATCH");}
+                if text(inventory,"mass_unit")? != unit{inventory_issue=Some("INVENTORY_UNIT_MISMATCH");}
                 else{
                     inventory_mass=number(inventory,"mass")?;
                     if inventory_mass<0.0{return Ok(base("INVALID_INPUT","NEGATIVE_PHYSICAL_INVENTORY"));}
@@ -147,11 +147,14 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     }
     let input_mass=inlet.iter().map(|row|row.iter().sum::<f64>()).sum::<f64>()*dt;
     if !input_mass.is_finite()||input_mass<=0.0{return Ok(base("INVALID_INPUT","TOTAL_INJECTED_MASS_NOT_POSITIVE"));}
+    if text(case,"mass_unit")?.trim().is_empty(){return Ok(base("INVALID_INPUT","MASS_UNIT_EMPTY"));}
     let physical=convolution(&inlet,&kernel)?;
     let physical_mass=mass(&physical,dt,n_time);
     let physical_tail=(mass(&physical,dt,physical[0].len())-physical_mass).max(0.0);
+    if !physical_mass.is_finite()||!physical_tail.is_finite(){return Ok(base("INVALID_INPUT","PHYSICAL_MASS_INTEGRAL_NONFINITE"));}
     let sensor_state=text(case,"sensor_response_state")?;
     let mut sensor:Option<Matrix>=None;
+    let mut calibrated_response:Option<Matrix>=None;
     if sensor_state=="calibrated"{
         let response_rows=array(case,"sensor_response")?;
         if response_rows.len()!=n_out{return Ok(base("REJECTED_CONTRACT","SENSOR_RESPONSE_OUTLET_COUNT_MISMATCH"));}
@@ -166,11 +169,15 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
             responses.push(values);
         }
         sensor=Some(convolve_sensor(&physical,&responses)?);
+        calibrated_response=Some(responses);
     }else if sensor_state!="uncalibrated"{
         return Ok(base("REJECTED_CONTRACT","UNKNOWN_SENSOR_RESPONSE_STATE"));
     }
     let sensor_mass=sensor.as_ref().map(|x|mass(x,dt,n_time));
     let sensor_tail=sensor.as_ref().map(|x|(mass(x,dt,x[0].len())-mass(x,dt,n_time)).max(0.0));
+    if sensor_mass.is_some_and(|x|!x.is_finite())||sensor_tail.is_some_and(|x|!x.is_finite()){
+        return Ok(base("INVALID_INPUT","SENSOR_MASS_INTEGRAL_NONFINITE"));
+    }
     let sigma=number(case,"mass_residual_standard_uncertainty")?;
     let k=number(case,"closure_sigma_limit")?;
     if sigma<=0.0||k<=0.0{return Ok(base("INVALID_INPUT","MASS_UNCERTAINTY_OR_SIGMA_LIMIT_NOT_POSITIVE"));}
@@ -211,12 +218,16 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
         for i in 0..n_in{for j in 0..n_out{alt_area[i]+=alt_kernel[j][i].iter().sum::<f64>();}}
         if alt_area.iter().any(|x|*x>1.0+1.0e-9){return Ok(base("INVALID_KERNEL","COMPETING_KERNEL_AREA_EXCEEDS_ONE"));}
         let alternate=convolution(&inlet,&alt_kernel)?;
+        let Some(response)=calibrated_response.as_ref() else {
+            return Ok(base("SENSOR_RESPONSE_UNRESOLVED","MODEL_DISCRIMINATION_REQUIRES_CALIBRATED_SENSOR_RESPONSE"));
+        };
+        let alternate_measured=convolve_sensor(&alternate,response)?;
         let Some(observation_sigma)=case.get("per_sample_observation_sigma").and_then(Value::as_f64).filter(|x|x.is_finite()&&*x>0.0) else {
             return Ok(base("INVALID_INPUT","MODEL_SEPARATION_NOISE_SCALE_NOT_POSITIVE"));
         };
         let mut sum=0.0;
         for j in 0..n_out{for t in 0..n_time{
-            let d=physical[j][t]-alternate[j][t];
+            let d=sensor.as_ref().expect("calibrated sensor response exists")[j][t]-alternate_measured[j][t];
             sum+=(d/observation_sigma).powi(2);
         }}
         Some(sum.sqrt())
@@ -248,14 +259,14 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     }))
 }
 fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<(),String>{
-    if text(input,"schema_version")?!="dynamic-kernel-t0-input-v0.1"{return Err("unexpected input schema".into());}
-    if text(oracle,"schema_version")?!="dynamic-kernel-t0-oracle-v0.1"{return Err("unexpected oracle schema".into());}
-    for v in [input,oracle,manifest]{if text(v,"programme_id")?!=PROGRAMME{return Err("programme identity mismatch".into());}}
+    if text(input,"schema_version")? != "dynamic-kernel-t0-input-v0.1"{return Err("unexpected input schema".into());}
+    if text(oracle,"schema_version")? != "dynamic-kernel-t0-oracle-v0.1"{return Err("unexpected oracle schema".into());}
+    for v in [input,oracle,manifest]{if text(v,"programme_id")? != PROGRAMME{return Err("programme identity mismatch".into());}}
     for k in ["physical_operator_qualified","potability_claim_permitted","release_authorized"]{
         if field(oracle,k)?.as_bool()!=Some(false){return Err(format!("oracle cannot set {k} true"));}
     }
     let cases=array(input,"cases")?;let expected=array(oracle,"cases")?;let ids=array(manifest,"case_ids")?;
-    if cases.len()!=CASE_COUNT||expected.len()!=CASE_COUNT||usize_value(manifest,"case_count")?!=CASE_COUNT{
+    if cases.len()!=CASE_COUNT||expected.len()!=CASE_COUNT||usize_value(manifest,"case_count")? != CASE_COUNT{
         return Err("frozen dynamic-kernel case count mismatch".into());
     }
     let collect=|rows:&[Value],key:&str|->Result<BTreeSet<String>,String>{
@@ -359,18 +370,19 @@ mod tests{
     }
     fn result()->Value{evaluate(&load("input"),&load("oracle"),&load("manifest")).expect("dynamic kernel T0 runs")}
     fn row(id:&str)->Value{result()["results"].as_array().unwrap().iter().find(|x|x["case_id"]==id).unwrap()["result"].clone()}
-    #[test]fn all_twelve_cases_match_the_frozen_oracle(){let x=result();assert_eq!(x["case_count"],CASE_COUNT);assert_eq!(x["matched_case_count"],CASE_COUNT);assert_eq!(x["verification_state"],"MatchedFrozenOracle");}
+    #[test]fn all_thirteen_cases_match_the_frozen_oracle(){let x=result();assert_eq!(x["case_count"],CASE_COUNT);assert_eq!(x["matched_case_count"],CASE_COUNT);assert_eq!(x["verification_state"],"MatchedFrozenOracle");}
     #[test]fn static_zero_delay_kernel_is_the_steady_transfer_limit(){let x=row("DK-T0-001-static-zero-delay-limit");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.7,0.0,0.0,0.0],[0.3,0.0,0.0,0.0]]));}
     #[test]fn delayed_kernel_preserves_outlet_specific_response(){let x=row("DK-T0-002-delayed-outlet-specific-response");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.0,0.0,0.4,0.0,0.0],[0.0,0.6,0.0,0.0,0.0]]));}
     #[test]fn sub_stochastic_kernel_keeps_unresolved_mass(){let x=row("DK-T0-003-substochastic-kernel-open-residual");assert_eq!(x["operator_disposition"],"OPEN_MASS_RESIDUAL");assert_eq!(x["signed_mass_residual"],0.2);}
     #[test]fn truncated_tail_is_not_reported_as_closed(){assert_eq!(row("DK-T0-004-truncated-temporal-window")["operator_disposition"],"PARTIAL_TEMPORAL_WINDOW");}
     #[test]fn independently_measured_inventory_is_accounted_separately(){let x=row("DK-T0-005-measured-physical-inventory");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["known_inventory_mass"],0.2);}
     #[test]fn uncalibrated_sensor_lag_does_not_become_physical_delay(){assert_eq!(row("DK-T0-006-sensor-response-uncalibrated")["operator_disposition"],"SENSOR_RESPONSE_UNRESOLVED");}
-    #[test]fn calibrated_sensor_response_preserves_mass_and_time_series(){let x=row("DK-T0-007-calibrated-sensor-lag");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_sensor_outlet_flux"],json!([[0.0,0.0,0.2,0.2,0.0,0.0],[0.0,0.3,0.3,0.0,0.0,0.0]]));}
+    #[test]fn calibrated_sensor_response_preserves_mass_and_time_series(){let x=row("DK-T0-007-calibrated-sensor-lag");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.2,0.2,0.0,0.0,0.0],[0.0,0.2,0.2,0.0,0.0]]));assert_eq!(x["predicted_sensor_outlet_flux"],json!([[0.1,0.2,0.1,0.0,0.0],[0.0,0.1,0.2,0.1,0.0]]));}
     #[test]fn flow_reversal_without_direction_observation_abstains(){assert_eq!(row("DK-T0-008-flow-reversal-unobserved")["operator_disposition"],"ABSTAIN_FLOW_DIRECTION_UNOBSERVED");}
     #[test]fn out_of_domain_operator_refuses_extrapolation(){assert_eq!(row("DK-T0-009-out-of-domain")["operator_disposition"],"OUT_OF_DOMAIN");}
     #[test]fn negative_kernel_coefficients_are_refused(){assert_eq!(row("DK-T0-010-negative-kernel-coefficient")["operator_disposition"],"INVALID_KERNEL");}
     #[test]fn same_integrated_gain_can_have_distinguishable_transient_responses(){let x=row("DK-T0-011-same_steady_gain_different_delay");assert_eq!(x["model_discrimination_state"],"SEPARATED");assert!(x["competing_model_separation"].as_f64().unwrap()>1.0);}
     #[test]fn inadequate_sampling_resolution_is_explicit(){assert_eq!(row("DK-T0-012-temporal-resolution-inadequate")["operator_disposition"],"TEMPORAL_RESOLUTION_INADEQUATE");}
+    #[test]fn incomplete_outlet_observation_is_not_a_complete_operator(){assert_eq!(row("DK-T0-013-partial-outlet-boundary")["operator_disposition"],"PARTIAL_OUTLET_BOUNDARY");}
     #[test]fn kernel_area_above_one_is_rejected(){let mut x=load("input");x["cases"][0]["inputs"]["kernel"][0][0][0]=json!(1.2);assert_eq!(compute(&x["cases"][0]["inputs"],0.1).unwrap()["operator_disposition"],"INVALID_KERNEL");}
 }
