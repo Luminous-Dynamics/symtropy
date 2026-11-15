@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-adapter-conformance-0.1.schema.json",
+  "title": "Power Fabric Adapter Conformance Fixture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "source_input_digest",
+    "target_output_digest",
+    "source_inventory_complete",
+    "source_semantic_item_count",
+    "source_extension_count",
+    "mapping_records",
+    "extension_records",
+    "expected_run_status",
+    "round_trip"
+  ],
+  "properties": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_version",
+        "standard",
+        "adapter_version",
+        "target_schema",
+        "scope_statement"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard": {
+          "$ref": "#/$defs/standard"
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "major",
+            "minor",
+            "patch"
+          ],
+          "properties": {
+            "major": {
+              "const": 0
+            },
+            "minor": {
+              "const": 2
+            },
+            "patch": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "scope_statement": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_input_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_output_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_inventory_complete": {
+      "type": "boolean"
+    },
+    "mapping_records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mapping_record"
+      }
+    },
+    "extension_records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/extension_record"
+      }
+    },
+    "expected_run_status": {
+      "enum": [
+        "complete_semantically_equivalent",
+        "complete_with_declared_loss",
+        "incomplete_unsupported_or_ambiguous",
+        "incomplete_source_inventory",
+        "incomplete_unknown_standard_status"
+      ]
+    },
+    "round_trip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_atoms",
+        "returned_atoms",
+        "expected_semantically_equivalent",
+        "expected_missing_atom_count",
+        "expected_unexpected_atom_count"
+      ],
+      "properties": {
+        "source_atoms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semantic_atom"
+          }
+        },
+        "returned_atoms": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/semantic_atom"
+          }
+        },
+        "expected_semantically_equivalent": {
+          "type": "boolean"
+        },
+        "expected_missing_atom_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_unexpected_atom_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source_semantic_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_extension_count": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_id",
+        "part",
+        "edition",
+        "amendments",
+        "publication_status",
+        "jurisdiction",
+        "corrections"
+      ],
+      "properties": {
+        "standard_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "part": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amendments": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "publication_status": {
+          "enum": [
+            "published",
+            "working_draft",
+            "technical_report",
+            "national_adoption",
+            "withdrawn",
+            "unknown"
+          ]
+        },
+        "jurisdiction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "corrections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "source_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "source_id",
+        "semantic_path"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "target_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "target_id",
+        "semantic_path"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "loss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_path",
+        "explanation"
+      ],
+      "properties": {
+        "source_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "mapping_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "target",
+        "outcome",
+        "explanation",
+        "losses"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source_ref"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/target_ref"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "exact_preservation",
+            "semantic_equivalent",
+            "loss_explicit",
+            "unsupported",
+            "ambiguous"
+          ]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "losses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/loss"
+          }
+        }
+      }
+    },
+    "extension_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_namespace",
+        "source_extension_id",
+        "disposition",
+        "target_extension_id",
+        "source_payload_digest",
+        "target_payload_digest",
+        "explanation"
+      ],
+      "properties": {
+        "source_namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_extension_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disposition": {
+          "enum": [
+            "preserved_opaque",
+            "mapped",
+            "unsupported_explicit"
+          ]
+        },
+        "target_extension_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_payload_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_payload_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "semantic_atom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "object_ref",
+        "semantic_path",
+        "lexical_value",
+        "unit"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "semantic_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lexical_value": {
+          "type": "string"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

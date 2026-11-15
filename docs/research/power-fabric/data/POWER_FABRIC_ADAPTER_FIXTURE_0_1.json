@@ -1,0 +1,130 @@
+{
+  "profile": {
+    "profile_id": "profile:iec61970-301",
+    "profile_version": "0.1",
+    "standard": {
+      "standard_id": "IEC 61970",
+      "part": "301",
+      "edition": "2020",
+      "amendments": [
+        "AMD1:2022"
+      ],
+      "publication_status": "published",
+      "jurisdiction": null,
+      "corrections": []
+    },
+    "adapter_version": "cim-adapter:0.1.0",
+    "target_schema": {
+      "major": 0,
+      "minor": 2,
+      "patch": 0
+    },
+    "scope_statement": "Synthetic CIM network subset for adapter contract tests"
+  },
+  "source_input_digest": "sha256:synthetic-cim-source",
+  "target_output_digest": "sha256:synthetic-power-fabric-target",
+  "source_inventory_complete": true,
+  "mapping_records": [
+    {
+      "source": {
+        "namespace": "urn:iec:cim:2020",
+        "source_id": "mRID:BUS-001",
+        "semantic_path": "IdentifiedObject.name"
+      },
+      "target": {
+        "namespace": "urn:luminous:power-fabric",
+        "target_id": "asset:bus-001",
+        "semantic_path": "display_name"
+      },
+      "outcome": "semantic_equivalent",
+      "explanation": "CIM name represented as a Power Fabric display-name claim",
+      "losses": []
+    },
+    {
+      "source": {
+        "namespace": "urn:iec:cim:2020",
+        "source_id": "mRID:BASE-001",
+        "semantic_path": "BaseVoltage.nominalVoltage"
+      },
+      "target": {
+        "namespace": "urn:luminous:power-fabric",
+        "target_id": "asset:bus-001",
+        "semantic_path": "nominal_voltage"
+      },
+      "outcome": "exact_preservation",
+      "explanation": "Unit-bearing voltage retains the source lexical value",
+      "losses": []
+    },
+    {
+      "source": {
+        "namespace": "urn:vendor:protection",
+        "source_id": "extension:trip-curve",
+        "semantic_path": "ProtectionCurve"
+      },
+      "target": null,
+      "outcome": "unsupported",
+      "explanation": "This profile has no reviewed semantic mapping for the vendor trip-curve extension",
+      "losses": []
+    }
+  ],
+  "extension_records": [
+    {
+      "source_namespace": "urn:vendor:private",
+      "source_extension_id": "vendor:extension:01",
+      "disposition": "preserved_opaque",
+      "target_extension_id": "extension:01",
+      "source_payload_digest": "sha256:payload-01",
+      "target_payload_digest": "sha256:payload-01",
+      "explanation": "Opaque extension retained byte-identically"
+    },
+    {
+      "source_namespace": "urn:vendor:protection",
+      "source_extension_id": "vendor:trip-curve",
+      "disposition": "unsupported_explicit",
+      "target_extension_id": null,
+      "source_payload_digest": "sha256:payload-02",
+      "target_payload_digest": null,
+      "explanation": "Explicitly outside this mapping profile"
+    }
+  ],
+  "expected_run_status": "incomplete_unsupported_or_ambiguous",
+  "round_trip": {
+    "source_atoms": [
+      {
+        "namespace": "urn:iec:cim:2020",
+        "object_ref": "mRID:BUS-001",
+        "semantic_path": "IdentifiedObject.name",
+        "lexical_value": "Bus A",
+        "unit": null
+      },
+      {
+        "namespace": "urn:iec:cim:2020",
+        "object_ref": "mRID:BASE-001",
+        "semantic_path": "BaseVoltage.nominalVoltage",
+        "lexical_value": "110000",
+        "unit": "V"
+      }
+    ],
+    "returned_atoms": [
+      {
+        "namespace": "urn:iec:cim:2020",
+        "object_ref": "mRID:BUS-001",
+        "semantic_path": "IdentifiedObject.name",
+        "lexical_value": "Bus A",
+        "unit": null
+      },
+      {
+        "namespace": "urn:iec:cim:2020",
+        "object_ref": "mRID:BASE-001",
+        "semantic_path": "BaseVoltage.nominalVoltage",
+        "lexical_value": "11000",
+        "unit": "V"
+      }
+    ],
+    "expected_semantically_equivalent": false,
+    "expected_missing_atom_count": 1,
+    "expected_unexpected_atom_count": 1
+  },
+  "source_semantic_item_count": 3,
+  "source_extension_count": 2
+}
