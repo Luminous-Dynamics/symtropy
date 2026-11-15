@@ -173,7 +173,9 @@ fn canonical_snapshot(input: &CompositionInput) -> CompositionInput {
     let mut snapshot = input.clone();
     snapshot.profile_required_traffic_classes.sort_unstable();
     snapshot.required_traffic_classes.sort_unstable();
-    snapshot.surveillance.sort_by_key(|evidence| evidence.traffic_class);
+    snapshot
+        .surveillance
+        .sort_by_key(|evidence| evidence.traffic_class);
     snapshot
 }
 
@@ -206,13 +208,21 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
 
     match input.intent_disposition {
         IntentDisposition::ReauthorizationRequired => {
-            return blocked(input, Decision::ReauthorizationRequired, Reason::IntentNotQualified);
+            return blocked(
+                input,
+                Decision::ReauthorizationRequired,
+                Reason::IntentNotQualified,
+            );
         }
         IntentDisposition::Nonconforming => {
             return blocked(input, Decision::Nonconforming, Reason::IntentNotQualified);
         }
         IntentDisposition::Contingent => {
-            return blocked(input, Decision::ContingencyHandoff, Reason::IntentNotQualified);
+            return blocked(
+                input,
+                Decision::ContingencyHandoff,
+                Reason::IntentNotQualified,
+            );
         }
         IntentDisposition::PotentiallyNonconforming | IntentDisposition::NotAssessable => {
             return not_assessable(input, Reason::IntentNotQualified);
@@ -236,15 +246,17 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
     }
 
     if !identity_is_complete(input.reachability_identity) {
-        return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Reachability));
+        return not_assessable(
+            input,
+            Reason::IncompleteIdentity(IdentityOwner::Reachability),
+        );
     }
     if input.reachability_identity != input.expected_identity {
         return not_assessable(input, Reason::IdentityMismatch(IdentityOwner::Reachability));
     }
 
     match input.pnt_disposition {
-        PntDisposition::AcceptedPrimaryHardBound
-        | PntDisposition::AcceptedQualifiedFallback => {}
+        PntDisposition::AcceptedPrimaryHardBound | PntDisposition::AcceptedQualifiedFallback => {}
         PntDisposition::StatisticalOnly
         | PntDisposition::Stale
         | PntDisposition::Recovering
@@ -274,10 +286,7 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
     profile_required_classes.sort_unstable();
     for pair in profile_required_classes.windows(2) {
         if pair[0] == pair[1] {
-            return not_assessable(
-                input,
-                Reason::DuplicateProfileRequiredTrafficClass(pair[0]),
-            );
+            return not_assessable(input, Reason::DuplicateProfileRequiredTrafficClass(pair[0]));
         }
     }
 
@@ -314,7 +323,10 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         }
 
         if !identity_is_complete(evidence.identity) {
-            return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Surveillance));
+            return not_assessable(
+                input,
+                Reason::IncompleteIdentity(IdentityOwner::Surveillance),
+            );
         }
         if evidence.identity != input.expected_identity {
             return not_assessable(input, Reason::IdentityMismatch(IdentityOwner::Surveillance));
@@ -333,7 +345,10 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         let interpretation = match evidence.disposition {
             SurveillanceDisposition::QualifiedTrack => {
                 if !has_reference(evidence.observation_ref) {
-                    return not_assessable(input, Reason::MissingSurveillanceReceipt(traffic_class));
+                    return not_assessable(
+                        input,
+                        Reason::MissingSurveillanceReceipt(traffic_class),
+                    );
                 }
                 OccupancyInterpretation::ObservedTrack
             }
