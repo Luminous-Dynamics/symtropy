@@ -11,10 +11,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const CASE_COUNT: usize = 20;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
-pub const CLAIM_CEILING: &str = "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
+pub const CLAIM_CEILING: &str =
+    "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
 
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("missing field: {key}"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("missing field: {key}"))
 }
 
 fn text(value: &Value, key: &str) -> Result<String, String> {
@@ -91,7 +94,10 @@ pub fn score_series(observed: &[f64], predicted: &[f64], tolerance: f64) -> Resu
     let mean_obs = mean(observed);
     let mean_pred = mean(predicted);
     let obs_ss = observed.iter().map(|v| (v - mean_obs).powi(2)).sum::<f64>();
-    let pred_ss = predicted.iter().map(|v| (v - mean_pred).powi(2)).sum::<f64>();
+    let pred_ss = predicted
+        .iter()
+        .map(|v| (v - mean_pred).powi(2))
+        .sum::<f64>();
     let residual_ss = observed
         .iter()
         .zip(predicted)
@@ -129,10 +135,8 @@ pub fn score_series(observed: &[f64], predicted: &[f64], tolerance: f64) -> Resu
         let alpha = (pred_ss / obs_ss).sqrt();
         let beta = mean_pred / mean_obs;
         Some(
-            1.0 - ((correlation - 1.0).powi(2)
-                + (alpha - 1.0).powi(2)
-                + (beta - 1.0).powi(2))
-            .sqrt(),
+            1.0 - ((correlation - 1.0).powi(2) + (alpha - 1.0).powi(2) + (beta - 1.0).powi(2))
+                .sqrt(),
         )
     };
 
@@ -327,9 +331,16 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
             }
         }
         "HC-T0-009-future-fit-scope-reject" => {
-            for key in ["climatology_fit_scope", "normalization_fit_scope", "imputation_fit_scope"] {
+            for key in [
+                "climatology_fit_scope",
+                "normalization_fit_scope",
+                "imputation_fit_scope",
+            ] {
                 if text(input, key)? != "train_only" {
-                    return Ok(split_result("REJECT", "PREPROCESSING_FIT_SCOPE_NOT_TRAIN_ONLY"));
+                    return Ok(split_result(
+                        "REJECT",
+                        "PREPROCESSING_FIT_SCOPE_NOT_TRAIN_ONLY",
+                    ));
                 }
             }
             Ok(split_result("ADMITTED", "ALL_TRANSFORMS_TRAIN_ONLY"))
@@ -338,23 +349,36 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
             let train = strings(input, "train_catchment_ids")?;
             let test = strings(input, "test_catchment_ids")?;
             for pair in array(input, "nested_pairs")? {
-                let pair = pair.as_array().ok_or_else(|| "nested_pairs item must be pair".to_owned())?;
+                let pair = pair
+                    .as_array()
+                    .ok_or_else(|| "nested_pairs item must be pair".to_owned())?;
                 if pair.len() != 2 {
                     return Err("nested_pairs item must have exactly two IDs".to_owned());
                 }
-                let upstream = pair[0].as_str().ok_or_else(|| "upstream ID must be string".to_owned())?;
-                let downstream = pair[1].as_str().ok_or_else(|| "downstream ID must be string".to_owned())?;
+                let upstream = pair[0]
+                    .as_str()
+                    .ok_or_else(|| "upstream ID must be string".to_owned())?;
+                let downstream = pair[1]
+                    .as_str()
+                    .ok_or_else(|| "downstream ID must be string".to_owned())?;
                 if (train.iter().any(|id| id == upstream) && test.iter().any(|id| id == downstream))
-                    || (train.iter().any(|id| id == downstream) && test.iter().any(|id| id == upstream))
+                    || (train.iter().any(|id| id == downstream)
+                        && test.iter().any(|id| id == upstream))
                 {
                     return Ok(split_result("REJECT", "NESTED_CATCHMENT_LEAKAGE"));
                 }
             }
-            Ok(split_result("ADMITTED", "NO_DECLARED_NESTED_CATCHMENT_CROSSING"))
+            Ok(split_result(
+                "ADMITTED",
+                "NO_DECLARED_NESTED_CATCHMENT_CROSSING",
+            ))
         }
         "HC-T0-011-heldout-target-calibration-reject" => {
             if boolean(input, "heldout_targets_accessed")? {
-                Ok(split_result("REJECT", "HELDOUT_TARGETS_USED_FOR_CALIBRATION"))
+                Ok(split_result(
+                    "REJECT",
+                    "HELDOUT_TARGETS_USED_FOR_CALIBRATION",
+                ))
             } else {
                 Ok(split_result("ADMITTED", "HELDOUT_TARGETS_NOT_ACCESSED"))
             }
@@ -374,7 +398,10 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
             let abstraction = boolean(input, "abstraction_known")?;
             let diversion = boolean(input, "diversion_known")?;
             if !dam_release || !abstraction || !diversion {
-                Ok(split_result("ABSTAIN_OR_DOWNGRADE", "ANTHROPOGENIC_BOUNDARY_UNKNOWN"))
+                Ok(split_result(
+                    "ABSTAIN_OR_DOWNGRADE",
+                    "ANTHROPOGENIC_BOUNDARY_UNKNOWN",
+                ))
             } else {
                 Ok(split_result("ADMITTED", "ANTHROPOGENIC_BOUNDARY_DECLARED"))
             }
@@ -390,7 +417,10 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
         }
         "HC-T0-015-physical-gate-reject" => {
             if !boolean(input, "water_balance_pass")? {
-                Ok(split_result("REJECT_PHYSICAL_GATE", "WATER_BALANCE_GATE_FAILED"))
+                Ok(split_result(
+                    "REJECT_PHYSICAL_GATE",
+                    "WATER_BALANCE_GATE_FAILED",
+                ))
             } else {
                 Ok(split_result("ADMITTED", "PHYSICAL_GATE_PASSED"))
             }
@@ -401,14 +431,20 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
             if has_invalid && !reported {
                 Ok(split_result("REJECT", "INVALID_ENSEMBLE_MEMBERS_HIDDEN"))
             } else {
-                Ok(split_result("ADMITTED", "INVALID_MEMBER_POPULATION_VISIBLE"))
+                Ok(split_result(
+                    "ADMITTED",
+                    "INVALID_MEMBER_POPULATION_VISIBLE",
+                ))
             }
         }
         "HC-T0-017-synthetic-field-claim-reject" => {
             let evidence = text(input, "evidence_class")?;
             let claim = text(input, "requested_claim_class")?;
             if evidence == "synthetic_only" && claim == "field_performance" {
-                Ok(split_result("REJECT_CLAIM_PROMOTION", "SYNTHETIC_EVIDENCE_CANNOT_SUPPORT_FIELD_CLAIM"))
+                Ok(split_result(
+                    "REJECT_CLAIM_PROMOTION",
+                    "SYNTHETIC_EVIDENCE_CANNOT_SUPPORT_FIELD_CLAIM",
+                ))
             } else {
                 Ok(split_result("ADMITTED", "CLAIM_WITHIN_EVIDENCE_CLASS"))
             }
@@ -438,7 +474,10 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
                         let other_start = number(other, "start_index")?;
                         let other_end = number(other, "end_index")?;
                         if start.max(other_start) < end.min(other_end) {
-                            return Ok(split_result("REJECT", "OVERLAPPING_WINDOWS_DOUBLE_COUNT_EVENT"));
+                            return Ok(split_result(
+                                "REJECT",
+                                "OVERLAPPING_WINDOWS_DOUBLE_COUNT_EVENT",
+                            ));
                         }
                     }
                 }
@@ -456,13 +495,12 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-001-b0-persistence-metrics"
         | "HC-T0-002-b0-seasonal-climatology-metrics"
         | "HC-T0-005-b3-future-holdout-metrics"
-        | "HC-T0-020-degenerate-observations-undefined" => {
-            compute_baseline(input)
-        }
+        | "HC-T0-020-degenerate-observations-undefined" => compute_baseline(input),
         "HC-T0-003-b1-prior-ensemble" => compute_ensemble(input),
         "HC-T0-004-b2-calibration-reference" => compute_calibration(input),
-        "HC-T0-006-contextual-attainment"
-        | "HC-T0-007-attainment-degenerate-bounds" => compute_attainment(input),
+        "HC-T0-006-contextual-attainment" | "HC-T0-007-attainment-degenerate-bounds" => {
+            compute_attainment(input)
+        }
         _ => compute_split(&id, input),
     }
 }
@@ -478,7 +516,8 @@ fn compare_json(actual: &Value, expected: &Value) -> bool {
         }
         (Value::Object(a), Value::Object(b)) => {
             a.len() == b.len()
-                && a.iter().all(|(key, value)| b.get(key).is_some_and(|other| compare_json(value, other)))
+                && a.iter()
+                    .all(|(key, value)| b.get(key).is_some_and(|other| compare_json(value, other)))
         }
         _ => actual == expected,
     }
@@ -496,7 +535,11 @@ fn ids(rows: &[Value], name: &str) -> Result<BTreeSet<String>, String> {
 }
 
 pub fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Value, String> {
-    for (name, value) in [("inputs", inputs), ("manifest", manifest), ("oracle", oracle)] {
+    for (name, value) in [
+        ("inputs", inputs),
+        ("manifest", manifest),
+        ("oracle", oracle),
+    ] {
         if text(value, "schema_version")? != SCHEMA_VERSION
             || text(value, "evidence_class")? != "synthetic_only"
             || text(value, "claim_ceiling")? != CLAIM_CEILING
@@ -506,7 +549,9 @@ pub fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Valu
     }
     let cases = array(inputs, "cases")?;
     let expected_cases = array(oracle, "cases")?;
-    let manifest_ids = strings(manifest, "required_case_ids")?.into_iter().collect::<BTreeSet<_>>();
+    let manifest_ids = strings(manifest, "required_case_ids")?
+        .into_iter()
+        .collect::<BTreeSet<_>>();
     let input_ids = ids(cases, "input")?;
     let oracle_ids = ids(expected_cases, "oracle")?;
     let declared_count = field(manifest, "case_count")?.as_u64().unwrap_or(0) as usize;
@@ -518,7 +563,9 @@ pub fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Valu
     {
         return Err(format!(
             "case identity/count mismatch: inputs={}, manifest={}, oracle={}, declared={declared_count}",
-            input_ids.len(), manifest_ids.len(), oracle_ids.len()
+            input_ids.len(),
+            manifest_ids.len(),
+            oracle_ids.len()
         ));
     }
     let mut expected_by_id = BTreeMap::new();
@@ -532,7 +579,9 @@ pub fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Valu
         let id = text(case, "case_id")?;
         let family = text(case, "family")?;
         let actual = compute_case(case)?;
-        let expected_row = expected_by_id.get(&id).ok_or_else(|| format!("oracle missing {id}"))?;
+        let expected_row = expected_by_id
+            .get(&id)
+            .ok_or_else(|| format!("oracle missing {id}"))?;
         let expected_family = text(expected_row, "family")?;
         let expected = field(expected_row, "expected")?;
         let matched = family == expected_family && compare_json(&actual, expected);
@@ -547,7 +596,7 @@ pub fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Valu
         }
         results.push(json!({"case_id":id,"family":family,"matched":matched,"computed":actual}));
     }
-    results.sort_by(|a,b| a["case_id"].as_str().cmp(&b["case_id"].as_str()));
+    results.sort_by(|a, b| a["case_id"].as_str().cmp(&b["case_id"].as_str()));
     let matched = results.len() - mismatches.len();
     Ok(json!({
         "schema_version":"hydro-contextual-t0-evaluation-v0.1",
@@ -569,7 +618,10 @@ pub fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Valu
 }
 
 pub fn sha256(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 #[cfg(test)]
@@ -579,57 +631,62 @@ mod tests {
     fn fixture(name: &str) -> Value {
         let raw = match name {
             "inputs" => include_str!("../../../research/hydrology/hydro-contextual-t0-v0.1.json"),
-            "manifest" => include_str!("../../../research/hydrology/hydro-contextual-manifest-v0.1.json"),
-            "oracle" => include_str!("../../../research/hydrology/hydro-contextual-oracle-v0.1.json"),
-            _ => panic!("unknown fixture")
+            "manifest" => {
+                include_str!("../../../research/hydrology/hydro-contextual-manifest-v0.1.json")
+            }
+            "oracle" => {
+                include_str!("../../../research/hydrology/hydro-contextual-oracle-v0.1.json")
+            }
+            _ => panic!("unknown fixture"),
         };
         serde_json::from_str(raw).expect("fixture JSON")
     }
 
     #[test]
     fn all_twenty_cases_match_separate_oracle() {
-        let result=evaluate(&fixture("inputs"),&fixture("manifest"),&fixture("oracle")).expect("evaluate");
-        assert_eq!(result["result_count"],CASE_COUNT);
-        assert_eq!(result["matched_case_count"],CASE_COUNT);
-        assert_eq!(result["verification_state"],"MatchedFrozenOracle");
+        let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
+            .expect("evaluate");
+        assert_eq!(result["result_count"], CASE_COUNT);
+        assert_eq!(result["matched_case_count"], CASE_COUNT);
+        assert_eq!(result["verification_state"], "MatchedFrozenOracle");
     }
     #[test]
     fn duplicate_case_identity_rejected() {
-        let mut inputs=fixture("inputs");
-        let first=inputs["cases"][0].clone();
+        let mut inputs = fixture("inputs");
+        let first = inputs["cases"][0].clone();
         inputs["cases"].as_array_mut().unwrap().push(first);
-        assert!(evaluate(&inputs,&fixture("manifest"),&fixture("oracle")).is_err());
+        assert!(evaluate(&inputs, &fixture("manifest"), &fixture("oracle")).is_err());
     }
     #[test]
     fn attainment_is_not_clipped() {
-        let out=compute_case(&fixture("inputs")["cases"][5]).expect("attainment");
-        assert_eq!(out["attainment"],1.2);
+        let out = compute_case(&fixture("inputs")["cases"][5]).expect("attainment");
+        assert_eq!(out["attainment"], 1.2);
     }
     #[test]
     fn zero_width_attainment_abstains() {
-        let out=compute_case(&fixture("inputs")["cases"][6]).expect("undefined attainment");
-        assert_eq!(out["attainment_disposition"],"UNDEFINED");
-        assert_eq!(out["attainment"],Value::Null);
+        let out = compute_case(&fixture("inputs")["cases"][6]).expect("undefined attainment");
+        assert_eq!(out["attainment_disposition"], "UNDEFINED");
+        assert_eq!(out["attainment"], Value::Null);
     }
     #[test]
     fn missing_flow_never_becomes_zero() {
-        let out=compute_case(&fixture("inputs")["cases"][11]).expect("negative control");
-        assert_eq!(out["split_disposition"],"REJECT");
+        let out = compute_case(&fixture("inputs")["cases"][11]).expect("negative control");
+        assert_eq!(out["split_disposition"], "REJECT");
     }
     #[test]
     fn unknown_anthropogenic_boundary_abstains() {
-        let out=compute_case(&fixture("inputs")["cases"][12]).expect("unknown boundary");
-        assert_eq!(out["split_disposition"],"ABSTAIN_OR_DOWNGRADE");
+        let out = compute_case(&fixture("inputs")["cases"][12]).expect("unknown boundary");
+        assert_eq!(out["split_disposition"], "ABSTAIN_OR_DOWNGRADE");
     }
     #[test]
     fn physical_gate_overrides_good_predictive_score() {
-        let out=compute_case(&fixture("inputs")["cases"][14]).expect("physical gate");
-        assert_eq!(out["split_disposition"],"REJECT_PHYSICAL_GATE");
+        let out = compute_case(&fixture("inputs")["cases"][14]).expect("physical gate");
+        assert_eq!(out["split_disposition"], "REJECT_PHYSICAL_GATE");
     }
     #[test]
     fn degenerate_observations_make_efficiency_metrics_undefined() {
-        let out=compute_case(&fixture("inputs")["cases"][19]).expect("degenerate observations");
-        assert_eq!(out["nse"],Value::Null);
-        assert_eq!(out["kge"],Value::Null);
+        let out = compute_case(&fixture("inputs")["cases"][19]).expect("degenerate observations");
+        assert_eq!(out["nse"], Value::Null);
+        assert_eq!(out["kge"], Value::Null);
     }
 }
