@@ -76,3 +76,9 @@ Tests cover head-on mid-interval contact with clear endpoints, equal-velocity co
 
 This is not arbitrary continuous-to-continuous collision checking: the two bodies must have fixed orientations and share the same time parameter. It does not cover rotation, joint-space interpolation, articulated robots, deformable geometry, asynchronous clocks or physical safety.
 See [#5453](https://github.com/Luminous-Dynamics/symtropy/issues/5453).
+
+## Bounded clock-skew capsule CCD
+
+The next extension uses independent motion time parameters (t_A) and (t_B) constrained by (|t_A-t_B|\le\epsilon). It minimizes distance over the four-variable convex quadratic for two linearly translating fixed-orientation capsules. The active-face reference enumerates the bounded polytope's faces, uses scale-normalized KKT systems, defers exactly singular faces to their lower-dimensional boundaries, and abstains on nonzero ill-conditioned systems.
+
+This addresses **bounded relative timestamp skew** only. It is not a model of unknown or unbounded clocks, latency estimation, sensor synchronization, rotating/articulated bodies, or human-safety functions. See [#5460](https://github.com/Luminous-Dynamics/symtropy/issues/5460).
