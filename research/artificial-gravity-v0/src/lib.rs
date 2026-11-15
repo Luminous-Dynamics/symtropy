@@ -19,6 +19,7 @@ pub enum ModelError {
     NegativeInput(&'static str),
     BodyCrossesRotationAxis,
     OuterRadiusLessThanInner,
+    EmptyRotorAssembly,
 }
 
 impl fmt::Display for ModelError {
@@ -35,6 +36,7 @@ impl fmt::Display for ModelError {
             Self::OuterRadiusLessThanInner => {
                 write!(f, "outer_radius_m must be greater than or equal to inner_radius_m")
             }
+            Self::EmptyRotorAssembly => write!(f, "rotor assembly must contain at least one module"),
         }
     }
 }
@@ -372,6 +374,97 @@ pub fn euler_apparent_acceleration(
     Ok(apparent)
 }
 
+
+/// Scalar axial momentum and energy accounting for coaxial rotor modules.
+///
+/// This deliberately limited reference assumes every module rotates about the
+/// same declared axis. It is not a 3D attitude, gyroscopic-stability, bearing,
+/// structural-load, or control-system solver.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RotorMomentumBalance {
+    pub module_count: usize,
+    /// Signed total axial angular momentum, kg·m²/s.
+    pub net_angular_momentum_kg_m2_s: f64,
+    /// Sum of the absolute per-module axial momenta, kg·m²/s.
+    pub sum_absolute_module_momenta_kg_m2_s: f64,
+    /// |net H| / sum(|H_i|); zero when all modules are stopped.
+    pub net_momentum_fraction: f64,
+    /// Sum of positive stored rotational kinetic energies, joules.
+    pub stored_rotational_energy_j: f64,
+}
+
+/// Evaluate signed angular momentum and stored energy for coaxial modules.
+///
+/// Each tuple is (moment_of_inertia_kg_m2, signed_angular_velocity_rad_s).
+/// Positive and negative angular velocities represent opposite spin directions.
+pub fn rotor_momentum_balance(
+    modules: &[(f64, f64)],
+) -> Result<RotorMomentumBalance, ModelError> {
+    if modules.is_empty() {
+        return Err(ModelError::EmptyRotorAssembly);
+    }
+
+    let mut net_momentum = 0.0;
+    let mut absolute_momentum = 0.0;
+    let mut stored_energy = 0.0;
+
+    for &(moment_of_inertia, omega) in modules {
+        require_positive(moment_of_inertia, "rotor_moment_of_inertia_kg_m2")?;
+        require_finite(omega, "rotor_angular_velocity_rad_s")?;
+
+        let module_momentum = moment_of_inertia * omega;
+        let module_energy = 0.5 * moment_of_inertia * omega * omega;
+        require_finite_result(module_momentum, "module_angular_momentum")?;
+        require_finite_result(module_energy, "module_rotational_energy")?;
+
+        net_momentum += module_momentum;
+        absolute_momentum += module_momentum.abs();
+        stored_energy += module_energy;
+        require_finite_result(net_momentum, "net_angular_momentum")?;
+        require_finite_result(absolute_momentum, "sum_absolute_module_momenta")?;
+        require_finite_result(stored_energy, "stored_rotational_energy")?;
+    }
+
+    let net_momentum_fraction = if absolute_momentum == 0.0 {
+        0.0
+    } else {
+        net_momentum.abs() / absolute_momentum
+    };
+    require_finite_result(net_momentum_fraction, "net_momentum_fraction")?;
+
+    Ok(RotorMomentumBalance {
+        module_count: modules.len(),
+        net_angular_momentum_kg_m2_s: net_momentum,
+        sum_absolute_module_momenta_kg_m2_s: absolute_momentum,
+        net_momentum_fraction,
+        stored_rotational_energy_j: stored_energy,
+    })
+}
+
+/// Signed angular velocity required for a second coaxial rotor to cancel the
+/// first rotor's angular momentum exactly in the ideal scalar model.
+pub fn angular_velocity_for_zero_net_momentum(
+    primary_moment_of_inertia_kg_m2: f64,
+    primary_omega_rad_s: f64,
+    counter_rotor_moment_of_inertia_kg_m2: f64,
+) -> Result<f64, ModelError> {
+    require_positive(
+        primary_moment_of_inertia_kg_m2,
+        "primary_moment_of_inertia_kg_m2",
+    )?;
+    require_finite(primary_omega_rad_s, "primary_omega_rad_s")?;
+    require_positive(
+        counter_rotor_moment_of_inertia_kg_m2,
+        "counter_rotor_moment_of_inertia_kg_m2",
+    )?;
+
+    let counter_omega = -primary_moment_of_inertia_kg_m2
+        * primary_omega_rad_s
+        / counter_rotor_moment_of_inertia_kg_m2;
+    require_finite_result(counter_omega, "counter_rotor_omega_rad_s")?;
+    Ok(counter_omega)
+}
+
 /// Ideal rotational kinetic energy, ½ Iω², in joules.
 ///
 /// This is stored spin-up energy; it is not continuous operating power.
@@ -524,6 +617,41 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result, [0.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn equal_counter_rotors_cancel_net_momentum_not_energy() {
+        let balance = rotor_momentum_balance(&[(10.0, 2.0), (10.0, -2.0)]).unwrap();
+        close(balance.net_angular_momentum_kg_m2_s, 0.0, 1e-12);
+        close(balance.sum_absolute_module_momenta_kg_m2_s, 40.0, 1e-12);
+        close(balance.net_momentum_fraction, 0.0, 1e-12);
+        close(balance.stored_rotational_energy_j, 40.0, 1e-12);
+    }
+
+    #[test]
+    fn unequal_counter_rotor_uses_inertia_weighted_speed() {
+        let counter_omega =
+            angular_velocity_for_zero_net_momentum(10.0, 2.0, 5.0).unwrap();
+        close(counter_omega, -4.0, 1e-12);
+        let balance = rotor_momentum_balance(&[(10.0, 2.0), (5.0, counter_omega)]).unwrap();
+        close(balance.net_angular_momentum_kg_m2_s, 0.0, 1e-12);
+        close(balance.stored_rotational_energy_j, 60.0, 1e-12);
+    }
+
+    #[test]
+    fn stopped_rotors_have_zero_momentum_and_energy() {
+        let balance = rotor_momentum_balance(&[(5.0, 0.0), (7.0, 0.0)]).unwrap();
+        assert_eq!(balance.net_angular_momentum_kg_m2_s, 0.0);
+        assert_eq!(balance.net_momentum_fraction, 0.0);
+        assert_eq!(balance.stored_rotational_energy_j, 0.0);
+    }
+
+    #[test]
+    fn rotor_balance_rejects_empty_and_non_finite_assemblies() {
+        assert!(rotor_momentum_balance(&[]).is_err());
+        assert!(rotor_momentum_balance(&[(1.0, f64::NAN)]).is_err());
+        assert!(rotor_momentum_balance(&[(0.0, 1.0)]).is_err());
+        assert!(rotor_momentum_balance(&[(1e308, 1e308)]).is_err());
     }
 
     #[test]
