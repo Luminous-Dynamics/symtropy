@@ -200,8 +200,11 @@
       "maximum_fisher_eigenvalue": 0.35687739014878495,
       "fisher_condition_number": 17.005026295864816,
       "log_determinant_fisher": -15.037189651998585,
-      "trace_gls_covariance": 105.77207735813087
-    }
+      "trace_gls_covariance": 105.77207735813087,
+      "practical_status": "INFORMATION_SUFFICIENT_UNDER_DECLARED_SYNTHETIC_THRESHOLDS"
+    },
+    "minimum_cost_design_status": "PRACTICALLY_WEAK",
+    "information_optimal_design_status": "INFORMATION_SUFFICIENT_UNDER_DECLARED_SYNTHETIC_THRESHOLDS"
   },
   "execution": {
     "runner": "NOISE_AWARE_LINEAR_GAUSSIAN_FISHER_INFORMATION",
@@ -210,5 +213,9 @@
     "random_seed": null,
     "empirical_noise_calibration": "NOT_ESTABLISHED",
     "external_data_ingested": false
+  },
+  "practical_information_thresholds": {
+    "minimum_fisher_eigenvalue": 0.01,
+    "maximum_condition_number": 30
   }
 }
