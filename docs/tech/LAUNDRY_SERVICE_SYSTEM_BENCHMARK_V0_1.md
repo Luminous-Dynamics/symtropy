@@ -93,9 +93,16 @@ Test at least:
 
 ### 4.1.1 First-principles spin-to-dryer leverage (illustrative bound)
 
-A useful early calculation gives this coupling a concrete experimental value. If residual moisture is expressed on a dry-mass basis, an 8 kg dry-equivalent load falling from 53.9% to 45.0% residual moisture carries about 0.712 kg less water into the dryer. Using approximately 2.3 MJ/kg (0.639 kWh/kg) as a first-order latent-heat value, that represents roughly 0.455 kWh of latent thermal duty. At an illustrative whole-system heat-pump COP of 2–3, the idealized electrical equivalent is approximately **0.15–0.23 kWh**.
+A useful early calculation gives this coupling a concrete experimental value. If residual moisture is expressed on a dry-mass basis, an 8 kg dry-equivalent load falling from 53.9% to 45.0% residual moisture carries about 0.712 kg less water into the dryer. Using an illustrative latent-heat interval of 2.25–2.45 MJ/kg, this represents approximately 0.445–0.484 kWh of latent thermal duty. At an assumed whole-system heat-pump COP interval of 2–3, the idealized electrical equivalent is approximately **0.148–0.242 kWh**.
 
-That is an order-of-magnitude screening calculation, not a predicted product saving. It assumes the residual-moisture basis is confirmed and that the incremental water would otherwise be evaporated; it omits real dryer heat losses, sensible heating, fan/compressor controls, condensate and load-specific COP. The 10 kg washer reference and 8 kg dryer reference are not a matched pair. This calculation is only a reason to measure the coupling carefully.
+The Rust screening implementation is `tools/household-appliance-bench-audit/src/bin/laundry_spin_dryer_screen.rs`. Its default scenario reproduces this example and accepts seven positional assumptions for dry textile mass, inlet/outlet residual-moisture fractions, latent-heat bounds and COP bounds. The output declares itself `analytical_screening_not_validated`.
+
+This is an assumption-driven, latent-heat-only bound—not a predicted dryer-cycle saving. It assumes residual moisture is on a dry-mass basis and that the incremental water is evaporated. It excludes sensible heating, air leakage, heat-exchanger losses, fan/pump/compressor maps, defrost and control overhead. The 10 kg washer and 8 kg dryer labels above are not a matched pair. The calculation only justifies measuring this coupling.
+
+Run the screening model with:
+`cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml --bin laundry_spin_dryer_screen`
+
+The default calculation is a hypothesis only. A real system result must measure the washer spin-energy increment and the dryer electricity reduction on matched loads, and then calculate paired net energy. The companion function/test demonstrates why the washer's added spin electricity must be subtracted from the dryer saving.
 
 The experiment must measure the washer's incremental spin energy and fabric/vibration penalties together with the dryer energy/time reduction at the same final-moisture endpoint. Optimize **net paired-system energy and textile outcome**, not dryer energy in isolation.
 
