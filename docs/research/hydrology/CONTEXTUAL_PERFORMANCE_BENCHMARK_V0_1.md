@@ -304,7 +304,7 @@ The first deterministic evaluator is now implemented in the separate Rust packag
 - `research/hydrology/hydro-contextual-oracle-v0.1.json`
 - `research/hydrology/hydro-contextual-t0.schema.json`
 
-The 21-case synthetic suite covers:
+The 27-case synthetic suite covers:
 - B0 persistence / training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member reporting, including invalid/non-conservative members;
 - B2 repeated train-only calibration-reference summary;
@@ -320,4 +320,50 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 21-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 27-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+
+
+### Executable process-specific metrics — 15 November 2026
+
+The contextual T0 suite has been extended from 21 to 27 cases to cover the metric gaps identified in the protocol:
+- **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
+- **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
+- **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
+
+The new known-answer cases are 022–026; input, manifest, oracle and schema all declare 27 cases. These are metric arithmetic and data-contract tests only. A small synthetic interval fixture does not prove calibration; report sample count, independent event count, event strata and time-horizon coverage before making probabilistic-skill claims.
+
+The event-peak contract also freezes the tie rule: equal maxima select the earliest time index. A separate case tests this deterministically.
+
+
+## 14. Event / low-flow / interval metric implementation — 15 November 2026
+
+The executable evaluator adds six synthetic known-answer cases (022–027) to the existing 21-case baseline/split suite. The metrics are deliberately process-specific:
+- peak magnitude percentage error and signed/absolute peak timing on named event windows;
+- event-window NSE and volume bias, with raw event denominator preserved;
+- low-flow log10 error under a frozen observed-flow threshold, with no pseudocount and explicit abstention if any selected observation or prediction is non-positive;
+- empirical interval coverage, nominal coverage error and mean interval width; crossed lower/upper bounds reject;
+- deterministic earliest-index tie handling for equal event peaks.
+
+Input, manifest, schema and independent oracle carry 27 exact case IDs. Six new cases were independently replayed against the separate oracle at 1e-9 relative tolerance. Rust test/format/Clippy and exact-head workflow status must still be reported separately from this source-level arithmetic replay.
+
+### External benchmark update — lower and upper references are essential
+
+Seibert, Vis & Pool (16 September 2026) computed lower and upper model-performance benchmarks over 13 large-sample hydrology datasets. They show that uncalibrated bucket-model NSE can be 0.8 or higher in some humid and snow-dominated catchments, so a fixed universal NSE threshold is not defensible. For random-parameter lower-reference ensembles, their results recommend at least 1,000 parameter samples to reach a performance plateau with lower uncertainty; transferred calibrated parameter sets can yield slightly higher lower-reference performance. This benchmark should therefore report ensemble-size convergence and both random and transferred-prior populations instead of relying on a tiny, cherry-picked prior set.
+
+- Seibert, J., Vis, M. & Pool, S. (2026), *Setting the bar: benchmarks for model performances in large-sample hydrology*, HESS 30, 5857–5871. https://doi.org/10.5194/hess-30-5857-2026
+
+A complementary 3 July 2026 study benchmarked 47 conceptual rainfall–runoff models across 159 Peninsular Indian watersheds and selected a compact model set by jointly considering performance, model complexity and uncertainty. This supports a three-dimensional comparison: skill, structural/parameter uncertainty and computational/operational complexity, all stratified by hydroclimatic context.
+
+- *Benchmarking and Selecting Optimal Hydrological Models for Large-Sample Applications Considering Complexity and Uncertainty* (2026), Water Resources Research. https://doi.org/10.1029/2026WR044753
+
+### Proposed next benchmark acceptance gates (targets, not achieved results)
+
+1. **B1 lower reference:** 1,000 random parameter samples per model/catchment as the initial reference target, with 100/250/500/1,000/2,000 convergence curves and a predeclared stability criterion; report parameter-range sensitivity and any prior truncation.
+2. **Transferred-prior comparator:** add a separately labelled regional/nearby-catchment parameter-prior ensemble. Never merge it with the random-prior baseline or use held-out target catchments to define it.
+3. **B2 attainable reference:** repeated train-only calibration from multiple starts, with calibration effort/compute budget fixed and all failed runs visible.
+4. **B3 untouched evaluation:** spatial and temporal/event holdouts, with final test used once after model selection; record event and regime denominators.
+5. **Catchment-conditioned interpretation:** report model-minus-lower-reference and upper-reference gap per metric/catchment; no universal NSE/KGE pass cutoff.
+6. **Operational relevance:** score threshold exceedance/forecast lead time for flood/low-flow decisions separately from continuous-flow metrics. A high NSE cannot compensate for missed critical events.
+7. **Complexity/uncertainty:** report parameter and structural spread, runtime/energy, memory, data burden and calibration effort alongside each metric; publish Pareto sets, not one weighted score.
+
+The existing 27-case corpus is only a metric/split software contract. It does not yet execute 1,000 model simulations or establish lower/upper catchment benchmarks. That is the next model-run tournament after source data and the B1 prior definitions are qualified.

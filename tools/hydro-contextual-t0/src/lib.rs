@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 21;
+pub const CASE_COUNT: usize = 27;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -33,6 +33,14 @@ fn number(value: &Value, key: &str) -> Result<f64, String> {
         .as_f64()
         .filter(|v| v.is_finite())
         .ok_or_else(|| format!("{key}: expected finite number"))
+}
+
+fn positive(value: f64, name: &str) -> Result<f64, String> {
+    if value <= 0.0 {
+        Err(format!("{name}: must be positive"))
+    } else {
+        Ok(value)
+    }
 }
 
 fn boolean(value: &Value, key: &str) -> Result<bool, String> {
@@ -501,6 +509,178 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
     }
 }
 
+fn event_peak_metrics(input: &Value) -> Result<Value, String> {
+    let event_id = text(input, "event_id")?;
+    let observed = numeric_array(input, "observed")?;
+    let predicted = numeric_array(input, "predicted")?;
+    let start = field(input, "event_start_index")?
+        .as_u64()
+        .ok_or_else(|| "event_start_index: expected non-negative integer".to_owned())?
+        as usize;
+    let end = field(input, "event_end_index")?
+        .as_u64()
+        .ok_or_else(|| "event_end_index: expected non-negative integer".to_owned())?
+        as usize;
+    let step_hours = number(input, "step_hours")?;
+    let tolerance = number(input, "denominator_tolerance")?;
+    if observed.len() != predicted.len() || observed.len() < 2 {
+        return Err("event observed/predicted arrays must have equal length >= 2".to_owned());
+    }
+    if start >= end || end > observed.len() {
+        return Err("event window must be non-empty and within the supplied arrays".to_owned());
+    }
+    if step_hours <= 0.0 || tolerance < 0.0 {
+        return Err(
+            "step_hours must be positive and denominator tolerance non-negative".to_owned(),
+        );
+    }
+    let obs_window = &observed[start..end];
+    let pred_window = &predicted[start..end];
+    let observed_peak = obs_window.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let predicted_peak = pred_window
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let obs_peak_offset = obs_window
+        .iter()
+        .position(|value| *value == observed_peak)
+        .ok_or_else(|| "event window has no observations".to_owned())?;
+    let pred_peak_offset = pred_window
+        .iter()
+        .position(|value| *value == predicted_peak)
+        .ok_or_else(|| "event window has no predictions".to_owned())?;
+    let magnitude_error_pct = if observed_peak.abs() <= tolerance {
+        None
+    } else {
+        Some((predicted_peak - observed_peak) / observed_peak * 100.0)
+    };
+    let timing_error_hours = (pred_peak_offset as f64 - obs_peak_offset as f64) * step_hours;
+    let event_scores = score_series(obs_window, pred_window, tolerance)?;
+    Ok(json!({
+        "event_id": event_id,
+        "event_start_index": start,
+        "event_end_index_exclusive": end,
+        "sample_count": end - start,
+        "observed_peak_flow": observed_peak,
+        "predicted_peak_flow": predicted_peak,
+        "peak_magnitude_error_pct": magnitude_error_pct,
+        "observed_peak_index": start + obs_peak_offset,
+        "predicted_peak_index": start + pred_peak_offset,
+        "signed_peak_timing_error_hours": timing_error_hours,
+        "absolute_peak_timing_error_hours": timing_error_hours.abs(),
+        "event_nse": event_scores["nse"],
+        "event_volume_bias_pct": event_scores["volume_bias_pct"]
+    }))
+}
+
+fn low_flow_log_metrics(input: &Value) -> Result<Value, String> {
+    let observed = numeric_array(input, "observed")?;
+    let predicted = numeric_array(input, "predicted")?;
+    let threshold = positive(number(input, "low_flow_threshold")?, "low_flow_threshold")?;
+    let transform = text(input, "log_transform")?;
+    if observed.len() != predicted.len() {
+        return Err("low-flow observed/predicted arrays must have equal length".to_owned());
+    }
+    if transform != "log10" {
+        return Err("unsupported low-flow transform; expected log10".to_owned());
+    }
+    let indices = observed
+        .iter()
+        .enumerate()
+        .filter_map(|(index, flow)| (*flow <= threshold).then_some(index))
+        .collect::<Vec<_>>();
+    if indices.is_empty() {
+        return Ok(json!({
+            "low_flow_disposition": "UNDEFINED",
+            "reason": "NO_OBSERVATIONS_AT_OR_BELOW_DECLARED_LOW_FLOW_THRESHOLD",
+            "low_flow_threshold": threshold,
+            "log_transform": transform,
+            "low_flow_sample_count": 0,
+            "mean_absolute_log10_error": null,
+            "mean_signed_log10_error": null
+        }));
+    }
+    let mut absolute_errors = Vec::with_capacity(indices.len());
+    let mut signed_errors = Vec::with_capacity(indices.len());
+    for index in &indices {
+        let obs = observed[*index];
+        let pred = predicted[*index];
+        if obs <= 0.0 || pred <= 0.0 {
+            return Ok(json!({
+                "low_flow_disposition": "INDETERMINATE",
+                "reason": "LOG10_TRANSFORM_REQUIRES_STRICTLY_POSITIVE_OBSERVED_AND_PREDICTED_FLOW",
+                "low_flow_threshold": threshold,
+                "log_transform": transform,
+                "low_flow_sample_count": indices.len(),
+                "invalid_flow_index": index,
+                "mean_absolute_log10_error": null,
+                "mean_signed_log10_error": null
+            }));
+        }
+        let error = pred.log10() - obs.log10();
+        absolute_errors.push(error.abs());
+        signed_errors.push(error);
+    }
+    Ok(json!({
+        "low_flow_disposition": "ADMITTED",
+        "reason": "POSITIVE_FLOWS_AND_DECLARED_LOG10_TRANSFORM",
+        "low_flow_threshold": threshold,
+        "log_transform": transform,
+        "low_flow_sample_count": indices.len(),
+        "low_flow_indices": indices,
+        "mean_absolute_log10_error": mean(&absolute_errors),
+        "mean_signed_log10_error": mean(&signed_errors)
+    }))
+}
+
+fn interval_calibration_metrics(input: &Value) -> Result<Value, String> {
+    let observed = numeric_array(input, "observed")?;
+    let lower = numeric_array(input, "lower_bound")?;
+    let upper = numeric_array(input, "upper_bound")?;
+    let nominal = number(input, "nominal_coverage")?;
+    if observed.len() != lower.len() || observed.len() != upper.len() {
+        return Err("observed and interval-bound arrays must have equal length".to_owned());
+    }
+    if !(0.0 < nominal && nominal < 1.0) {
+        return Err("nominal_coverage must be between zero and one".to_owned());
+    }
+    if let Some(index) = lower.iter().zip(&upper).position(|(lo, hi)| lo > hi) {
+        return Ok(json!({
+            "interval_disposition": "REJECT",
+            "reason": "LOWER_BOUND_EXCEEDS_UPPER_BOUND",
+            "invalid_interval_index": index,
+            "sample_count": observed.len(),
+            "nominal_coverage": nominal,
+            "empirical_coverage": null,
+            "coverage_error": null,
+            "mean_interval_width": null
+        }));
+    }
+    let covered = observed
+        .iter()
+        .zip(&lower)
+        .zip(&upper)
+        .filter(|((obs, lo), hi)| **lo <= **obs && **obs <= **hi)
+        .count();
+    let widths = lower
+        .iter()
+        .zip(&upper)
+        .map(|(lo, hi)| hi - lo)
+        .collect::<Vec<_>>();
+    let empirical = covered as f64 / observed.len() as f64;
+    Ok(json!({
+        "interval_disposition": "ADMITTED",
+        "reason": "VALID_ORDERED_INTERVALS",
+        "sample_count": observed.len(),
+        "covered_count": covered,
+        "nominal_coverage": nominal,
+        "empirical_coverage": empirical,
+        "coverage_error": empirical - nominal,
+        "absolute_coverage_error": (empirical - nominal).abs(),
+        "mean_interval_width": mean(&widths)
+    }))
+}
+
 pub fn compute_case(case: &Value) -> Result<Value, String> {
     let id = text(case, "case_id")?;
     let input = field(case, "inputs")?;
@@ -514,6 +694,14 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-006-contextual-attainment" | "HC-T0-007-attainment-degenerate-bounds" => {
             compute_attainment(input)
         }
+
+        "HC-T0-022-event-peak-magnitude-and-timing"
+        | "HC-T0-027-event-peak-ties-earliest-index" => event_peak_metrics(input),
+        "HC-T0-023-low-flow-log10-error" | "HC-T0-026-low-flow-log-zero-abstains" => {
+            low_flow_log_metrics(input)
+        }
+        "HC-T0-024-probabilistic-interval-coverage-width"
+        | "HC-T0-025-invalid-probabilistic-interval-reject" => interval_calibration_metrics(input),
         _ => compute_split(&id, input),
     }
 }
@@ -656,7 +844,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twenty_one_cases_match_separate_oracle() {
+    fn all_twenty_seven_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -696,6 +884,58 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][14]).expect("physical gate");
         assert_eq!(out["split_disposition"], "REJECT_PHYSICAL_GATE");
     }
+
+    #[test]
+    fn event_peak_metrics_report_magnitude_and_signed_timing() {
+        let out = compute_case(&fixture("inputs")["cases"][21]).expect("event peak metrics");
+        assert_eq!(out["observed_peak_flow"], 8.0);
+        assert_eq!(out["predicted_peak_flow"], 7.0);
+        assert_eq!(out["peak_magnitude_error_pct"], -12.5);
+        assert_eq!(out["signed_peak_timing_error_hours"], -6.0);
+    }
+
+    #[test]
+    fn low_flow_log_metrics_use_only_predeclared_low_flow_observations() {
+        let out = compute_case(&fixture("inputs")["cases"][22]).expect("low-flow metrics");
+        assert_eq!(out["low_flow_sample_count"], 4);
+        assert_eq!(out["low_flow_indices"], json!([0, 1, 4, 5]));
+        assert_eq!(out["low_flow_disposition"], "ADMITTED");
+    }
+
+    #[test]
+    fn probabilistic_intervals_report_coverage_and_width() {
+        let out = compute_case(&fixture("inputs")["cases"][23]).expect("interval metrics");
+        assert_eq!(out["covered_count"], 4);
+        assert_eq!(out["empirical_coverage"], 1.0);
+        assert_eq!(out["mean_interval_width"], 1.375);
+    }
+
+    #[test]
+    fn crossing_probabilistic_interval_bounds_are_rejected() {
+        let out = compute_case(&fixture("inputs")["cases"][24]).expect("invalid interval");
+        assert_eq!(out["interval_disposition"], "REJECT");
+        assert_eq!(out["reason"], "LOWER_BOUND_EXCEEDS_UPPER_BOUND");
+    }
+
+    #[test]
+    fn event_peak_ties_select_the_earliest_time_step() {
+        let out = compute_case(&fixture("inputs")["cases"][26]).expect("tied event peaks");
+        assert_eq!(out["observed_peak_index"], 1);
+        assert_eq!(out["predicted_peak_index"], 1);
+        assert_eq!(out["signed_peak_timing_error_hours"], 0.0);
+    }
+
+    #[test]
+    fn log_low_flow_metrics_abstain_on_zero_flow_without_pseudocount() {
+        let out =
+            compute_case(&fixture("inputs")["cases"][25]).expect("zero-flow low-flow control");
+        assert_eq!(out["low_flow_disposition"], "INDETERMINATE");
+        assert_eq!(
+            out["reason"],
+            "LOG10_TRANSFORM_REQUIRES_STRICTLY_POSITIVE_OBSERVED_AND_PREDICTED_FLOW"
+        );
+    }
+
     #[test]
     fn final_test_cannot_select_the_model() {
         let out =

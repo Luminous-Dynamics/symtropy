@@ -18,7 +18,7 @@ HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
 
 ## Scope
 
-The frozen 21-case corpus exercises:
+The frozen 27-case corpus exercises:
 - B0 persistence and training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member visibility and invalid-member disclosure;
 - B2 repeated train-only calibration-reference summary;
@@ -31,9 +31,26 @@ The evaluator reads frozen arrays. It does not generate, calibrate, select or ex
 
 ## Evidence receipt
 
-The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 21 rows match the separate oracle.
+The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 27 rows match the separate oracle.
 
 ## Nonclaims
 
 All v0.1 cases are synthetic. No DWS/SAWS/Highveld bytes are acquired, no catchment is calibrated, no flood/groundwater/rainfall-runoff solver is qualified, no field forecast skill is established, and no synthetic result may be represented as South African field performance.
 The corpus includes all 12 named HCB-NC-01 through HCB-NC-12 leakage controls, including a separate rejection when the final test set is used to select a winning model.
+
+
+### Event, low-flow and probabilistic interval metrics (cases 022–027)
+
+The corpus now covers the process-specific metrics called for by #5338/#5356:
+- named-event peak magnitude error and signed/absolute peak timing error using a frozen event window and fixed step duration; ties choose the earliest peak;
+- event-specific NSE and volume bias alongside peak metrics;
+- low-flow log10 error below a predeclared threshold, over strictly positive observed/predicted values only; no zero pseudocount or silent exclusion;
+- probabilistic prediction-interval empirical coverage and mean width, preserving nominal coverage and coverage error;
+- invalid interval bounds reject, and low-flow logarithms abstain when zero flow appears.
+
+These are separate diagnostics, not a composite score. A four-sample interval fixture is only arithmetic conformance, not a statistical calibration claim; useful interval calibration requires many independent events and strata.
+
+The event-peak contract also freezes the tie rule: equal maxima select the earliest time index. A separate case tests this deterministically.
+
+
+Event-peak ties are resolved at the earliest index in the event window. A dedicated frozen case locks this behavior so timing metrics are deterministic.

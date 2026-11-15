@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 21,
+  "case_count": 27,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -25,7 +25,13 @@
     "HC-T0-018-duplicate-time-reject",
     "HC-T0-019-overlapping-event-windows-reject",
     "HC-T0-020-degenerate-observations-undefined",
-    "HC-T0-021-final-test-model-selection-reject"
+    "HC-T0-021-final-test-model-selection-reject",
+    "HC-T0-022-event-peak-magnitude-and-timing",
+    "HC-T0-023-low-flow-log10-error",
+    "HC-T0-024-probabilistic-interval-coverage-width",
+    "HC-T0-025-invalid-probabilistic-interval-reject",
+    "HC-T0-026-low-flow-log-zero-abstains",
+    "HC-T0-027-event-peak-ties-earliest-index"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -38,7 +44,10 @@
     "kge": "1 - sqrt((r-1)^2 + (alpha-1)^2 + (beta-1)^2); population standard deviation ratio and mean ratio",
     "volume_bias_pct": "100*(sum(sim)-sum(obs))/sum(obs)",
     "mae": "mean(abs(sim-obs))",
-    "attainment": "(model_score-lower_reference)/(upper_reference-lower_reference), not clipped"
+    "attainment": "(model_score-lower_reference)/(upper_reference-lower_reference), not clipped",
+    "event_peak_error": "Peak magnitude error is relative to the observed event-window maximum; timing error is signed predicted minus observed peak index times the declared fixed step duration. Ties select the first maximum.",
+    "low_flow_log_error": "Mean absolute/signed log10(flow_predicted)-log10(flow_observed) over samples whose observed flow is <= a frozen threshold; only strictly positive observed and predicted values are admitted; no pseudocount.",
+    "interval_metrics": "Empirical coverage is count(observed within [lower,upper])/N; width is the arithmetic mean of upper-lower; report nominal and empirical coverage, error and width."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -53,6 +62,11 @@
     "Predictive skill cannot override a failed physical water-balance gate.",
     "Contextual attainment is metric/task/population scoped; it is not clipped to [0,1] and must be undefined/not-comparable when references cannot support it.",
     "Synthetic evidence may not be promoted to field or operational qualification.",
-    "The final test split may not be used to select the winning model from a tournament; model selection must use the predeclared validation process."
+    "The final test split may not be used to select the winning model from a tournament; model selection must use the predeclared validation process.",
+    "Peak magnitude/timing metrics are computed only on a named frozen event window with declared fixed time step; timing error is signed predicted minus observed peak time and ties choose the earliest peak.",
+    "Low-flow log10 error uses a predeclared threshold and only strictly positive observed/predicted flows; zeros are not replaced with pseudocounts and yield Indeterminate.",
+    "Probabilistic interval coverage and width are reported separately; invalid lower>upper interval rows reject the interval metric rather than being silently repaired.",
+    "Coverage/width metrics do not themselves establish probabilistic calibration across a sufficiently large event population; sample size and event strata remain mandatory.",
+    "When multiple equal maxima occur in a named event window, peak timing is assigned to the earliest time step for both observation and prediction."
   ]
 }
