@@ -56,7 +56,7 @@ Each claim binds only the dimensions it actually depends on, plus the owner/sour
 
 Each synthetic event carries event ID, owner/source ID, source sequence, dependency kind, exact prior and successor digest, effective time, recorded time, change class, owner-declared evidence state and an event commitment string.
 
-The evaluator does not authenticate or hash actual event bytes. OwnerQualified is an input state from the domain source contract; it is not a cryptographic guarantee.
+The evaluator does not authenticate or hash actual event bytes. OwnerQualified is an input state from the domain source contract; it is not a cryptographic guarantee. Source sequence orders causal digest succession; effective time and recorded/knowledge time independently determine whether each event is eligible at a requested cutoff.
 
 Change classes:
 - MaterialChange: dependent model evidence requires owner-defined requalification;
@@ -102,7 +102,7 @@ The original claim and its historical evidence are never mutated or deleted.
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 29 tests including:
+The Rust suite currently exercises 30 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
@@ -116,6 +116,7 @@ The Rust suite currently exercises 29 tests including:
 - late-recorded correction and historical/current reconstruction;
 - duplicate event IDs, source-sequence reuse/forks and duplicate coverage;
 - event-array permutation invariance;
+- source-sequence digest succession remains deterministic even when a corrective event has an earlier effective time than its predecessor.
 - evaluation before claim existence;
 - coverage deletion monotonicity;
 - known contradiction not hidden by an unrelated coverage gap;
