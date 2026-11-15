@@ -109,3 +109,5 @@ Ant abundance and herbivory can inform biotic pathways, but they should not be p
 The records establish that multiple streams exist within the AFEX collection and provide their source-described sampling designs. They do **not** yet establish that every stream can be joined at the same plot, block, treatment and time support.
 
 All resources remain metadata-only in the current register. No raw archive bytes, plot-level joins, treatment effects, calibrated process pathways, integrated digital twin or SOTA advantage are claimed.
+
+The ratio's plot identity is part of its scientific meaning. Do not compute turnover after dropping plot IDs and joining only on treatment/year, and do not average stock and productivity before forming the plot-level response. See [AFEX_RATIO_ESTIMAND_V0_1.md](AFEX_RATIO_ESTIMAND_V0_1.md) and [#5443](https://github.com/Luminous-Dynamics/symtropy/issues/5443) for the synthetic same-marginal/opposite-pairing challenge.
