@@ -35,45 +35,39 @@ Passing this corpus cannot be promoted into a magnetic-support, orbital-ring, co
 
 ## Equations and accounting
 
-Let (x_s) and (x_r) be the stream-mass and support-mass coordinates, with separation (y=x_s-x_r). The synthetic port force on the stream mass is
+Let `x_s` and `x_r` be the stream-mass and support-mass coordinates, and let `y = x_s - x_r`. The synthetic port forces are:
 
-[
-F_s=-ky-cdot y,
-qquad
-F_r=-F_s.
-]
+```text
+F_stream = -k*y - c*dy/dt
+F_support = -F_stream
+```
 
-Before release, equal-and-opposite bias forces (+F_0) on the stream mass and (-F_0) on the support mass hold the initial preload (y_0=F_0/k) at rest. At release, both bias forces are removed. The model has no orbit, curvature, distributed stream, field or actuator state.
+Before release, equal-and-opposite bias forces `+F0` on the stream mass and `-F0` on the support mass hold the initial preload `y0 = F0/k` at rest. At release, both bias forces are removed. The model has no orbit, curvature, distributed stream, field or actuator state.
 
-After release, the relative coordinate follows
+After release, the relative coordinate follows:
 
-[
-muddot y+cdot y+ky=0,
-qquad
-mu=rac{m_s m_r}{m_s+m_r}.
-]
+```text
+mu * d2y/dt2 + c * dy/dt + k*y = 0
+mu = (m_stream * m_support) / (m_stream + m_support)
+```
 
-For underdamped cases, the independent closed-form reference uses
+For underdamped cases, the independent closed-form reference uses:
 
-[
-omega_n=sqrt{k/mu},quad
-zeta=rac{c}{2sqrt{kmu}},quad
-omega_d=omega_nsqrt{1-zeta^2},
-]
+```text
+omega_n = sqrt(k/mu)
+zeta = c / (2*sqrt(k*mu))
+omega_d = omega_n*sqrt(1-zeta^2)
 
-[
-y(t)=y_0 e^{-zetaomega_n t}
-left[
-cos(omega_d t)
-+rac{zeta}{sqrt{1-zeta^2}}sin(omega_d t)
-ight].
-]
+y(t) = y0 * exp(-zeta*omega_n*t)
+       * (cos(omega_d*t)
+          + zeta/sqrt(1-zeta^2)*sin(omega_d*t))
+```
 
-The implementation separately accumulates viscous dissipation (Q) and work by the equal-and-opposite external bias forces (W_b). Its energy residual is
+The implementation separately accumulates viscous dissipation `Q` and work by the equal-and-opposite external bias forces `W_bias`. Its energy residual is:
 
-[
-R_E=E_{mech}+Q-W_b-E_{mech,0}.
-]
+```text
+R_energy = E_mechanical + Q - W_bias - E_mechanical_initial
+```
 
 The total linear momentum is also checked. These are the ledgers of this synthetic lumped model only. They are not a substitute for field momentum, Maxwell stress, Poynting flux, orbital angular momentum, control-volume mass flux or thermal accounting in a future physical model.
 
@@ -88,7 +82,7 @@ The total linear momentum is also checked. These are the ledgers of this synthet
 - delayed release;
 - intermediate-damping release.
 
-The golden end states are derived from the reduced-mass closed-form solution, not fitted to the RK4 output. The reference evaluator checks the final separation and relative velocity against the frozen values, then separately checks linear-momentum and energy-ledger residuals.
+The golden end states are derived from the reduced-mass closed-form solution, not fitted to the RK4 output. The reference evaluator checks final separation and relative velocity against the frozen values, then separately checks linear-momentum and energy-ledger residuals.
 
 The Rust test suite also includes negative controls for zero mass, zero stiffness, negative damping, negative preload, non-finite inputs, unknown force-law identity, attempted physical-claim promotion, off-grid release event, release after the simulation end, excessive step count, non-finite derived state, malformed/duplicate corpus rows and malformed case IDs.
 
