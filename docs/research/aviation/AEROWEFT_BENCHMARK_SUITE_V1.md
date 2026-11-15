@@ -682,3 +682,4 @@ The dependency-free Rust prototype now has **55 adversarial tests**, including a
 
 SOTA comparison: matched-budget held-out regret and calibration against fixed expert/factorial plans, Monte Carlo/LHS/Sobol, parameter-only expected information gain, Bayesian optimal design, robust/minimax design, active learning/sequential model discrimination and the multi-fidelity escalation lane. Relevant sources include NASA-STD-7009B, NASA-HDBK-7009B (2026-02-03), NIST AMS 100-85 (2026-10-05), AIAA R-154-2021, ASTM F3705-25/F3442-26 and NASA's 2025 high-density flight-path-management evaluation.
 
+Track V hardening: model-form discrimination is distinct from cross-implementation semantic equivalence; the reported independent model-family-pair count and Pareto dominance use the same frozen minimum contrast-separation threshold as admission.
