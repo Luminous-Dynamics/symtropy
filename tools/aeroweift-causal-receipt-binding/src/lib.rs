@@ -247,6 +247,8 @@ pub struct Receipt {
     pub required_traffic_classes: Option<Vec<TrafficClass>>,
     /// Traffic class represented by a surveillance-assessment receipt.
     pub traffic_class: Option<TrafficClass>,
+    /// Traffic class attributed to a source-observation receipt when used as a surveillance report.
+    pub observation_traffic_class: Option<TrafficClass>,
 }
 
 /// Trust facets intentionally outside this structural verifier.
@@ -521,10 +523,18 @@ pub fn verify(
         }
 
         if receipt.stage == Stage::SurveillanceAssessment {
+            if receipt.observation_traffic_class.is_some() {
+                return Err(VerificationError::SurveillanceEvidenceMismatch);
+            }
             if receipt.traffic_class.is_none() {
                 return Err(VerificationError::SurveillanceEvidenceMismatch);
             }
         } else if receipt.traffic_class.is_some() {
+            return Err(VerificationError::SurveillanceEvidenceMismatch);
+        }
+        if receipt.stage != Stage::SourceObservation
+            && receipt.observation_traffic_class.is_some()
+        {
             return Err(VerificationError::SurveillanceEvidenceMismatch);
         }
         if receipt.stage == Stage::ProfilePolicy {
@@ -579,6 +589,12 @@ pub fn verify(
                 return Err(VerificationError::ParentNotQualified);
             }
             match edge.role {
+                ParentRole::SurveillanceObservation
+                    if receipt.traffic_class.is_none()
+                        || parent.observation_traffic_class != receipt.traffic_class =>
+                {
+                    return Err(VerificationError::SurveillanceEvidenceMismatch);
+                }
                 ParentRole::TrafficOccupancy(class) if parent.traffic_class != Some(class) => {
                     return Err(VerificationError::SurveillanceEvidenceMismatch);
                 }
