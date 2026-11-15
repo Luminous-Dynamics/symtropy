@@ -144,7 +144,7 @@ The CLI emits CSV design points for Moon-, Mars-, and Earth-equivalent gravity a
 
 ## Movement matrix executable
 
-The second CLI emits a deterministic CSV over 3 gravity levels × 6 RPM values × 4 relative speeds × 4 movement headings (radial, prograde, retrograde, axial). It reports Coriolis vector components, magnitude, fraction of target g, and the ideal 2 m head-to-feet gradient:
+The second CLI emits a deterministic CSV over 3 gravity levels × 6 RPM values × 3 illustrative angular-acceleration samples × 4 relative speeds × 5 movement headings (radial inward/outward, prograde/retrograde tangential, axial). It reports centrifugal, Coriolis and Euler vectors separately, the total apparent-acceleration vector and magnitude, the motion-disturbance fraction of target g, and the ideal 2 m head-to-feet gradient:
 
 ~~~bash
 cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin motion_matrix
