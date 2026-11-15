@@ -106,10 +106,11 @@ fn sha256_reader<R: Read>(mut reader: R) -> io::Result<(String, u64)> {
     Ok((format!("{:x}", hasher.finalize()), byte_count))
 }
 
-fn run(registry_path: &str, archive_path: &str) -> Result<GateReport, String> {
-    let registry_text = fs::read_to_string(registry_path)
-        .map_err(|error| format!("cannot read registry {registry_path}: {error}"))?;
-    let (registered_archive_name, expected_sha256) = nist_archive_metadata(&registry_text)?;
+fn run(archive_path: &str) -> Result<GateReport, String> {
+    // Compile-time inclusion binds the integrity check to the reviewed registry
+    // that was present in this exact source revision.
+    let (registered_archive_name, expected_sha256) =
+        nist_archive_metadata(EMBEDDED_REGISTRY)?;
 
     let supplied_archive_name = std::path::Path::new(archive_path)
         .file_name()
@@ -139,14 +140,12 @@ fn run(registry_path: &str, archive_path: &str) -> Result<GateReport, String> {
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
-    if args.len() != 2 {
-        eprintln!(
-            "usage: protective-data-gate <dataset-registry.json> <V50.zip>"
-        );
+    if args.len() != 1 {
+        eprintln!("usage: protective-data-gate <V50.zip>");
         process::exit(2);
     }
 
-    let report = match run(&args[0], &args[1]) {
+    let report = match run(&args[0]) {
         Ok(report) => report,
         Err(error) => {
             eprintln!("{error}");
