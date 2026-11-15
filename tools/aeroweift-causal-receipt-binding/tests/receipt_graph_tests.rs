@@ -822,3 +822,37 @@ fn profile_class_order_permutation_preserves_semantic_result() {
         .reverse();
     assert_eq!(verify_graph(&receipts).unwrap(), expected);
 }
+
+
+#[test]
+fn conflict_screening_requires_operational_intent_conformance() {
+    let mut receipts = graph();
+    receipt_mut(&mut receipts, root_id())
+        .parents
+        .retain(|edge| edge.role != ParentRole::OperationalIntentConformance);
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::MissingRequiredParent)
+    );
+}
+
+#[test]
+fn nonconforming_intent_receipt_cannot_underwrite_conflict_screening() {
+    let mut receipts = graph();
+    receipt_mut(&mut receipts, "intent-conformance").disposition =
+        ClaimDisposition::Nonconforming;
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::ParentNotQualified)
+    );
+}
+
+#[test]
+fn revoked_authorization_cannot_underwrite_intent_conformance() {
+    let mut receipts = graph();
+    receipt_mut(&mut receipts, "authorization").disposition = ClaimDisposition::Revoked;
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::ParentNotQualified)
+    );
+}
