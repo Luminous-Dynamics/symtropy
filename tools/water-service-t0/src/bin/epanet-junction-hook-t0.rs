@@ -503,10 +503,10 @@ fn run() -> Result<i32, String> {
         "evidence_class":"synthetic_only","evidence_ceiling":EVIDENCE_CEILING,
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     });
-    if let Some(parent) = rp.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
-        }
+    if let Some(parent) = rp.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
     }
     let bytes = serde_json::to_string_pretty(&receipt)
         .map_err(|e| format!("serialize receipt: {e}"))?
