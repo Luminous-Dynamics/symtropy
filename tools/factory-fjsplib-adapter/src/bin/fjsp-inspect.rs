@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Inspect an FJSPLib text instance or emit one of the documented reference fixtures.
 
-use factory_fjsplib_adapter::{parse_fajsp, parse_fjsp, FlexibleInstance};
+use factory_fjsplib_adapter::{FlexibleInstance, parse_fajsp, parse_fjsp};
 use std::env;
 use std::fs;
 
@@ -20,12 +20,16 @@ const FAJSP_FATTAHI1: &str = "4 2 2
 ";
 
 fn emit(instance: &FlexibleInstance) {
-    println!("record_type\tinstance_id\tformat\tjob_count\tmachine_count\toperation_id\tjob_id\tposition\tmachine_id\tprocessing_ticks\tprecedence_before\tprecedence_after\tprecedence_job\tfingerprint_fnv1a64");
+    println!(
+        "record_type\tinstance_id\tformat\tjob_count\tmachine_count\toperation_id\tjob_id\tposition\tmachine_id\tprocessing_ticks\tprecedence_before\tprecedence_after\tprecedence_job\tfingerprint_fnv1a64"
+    );
     println!(
         "SUMMARY\t{}\t{}\t{}\t{}\t-\t-\t-\t-\t-\t-\t-\t-\t{}",
         instance.instance_id,
         instance.source_format.as_str(),
-        instance.declared_job_count.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+        instance
+            .declared_job_count
+            .map_or_else(|| "-".to_owned(), |value| value.to_string()),
         instance.machine_count,
         instance.canonical_fingerprint_fnv1a64
     );
@@ -34,11 +38,17 @@ fn emit(instance: &FlexibleInstance) {
             "OPERATION\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t-\t-\t-\t-\t{}",
             instance.instance_id,
             instance.source_format.as_str(),
-            instance.declared_job_count.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+            instance
+                .declared_job_count
+                .map_or_else(|| "-".to_owned(), |value| value.to_string()),
             instance.machine_count,
             operation.id,
-            operation.job_id.map_or_else(|| "-".to_owned(), |value| value.to_string()),
-            operation.position_in_job.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+            operation
+                .job_id
+                .map_or_else(|| "-".to_owned(), |value| value.to_string()),
+            operation
+                .position_in_job
+                .map_or_else(|| "-".to_owned(), |value| value.to_string()),
             operation.alternatives.len(),
             instance.canonical_fingerprint_fnv1a64
         );
@@ -47,11 +57,17 @@ fn emit(instance: &FlexibleInstance) {
                 "ALTERNATIVE\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t-\t-\t-\t{}",
                 instance.instance_id,
                 instance.source_format.as_str(),
-                instance.declared_job_count.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+                instance
+                    .declared_job_count
+                    .map_or_else(|| "-".to_owned(), |value| value.to_string()),
                 instance.machine_count,
                 operation.id,
-                operation.job_id.map_or_else(|| "-".to_owned(), |value| value.to_string()),
-                operation.position_in_job.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+                operation
+                    .job_id
+                    .map_or_else(|| "-".to_owned(), |value| value.to_string()),
+                operation
+                    .position_in_job
+                    .map_or_else(|| "-".to_owned(), |value| value.to_string()),
                 alternative.machine_id,
                 alternative.processing_ticks,
                 instance.canonical_fingerprint_fnv1a64
@@ -63,11 +79,14 @@ fn emit(instance: &FlexibleInstance) {
             "PRECEDENCE\t{}\t{}\t{}\t{}\t-\t-\t-\t-\t-\t{}\t{}\t{}\t{}",
             instance.instance_id,
             instance.source_format.as_str(),
-            instance.declared_job_count.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+            instance
+                .declared_job_count
+                .map_or_else(|| "-".to_owned(), |value| value.to_string()),
             instance.machine_count,
             edge.before,
             edge.after,
-            edge.job_id.map_or_else(|| "-".to_owned(), |value| value.to_string()),
+            edge.job_id
+                .map_or_else(|| "-".to_owned(), |value| value.to_string()),
             instance.canonical_fingerprint_fnv1a64
         );
     }
@@ -76,10 +95,15 @@ fn emit(instance: &FlexibleInstance) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let parsed = match args.as_slice() {
-        [_, flag] if flag == "--reference-fjsp" => parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1),
-        [_, flag] if flag == "--reference-fajsp" => parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1),
+        [_, flag] if flag == "--reference-fjsp" => {
+            parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1)
+        }
+        [_, flag] if flag == "--reference-fajsp" => {
+            parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1)
+        }
         [_, format, instance_id, path] => {
-            let source = fs::read_to_string(path).expect("unable to read the supplied instance file");
+            let source =
+                fs::read_to_string(path).expect("unable to read the supplied instance file");
             match format.as_str() {
                 "fjsp" => parse_fjsp(instance_id, None, &source),
                 "fajsp" => parse_fajsp(instance_id, None, &source),
@@ -87,7 +111,9 @@ fn main() {
             }
         }
         _ => {
-            eprintln!("usage: fjsp-inspect --reference-fjsp | --reference-fajsp | <fjsp|fajsp> <instance-id> <path>");
+            eprintln!(
+                "usage: fjsp-inspect --reference-fjsp | --reference-fajsp | <fjsp|fajsp> <instance-id> <path>"
+            );
             std::process::exit(2);
         }
     };
