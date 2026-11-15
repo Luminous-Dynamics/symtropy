@@ -14,6 +14,18 @@ A standalone, dependency-light Rust contract parser and validator for MFB scenar
 - Mandatory safety, authorized-destination, package-identity, household-privacy and unauthorized-mutation gates.
 - Required event declarations and fault-injection references.
 
+## Distributed physical handoff reference state machine
+
+`src/transaction.rs` supplies a deterministic reference state machine for:
+- purpose/time/audience/endpoint/scope/use-count checks at the authorization boundary;
+- one logical release command ID with duplicate suppression;
+- independently authored source release, receiver receipt and custody acknowledgement;
+- event ID replay/conflict detection and monotonic sequence checks;
+- safe hold before any dispatch, versus reconciliation-required after an uncertain physical action;
+- explicit reconciliation by a configured third-party custodian, with two distinct evidence digests and a terminal outcome (completed, no action taken, returned or quarantined).
+
+Reconciliation closes the *record*, not the physical transaction atomically. It does not re-arm the old command: a new attempt requires a new transaction and a fresh grant. The state machine does not authenticate Holochain signatures, establish that two evidence sources are truly independent, or drive actuators.
+
 ## What it does not prove
 
 This validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve 3D packing, run a physical simulator, prove safety, or qualify HIL / field performance. A valid manifest means only that its declared contracts are internally consistent.
