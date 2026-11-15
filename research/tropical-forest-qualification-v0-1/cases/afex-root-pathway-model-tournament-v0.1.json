@@ -1,0 +1,315 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-ROOT-PATHWAY-MODEL-TOURNAMENT-001",
+  "evidence_class": "source_grounded_comparator_register",
+  "claim_ceiling": "This register defines model structures, external comparators, data requirements and matched evaluation rules. It is not an executable ecological model, raw-data analysis, calibrated pathway partition, or evidence that any candidate currently outperforms another. AFEX raw files remain un-ingested. Organic nutrient uptake and fungal carbon costs are not identified by current AFEX child records.",
+  "empirical_target": {
+    "experiment": "Central Amazon AFEX randomized complete-block factorial",
+    "blocks": 4,
+    "plots": 32,
+    "treatments": [
+      "N",
+      "P",
+      "cations",
+      "N×P",
+      "N×cations",
+      "P×cations",
+      "N×P×cations"
+    ],
+    "assignment_unit": "plot",
+    "primary_treatment_estimand": "intention-to-treat by randomized plot assignment",
+    "primary_process_targets": [
+      "fine-root productivity",
+      "fine-root standing stock",
+      "fine-root turnover",
+      "fine-root morphology",
+      "root phosphatase potential activity",
+      "AM root-length colonisation"
+    ],
+    "turnover_support": {
+      "year1": {
+        "stock_date": "2017-08",
+        "productivity_start": "2017-08",
+        "productivity_end": "2018-09"
+      },
+      "year2": {
+        "stock_date": "2019-09",
+        "productivity_start": "2018-09",
+        "productivity_end": "2019-09"
+      },
+      "depth_cm": [
+        0,
+        30
+      ]
+    }
+  },
+  "model_structures": [
+    {
+      "model_id": "M0_TREATMENT_ONLY",
+      "name": "Treatment-only factorial baseline",
+      "role": "mandatory_null_baseline",
+      "plant_pathways": [],
+      "fungal_pathways": [],
+      "carbon_cost": "not represented",
+      "fit_targets": [
+        "trait responses",
+        "root productivity",
+        "turnover where denominator is admitted"
+      ],
+      "required_data": [
+        "plot treatment assignment",
+        "block",
+        "outcome-specific support"
+      ],
+      "principal_failure_test": "Does an apparent mediator model add any out-of-block predictive value beyond treatment and block?",
+      "status": "synthetic/specification baseline; not fit"
+    },
+    {
+      "model_id": "M1_DIRECT_ROOT_INORGANIC",
+      "name": "Direct uncolonised fine-root inorganic acquisition",
+      "role": "mechanistic_ablation",
+      "plant_pathways": [
+        "direct inorganic N uptake by uncolonised roots",
+        "direct inorganic P uptake by uncolonised roots"
+      ],
+      "fungal_pathways": [],
+      "carbon_cost": "no symbiotic carbon cost",
+      "fit_targets": [
+        "root growth/productivity",
+        "tissue nutrient response",
+        "turnover"
+      ],
+      "required_data": [
+        "root morphology",
+        "root productivity",
+        "soil inorganic N/P by depth",
+        "plot assignment"
+      ],
+      "unobserved_requirements": [
+        "soil inorganic nutrient concentrations by plot/depth are not in the admitted crosswalk yet"
+      ],
+      "principal_failure_test": "Can direct-root-only acquisition explain P/cation interactions and later turnover without AM contribution?",
+      "status": "candidate model structure; not fit"
+    },
+    {
+      "model_id": "M2_ROOT_PLUS_AM_INORGANIC",
+      "name": "Direct root plus mycorrhizal inorganic acquisition",
+      "role": "mechanistic_ablation",
+      "plant_pathways": [
+        "direct inorganic uptake by uncolonised roots"
+      ],
+      "fungal_pathways": [
+        "mycorrhizal uptake of inorganic N/P"
+      ],
+      "carbon_cost": "explicit fungal carbon allocation required for predictive model; otherwise flag as omitted",
+      "fit_targets": [
+        "AM colonisation",
+        "tissue nutrient response",
+        "root productivity",
+        "turnover"
+      ],
+      "required_data": [
+        "AM colonisation",
+        "root morphology",
+        "soil inorganic N/P",
+        "root C/N/P and cations",
+        "plot assignment"
+      ],
+      "support_limitations": [
+        "AM colonisation is 0-10 cm only",
+        "2026 turnover target is 0-30 cm",
+        "no fungal nutrient-transfer flux is measured"
+      ],
+      "principal_failure_test": "Does AM colonisation add held-out predictive skill beyond direct root traits, while respecting its 0-10 cm support?",
+      "status": "candidate model structure; not fit"
+    },
+    {
+      "model_id": "M3_ROOT_AM_INORGANIC_ORGANIC",
+      "name": "Three-pathway direct-root / mycorrhizal-inorganic / mycorrhizal-organic model",
+      "role": "ELM_MYCI_architecture_comparator",
+      "plant_pathways": [
+        "direct inorganic nutrient uptake by uncolonised fine roots",
+        "indirect inorganic nutrient acquisition by mycorrhizal roots"
+      ],
+      "fungal_pathways": [
+        "mycorrhizal inorganic nutrient acquisition",
+        "mycorrhizal organic nutrient acquisition"
+      ],
+      "carbon_cost": "substrate-carbon availability or fungal carbon allocation required",
+      "fit_targets": [
+        "N/P acquisition",
+        "root productivity",
+        "plant growth",
+        "ecosystem C/N/P fluxes"
+      ],
+      "external_comparator": {
+        "name": "ELM-MYCI / ELMv2-SPRUCE",
+        "paper_doi": "10.5194/gmd-19-5827-2026",
+        "paper_url": "https://gmd.copernicus.org/articles/19/5827/2026/",
+        "code_doi": "10.5281/zenodo.17582789",
+        "model_scope": "boreal peatland; spruce, tamarack and shrubs; calibrated/evaluated with SPRUCE",
+        "limitation": "not a tropical Amazon AFEX baseline; its peatland/mycorrhizal guild and soil organic matter assumptions must not be transplanted without adaptation"
+      },
+      "required_data": [
+        "soil inorganic and organic N/P pools by depth",
+        "root/mycorrhizal colonisation",
+        "fungal carbon allocation or defensible constraint",
+        "root productivity and stock",
+        "plant nutrient demand"
+      ],
+      "support_limitations": [
+        "AFEX crosswalk currently lacks plot-resolved organic N/P access flux",
+        "AM colonisation fraction alone does not identify organic nutrient acquisition",
+        "no AFEX fungal carbon allocation observation admitted"
+      ],
+      "principal_failure_test": "Can the additional organic pathway be identified and validated on independent outcomes, or does it merely add unidentifiable parameters?",
+      "status": "external architecture comparator; AFEX organic pathway currently unidentifiable"
+    },
+    {
+      "model_id": "M4_MYCO_C_N_COUPLED",
+      "name": "Mycorrhizal carbon-cost and soil C/N coupled model",
+      "role": "soil_process_comparator",
+      "plant_pathways": [
+        "plant carbon allocation to roots and symbionts"
+      ],
+      "fungal_pathways": [
+        "fungal nutrient acquisition",
+        "fungal biomass/turnover",
+        "fungal effects on decomposition and soil C/N"
+      ],
+      "carbon_cost": "explicit carbon allocation to mycorrhizal fungi and trade-off with host productivity",
+      "external_comparator": {
+        "name": "Myco-CORPSE",
+        "papers": [
+          {
+            "doi": "10.1016/j.soilbio.2023.109073",
+            "url": "https://doi.org/10.1016/j.soilbio.2023.109073",
+            "scope": "ECM effects on soil C/N decomposition conditioned on fungal traits, climate and litter"
+          },
+          {
+            "doi": "10.1029/2025JG009198",
+            "url": "https://doi.org/10.1029/2025JG009198",
+            "scope": "modelled mycorrhizal carbon costs across >1,800 eastern US forest inventory plots"
+          }
+        ],
+        "reported_model_result": "study reports 16.0% of NPP allocated to ECM fungi versus 5.8% to AM fungi in its temperate-forest analysis",
+        "limitation": "the model and empirical evaluation are not a matched tropical AM AFEX benchmark; use for process structure and cost accounting, not direct score comparison"
+      },
+      "required_data": [
+        "fungal carbon allocation or tracer constraints",
+        "fungal biomass/turnover",
+        "soil organic matter pools",
+        "decomposition/respiration",
+        "root and fungal nutrient acquisition"
+      ],
+      "support_limitations": [
+        "AFEX current child records do not identify fungal C cost",
+        "respiration records are not fungal-specific",
+        "no AM hyphal production/turnover dataset admitted"
+      ],
+      "principal_failure_test": "Does carbon-cost coupling improve held-out carbon and nutrient predictions without violating C budgets?",
+      "status": "longer-term coupled-process comparator; not fit"
+    },
+    {
+      "model_id": "M5_MYCO_TYPE_HIERARCHICAL_TRAIT",
+      "name": "Mycorrhizal-type hierarchical trait–function model",
+      "role": "empirical_trait_comparator",
+      "plant_pathways": [
+        "trait-conditioned direct root uptake"
+      ],
+      "fungal_pathways": [
+        "mycorrhizal-type-conditioned trait/function relationship"
+      ],
+      "carbon_cost": "not necessarily explicit; cannot claim a process budget unless measured",
+      "external_comparator": {
+        "name": "Huang et al. 2026 mycorrhizal-explicit trait model",
+        "doi": "10.1111/pce.70522",
+        "url": "https://doi.org/10.1111/pce.70522",
+        "sample": "63 subtropical tree species with in-situ 15N tracer uptake",
+        "reported_comparison": "mycorrhizal-explicit hierarchical model R²=0.37 vs root-only model R²=0.19",
+        "limitation": "species-level inorganic N uptake in a different subtropical forest; not a direct AFEX turnover or plot-level benchmark"
+      },
+      "required_data": [
+        "species-level mycorrhizal type",
+        "species-resolved uptake or nutrient traits",
+        "leaf and root traits",
+        "species composition"
+      ],
+      "support_limitations": [
+        "current AFEX root trait files are community-level plot means",
+        "mycorrhizal type is not currently crosswalked by species to the tree census",
+        "there is no 15N flux measurement in current AFEX register"
+      ],
+      "principal_failure_test": "Does type-conditioned trait prediction improve independent species-level uptake prediction when species identity and functional type are truly observed?",
+      "status": "methodological comparator; AFEX species-level fit not presently supported"
+    },
+    {
+      "model_id": "M6_NO_MEDIATION",
+      "name": "No-mediation / parallel response model",
+      "role": "mandatory_causal_null",
+      "plant_pathways": [
+        "treatment affects root traits and turnover through separate or unmeasured processes"
+      ],
+      "fungal_pathways": [],
+      "carbon_cost": "not represented",
+      "fit_targets": [
+        "out-of-block prediction of later turnover from treatment only",
+        "trait-treatment contrasts"
+      ],
+      "required_data": [
+        "plot assignment",
+        "trait observations",
+        "later process outcomes"
+      ],
+      "principal_failure_test": "Do trait mediators improve held-out prediction after treatment, block, support and temporal alignment?",
+      "status": "required null model; not fit"
+    },
+    {
+      "model_id": "M7_OMITTED_MECHANISM",
+      "name": "Omitted common-cause / model-set inadequacy challenge",
+      "role": "mandatory_open_world_challenge",
+      "plant_pathways": [
+        "registered model pathways plus a hidden or withheld driver"
+      ],
+      "fungal_pathways": [
+        "unobserved guild or functional process"
+      ],
+      "carbon_cost": "unknown",
+      "fit_targets": [
+        "shared residuals across candidate models",
+        "failure under perturbation/transfer"
+      ],
+      "required_data": [
+        "soil pH",
+        "exchangeable cations",
+        "available P",
+        "water status",
+        "fungal community/function",
+        "species composition"
+      ],
+      "principal_failure_test": "Can the ensemble detect that every registered model is wrong in the same direction?",
+      "status": "synthetic open-world challenge; field measurements not yet registered/admitted"
+    }
+  ],
+  "mandatory_rules": [
+    "Do not compare R² values from different ecosystems, response variables, sampling units or validation splits as if they were one leaderboard.",
+    "Use plot as the AFEX treatment assignment unit; cores, roots, point subsamples and repeated campaigns are nested.",
+    "Keep the AFEX as-published analysis separate from any preregistered robustness analysis.",
+    "Treat 0-10 cm AM colonisation and 0-30 cm turnover as different supports.",
+    "Do not identify mycorrhizal organic nutrient acquisition from AM colonisation percentage alone.",
+    "Do not claim fungal carbon cost without direct data or a clearly qualified constraint and carbon budget.",
+    "Do not assume all AFEX plots contain the same tree mycorrhizal guild distribution without species-level evidence.",
+    "Keep an explicit no-mediation model and an omitted-mechanism model in every matched tournament.",
+    "A model with more pathways must beat simpler models on frozen held-out outcomes, not just in-sample fit.",
+    "Report complexity, runtime, parameter identifiability, data needs, posterior/predictive calibration and abstention alongside predictive skill."
+  ],
+  "proposed_benchmark_targets": {
+    "support_refusal": "100% of unsupported species/depth/time joins rejected on frozen adversarial corpus",
+    "baseline_comparison": "all mechanistic models compared with treatment-only, root-only and no-mediation baselines on identical held-out plots",
+    "added_value": "mechanistic pathway family retained only if it improves proper score or decision loss with uncertainty on the paired improvement",
+    "identifiability": "report which pathway fluxes are identifiable; do not infer pathway fractions from colonisation or trait correlations alone",
+    "open_world": "detect at least one withheld common-cause or omitted-pathway synthetic challenge without falsely selecting a more complex registered model",
+    "efficiency": "report CPU/memory/runtime and observation/assay cost per increment in out-of-block predictive skill"
+  }
+}
