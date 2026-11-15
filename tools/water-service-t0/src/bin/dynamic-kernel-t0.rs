@@ -195,7 +195,7 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
         ("OUT_OF_DOMAIN","OPERATING_STATE_OUTSIDE_QUALIFIED_DOMAIN")
     }else if reversal&&!direction_observed{
         ("ABSTAIN_FLOW_DIRECTION_UNOBSERVED","FLOW_REVERSAL_DIRECTION_NOT_MEASURED")
-    }else if temporal_resolution!="sufficient"{
+    }else if minimum_resolvable_delay>minimum_delay_of_interest{
         ("TEMPORAL_RESOLUTION_INADEQUATE","SENSOR_BANDWIDTH_OR_SAMPLING_CANNOT_RESOLVE_KERNEL")
     }else if sensor_state!="calibrated"{
         ("SENSOR_RESPONSE_UNRESOLVED","SENSOR_RESPONSE_CALIBRATION_NOT_AVAILABLE")
@@ -222,6 +222,9 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
             return Ok(base("SENSOR_RESPONSE_UNRESOLVED","MODEL_DISCRIMINATION_REQUIRES_CALIBRATED_SENSOR_RESPONSE"));
         };
         let alternate_measured=convolve_sensor(&alternate,response)?;
+        if text(case,"observation_noise_contract")? != "independent_equal_sigma"{
+            return Ok(base("REJECTED_CONTRACT","MODEL_SEPARATION_REQUIRES_DECLARED_IID_NOISE"));
+        }
         let Some(observation_sigma)=case.get("per_sample_observation_sigma").and_then(Value::as_f64).filter(|x|x.is_finite()&&*x>0.0) else {
             return Ok(base("INVALID_INPUT","MODEL_SEPARATION_NOISE_SCALE_NOT_POSITIVE"));
         };
