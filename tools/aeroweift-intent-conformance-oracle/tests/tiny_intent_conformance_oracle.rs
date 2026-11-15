@@ -128,6 +128,8 @@ fn fully_inside_authorized_volume_is_conforming() {
     assert_eq!(result.possible_outside_ticks, 0);
     assert_eq!(result.unobserved_ticks, 0);
     assert_eq!(result.qualified_observed_ticks, 100);
+    assert_eq!(result.definite_outside_ppm, 0);
+    assert_eq!(result.possible_outside_ppm, 0);
 }
 
 #[test]
@@ -198,6 +200,7 @@ fn fresh_receipt_does_not_make_stale_observed_at_time_fresh() {
         Some(ConformanceReason::StaleObservation),
     );
     assert_eq!(result.unassessable_ticks, 100);
+    assert_eq!(result.possible_outside_ppm, 1_000_000);
     assert_eq!(result.definite_inside_ticks, 0);
     assert!(result.lineage.rejected_observation_ids.contains(&"stale".to_owned()));
 }
@@ -214,6 +217,7 @@ fn last_valid_observation_beyond_contact_timeout_is_contingent() {
     );
     assert_eq!(result.definite_inside_ticks, 20);
     assert_eq!(result.unobserved_ticks, 80);
+    assert_eq!(result.possible_outside_ppm, 800_000);
 }
 
 #[test]
@@ -227,6 +231,7 @@ fn pnt_time_or_surveillance_loss_is_not_conformance() {
         Some(ConformanceReason::PntTimeUnqualified),
     );
     assert_eq!(result.unassessable_ticks, 100);
+    assert_eq!(result.possible_outside_ppm, 1_000_000);
 
     let mut surveillance_bad = observation("surv-bad", 0, 100, (1, 2));
     surveillance_bad.surveillance_qualified = false;
