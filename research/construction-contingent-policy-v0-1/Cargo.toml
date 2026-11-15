@@ -1,0 +1,11 @@
+[package]
+name = "construction-contingent-policy-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+construction-observation-planning-core = { path = "../construction-observation-planning-v0-1" }
+construction-robot-interop-core = { path = "../construction-robot-interop-v0-1" }
+
+[workspace]
