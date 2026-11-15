@@ -1,7 +1,7 @@
 {
   "schema_version": "dynamic-kernel-t0-manifest-v0.1",
   "programme_id": "WATER-MIXING-DYNAMIC-OPERATOR-001",
-  "case_count": 13,
+  "case_count": 14,
   "case_ids": [
     "DK-T0-001-static-zero-delay-limit",
     "DK-T0-002-delayed-outlet-specific-response",
@@ -15,6 +15,7 @@
     "DK-T0-010-negative-kernel-coefficient",
     "DK-T0-011-same-steady-gain-different-delay",
     "DK-T0-012-temporal-resolution-inadequate",
+    "DK-T0-013-partial-outlet-boundary",
     "DK-T0-013-partial-outlet-boundary"
   ]
 }
