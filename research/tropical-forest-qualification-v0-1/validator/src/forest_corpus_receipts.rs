@@ -381,8 +381,15 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                 let prediction = result.predictions.first()
                     .ok_or_else(|| format!("spatial case {case_id} has no predictions"))?;
                 let expected_mass = number_at(comparison, "expected_weighted_mass")?;
-                let expected_radius = comparison.get("expected_radius")
-                    .filter(|value| !value.is_null()).and_then(Value::as_f64);
+                let expected_radius_value = comparison.get("expected_radius")
+                    .ok_or_else(|| format!("comparison for {case_id} missing expected_radius"))?;
+                let expected_radius = if expected_radius_value.is_null() {
+                    None
+                } else {
+                    Some(expected_radius_value.as_f64().ok_or_else(|| {
+                        format!("comparison for {case_id} expected_radius must be number or null")
+                    })?)
+                };
                 let radius_match = match (prediction.radius, expected_radius) {
                     (Some(actual), Some(wanted)) => close_enough(actual, wanted, 1e-12),
                     (None, None) => true,
@@ -415,7 +422,9 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
             .map_err(|error| format!("spatial case {case_id}: {error}"))?;
         let mut passed = unique && result.method_status == method_status;
         let expected = expected.ok_or_else(|| format!("case {case_id} expected object missing"))?;
-        if let Some(wanted) = expected.get("pooled_radius").and_then(Value::as_f64) {
+        if let Some(wanted_value) = expected.get("pooled_radius") {
+            let wanted = wanted_value.as_f64()
+                .ok_or_else(|| format!("case {case_id} pooled_radius must be numeric"))?;
             passed &= result
                 .pooled_radius
                 .is_some_and(|actual| close_enough(actual, wanted, 1e-12));
@@ -462,8 +471,14 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                     && first.radius.is_some_and(|value| close_enough(value, wanted_radius, 1e-12))
                     && close_enough(first.effective_sample_size, wanted_ess, 1e-10);
             } else if ranges.len() == 1 {
-                if let Some(wanted) = expected.get("local_radius") {
-                    let wanted = if wanted.is_null() { None } else { wanted.as_f64() };
+                if let Some(wanted_value) = expected.get("local_radius") {
+                    let wanted = if wanted_value.is_null() {
+                        None
+                    } else {
+                        Some(wanted_value.as_f64().ok_or_else(|| {
+                            format!("case {case_id} local_radius must be number or null")
+                        })?)
+                    };
                     passed &= match (first.radius, wanted) {
                         (Some(actual), Some(wanted)) => close_enough(actual, wanted, 1e-12),
                         (None, None) => true,
@@ -488,12 +503,20 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                             .is_ok_and(|wanted| close_enough(actual, wanted, 1e-12))
                     });
                 }
-                if let Some(wanted) = expected.get("covered").and_then(Value::as_bool) {
-                    passed &= first.covered == Some(wanted);
-                } else if expected.get("covered").is_some_and(Value::is_null) {
-                    passed &= first.covered.is_none();
+                if let Some(wanted_value) = expected.get("covered") {
+                    if wanted_value.is_null() {
+                        passed &= first.covered.is_none();
+                    } else {
+                        let wanted = wanted_value.as_bool().ok_or_else(|| {
+                            format!("case {case_id} covered must be boolean or null")
+                        })?;
+                        passed &= first.covered == Some(wanted);
+                    }
                 }
-                if let Some(wanted) = expected.get("disposition").and_then(Value::as_str) {
+                if let Some(wanted_value) = expected.get("disposition") {
+                    let wanted = wanted_value.as_str().ok_or_else(|| {
+                        format!("case {case_id} disposition must be a string")
+                    })?;
                     passed &= first.status == wanted;
                 }
             }
@@ -551,8 +574,15 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
         }
         let actual = spatial_localization_kernel::global_morans_i(&points, radius)
             .map_err(|error| format!("Moran case {case_id}: {error}"))?;
-        let expected_value = case.get("expected_morans_i")
-            .filter(|value| !value.is_null()).and_then(Value::as_f64);
+        let expected_value_field = case.get("expected_morans_i")
+            .ok_or_else(|| format!("Moran case {case_id} missing expected_morans_i"))?;
+        let expected_value = if expected_value_field.is_null() {
+            None
+        } else {
+            Some(expected_value_field.as_f64().ok_or_else(|| {
+                format!("Moran case {case_id} expected_morans_i must be number or null")
+            })?)
+        };
         let passed = moran_seen.insert(case_id.clone())
             && match (actual, expected_value) {
                 (Some(actual), Some(wanted)) => close_enough(actual, wanted, 1e-12),
