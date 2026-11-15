@@ -1,0 +1,416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/maritime-qualification-scope-v0.1.json",
+  "title": "Maritime qualification scope cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "as_of_utc",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "maritime-qualification-scope-v0.1"
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_KNOWN_TRUTH"
+    },
+    "as_of_utc": {
+      "$ref": "#/$defs/utc"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "format": "date-time"
+    },
+    "stringSet": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dependency_id",
+        "sha256"
+      ],
+      "properties": {
+        "dependency_id": {
+          "enum": [
+            "sensor_topology",
+            "calibration",
+            "timebase",
+            "source_payload",
+            "diagnostic_model",
+            "evaluator",
+            "validation_profile"
+          ]
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha256",
+        "evidence_state",
+        "evidence_class"
+      ],
+      "properties": {
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_state": {
+          "enum": [
+            "QUALIFIED",
+            "UNKNOWN",
+            "NOT_EVALUATED",
+            "UNVERIFIED",
+            "CONFLICTED",
+            "EXPIRED",
+            "STALE",
+            "REVOKED"
+          ]
+        },
+        "evidence_class": {
+          "enum": [
+            "SYNTHETIC_KNOWN_TRUTH",
+            "MEASURED_PHYSICAL",
+            "PUBLISHED_PHYSICAL_DATASET",
+            "SIMULATED",
+            "DERIVED",
+            "MODEL_ARTIFACT",
+            "EVALUATOR_ARTIFACT",
+            "INDEPENDENT_REVIEW"
+          ]
+        },
+        "valid_until_utc": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/utc"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payload_verified": {
+          "type": "boolean"
+        },
+        "independence_status": {
+          "enum": [
+            "INDEPENDENTLY_AUDITED",
+            "SHARED_COMMON_CAUSE",
+            "DERIVED_FROM_OTHER",
+            "NOT_ASSESSED"
+          ]
+        },
+        "review_status": {
+          "enum": [
+            "INDEPENDENTLY_REVIEWED",
+            "STRUCTURAL_ONLY",
+            "NOT_REVIEWED"
+          ]
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qualification_id",
+        "state",
+        "claim_class",
+        "asset_id",
+        "configuration_sha256",
+        "scope_sha256",
+        "valid_from_utc",
+        "valid_until_utc",
+        "operating_regimes",
+        "capability_ids",
+        "retention_suite_sha256",
+        "max_worst_case_regression_pp",
+        "dependencies"
+      ],
+      "properties": {
+        "qualification_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "QUALIFIED",
+            "NOT_QUALIFIED",
+            "EXPIRED",
+            "REVOKED"
+          ]
+        },
+        "claim_class": {
+          "enum": [
+            "SYNTHETIC_CONTRACT",
+            "PHYSICAL_ENGINEERING_CAPABILITY"
+          ]
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "valid_from_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "valid_until_utc": {
+          "$ref": "#/$defs/utc"
+        },
+        "operating_regimes": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "capability_ids": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "retention_suite_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "max_worst_case_regression_pp": {
+          "type": "number",
+          "minimum": 0
+        },
+        "dependencies": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/dependency"
+          }
+        },
+        "required_dependency_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Optional exact prerequisite set for this capability-specific qualification. When omitted, v0.1 retains the legacy requirement for all seven dependency classes.",
+          "items": {
+            "enum": [
+              "sensor_topology",
+              "calibration",
+              "timebase",
+              "source_payload",
+              "diagnostic_model",
+              "evaluator",
+              "validation_profile"
+            ]
+          }
+        }
+      }
+    },
+    "retentionReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "prior_qualification_id",
+        "old_model_sha256",
+        "new_model_sha256",
+        "scope_sha256",
+        "verification_suite_sha256",
+        "evidence_profile_sha256",
+        "review_status",
+        "result",
+        "retained_capability_ids",
+        "tested_regimes",
+        "worst_case_regression_pp",
+        "maximum_allowed_regression_pp",
+        "unknown_fault_rejection_passed",
+        "calibration_retention_passed",
+        "scope_unchanged"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_qualification_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "old_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "new_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verification_suite_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_status": {
+          "enum": [
+            "INDEPENDENTLY_REVIEWED",
+            "STRUCTURAL_ONLY",
+            "NOT_REVIEWED"
+          ]
+        },
+        "result": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "NOT_EVALUATED"
+          ]
+        },
+        "retained_capability_ids": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "tested_regimes": {
+          "$ref": "#/$defs/stringSet"
+        },
+        "worst_case_regression_pp": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_allowed_regression_pp": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unknown_fault_rejection_passed": {
+          "type": "boolean"
+        },
+        "calibration_retention_passed": {
+          "type": "boolean"
+        },
+        "scope_unchanged": {
+          "type": "boolean"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "asset_id",
+        "configuration_sha256",
+        "requested_regime",
+        "dependency_evidence",
+        "model_update_retention_receipt"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "requested_regime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sensor_topology": {
+              "$ref": "#/$defs/evidence"
+            },
+            "calibration": {
+              "$ref": "#/$defs/evidence"
+            },
+            "timebase": {
+              "$ref": "#/$defs/evidence"
+            },
+            "source_payload": {
+              "$ref": "#/$defs/evidence"
+            },
+            "diagnostic_model": {
+              "$ref": "#/$defs/evidence"
+            },
+            "evaluator": {
+              "$ref": "#/$defs/evidence"
+            },
+            "validation_profile": {
+              "$ref": "#/$defs/evidence"
+            }
+          }
+        },
+        "model_update_retention_receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/retentionReceipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "qualification",
+        "request",
+        "expected_disposition"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification": {
+          "$ref": "#/$defs/qualification"
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "expected_disposition": {
+          "enum": [
+            "SUPPORTED",
+            "REQUALIFIED",
+            "REQUALIFICATION_REQUIRED",
+            "OUT_OF_SCOPE",
+            "EXPIRED",
+            "NOT_EVALUATED",
+            "CONFLICTED"
+          ]
+        }
+      }
+    }
+  }
+}
