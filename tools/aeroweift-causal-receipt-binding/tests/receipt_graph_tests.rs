@@ -37,6 +37,7 @@ fn policy() -> VerificationPolicy {
             TrafficClass::CooperativeCrewed,
             TrafficClass::NonCooperativeCrewed,
         ],
+        subject_traffic_class: TrafficClass::CooperativeCrewed,
     }
 }
 
@@ -123,7 +124,20 @@ fn receipt(
         time: time(stage),
         parents,
         required_traffic_classes,
+        traffic_class: None,
     }
+}
+
+fn surveillance_receipt(
+    id: &str,
+    sequence: u64,
+    disposition: ClaimDisposition,
+    traffic_class: TrafficClass,
+    parents: Vec<ParentEdge>,
+) -> Receipt {
+    let mut result = receipt(id, Stage::SurveillanceAssessment, sequence, disposition, parents, None);
+    result.traffic_class = Some(traffic_class);
+    result
 }
 
 fn edge(parent: &Receipt, role: ParentRole) -> ParentEdge {
@@ -179,21 +193,30 @@ fn graph() -> Vec<Receipt> {
         vec![edge(&pnt, R::PntInitialPosition)],
         None,
     );
-    let cooperative = receipt(
-        "surveillance-cooperative",
-        S::SurveillanceAssessment,
+    let cooperative_observation = receipt(
+        "observation-cooperative-track",
+        S::SourceObservation,
         8,
         Q,
-        vec![edge(&profile, R::CoverageProfile)],
+        vec![],
         None,
     );
-    let noncooperative = receipt(
-        "surveillance-noncooperative",
-        S::SurveillanceAssessment,
+    let cooperative = surveillance_receipt(
+        "surveillance-cooperative",
         9,
+        Q,
+        Coop,
+        vec![
+            edge(&profile, R::CoverageProfile),
+            edge(&cooperative_observation, R::SurveillanceObservation),
+        ],
+    );
+    let noncooperative = surveillance_receipt(
+        "surveillance-noncooperative",
+        10,
         NoReport,
+        NonCoop,
         vec![edge(&profile, R::CoverageProfile)],
-        None,
     );
     let conflict = receipt(
         "conflict-screen",
@@ -219,6 +242,7 @@ fn graph() -> Vec<Receipt> {
         reachability,
         cooperative,
         noncooperative,
+        cooperative_observation,
         conflict,
     ]
 }
@@ -237,7 +261,7 @@ fn verify_graph(
 fn positive_control_is_structurally_bound_only() {
     let result = verify_graph(&graph()).expect("positive control should pass");
     assert_eq!(result.disposition, StructuralDisposition::CausallyBoundOnly);
-    assert_eq!(result.receipt_ids.len(), 10);
+    assert_eq!(result.receipt_ids.len(), 11);
     assert!(result.receipt_ids.contains(&"conflict-screen".to_string()));
     assert_eq!(
         result.trust_not_evaluated,
