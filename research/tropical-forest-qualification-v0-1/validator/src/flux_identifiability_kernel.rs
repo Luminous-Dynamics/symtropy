@@ -43,7 +43,10 @@ impl Rational {
         if numerator == 0 {
             return Ok(Self::ZERO);
         }
-        let divisor = gcd(numerator.abs(), denominator);
+        let absolute_numerator = numerator
+            .checked_abs()
+            .ok_or_else(|| "rational absolute-value overflow".to_string())?;
+        let divisor = gcd(absolute_numerator, denominator);
         Ok(Self {
             numerator: numerator / divisor,
             denominator: denominator / divisor,
@@ -248,7 +251,7 @@ fn matrix_at(value: &Value, key: &str, columns: usize) -> Result<Vec<Vec<i64>>, 
             let number = entry.as_i64().ok_or_else(|| {
                 format!("{key}[{row_index}][{column_index}] must be an integer")
             })?;
-            if number.abs() > MAX_ABSOLUTE_COEFFICIENT {
+            if number < -MAX_ABSOLUTE_COEFFICIENT || number > MAX_ABSOLUTE_COEFFICIENT {
                 return Err(format!(
                     "{key}[{row_index}][{column_index}] exceeds coefficient bounds"
                 ));
@@ -337,7 +340,7 @@ fn parse_measurement_options(
                 let coefficient = entry
                     .as_i64()
                     .ok_or_else(|| format!("measurement option {id} row must contain integers"))?;
-                if coefficient.abs() > MAX_ABSOLUTE_COEFFICIENT {
+                if coefficient < -MAX_ABSOLUTE_COEFFICIENT || coefficient > MAX_ABSOLUTE_COEFFICIENT {
                     return Err(format!("measurement option {id} coefficient exceeds bounds"));
                 }
                 Ok(coefficient)
@@ -362,7 +365,9 @@ fn enumerate_designs(
     let subset_count = 1_u32
         .checked_shl(u32::try_from(options.len()).map_err(|_| "too many options")?)
         .ok_or_else(|| "measurement subset count overflow".to_string())?;
-    let mut designs = Vec::with_capacity(subset_count as usize);
+    let subset_capacity = usize::try_from(subset_count)
+        .map_err(|_| "measurement subset count exceeds platform usize".to_string())?;
+    let mut designs = Vec::with_capacity(subset_capacity);
 
     for mask in 0..subset_count {
         let mut matrix = base_matrix.to_vec();
@@ -497,7 +502,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             .collect::<Result<Vec<_>, _>>()?;
         if parsed
             .iter()
-            .any(|value| value.abs() > MAX_ABSOLUTE_COEFFICIENT)
+            .any(|value| *value < -MAX_ABSOLUTE_COEFFICIENT || *value > MAX_ABSOLUTE_COEFFICIENT)
         {
             return Err(format!("nullspace_witnesses[{index}] exceeds coefficient bounds"));
         }
@@ -530,6 +535,10 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
 
     let actual_subset_count = designs.len();
     let actual_optimal_designs = design_summary["optimal_designs"].clone();
+    let expected_full_rank_count_u64 = u64::try_from(expected_full_rank_count)
+        .map_err(|_| "expected full-rank design count exceeds u64".to_string())?;
+    let expected_minimum_count_u64 = u64::try_from(expected_minimum_count)
+        .map_err(|_| "expected minimum measurement count exceeds u64".to_string())?;
     let checks = vec![
         json!({
             "id": "BASE-OPERATOR-RANK-001",
@@ -555,7 +564,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         json!({
             "id": "FULL-RANK-DESIGN-COUNT-001",
             "passed": design_summary["full_rank_design_count"].as_u64()
-                == Some(expected_full_rank_count as u64),
+                == Some(expected_full_rank_count_u64),
             "actual_full_rank_design_count": design_summary["full_rank_design_count"],
             "expected_full_rank_design_count": expected_full_rank_count
         }),
@@ -569,7 +578,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         json!({
             "id": "MINIMUM-MEASUREMENT-COUNT-001",
             "passed": design_summary["minimum_measurement_count"].as_u64()
-                == Some(expected_minimum_count as u64),
+                == Some(expected_minimum_count_u64),
             "actual_minimum_measurement_count": design_summary["minimum_measurement_count"],
             "expected_minimum_measurement_count": expected_minimum_count
         }),
