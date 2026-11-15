@@ -1,0 +1,367 @@
+{
+  "schema_version": "bayesian-excitation-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-BAYESIAN-EXPERIMENT-DESIGN-001",
+  "physical_operator_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "BD-T0-CORPUS-001",
+      "candidates": [
+        {
+          "candidate_state": "ELIGIBLE_BAYESIAN_DESIGN",
+          "reason": null,
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": 0.1643279236348304,
+          "normalized_information_fraction": 0.15959543787099983,
+          "pairwise_bhattacharyya_distances": [
+            [
+              0,
+              0.423159619047619,
+              0.17244342857142858
+            ],
+            [
+              0.423159619047619,
+              0,
+              0.1405809523809524
+            ],
+            [
+              0.17244342857142858,
+              0.1405809523809524,
+              0
+            ]
+          ],
+          "minimum_pairwise_bhattacharyya_distance": 0.1405809523809524,
+          "robust_minimum_rank": 2,
+          "robust_minimum_singular_value": 2.8155390032729035,
+          "average_fisher_information": [
+            [
+              9.78057142857143,
+              -1.773638095238096
+            ],
+            [
+              -1.773638095238096,
+              10.673219047619048
+            ]
+          ],
+          "average_fisher_log_determinant": 4.61753728889705,
+          "worst_case_injected_mass_kg": 1.6,
+          "worst_case_maximum_inlet_mass_flux": 0.5599999999999999,
+          "worst_case_maximum_inlet_slew_kg_s2": 0.5599999999999999,
+          "duration_seconds": 9,
+          "pareto_optimal": true,
+          "selected": true,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-001-orthogonal-pulses"
+        },
+        {
+          "candidate_state": "ROBUSTLY_UNIDENTIFIABLE",
+          "reason": null,
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": 0.30724687061323913,
+          "normalized_information_fraction": 0.29839845697180706,
+          "pairwise_bhattacharyya_distances": [
+            [
+              0,
+              0.996948952380952,
+              0.0552232380952381
+            ],
+            [
+              0.996948952380952,
+              0,
+              0.6442666666666665
+            ],
+            [
+              0.0552232380952381,
+              0.6442666666666665,
+              0
+            ]
+          ],
+          "minimum_pairwise_bhattacharyya_distance": 0.0552232380952381,
+          "robust_minimum_rank": 1,
+          "robust_minimum_singular_value": 0,
+          "average_fisher_information": [
+            [
+              9.78057142857143,
+              9.78057142857143
+            ],
+            [
+              9.78057142857143,
+              9.78057142857143
+            ]
+          ],
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": 1.6,
+          "worst_case_maximum_inlet_mass_flux": 0.5599999999999999,
+          "worst_case_maximum_inlet_slew_kg_s2": 0.5599999999999999,
+          "duration_seconds": 9,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-002-synchronous-pulses"
+        },
+        {
+          "candidate_state": "INSUFFICIENT_BAYESIAN_INFORMATION",
+          "reason": null,
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": 0.0006962917019032955,
+          "normalized_information_fraction": 0.0006762391722184852,
+          "pairwise_bhattacharyya_distances": [
+            [
+              0,
+              0.0016529672619047617,
+              0.0006736071428571429
+            ],
+            [
+              0.0016529672619047617,
+              0,
+              0.0005491443452380953
+            ],
+            [
+              0.0006736071428571429,
+              0.0005491443452380953,
+              0
+            ]
+          ],
+          "minimum_pairwise_bhattacharyya_distance": 0.0005491443452380953,
+          "robust_minimum_rank": 2,
+          "robust_minimum_singular_value": 0.17597118770455647,
+          "average_fisher_information": [
+            [
+              0.038205357142857145,
+              -0.006928273809523812
+            ],
+            [
+              -0.006928273809523812,
+              0.041692261904761906
+            ]
+          ],
+          "average_fisher_log_determinant": -6.472817600062075,
+          "worst_case_injected_mass_kg": 0.1,
+          "worst_case_maximum_inlet_mass_flux": 0.034999999999999996,
+          "worst_case_maximum_inlet_slew_kg_s2": 0.034999999999999996,
+          "duration_seconds": 9,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-003-low-dose-orthogonal"
+        },
+        {
+          "candidate_state": "SENSOR_BANDWIDTH_INADEQUATE",
+          "reason": "FEATURE_PERIOD_FASTER_THAN_PRIOR_SENSOR_RESOLUTION",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-004-high-frequency-unresolvable"
+        },
+        {
+          "candidate_state": "PARTIAL_OUTLET_BOUNDARY",
+          "reason": "ONE_OR_MORE_OUTLET_CHANNELS_NOT_OBSERVED",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-005-partial-outlet"
+        },
+        {
+          "candidate_state": "OPERATIONAL_CONSTRAINT_VIOLATION",
+          "reason": "INJECTION_DOSE_LIMIT_EXCEEDED",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-006-dose-exceeded"
+        },
+        {
+          "candidate_state": "INJECTOR_RESPONSE_UNRESOLVED",
+          "reason": "INJECTOR_CALIBRATION_NOT_AVAILABLE",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-007-uncalibrated-injector"
+        },
+        {
+          "candidate_state": "INJECTOR_RESPONSE_UNRESOLVED",
+          "reason": "COMMAND_ONLY_OR_UNSUPPORTED_WAVEFORM_PROVENANCE",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-008-command-only"
+        },
+        {
+          "candidate_state": "ROBUSTLY_UNIDENTIFIABLE",
+          "reason": null,
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": 0,
+          "normalized_information_fraction": 0,
+          "pairwise_bhattacharyya_distances": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          "minimum_pairwise_bhattacharyya_distance": 0,
+          "robust_minimum_rank": 0,
+          "robust_minimum_singular_value": 0,
+          "average_fisher_information": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": 0,
+          "worst_case_maximum_inlet_mass_flux": 0,
+          "worst_case_maximum_inlet_slew_kg_s2": 0,
+          "duration_seconds": 9,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-009-zero-excitation"
+        },
+        {
+          "candidate_state": "PARTIAL_TEMPORAL_WINDOW",
+          "reason": "COMPLETE_PHYSICAL_AND_SENSOR_TAIL_NOT_INCLUDED",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-010-truncated-window"
+        },
+        {
+          "candidate_state": "SENSOR_RESPONSE_UNRESOLVED",
+          "reason": "SENSOR_CALIBRATION_NOT_AVAILABLE",
+          "prior_entropy_nats": 1.0296530140645737,
+          "mutual_information_lower_bound_nats": null,
+          "normalized_information_fraction": null,
+          "pairwise_bhattacharyya_distances": null,
+          "minimum_pairwise_bhattacharyya_distance": null,
+          "robust_minimum_rank": null,
+          "robust_minimum_singular_value": null,
+          "average_fisher_information": null,
+          "average_fisher_log_determinant": null,
+          "worst_case_injected_mass_kg": null,
+          "worst_case_maximum_inlet_mass_flux": null,
+          "worst_case_maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "BD-T0-011-uncalibrated-sensor"
+        }
+      ]
+    }
+  ]
+}
