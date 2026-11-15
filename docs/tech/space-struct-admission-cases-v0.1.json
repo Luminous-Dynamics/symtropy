@@ -113,7 +113,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-POS-RING-SYNTHETIC-001",
+        "request_generation": "v1",
+        "request_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020",
+        "backend_generation": "0.1.0",
+        "backend_digest": "40404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040"
       },
       "context": {
         "backend_allowlisted": true,
@@ -129,7 +136,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "40404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040404040"
       }
     },
     {
@@ -170,7 +190,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-POS-SPOKE-SYNTHETIC-001",
+        "request_generation": "v1",
+        "request_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "21212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121",
+        "backend_generation": "0.1.0",
+        "backend_digest": "41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141"
       },
       "context": {
         "backend_allowlisted": true,
@@ -186,7 +213,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-SPOKE-REF-001",
+        "current_candidate_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "current_geometry_id": "SPOKE-GEOM-A",
+        "current_geometry_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "current_load_case_id": "LOAD-ROT-SELF",
+        "current_load_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "current_frame_id": "FRAME-SPOKE-RADIAL",
+        "current_frame_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "21212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121212121",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141"
       }
     },
     {
@@ -224,7 +264,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-STALE-GEOMETRY-001",
+        "request_generation": "v1",
+        "request_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "backend_generation": "0.1.0",
+        "backend_digest": "42424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242"
       },
       "context": {
         "backend_allowlisted": true,
@@ -240,7 +287,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "22222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "42424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242"
       }
     },
     {
@@ -275,15 +335,22 @@
         "requested_observables": [
           "TIP_EXTENSION"
         ],
-        "intended_use": "BOUNDED_ENGINEERING_SCREEN",
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
         "material_evidence_state": "REFERENCE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-MATERIAL-GENERIC-001",
+        "request_generation": "v1",
+        "request_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "23232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323",
+        "backend_generation": "0.1.0",
+        "backend_digest": "43434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343"
       },
       "context": {
         "backend_allowlisted": true,
-        "model_maturity": "SOFTWARE_QUALIFIED",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
         "current_candidate_generation": "c1",
         "current_geometry_generation": "g1",
         "current_load_generation": "l1",
@@ -295,7 +362,20 @@
         "material_evidence_state": "REFERENCE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "LUNAR-STRUCTURAL-PRODUCT-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "MEMBER-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-STATIC-A",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-LOCAL-A",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "23232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323232323",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "43434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343"
       }
     },
     {
@@ -333,7 +413,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-UNALLOWLISTED-BACKEND-001",
+        "request_generation": "v1",
+        "request_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "24242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424",
+        "backend_generation": "0.1.0",
+        "backend_digest": "44444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444"
       },
       "context": {
         "backend_allowlisted": false,
@@ -349,7 +436,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "24242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424242424",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "44444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444444"
       }
     },
     {
@@ -390,7 +490,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-UNSUPPORTED-FLEXIBLE-MODES-001",
+        "request_generation": "v1",
+        "request_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "25252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525",
+        "backend_generation": "0.1.0",
+        "backend_digest": "45454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545"
       },
       "context": {
         "backend_allowlisted": true,
@@ -406,14 +513,28 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "25252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525252525",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "45454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545454545"
       }
     },
     {
       "case_id": "NEG-DRAFT-PROFILE-ENGINEERING-USE-001",
       "expected_disposition": "OUT_OF_DOMAIN",
       "expected_reason_codes": [
-        "INTENDED_USE_EXCEEDS_CLAIM_CEILING"
+        "INTENDED_USE_EXCEEDS_CLAIM_CEILING",
+        "DRAFT_PROFILE_RESTRICTED"
       ],
       "request": {
         "candidate_id": "AG-RING-REF-001",
@@ -444,7 +565,14 @@
         "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-DRAFT-PROFILE-ENGINEERING-USE-001",
+        "request_generation": "v1",
+        "request_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "26262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626",
+        "backend_generation": "0.1.0",
+        "backend_digest": "46464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646"
       },
       "context": {
         "backend_allowlisted": true,
@@ -460,60 +588,20 @@
         "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
-      }
-    },
-    {
-      "case_id": "NEG-MISSING-MESH-001",
-      "expected_disposition": "NEEDS_EVIDENCE",
-      "expected_reason_codes": [
-        "MESH_REQUIRED"
-      ],
-      "request": {
-        "candidate_id": "ORBITAL-TRUSS-3D-001",
-        "candidate_generation": "c1",
-        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "geometry_id": "TRUSS-GEOM-A",
-        "geometry_generation": "g1",
-        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "material_id": "TRUSS-MAT-A",
-        "material_generation": "m1",
-        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "load_case_id": "TRUSS-LOAD-A",
-        "load_generation": "l1",
-        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "frame_id": "TRUSS-FRAME-A",
-        "frame_generation": "f1",
-        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "model_profile_id": "FUTURE-3D-FEM-PROFILE",
-        "backend_id": "calculix-pinned-profile",
-        "requested_physics": [
-          "LINEAR_ELASTIC_SOLID"
-        ],
-        "requested_observables": [
-          "DISPLACEMENT"
-        ],
-        "intended_use": "BOUNDED_ENGINEERING_SCREEN",
-        "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
-        "mesh_required": true,
-        "mesh_id": null,
-        "comparison_ref": null
-      },
-      "context": {
-        "backend_allowlisted": true,
-        "model_maturity": "SOFTWARE_QUALIFIED",
-        "current_candidate_generation": "c1",
-        "current_geometry_generation": "g1",
-        "current_load_generation": "l1",
-        "current_frame_generation": "f1",
-        "expected_model_profile_id": "FUTURE-3D-FEM-PROFILE",
-        "expected_backend_id": "calculix-pinned-profile",
-        "accepted_material_id": "TRUSS-MAT-A",
-        "accepted_material_generation": "m1",
-        "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
-        "requires_mesh": true,
-        "expected_mesh_id": "TRUSS-MESH-A",
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "26262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "46464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646"
       }
     },
     {
@@ -552,7 +640,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": "REFERENCE-OTHER-FRAME"
+        "comparison_ref": "REFERENCE-OTHER-FRAME",
+        "request_id": "REQ-NEG-COMPARISON-FRAME-001",
+        "request_generation": "v1",
+        "request_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "28282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828",
+        "backend_generation": "0.1.0",
+        "backend_digest": "48484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848"
       },
       "context": {
         "backend_allowlisted": true,
@@ -568,7 +663,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": "REFERENCE-CURRENT-FRAME"
+        "compatible_comparison_ref": "REFERENCE-CURRENT-FRAME",
+        "current_candidate_id": "AG-SPOKE-REF-001",
+        "current_candidate_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "current_geometry_id": "SPOKE-GEOM-A",
+        "current_geometry_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "current_load_case_id": "LOAD-ROT-SELF",
+        "current_load_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "current_frame_id": "FRAME-SPOKE-RADIAL",
+        "current_frame_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "28282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828282828",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "48484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848484848"
       }
     },
     {
@@ -606,7 +714,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-STALE-LOAD-001",
+        "request_generation": "v1",
+        "request_digest": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "29292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929",
+        "backend_generation": "0.1.0",
+        "backend_digest": "49494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949"
       },
       "context": {
         "backend_allowlisted": true,
@@ -622,7 +737,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "29292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929292929",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "49494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949494949"
       }
     },
     {
@@ -660,7 +788,14 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "mesh_required": false,
         "mesh_id": null,
-        "comparison_ref": null
+        "comparison_ref": null,
+        "request_id": "REQ-NEG-DIGEST-SYNTAX-001",
+        "request_generation": "v1",
+        "request_digest": "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "30303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030",
+        "backend_generation": "0.1.0",
+        "backend_digest": "50505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050"
       },
       "context": {
         "backend_allowlisted": true,
@@ -676,7 +811,20 @@
         "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
         "requires_mesh": false,
         "expected_mesh_id": null,
-        "compatible_comparison_ref": null
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "not-a-digest",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "30303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "50505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050505050"
       }
     }
   ]
