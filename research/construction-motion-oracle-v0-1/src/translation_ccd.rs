@@ -557,16 +557,8 @@ mod tests {
         };
 
         for _ in 0..16 {
-            let moving = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.25,
-            );
-            let obstacle = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.25,
-            );
+            let moving = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.25);
+            let obstacle = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.25);
             let translation = p(next(), next(), next());
             let exact = translating_capsule_vs_capsule(moving, translation, obstacle).unwrap();
 
