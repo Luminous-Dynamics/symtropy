@@ -29,26 +29,23 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install pinned Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: 1.96.0
-          components: rustfmt, clippy
+        run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
 
       - name: Format
-        run: cargo fmt --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --all -- --check
+        run: cargo +1.96.0 fmt --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --all -- --check
 
       - name: Clippy
-        run: cargo clippy --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked --all-targets -- -D warnings
+        run: cargo +1.96.0 clippy --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked --all-targets -- -D warnings
 
       - name: Unit tests
-        run: cargo test --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked --all-targets
+        run: cargo +1.96.0 test --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked --all-targets
 
       - name: Run receipt twice and require deterministic output
         env:
           SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          cargo run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-1.json
-          cargo run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-2.json
+          cargo +1.96.0 run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-1.json
+          cargo +1.96.0 run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-2.json
           cmp ors-dynamic-support-receipt-1.json ors-dynamic-support-receipt-2.json
           mv ors-dynamic-support-receipt-1.json ors-dynamic-support-receipt.json
           rm ors-dynamic-support-receipt-2.json
