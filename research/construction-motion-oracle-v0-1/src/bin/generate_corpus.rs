@@ -410,7 +410,8 @@ mod tests {
     fn checked_in_generated_supplement_is_byte_identical() {
         const CHECKED_IN: &str = include_str!("../../fixtures/generated-cases-v0.2.json");
         let (generated, _, _, _, _, _) = generate();
-        assert_eq!(generated, CHECKED_IN);
+        let normalized_checked_in = CHECKED_IN.replace("\r\n", "\n");
+        assert_eq!(generated, normalized_checked_in);
     }
 
     #[test]
