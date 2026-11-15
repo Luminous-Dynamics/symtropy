@@ -327,8 +327,9 @@ fn solve_small_system(
         }
 
         let pivot = matrix[pivot_col][pivot_col];
-        for col in pivot_col..size {
-            matrix[pivot_col][col] /= pivot;
+        let pivot_row_values = matrix[pivot_col];
+        for value in matrix[pivot_col].iter_mut().skip(pivot_col) {
+            *value /= pivot;
         }
         right[pivot_col] /= pivot;
 
@@ -337,8 +338,12 @@ fn solve_small_system(
                 continue;
             }
             let factor = matrix[row][pivot_col];
-            for col in pivot_col..size {
-                matrix[row][col] -= factor * matrix[pivot_col][col];
+            for (value, pivot_value) in matrix[row]
+                .iter_mut()
+                .skip(pivot_col)
+                .zip(pivot_row_values.iter().skip(pivot_col))
+            {
+                *value -= factor * pivot_value;
             }
             right[row] -= factor * right[pivot_col];
         }
