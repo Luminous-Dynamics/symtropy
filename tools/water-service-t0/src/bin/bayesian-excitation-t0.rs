@@ -443,6 +443,7 @@ fn validate_prior_particles(
         return Err("at least two prior particles are required".into());
     }
     let mut ids = BTreeSet::new();
+    let mut ordered_ids = Vec::with_capacity(particles.len());
     let mut weights = Vec::with_capacity(particles.len());
     let mut actuator_lags = None;
     let mut sensor_lags = None;
@@ -452,6 +453,7 @@ fn validate_prior_particles(
         if !ids.insert(id.to_owned()) {
             return Err("duplicate prior particle identity".into());
         }
+        ordered_ids.push(id.to_owned());
         let weight = number(particle, "prior_weight")?;
         if weight <= 0.0 {
             return Err("prior particle weights must be strictly positive".into());
@@ -534,7 +536,7 @@ fn validate_prior_particles(
     Ok((
         particles.iter().cloned().collect(),
         weights,
-        ids.into_iter().collect(),
+        ordered_ids,
         actuator_lags.unwrap_or(0),
         kernel_lags.unwrap_or(0),
         sensor_lags.unwrap_or(0),
@@ -1370,6 +1372,22 @@ mod tests {
         let mut input = load("input");
         input["prior_particles"][0]["prior_weight"] = json!(0.0);
         assert!(evaluate(&input, &load("oracle"), &load("manifest")).is_err());
+    }
+
+    #[test]
+    fn prior_particle_id_receipt_preserves_weight_and_kernel_order() {
+        let mut input = load("input");
+        input["prior_particles"].as_array_mut().unwrap().reverse();
+        let evaluation = evaluate(&input, &load("oracle"), &load("manifest"))
+            .expect("permuted prior remains structurally valid");
+        assert_eq!(
+            evaluation["prior_particle_ids"],
+            json!([
+                "P-003-alternate-outlet-transfer",
+                "P-002-slower-inlet-response",
+                "P-001-fast-high-transfer"
+            ])
+        );
     }
 
     #[test]
