@@ -131,17 +131,17 @@ pub fn apply_change(
             None
         };
 
-        if let Some((new_status, reason_code)) = next {
-            if claim.status != new_status {
-                transitions.push(Transition {
-                    claim_id: claim.claim_id.clone(),
-                    previous_status: claim.status.clone(),
-                    new_status: new_status.clone(),
-                    reason_code: reason_code.to_owned(),
-                });
-                claim.status = new_status;
-                claim.requalification_evidence_id = None;
-            }
+        if let Some((new_status, reason_code)) = next
+            && claim.status != new_status
+        {
+            transitions.push(Transition {
+                claim_id: claim.claim_id.clone(),
+                previous_status: claim.status.clone(),
+                new_status: new_status.clone(),
+                reason_code: reason_code.to_owned(),
+            });
+            claim.status = new_status;
+            claim.requalification_evidence_id = None;
         }
     }
 
