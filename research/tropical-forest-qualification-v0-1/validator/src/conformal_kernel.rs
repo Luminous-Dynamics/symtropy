@@ -100,7 +100,7 @@ pub fn split_conformal_radius(
     nonconformity_scores: &[f64],
     alpha: f64,
 ) -> Result<Option<f64>, ConformalError> {
-    if !alpha.is_finite() || !(0.0..1.0).contains(&alpha) {
+    if !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
         return Err(ConformalError::InvalidMiscoverage);
     }
     if nonconformity_scores.is_empty() || nonconformity_scores.len() > 1_000_000 {
@@ -435,6 +435,7 @@ mod tests {
     #[test]
     fn zero_miscoverage_and_nonfinite_miscoverage_are_rejected() {
         assert_eq!(split_conformal_radius(&[1.0], 0.0), Err(ConformalError::InvalidMiscoverage));
+        assert_eq!(split_conformal_radius(&[1.0], 1.0), Err(ConformalError::InvalidMiscoverage));
         assert_eq!(split_conformal_radius(&[1.0], f64::NAN), Err(ConformalError::InvalidMiscoverage));
     }
 
