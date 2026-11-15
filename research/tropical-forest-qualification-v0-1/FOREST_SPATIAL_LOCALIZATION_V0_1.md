@@ -75,7 +75,8 @@ This kernel is not an implementation of the full spconform method and must not b
 - areal graph-neighbourhood weighting;
 - spatially varying density-ratio estimation;
 - boundary correction or spatial block-bootstrap uncertainty;
-- Moran's I / residual variograms;
+- residual variograms;
+- Moran's I permutation inference / p-values and analytical expectation adjustment;
 - calibration-set resampling stability;
 - ERT conditional-coverage diagnostics;
 - hierarchical site/region uncertainty.
@@ -130,3 +131,12 @@ Proposed tournament gates, not current results:
 - data-source rights, support, lineage and split leakage remain hard gates.
 
 A synthetic pass would establish only the bounded arithmetic and fail-closed diagnostics. It does not establish conditional coverage, spatial exchangeability, transfer, ecology, or superiority to any external method.
+
+
+## 8. Descriptive residual autocorrelation diagnostic
+
+The Rust module also exposes global_morans_i over signed held-out residuals and a declared metric neighbour radius. It builds symmetric binary distance-neighbour weights, excludes self-weights, and returns the global Moran's I statistic. It returns no statistic when there are no neighbours or residual variance is zero.
+
+Four frozen reference cases cover positive spatial clustering (I = +1), alternating neighbour residuals (I = -1), no-neighbour support and zero residual variance. The statistic is descriptive only. No permutation p-value, multiple-testing correction, boundary correction, or spatial null distribution is implemented. A positive statistic does not by itself establish statistically significant residual dependence.
+
+This is intentionally smaller than spconform's full diagnostics. The next step is to benchmark the statistic and its inferential procedure against the package's Moran's I diagnostics on the same held-out geometry, then add residual variograms and boundary strata if the data justify them.
