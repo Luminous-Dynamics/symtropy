@@ -172,9 +172,6 @@ pub fn validate_scenario(scenario: &Scenario) -> Result<(usize, usize), ModelErr
     if steps == 0 {
         return Err(ModelError::InvalidDuration);
     }
-    if steps > MAX_TIME_STEPS {
-        return Err(ModelError::TooManyTimeSteps);
-    }
     Ok((steps, release_step))
 }
 
@@ -209,11 +206,7 @@ fn derivative(
 }
 
 fn add_scaled(state: &[f64; 6], slope: &[f64; 6], scale: f64) -> [f64; 6] {
-    let mut output = [0.0; 6];
-    for index in 0..6 {
-        output[index] = state[index] + slope[index] * scale;
-    }
-    output
+    std::array::from_fn(|index| state[index] + slope[index] * scale)
 }
 
 fn rk4_step(
@@ -230,12 +223,11 @@ fn rk4_step(
     let stage4 = add_scaled(state, &k3, step_s);
     let k4 = derivative(&stage4, bias_force_n, scenario)?;
 
-    let mut output = [0.0; 6];
-    for index in 0..6 {
-        output[index] = state[index]
+    let output: [f64; 6] = std::array::from_fn(|index| {
+        state[index]
             + (step_s / 6.0)
-                * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index]);
-    }
+                * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
+    });
     if finite(&output) {
         Ok(output)
     } else {
