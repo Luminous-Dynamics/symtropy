@@ -1114,14 +1114,14 @@ mod tests {
     fn threshold_event_brier_score_is_a_proper_probability_score() {
         let out = compute_case(&fixture("inputs")["cases"][28]).expect("Brier score");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
-        assert_eq!(out["brier_score"], 0.09);
+        assert!((out["brier_score"].as_f64().expect("Brier score") - 0.09).abs() < 1.0e-12);
     }
 
     #[test]
     fn brier_reliability_reports_empty_bins_as_null() {
         let out = compute_case(&fixture("inputs")["cases"][29]).expect("Brier reliability");
         assert_eq!(out["sample_count"], 5);
-        assert_eq!(out["brier_score"], 0.0575);
+        assert!((out["brier_score"].as_f64().expect("Brier score") - 0.0575).abs() < 1.0e-12);
         assert_eq!(out["reliability_bins"][0]["sample_count"], 1);
         assert_eq!(out["reliability_bins"][4]["sample_count"], 1);
         assert_eq!(out["reliability_bins"][2]["sample_count"], 1);
