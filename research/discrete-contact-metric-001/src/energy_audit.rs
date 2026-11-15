@@ -565,7 +565,7 @@ mod tests {
             canonical_energy_audit_payload(&input, &result, profile()).unwrap();
         assert_eq!(first, second);
         assert_eq!(first_receipt, second_receipt);
-        assert!(first.starts_with(b"LUMINOUS-ENERGY-AUDIT-V0.1\\0"));
+        assert!(first.starts_with(b"LUMINOUS-ENERGY-AUDIT-V0.1\0"));
 
         let mut changed_input = fixture_with_contact();
         changed_input.external_force[0] += 0.125;
