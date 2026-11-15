@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 pub mod transaction;
+pub mod simulation;
 
 pub const SCHEMA_VERSION: u16 = 1;
 
