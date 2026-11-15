@@ -326,3 +326,8 @@ Nine kernel unit tests plus one top-level dispatch/receipt test are authored. Th
 The Zenodo 14415143 dataset page's setup section links a separate Zenodo software release: [15870478 — DBEN_Eckes_Shephard_et_al v1.0.0](https://zenodo.org/records/15870478). The latter archives the analysis repository code as a separate software object (published MD5 `8a4d79b4a94dc58a67e36d7e7100cee1`). The dataset archive (14415143) and code archive (15870478) must be retrieved and hash-verified separately. The current v1.0.0 R Markdown still refers to 14415142 for the data; that reference remains unresolved and is not substituted for the dataset record.
 
 The GitHub `v1.0.0` tag's inspected helper, format and R Markdown blobs match the inspected `main` versions. The observation processing script named by Zenodo metadata remains unavailable at the declared paths in both tag and main. The software record's visible license field is not populated; the GitHub `LICENSE` is Apache-2.0 for repository code, not an automatic data license.
+
+
+### 15 November 2026 — practical identifiability follow-on
+
+The exact structural result in #5349 is now composed with [#5360 — noise-aware practical flux identifiability](https://github.com/Luminous-Dynamics/symtropy/issues/5360). Its planned tests distinguish full matrix rank from usable information under measurement error, covariance, shared calibration bias and support dependence. It will compare whitened singular spectra/Fisher information with D-/A-/E-optimal and cost-optimal designs, then feed expected decision-loss reduction to #5223. The new lane is specified but not yet implemented; noise values and covariance must remain explicit rather than being invented from absent field measurements.
