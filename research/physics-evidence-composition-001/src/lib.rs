@@ -445,14 +445,10 @@ pub fn compose_evidence(
             let class = receipt
                 .mathematical_evidence_class
                 .ok_or(CompositionErrorV1::MathematicalEvidenceClassMissing)?;
-            // Evidence classes are not a total strength ordering: an exact
-            // finite-group artifact does not prove a continuous Lie-basis
-            // obligation, and an exact polynomial identity is a different
-            // proposition. Formal proof may satisfy the requested class only
-            // because its source claim scope is independently bound above.
-            if class != request.minimum_mathematical_evidence_class
-                && class != MathematicalEvidenceClassV1::FormalProof
-            {
+            // Evidence classes are proposition-specific, not a total
+            // strength ordering. Require an exact class match; a formal proof
+            // of a different proposition must not be substituted silently.
+            if class != request.minimum_mathematical_evidence_class {
                 return Err(CompositionErrorV1::MathematicalEvidenceTooWeak);
             }
         }
@@ -831,20 +827,6 @@ mod tests {
                 &evidence
             ),
             Err(CompositionErrorV1::MathematicalEvidenceTooWeak)
-        );
-    }
-
-    #[test]
-    fn formal_proof_can_satisfy_a_numeric_proposal_requirement_only_in_bound_scope() {
-        let mut evidence = physical_receipts();
-        evidence[0].mathematical_evidence_class =
-            Some(MathematicalEvidenceClassV1::FormalProof);
-        assert!(
-            compose_evidence(
-                &request(CompositionClaimV1::PhysicalStepEquivalence),
-                &evidence
-            )
-            .is_ok()
         );
     }
 
