@@ -223,3 +223,47 @@ The kernel area is constrained to be no greater than one for each inlet. It is n
 The single model-separation case uses an explicit independent/equal-variance observation-noise contract and a per-sample standard deviation. Its Mahalanobis-like Euclidean signal/noise separation is a synthetic discrimination proxy only; it is not expected information gain or posterior model probability.
 
 T0 is discrete arithmetic, not a water solver. Native Rust tests, rustfmt and Clippy require exact-head execution and are not claimed passed by authoring this artifact.
+
+
+## 12. Industry and adjacent SOTA comparison
+
+### Direct junction baseline
+
+Wéber et al. (published online 19 September 2026) is the direct current junction comparator: parametric CFD for cross-junction connection angles and flow distributions, followed by a low-cost regression closure validated against literature experiments. Its supporting data/models are available on reasonable request. The dynamic kernel should not claim superiority without acquiring/reproducing that comparator and using paired physical transients. The paper's declared scope is cross junctions and its studied parameter domain, not a universal dynamic operator.
+
+Source: https://doi.org/10.1061/JHEND8.HYENG-14715
+
+### South African field-model comparator
+
+Luyaba, Biyela and Okedia (2026) compare simplified and more detailed EPANET water-distribution models against field measurements from a Gauteng supply area. The paper reports that additional hydraulic detail improved the accuracy for some measured quality determinants, with model differences in the 5–10% range for the reported field case. This is a valuable local benchmark for network-detail versus prediction-cost trade-offs and a reminder that a physically qualified local operator cannot compensate for a badly simplified hydraulic state. It is not an outlet-resolved junction tracer experiment; its supporting data are available from the corresponding author on request.
+
+Source: https://doi.org/10.1080/1573062X.2025.2589866
+
+### Adjacent transient RTD methodology
+
+A 2026 cavity-transfer-mixer study used planar laser-induced fluorescence to measure RTDs and compared one- and two-parameter back-mixing models. It is an adjacent process-mixer methodology reference, not a water-distribution junction comparator. Its lesson for our protocol is to measure transient response directly and compare parsimonious back-mixing/state-space alternatives rather than assume a kernel's shape.
+
+Source: https://doi.org/10.1016/j.ces.2025.122900
+
+A 2026 tracer-aided hydrology study compared complete, partial and no-mixing assumptions. Multiple assumptions reproduced the calibration observables satisfactorily while differing in their ability to reproduce other observed variables. It reinforces the need for discriminating observations and blind observables; it is watershed-scale isotope modelling, not WDN junction evidence.
+
+Source: https://doi.org/10.1002/hyp.70527
+
+## 13. Implemented synthetic T0 increment
+
+The branch contains:
+- Rust evaluator: `tools/water-service-t0/src/bin/dynamic-kernel-t0.rs`;
+- 14 frozen candidate cases, separate oracle and identity manifest;
+- 19 authored Rust unit tests;
+- exact-revision workflow for format, tests, Clippy, oracle replay and receipt archival.
+
+The discrete causal kernel uses nonnegative coefficients indexed by outlet, inlet and nonnegative lag. It computes physical outlet mass-flux predictions by discrete convolution. A per-outlet sensor-response kernel is then convolved with the physical prediction. Competing hypotheses are compared only after both have passed through the same calibrated sensor response.
+
+The operator retains the static transfer matrix as its zero-delay limit. Kernel area for each inlet cannot exceed one. An area below one is not normalized and remains measured inventory or unresolved residual. Predicted physical and sensor tails outside the observation horizon make the time boundary partial. If sensor response is uncalibrated, observed mass and signed residual are unknown (null), not zero.
+
+Temporal resolution is preflighted with two declared quantities: minimum resolvable delay (derived from sample interval, sensor bandwidth/response and clock alignment) and minimum physical delay of interest. A declared resolvable delay finer than the sample interval is invalid. If the sensor cannot resolve the physical delay of interest, the evaluator abstains from dynamic-kernel use.
+
+The one model-discrimination fixture requires an explicit independent/equal-variance noise contract and a per-sample uncertainty. Its sensor-filtered signal separation is a deterministic synthetic proxy, not expected information gain or posterior model probability.
+
+**Evidence status:** an independent JavaScript numerical mirror generated and checked the 14-case oracle. Native `cargo test`, `cargo fmt` and `cargo clippy` have not been executed in this environment; the exact-head workflow is configured but is not yet evidenced as passing. No physical transient experiment or solver qualification has been performed.
+
