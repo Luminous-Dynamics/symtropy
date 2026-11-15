@@ -658,7 +658,6 @@ mod tests {
 
     #[test]
     fn block_coverage_corpus_emits_digest_bound_pass_receipt() {
-        let manifest: Value = serde_json::from_str(BLOCK_FIXTURE).expect("valid block fixture");
         let receipt = crate::evaluate(BLOCK_FIXTURE.as_bytes())
             .expect("block coverage receipt");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE");
@@ -682,14 +681,13 @@ mod tests {
         let mut manifest: Value = serde_json::from_str(BLOCK_FIXTURE).expect("valid block fixture");
         manifest["cases"][6]["expected_disposition"] = json!("ACCEPT_AS_INDEPENDENT_BLOCKS");
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
-        let receipt = validate_block_coverage_inference(&bytes, &manifest)
+        let receipt = crate::evaluate(&bytes)
             .expect("semantic mutation returns failure receipt");
         assert_eq!(receipt["result"], "FAIL");
     }
 
     #[test]
     fn spatial_localization_corpus_emits_pass_receipt_for_local_failure_and_moran_cases() {
-        let manifest: Value = serde_json::from_str(SPATIAL_FIXTURE).expect("valid spatial fixture");
         let receipt = crate::evaluate(SPATIAL_FIXTURE.as_bytes())
             .expect("spatial receipt");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_SPATIAL_LOCALIZATION");
@@ -726,7 +724,7 @@ mod tests {
             serde_json::from_str(SPATIAL_FIXTURE).expect("valid spatial fixture");
         manifest["moran_i_reference_cases"][0]["expected_morans_i"] = json!(-1.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
-        let receipt = validate_spatial_localization(&bytes, &manifest)
+        let receipt = crate::evaluate(&bytes)
             .expect("semantic mutation returns failure receipt");
         assert_eq!(receipt["result"], "FAIL");
     }
