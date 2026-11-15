@@ -447,8 +447,8 @@ fn solve_spd3(matrix: Matrix3, rhs: Vector3) -> Result<Vector3, MixingErrorV1> {
     for row in 0..3 {
         for column in 0..=row {
             let mut sum = matrix[row][column];
-            for inner in 0..column {
-                sum -= lower[row][inner] * lower[column][inner];
+            for (inner, lower_row) in lower.iter().take(column).enumerate() {
+                sum -= lower[row][inner] * lower_row[column];
             }
             if !sum.is_finite() {
                 return Err(MixingErrorV1::ArithmeticOverflow);
@@ -489,6 +489,10 @@ mod tests {
 
     fn chart() -> NonlinearMixingChartV1 {
         NonlinearMixingChartV1::new(0.75).unwrap()
+    }
+
+    fn dot2(left: Vector2, right: Vector2) -> Result<f64, MixingErrorV1> {
+        finite(left[0] * right[0] + left[1] * right[1])
     }
 
     fn q() -> Vector3 {
@@ -810,13 +814,9 @@ mod tests {
         let jet_y_at_same_q = reparameterized_constraint_jet(q_from_y, mapping).unwrap();
         let jet_y = pullback_constraint_jet_coordinates(jet_y_at_same_q, s).unwrap();
         let expected_j_y = transform_jacobian_coordinates(jet_q.jacobian, s).unwrap();
-        for row in 0..2 {
-            for column in 0..3 {
-                assert_close(
-                    jet_y.jacobian[row][column],
-                    expected_j_y[row][column],
-                    1.0e-14,
-                );
+        for (actual_row, expected_row) in jet_y.jacobian.iter().zip(expected_j_y.iter()) {
+            for (actual, expected) in actual_row.iter().zip(expected_row.iter()) {
+                assert_close(*actual, *expected, 1.0e-14);
             }
         }
 
@@ -896,7 +896,3 @@ mod tests {
     }
 }
 
-#[cfg(test)]
-fn dot2(left: Vector2, right: Vector2) -> Result<f64, MixingErrorV1> {
-    finite(left[0] * right[0] + left[1] * right[1])
-}
