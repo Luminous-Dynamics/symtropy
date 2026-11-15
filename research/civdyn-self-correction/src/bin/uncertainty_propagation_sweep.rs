@@ -388,6 +388,49 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
         ),
     )?;
 
+    let afex_root_negative_covariance = state(
+        "input-afex-root-turnover-negative-covariance",
+        &["root-productivity-normalized", "root-stock-normalized", "ratio-linearization-offset"],
+        &[1.2, 1.0, 1.0],
+        vec![
+            vec![0.04, -0.005, 0.0],
+            vec![-0.005, 0.01, 0.0],
+            vec![0.0, 0.0, 0.0],
+        ],
+        vec![
+            source(
+                "afex-root-productivity",
+                NumericUncertaintyKind::Measurement,
+                "sha256-afex-root-productivity-synthetic",
+                &["root-productivity-normalized"],
+                Some("afex-plot-campaign-synthetic"),
+            ),
+            source(
+                "afex-root-stock",
+                NumericUncertaintyKind::SamplingDesign,
+                "sha256-afex-root-stock-synthetic",
+                &["root-stock-normalized"],
+                Some("afex-plot-campaign-synthetic"),
+            ),
+            source(
+                "afex-root-ratio-linearization",
+                NumericUncertaintyKind::OtherRegisteredNumeric,
+                "sha256-afex-root-ratio-linearization-v1",
+                &["ratio-linearization-offset"],
+                None,
+            ),
+        ],
+    );
+    let afex_root_negative_result = propagate_linear_uncertainty(
+        &afex_root_negative_covariance,
+        &transform(
+            &afex_root_negative_covariance,
+            &["fine-root-turnover-normalized"],
+            vec![vec![1.0, -1.2, 1.2]],
+            "afex-fine-root-turnover-delta-method-negative-covariance",
+        ),
+    )?;
+
     Ok(vec![
         ("correlated_sum_difference", correlated_result),
         ("independent_covariance_ablation", independent_result),
@@ -398,6 +441,7 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
             "afex_root_turnover_zero_covariance_ablation",
             afex_root_independent_result,
         ),
+        ("afex_root_turnover_negative_covariance", afex_root_negative_result),
     ])
 }
 
