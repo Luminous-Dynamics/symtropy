@@ -1127,8 +1127,10 @@ mod tests {
         assert_eq!(out["sample_count"], 5);
         assert!((out["brier_score"].as_f64().expect("Brier score") - 0.0575).abs() < 1.0e-12);
         assert_eq!(out["reliability_bins"][0]["sample_count"], 1);
-        assert_eq!(out["reliability_bins"][4]["sample_count"], 1);
         assert_eq!(out["reliability_bins"][2]["sample_count"], 1);
+        assert_eq!(out["reliability_bins"][3]["sample_count"], 0);
+        assert_eq!(out["reliability_bins"][3]["observed_event_frequency"], Value::Null);
+        assert_eq!(out["reliability_bins"][4]["sample_count"], 2);
     }
 
     #[test]
