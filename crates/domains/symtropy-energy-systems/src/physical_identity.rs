@@ -832,36 +832,38 @@ impl PhysicalIdentityLedger {
         active_owners: &mut BTreeMap<String, BTreeSet<String>>,
         global_diagnostics: &mut BTreeSet<PhysicalIdentityDiagnostic>,
     ) {
-        let state = runtime.get_mut(&event.slot_id).expect("validated slot exists");
+        let slot_id = event.slot_id.as_str();
         match event.event_kind {
             PhysicalEventKind::DesignSlotDeclared => {
-                state.declared = true;
+                runtime.get_mut(slot_id).expect("slot exists").declared = true;
             }
             PhysicalEventKind::UnitDelivered => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
                 let instance = self.instances.get(instance_id).expect("instance validated");
-                if !self.slots[&event.slot_id].accepts(instance) {
-                    push_diagnostic(
-                        runtime,
-                        global_diagnostics,
-                        event,
-                        if self.slots[&event.slot_id]
-                            .accepted_hardware_revisions
-                            .contains_key(&instance.product_id)
-                        {
-                            PhysicalIdentityDiagnosticCode::HardwareRevisionNotAcceptedBySlot
-                        } else {
-                            PhysicalIdentityDiagnosticCode::ProductNotAcceptedBySlot
-                        },
-                        false,
-                    );
+                if !self.slots[slot_id].accepts(instance) {
+                    let code = if self.slots[slot_id]
+                        .accepted_hardware_revisions
+                        .contains_key(&instance.product_id)
+                    {
+                        PhysicalIdentityDiagnosticCode::HardwareRevisionNotAcceptedBySlot
+                    } else {
+                        PhysicalIdentityDiagnosticCode::ProductNotAcceptedBySlot
+                    };
+                    push_diagnostic(runtime, global_diagnostics, event, code, false);
                 } else {
-                    state.delivered.insert(instance_id.clone());
+                    runtime
+                        .get_mut(slot_id)
+                        .expect("slot exists")
+                        .delivered
+                        .insert(instance_id.clone());
                 }
             }
             PhysicalEventKind::IdentityObserved => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
-                if !state.delivered.contains(instance_id) && !state.active.contains_key(instance_id) {
+                let known = runtime.get(slot_id).is_some_and(|state| {
+                    state.delivered.contains(instance_id) || state.active.contains_key(instance_id)
+                });
+                if !known {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
@@ -874,7 +876,12 @@ impl PhysicalIdentityLedger {
             PhysicalEventKind::UnitInstalled => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
                 let instance = self.instances.get(instance_id).expect("instance validated");
-                if !state.delivered.remove(instance_id) {
+                let delivered = runtime
+                    .get_mut(slot_id)
+                    .expect("slot exists")
+                    .delivered
+                    .remove(instance_id);
+                if !delivered {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
@@ -882,29 +889,23 @@ impl PhysicalIdentityLedger {
                         PhysicalIdentityDiagnosticCode::InstallationWithoutDelivery,
                         true,
                     );
-                } else if !self.slots[&event.slot_id].accepts(instance) {
-                    push_diagnostic(
-                        runtime,
-                        global_diagnostics,
-                        event,
-                        if self.slots[&event.slot_id]
-                            .accepted_hardware_revisions
-                            .contains_key(&instance.product_id)
-                        {
-                            PhysicalIdentityDiagnosticCode::HardwareRevisionNotAcceptedBySlot
-                        } else {
-                            PhysicalIdentityDiagnosticCode::ProductNotAcceptedBySlot
-                        },
-                        false,
-                    );
+                } else if !self.slots[slot_id].accepts(instance) {
+                    let code = if self.slots[slot_id]
+                        .accepted_hardware_revisions
+                        .contains_key(&instance.product_id)
+                    {
+                        PhysicalIdentityDiagnosticCode::HardwareRevisionNotAcceptedBySlot
+                    } else {
+                        PhysicalIdentityDiagnosticCode::ProductNotAcceptedBySlot
+                    };
+                    push_diagnostic(runtime, global_diagnostics, event, code, false);
                 } else {
-                    let location_id = event.location_id.as_ref().expect("shape validated");
                     add_assignment(
                         runtime,
                         active_owners,
-                        &event.slot_id,
+                        slot_id,
                         instance_id,
-                        location_id,
+                        event.location_id.as_deref().expect("shape validated"),
                         &instance.configuration_sha256,
                     );
                 }
@@ -912,14 +913,19 @@ impl PhysicalIdentityLedger {
             PhysicalEventKind::UnitRemoved => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
                 let location_id = event.location_id.as_ref().expect("shape validated");
-                let matches = state
-                    .active
-                    .get(instance_id)
-                    .is_some_and(|assignment| assignment.location_id == *location_id);
+                let matches = runtime.get(slot_id).is_some_and(|state| {
+                    state.active.get(instance_id).is_some_and(|assignment| {
+                        assignment.location_id == *location_id
+                    })
+                });
                 if matches {
-                    state.active.remove(instance_id);
+                    runtime
+                        .get_mut(slot_id)
+                        .expect("slot exists")
+                        .active
+                        .remove(instance_id);
                     if let Some(owners) = active_owners.get_mut(instance_id) {
-                        owners.remove(&event.slot_id);
+                        owners.remove(slot_id);
                     }
                 } else {
                     push_diagnostic(
@@ -932,14 +938,13 @@ impl PhysicalIdentityLedger {
                 }
             }
             PhysicalEventKind::UnitReplaced => {
-                let old_id = event
-                    .previous_physical_instance_id
-                    .as_ref()
-                    .expect("shape validated");
+                let old_id = event.previous_physical_instance_id.as_ref().expect("shape validated");
                 let new_id = event.physical_instance_id.as_ref().expect("shape validated");
                 let location_id = event.location_id.as_ref().expect("shape validated");
-                let old_matches = state.active.get(old_id).is_some_and(|assignment| {
-                    assignment.location_id == *location_id
+                let old_matches = runtime.get(slot_id).is_some_and(|state| {
+                    state.active.get(old_id).is_some_and(|assignment| {
+                        assignment.location_id == *location_id
+                    })
                 });
                 if !old_matches {
                     push_diagnostic(
@@ -949,44 +954,50 @@ impl PhysicalIdentityLedger {
                         PhysicalIdentityDiagnosticCode::ReplacementDoesNotMatchActiveAssignment,
                         false,
                     );
-                } else if !state.delivered.remove(new_id) {
-                    push_diagnostic(
-                        runtime,
-                        global_diagnostics,
-                        event,
-                        PhysicalIdentityDiagnosticCode::ReplacementUnitNotDelivered,
-                        true,
-                    );
                 } else {
-                    state.active.remove(old_id);
-                    if let Some(owners) = active_owners.get_mut(old_id) {
-                        owners.remove(&event.slot_id);
-                    }
-                    let new_instance = self.instances.get(new_id).expect("instance validated");
-                    if !self.slots[&event.slot_id].accepts(new_instance) {
+                    let delivered = runtime
+                        .get_mut(slot_id)
+                        .expect("slot exists")
+                        .delivered
+                        .remove(new_id);
+                    if !delivered {
                         push_diagnostic(
                             runtime,
                             global_diagnostics,
                             event,
-                            if self.slots[&event.slot_id]
+                            PhysicalIdentityDiagnosticCode::ReplacementUnitNotDelivered,
+                            true,
+                        );
+                    } else {
+                        runtime
+                            .get_mut(slot_id)
+                            .expect("slot exists")
+                            .active
+                            .remove(old_id);
+                        if let Some(owners) = active_owners.get_mut(old_id) {
+                            owners.remove(slot_id);
+                        }
+                        let new_instance = self.instances.get(new_id).expect("instance validated");
+                        if !self.slots[slot_id].accepts(new_instance) {
+                            let code = if self.slots[slot_id]
                                 .accepted_hardware_revisions
                                 .contains_key(&new_instance.product_id)
                             {
                                 PhysicalIdentityDiagnosticCode::HardwareRevisionNotAcceptedBySlot
                             } else {
                                 PhysicalIdentityDiagnosticCode::ProductNotAcceptedBySlot
-                            },
-                            false,
-                        );
-                    } else {
-                        add_assignment(
-                            runtime,
-                            active_owners,
-                            &event.slot_id,
-                            new_id,
-                            location_id,
-                            &new_instance.configuration_sha256,
-                        );
+                            };
+                            push_diagnostic(runtime, global_diagnostics, event, code, false);
+                        } else {
+                            add_assignment(
+                                runtime,
+                                active_owners,
+                                slot_id,
+                                new_id,
+                                location_id,
+                                &new_instance.configuration_sha256,
+                            );
+                        }
                     }
                 }
             }
@@ -994,41 +1005,46 @@ impl PhysicalIdentityLedger {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
                 let from = event.from_location_id.as_ref().expect("shape validated");
                 let to = event.to_location_id.as_ref().expect("shape validated");
-                if let Some(assignment) = state.active.get_mut(instance_id) {
+                let outcome = if let Some(assignment) = runtime
+                    .get_mut(slot_id)
+                    .and_then(|state| state.active.get_mut(instance_id))
+                {
                     if assignment.location_id == *from {
                         assignment.location_id = to.clone();
                         assignment.inspected = false;
                         assignment.reconciled = false;
+                        None
                     } else {
-                        push_diagnostic(
-                            runtime,
-                            global_diagnostics,
-                            event,
-                            PhysicalIdentityDiagnosticCode::RelocationSourceDoesNotMatch,
-                            false,
-                        );
+                        Some(false)
                     }
                 } else {
+                    Some(true)
+                };
+                if let Some(unknown) = outcome {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
                         event,
                         PhysicalIdentityDiagnosticCode::RelocationSourceDoesNotMatch,
-                        true,
+                        unknown,
                     );
                 }
             }
             PhysicalEventKind::ConfigurationChanged => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
-                let digest = event
-                    .new_configuration_sha256
-                    .as_ref()
-                    .expect("shape validated");
-                if let Some(assignment) = state.active.get_mut(instance_id) {
+                let digest = event.new_configuration_sha256.as_ref().expect("shape validated");
+                let found = if let Some(assignment) = runtime
+                    .get_mut(slot_id)
+                    .and_then(|state| state.active.get_mut(instance_id))
+                {
                     assignment.configuration_sha256 = digest.clone();
                     assignment.inspected = false;
                     assignment.reconciled = false;
+                    true
                 } else {
+                    false
+                };
+                if !found {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
@@ -1041,36 +1057,39 @@ impl PhysicalIdentityLedger {
             PhysicalEventKind::InspectionRecorded => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
                 let location_id = event.location_id.as_ref().expect("shape validated");
-                if let Some(assignment) = state.active.get_mut(instance_id) {
+                let outcome = if let Some(assignment) = runtime
+                    .get_mut(slot_id)
+                    .and_then(|state| state.active.get_mut(instance_id))
+                {
                     if assignment.location_id == *location_id {
                         assignment.inspected = true;
                         assignment.reconciled = false;
+                        None
                     } else {
-                        push_diagnostic(
-                            runtime,
-                            global_diagnostics,
-                            event,
-                            PhysicalIdentityDiagnosticCode::InspectionWithoutActiveAssignment,
-                            true,
-                        );
+                        Some(false)
                     }
                 } else {
+                    Some(true)
+                };
+                if let Some(unknown) = outcome {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
                         event,
                         PhysicalIdentityDiagnosticCode::InspectionWithoutActiveAssignment,
-                        true,
+                        unknown,
                     );
                 }
             }
             PhysicalEventKind::IndependentReconciliationRecorded => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
-                let attestation_ref = event
-                    .review_attestation_ref
-                    .as_ref()
-                    .expect("shape validated");
-                let Some(assignment) = state.active.get(instance_id) else {
+                let attestation_ref = event.review_attestation_ref.as_ref().expect("shape validated");
+                let event_location = event.location_id.as_ref().expect("shape validated");
+                let Some(assignment) = runtime
+                    .get(slot_id)
+                    .and_then(|state| state.active.get(instance_id))
+                    .cloned()
+                else {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
@@ -1080,13 +1099,12 @@ impl PhysicalIdentityLedger {
                     );
                     return;
                 };
-                if !assignment.inspected {
-                    push_diagnostic(
+                if !assignment.inspected || assignment.location_id != *event_location {
+                    push_note(
                         runtime,
                         global_diagnostics,
                         event,
                         PhysicalIdentityDiagnosticCode::ReviewWithoutInspection,
-                        false,
                     );
                     return;
                 }
@@ -1094,12 +1112,12 @@ impl PhysicalIdentityLedger {
                 let scope = ReviewScope {
                     installation_id: self.snapshot.installation_id.clone(),
                     installation_revision: self.snapshot.installation_revision.clone(),
-                    slot_id: event.slot_id.clone(),
+                    slot_id: slot_id.to_owned(),
                     physical_instance_id: instance_id.clone(),
                     product_id: instance.product_id.clone(),
                     hardware_revision: instance.hardware_revision.clone(),
-                    configuration_sha256: assignment.configuration_sha256.clone(),
-                    location_id: assignment.location_id.clone(),
+                    configuration_sha256: assignment.configuration_sha256,
+                    location_id: assignment.location_id,
                     graph_id: self.snapshot.graph_id.clone(),
                     graph_revision: self.snapshot.graph_revision.clone(),
                     graph_payload_sha256: self.snapshot.graph_payload_sha256.clone(),
@@ -1107,18 +1125,17 @@ impl PhysicalIdentityLedger {
                 match review_verifier.verify(attestation_ref, &scope, as_known_at_ms) {
                     ReviewVerification::Valid => {
                         if let Some(assignment) = runtime
-                            .get_mut(&event.slot_id)
-                            .and_then(|slot| slot.active.get_mut(instance_id))
+                            .get_mut(slot_id)
+                            .and_then(|state| state.active.get_mut(instance_id))
                         {
                             assignment.reconciled = true;
                         }
                     }
-                    ReviewVerification::Invalid => push_diagnostic(
+                    ReviewVerification::Invalid => push_note(
                         runtime,
                         global_diagnostics,
                         event,
                         PhysicalIdentityDiagnosticCode::ReviewRejected,
-                        false,
                     ),
                     ReviewVerification::Unknown => push_diagnostic(
                         runtime,
@@ -1129,18 +1146,15 @@ impl PhysicalIdentityLedger {
                     ),
                 }
             }
-            PhysicalEventKind::ConflictDeclared => {
-                push_diagnostic(
-                    runtime,
-                    global_diagnostics,
-                    event,
-                    PhysicalIdentityDiagnosticCode::ExplicitConflictDeclared,
-                    false,
-                );
-            }
+            PhysicalEventKind::ConflictDeclared => push_diagnostic(
+                runtime,
+                global_diagnostics,
+                event,
+                PhysicalIdentityDiagnosticCode::ExplicitConflictDeclared,
+                false,
+            ),
         }
-    }
-}
+    }}
 
 fn add_assignment(
     runtime: &mut BTreeMap<String, SlotRuntime>,
@@ -1169,6 +1183,23 @@ fn add_assignment(
         .entry(instance_id.to_owned())
         .or_default()
         .insert(slot_id.to_owned());
+}
+
+fn push_note(
+    runtime: &mut BTreeMap<String, SlotRuntime>,
+    global: &mut BTreeSet<PhysicalIdentityDiagnostic>,
+    event: &PhysicalEvent,
+    code: PhysicalIdentityDiagnosticCode,
+) {
+    let diagnostic = PhysicalIdentityDiagnostic {
+        code,
+        event_id: event.event_id.clone(),
+        slot_id: event.slot_id.clone(),
+    };
+    if let Some(state) = runtime.get_mut(&event.slot_id) {
+        state.diagnostics.insert(diagnostic.clone());
+    }
+    global.insert(diagnostic);
 }
 
 fn push_diagnostic(
