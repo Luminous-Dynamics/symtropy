@@ -679,7 +679,14 @@ pub fn evaluate_option_set(
 
     let mut decisions_by_tier = BTreeMap::new();
     for (index, decision) in stage_decisions.iter().enumerate() {
-        if OptionTier::ORDERED.get(index).copied() != Some(decision.tier) {
+        let expected_tier = OptionTier::ORDERED
+            .get(index)
+            .copied()
+            .ok_or(OptioneeringError::StageOrderInvalid)?;
+        if decision.tier != expected_tier {
+            if decision.tier > expected_tier {
+                return Err(OptioneeringError::MissingStageDecision(expected_tier));
+            }
             return Err(OptioneeringError::StageOrderInvalid);
         }
         decision.validate(contract)?;
