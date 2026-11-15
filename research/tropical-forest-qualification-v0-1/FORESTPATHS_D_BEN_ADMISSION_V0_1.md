@@ -216,3 +216,17 @@ The Zenodo dataset record is **14415143**. It contains the `model_outputs.zip` a
 The current R Markdown in that GitHub tag still tells the user to download the benchmark data from **14415142**. A direct targeted Zenodo lookup did not resolve that ID to the ForestPaths data archive. Preserve this as an unresolved/stale source-code reference; do not substitute it for 14415143 without evidence. The **14415142 / 14415143 / 15870478** roles should remain distinct in the source register: unexplained Rmd reference, data archive, and code release respectively.
 
 I inspected the GitHub `v1.0.0` tag. Its helper, format and R Markdown blob SHAs match those inspected on main. `Process_observations.R` is still not found at `scripts/Process_observations.R` or repository root in the tag, despite being described as a source script in Zenodo metadata. The code archive and data archive are separate provenance objects and require separate checksums and rights review.
+
+
+## 13. Executable metadata-only admission gate
+
+The machine-readable crosswalk at `cases/forestpaths-dben-source-crosswalk-v0.1.json` is now dispatched by the standalone Rust verifier. Its receipt checks nine model IDs and run mappings, three site equilibrium tables, source blob SHA syntax, quantity-unit declarations, per-model forcing IDs, non-pure composite flux semantics, unique size-class families and separate data/code/Rmd DOI roles. Its successful result is `PASS_SYNTHETIC_FORESTPATHS_CROSSWALK`. This only checks the metadata contract; it does not authenticate the upstream repository or inspect data files.
+
+Run from repository root:
+
+```bash
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forestpaths-dben-source-crosswalk-v0.1.json
+```
+
+Nine kernel tests and one top-level dispatcher/receipt test are authored but unexecuted. The code path is therefore an implemented metadata verifier with independent JavaScript fixture checks, not a tested Rust binary or empirical data admission.
