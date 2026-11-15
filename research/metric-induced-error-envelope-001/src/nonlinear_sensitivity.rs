@@ -591,8 +591,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -781,8 +780,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
         assert_eq!(
             propagate_output_error(
                 &jacobian,
@@ -831,8 +829,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
 
         assert_eq!(
             propagate_output_error(
@@ -856,8 +853,7 @@ mod tests {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
         let jacobian =
-            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]])
-                .unwrap();
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
         let gradient = Cotangent::<DenseY, 1>::new([3.0]).unwrap();
         let receipt = observable_sensitivity(
             &jacobian,
