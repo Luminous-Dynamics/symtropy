@@ -1,0 +1,262 @@
+{
+  "schema_version": "protective-resilience-bridge-cases/0.1",
+  "snapshot_date": "2026-11-15",
+  "evidence_class": "synthetic",
+  "intended_use": "semantic conformance fixtures for connecting the threat portfolio to existing service, robustness, recovery, measurement and VOI owners; not real-world forecasts or measured protection outcomes",
+  "owner_contracts": {
+    "threat_portfolio": "Luminous-Dynamics/symtropy#5433",
+    "service_cascade": "Luminous-Dynamics/symtropy#3894",
+    "cross_scale_resilience": "Luminous-Dynamics/symtropy#3621",
+    "recovery_quality": "Luminous-Dynamics/symtropy#3739",
+    "robust_decision": "Luminous-Dynamics/symtropy#5317",
+    "value_of_information": "Luminous-Dynamics/symtropy#5268",
+    "measurement_as_distribution": "Luminous-Dynamics/symtropy#3731",
+    "power_resilience": "Luminous-Dynamics/symtropy#3418",
+    "electromagnetic_pnt_resilience": "Luminous-Dynamics/symthaea#10775"
+  },
+  "decision_dispositions": [
+    "FEASIBLE",
+    "INFEASIBLE",
+    "ABSTAIN_MISSING_UPSTREAM_EVIDENCE",
+    "ABSTAIN_INCOMPARABLE_SCOPE",
+    "ABSTAIN_UNSUPPORTED_PROBABILITY",
+    "ABSTAIN_DOUBLE_COUNTED_BENEFIT",
+    "MIXED_SERVICE_BUFFER_RECOVERY",
+    "MONITOR_OR_PREPARE",
+    "DEFER_NO_DEDICATED_INVESTMENT"
+  ],
+  "metric_families": {
+    "service": [
+      "minimum_delivered_service_native_unit",
+      "declared_service_floor_native_unit",
+      "time_below_floor",
+      "integrated_service_deficit_native_unit_hours",
+      "sustained_recovery_time",
+      "residual_service_deficit_at_horizon"
+    ],
+    "buffer": [
+      "usable_reserve",
+      "remaining_reserve_fraction",
+      "backup_runtime_or_replenishment_runway",
+      "maintenance_backlog",
+      "repair_capacity",
+      "alternate_source_condition"
+    ],
+    "human_and_environment": [
+      "mandatory_human_safety_floor",
+      "accessibility_and_health_constraints",
+      "ecological_or_physical_stock_condition_when_supported"
+    ],
+    "economics": [
+      "capital_and_installation",
+      "energy",
+      "staff_and_training",
+      "inspection_and_calibration",
+      "maintenance_and_consumables",
+      "spares_and_support",
+      "downtime",
+      "replacement",
+      "decommissioning"
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "WATER_UTILITY_SERVICE_CONTINUITY_001",
+      "context_id": "SYNTHETIC-WATER-UTILITY-01",
+      "description": "A fictional small water utility experiences a bounded electricity and communications service interruption. The fixture tests the mapping from a declared disruption to service continuity and verified restoration evidence.",
+      "hazard_family_ids": [
+        "PNT-COMMS-DIGITAL-DISRUPTION"
+      ],
+      "scenario_semantics": {
+        "type": "BOUNDED_DETERMINISTIC",
+        "event_frequency": "NOT_MODELED",
+        "physical_or_operational_cause": "UNSPECIFIED_SERVICE_INTERRUPTION",
+        "not_a_probability_claim": true
+      },
+      "upstream_contracts": {
+        "service_trajectory": "CIVDYN-CASCADE-001 #3894",
+        "power_dependencies": "POWER-SYSTEM-RESILIENCE-001 #3418",
+        "robust_comparison": "PROTECT-ROBUST-001 #5317",
+        "recovery_quality": "CIVDYN-RES-002 #3739",
+        "backup_evidence_anchor": "NIST SP 1339 (2026)"
+      },
+      "candidate_portfolios": [
+        "PERSISTENCE_NO_NEW_CONTROL",
+        "TESTED_BACKUP_AND_APPROVED_DEGRADED_OPERATION",
+        "SPECIALIZED_CONTROL_WITHOUT_RESTORATION_EVIDENCE"
+      ],
+      "required_outputs": [
+        "service",
+        "buffer",
+        "human_and_environment",
+        "economics",
+        "provenance_receipt"
+      ],
+      "expected_disposition": "ABSTAIN_MISSING_UPSTREAM_EVIDENCE",
+      "expected_invariants": [
+        "A backup is not credited as effective merely because a backup artifact or product exists.",
+        "Restoration evidence must bind to the exact configuration and be exercised or otherwise independently validated.",
+        "Service and buffer recovery remain separate outputs.",
+        "No numeric event probability or expected annualized loss is produced.",
+        "No portfolio ranking is emitted until matched service, lifecycle and provenance receipts exist."
+      ]
+    },
+    {
+      "case_id": "SERVICE_RECOVERED_BUFFER_DEPLETED_002",
+      "context_id": "SYNTHETIC-COMMUNITY-SERVICE-02",
+      "description": "Two candidate policies restore the declared service floor, but one does so while exhausting the reserve required for continued operation.",
+      "hazard_family_ids": [
+        "PNT-COMMS-DIGITAL-DISRUPTION"
+      ],
+      "scenario_semantics": {
+        "type": "BOUNDED_DETERMINISTIC",
+        "event_frequency": "NOT_MODELED",
+        "not_a_probability_claim": true
+      },
+      "upstream_contracts": {
+        "service_trajectory": "CIVDYN-CASCADE-001 #3894",
+        "recovery_quality": "CIVDYN-RES-002 #3739",
+        "measurement": "CIVBENCH-MAD-001 #3731"
+      },
+      "synthetic_state": {
+        "service_floor_status": "PASS",
+        "sustained_service_recovery_status": "PASS",
+        "reserve_condition": "BELOW_DECLARED_RECOVERY_BAND",
+        "maintenance_condition": "UNCHANGED"
+      },
+      "expected_disposition": "MIXED_SERVICE_BUFFER_RECOVERY",
+      "expected_invariants": [
+        "Service restoration is reported as achieved for its declared scope.",
+        "Whole-system recovery is not reported as achieved.",
+        "Reserve depletion remains visible in native units and is not hidden by the service result.",
+        "A second portfolio that preserves both service and reserves is not declared equivalent merely because both cross the service floor."
+      ]
+    },
+    {
+      "case_id": "SHARED_MULTIHAZARD_BENEFIT_SINGLE_CREDIT_003",
+      "context_id": "SYNTHETIC-MULTIHAZARD-SERVICE-03",
+      "description": "One resilient power and communications capability supports several hazard families and services. The same avoided service deficit is referenced by multiple hazard claims.",
+      "hazard_family_ids": [
+        "PNT-COMMS-DIGITAL-DISRUPTION",
+        "EMP-GMD-IEMI",
+        "FIRE-THERMAL-SMOKE"
+      ],
+      "scenario_semantics": {
+        "type": "PAIRED_BOUNDED_SCENARIOS",
+        "event_frequency": "NOT_MODELED",
+        "not_a_probability_claim": true
+      },
+      "shared_capability_id": "RESILIENT-POWER-COMMS",
+      "benefit_claims": [
+        {
+          "claim_id": "SHARED-SERVICE-AVAILABILITY-001",
+          "hazard_family_id": "PNT-COMMS-DIGITAL-DISRUPTION",
+          "shared_capability_id": "RESILIENT-POWER-COMMS"
+        },
+        {
+          "claim_id": "SHARED-SERVICE-AVAILABILITY-001",
+          "hazard_family_id": "EMP-GMD-IEMI",
+          "shared_capability_id": "RESILIENT-POWER-COMMS"
+        },
+        {
+          "claim_id": "SHARED-SERVICE-AVAILABILITY-001",
+          "hazard_family_id": "FIRE-THERMAL-SMOKE",
+          "shared_capability_id": "RESILIENT-POWER-COMMS"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_DOUBLE_COUNTED_BENEFIT",
+      "expected_invariants": [
+        "A shared capability may be linked to multiple hazard families.",
+        "The same beneficiary/service/time benefit is credited once in the portfolio economics.",
+        "A joint portfolio result supersedes the sum of overlapping isolated claims.",
+        "The bridge abstains until overlapping claims are reconciled."
+      ]
+    },
+    {
+      "case_id": "OBSERVATION_NO_DECISION_CHANGE_004",
+      "context_id": "SYNTHETIC-INSPECTION-DECISION-04",
+      "description": "An additional measurement narrows epistemic uncertainty but leaves the feasible set and chosen portfolio unchanged.",
+      "hazard_family_ids": [
+        "FIRE-THERMAL-SMOKE"
+      ],
+      "scenario_semantics": {
+        "type": "PAIRED_INFORMATION_CONDITION",
+        "event_frequency": "UNCHANGED",
+        "not_a_probability_claim": true
+      },
+      "upstream_contracts": {
+        "value_of_information": "PROTECT-VOI-001 #5268",
+        "measurement": "CIVBENCH-MAD-001 #3731",
+        "robust_comparison": "PROTECT-ROBUST-001 #5317"
+      },
+      "synthetic_state": {
+        "mandatory_human_safety_floor": "PASS",
+        "service_floor_status": "PASS",
+        "epistemic_uncertainty": "REDUCED",
+        "feasible_set_changed": false,
+        "selected_portfolio_changed": false,
+        "service_trajectory_changed": false
+      },
+      "expected_disposition": "FEASIBLE",
+      "expected_invariants": [
+        "The observation may receive information-quality credit.",
+        "No avoided service deficit or physical protection benefit is attributed to a measurement that did not change the intervention or outcome.",
+        "The fully burdened observation cost remains in lifecycle economics.",
+        "The VOI owner, not this bridge, computes decision value."
+      ]
+    },
+    {
+      "case_id": "MANDATORY_HUMAN_SAFETY_FLOOR_VIOLATION_005",
+      "context_id": "SYNTHETIC-PROTECTIVE-ASSEMBLY-05",
+      "description": "A candidate has lower lifecycle cost and improved non-safety performance but violates a mandatory human-safety or egress requirement.",
+      "hazard_family_ids": [
+        "FIRE-THERMAL-SMOKE",
+        "PHYSICAL-IMPACT"
+      ],
+      "scenario_semantics": {
+        "type": "SYNTHETIC_REQUIREMENT_CHECK",
+        "event_frequency": "NOT_REQUIRED_FOR_FLOOR_CHECK",
+        "not_a_probability_claim": true
+      },
+      "synthetic_state": {
+        "mandatory_human_safety_floor": "VIOLATED",
+        "lifecycle_cost_attractiveness": "HIGH",
+        "other_objectives": "IMPROVED"
+      },
+      "expected_disposition": "INFEASIBLE",
+      "expected_invariants": [
+        "The candidate is excluded from the feasible portfolio set.",
+        "Cost, service availability or other objective gains cannot compensate for the violated mandatory floor.",
+        "The rejected candidate remains visible in the report with its reason.",
+        "A safer alternative or abstention is required."
+      ]
+    },
+    {
+      "case_id": "UNKNOWN_FREQUENCY_NO_EXPECTED_LOSS_006",
+      "context_id": "SYNTHETIC-LOW-EVIDENCE-THREAT-06",
+      "description": "The event mechanism is discussed but the event frequency and local exposure are not supported by an admitted source.",
+      "hazard_family_ids": [
+        "ADVANCED-HIGH-SPEED-STRIKE",
+        "EXOTIC-PHYSICS-CLAIMS"
+      ],
+      "scenario_semantics": {
+        "type": "EVIDENCE_SCREENING_ONLY",
+        "event_frequency": "UNKNOWN",
+        "exposure": "UNKNOWN",
+        "not_a_probability_claim": true
+      },
+      "requested_outputs": [
+        "expected_annualized_loss",
+        "numeric_probability",
+        "cost_benefit_ratio"
+      ],
+      "expected_disposition": "ABSTAIN_UNSUPPORTED_PROBABILITY",
+      "expected_invariants": [
+        "No numeric probability, expected annualized loss or probability-derived cost-benefit ratio is emitted.",
+        "Evidence maturity, actual exposure and consequence uncertainty remain separate.",
+        "Low-cost general preparedness may be evaluated without asserting an event probability.",
+        "A speculative physical pathway is not converted into a funded specialized requirement."
+      ]
+    }
+  ]
+}

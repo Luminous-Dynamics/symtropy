@@ -70,3 +70,53 @@ serialization, so inconsequential whitespace does not change the digest.
 This crate is intentionally an isolated workspace so it can be tested without
 adding dependencies to Symtropy's main workspace. It uses Rust, serde, serde_json
 and sha2; no Python runtime or network access is needed at evaluation time.
+
+
+## Defensive threat portfolio gate
+
+The `protective-threat-portfolio` binary checks the defensive threat-family
+registry and ten synthetic decision-boundary cases. It does **not** calculate
+real-world probabilities, damage magnitudes, weapon effects or operational
+threat values, and it does not replace the robust optimization owner in
+PROTECT-ROBUST-001.
+
+From the repository root:
+
+```sh
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-threat-portfolio
+```
+
+The gate rejects:
+- speculative exotic-physics claims promoted to dedicated investment without a credible fieldable pathway;
+- numerical event probabilities attached to unknown or ordinal-only likelihood categories;
+- an expected-loss claim derived from ordinal category scores;
+- a decision that trades away a violated hard safety floor;
+- overlapping multi-hazard benefits that have not been reconciled.
+
+Its positive result means only that the qualitative registry and synthetic
+decision-boundary corpus satisfy their declared v0.1 structure and rules. It is
+not a threat forecast, a physical protection qualification or a recommendation
+for a specific real-world installation.
+
+
+## Defensive resilience evidence bridge
+
+The `protective-resilience-bridge` binary validates six synthetic conformance
+cases connecting the threat portfolio to the existing service-cascade,
+cross-scale resilience, recovery-quality, robust-decision, value-of-information
+and measurement owners.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge
+```
+
+The gate checks owner references, hazard-family references, frozen case
+semantics, separate service/buffer recovery, single-credit shared benefits,
+non-compensatory human-safety floors, null service benefit from observations
+that do not change a decision, and abstention when event frequency is unknown.
+Its digest is a canonical JSON-fixture digest, not a physical-evidence receipt.
+The positive result is synthetic contract conformance only.

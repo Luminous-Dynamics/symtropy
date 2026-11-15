@@ -1,0 +1,66 @@
+name: Protective Systems Verifier
+
+on:
+  push:
+    branches:
+      - "research/protect-threat-portfolio-v0-1"
+    paths:
+      - "research/protective-systems/**"
+      - ".github/workflows/protective-systems-verifier.yml"
+  pull_request:
+    branches:
+      - "main"
+      - "research/protective-systems-benchmark-v0-1"
+    paths:
+      - "research/protective-systems/**"
+      - ".github/workflows/protective-systems-verifier.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: protective-systems-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-verifier:
+    name: Protective Systems isolated Rust verifier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache isolated verifier dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            research/protective-systems/verifier -> target
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run all verifier tests
+        run: cargo test --manifest-path research/protective-systems/verifier/Cargo.toml
+
+      - name: Run record-conformance verifier
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier
+
+      - name: Run VOI oracle
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
+
+      - name: Run robust-decision oracle
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
+
+      - name: Run defensive threat-portfolio gate
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-threat-portfolio
+
+      - name: Run defensive resilience-bridge gate
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge

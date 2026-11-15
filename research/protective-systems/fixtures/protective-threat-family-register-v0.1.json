@@ -1,0 +1,421 @@
+{
+  "schema_version": "protective-threat-portfolio/0.1",
+  "snapshot_date": "2026-11-15",
+  "parent_issue": "Luminous-Dynamics/symtropy#5246",
+  "owner_issue": "Luminous-Dynamics/symtropy#5433",
+  "method": {
+    "claim": "qualitative evidence and context register; not a probability model or threat intelligence product",
+    "no_probability_invention": true,
+    "priority_dispositions": [
+      "INVEST_IMPLEMENT",
+      "PILOT_VALIDATE",
+      "MONITOR_PREPARE",
+      "DEFER_NO_DEDICATED_INVESTMENT",
+      "REJECT_INFEASIBLE"
+    ],
+    "dimensions": [
+      "evidence_maturity",
+      "event_frequency_context",
+      "asset_exposure",
+      "consequence_vector",
+      "existing_controls",
+      "uncertainty_class",
+      "mitigation_readiness",
+      "lifecycle_cost",
+      "multi_hazard_cobenefit",
+      "residual_risk"
+    ],
+    "hard_constraints": [
+      "human safety floors cannot be offset by economic benefit",
+      "essential service continuity floors cannot be offset by unrelated objective gains",
+      "unknown likelihood is not zero likelihood",
+      "speculative possibility is not a probability distribution",
+      "no probability or damage magnitude is recorded without a traceable source and context"
+    ]
+  },
+  "families": [
+    {
+      "id": "PHYSICAL-IMPACT",
+      "label": "Conventional impact, fragments, blunt impact and blast",
+      "evidence_maturity": "ESTABLISHED_HAZARD_CLASSES",
+      "event_frequency_context": "context_dependent; occupational, transport, industrial, civil-protection and conflict exposure differ",
+      "potential_consequence": [
+        "human_injury",
+        "vehicle_damage",
+        "structural_damage",
+        "service_disruption"
+      ],
+      "relevant_domains": [
+        "human_worn",
+        "vehicle",
+        "building",
+        "industrial",
+        "habitat"
+      ],
+      "initial_priority": "P1_CONTEXTUAL",
+      "disposition": "INVEST_IMPLEMENT",
+      "candidate_defensive_capabilities": [
+        "independently qualified protective equipment",
+        "structural and occupant protection",
+        "fragment containment and secondary-hazard reduction",
+        "safe egress and emergency medical continuity",
+        "inspection and configuration-bound lifecycle evidence"
+      ],
+      "confidence": "HIGH_FOR_HAZARD_EXISTENCE; LOCAL_FREQUENCY_REQUIRES_CONTEXT",
+      "evidence_refs": [],
+      "limits": [
+        "No weapon design, projectile parameters, target selection or named-system defeat analysis."
+      ]
+    },
+    {
+      "id": "FIRE-THERMAL-SMOKE",
+      "label": "Fire, smoke, heat and thermal incidents",
+      "evidence_maturity": "ESTABLISHED_HAZARD_CLASSES",
+      "event_frequency_context": "common in relevant industrial, transport, energy-storage and building contexts; frequency is site-specific",
+      "potential_consequence": [
+        "human_injury",
+        "loss_of_habitation",
+        "asset_damage",
+        "toxic_smoke_exposure",
+        "service_disruption"
+      ],
+      "relevant_domains": [
+        "human_worn",
+        "vehicle",
+        "building",
+        "industrial",
+        "habitat"
+      ],
+      "initial_priority": "P1_CONTEXTUAL",
+      "disposition": "INVEST_IMPLEMENT",
+      "candidate_defensive_capabilities": [
+        "fire prevention and detection",
+        "compartmentation and passive containment",
+        "safe ventilation and smoke management",
+        "egress and warning",
+        "resilient power and essential-service continuity"
+      ],
+      "confidence": "HIGH_FOR_HAZARD_EXISTENCE; LOCAL_RISK_REQUIRES_CONTEXT",
+      "evidence_refs": [],
+      "limits": [
+        "A material flame test is not whole-assembly fire resistance or life-safety qualification."
+      ]
+    },
+    {
+      "id": "CHEMICAL-BIOLOGICAL",
+      "label": "Industrial chemical releases, contamination and biological emergencies",
+      "evidence_maturity": "ESTABLISHED_HAZARD_CLASSES",
+      "event_frequency_context": "industrial exposure and infectious disease are context-dependent; deliberate weaponized events are a distinct and rarer scenario requiring separate evidence",
+      "potential_consequence": [
+        "acute_health_effects",
+        "contamination",
+        "healthcare_disruption",
+        "water_air_service_disruption"
+      ],
+      "relevant_domains": [
+        "human_worn",
+        "healthcare",
+        "building",
+        "industrial",
+        "habitat"
+      ],
+      "initial_priority": "P1_FOR_EXPOSED_SECTORS_OTHERWISE_P2",
+      "disposition": "INVEST_IMPLEMENT",
+      "candidate_defensive_capabilities": [
+        "hazard detection and monitoring by competent authorities",
+        "shelter and evacuation planning",
+        "validated ventilation and filtration systems",
+        "appropriate certified PPE",
+        "decontamination and medical continuity",
+        "clean/dirty zone separation under approved emergency plans"
+      ],
+      "confidence": "HIGH_FOR_GENERAL_HAZARD_CLASSES; AGENT_AND_EVENT_SPECIFIC_RISK_REQUIRES_PUBLIC_HEALTH_AUTHORITY",
+      "evidence_refs": [
+        "https://www.who.int/publications/i/item/B09740",
+        "https://www.who.int/europe/publications/i/item/WHO-EURO-2025-11046-50818-77024"
+      ],
+      "limits": [
+        "No agent synthesis, dissemination, persistence optimization, exposure optimization or agent-specific operational advice."
+      ]
+    },
+    {
+      "id": "RADIOLOGICAL-NUCLEAR",
+      "label": "Radiological and nuclear emergencies",
+      "evidence_maturity": "ESTABLISHED_HAZARD_CLASS_RARE_HIGH_CONSEQUENCE",
+      "event_frequency_context": "low-frequency/context-specific; event rates must not be invented; accidental, natural and security-related initiators remain distinct",
+      "potential_consequence": [
+        "mass_casualty_potential",
+        "contamination",
+        "long_duration_disruption",
+        "healthcare_overload",
+        "food_water_disruption"
+      ],
+      "relevant_domains": [
+        "healthcare",
+        "building",
+        "industrial",
+        "habitat",
+        "critical_infrastructure"
+      ],
+      "initial_priority": "P2_PREPAREDNESS_P3_SPECIALIZED_CAPEX",
+      "disposition": "MONITOR_PREPARE",
+      "candidate_defensive_capabilities": [
+        "warning and public communication",
+        "preplanned shelter/evacuation decision support",
+        "competent radiation monitoring",
+        "medical and essential-service continuity",
+        "contamination control and recovery planning",
+        "protection of food and water supply"
+      ],
+      "confidence": "HIGH_FOR_NEED_FOR_PREPAREDNESS; LOCAL_EVENT_LIKELIHOOD_AND_SPECIALIZED_HARDENING_REQUIRE_CONTEXT",
+      "evidence_refs": [
+        "https://www.iaea.org/publications/10905/preparedness-and-response-for-a-nuclear-or-radiological-emergency",
+        "https://www.who.int/europe/publications/i/item/WHO-EURO-2025-11046-50818-77024"
+      ],
+      "limits": [
+        "No nuclear weapon design/effects calculation or weapon-specific protective construction advice."
+      ]
+    },
+    {
+      "id": "PNT-COMMS-DIGITAL-DISRUPTION",
+      "label": "PNT, communications, timing and cyber-physical service disruption",
+      "evidence_maturity": "OPERATIONALLY_OBSERVED_AND_GUIDANCE_AVAILABLE",
+      "event_frequency_context": "observed in specific sectors and regions; incident frequency depends on service, receiver, location and operational environment",
+      "potential_consequence": [
+        "navigation_error",
+        "timing_loss",
+        "unsafe_control",
+        "financial_or_transport_disruption",
+        "service_cascade"
+      ],
+      "relevant_domains": [
+        "transport",
+        "industrial",
+        "energy",
+        "communications",
+        "critical_infrastructure",
+        "habitat"
+      ],
+      "initial_priority": "P1_FOR_DEPENDENT_SERVICES",
+      "disposition": "INVEST_IMPLEMENT",
+      "candidate_defensive_capabilities": [
+        "independent source and receiver-health monitoring",
+        "multi-source PNT and timing resilience",
+        "safe degraded modes",
+        "communications diversity and recovery",
+        "cybersecurity and configuration assurance",
+        "operator training and after-action evidence"
+      ],
+      "confidence": "HIGH_FOR_DEPENDENCY_AND_DISRUPTION_RISK; LOCAL_EXPOSURE_REQUIRES_ASSET_CONTEXT",
+      "evidence_refs": [
+        "https://www.cisa.gov/sites/default/files/2024-03/Federal%20Positioning%20Navigation%20and%20Timing%20%28PNT%29%20Services%20Acquisitions%20Guidance%20%28508%29_0.pdf",
+        "https://csrc.nist.gov/pubs/ir/8323/r2/ipd",
+        "https://github.com/Luminous-Dynamics/symthaea/issues/10775"
+      ],
+      "limits": [
+        "Receive-only defensive monitoring and safe continuity only; no jammer/spoofer construction, offensive spectrum activity or attack-path design."
+      ]
+    },
+    {
+      "id": "EMP-GMD-IEMI",
+      "label": "Electromagnetic pulse, geomagnetic disturbance and intentional electromagnetic interference as infrastructure hazards",
+      "evidence_maturity": "NATURAL_HAZARD_AND_ESTABLISHED_ELECTROMAGNETIC_THREAT_CATEGORY",
+      "event_frequency_context": "GMD event frequency differs from deliberate EMP/IEMI; assess separately. Consequence depends on network coupling, equipment and mission duration.",
+      "potential_consequence": [
+        "electronic_equipment_damage",
+        "power_and_communications_disruption",
+        "control_system_loss",
+        "cascading_service_loss"
+      ],
+      "relevant_domains": [
+        "energy",
+        "communications",
+        "industrial",
+        "critical_infrastructure",
+        "habitat"
+      ],
+      "initial_priority": "P1_SELECT_CRITICAL_SERVICES_P2_GENERAL_ASSETS",
+      "disposition": "PILOT_VALIDATE",
+      "candidate_defensive_capabilities": [
+        "mission-tiered protection levels",
+        "qualified surge and interface protection",
+        "equipment redundancy and spare isolation",
+        "segmentation and independent local control",
+        "manual or offline continuity where appropriate",
+        "recovery drills and restoration evidence"
+      ],
+      "confidence": "HIGH_FOR_RESILIENCE_NEED; SPECIFIC_EVENT_RATE_AND_ASSET_SUSCEPTIBILITY_REQUIRE_CONTEXT",
+      "evidence_refs": [
+        "https://www.dhs.gov/science-and-technology/electromagnetic-pulse-empgeomagnetic-disturbance",
+        "https://www.cisa.gov/sites/default/files/publications/19_0307_CISA_EMP-Protection-Resilience-Guidelines.pdf"
+      ],
+      "limits": [
+        "No pulse generation, waveform engineering, coupling optimization or attack simulation."
+      ]
+    },
+    {
+      "id": "DIRECTED-ENERGY-EXPOSURE",
+      "label": "High-energy optical/laser and high-power electromagnetic exposure",
+      "evidence_maturity": "DEMONSTRATED_TECHNOLOGY_WITH_CONTEXT_SPECIFIC_DEPLOYMENT_CONSTRAINTS",
+      "event_frequency_context": "deployment and exposure are mission-specific; do not generalize military demonstrations into ubiquitous civilian risk",
+      "potential_consequence": [
+        "sensor_or_electronics_degradation",
+        "equipment_damage",
+        "operational_interruption",
+        "context_specific_personnel_hazard"
+      ],
+      "relevant_domains": [
+        "communications",
+        "sensors",
+        "transport",
+        "industrial",
+        "critical_infrastructure",
+        "space"
+      ],
+      "initial_priority": "P2_EXPOSED_SENSORS_AND_ELECTRONICS",
+      "disposition": "PILOT_VALIDATE",
+      "candidate_defensive_capabilities": [
+        "equipment-level electromagnetic compatibility and optical safety qualification",
+        "sensor diversity and safe fallback",
+        "qualified enclosures and interface protection",
+        "thermal management and safe shutdown",
+        "redundant data sources and post-event inspection"
+      ],
+      "confidence": "HIGH_FOR_RESEARCH_AND_DEMONSTRATOR_EXISTENCE; OPERATIONAL_EFFECTS_AND_EXPOSURE_ARE_CONTEXT_SPECIFIC",
+      "evidence_refs": [
+        "https://www.everycrsreport.com/files/2026-01-07_IF11882_97aff318dfa7ee420f43e2fc93c0e2a642284ee8.html",
+        "https://www.japcc.org/articles/bringing-directed-energy-weapons-into-focus/"
+      ],
+      "limits": [
+        "No beam parameters, exposure optimization, aiming, range calculations or countermeasure defeat analysis."
+      ]
+    },
+    {
+      "id": "ADVANCED-HIGH-SPEED-STRIKE",
+      "label": "Hypersonic and other advanced high-speed strike as a strategic infrastructure hazard",
+      "evidence_maturity": "DEVELOPMENTAL_AND_STRATEGICALLY_RELEVANT",
+      "event_frequency_context": "system capability maturity, deployment, event likelihood and local exposure are separate unknowns; do not infer one from another",
+      "potential_consequence": [
+        "severe_asset_damage",
+        "loss_of_high_value_service",
+        "recovery_delay",
+        "regional_service_cascade"
+      ],
+      "relevant_domains": [
+        "critical_infrastructure",
+        "energy",
+        "transport",
+        "communications",
+        "healthcare",
+        "habitat"
+      ],
+      "initial_priority": "P2_FOR_CRITICAL_SERVICE_CONTINUITY_P3_SPECIALIZED_COUNTERMEASURES",
+      "disposition": "MONITOR_PREPARE",
+      "candidate_defensive_capabilities": [
+        "distributed service architecture and redundancy",
+        "passive structural risk reduction",
+        "continuity of essential functions",
+        "independent backup power/communications",
+        "recovery capacity and preplanned restoration",
+        "avoidance of single-point critical dependencies"
+      ],
+      "confidence": "HIGH_FOR_ACTIVE_DEVELOPMENT; EFFECTIVE_DEFENCE_AND_COST_CASE_REMAIN_UNCERTAIN",
+      "evidence_refs": [
+        "https://www.everycrsreport.com/files/2026-11-13_IF11105_50a12d74c49e9c88f8f93828fd81a478ce4b9bc3.html",
+        "https://www.gao.gov/products/gao-26-107974"
+      ],
+      "limits": [
+        "No missile/interceptor design, targeting, trajectory analysis or weapon employment advice."
+      ]
+    },
+    {
+      "id": "SPACE-ENVIRONMENT-MMOD",
+      "label": "Micrometeoroid, orbital-debris and space-environment hazards",
+      "evidence_maturity": "MEASURED_ENVIRONMENT_WITH_ESTABLISHED_ENGINEERING_PRACTICE",
+      "event_frequency_context": "small particle impacts occur during spacecraft operation; damaging risk depends on orbit, mission duration, geometry and component criticality",
+      "potential_consequence": [
+        "pressurized_volume_damage",
+        "spacecraft_subsystem_loss",
+        "mission_interruption",
+        "crew_safety_risk"
+      ],
+      "relevant_domains": [
+        "spacecraft",
+        "space_habitat",
+        "orbital_infrastructure"
+      ],
+      "initial_priority": "P1_FOR_SPACECRAFT_AND_HABITATS",
+      "disposition": "INVEST_IMPLEMENT",
+      "candidate_defensive_capabilities": [
+        "mission-specific debris environment assessment",
+        "mass-efficient passive shielding",
+        "critical-component placement and redundancy",
+        "inspection and leak/pressure monitoring",
+        "repairability and safe-haven/egress planning"
+      ],
+      "confidence": "HIGH_FOR_HAZARD_AND_ENGINEERING_RELEVANCE; FLUX/PROBABILITY_REQUIRES_ORBIT_AND_MISSION_CONTEXT",
+      "evidence_refs": [
+        "https://www.nasa.gov/meteoroid-environment-office/overview/",
+        "https://orbitaldebris.jsc.nasa.gov/faq/",
+        "https://orbitaldebris.jsc.nasa.gov/protection/"
+      ],
+      "limits": [
+        "Use space-environment models and published test evidence; no hostile orbital weapon design or engagement modelling."
+      ]
+    },
+    {
+      "id": "EXOTIC-PHYSICS-CLAIMS",
+      "label": "Antimatter devices, microscopic black holes, strangelets, vacuum-energy devices and other exotic-physics weapon claims",
+      "evidence_maturity": "SPECULATIVE_NO_CREDIBLE_FIELDABLE_PATH_ESTABLISHED",
+      "event_frequency_context": "no defensible event-frequency model; do not translate theoretical discussion into likelihood",
+      "potential_consequence": [
+        "hypothetical_extreme_consequence_not_engineeringly_quantified"
+      ],
+      "relevant_domains": [
+        "research_watchlist"
+      ],
+      "initial_priority": "P4_MONITOR_ONLY",
+      "disposition": "DEFER_NO_DEDICATED_INVESTMENT",
+      "candidate_defensive_capabilities": [
+        "monitor peer-reviewed scientific developments",
+        "require independent evidence of a credible physical and engineering pathway before reassessment",
+        "retain general emergency resilience measures with ordinary multi-hazard value"
+      ],
+      "confidence": "HIGH_THAT_NO_CURRENT_PUBLIC_EVIDENCE_ESTABLISHES_A_FIELDABLE_PROTECTIVE_REQUIREMENT; NOT_A_CLAIM_OF_LOGICAL_IMPOSSIBILITY",
+      "evidence_refs": [],
+      "limits": [
+        "No device design, energy estimates, construction, triggering, handling or damage calculation. The register does not treat scientific speculation as a practical threat."
+      ]
+    }
+  ],
+  "cross_cutting_priority": [
+    {
+      "id": "RESILIENT-POWER-COMMS",
+      "label": "Resilient power, timing and communications",
+      "rationale": "Supports continuity under grid outage, GMD/EMP-related disruption, cyber-physical incidents, PNT loss and compound disasters.",
+      "disposition": "INVEST_IMPLEMENT",
+      "note": "Use existing power resilience and EMSR owners; no new parallel control stack."
+    },
+    {
+      "id": "SHELTER-DETECTION-CONTINUITY",
+      "label": "Detection, warning, safe sheltering and healthcare continuity",
+      "rationale": "Supports fire/smoke, industrial releases, infectious disease, radiological emergency and broader disasters.",
+      "disposition": "INVEST_IMPLEMENT",
+      "note": "Use competent public-health, fire, building and emergency-management requirements."
+    },
+    {
+      "id": "CONFIGURATION-EVIDENCE",
+      "label": "Exact configuration, inspection and lifecycle provenance",
+      "rationale": "Prevents evidence from being carried across unreviewed changes to materials, assemblies, sensors, enclosures and repairs.",
+      "disposition": "INVEST_IMPLEMENT",
+      "note": "Compose Mycelix manufacturing and qualification owners."
+    },
+    {
+      "id": "SERVICE-RECOVERY",
+      "label": "Distributed essential services and recovery capability",
+      "rationale": "Reduces dependence on a single protective asset and helps recover after hazards that cannot be fully prevented.",
+      "disposition": "INVEST_IMPLEMENT",
+      "note": "Compose PROTECT-ROBUST and CIVDYN-CASCADE."
+    }
+  ]
+}
