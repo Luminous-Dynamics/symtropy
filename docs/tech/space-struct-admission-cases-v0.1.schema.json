@@ -1,0 +1,670 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/space-struct-admission-cases-v0.1.schema.json",
+  "title": "Space Structural Admission v0.1 conformance cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_set_id",
+    "claim_ceiling",
+    "warning",
+    "authority_partition",
+    "dispositions",
+    "evidence_states",
+    "intended_uses",
+    "model_profiles",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "space-struct-admission/0.1"
+    },
+    "case_set_id": {
+      "const": "SPACE-STRUCT-ADMISSION-v0.1"
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_REQUEST_ADMISSION_ONLY"
+    },
+    "warning": {
+      "type": "string",
+      "minLength": 40
+    },
+    "authority_partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposal_owner",
+        "admission_owner",
+        "execution_owner",
+        "verification_owner",
+        "physical_validation",
+        "release_authority"
+      ],
+      "properties": {
+        "proposal_owner": {
+          "const": "SYTHAEA_DESIGN_PROPOSAL"
+        },
+        "admission_owner": {
+          "const": "SYMTROPY_RECEIVING_ADAPTER"
+        },
+        "execution_owner": {
+          "const": "SEPARATE_ALLOWLISTED_EXECUTOR"
+        },
+        "verification_owner": {
+          "const": "INDEPENDENT_VERIFIER"
+        },
+        "physical_validation": {
+          "const": "INDEPENDENT_MEASUREMENT_REQUIRED"
+        },
+        "release_authority": {
+          "const": "COMPETENT_HUMAN_AUTHORITY"
+        }
+      }
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "enum": [
+          "ADMISSIBLE_RESTRICTED",
+          "NEEDS_EVIDENCE",
+          "OUT_OF_DOMAIN",
+          "REJECT",
+          "NOT_COMPARABLE"
+        ]
+      }
+    },
+    "evidence_states": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "enum": [
+          "ANALYTICAL_FIXTURE_ONLY",
+          "BATCH_QUALIFIED_FOR_PROFILE",
+          "REFERENCE_ONLY",
+          "UNRESOLVED",
+          "REJECTED"
+        ]
+      }
+    },
+    "intended_uses": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "enum": [
+          "SYNTHETIC_REFERENCE_CHECK",
+          "BOUNDED_ENGINEERING_SCREEN",
+          "PHYSICAL_QUALIFICATION"
+        ]
+      }
+    },
+    "model_profiles": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/modelProfile"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "generation",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "modelProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_version",
+        "family",
+        "source_repository",
+        "source_commit",
+        "source_status",
+        "maturity",
+        "max_intended_use",
+        "supported_physics",
+        "supported_observables",
+        "requires_mesh",
+        "physical_validation"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "THIN_UNIFORM_ROTATING_RING",
+            "UNIFORM_RADIAL_SPOKE"
+          ]
+        },
+        "source_repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_status": {
+          "const": "DRAFT_PULL_REQUEST"
+        },
+        "maturity": {
+          "const": "DRAFT_ANALYTICAL_REFERENCE"
+        },
+        "max_intended_use": {
+          "const": "SYNTHETIC_REFERENCE_CHECK"
+        },
+        "supported_physics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "supported_observables": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requires_mesh": {
+          "type": "boolean"
+        },
+        "physical_validation": {
+          "const": "UNRESOLVED"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "candidate_generation",
+        "candidate_digest",
+        "geometry_id",
+        "geometry_generation",
+        "geometry_digest",
+        "material_id",
+        "material_generation",
+        "material_digest",
+        "load_case_id",
+        "load_generation",
+        "load_digest",
+        "frame_id",
+        "frame_generation",
+        "frame_digest",
+        "model_profile_id",
+        "backend_id",
+        "requested_physics",
+        "requested_observables",
+        "intended_use",
+        "material_evidence_state",
+        "mesh_required",
+        "mesh_id",
+        "comparison_ref",
+        "request_id",
+        "request_generation",
+        "request_digest",
+        "model_profile_generation",
+        "model_profile_digest",
+        "backend_generation",
+        "backend_digest",
+        "mission",
+        "process_batch",
+        "model_source_repository",
+        "model_source_commit",
+        "model_maturity"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "material_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "load_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "load_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "load_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_physics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requested_observables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "intended_use": {
+          "enum": [
+            "SYNTHETIC_REFERENCE_CHECK",
+            "BOUNDED_ENGINEERING_SCREEN",
+            "PHYSICAL_QUALIFICATION"
+          ]
+        },
+        "material_evidence_state": {
+          "enum": [
+            "ANALYTICAL_FIXTURE_ONLY",
+            "BATCH_QUALIFIED_FOR_PROFILE",
+            "REFERENCE_ONLY",
+            "UNRESOLVED",
+            "REJECTED"
+          ]
+        },
+        "mesh_required": {
+          "type": "boolean"
+        },
+        "mesh_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "comparison_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model_profile_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_profile_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "backend_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mission": {
+          "$ref": "#/$defs/reference"
+        },
+        "process_batch": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_source_repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "model_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "model_maturity": {
+          "enum": [
+            "DRAFT_ANALYTICAL_REFERENCE",
+            "SOFTWARE_QUALIFIED"
+          ]
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend_allowlisted",
+        "model_maturity",
+        "current_candidate_generation",
+        "current_geometry_generation",
+        "current_load_generation",
+        "current_frame_generation",
+        "expected_model_profile_id",
+        "expected_backend_id",
+        "accepted_material_id",
+        "accepted_material_generation",
+        "material_evidence_state",
+        "requires_mesh",
+        "expected_mesh_id",
+        "compatible_comparison_ref",
+        "current_candidate_id",
+        "current_candidate_digest",
+        "current_geometry_id",
+        "current_geometry_digest",
+        "current_load_case_id",
+        "current_load_digest",
+        "current_frame_id",
+        "current_frame_digest",
+        "accepted_material_digest",
+        "expected_model_profile_version",
+        "expected_model_profile_digest",
+        "expected_backend_generation",
+        "expected_backend_digest",
+        "qualified_model_profile_id",
+        "current_mission",
+        "accepted_process_batch",
+        "expected_model_source_repository",
+        "expected_model_source_commit",
+        "expected_model_maturity"
+      ],
+      "properties": {
+        "backend_allowlisted": {
+          "type": "boolean"
+        },
+        "model_maturity": {
+          "enum": [
+            "DRAFT_ANALYTICAL_REFERENCE",
+            "SOFTWARE_QUALIFIED"
+          ]
+        },
+        "current_candidate_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_geometry_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_load_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_frame_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_model_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_backend_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accepted_material_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accepted_material_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_evidence_state": {
+          "enum": [
+            "ANALYTICAL_FIXTURE_ONLY",
+            "BATCH_QUALIFIED_FOR_PROFILE",
+            "REFERENCE_ONLY",
+            "UNRESOLVED",
+            "REJECTED"
+          ]
+        },
+        "requires_mesh": {
+          "type": "boolean"
+        },
+        "expected_mesh_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "compatible_comparison_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_candidate_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "current_geometry_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_geometry_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "current_load_case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_load_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "current_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_frame_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "accepted_material_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expected_model_profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_model_profile_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "expected_backend_generation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_backend_digest": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "qualified_model_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_mission": {
+          "$ref": "#/$defs/reference"
+        },
+        "accepted_process_batch": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reference"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_model_source_repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "expected_model_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "expected_model_maturity": {
+          "enum": [
+            "DRAFT_ANALYTICAL_REFERENCE",
+            "SOFTWARE_QUALIFIED"
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "expected_disposition",
+        "expected_reason_codes",
+        "request",
+        "context"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+        },
+        "expected_disposition": {
+          "enum": [
+            "ADMISSIBLE_RESTRICTED",
+            "NEEDS_EVIDENCE",
+            "OUT_OF_DOMAIN",
+            "REJECT",
+            "NOT_COMPARABLE"
+          ]
+        },
+        "expected_reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          }
+        },
+        "request": {
+          "$ref": "#/$defs/request"
+        },
+        "context": {
+          "$ref": "#/$defs/context"
+        }
+      }
+    }
+  }
+}

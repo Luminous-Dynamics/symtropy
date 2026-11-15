@@ -1,0 +1,37 @@
+name: Space Structural Admission
+
+on:
+  push:
+    branches:
+      - research/space-struct-admission-v0-1
+    paths:
+      - "tools/space-struct-admission/**"
+      - ".github/workflows/space-struct-admission.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tools/space-struct-admission/**"
+      - ".github/workflows/space-struct-admission.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  admission:
+    name: dry-run-admission
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --manifest-path tools/space-struct-admission/Cargo.toml --all -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/space-struct-admission/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Unit tests
+        run: cargo test --manifest-path tools/space-struct-admission/Cargo.toml --locked --all-targets
