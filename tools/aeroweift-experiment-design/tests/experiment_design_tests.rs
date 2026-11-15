@@ -1,6 +1,6 @@
 use aeroweift_experiment_design::{
     AuthorizationState, DesignDisposition, ExperimentCandidate, ExperimentDesignPolicy,
-    ExperimentModality, ExperimentObjective, HypothesisGroup, RejectionReason, ResourceBudget,
+    ExperimentModality, ExperimentObjective, HypothesisContrast, HypothesisGroup, RejectionReason, ResourceBudget,
     ResourceCost, SemanticEquivalence, SelectionEvidenceRole, select_experiments,
 };
 
@@ -20,6 +20,8 @@ fn policy() -> ExperimentDesignPolicy {
         minimum_decision_relevance: 0.40,
         minimum_worst_case_robust_reduction: 0.20,
         minimum_model_discrimination: 0.30,
+        minimum_pair_separation: 0.20,
+        minimum_distinct_hypothesis_group_pairs: 1,
         maximum_probability_uninformative: 0.80,
         minimum_estimate_confidence_level: 0.95,
         required_estimator_build_sha256: digest('e'),
@@ -64,6 +66,12 @@ fn candidate(id: &str) -> ExperimentCandidate {
             HypothesisGroup { hypothesis_id: "hypothesis-a".into(), hypothesis_sha256: digest('8'), group_id: "model-family-a".into() },
             HypothesisGroup { hypothesis_id: "hypothesis-b".into(), hypothesis_sha256: digest('9'), group_id: "model-family-b".into() },
         ],
+        hypothesis_contrasts: vec![HypothesisContrast {
+            left_hypothesis_id: "hypothesis-a".into(),
+            right_hypothesis_id: "hypothesis-b".into(),
+            separation_lower_bound: 0.60,
+            contrast_estimate_sha256: digest('a'),
+        }],
         expected_uncertainty_reduction: 0.70,
         expected_model_discrimination: 0.80,
         worst_case_robust_reduction: 0.50,
@@ -304,6 +312,7 @@ fn parameter_identification_does_not_require_two_independent_model_families() {
         hypothesis_sha256: digest('8'),
         group_id: "one-model-family".into(),
     }];
+    parameter_test.hypothesis_contrasts.clear();
     parameter_test.expected_model_discrimination = 0.0;
 
     let result = select_experiments(&[parameter_test], &parameter_policy).unwrap();
@@ -537,6 +546,7 @@ fn reference_dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) 
             && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
             && left.decision_relevance >= right.decision_relevance
             && left.probability_uninformative <= right.probability_uninformative
+            && left.cost_units <= right.cost_units
             && l.setup_minutes <= r.setup_minutes
             && l.facility_minutes <= r.facility_minutes
             && l.cpu_seconds <= r.cpu_seconds
@@ -549,6 +559,7 @@ fn reference_dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) 
             || left.worst_case_robust_reduction > right.worst_case_robust_reduction
             || left.decision_relevance > right.decision_relevance
             || left.probability_uninformative < right.probability_uninformative
+            || left.cost_units < right.cost_units
             || l.setup_minutes < r.setup_minutes
             || l.facility_minutes < r.facility_minutes
             || l.cpu_seconds < r.cpu_seconds
@@ -660,4 +671,62 @@ fn removing_an_affirmative_gate_receipt_cannot_improve_admissibility() {
     let result = select_experiments(&[candidate], &policy()).unwrap();
     assert!(result.pareto_front.is_empty());
     assert!(reason(&result, "receipt-deletion").contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+
+#[test]
+fn model_discrimination_without_explicit_pair_contrast_is_rejected() {
+    let mut candidate = candidate("missing-contrast");
+    candidate.hypothesis_contrasts.clear();
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "missing-contrast")
+        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+}
+
+#[test]
+fn within_family_contrast_cannot_claim_independent_model_discrimination() {
+    let mut candidate = candidate("same-family-contrast");
+    candidate.hypothesis_groups[1].group_id = "model-family-a".into();
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "same-family-contrast")
+        .contains(&RejectionReason::InvalidHypothesisContrast));
+    assert!(reason(&result, "same-family-contrast")
+        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+}
+
+#[test]
+fn low_pairwise_separation_is_not_counted_as_discrimination() {
+    let mut candidate = candidate("weak-pair-separation");
+    candidate.hypothesis_contrasts[0].separation_lower_bound = 0.19;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "weak-pair-separation")
+        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+}
+
+#[test]
+fn duplicate_hypothesis_identity_is_rejected() {
+    let mut candidate = candidate("duplicate-hypothesis");
+    candidate.hypothesis_groups[1].hypothesis_id = "hypothesis-a".into();
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "duplicate-hypothesis")
+        .contains(&RejectionReason::InvalidHypothesisContrast));
+}
+
+#[test]
+fn one_model_artifact_cannot_be_relabelled_as_two_independent_groups() {
+    let mut candidate = candidate("same-digest-two-groups");
+    candidate.hypothesis_groups[1].hypothesis_sha256 = digest('8');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "same-digest-two-groups")
+        .contains(&RejectionReason::InvalidHypothesisContrast));
+}
+
+#[test]
+fn zero_budget_dimension_is_a_valid_hard_constraint() {
+    let mut frozen = policy();
+    frozen.resource_budget.facility_minutes = 0;
+    let mut simulation = candidate("no-facility-budget");
+    simulation.resource_cost.facility_minutes = 0;
+    let result = select_experiments(&[simulation], &frozen).unwrap();
+    assert_eq!(result.pareto_front.len(), 1);
 }
