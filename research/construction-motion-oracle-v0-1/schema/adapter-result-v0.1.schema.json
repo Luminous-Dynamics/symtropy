@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-motion-adapter-result-v0.1.json",
+  "title": "Construction Motion Collision Adapter Result v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "case_sha256",
+    "backend",
+    "scene",
+    "query",
+    "result_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-motion-adapter-result/0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend_name"
+      ],
+      "properties": {
+        "backend_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend_commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "build_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "ros_distribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "collision_plugin": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "robot_model_sha256",
+        "obstacle_set_sha256",
+        "frame_id",
+        "transform_sha256",
+        "trajectory_sha256",
+        "collision_matrix_sha256"
+      ],
+      "properties": {
+        "robot_model_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tool_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "payload_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "obstacle_set_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "trajectory_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "collision_matrix_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "interpolation_profile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "margin_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "scope"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "DISCRETE",
+            "LVS_DISCRETE",
+            "LVS_CONTINUOUS",
+            "CONTINUOUS",
+            "ANALYTIC"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "robot_world",
+            "self_collision",
+            "both",
+            "analytic"
+          ]
+        },
+        "longest_valid_segment_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "contact_tolerance_mm": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "result_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNRESOLVED",
+        "NOT_RUN"
+      ]
+    },
+    "not_run_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "collision_found": {
+          "type": "boolean"
+        },
+        "minimum_distance_mm": {
+          "type": "number"
+        },
+        "true_positive": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_positive": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_negative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "true_negative": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latency_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "broad_phase_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "narrow_phase_queries": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "raw_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

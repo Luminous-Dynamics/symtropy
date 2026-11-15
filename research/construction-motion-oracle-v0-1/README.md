@@ -17,6 +17,8 @@ The semicircle case is deliberately adversarial: its endpoint chord is the diame
 
 ## Current synthetic corpus
 
+The machine-readable fixture contains 12 explicit geometry cases with path endpoints/arc parameters, body and obstacle radii, all seven per-axis margin channels, expected analytic/endpoints/chord/physical/stopping/coordination outcomes, primitive-manifest completeness, and six controlled mutations. All current cases are development cases; there is no claim of a statistically sufficient held-out corpus yet. See schema/oracle-corpus-v0.1.schema.json. Adapter results use schema/adapter-result-v0.1.schema.json.
+
 The Rust unit suite includes:
 - straight-segment analytic containment;
 - explicit detection of an understated chord-deviation claim;

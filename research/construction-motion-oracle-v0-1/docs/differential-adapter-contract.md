@@ -31,7 +31,7 @@ Every adapter result must bind:
 | memory_bytes | Measured peak/allocated memory where supported |
 | raw_receipt_sha256 | Digest of raw adapter output and logs |
 
-Missing optional metrics remain absent. A successful process exit without a valid result is UNRESOLVED. Missing backend, unsupported geometry or incompatible semantics is NOT_RUN, not PASS.
+Missing optional metrics remain absent. A successful process exit without a valid result is UNRESOLVED. Missing backend, unsupported geometry or incompatible semantics is NOT_RUN, not PASS. The machine-readable result contract is schema/adapter-result-v0.1.schema.json.
 
 ## MoveIt adapter
 
