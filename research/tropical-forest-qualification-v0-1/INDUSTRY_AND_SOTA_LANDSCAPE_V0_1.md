@@ -274,3 +274,12 @@ The forest tournament should therefore report at least four reliability dimensio
 4. evaluation uncertainty for held-out block coverage (#5319).
 
 The new local Gaussian kernel in [#5327](https://github.com/Luminous-Dynamics/symtropy/issues/5327) is a deliberately limited engineering baseline. It does not implement ERT or StCP and makes no finite-sample spatial validity claim. The specialist external comparison remains spconform geostatistical and areal procedures, matched on exactly the same held-out sites and support.
+
+
+## spconform 0.1.2: active point-localization comparator (19 October 2026)
+
+The current CRAN version is 0.1.2 (published 19 October 2026). It provides locally weighted split conformal for point-referenced data and a neighbourhood-weighted procedure for areal graph data. Its geostatistical procedure accepts optional `k_neighbors`, retains the default of all calibration units when `NULL`, and exposes strict NA validation. Release notes also describe a default-bandwidth computation optimization (reported up to 50× on large query grids), bounded representative subsampling for bandwidth estimation when calibration N exceeds 1,000, and a `coverage_report()` that includes Winkler interval score alongside empirical coverage and mean width: https://cran.r-project.org/web/packages/spconform/news/news.html
+
+The package documentation describes local weighted calibration and a local-exchangeability rationale. This is materially stronger than the current Luminous Gaussian diagnostic, which is a benchmark baseline only and makes no finite-sample spatial-coverage guarantee. The correct competitive sequence is to run both on identical held-out data and study supports, verify each method's assumptions, and compare coverage/interval score/width/stability/runtime. Do not claim the diagnostic kernel reimplements or outperforms spconform.
+
+A dedicated follow-on now tracks fixed-versus-adaptive neighbourhoods and calibration-set stability: [#5332 — FOREST-LOCALIZATION-STABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5332). Its external methods include the spconform k-neighbour option and StCP's calibration-set stability objective.
