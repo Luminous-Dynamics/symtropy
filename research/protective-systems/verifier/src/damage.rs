@@ -108,6 +108,12 @@ pub fn apply_change(
 
     let mut transitions = Vec::new();
     for claim in claims.iter_mut() {
+        // INVALIDATED is monotonic until explicit requalification. A later
+        // incomplete or unrelated event must never weaken it to NEEDS_REVIEW.
+        if claim.status == ClaimStatus::Invalidated {
+            continue;
+        }
+
         let directly_affected = claim
             .component_ids
             .iter()
@@ -279,6 +285,33 @@ mod tests {
         assert_eq!(result, Err(StateError::StaleOrConflictingChangeEvent));
         assert_eq!(claims, before);
         assert_eq!(configuration.current_revision, "R2");
+    }
+
+    #[test]
+    fn later_unknown_event_cannot_downgrade_invalidated_claim() {
+        let mut configuration = Configuration { current_revision: "R1".into() };
+        let mut claims = vec![
+            claim("ALREADY-INVALIDATED", &["PANEL-A"], &[], true),
+            claim("OTHER", &["PANEL-B"], &[], false),
+        ];
+
+        apply_change(&mut configuration, &mut claims, &event(true))
+            .expect("first event invalidates PANEL-A claim");
+        assert_eq!(claims[0].status, ClaimStatus::Invalidated);
+        assert_eq!(configuration.current_revision, "R2");
+
+        let later = ChangeEvent {
+            from_revision: "R2".into(),
+            to_revision: "R3".into(),
+            changed_component_ids: vec!["PANEL-C".into()],
+            changed_material_lot_ids: vec![],
+            impact_map_complete: false,
+        };
+        let transitions = apply_change(&mut configuration, &mut claims, &later)
+            .expect("second event");
+        assert_eq!(claims[0].status, ClaimStatus::Invalidated);
+        assert_eq!(claims[1].status, ClaimStatus::NeedsReview);
+        assert!(!transitions.iter().any(|t| t.claim_id == "ALREADY-INVALIDATED"));
     }
 
     #[test]
