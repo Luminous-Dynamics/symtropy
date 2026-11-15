@@ -453,6 +453,7 @@ pub enum PhysicalIdentityDiagnosticCode {
     ReviewAuthorityUnknown,
     IdentityObservationWithoutDeliveryOrAssignment,
     ExplicitConflictDeclared,
+    ActiveInstanceLimitExceeded,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -750,7 +751,7 @@ impl PhysicalIdentityLedger {
         }
 
         let mut slot_projections = BTreeMap::new();
-        for (slot_id, state) in runtime {
+        for (slot_id, mut state) in runtime {
             let slot_contract = self.slots.get(&slot_id).expect("slot exists");
             let mut assignments = state
                 .active
@@ -774,6 +775,15 @@ impl PhysicalIdentityLedger {
             assignments.sort_by(|left, right| {
                 left.physical_instance_id.cmp(&right.physical_instance_id)
             });
+
+            if assignments.len() > slot_contract.max_active_instances {
+                state.conflicted = true;
+                state.diagnostics.insert(PhysicalIdentityDiagnostic {
+                    code: PhysicalIdentityDiagnosticCode::ActiveInstanceLimitExceeded,
+                    event_id: format!("slot-limit:{}", slot_id),
+                    slot_id: slot_id.clone(),
+                });
+            }
 
             let mut diagnostics = state.diagnostics.into_iter().collect::<Vec<_>>();
             diagnostics.sort();
@@ -1154,7 +1164,8 @@ impl PhysicalIdentityLedger {
                 false,
             ),
         }
-    }}
+    }
+}
 
 fn add_assignment(
     runtime: &mut BTreeMap<String, SlotRuntime>,
