@@ -358,12 +358,29 @@
           "nbp"
         ],
         "expected_observation_processing_script": "Process_observations.R is described in Zenodo record but was not found at the two expected paths in the current default GitHub branch during this audit; locate exact source or reproduce its archived version before processing raw observations.",
-        "environment": "R + DGVMTools and helper packages declared in scripts; no renv.lock found at repository root during this audit; pin actual R/package versions during reproduction."
+        "environment": "R + DGVMTools and helper packages declared in scripts; no renv.lock found at repository root during this audit; pin actual R/package versions during reproduction.",
+        "v1_0_0_tag_audited": true,
+        "tag_file_blob_shas_match_inspected_main": true,
+        "processing_script_status": "NOT_FOUND_IN_GITHUB_MAIN_OR_V1_0_0_TAG_AT scripts/Process_observations.R OR REPOSITORY ROOT; Zenodo record describes it as GitHub source",
+        "rmd_data_doi_mismatch": "Rmd still references 10.5281/zenodo.14415142; authoritative data archive is 10.5281/zenodo.14415143; separate code archive is 10.5281/zenodo.15870478"
       },
       "schema_warning": "The repository helper lists model-specific names and 15 output variables for FIN/BIA/BCI. Treat these as the analysis script's declared vocabulary, not an immutable D-BEN standard. The Zenodo record calls D-BEN informal and not settled; the paper-specific mapping and per-model adapters must be audited.",
       "crosswalk_document": "FORESTPATHS_D_BEN_ADMISSION_V0_1.md",
       "crosswalk_manifest": "cases/forestpaths-dben-source-crosswalk-v0.1.json",
-      "crosswalk_issue": 5357
+      "crosswalk_issue": 5357,
+      "analysis_code_archive": {
+        "doi": "10.5281/zenodo.15870478",
+        "record_url": "https://zenodo.org/records/15870478",
+        "title": "teatree1212/DBEN_Eckes_Shephard_et_al: code version for Publication",
+        "version": "v1.0.0",
+        "published": "2025-07-12",
+        "file_name": "teatree1212/DBEN_Eckes_Shephard_et_al-v1.0.0.zip",
+        "size_displayed": "89.9 kB",
+        "published_md5": "8a4d79b4a94dc58a67e36d7e7100cee1",
+        "related_github_tag": "https://github.com/teatree1212/DBEN_Eckes_Shephard_et_al/tree/v1.0.0",
+        "code_archive_retrieval": "NOT_RETRIEVED",
+        "archive_rights_field": "NOT_POPULATED_IN_RETRIEVED_RECORD; GitHub v1.0.0 repository LICENSE is Apache-2.0, but archive/file rights still need review"
+      }
     }
   ],
   "cross_source_admission_gates": [
