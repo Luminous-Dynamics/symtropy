@@ -190,9 +190,13 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
         }
         40 => input.profile_traffic_class_requirement_ref = None,
         41 => input.profile_required_traffic_classes.clear(),
+        // These two profile-list faults are deliberately non-repairing in
+        // combination: the first retains only non-cooperative traffic, and the
+        // second adds a duplicate non-cooperative requirement. Applying both
+        // in either order therefore cannot restore the valid two-class profile.
         42 => input
             .profile_required_traffic_classes
-            .retain(|class| *class == TrafficClass::CooperativeCrewed),
+            .retain(|class| *class == TrafficClass::NonCooperativeCrewed),
         43 => input
             .profile_required_traffic_classes
             .push(TrafficClass::NonCooperativeCrewed),
