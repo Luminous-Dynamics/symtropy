@@ -348,3 +348,12 @@ The structural rank calculation in [#5349](https://github.com/Luminous-Dynamics/
 The practical slice in [#5360](https://github.com/Luminous-Dynamics/symtropy/issues/5360) now uses a declared synthetic linear-Gaussian covariance to compute the whitened operator and Fisher information, plus D/A/E-optimal designs and GLS covariance. In its frozen 64-subset example, the lowest-cost structurally full-rank designs are nevertheless labelled practically weak; the all-six-channel design wins all three information criteria. This is not evidence for any particular real survey: the instrument errors, correlations, effort costs and thresholds are all synthetic.
 
 A fair empirical comparison should estimate error covariance from repeat measurements and calibration lineage, respect site/campaign blocks, test synthetic recovery against the actual nonlinear model response, and report how each measurement design changes predictive uncertainty and decision loss. Fisher information alone must not choose a conservation survey.
+
+
+## Target-specific identifiability: distinguish evidence for net outcomes from attribution to mechanisms
+
+A full six-flux vector may be underdetermined even when some ecological quantities are exactly identified. The forest flux benchmark now checks whether each linear target estimand lies in the observation row space, rather than treating every rank-deficient observation system as completely uninformative.
+
+In the two-pool reference, stock increments alone identify net live-pool change, net deadwood-pool change and net total-pool change. They do not identify gross mortality transfer or gross live inputs (growth plus recruitment). Across the 64 synthetic sensor subsets, mortality becomes structurally identifiable with one direct mortality observation (effort cost 3); gross live inputs need growth plus recruitment (minimum effort cost 6). The receipt also shows 43 subsets identify mortality transfer and 31 identify gross live inputs.
+
+This is a more useful scientific qualification boundary: evidence can support a net carbon-change claim while failing to support a causal attribution to mortality or recruitment. The result is still exact and noiseless; practical uncertainty requires the separate covariance-aware comparison in #5360. See [#5349](https://github.com/Luminous-Dynamics/symtropy/issues/5349).
