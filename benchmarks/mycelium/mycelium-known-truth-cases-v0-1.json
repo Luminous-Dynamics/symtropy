@@ -407,6 +407,91 @@
         "N": 0,
         "P": 0
       }
+    },
+    {
+      "id": "HYPA-GRAPH-004",
+      "kind": "tip_to_interior_segment_anastomosis",
+      "description": "An active tip fuses to an interior point on an active segment. The target segment is split and the new connection is committed transactionally. This mirrors BMX topology mechanics; it does not model the biological eligibility probability.",
+      "initial_graph": {
+        "nodes": [
+          {
+            "id": "anchor-a",
+            "kind": "anchor",
+            "position_mm": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "anchor-b",
+            "kind": "anchor",
+            "position_mm": [
+              10,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "tip-a",
+            "kind": "active_tip",
+            "position_mm": [
+              5,
+              3,
+              0
+            ]
+          }
+        ],
+        "segments": [
+          {
+            "id": "target-seg",
+            "from": "anchor-a",
+            "to": "anchor-b",
+            "length_mm": 10,
+            "diameter_mm": 0.02,
+            "state": "active"
+          }
+        ]
+      },
+      "events": [
+        {
+          "id": "evt-004",
+          "kind": "tip_segment_fusion",
+          "time_h": 2,
+          "tip_id": "tip-a",
+          "target_segment_id": "target-seg",
+          "attachment_fraction": 0.5,
+          "fusion_node_id": "fusion-node",
+          "proximal_segment_id": "target-proximal",
+          "distal_segment_id": "target-distal",
+          "connecting_segment_id": "fusion-connector"
+        }
+      ],
+      "expected": {
+        "node_ids": [
+          "anchor-a",
+          "anchor-b",
+          "tip-a",
+          "fusion-node"
+        ],
+        "segment_ids": [
+          "target-proximal",
+          "target-distal",
+          "fusion-connector"
+        ],
+        "connected_components": 1,
+        "total_hyphal_length_mm": 13,
+        "target_segment_removed": true,
+        "target_split_lengths_mm": [
+          5,
+          5
+        ],
+        "fusion_connector_length_mm": 3,
+        "fusion_node_degree": 3,
+        "tip_a_kind_after": "junction",
+        "fusion_node_kind_after": "fusion"
+      },
+      "claim_ceiling": "Synthetic topology arithmetic only; no biological fusion criterion, rate or compatibility is inferred."
     }
   ]
 }
