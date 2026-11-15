@@ -70,7 +70,7 @@ The paper's root analysis reports mixed-effects comparisons with nutrient main a
 
 The experimental unit count for a treatment is not the number of trees, cores, LAI points or repeated readings. For exact treatment combinations there are four independent plot assignments across blocks; for each binary main-effect split there are 16 plots per level, and interaction contrasts use the corresponding factorial cells. Keep those denominators visible.
 
-## 5. Process-resolved outcomes and measurement semantics
+## 4.2 Process-resolved outcomes and measurement semantics
 
 Potential outcomes include:
 - repeated stem circumference increment from dendrometer bands;
