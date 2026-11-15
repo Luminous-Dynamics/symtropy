@@ -565,6 +565,7 @@ pub enum InventoryDiagnosticCode {
     SnapshotTokenNotPinned,
     PageRecordInventoryMismatch,
     UnknownPageReference,
+    RecordPageUnavailableAtCutoff,
     RecordRevisionMismatch,
     RecordOutsideIncludedClass,
     DuplicateSourceRecordIdentity,
@@ -887,13 +888,12 @@ impl SourceInventoryManifest {
             );
         }
 
-        let page_id_map = self
-            .pages
+        let page_id_map = available_pages
             .iter()
-            .map(|page| (page.page_id.as_str(), page))
+            .map(|page| (page.page_id.as_str(), *page))
             .collect::<BTreeMap<_, _>>();
         let mut page_identities = BTreeSet::new();
-        for page in &self.pages {
+        for page in &available_pages {
             for identity in &page.record_identities {
                 if !page_identities.insert(identity.clone()) {
                     push(
@@ -905,16 +905,12 @@ impl SourceInventoryManifest {
             }
         }
 
-        let record_map = self
-            .records
-            .iter()
-            .map(|record| (record.identity.clone(), record))
-            .collect::<BTreeMap<_, _>>();
+        let mut record_map = BTreeMap::new();
         for record in &self.records {
             let Some(page) = page_id_map.get(record.page_id.as_str()) else {
                 push(
-                    InventoryDiagnosticCode::UnknownPageReference,
-                    record.page_id.clone(),
+                    InventoryDiagnosticCode::RecordPageUnavailableAtCutoff,
+                    record.identity.source_id.clone(),
                     InventoryClosureState::Incomplete,
                 );
                 continue;
@@ -937,6 +933,23 @@ impl SourceInventoryManifest {
                     InventoryDiagnosticCode::RecordOutsideIncludedClass,
                     record.identity.source_id.clone(),
                     InventoryClosureState::Conflicted,
+                );
+            }
+            if !page.record_identities.contains(&record.identity) {
+                push(
+                    InventoryDiagnosticCode::PageRecordInventoryMismatch,
+                    record.identity.source_id.clone(),
+                    InventoryClosureState::Conflicted,
+                );
+            }
+            record_map.insert(record.identity.clone(), record);
+        }
+        for identity in &page_identities {
+            if !record_map.contains_key(identity) {
+                push(
+                    InventoryDiagnosticCode::PageRecordInventoryMismatch,
+                    identity.source_id.clone(),
+                    InventoryClosureState::Incomplete,
                 );
             }
         }
@@ -1006,7 +1019,7 @@ impl SourceInventoryManifest {
         }
 
         if let Some(expected) = self.traversal.expected_record_count {
-            if self.records.len() as u64 != expected {
+            if record_map.len() as u64 != expected {
                 push(
                     InventoryDiagnosticCode::RecordCountMismatch,
                     self.snapshot.snapshot_id.clone(),
@@ -1278,14 +1291,18 @@ mod tests {
 
     #[test]
     fn best_effort_mutable_snapshot_is_never_complete() {
-        let manifest = complete_manifest();
+        let mut manifest = complete_manifest();
+        manifest.snapshot.consistency_model = SnapshotConsistencyModel::BestEffortMutable;
+        manifest.traversal.kind = TraversalKind::BestEffort;
         let report = manifest.project(
             100,
             &TestEvidenceVerifier(EvidenceAdmission::Accepted),
             &TestSourceVerifier(SnapshotVerification::Stable, ScopeVerification::Verified),
         );
-        assert_eq!(report.closure_state, InventoryClosureState::CompleteWithinDeclaredScope);
-        let _ = report;
+        assert_eq!(report.closure_state, InventoryClosureState::Unknown);
+        assert!(report.diagnostics.iter().any(|item| {
+            item.code == InventoryDiagnosticCode::SnapshotConsistencyBestEffort
+        }));
     }
 
     #[test]
@@ -1372,6 +1389,35 @@ mod tests {
             report.semantic_state,
             InventorySemanticState::IncompleteUnsupportedOrAmbiguous
         );
+    }
+
+    #[test]
+    fn missing_record_disposition_makes_semantic_inventory_incomplete() {
+        let mut manifest = complete_manifest();
+        manifest.dispositions.pop();
+        let report = manifest.project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(SnapshotVerification::Stable, ScopeVerification::Verified),
+        );
+        assert_eq!(report.closure_state, InventoryClosureState::Incomplete);
+        assert_eq!(report.accounted_record_count, 2);
+        assert!(report.diagnostics.iter().any(|item| {
+            item.code == InventoryDiagnosticCode::MissingDisposition
+        }));
+    }
+
+    #[test]
+    fn changed_provider_snapshot_is_a_conflict() {
+        let report = complete_manifest().project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(SnapshotVerification::Changed, ScopeVerification::Verified),
+        );
+        assert_eq!(report.closure_state, InventoryClosureState::Conflicted);
+        assert!(report.diagnostics.iter().any(|item| {
+            item.code == InventoryDiagnosticCode::SnapshotChanged
+        }));
     }
 
     #[test]
