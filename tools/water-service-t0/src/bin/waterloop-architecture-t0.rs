@@ -367,7 +367,7 @@ mod tests {
     #[test]
     fn cross_circuit_edge_is_rejected() {
         let mut architecture = fixture();
-        architecture["edges"][5]["to"] = json!("potable-outlets");
+        architecture["edges"][5]["to"] = json!("greywater-nonpotable-outlets");
         assert!(validate(&architecture).is_err());
     }
 
