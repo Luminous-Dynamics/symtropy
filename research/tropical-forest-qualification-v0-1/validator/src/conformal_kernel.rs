@@ -64,7 +64,7 @@ pub struct BlockConformalScenario {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BlockCoverage {
-    pub block_id: &'static str,
+    pub block_id: String,
     pub observation_count: usize,
     pub covered_observation_count: usize,
     pub observation_coverage_fraction: f64,
@@ -249,6 +249,11 @@ pub fn evaluate_block_conformal(
         {
             return Err(ConformalError::GroupLeakage);
         }
+        if block.regime != "DECLARED_IN_DOMAIN"
+            && block.regime != "KNOWN_SHIFT_NEGATIVE_CONTROL"
+        {
+            return Err(ConformalError::InvalidMiscoverage);
+        }
         if block.point_predictions.len() != expected_test_size
             || block.observations.len() != expected_test_size
             || block.point_predictions.is_empty()
@@ -303,7 +308,7 @@ pub fn evaluate_block_conformal(
             in_domain_covered_blocks += usize::from(block_full);
         }
         test_block_results.push(BlockCoverage {
-            block_id: leak_static(&block.block_id),
+            block_id: block.block_id.clone(),
             observation_count: block.observations.len(),
             covered_observation_count: block_covered,
             observation_coverage_fraction: checked_count(block_covered)?
@@ -365,14 +370,6 @@ pub fn evaluate_block_conformal(
         test_block_results,
         exchangeability_status: "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED",
     })
-}
-
-// A borrowed block ID is kept in the public result while the scenario is alive at the
-// evaluator boundary. The kernel result is instead used immediately in the receipt.
-fn leak_static(value: &str) -> &'static str {
-    // This helper intentionally avoids ownership in the result type only in test builds.
-    // Production callers should copy the identifier into a receipt before dropping input.
-    Box::leak(value.to_string().into_boxed_str())
 }
 
 #[cfg(test)]
