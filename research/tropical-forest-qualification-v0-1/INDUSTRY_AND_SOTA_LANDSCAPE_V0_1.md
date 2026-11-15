@@ -339,3 +339,12 @@ This is a source-code audit, not a dataset result. No model outputs were ingeste
 
 
 The reproduction source also has distinct archive objects: [Zenodo 14415143](https://zenodo.org/records/14415143) is the data record with model output and processed-observation archives; [Zenodo 15870478](https://zenodo.org/records/15870478) is the separate v1.0.0 software release. The v1.0.0 analysis R Markdown still refers to DOI 14415142 for input data, which remains unresolved. Preserve data/code/script identities and checksums independently; do not infer the data license from the GitHub repository's Apache-2.0 code license.
+
+
+## Practical identifiability under noisy and correlated forest observations
+
+The structural rank calculation in [#5349](https://github.com/Luminous-Dynamics/symtropy/issues/5349) is necessary but insufficient for field design. A full-rank system can still be too ill-conditioned to estimate process fluxes to useful precision. The 2026 Ecology Letters review recommends identifiability alongside sensitivity, uncertainty and calibration, including equifinality, parameter sloppiness and synthetic-data recovery: https://doi.org/10.1111/ele.70375
+
+The practical slice in [#5360](https://github.com/Luminous-Dynamics/symtropy/issues/5360) now uses a declared synthetic linear-Gaussian covariance to compute the whitened operator and Fisher information, plus D/A/E-optimal designs and GLS covariance. In its frozen 64-subset example, the lowest-cost structurally full-rank designs are nevertheless labelled practically weak; the all-six-channel design wins all three information criteria. This is not evidence for any particular real survey: the instrument errors, correlations, effort costs and thresholds are all synthetic.
+
+A fair empirical comparison should estimate error covariance from repeat measurements and calibration lineage, respect site/campaign blocks, test synthetic recovery against the actual nonlinear model response, and report how each measurement design changes predictive uncertainty and decision loss. Fisher information alone must not choose a conservation survey.
