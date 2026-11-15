@@ -758,6 +758,47 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
     })
 }
 
+/// Apply role-specific label semantics after the role-specific CSV layout is parsed.
+fn validate_csv_role(role: &str, audit: &CsvAudit) -> Vec<String> {
+    let mut errors = Vec::new();
+    match role {
+        "scenario_csv" => {
+            if audit.anomaly_only_expected {
+                if audit.anomaly_only_observed != Some(true) {
+                    errors.push(
+                        "the anomaly-only nozzle recording contains pre-anomaly or invalid labels"
+                            .into(),
+                    );
+                }
+            } else if audit.anomaly_onset_evaluable != Some(true) {
+                errors.push(
+                    "fault scenario does not contain both pre-anomaly and anomaly labels for onset evaluation"
+                        .into(),
+                );
+            }
+        }
+        "baseline_csv" => {
+            let has_scenario_only_header = audit
+                .header_names
+                .iter()
+                .any(|name| matches!(name.trim(), "Time_rel" | "Anomaly State"));
+            if has_scenario_only_header
+                || audit.anomaly_label_column.is_some()
+                || audit.anomaly_zero_rows != 0
+                || audit.anomaly_one_rows != 0
+                || audit.anomaly_invalid_rows != 0
+            {
+                errors.push(
+                    "baseline reference recording must retain its unlabeled reference role; scenario-only time/label fields are not admissible"
+                        .into(),
+                );
+            }
+        }
+        _ => errors.push(format!("unsupported CSV audit role: {role}")),
+    }
+    errors
+}
+
 fn inventory_from_manifest(manifest: &Value) -> Result<Vec<InventoryEntry>, String> {
     let values = manifest
         .pointer("/public_record_metadata/archive/file_inventory")
@@ -948,16 +989,7 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                                             audit.time_abs_empty_rows
                                         ));
                                     }
-                                    if audit.anomaly_only_expected
-                                        && audit.anomaly_only_observed != Some(true)
-                                    {
-                                        file_errors.push("the anomaly-only nozzle recording contains pre-anomaly or invalid labels".into());
-                                    }
-                                    if !audit.anomaly_only_expected
-                                        && audit.anomaly_onset_evaluable != Some(true)
-                                    {
-                                        file_errors.push("recording expected to contain both pre-anomaly and anomaly labels does not support onset evaluation".into());
-                                    }
+                                    file_errors.extend(validate_csv_role(&entry.role, &audit));
                                     csv = Some(audit);
                                 }
                                 Err(error) => file_errors.push(error),
@@ -1300,6 +1332,31 @@ mod tests {
         assert_eq!(audit.time_rel_column, None);
         assert_eq!(audit.time_rel_numeric_rows, 0);
         assert_eq!(audit.anomaly_onset_evaluable, None);
+    }
+
+    #[test]
+    fn reference_baseline_without_fault_labels_is_valid_and_not_onset_evaluable() {
+        let data = synthetic_baseline_csv(&["0", "1", "2"]);
+        let audit = inspect_csv("Reference_Data.csv", "baseline_csv", data.as_bytes()).unwrap();
+        assert_eq!(audit.anomaly_label_column, None);
+        assert_eq!(audit.anomaly_onset_evaluable, None);
+        assert!(validate_csv_role("baseline_csv", &audit).is_empty());
+    }
+
+    #[test]
+    fn reference_baseline_cannot_be_relabelled_as_a_fault_scenario() {
+        let data = synthetic_scenario_csv(&[("100", "0", "0"), ("101", "1", "1")]);
+        let scenario = inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes())
+            .unwrap();
+        assert!(!validate_csv_role("baseline_csv", &scenario).is_empty());
+    }
+
+    #[test]
+    fn a_baseline_header_cannot_smuggle_in_scenario_only_label_semantics() {
+        let data = synthetic_baseline_csv(&["0", "1", "2"])
+            .replacen("Time,channel", "Time,Anomaly State", 1);
+        let audit = inspect_csv("Reference_Data.csv", "baseline_csv", data.as_bytes()).unwrap();
+        assert!(!validate_csv_role("baseline_csv", &audit).is_empty());
     }
 
     #[test]
