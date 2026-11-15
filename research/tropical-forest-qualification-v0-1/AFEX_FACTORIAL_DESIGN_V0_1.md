@@ -100,7 +100,24 @@ The first success is not a leaderboard claim. It is a reproducible demonstration
 
 Only after the data and design have passed admission should we set numerical empirical improvement thresholds. They should be preregistered using measurement error, sample-size/power analysis and paired baselines—not chosen after seeing the outcomes.
 
-## 8. Claim ceiling
+## 8. Local execution
+
+From the repository root:
+
+```bash
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/afex-factorial-design-synthetic-v0.1.json
+
+cargo test --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml
+
+cargo fmt --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- --check
+
+cargo clippy --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml --all-targets -- -D warnings
+```
+
+These Rust commands are the required next local gates; they have not been executed in the current runtime because `cargo`, `rustc` and `rustfmt` are unavailable here. The independent JavaScript arithmetic/control check is a separate reference, not a substitute for compilation or Rust tests.
+
+## 9. Claim ceiling
 
 A pass of `cases/afex-factorial-design-synthetic-v0.1.json` establishes only the arithmetic completeness of a synthetic 2×2×2 randomized complete-block allocation and the anti-pseudoreplication contract. It does not establish that actual AFEX records match this allocation, any nutrient treatment effect, causal mechanism, growth or mortality calibration, forecast superiority, or transfer to other tropical forests.
 
