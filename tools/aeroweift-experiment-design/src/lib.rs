@@ -146,6 +146,8 @@ pub struct ExperimentDesignPolicy {
     pub minimum_worst_case_robust_reduction: f64,
     /// Minimum model discrimination required for ModelDiscrimination objectives.
     pub minimum_model_discrimination: f64,
+    /// Maximum acceptable probability that the experiment is uninformative.
+    pub maximum_probability_uninformative: f64,
 }
 
 /// Why a candidate was excluded before Pareto ranking.
@@ -177,6 +179,8 @@ pub enum RejectionReason {
     InsufficientModelDiscrimination,
     /// Candidate exceeds the frozen resource budget.
     OverBudget,
+    /// Candidate is too likely to produce an uninformative result.
+    TooLikelyUninformative,
 }
 
 /// Rejected candidate and all reasons it was excluded.
@@ -254,6 +258,7 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !bounded_unit_interval(policy.minimum_decision_relevance)
         || !bounded_unit_interval(policy.minimum_worst_case_robust_reduction)
         || !bounded_unit_interval(policy.minimum_model_discrimination)
+        || !bounded_unit_interval(policy.maximum_probability_uninformative)
     {
         return Err(DesignError::InvalidPolicy);
     }
@@ -304,6 +309,11 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::SealedEvidenceUsedForSelection);
     }
     if candidate.objective == ExperimentObjective::ModelDiscrimination
+        && candidate.semantic_equivalence != SemanticEquivalence::Established
+    {
+        reasons.insert(RejectionReason::SemanticEquivalenceNotEstablished);
+    }
+    if candidate.objective == ExperimentObjective::ModelDiscrimination
         && independent_group_count(candidate) < 2
     {
         reasons.insert(RejectionReason::InsufficientIndependentHypothesisGroups);
@@ -331,6 +341,12 @@ fn candidate_rejection_reasons(
     }
     if candidate.cost_units > policy.maximum_cost_units {
         reasons.insert(RejectionReason::OverBudget);
+    }
+    if candidate.probability_uninformative > policy.maximum_probability_uninformative {
+        reasons.insert(RejectionReason::TooLikelyUninformative);
+    }
+    if candidate.hypothesis_groups.iter().any(|group| group.group_id.trim().is_empty()) {
+        reasons.insert(RejectionReason::InvalidUtilityVector);
     }
 
     reasons.into_iter().collect()
