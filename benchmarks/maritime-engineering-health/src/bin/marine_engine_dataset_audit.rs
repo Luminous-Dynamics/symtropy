@@ -1275,12 +1275,12 @@ mod tests {
         let symbols = names.iter().map(|name| format!("sym_{name}")).collect::<Vec<_>>();
         let mut units = vec!["unit".to_string(); BASELINE_COLUMNS];
         units[0] = "sec".into();
-        let mut output = format!("{}\\n{}\\n{}\\n", names.join(","), symbols.join(","), units.join(","));
+        let mut output = format!("{}\n{}\n{}\n", names.join(","), symbols.join(","), units.join(","));
         for time in rows {
             let mut cells = vec!["value".to_string(); BASELINE_COLUMNS];
             cells[0] = (*time).into();
             output.push_str(&cells.join(","));
-            output.push('\\n');
+            output.push('\n');
         }
         output
     }
