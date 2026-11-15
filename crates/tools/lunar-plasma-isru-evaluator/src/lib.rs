@@ -452,6 +452,11 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 "feedstock mass balance has invalid input, tolerance or empty outputs".to_owned(),
             );
         } else {
+            if let Some(feedstock) = &scenario.feedstock {
+                if !close_enough(balance.input_mass_g, feedstock.dry_mass_g, balance.tolerance_g) {
+                    rejected.push("feedstock balance input does not match the declared dry batch mass".to_owned());
+                }
+            }
             let mut stream_ids = HashSet::new();
             let mut output_sum = 0.0;
             for stream in &balance.outputs {
@@ -959,6 +964,15 @@ mod tests {
         assert_eq!(
             result_for(&report, "not-comparable-product-contract").disposition,
             "NOT_COMPARABLE"
+        );
+    }
+
+    #[test]
+    fn balanced_ledger_cannot_override_declared_feedstock_batch_mass() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(
+            result_for(&report, "rejected-feedstock-input-mismatch").disposition,
+            "REJECTED"
         );
     }
 
