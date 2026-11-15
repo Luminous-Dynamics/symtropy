@@ -1,0 +1,662 @@
+{
+  "schema_version": "waterloop-reference-architecture-v0.1",
+  "architecture_id": "WATERLOOP-REFERENCE-ARCHITECTURE",
+  "revision": "0.1",
+  "status": "design_candidate_not_site_approved",
+  "evidence_class": "design_contract_only",
+  "claim_ceiling": "source_separation_interfaces_and_safe_state_contract_only",
+  "design_principles": [
+    "Potable drinking-water, greywater, and roof-rainwater circuits are physically separate typed systems.",
+    "Non-potable water is credited only for its admitted intended-use profile after an evidence-backed quality gate.",
+    "Default safe state is physical bypass/isolation to an approved reject route.",
+    "Gravity and passive process options are preferred only where a matched service and quality boundary supports them.",
+    "All treatment modules remain candidates until source-property, challenge, process, residual and maintenance evidence is admitted.",
+    "Storage sizing is derived from demand, admitted inflow, required autonomy, turnover and measurement uncertainty; no universal tank size is assumed.",
+    "No software state, label or sensor alone substitutes for physical cross-connection prevention."
+  ],
+  "circuits": [
+    {
+      "circuit_id": "POTABLE",
+      "fluid_class": "drinking_water",
+      "source_node_ids": [
+        "potable-source"
+      ],
+      "quality_gate_node_ids": [
+        "potable-source-admission"
+      ],
+      "reuse_outlet_node_ids": [
+        "potable-outlets"
+      ],
+      "reject_node_id": "potable-quarantine",
+      "permitted_use_classes": [
+        "drinking",
+        "food_preparation",
+        "personal_hygiene"
+      ],
+      "forbidden_use_classes": [
+        "greywater",
+        "roof_rainwater",
+        "untreated_alternative_source"
+      ],
+      "treatment_status": "not_designed_or_qualified_by_this_architecture",
+      "source_policy": "municipal_or_authorized_supplier_or_independently_qualified_alternative_only"
+    },
+    {
+      "circuit_id": "GREYWATER",
+      "fluid_class": "greywater_nonpotable",
+      "source_node_ids": [
+        "greywater-shower-bath-source"
+      ],
+      "quality_gate_node_ids": [
+        "greywater-quality-gate"
+      ],
+      "reuse_outlet_node_ids": [
+        "greywater-nonpotable-outlets"
+      ],
+      "reject_node_id": "greywater-approved-reject",
+      "permitted_use_classes": [
+        "toilet_flushing",
+        "restricted_subsurface_irrigation"
+      ],
+      "forbidden_use_classes": [
+        "drinking",
+        "food_preparation",
+        "personal_hygiene",
+        "bathing",
+        "cooking",
+        "potable_storage"
+      ],
+      "treatment_status": "candidate_modules_only",
+      "initial_source_profile": "shower_and_bath_only",
+      "excluded_source_profiles": [
+        "toilet",
+        "kitchen_sink",
+        "dishwasher",
+        "medical_or_chemical_waste",
+        "unknown_mixed_drain"
+      ],
+      "separately_qualified_profiles": [
+        "laundry"
+      ]
+    },
+    {
+      "circuit_id": "ROOF_RAINWATER",
+      "fluid_class": "roof_rainwater_nonpotable",
+      "source_node_ids": [
+        "roof-catchment-source"
+      ],
+      "quality_gate_node_ids": [
+        "rainwater-quality-gate"
+      ],
+      "reuse_outlet_node_ids": [
+        "rainwater-nonpotable-outlets"
+      ],
+      "reject_node_id": "rainwater-approved-reject",
+      "permitted_use_classes": [
+        "toilet_flushing",
+        "restricted_subsurface_irrigation"
+      ],
+      "forbidden_use_classes": [
+        "drinking",
+        "food_preparation",
+        "personal_hygiene",
+        "bathing",
+        "cooking",
+        "potable_storage"
+      ],
+      "treatment_status": "candidate_modules_only",
+      "source_admission_attributes": [
+        "roof_material",
+        "catchment_condition",
+        "animal_faecal_exposure",
+        "first_flush_volume",
+        "rain_event",
+        "storage_age"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "node_id": "potable-source",
+      "circuit_id": "POTABLE",
+      "role": "source",
+      "fluid_class": "drinking_water"
+    },
+    {
+      "node_id": "potable-source-admission",
+      "circuit_id": "POTABLE",
+      "role": "quality_gate",
+      "fluid_class": "drinking_water"
+    },
+    {
+      "node_id": "potable-meter",
+      "circuit_id": "POTABLE",
+      "role": "measurement",
+      "fluid_class": "drinking_water"
+    },
+    {
+      "node_id": "potable-backflow-barrier",
+      "circuit_id": "POTABLE",
+      "role": "physical_backflow_barrier",
+      "fluid_class": "drinking_water"
+    },
+    {
+      "node_id": "potable-storage",
+      "circuit_id": "POTABLE",
+      "role": "storage",
+      "fluid_class": "drinking_water"
+    },
+    {
+      "node_id": "potable-outlets",
+      "circuit_id": "POTABLE",
+      "role": "use_outlet",
+      "fluid_class": "drinking_water",
+      "use_classes": [
+        "drinking",
+        "food_preparation",
+        "personal_hygiene"
+      ]
+    },
+    {
+      "node_id": "potable-quarantine",
+      "circuit_id": "POTABLE",
+      "role": "reject_or_quarantine",
+      "fluid_class": "drinking_water"
+    },
+    {
+      "node_id": "greywater-shower-bath-source",
+      "circuit_id": "GREYWATER",
+      "role": "source",
+      "fluid_class": "greywater_raw"
+    },
+    {
+      "node_id": "greywater-screen",
+      "circuit_id": "GREYWATER",
+      "role": "pretreatment",
+      "fluid_class": "greywater_raw",
+      "maintenance_access": "front_access_removable"
+    },
+    {
+      "node_id": "greywater-equalization",
+      "circuit_id": "GREYWATER",
+      "role": "equalization",
+      "fluid_class": "greywater_raw",
+      "sizing": "demand_and_influent_profile_derived"
+    },
+    {
+      "node_id": "greywater-treatment-core",
+      "circuit_id": "GREYWATER",
+      "role": "treatment",
+      "fluid_class": "greywater_treated_candidate",
+      "module_selection": "not_selected"
+    },
+    {
+      "node_id": "greywater-quality-hold",
+      "circuit_id": "GREYWATER",
+      "role": "quality_hold",
+      "fluid_class": "greywater_treated_candidate"
+    },
+    {
+      "node_id": "greywater-quality-gate",
+      "circuit_id": "GREYWATER",
+      "role": "quality_gate",
+      "fluid_class": "greywater_treated_candidate"
+    },
+    {
+      "node_id": "greywater-nonpotable-storage",
+      "circuit_id": "GREYWATER",
+      "role": "storage",
+      "fluid_class": "greywater_use_admitted_candidate",
+      "turnover_limit": "must_be_qualified"
+    },
+    {
+      "node_id": "greywater-pump-delivery",
+      "circuit_id": "GREYWATER",
+      "role": "delivery",
+      "fluid_class": "greywater_use_admitted_candidate",
+      "gravity_fallback": "site_dependent"
+    },
+    {
+      "node_id": "greywater-nonpotable-outlets",
+      "circuit_id": "GREYWATER",
+      "role": "use_outlet",
+      "fluid_class": "greywater_use_admitted_candidate",
+      "use_classes": [
+        "toilet_flushing",
+        "restricted_subsurface_irrigation"
+      ]
+    },
+    {
+      "node_id": "greywater-approved-reject",
+      "circuit_id": "GREYWATER",
+      "role": "reject_or_residual",
+      "fluid_class": "greywater_reject"
+    },
+    {
+      "node_id": "roof-catchment-source",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "source",
+      "fluid_class": "roof_rainwater_raw"
+    },
+    {
+      "node_id": "rainwater-leaf-screen",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "pretreatment",
+      "fluid_class": "roof_rainwater_raw",
+      "maintenance_access": "ground_or_safe_access"
+    },
+    {
+      "node_id": "rainwater-first-flush",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "first_flush_diversion",
+      "fluid_class": "roof_rainwater_raw"
+    },
+    {
+      "node_id": "rainwater-sediment-treatment",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "treatment",
+      "fluid_class": "roof_rainwater_treated_candidate",
+      "module_selection": "not_selected"
+    },
+    {
+      "node_id": "rainwater-quality-hold",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "quality_hold",
+      "fluid_class": "roof_rainwater_treated_candidate"
+    },
+    {
+      "node_id": "rainwater-quality-gate",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "quality_gate",
+      "fluid_class": "roof_rainwater_treated_candidate"
+    },
+    {
+      "node_id": "rainwater-nonpotable-storage",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "storage",
+      "fluid_class": "roof_rainwater_use_admitted_candidate",
+      "turnover_limit": "must_be_qualified"
+    },
+    {
+      "node_id": "rainwater-nonpotable-delivery",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "delivery",
+      "fluid_class": "roof_rainwater_use_admitted_candidate",
+      "gravity_fallback": "site_dependent"
+    },
+    {
+      "node_id": "rainwater-nonpotable-outlets",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "use_outlet",
+      "fluid_class": "roof_rainwater_use_admitted_candidate",
+      "use_classes": [
+        "toilet_flushing",
+        "restricted_subsurface_irrigation"
+      ]
+    },
+    {
+      "node_id": "rainwater-approved-reject",
+      "circuit_id": "ROOF_RAINWATER",
+      "role": "reject_or_residual",
+      "fluid_class": "roof_rainwater_reject"
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "p01",
+      "circuit_id": "POTABLE",
+      "from": "potable-source",
+      "to": "potable-source-admission"
+    },
+    {
+      "edge_id": "p02",
+      "circuit_id": "POTABLE",
+      "from": "potable-source-admission",
+      "to": "potable-meter",
+      "condition": "admitted_source_quality"
+    },
+    {
+      "edge_id": "p03",
+      "circuit_id": "POTABLE",
+      "from": "potable-meter",
+      "to": "potable-backflow-barrier"
+    },
+    {
+      "edge_id": "p04",
+      "circuit_id": "POTABLE",
+      "from": "potable-backflow-barrier",
+      "to": "potable-storage"
+    },
+    {
+      "edge_id": "p05",
+      "circuit_id": "POTABLE",
+      "from": "potable-storage",
+      "to": "potable-outlets"
+    },
+    {
+      "edge_id": "p06",
+      "circuit_id": "POTABLE",
+      "from": "potable-source-admission",
+      "to": "potable-quarantine",
+      "condition": "source_quality_not_admitted"
+    },
+    {
+      "edge_id": "g01",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-shower-bath-source",
+      "to": "greywater-screen"
+    },
+    {
+      "edge_id": "g02",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-screen",
+      "to": "greywater-equalization"
+    },
+    {
+      "edge_id": "g03",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-equalization",
+      "to": "greywater-treatment-core"
+    },
+    {
+      "edge_id": "g04",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-treatment-core",
+      "to": "greywater-quality-hold"
+    },
+    {
+      "edge_id": "g05",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-quality-hold",
+      "to": "greywater-quality-gate"
+    },
+    {
+      "edge_id": "g06",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-quality-gate",
+      "to": "greywater-nonpotable-storage",
+      "condition": "intended_use_quality_and_metrology_admitted"
+    },
+    {
+      "edge_id": "g07",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-nonpotable-storage",
+      "to": "greywater-pump-delivery"
+    },
+    {
+      "edge_id": "g08",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-pump-delivery",
+      "to": "greywater-nonpotable-outlets"
+    },
+    {
+      "edge_id": "g09",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-shower-bath-source",
+      "to": "greywater-approved-reject",
+      "condition": "source_unknown_or_out_of_profile"
+    },
+    {
+      "edge_id": "g10",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-screen",
+      "to": "greywater-approved-reject",
+      "condition": "screen_bypass_or_blockage"
+    },
+    {
+      "edge_id": "g11",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-treatment-core",
+      "to": "greywater-approved-reject",
+      "condition": "treatment_failure_or_power_loss"
+    },
+    {
+      "edge_id": "g12",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-quality-hold",
+      "to": "greywater-approved-reject",
+      "condition": "quality_or_sensor_not_admitted"
+    },
+    {
+      "edge_id": "g13",
+      "circuit_id": "GREYWATER",
+      "from": "greywater-quality-gate",
+      "to": "greywater-approved-reject",
+      "condition": "quality_gate_rejected"
+    },
+    {
+      "edge_id": "r01",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "roof-catchment-source",
+      "to": "rainwater-leaf-screen"
+    },
+    {
+      "edge_id": "r02",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-leaf-screen",
+      "to": "rainwater-first-flush"
+    },
+    {
+      "edge_id": "r03",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-first-flush",
+      "to": "rainwater-sediment-treatment"
+    },
+    {
+      "edge_id": "r04",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-sediment-treatment",
+      "to": "rainwater-quality-hold"
+    },
+    {
+      "edge_id": "r05",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-quality-hold",
+      "to": "rainwater-quality-gate"
+    },
+    {
+      "edge_id": "r06",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-quality-gate",
+      "to": "rainwater-nonpotable-storage",
+      "condition": "intended_use_quality_and_metrology_admitted"
+    },
+    {
+      "edge_id": "r07",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-nonpotable-storage",
+      "to": "rainwater-nonpotable-delivery"
+    },
+    {
+      "edge_id": "r08",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-nonpotable-delivery",
+      "to": "rainwater-nonpotable-outlets"
+    },
+    {
+      "edge_id": "r09",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "roof-catchment-source",
+      "to": "rainwater-approved-reject",
+      "condition": "source_unknown_or_out_of_profile"
+    },
+    {
+      "edge_id": "r10",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-first-flush",
+      "to": "rainwater-approved-reject",
+      "condition": "first_flush_diverted"
+    },
+    {
+      "edge_id": "r11",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-sediment-treatment",
+      "to": "rainwater-approved-reject",
+      "condition": "treatment_failure_or_power_loss"
+    },
+    {
+      "edge_id": "r12",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-quality-hold",
+      "to": "rainwater-approved-reject",
+      "condition": "quality_or_sensor_not_admitted"
+    },
+    {
+      "edge_id": "r13",
+      "circuit_id": "ROOF_RAINWATER",
+      "from": "rainwater-quality-gate",
+      "to": "rainwater-approved-reject",
+      "condition": "quality_gate_rejected"
+    }
+  ],
+  "controller": {
+    "initial_state": "BYPASS_SAFE",
+    "safe_states": [
+      "BYPASS_SAFE",
+      "MAINTENANCE_LOCKOUT"
+    ],
+    "states": [
+      "BYPASS_SAFE",
+      "SOURCE_CHECK",
+      "PRETREATMENT",
+      "TREATMENT_RUN",
+      "QUALITY_HOLD",
+      "REUSE_ADMITTED",
+      "MAINTENANCE_LOCKOUT",
+      "POWER_LOSS_SAFE",
+      "SENSOR_OR_COMMS_LOSS_SAFE"
+    ],
+    "transitions": [
+      {
+        "from": "BYPASS_SAFE",
+        "to": "SOURCE_CHECK",
+        "trigger": "operator_reset_and_source_identity_present"
+      },
+      {
+        "from": "SOURCE_CHECK",
+        "to": "PRETREATMENT",
+        "trigger": "source_profile_and_metering_admitted"
+      },
+      {
+        "from": "PRETREATMENT",
+        "to": "TREATMENT_RUN",
+        "trigger": "pretreatment_and_hydraulic_envelope_admitted"
+      },
+      {
+        "from": "TREATMENT_RUN",
+        "to": "QUALITY_HOLD",
+        "trigger": "batch_or_interval_complete"
+      },
+      {
+        "from": "QUALITY_HOLD",
+        "to": "REUSE_ADMITTED",
+        "trigger": "quality_gate_admitted_and_metrology_admitted_and_storage_age_within_qualified_limit"
+      },
+      {
+        "from": "QUALITY_HOLD",
+        "to": "BYPASS_SAFE",
+        "trigger": "quality_gate_rejected_or_evidence_missing"
+      },
+      {
+        "from": "SOURCE_CHECK",
+        "to": "BYPASS_SAFE",
+        "trigger": "unknown_source_or_sensor_invalid"
+      },
+      {
+        "from": "PRETREATMENT",
+        "to": "BYPASS_SAFE",
+        "trigger": "blocked_screen_or_out_of_profile"
+      },
+      {
+        "from": "TREATMENT_RUN",
+        "to": "BYPASS_SAFE",
+        "trigger": "process_failure_or_power_loss"
+      },
+      {
+        "from": "REUSE_ADMITTED",
+        "to": "BYPASS_SAFE",
+        "trigger": "quality_expiry_or_invalid_measurement_or_demand_outside_profile"
+      },
+      {
+        "from": "REUSE_ADMITTED",
+        "to": "POWER_LOSS_SAFE",
+        "trigger": "power_loss"
+      },
+      {
+        "from": "POWER_LOSS_SAFE",
+        "to": "BYPASS_SAFE",
+        "trigger": "physical_isolation_confirmed"
+      },
+      {
+        "from": "BYPASS_SAFE",
+        "to": "MAINTENANCE_LOCKOUT",
+        "trigger": "service_required"
+      },
+      {
+        "from": "MAINTENANCE_LOCKOUT",
+        "to": "BYPASS_SAFE",
+        "trigger": "service_complete_and_inspection_admitted"
+      }
+    ],
+    "forbidden_transitions": [
+      "Any state to REUSE_ADMITTED except QUALITY_HOLD with all explicit quality/metrology/age conditions.",
+      "Any non-potable state to a potable circuit or potable outlet.",
+      "Power loss or sensor/comms loss to REUSE_ADMITTED."
+    ]
+  },
+  "sizing_contract": {
+    "storage": "Derive each circuit's useful storage from time-resolved use demand and admitted source inflow over a declared design horizon; add dead storage/freeboard/uncertainty separately. Keep potable drinking reserve and non-potable reuse volumes as distinct ledgers.",
+    "pump": "Select pump only after design flow, elevation, pipe losses, pressure/flow floor, efficiency curve, NPSH and outage duty are admitted.",
+    "treatment": "Select treatment module from source-property distribution, peak/batch loading, target-use profile, temperature, residence time, maintenance envelope and residual outlet—not nominal average influent alone.",
+    "equalization": "Size only to attenuate measured variability and process constraints; untreated greywater residence time must remain within an independently qualified envelope.",
+    "overflow": "Every vessel requires a safe overflow/vent/cleanout design, with final route approved for site and local requirements."
+  },
+  "measurement_contract": [
+    "Separate meters or quantified measurements for source inflow, treated output, admitted useful delivery, reject/purge, overflow and storage change.",
+    "Electricity measured at the declared complete system boundary, including standby and auxiliaries.",
+    "Quality samples linked to exact circuit, source profile, treatment revision, batch/time interval, outlet/use class, method and calibration.",
+    "Storage level is not automatically volume; a calibrated level-volume relationship is required.",
+    "All timebases, units, sampling intervals, uncertainty and missing-data semantics are explicit."
+  ],
+  "manufacturing_interfaces": {
+    "required_ports": [
+      "source_inlet",
+      "process_outlet",
+      "sample_point",
+      "isolation",
+      "drain_or_reject",
+      "overflow",
+      "vent",
+      "cleanout",
+      "metering"
+    ],
+    "candidate_material_families": [
+      "UV-stabilised polymer tank candidates",
+      "pressure-rated plastic pipe candidates",
+      "corrosion-resistant metallic wetted-part candidates",
+      "replaceable polymeric or mineral filter-media housings"
+    ],
+    "material_status": "candidate_families_only_no_material_grade_or_supplier_selected",
+    "maintainability_rules": [
+      "Screens and serviceable components accessible without opening sealed electrical enclosures.",
+      "Treatment cassettes keyed against reversed or incorrect installation.",
+      "Every component can be isolated, drained and replaced without cross-contaminating the potable circuit.",
+      "Standardised unions, service ports and local spare availability are evaluated before design freeze.",
+      "No sealed proprietary wet path without a defined repair/replacement path."
+    ]
+  },
+  "qualification_gates": [
+    "Physical cross-connection and backflow test by qualified plumbing authority.",
+    "Bench challenge testing with source-specific variability and independent laboratory methods.",
+    "Quality fail, sensor invalid, power loss, screen blockage, treatment failure, storage-age and maintenance-overdue fault injection.",
+    "Complete water, energy, residual, service and cost boundary reconciliation.",
+    "Independent review of site-specific installation, electrical, environmental and water-use requirements."
+  ],
+  "nonclaims": [
+    "This is a design contract only; no physical device, process or installation has been built or tested.",
+    "No water is declared potable or fit for a specific reuse by this architecture.",
+    "No SANS, municipal, plumbing, electrical, environmental or water-use approval is claimed.",
+    "No material grade, treatment recipe, storage size, pump, operating setpoint or sensor is selected.",
+    "No model or controller is authorised to connect circuits, release drinking water or actuate field equipment."
+  ]
+}
