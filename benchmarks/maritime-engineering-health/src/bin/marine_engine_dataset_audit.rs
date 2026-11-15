@@ -61,7 +61,9 @@ struct CsvAudit {
     shorthand_symbols: Vec<String>,
     units: Vec<String>,
     anomaly_label_column: Option<usize>,
+    /// Index of the role-specific primary time coordinate; the header name is recorded separately.
     time_abs_column: usize,
+    primary_time_header: String,
     time_abs_nonempty_rows: u64,
     time_abs_empty_rows: u64,
     time_abs_duplicate_rows: u64,
@@ -534,21 +536,46 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         None
     };
 
-    let time_abs_column = header_index(headers, "Time_abs")
-        .ok_or_else(|| "Time_abs column was not found in the three header rows".to_string())?;
-    if time_abs_column != 0 {
-        return Err(format!(
-            "Time_abs is at column {}; expected first column",
-            time_abs_column + 1
-        ));
-    }
-    let time_rel_column = header_index(headers, "Time_rel");
-    if time_rel_column != Some(1) {
-        return Err(format!(
-            "Time_rel is at {:?}; expected second column",
-            time_rel_column.map(|index| index + 1)
-        ));
-    }
+    // Scenario recordings add absolute and relative time columns plus the
+    // anomaly label. The reference recording has its own 70-column schema:
+    // one primary time coordinate in column zero, with no scenario-only
+    // Time_rel or Anomaly State fields. Do not coerce the reference layout.
+    let (time_abs_column, primary_time_header, time_rel_column) = match role {
+        "scenario_csv" => {
+            let absolute = header_index(headers, "Time_abs")
+                .ok_or_else(|| "scenario CSV has no Time_abs column".to_string())?;
+            if absolute != 0 {
+                return Err(format!(
+                    "Time_abs is at column {}; expected first column",
+                    absolute + 1
+                ));
+            }
+            let relative = header_index(headers, "Time_rel")
+                .ok_or_else(|| "scenario CSV has no Time_rel column".to_string())?;
+            if relative != 1 {
+                return Err(format!(
+                    "Time_rel is at column {}; expected second column",
+                    relative + 1
+                ));
+            }
+            (absolute, "Time_abs".to_string(), Some(relative))
+        }
+        "baseline_csv" => {
+            let name = headers[0]
+                .first()
+                .map(|value| value.trim())
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| "baseline primary time column has no header name".to_string())?;
+            let unit = headers[2][0].trim();
+            if !matches!(unit, "sec" | "s") {
+                return Err(format!(
+                    "baseline primary time column has unsupported unit {unit:?}; expected seconds"
+                ));
+            }
+            (0, name.to_string(), None)
+        }
+        _ => return Err(format!("unsupported CSV role: {role}")),
+    };
     let mut data_rows = 0u64;
     let mut anomaly_zero_rows = 0u64;
     let mut anomaly_one_rows = 0u64;
@@ -704,6 +731,7 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         units,
         anomaly_label_column,
         time_abs_column,
+        primary_time_header,
         time_abs_nonempty_rows,
         time_abs_empty_rows,
         time_abs_duplicate_rows,
@@ -1239,6 +1267,36 @@ mod tests {
             output.push('\n');
         }
         output
+    }
+
+    fn synthetic_baseline_csv(rows: &[&str]) -> String {
+        let mut names = vec!["channel".to_string(); BASELINE_COLUMNS];
+        names[0] = "Time".into();
+        let symbols = names.iter().map(|name| format!("sym_{name}")).collect::<Vec<_>>();
+        let mut units = vec!["unit".to_string(); BASELINE_COLUMNS];
+        units[0] = "sec".into();
+        let mut output = format!("{}\\n{}\\n{}\\n", names.join(","), symbols.join(","), units.join(","));
+        for time in rows {
+            let mut cells = vec!["value".to_string(); BASELINE_COLUMNS];
+            cells[0] = (*time).into();
+            output.push_str(&cells.join(","));
+            output.push('\\n');
+        }
+        output
+    }
+
+    #[test]
+    fn audits_distinct_reference_schema_without_scenario_only_columns() {
+        let data = synthetic_baseline_csv(&["0", "1", "2"]);
+        let audit = inspect_csv("Reference_Data.csv", "baseline_csv", data.as_bytes()).unwrap();
+        assert_eq!(audit.column_count, BASELINE_COLUMNS);
+        assert_eq!(audit.anomaly_label_column, None);
+        assert_eq!(audit.primary_time_header, "Time");
+        assert_eq!(audit.time_abs_column, 0);
+        assert_eq!(audit.time_abs_nonempty_rows, 3);
+        assert_eq!(audit.time_rel_column, None);
+        assert_eq!(audit.time_rel_numeric_rows, 0);
+        assert_eq!(audit.anomaly_onset_evaluable, None);
     }
 
     #[test]
