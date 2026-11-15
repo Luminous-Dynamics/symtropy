@@ -91,7 +91,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     }
 
     let sites = string_array(manifest, &["sites"])?;
-    if sites != ["FIN", "BIA", "BCI"] {
+    if sites != vec!["FIN".to_string(), "BIA".to_string(), "BCI".to_string()] {
         return Err("sites must be FIN, BIA and BCI in the declared order".to_string());
     }
 
@@ -202,13 +202,13 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             .unwrap_or("");
         if model == "BiomeE-Standalone" && source_variable == "WDgrowTot" {
             let components = string_array(composite, &["components"])?;
-            has_biome_growth = components == ["WDgrow", "WDrepr", "WDmgrt"]
+            has_biome_growth = components == vec!["WDgrow".to_string(), "WDrepr".to_string(), "WDmgrt".to_string()]
                 && string_at(composite, &["mapped_variable"])? == "WBgrowth"
                 && string_at(composite, &["pure_growth_claim"])? == "NOT_SUPPORTED";
         }
         if model == "BiomeE-Standalone" && source_variable == "WDmortTot" {
             let components = string_array(composite, &["components"])?;
-            has_biome_mortality = components == ["WDmort", "WDkill", "WDdstb"]
+            has_biome_mortality = components == vec!["WDmort".to_string(), "WDkill".to_string(), "WDdstb".to_string()]
                 && string_at(composite, &["mapped_variable"])? == "cmort"
                 && string_at(composite, &["pure_mortality_claim"])? == "NOT_SUPPORTED";
         }
@@ -228,13 +228,17 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         .ok_or_else(|| "size_class_families must be an object".to_string())?;
     let required_families = ["shared_dben", "orchidee", "fates", "paper1", "establishment"];
     let mut size_families_valid = true;
+    let mut serialized_families = BTreeSet::new();
     for family in required_families {
         let bins = size_families
             .get(family)
             .and_then(Value::as_array)
             .ok_or_else(|| format!("size_class_families.{family} must be an array"))?;
+        let serialized = serde_json::to_string(bins)
+            .map_err(|error| format!("could not serialize size-class family {family}: {error}"))?;
         size_families_valid &= !bins.is_empty()
-            && bins.iter().all(|bin| bin.as_str().is_some_and(|value| !value.trim().is_empty()));
+            && bins.iter().all(|bin| bin.as_str().is_some_and(|value| !value.trim().is_empty()))
+            && serialized_families.insert(serialized);
     }
     size_families_valid &= string_at(
         manifest,
