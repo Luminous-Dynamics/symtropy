@@ -670,6 +670,8 @@ mod tests {
         ).unwrap();
 
         assert_eq!(receipt.source_build_lock_digest(), built.receipt().build_lock_digest());
+        assert_eq!(receipt.source_compiler_version(), built.receipt().compiler_version());
+        assert!(receipt.dependency_ids().iter().any(|id| id == "input:generator-version:power-fabric-view-compiler:0.1.0"));
         assert_eq!(receipt.source_graph_id(), built.receipt().graph_id());
         assert_eq!(receipt.source_graph_revision_id(), built.receipt().graph_revision_id());
         assert_eq!(receipt.source_graph_payload_digest(), built.receipt().service_graph_payload_digest());

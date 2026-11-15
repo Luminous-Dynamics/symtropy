@@ -9,7 +9,6 @@ use crate::{
     IrGraphCompilation, IrGraphMappingProfile, PowerFabricDocument, ServiceGraph,
     StandardReference, DerivedArtifact, InputFingerprint, ChangeImpactError,
 };
-use std::collections::BTreeSet;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -353,6 +352,7 @@ pub struct DerivedArtifactReceipt {
     output_format: String,
     generator_id: String,
     generator_version: String,
+    source_compiler_version: String,
     generator_source_digest: Sha256Digest,
     generator_configuration_digest: Sha256Digest,
     source_mapping_profile_version: String,
@@ -406,6 +406,7 @@ impl DerivedArtifactReceipt {
         // mandatory first-class dependencies, not optional caller annotations.
         dependency_ids.push(format!("input:build-lock:{}", build_receipt.build_lock_digest.as_str()));
         dependency_ids.push(format!("input:service-graph-payload:{}", build_receipt.service_graph_payload_digest.as_str()));
+        dependency_ids.push(format!("input:generator-version:{generator_id}:{generator_version}"));
         dependency_ids.push(format!("input:generator-source:{generator_id}:{}", generator_source_digest.as_str()));
         dependency_ids.push(format!("input:generator-configuration:{generator_id}:{}", generator_configuration_digest.as_str()));
         dependency_ids.sort();
@@ -421,6 +422,7 @@ impl DerivedArtifactReceipt {
             artifact_kind,
             output_format,
             generator_id,
+            source_compiler_version: build_receipt.compiler_version.clone(),
             generator_version,
             generator_source_digest,
             generator_configuration_digest,
@@ -443,6 +445,7 @@ impl DerivedArtifactReceipt {
     pub fn output_format(&self) -> &str { &self.output_format }
     pub fn generator_id(&self) -> &str { &self.generator_id }
     pub fn generator_version(&self) -> &str { &self.generator_version }
+    pub fn source_compiler_version(&self) -> &str { &self.source_compiler_version }
     pub fn generator_source_digest(&self) -> &Sha256Digest { &self.generator_source_digest }
     pub fn generator_configuration_digest(&self) -> &Sha256Digest { &self.generator_configuration_digest }
     pub fn source_mapping_profile_version(&self) -> &str { &self.source_mapping_profile_version }
@@ -460,7 +463,7 @@ impl DerivedArtifactReceipt {
         DerivedArtifact::new(
             self.artifact_id.clone(),
             self.output_digest.as_str(),
-            self.generator_version.clone(),
+            self.source_compiler_version.clone(),
             self.source_mapping_profile_version.clone(),
             self.dependency_ids.clone(),
             self.dependency_inventory_complete,
@@ -471,6 +474,10 @@ impl DerivedArtifactReceipt {
     /// append fingerprints for each additional dependency ID in dependency_ids.
     pub fn pinned_dependency_fingerprints(&self) -> Result<Vec<InputFingerprint>, ChangeImpactError> {
         Ok(vec![
+            InputFingerprint::new(
+                format!("input:generator-version:{}:{}", self.generator_id, self.generator_version),
+                self.generator_version.clone(),
+            )?,
             InputFingerprint::new(
                 format!("input:build-lock:{}", self.source_build_lock_digest.as_str()),
                 self.source_build_lock_digest.as_str(),
