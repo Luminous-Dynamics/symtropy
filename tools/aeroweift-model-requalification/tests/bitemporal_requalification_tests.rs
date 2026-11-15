@@ -43,6 +43,7 @@ fn coverage(
         knowledge_from: 0,
         knowledge_through: 100,
         first_sequence: 1,
+        recorded_at: 0,
         last_sequence: 100,
         completeness,
         evidence_state: state,
