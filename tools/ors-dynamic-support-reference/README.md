@@ -11,10 +11,10 @@ This standalone, dependency-free Rust crate tests a narrowly bounded two-mass fo
 - two lumped masses;
 - one linear spring/damper coupling;
 - equal-and-opposite internal port forces;
-- equal-and-opposite external bias forces that hold a preloaded equilibrium;
-- removal of the bias forces at a fixed, grid-aligned release time;
+- independently declared external restraint forces that hold a preloaded equilibrium;
+- separate, grid-aligned release times for the two restraints, including asynchronous release;
 - fourth-order Runge–Kutta integration;
-- explicit linear-momentum and mechanical-energy / dissipation / external-work ledgers;
+- explicit total momentum / external impulse and mechanical-energy / dissipation / external-work ledgers;
 - frozen end-state cases checked against a closed-form damped-oscillator solution.
 
 The model is useful for verifying force-port signs, state integration, release-event semantics, deterministic receipts, dimensional bookkeeping and negative-control behavior before more complicated software is attempted.
@@ -42,9 +42,16 @@ F_stream = -k*y - c*dy/dt
 F_support = -F_stream
 ```
 
-Before release, equal-and-opposite bias forces `+F0` on the stream mass and `-F0` on the support mass hold the initial preload `y0 = F0/k` at rest. At release, both bias forces are removed. The model has no orbit, curvature, distributed stream, field or actuator state.
+Before release, equal-and-opposite restraint forces `+F0` on the stream mass and `-F0` on the support mass hold the initial preload `y0 = F0/k` at rest. Each restraint has its own declared release time. When the events are asynchronous, the remaining restraint exerts a net external force until its own release. The model integrates that external impulse and checks `p_total - I_external`; it does not incorrectly expect total momentum to remain zero. The model has no orbit, curvature, distributed stream, field or actuator state.
 
-After release, the relative coordinate follows:
+During the one-restraint interval, the relative coordinate follows the forced equation
+
+```text
+mu * d2y/dt2 + c * dy/dt + k*y = mu * (B_stream/m_stream - B_support/m_support)
+I_external = integral(B_stream + B_support) dt
+```
+
+After both restraints release, the relative coordinate follows:
 
 ```text
 mu * d2y/dt2 + c * dy/dt + k*y = 0
@@ -63,26 +70,29 @@ y(t) = y0 * exp(-zeta*omega_n*t)
           + zeta/sqrt(1-zeta^2)*sin(omega_d*t))
 ```
 
-The implementation separately accumulates viscous dissipation `Q` and work by the equal-and-opposite external bias forces `W_bias`. Its energy residual is:
+The implementation separately accumulates viscous dissipation `Q` and work by the independently applied external restraint forces `W_external`. Its energy residual is:
 
 ```text
-R_energy = E_mechanical + Q - W_bias - E_mechanical_initial
+R_energy = E_mechanical + Q - W_external - E_mechanical_initial
+R_momentum = p_total - I_external
 ```
 
 The total linear momentum is also checked. These are the ledgers of this synthetic lumped model only. They are not a substitute for field momentum, Maxwell stress, Poynting flux, orbital angular momentum, control-volume mass flux or thermal accounting in a future physical model.
 
 ## Frozen corpus
 
-`cases-v0.1.csv` contains seven cases:
+`cases-v0.1.csv` contains nine cases:
 - zero-preload equilibrium control;
 - preloaded equilibrium with no release during the simulation;
 - undamped release;
 - lightly damped release;
 - more heavily damped release;
 - delayed release;
-- intermediate-damping release.
+- intermediate-damping release;
+- stream-side restraint releases 50 ms before the support-side restraint;
+- support-side restraint releases 50 ms before the stream-side restraint.
 
-The golden end states are derived from the reduced-mass closed-form solution, not fitted to the RK4 output. The reference evaluator checks final separation and relative velocity against the frozen values, then separately checks linear-momentum and energy-ledger residuals.
+The golden end states are derived from an independently written closed-form state-space matrix-exponential oracle, not fitted to RK4 output. The oracle handles the intermediate constant-force interval for asynchronous release and checks the resulting external impulse. The reference evaluator checks final separation and relative velocity against the frozen values, then separately checks total momentum against integrated external impulse and closes the energy ledger.
 
 The separate `tests/closed_form_oracle.rs` integration-test target consumes the public API and uses a reduced-mass state-space matrix-exponential oracle, independently of the implementation's RK4 stages and the library's unit-test helpers. It also checks mass/force scaling and inertia-swap metamorphic relations. The Rust test suite also includes negative controls for zero mass, zero stiffness, negative damping, negative preload, non-finite inputs, unknown force-law identity, attempted physical-claim promotion, off-grid release event, release after the simulation end, excessive step count, non-finite derived state, malformed/duplicate corpus rows and malformed case IDs.
 
