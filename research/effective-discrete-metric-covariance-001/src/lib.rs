@@ -138,7 +138,8 @@ impl LinearDiscreteProblem2V1 {
 
     pub fn effective_metric(&self) -> Result<Matrix2, EffectiveMetricErrorV1> {
         let h = self.time_step;
-            if !h_squared.is_finite() {
+        let h_squared = h * h;
+        if !h_squared.is_finite() {
             return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
         }
         let mut result = [[0.0; 2]; 2];
@@ -236,6 +237,27 @@ impl IntegerFrame2V1 {
     }
 }
 
+/// Discrete work/energy accounting for the implicit mass-damping-stiffness step.
+///
+/// The balance identity is:
+/// ΔT + ΔV + h v₊ᵀ D v₊ + ½ Δvᵀ M Δv + ½ Δqᵀ K Δq = h fᵀ v₊.
+///
+/// The last two terms are the method's non-negative increment terms for SPD/PSD
+/// M/K. They must be reported separately from physical damping dissipation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DiscreteEnergyLedgerV1 {
+    pub kinetic_energy_before: f64,
+    pub kinetic_energy_after: f64,
+    pub potential_energy_before: f64,
+    pub potential_energy_after: f64,
+    pub external_work: f64,
+    pub damping_dissipation: f64,
+    pub mass_increment_dissipation: f64,
+    pub stiffness_increment_dissipation: f64,
+    pub balance_residual: f64,
+    pub relative_balance_residual: f64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct DiscreteStepResultV1 {
     pub effective_metric: Matrix2,
@@ -248,6 +270,7 @@ pub struct DiscreteStepResultV1 {
     pub discrete_work: f64,
     pub quadratic_potential_before: f64,
     pub quadratic_potential_after: f64,
+    pub energy_ledger: DiscreteEnergyLedgerV1,
 }
 
 fn is_exactly_symmetric(matrix: &Matrix2) -> bool {
@@ -373,6 +396,77 @@ fn quadratic(matrix: Matrix2, vector: Vector2) -> f64 {
     vector[0] * mapped[0] + vector[1] * mapped[1]
 }
 
+fn build_energy_ledger(
+    problem: &LinearDiscreteProblem2V1,
+    next_position: Vector2,
+    next_velocity: Vector2,
+) -> Result<DiscreteEnergyLedgerV1, EffectiveMetricErrorV1> {
+    let h = problem.time_step;
+    let delta_position = [
+        next_position[0] - problem.position[0],
+        next_position[1] - problem.position[1],
+    ];
+    let delta_velocity = [
+        next_velocity[0] - problem.velocity[0],
+        next_velocity[1] - problem.velocity[1],
+    ];
+
+    let kinetic_energy_before = 0.5 * quadratic(problem.mass, problem.velocity);
+    let kinetic_energy_after = 0.5 * quadratic(problem.mass, next_velocity);
+    let potential_energy_before = 0.5 * quadratic(problem.stiffness, problem.position);
+    let potential_energy_after = 0.5 * quadratic(problem.stiffness, next_position);
+    let external_work = h
+        * (problem.force_covector[0] * next_velocity[0]
+            + problem.force_covector[1] * next_velocity[1]);
+    let damping_dissipation = h * quadratic(problem.damping, next_velocity);
+    let mass_increment_dissipation = 0.5 * quadratic(problem.mass, delta_velocity);
+    let stiffness_increment_dissipation = 0.5 * quadratic(problem.stiffness, delta_position);
+
+    let balance_residual = (kinetic_energy_after - kinetic_energy_before)
+        + (potential_energy_after - potential_energy_before)
+        + damping_dissipation
+        + mass_increment_dissipation
+        + stiffness_increment_dissipation
+        - external_work;
+    let balance_scale = (kinetic_energy_after - kinetic_energy_before).abs()
+        + (potential_energy_after - potential_energy_before).abs()
+        + damping_dissipation.abs()
+        + mass_increment_dissipation.abs()
+        + stiffness_increment_dissipation.abs()
+        + external_work.abs();
+    let relative_balance_residual =
+        balance_residual.abs() / balance_scale.max(f64::MIN_POSITIVE);
+
+    let values = [
+        kinetic_energy_before,
+        kinetic_energy_after,
+        potential_energy_before,
+        potential_energy_after,
+        external_work,
+        damping_dissipation,
+        mass_increment_dissipation,
+        stiffness_increment_dissipation,
+        balance_residual,
+        relative_balance_residual,
+    ];
+    if values.iter().any(|value| !value.is_finite()) {
+        return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
+    }
+
+    Ok(DiscreteEnergyLedgerV1 {
+        kinetic_energy_before,
+        kinetic_energy_after,
+        potential_energy_before,
+        potential_energy_after,
+        external_work,
+        damping_dissipation,
+        mass_increment_dissipation,
+        stiffness_increment_dissipation,
+        balance_residual,
+        relative_balance_residual,
+    })
+}
+
 fn congruence(matrix: Matrix2, basis: Matrix2) -> Matrix2 {
     multiply(multiply(transpose(basis), matrix), basis)
 }
@@ -414,7 +508,6 @@ pub fn solve_discrete_step(
 ) -> Result<DiscreteStepResultV1, EffectiveMetricErrorV1> {
     problem.validate(profile)?;
     let h = problem.time_step;
-    let h_squared = h * h;
     let effective_metric = problem.effective_metric()?;
 
     let mass_velocity = apply(problem.mass, problem.velocity);
@@ -460,16 +553,11 @@ pub fn solve_discrete_step(
         return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
     }
     let backward_residual_inf = vector_inf(residual) / backward_scale.max(f64::MIN_POSITIVE);
-    let discrete_work = h
-        * (problem.force_covector[0] * next_velocity[0]
-            + problem.force_covector[1] * next_velocity[1]);
-    let quadratic_potential_before = 0.5 * quadratic(problem.stiffness, problem.position);
-    let quadratic_potential_after = 0.5 * quadratic(problem.stiffness, next_position);
-    if !backward_residual_inf.is_finite()
-        || !discrete_work.is_finite()
-        || !quadratic_potential_before.is_finite()
-        || !quadratic_potential_after.is_finite()
-    {
+    let energy_ledger = build_energy_ledger(problem, next_position, next_velocity)?;
+    let discrete_work = energy_ledger.external_work;
+    let quadratic_potential_before = energy_ledger.potential_energy_before;
+    let quadratic_potential_after = energy_ledger.potential_energy_after;
+    if !backward_residual_inf.is_finite() {
         return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
     }
 
@@ -484,6 +572,7 @@ pub fn solve_discrete_step(
         discrete_work,
         quadratic_potential_before,
         quadratic_potential_after,
+        energy_ledger,
     })
 }
 
@@ -806,6 +895,97 @@ mod tests {
         problem.stiffness = [[1.0e6, 0.0], [0.0, 1.0]];
         let result = solve_discrete_step(&problem, EffectiveMetricProfileV1::default()).unwrap();
         assert!(result.effective_metric_condition_inf > 1.0e5);
+    }
+
+    #[test]
+    fn discrete_energy_work_ledger_closes_the_implicit_equation() {
+        let result =
+            solve_discrete_step(&fixture(0.4), EffectiveMetricProfileV1::default()).unwrap();
+        let ledger = result.energy_ledger;
+        assert!(ledger.relative_balance_residual < 2.0e-13);
+        assert!(ledger.balance_residual.abs() < 2.0e-13);
+        assert_eq!(ledger.external_work, result.discrete_work);
+        assert_eq!(ledger.potential_energy_before, result.quadratic_potential_before);
+        assert_eq!(ledger.potential_energy_after, result.quadratic_potential_after);
+        assert!(ledger.damping_dissipation >= 0.0);
+        assert!(ledger.mass_increment_dissipation >= 0.0);
+        assert!(ledger.stiffness_increment_dissipation >= 0.0);
+    }
+
+    #[test]
+    fn unforced_damped_step_does_not_increase_mechanical_energy() {
+        let mut problem = fixture(0.8);
+        problem.force_covector = [0.0, 0.0];
+        let result = solve_discrete_step(&problem, EffectiveMetricProfileV1::default()).unwrap();
+        let ledger = result.energy_ledger;
+        let energy_before = ledger.kinetic_energy_before + ledger.potential_energy_before;
+        let energy_after = ledger.kinetic_energy_after + ledger.potential_energy_after;
+        assert!(energy_after <= energy_before + 1.0e-13);
+        assert!(ledger.damping_dissipation >= 0.0);
+        assert!(ledger.mass_increment_dissipation >= 0.0);
+        assert!(ledger.stiffness_increment_dissipation >= 0.0);
+        assert!(ledger.relative_balance_residual < 2.0e-13);
+    }
+
+    #[test]
+    fn energy_work_ledger_is_invariant_under_dense_coordinate_rebasing() {
+        let profile = EffectiveMetricProfileV1::default();
+        let physical = fixture(0.35);
+        let frame = IntegerFrame2V1::upper_shear(6);
+        let rebased_problem = rebase_problem(&physical, &frame, profile).unwrap();
+        let canonical = solve_discrete_step(&physical, profile).unwrap().energy_ledger;
+        let rebased = solve_discrete_step(&rebased_problem, profile).unwrap().energy_ledger;
+
+        let canonical_values = [
+            canonical.kinetic_energy_before,
+            canonical.kinetic_energy_after,
+            canonical.potential_energy_before,
+            canonical.potential_energy_after,
+            canonical.external_work,
+            canonical.damping_dissipation,
+            canonical.mass_increment_dissipation,
+            canonical.stiffness_increment_dissipation,
+            canonical.balance_residual,
+        ];
+        let rebased_values = [
+            rebased.kinetic_energy_before,
+            rebased.kinetic_energy_after,
+            rebased.potential_energy_before,
+            rebased.potential_energy_after,
+            rebased.external_work,
+            rebased.damping_dissipation,
+            rebased.mass_increment_dissipation,
+            rebased.stiffness_increment_dissipation,
+            rebased.balance_residual,
+        ];
+        for (left, right) in canonical_values.iter().zip(rebased_values.iter()) {
+            assert!((left - right).abs() <= 2.0e-11 * left.abs().max(right.abs()).max(1.0));
+        }
+    }
+
+    #[test]
+    fn backward_euler_large_step_is_stable_but_not_trajectory_accurate() {
+        let time_step = 1.0;
+        let angular_frequency = 10.0;
+        let problem = LinearDiscreteProblem2V1 {
+            case_id: "large-step-stable-not-accurate".to_owned(),
+            time_step,
+            mass: [[1.0, 0.0], [0.0, 1.0]],
+            damping: [[0.0, 0.0], [0.0, 0.0]],
+            stiffness: [[100.0, 0.0], [0.0, 100.0]],
+            position: [1.0, 0.0],
+            velocity: [0.0, 0.0],
+            force_covector: [0.0, 0.0],
+        };
+        let result = solve_discrete_step(&problem, EffectiveMetricProfileV1::default()).unwrap();
+        let spectral_radius =
+            1.0 / (1.0 + time_step * time_step * angular_frequency * angular_frequency).sqrt();
+        let exact_position = (angular_frequency * time_step).cos();
+
+        assert!(spectral_radius < 1.0);
+        assert!(result.next_position[0].is_finite());
+        assert!((result.next_position[0] - exact_position).abs() > 0.5);
+        assert!(result.energy_ledger.relative_balance_residual < 2.0e-13);
     }
 
     #[test]
