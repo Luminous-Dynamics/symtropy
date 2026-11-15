@@ -1,0 +1,232 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "TEXTILE-FEED-PRESENTATION-CASES-001",
+  "fixture_class": "synthetic",
+  "claim_ceiling": "Synthetic event-accounting and metric-denominator semantics only; no physical feeder, camera, robot or factory-line performance.",
+  "cases": [
+    {
+      "case_id": "FEED-001-COMPLETE-KNOWN-ANSWER",
+      "mutation": "Complete valid run preserves all incoming-item denominators",
+      "expected": {
+        "valid": true,
+        "findings": []
+      }
+    },
+    {
+      "case_id": "FEED-002-MISSING-TERMINAL",
+      "mutation": "One incoming item has no terminal disposition",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "MISSING_TERMINAL_DISPOSITION"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-003-DUPLICATE-TERMINAL",
+      "mutation": "An incoming item is assigned two terminal dispositions",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "DUPLICATE_TERMINAL_DISPOSITION",
+          "DUPLICATE_EVIDENCE_ID"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-004-ORPHAN-ATTEMPT",
+      "mutation": "A presentation attempt references an unknown incoming item",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ORPHAN_PRESENTATION_ATTEMPT"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-005-ATTEMPT-NUMBER-GAP",
+      "mutation": "A retry sequence skips its one-based attempt number",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ATTEMPT_NUMBER_GAP",
+          "ATTEMPT_CHAIN_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-006-RETRY-CHAIN-MISMATCH",
+      "mutation": "A retry points to an attempt other than its immediate predecessor",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ATTEMPT_CHAIN_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-007-RETRY-TIME-OVERLAP",
+      "mutation": "A retry begins before the prior attempt completed",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ATTEMPT_TIME_OVERLAP"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-008-TERMINAL-BEFORE-ATTEMPT",
+      "mutation": "A terminal disposition precedes the final presentation attempt",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "TERMINAL_PRECEDES_FINAL_ATTEMPT"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-009-ROUTED-WITHOUT-DESTINATION",
+      "mutation": "A routed item has no actual destination",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ROUTED_WITHOUT_DESTINATION"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-010-ROUTED-WITHOUT-VALID-PRESENTATION",
+      "mutation": "An item is routed without any valid single-item presentation",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ROUTED_WITHOUT_VALID_PRESENTATION"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-011-BAD-EVIDENCE-DIGEST",
+      "mutation": "A presentation attempt carries malformed SHA-256 evidence",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "INVALID_ATTEMPT_EVIDENCE"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-012-EVIDENCE-ID-REUSED",
+      "mutation": "Two claims reuse the same evidence identity",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "DUPLICATE_EVIDENCE_ID"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-013-DUPLICATE-INCOMING-ITEM",
+      "mutation": "An incoming item identity and intake sequence are duplicated",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "DUPLICATE_INCOMING_ITEM",
+          "DUPLICATE_INTAKE_SEQUENCE"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-014-NONROUTED-WITH-DESTINATION",
+      "mutation": "A held/manual item incorrectly declares an actual route destination",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "NON_ROUTED_WITH_DESTINATION"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-015-ORPHAN-TERMINAL",
+      "mutation": "A terminal disposition references an item absent from the intake manifest",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ORPHAN_TERMINAL_DISPOSITION"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-016-DUPLICATE-ATTEMPT-ID",
+      "mutation": "Two attempts reuse an attempt identity and evidence identity",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "DUPLICATE_ATTEMPT_ID",
+          "DUPLICATE_EVIDENCE_ID",
+          "ATTEMPT_NUMBER_GAP",
+          "ATTEMPT_CHAIN_MISMATCH"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-017-INVALID-ATTEMPT-INTERVAL",
+      "mutation": "An attempt has zero duration",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "INVALID_ATTEMPT_INTERVAL"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-018-EMPTY-REFERENCE-DESTINATION",
+      "mutation": "An independently labelled reference destination is empty",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "EMPTY_REFERENCE_DESTINATION"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-019-INVALID-RUN-INTERVAL",
+      "mutation": "Run start and end do not form a positive wall-clock measurement interval",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "INVALID_RUN_INTERVAL"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-020-INTAKE-OUTSIDE-RUN",
+      "mutation": "An item's intake timestamp is outside the run measurement window",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "INTAKE_OUTSIDE_RUN"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-021-ATTEMPT-BEFORE-INTAKE",
+      "mutation": "A presentation attempt begins before the item was recorded as physically entering the line",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "ATTEMPT_BEFORE_INTAKE"
+        ]
+      }
+    },
+    {
+      "case_id": "FEED-022-TERMINAL-OUTSIDE-RUN",
+      "mutation": "A terminal disposition falls outside the run measurement window",
+      "expected": {
+        "valid": false,
+        "findings": [
+          "TERMINAL_OUTSIDE_RUN"
+        ]
+      }
+    }
+  ]
+}
