@@ -19,7 +19,7 @@ const ALLOWED_DEPENDENCIES: &[&str] = &[
     "diagnostic_model", "evaluator", "validation_profile",
 ];
 
-fn object(value: &Value, at: &str) -> Result<&serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, at: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value.as_object().ok_or_else(|| format!("{at}: expected object"))
 }
 
@@ -175,7 +175,7 @@ fn evaluate_profile(profile: &Value, cases_document: &Value) -> Result<Value, St
         return Err("unsupported sail capability profile schema or evidence class".into());
     }
     if nonempty_string(profile, "as_of_utc", "$")?.len() != 20 {
-        return Err("$.as_of_utc: expected canonical UTC timestamp");
+        return Err("$.as_of_utc: expected canonical UTC timestamp".into());
     }
     nonempty_string(profile, "profile_id", "$")?;
     nonempty_string(profile, "claim_ceiling", "$")?;
