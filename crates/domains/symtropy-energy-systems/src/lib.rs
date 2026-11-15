@@ -67,7 +67,8 @@ pub use resilience::{
     ResilienceAssessment, ResilienceError,
 };
 pub use physical_identity::{
-    ActivePhysicalAssignment, DesignSlot, EvidenceRecord, IndependentReviewVerifier,
+    ActivePhysicalAssignment, DesignSlot, EvidenceAdmission, EvidenceAdmissionVerifier,
+    EvidenceRecord, IndependentReviewVerifier,
     InstallationProjection, InstallationSnapshot, PhysicalEvent, PhysicalEventKind,
     PhysicalIdentityDiagnostic, PhysicalIdentityDiagnosticCode, PhysicalIdentityError,
     PhysicalIdentityLedger, PhysicalInstance, ProductModel, ReviewScope, ReviewVerification,
