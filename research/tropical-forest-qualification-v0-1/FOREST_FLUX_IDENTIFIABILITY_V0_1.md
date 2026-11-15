@@ -184,4 +184,33 @@ A successful `PASS_SYNTHETIC_FLUX_IDENTIFIABILITY` receipt establishes exact str
 
 ## 9. Next stage: practical identifiability under measurement error
 
-The next child is [#5360 — FOREST-FLUX-PRACTICAL-IDENTIFIABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5360). It will extend the exact structural matrix with declared measurement-error standard deviations and covariance; compare whitened singular spectra, Fisher information, uncertainty and synthetic flux-recovery under independent, correlated and common-bias conditions; and distinguish cost-optimal from D-/A-/E-optimal measurement sets. It must preserve the distinction between full structural rank and practically recoverable parameters. All initial noise/covariance scenarios are synthetic, and the experiment must feed decision-loss value into the existing #5223 owner rather than optimize entropy alone.
+The practical follow-on [#5360](https://github.com/Luminous-Dynamics/symtropy/issues/5360) now has an executable synthetic linear-Gaussian reference documented in [FOREST_FLUX_PRACTICAL_IDENTIFIABILITY_V0_1.md](FOREST_FLUX_PRACTICAL_IDENTIFIABILITY_V0_1.md). Its covariance assumptions are synthetic; it is not a field error model.
+
+
+## 10. Target-specific estimands: recover the question even when the full flux vector is not identifiable
+
+A new exact row-space layer distinguishes identifiability of a scientific target from identifiability of every primitive flux. A linear estimand (c^T x) is identifiable from an observation operator (A) exactly when adding (c^T) as a row does not increase the row rank. Equivalently, it lies in the row space of the observations and does not vary along any nullspace direction.
+
+The fixture declares five target estimands:
+
+- net live-pool increment: identifiable from the live stock balance;
+- net deadwood-pool increment: identifiable from the deadwood stock balance;
+- total-pool increment: identifiable as the sum of the two stock balances;
+- gross mortality transfer: not identifiable from the stock balances alone;
+- gross live inputs (growth + recruitment): not identifiable from the stock balances alone.
+
+The 64-design tournament now reports estimand identifiability for every measurement subset and a minimum measurement design for each target. Under the declared synthetic costs:
+
+| Target estimand | Subsets that identify it | Minimum additional cost | Minimum-cost measurements |
+|---|---:|---:|---|
+| Net live-pool increment | 64/64 | 0 | None |
+| Net deadwood-pool increment | 64/64 | 0 | None |
+| Total-pool increment | 64/64 | 0 | None |
+| Mortality transfer | 43/64 | 3 | Mortality |
+| Gross live inputs | 31/64 | 6 | Growth + recruitment |
+
+Gross live inputs can also be identified by mortality + live export (two measurements, but higher cost 9 in this fixture). These costs and subsets follow only from the declared linear equations and synthetic effort values.
+
+This changes the benchmark question from “can we identify all six fluxes?” to “which decision-relevant ecological quantities are supported by the current evidence, and what is the cheapest additional measurement that identifies the quantity we actually need?” A model may be adequate for estimating net carbon change while remaining inadequate for attributing that change to mortality, recruitment or turnover.
+
+The row-space diagnostic is structural and noiseless. Practical uncertainty still depends on the covariance model, field support, bias and model discrepancy handled separately by [#5360](https://github.com/Luminous-Dynamics/symtropy/issues/5360).
