@@ -67,7 +67,6 @@ fn case_id(case: &Value) -> Result<String, String> {
     text(case, "case_id")
 }
 
-
 fn compute_service_continuity(input: &Value) -> Result<Value, String> {
     let initial = nonnegative(number(input, "initial_storage_l")?, "initial_storage_l")?;
     let maximum = positive(number(input, "maximum_storage_l")?, "maximum_storage_l")?;
