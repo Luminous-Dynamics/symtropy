@@ -309,6 +309,8 @@ fn coverage_is_complete(
     coverage: &[ChangeFeedCoverage],
     dependency: &DependencyBinding,
     cutoff: BitemporalCutoff,
+    claim_validated_at: i64,
+    claim_recorded_at: i64,
 ) -> bool {
     coverage.iter().any(|item| {
         item.dependency == dependency.kind
