@@ -96,7 +96,7 @@ One especially important reproduction trap: the paper's fair-weather filtering a
 
 Never compare one policy using the paper-faithful transductive preprocessing against another using training-only preprocessing as though they had equivalent information access.
 
-Dataset details from the source description include eight transmitter–receiver paths (5-1 through 5-4 and 6-1 through 6-4), 2,000-sample waveforms, and approximately 170-second measurement spacing. The 2026 paper states the apparatus is an aluminium plate with eight PZT transducers. Its specific study used only path 6-2 after qualitative path selection; it did not compare the other paths or multi-path fusion.
+Dataset details from the paper: eight PZT transducers were installed on the plate, but only six (two transmitters and four receivers) were used for acquisition, yielding eight transmitter–receiver paths (5-1 through 5-4 and 6-1 through 6-4). Public waveforms contain 2,000 samples at the downsampled 1 MHz record length of 2 ms, with approximately 176-second spacing. The 2026 classifier study used only path 6-2 after qualitative path selection; it did not compare the other paths or multi-path fusion.
 
 Source-paper evaluation is a benchmark of adjacent-pair classification accuracy. The Protective Systems adapter adds operational evaluation: false alarms per asset-day, detection delay, calibration, open-set abstention and inspection burden. Do not claim that these measures were assessed in the published 84.2% result.
 
