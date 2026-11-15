@@ -644,3 +644,8 @@ Verifies that each composed result was derived from the exact aircraft, flight, 
 ### Track Q — trusted evidence custody and historical/current reliance (#5351)
 
 AeroWeft-facing adapter to Mycelix's role-separated signed evidence, pinned trust roots, sensor provenance, revocation and evidence-lease owners. Verifies canonical bytes, signatures, signer identity, issuer role/predicate/subject scope, trust-policy epoch/root, key lifecycle and (where required) SCITT transparency proofs. Historical authenticity, current reliance, physical truth, source independence and operational authority remain separate facets. Reuse Mycelix #5899/#5895/#5863/#2143/#181/#2688/#1215; do not create a parallel DID registry, trust-root store, transparency service or generic currentness/lease algebra. No trust result mints flight/dispatch/control authority. Synthetic verifier only until cryptographic known-answer fixtures and independent review pass.
+
+
+### Track R — conflict-management performance evidence envelope (#5354)
+
+Builds a declared-domain performance evidence profile above planning and composition. It measures missed/late/nuisance alerts, latency tails, resolution feasibility, contingency/recovery, unresolved occupancy, exposure-normalized rates with confidence bounds, and subgroup coverage by traffic/encounter/environment/failure class. It reports a non-compensatory vector rather than a single safety score and keeps synthetic, simulation, SIL, HIL, flight-test and accepted operational evidence levels separate. NASA's 2025 Required Conflict Management Performance (RCMP) research is a motivating comparator; AeroWeft does not set separation minima, authorize operators or implement authority acceptance. See #5354.
