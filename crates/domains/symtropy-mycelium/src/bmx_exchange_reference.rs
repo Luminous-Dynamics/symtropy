@@ -111,26 +111,54 @@ pub enum BmxExchangeError {
 impl fmt::Display for BmxExchangeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidTimeStep => write!(f, "BMX reference time step must be finite and positive"),
+            Self::InvalidTimeStep => {
+                write!(f, "BMX reference time step must be finite and positive")
+            }
             Self::InvalidCoefficient(species) => {
-                write!(f, "BMX coefficient for {:?} must be finite and non-negative", species)
+                write!(
+                    f,
+                    "BMX coefficient for {:?} must be finite and non-negative",
+                    species
+                )
             }
-            Self::InvalidRadius(id) => write!(f, "segment {:?} radius must be finite and positive", id),
-            Self::InvalidVolume(id) => write!(f, "segment {:?} volume must be finite and positive", id),
+            Self::InvalidRadius(id) => {
+                write!(f, "segment {:?} radius must be finite and positive", id)
+            }
+            Self::InvalidVolume(id) => {
+                write!(f, "segment {:?} volume must be finite and positive", id)
+            }
             Self::InvalidConcentration(id, species) => {
-                write!(f, "segment {:?} concentration for {:?} must be finite and non-negative", id, species)
+                write!(
+                    f,
+                    "segment {:?} concentration for {:?} must be finite and non-negative",
+                    id, species
+                )
             }
-            Self::NonFiniteTotal(species) => write!(f, "total amount for {:?} is not finite", species),
+            Self::NonFiniteTotal(species) => {
+                write!(f, "total amount for {:?} is not finite", species)
+            }
             Self::DuplicateSegment(id) => write!(f, "duplicate segment {:?}", id),
             Self::DuplicateBond(a, b) => write!(f, "duplicate bond {:?} -> {:?}", a, b),
             Self::MissingSegment(id) => write!(f, "missing segment {:?}", id),
-            Self::SameSegmentPair(id) => write!(f, "exchange pair cannot connect segment {:?} to itself", id),
-            Self::DuplicatePair(a, b) => write!(f, "duplicate unordered exchange pair {:?}/{:?}", a, b),
+            Self::SameSegmentPair(id) => {
+                write!(f, "exchange pair cannot connect segment {:?} to itself", id)
+            }
+            Self::DuplicatePair(a, b) => {
+                write!(f, "duplicate unordered exchange pair {:?}/{:?}", a, b)
+            }
             Self::NonFiniteTransfer(a, b, species) => {
-                write!(f, "non-finite transfer {:?} -> {:?} for {:?}", a, b, species)
+                write!(
+                    f,
+                    "non-finite transfer {:?} -> {:?} for {:?}",
+                    a, b, species
+                )
             }
             Self::NegativeFinalConcentration(id, species) => {
-                write!(f, "negative final concentration at {:?} for {:?}", id, species)
+                write!(
+                    f,
+                    "negative final concentration at {:?} for {:?}",
+                    id, species
+                )
             }
         }
     }
@@ -254,7 +282,9 @@ pub fn apply_bmx_reference_exchange(
                 * parameters.dt_time_units;
             if !raw.is_finite() {
                 return Err(BmxExchangeError::NonFiniteTransfer(
-                    pair.first, pair.second, species
+                    pair.first,
+                    pair.second,
+                    species,
                 ));
             }
 
@@ -293,7 +323,9 @@ pub fn apply_bmx_reference_exchange(
             let final_concentration =
                 segment.concentrations[slot] + concentration_delta[index][slot];
             if !final_concentration.is_finite() || final_concentration < 0.0 {
-                return Err(BmxExchangeError::NegativeFinalConcentration(segment.id, species));
+                return Err(BmxExchangeError::NegativeFinalConcentration(
+                    segment.id, species,
+                ));
             }
             next[index].concentrations[slot] = final_concentration;
             total_after[slot] += final_concentration * segment.volume_m3;
@@ -362,12 +394,19 @@ mod tests {
         ];
         let report = apply_bmx_reference_exchange(
             &mut state,
-            &[BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) }],
+            &[BmxExchangePair {
+                first: BmxSegmentId(1),
+                second: BmxSegmentId(2),
+            }],
             parameters(0.00002),
         )
         .unwrap();
 
-        close(report.pair_exchanges[0].signed_amount_by_species[0], 5.340707511102649e-11, 1e-25);
+        close(
+            report.pair_exchanges[0].signed_amount_by_species[0],
+            5.340707511102649e-11,
+            1e-25,
+        );
         close(state[0].concentrations[0], 99.90933333333334, 1e-10);
         close(state[1].concentrations[0], 20.377777777777776, 1e-10);
         close(report.conservation_residual_by_species[0], 0.0, 1e-24);
@@ -384,8 +423,14 @@ mod tests {
         let report = apply_bmx_reference_exchange(
             &mut state,
             &[
-                BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) },
-                BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(3) },
+                BmxExchangePair {
+                    first: BmxSegmentId(1),
+                    second: BmxSegmentId(2),
+                },
+                BmxExchangePair {
+                    first: BmxSegmentId(1),
+                    second: BmxSegmentId(3),
+                },
             ],
             parameters(1.0),
         )
@@ -393,8 +438,16 @@ mod tests {
 
         let volume = std::f64::consts::PI * radius * radius * 0.003;
         let cap_per_edge = 100.0 * volume / 2.0;
-        close(report.pair_exchanges[0].signed_amount_by_species[0], cap_per_edge, 1e-23);
-        close(report.pair_exchanges[1].signed_amount_by_species[0], cap_per_edge, 1e-23);
+        close(
+            report.pair_exchanges[0].signed_amount_by_species[0],
+            cap_per_edge,
+            1e-23,
+        );
+        close(
+            report.pair_exchanges[1].signed_amount_by_species[0],
+            cap_per_edge,
+            1e-23,
+        );
         close(state[0].concentrations[0], 0.0, 1e-10);
         close(state[1].concentrations[0], 70.0, 1e-10);
         close(state[2].concentrations[0], 70.0, 1e-10);
@@ -413,13 +466,20 @@ mod tests {
             &mut state,
             &[
                 BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) },
-                BmxExchangePair { first: BmxSegmentId(3), second: BmxSegmentId(2) },
+                BmxExchangePair {
+                    first: BmxSegmentId(3),
+                    second: BmxSegmentId(2),
+                },
             ],
             parameters(1.0),
         )
         .unwrap();
 
-        close(report.pair_exchanges[0].signed_amount_by_species[0], -2.9452431127404313e-8, 1e-22);
+        close(
+            report.pair_exchanges[0].signed_amount_by_species[0],
+            -2.9452431127404313e-8,
+            1e-22,
+        );
         close(state[1].concentrations[0], 0.0, 1e-10);
         close(state[0].concentrations[0], 70.0, 1e-10);
         close(state[2].concentrations[0], 70.0, 1e-10);
@@ -438,7 +498,10 @@ mod tests {
             parameters(0.00002),
         )
         .unwrap();
-        assert_eq!(report.skipped_pairs[0].reason, BmxSkipReason::MissingReciprocalBond);
+        assert_eq!(
+            report.skipped_pairs[0].reason,
+            BmxSkipReason::MissingReciprocalBond
+        );
         assert!(report.pair_exchanges.is_empty());
         assert_eq!(state, before);
     }
@@ -474,7 +537,11 @@ mod tests {
             parameters(0.00002),
         )
         .unwrap();
-        close(report.pair_exchanges[0].signed_amount_by_species[0], 0.0, 0.0);
+        close(
+            report.pair_exchanges[0].signed_amount_by_species[0],
+            0.0,
+            0.0,
+        );
         assert_eq!(state, before);
     }
 
@@ -489,12 +556,21 @@ mod tests {
             apply_bmx_reference_exchange(
                 &mut state,
                 &[
-                    BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) },
-                    BmxExchangePair { first: BmxSegmentId(2), second: BmxSegmentId(1) },
+                    BmxExchangePair {
+                        first: BmxSegmentId(1),
+                        second: BmxSegmentId(2)
+                    },
+                    BmxExchangePair {
+                        first: BmxSegmentId(2),
+                        second: BmxSegmentId(1)
+                    },
                 ],
                 parameters(0.00002),
             ),
-            Err(BmxExchangeError::DuplicatePair(BmxSegmentId(1), BmxSegmentId(2)))
+            Err(BmxExchangeError::DuplicatePair(
+                BmxSegmentId(1),
+                BmxSegmentId(2)
+            ))
         );
         assert_eq!(state, before);
     }
