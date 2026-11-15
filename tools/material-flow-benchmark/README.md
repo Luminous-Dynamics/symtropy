@@ -26,9 +26,9 @@ From the repository root:
 
 ```bash
 cargo fmt --manifest-path tools/material-flow-benchmark/Cargo.toml -- --check
-cargo clippy --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets
-cargo run --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- \
+cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
 ```
 
