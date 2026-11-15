@@ -102,10 +102,7 @@ fn dot(left: &[f64], right: &[f64]) -> Result<f64, EnergyAuditError> {
 }
 
 /// Direct quadratic form evaluation, independent of the solver helper.
-fn quadratic_form(
-    matrix: &super::Matrix,
-    vector: &[f64],
-) -> Result<f64, EnergyAuditError> {
+fn quadratic_form(matrix: &super::Matrix, vector: &[f64]) -> Result<f64, EnergyAuditError> {
     if matrix.rows != vector.len() || matrix.cols != vector.len() {
         return Err(EnergyAuditError::ShapeMismatch);
     }
@@ -136,10 +133,7 @@ fn close(
     if difference > tolerance {
         return Err(EnergyAuditError::LedgerFieldMismatch("numeric_field"));
     }
-    Ok((
-        difference,
-        difference / scale.max(f64::MIN_POSITIVE),
-    ))
+    Ok((difference, difference / scale.max(f64::MIN_POSITIVE)))
 }
 
 fn compare_ledger(
@@ -148,21 +142,81 @@ fn compare_ledger(
     profile: EnergyAuditProfile,
 ) -> Result<(f64, f64, usize), EnergyAuditError> {
     let fields = [
-        ("kinetic_energy_before", expected.kinetic_energy_before, observed.kinetic_energy_before),
-        ("kinetic_energy_after", expected.kinetic_energy_after, observed.kinetic_energy_after),
-        ("potential_energy_before", expected.potential_energy_before, observed.potential_energy_before),
-        ("potential_energy_after", expected.potential_energy_after, observed.potential_energy_after),
-        ("external_force_work", expected.external_force_work, observed.external_force_work),
-        ("damping_dissipation", expected.damping_dissipation, observed.damping_dissipation),
-        ("mass_increment_dissipation", expected.mass_increment_dissipation, observed.mass_increment_dissipation),
-        ("stiffness_increment_dissipation", expected.stiffness_increment_dissipation, observed.stiffness_increment_dissipation),
-        ("contact_impulse_work", expected.contact_impulse_work, observed.contact_impulse_work),
-        ("contact_target_work", expected.contact_target_work, observed.contact_target_work),
-        ("contact_complementarity_work", expected.contact_complementarity_work, observed.contact_complementarity_work),
-        ("energy_balance_residual", expected.energy_balance_residual, observed.energy_balance_residual),
-        ("relative_energy_balance_residual", expected.relative_energy_balance_residual, observed.relative_energy_balance_residual),
-        ("contact_work_decomposition_residual", expected.contact_work_decomposition_residual, observed.contact_work_decomposition_residual),
-        ("relative_contact_work_decomposition_residual", expected.relative_contact_work_decomposition_residual, observed.relative_contact_work_decomposition_residual),
+        (
+            "kinetic_energy_before",
+            expected.kinetic_energy_before,
+            observed.kinetic_energy_before,
+        ),
+        (
+            "kinetic_energy_after",
+            expected.kinetic_energy_after,
+            observed.kinetic_energy_after,
+        ),
+        (
+            "potential_energy_before",
+            expected.potential_energy_before,
+            observed.potential_energy_before,
+        ),
+        (
+            "potential_energy_after",
+            expected.potential_energy_after,
+            observed.potential_energy_after,
+        ),
+        (
+            "external_force_work",
+            expected.external_force_work,
+            observed.external_force_work,
+        ),
+        (
+            "damping_dissipation",
+            expected.damping_dissipation,
+            observed.damping_dissipation,
+        ),
+        (
+            "mass_increment_dissipation",
+            expected.mass_increment_dissipation,
+            observed.mass_increment_dissipation,
+        ),
+        (
+            "stiffness_increment_dissipation",
+            expected.stiffness_increment_dissipation,
+            observed.stiffness_increment_dissipation,
+        ),
+        (
+            "contact_impulse_work",
+            expected.contact_impulse_work,
+            observed.contact_impulse_work,
+        ),
+        (
+            "contact_target_work",
+            expected.contact_target_work,
+            observed.contact_target_work,
+        ),
+        (
+            "contact_complementarity_work",
+            expected.contact_complementarity_work,
+            observed.contact_complementarity_work,
+        ),
+        (
+            "energy_balance_residual",
+            expected.energy_balance_residual,
+            observed.energy_balance_residual,
+        ),
+        (
+            "relative_energy_balance_residual",
+            expected.relative_energy_balance_residual,
+            observed.relative_energy_balance_residual,
+        ),
+        (
+            "contact_work_decomposition_residual",
+            expected.contact_work_decomposition_residual,
+            observed.contact_work_decomposition_residual,
+        ),
+        (
+            "relative_contact_work_decomposition_residual",
+            expected.relative_contact_work_decomposition_residual,
+            observed.relative_contact_work_decomposition_residual,
+        ),
     ];
 
     let mut maximum_absolute = 0.0_f64;
@@ -284,15 +338,15 @@ pub fn audit_discrete_energy_ledger(
         + stiffness_increment_dissipation.abs()
         + external_force_work.abs()
         + contact_impulse_work.abs();
-    let relative_energy_balance_residual = energy_balance_residual.abs()
-        / energy_scale.max(f64::MIN_POSITIVE);
+    let relative_energy_balance_residual =
+        energy_balance_residual.abs() / energy_scale.max(f64::MIN_POSITIVE);
 
     let contact_work_decomposition_residual =
         contact_impulse_work - contact_target_work - contact_complementarity_work;
     let contact_work_scale =
         contact_impulse_work.abs() + contact_target_work.abs() + contact_complementarity_work.abs();
-    let relative_contact_work_decomposition_residual = contact_work_decomposition_residual.abs()
-        / contact_work_scale.max(f64::MIN_POSITIVE);
+    let relative_contact_work_decomposition_residual =
+        contact_work_decomposition_residual.abs() / contact_work_scale.max(f64::MIN_POSITIVE);
 
     let expected = DiscreteEnergyLedger {
         kinetic_energy_before,
@@ -311,11 +365,8 @@ pub fn audit_discrete_energy_ledger(
         contact_work_decomposition_residual,
         relative_contact_work_decomposition_residual,
     };
-    let (
-        maximum_absolute_field_difference,
-        maximum_scaled_field_difference,
-        checked_ledger_fields,
-    ) = compare_ledger(&expected, &result.energy_ledger, profile)?;
+    let (maximum_absolute_field_difference, maximum_scaled_field_difference, checked_ledger_fields) =
+        compare_ledger(&expected, &result.energy_ledger, profile)?;
 
     Ok(EnergyAuditReceipt {
         kinetic_energy_before,
