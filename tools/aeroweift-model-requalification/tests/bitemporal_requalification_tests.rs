@@ -920,3 +920,19 @@ fn unrelated_dependency_feed_does_not_poison_claim_coverage() {
     let result = assess(&claim(), &[], &feeds, cutoff(50, 50)).unwrap();
     assert_eq!(result.status, ClaimStatus::StillApplicable);
 }
+
+
+#[test]
+fn future_effective_coverage_receipt_does_not_poison_earlier_cutoff() {
+    let mut feeds = complete_coverage();
+    let mut future = feeds[1].clone();
+    future.effective_from = 60;
+    future.manifest_sha256 = digest('7');
+    feeds.push(future);
+
+    let earlier = assess(&claim(), &[], &feeds, cutoff(50, 50)).unwrap();
+    assert_eq!(earlier.status, ClaimStatus::StillApplicable);
+
+    let later = assess(&claim(), &[], &feeds, cutoff(70, 70));
+    assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
+}
