@@ -202,3 +202,21 @@ Next extensions should add PIT diagnostics, calibration intervals for the confid
 ## 8. Claim ceiling
 
 A successful `PASS_SYNTHETIC_FORECAST_SCORING` receipt means only that the committed ensemble CRPS, WIS, nearest-rank intervals, paired baseline scores/skills, risk–coverage and abstention accounting agree with the synthetic known-truth cases. It does not establish ecological calibration, forecast skill, regional transfer, operational utility, conservation impact or SOTA superiority.
+
+
+## November 2026 benchmark alignment: NEON ecological forecasting
+
+The NEON Ecological Forecasting Challenge is a useful external evaluation pattern: it reports CRPS at each site and each forecast horizon, includes an overall summary, and compares submissions against a null model. CRPS is a proper scoring rule for predictive distributions/ensembles, rewarding both accuracy and useful spread. See the public evaluation documentation: https://projects.ecoforecast.org/neon4cast-docs/Evaluation.html
+
+The forest tournament should adopt that granularity, then go further where the forest dependence structure requires it:
+
+- report CRPS by site, variable and horizon, not only one pooled average;
+- include persistence, climatology and simple statistical/process baselines;
+- preserve paired test cases when comparing candidate and baseline scores;
+- show worst-site / worst-region skill and calibration;
+- add whole-block coverage and uncertainty around empirical block coverage;
+- report interval width/WIS at matched realized coverage;
+- report shift/abstention and per-regime results without pooling away a failing site;
+- freeze the forecast distribution and input/source digests before the validation observation is revealed.
+
+The competitive target is not to invent a new proper score. It is to apply existing proper-scoring discipline to a stricter evidence, dependence, transfer and decision-value contract.
