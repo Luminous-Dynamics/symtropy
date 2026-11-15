@@ -12,8 +12,7 @@ use std::time::{Duration, Instant};
 
 use metric_induced_error_envelope_reference::{
     CartesianQ, ConstraintSpace, Cotangent, DelassusMetricV1, DenseY, Matrix, Metric,
-    MetricLinearIsomorphism, MetricProfileV1, Rebasis, Tangent, pairing, vector_euclidean,
-    vector_inf,
+    MetricProfileV1, Rebasis, Tangent, pairing, vector_euclidean, vector_inf,
 };
 
 const N: usize = 6;
@@ -328,33 +327,6 @@ fn main() {
             metric_y.tangent_norm(black_box(&vector_y)).unwrap()
                 + metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
         }),
-        measure(
-            "metric_operator_envelope_construct",
-            ITERATIONS / 100,
-            SAMPLES,
-            || {
-                let operator = std::array::from_fn(|row| {
-                    std::array::from_fn(|column| {
-                        if row == column {
-                            2.0 + row as f64 * 0.25
-                        } else if column > row {
-                            (column - row) as f64 * 0.05
-                        } else {
-                            0.0
-                        }
-                    })
-                });
-                MetricLinearIsomorphism::<CartesianQ, DenseY, N>::admit(
-                    operator,
-                    black_box(&metric_q),
-                    black_box(&metric_y),
-                    MetricProfileV1::default(),
-                )
-                .unwrap()
-                .envelope()
-                .condition_number_upper_bound
-            },
-        ),
         measure(
             "delassus_whitened_gram_construct",
             ITERATIONS / 100,
