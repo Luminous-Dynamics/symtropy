@@ -144,3 +144,32 @@ It compares a nominal optimum, robust design and cheap fragile design across nom
 Relevant published baselines include variance-constrained robust Bayesian optimization (Zhou et al., *Reliability Engineering & System Safety*, October 2026, DOI https://doi.org/10.1016/j.ress.2026.112359), multi-stage adaptive robust multi-objective decision-making under deep uncertainty (Shavazipour & Stewart, *Omega*, January 2026, DOI https://doi.org/10.1016/j.omega.2025.103405), and a 1 November 2026 study combining BIM, EnergyPlus, NSGA-II and AI for outage-resilient envelope optimization across 14 climate zones and four housing typologies, with 16,856 simulations (DOI https://doi.org/10.1016/j.scs.2026.107977). These are named comparators to reproduce, not results we claim to have surpassed.
 
 No robust-design physical result, model run, or superiority claim is made by this exact finite oracle.
+
+
+## 8. Add NASA's 2026 materials BO benchmark as a compulsory B2 comparator
+
+A high-value industry/agency baseline is NASA Technical Memorandum NASA/TM-20260001102, *Benchmarking Bayesian Optimization Frameworks and Acquisition Strategies for Materials Discovery and Autonomous Laboratories*, published 1 March 2026 (DOI: https://doi.org/10.64631/ZKVT6687; official NTRS record: https://ntrs.nasa.gov/citations/20260001102).
+
+The NASA study compares five surrogate/framework combinations across three benchmark problems: discrete solid-electrolyte composition, hybrid categorical/continuous laminate-composite design coupled to micromechanics, and the Ishigami analytic function. It pairs posterior mean, probability of improvement and expected improvement acquisitions, uses 100 trials from randomized initial samples, includes uniform random search as a control, and reports five random seeds per setting. Its abstract reports BayBE Gaussian Process + Expected Improvement reaching at least 95% of the known optimum in the fewest evaluations overall, while Lolopy random forests matched or exceeded GP in some categorical/mixed spaces at higher computational cost. The paper also notes posterior-mean stagnation on some landscapes.
+
+**Implication:** Symthaea's protective-material discovery track should not compare only against NSGA-II and a generic BO baseline. B2 must include this exact NASA baseline family (Ax GP, BayBE GP/Monte-Carlo NN, Lolopy RF, Hyperopt TPE), the three matching problem classes where code/data permit, uniform random control, and the same 100-evaluation / five-seed discipline. Add hard constraints, multi-objective feasibility, cost uncertainty, held-out task families and a separate confirmation budget as extensions, not as changes to the source benchmark reproduction.
+
+The benchmark result is not a claim that Bayesian optimization is uniformly best or that Symthaea should copy one acquisition function. It establishes a demanding reproducible starting point. We should test whether uncertainty-aware, hypothesis-discriminating, robust-feasibility-aware policies reduce **cost to an independently confirmed feasible design** under matched budgets, including categorical material/process variables. Do not compare against the NASA paper by quoting only its abstract; reproduce its code, problem definitions, seed policy and evaluation budget first.
+
+A 2026 batch-BO study also shows that performance depends strongly on noise level and landscape shape, including needle-in-a-haystack versus smooth functions; therefore add controlled measurement noise, sparse feasible regions and predeclared batch acquisition baselines rather than evaluating only smooth noiseless objectives (Mia et al., *Journal of Materials Research*, 26 February 2026, DOI: https://doi.org/10.1557/s43578-026-01803-y).
+
+## 9. Executed software qualification and source corrections — 15 November 2026
+
+The latest exact-head CI run for the draft branch completed successfully on Ubuntu, Windows and macOS. The Linux-only isolated Protective Systems step passed:
+- Rust formatting check;
+- Clippy with warnings denied;
+- 40 unit tests across B0, damage/repair lifecycle, VOI and robust-design oracles;
+- B0 CLI (10/10 fixture dispositions; deterministic input receipt);
+- VOI CLI (anti-correlated proxy selected; explicit no-experiment baseline);
+- robust-design CLI (ROBUST_DESIGN selected; incomplete uncertainty abstention and non-compensatory hard floors).
+
+The standard repository workflow formatting, Clippy, physics tests and workspace build also passed on all three operating systems. The isolated verifier step intentionally runs on Ubuntu only. This qualifies the exact synthetic software tranche; it does not qualify any material, vehicle, PPE or building physically.
+
+The SHM adapter was corrected after inspecting the source repository README and loader. The paper's apparent 8.6-second versus ~176-second cadence difference is explained by taking one in twenty original acquisitions for the public benchmark; it is not an unexplained paper-internal conflict. The current SmartDATA Lab GitHub README also says the original Figshare download is no longer available and points to a Dropbox folder. The Dropbox payload's version/licence/hash equivalence to the cited DOI remains unverified, so no dataset files were downloaded or ingested. The public landing page's HDF5/14-sensor/30-second description remains separate from the paper/repository's eight-path monthly-pickle description until the data owner confirms version mapping.
+
+**Claim ceiling remains unchanged:** no SHM model has been trained, no physical experiment has been run, no performance improvement over the industry or SOTA has been demonstrated, and no protection certification or safety claim is made.
