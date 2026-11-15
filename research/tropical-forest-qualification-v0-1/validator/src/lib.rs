@@ -24,6 +24,7 @@ pub mod afex_ratio_estimand_kernel;
 pub mod afex_root_pathway_tournament_kernel;
 pub mod afex_root_pathway_identifiability_kernel;
 pub mod afex_practical_design_kernel;
+pub mod afex_source_identity_kernel;
 pub mod afex_root_distribution_kernel;
 
 use sha2::{Digest, Sha256};
@@ -3896,6 +3897,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return afex_practical_design_kernel::validate_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("AFEX-SOURCE-IDENTITY-001")
+    {
+        return afex_source_identity_kernel::validate_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("AFEX-ROOT-DISTRIBUTION-UQ-001")
     {
         return afex_root_distribution_kernel::validate_corpus(raw, &manifest);
@@ -5046,6 +5052,18 @@ mod tests {
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_PRACTICAL_DESIGN");
         assert_eq!(receipt["best_budgeted_portfolio"]["data_only_rank"], 4);
         assert_eq!(receipt["best_budgeted_portfolio"]["total_cost_units"], 24);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
+    
+    #[test]
+    fn afex_source_identity_dispatches_with_unresolved_and_conflict_counts() {
+        let bytes = include_str!("../../cases/afex-source-identity-synthetic-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("AFEX source identity fixture dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_SOURCE_IDENTITY_POLICY");
+        assert_eq!(receipt["case_count"], 7);
+        assert_eq!(receipt["unresolved_identity_count"], 1);
+        assert_eq!(receipt["site_or_support_conflict_count"], 4);
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
