@@ -49,6 +49,35 @@ jobs:
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example congruence_scaling_ladder
       - name: Run Delassus constraint-space coordinate ladder
         run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
+      - name: Run metric-aware rectangular constraint and Delassus ladder
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_space_ladder > "$RUNNER_TEMP/constraint-space-ladder.csv"
+      - name: Validate constraint-space covariance receipt
+        run: |
+          python3 - <<'PY'
+          import csv
+          import math
+          import os
+          from pathlib import Path
+          path = Path(os.environ["RUNNER_TEMP"]) / "constraint-space-ladder.csv"
+          with path.open(newline="") as stream:
+              rows = list(csv.DictReader(stream))
+          assert len(rows) == 5, f"expected five rebases, got {len(rows)}"
+          for row in rows:
+              for key, value in row.items():
+                  if key == "shear":
+                      continue
+                  assert math.isfinite(float(value)), (key, value)
+              assert float(row["singular_spectrum_max_delta"]) < 1.0e-7, row
+              assert float(row["whitened_delassus_eigen_max_delta"]) < 1.0e-7, row
+              assert float(row["delassus_congruence_max_defect"]) < 1.0e-7, row
+              assert float(row["minimum_kinetic_correction_max_delta"]) < 1.0e-7, row
+          PY
+      - name: Upload constraint-space covariance receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: constraint-space-rectangular-ladder-${{ github.sha }}
+          path: ${{ runner.temp }}/constraint-space-ladder.csv
+          if-no-files-found: error
       - name: Run deterministic metric-layer microbenchmark
         run: |
           set -euo pipefail
