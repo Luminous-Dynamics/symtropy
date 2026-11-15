@@ -32,6 +32,8 @@ For a declared annual period:
 
 The lifespan expression is the paper's inverse-turnover interpretation, not a universal individual-root survival distribution. A turnover ratio does not by itself identify a cohort survival curve, age distribution or cause-specific mortality process.
 
+Aggregation is also part of the estimand. For plot-level values `tau_i = P_i/S_i`, the equal-plot mean `mean(tau_i)` differs in general from the stock-weighted pooled ratio `sum(P_i)/sum(S_i)`. Likewise, `mean(365.25/tau_i)` is not `365.25/mean(tau_i)`. The study fits plot-level turnover; these group aggregates must remain separately labelled. The follow-on [#5443 ratio-estimand benchmark](AFEX_RATIO_ESTIMAND_V0_1.md) exposes how losing plot-level pairing can leave both marginal stock/productivity distributions unchanged while changing the mean of plot ratios, covariance and uncertainty.
+
 Do not let a stock-only score stand in for process fidelity. Report stock error, productivity error, turnover error and lifespan separately.
 
 ## 3. Measurement and support contract
