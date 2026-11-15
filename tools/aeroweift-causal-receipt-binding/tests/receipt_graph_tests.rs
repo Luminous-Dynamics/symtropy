@@ -763,7 +763,6 @@ fn observation_must_arrive_before_its_evaluation() {
     );
 }
 
-
 #[test]
 fn profile_class_order_permutation_preserves_semantic_result() {
     let mut receipts = graph();
