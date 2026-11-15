@@ -110,6 +110,25 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
         || string_at(manifest,"published_summary_status")?!="TRANSCRIBED_FROM_PAPER_NOT_RECOMPUTED_FROM_RAW_DATA" {
         return Err("AFEX root-turnover source or claim-ceiling metadata invalid".to_string());
     }
+    let stock_conclusion=manifest.get("published_stock_conclusion")
+        .ok_or_else(||"published_stock_conclusion required".to_string())?;
+    if string_at(stock_conclusion,"status")?!="NO_SIGNIFICANT_NUTRIENT_TREATMENT_EFFECT_REPORTED"
+        || string_at(stock_conclusion,"interpretation")?!="NON_SIGNIFICANCE_IS_NOT_EVIDENCE_OF_IDENTICAL_STOCKS_OR_ZERO_EFFECT" {
+        return Err("AFEX stock conclusion must preserve non-significance without claiming equivalence".to_string());
+    }
+    let lifespan_summaries=manifest.get("published_lifespan_summaries")
+        .and_then(Value::as_array).ok_or_else(||"published_lifespan_summaries must be array".to_string())?;
+    if lifespan_summaries.len()!=2 {
+        return Err("expected two paper-reported lifespan summaries".to_string());
+    }
+    for summary in lifespan_summaries {
+        let id=string_at(summary,"summary_id")?;
+        let without=number_at(summary,if id=="P_TWO_YEAR_AVERAGE" {"without_phosphorus_days"} else {"without_cations_days"})?;
+        let with=number_at(summary,if id=="P_TWO_YEAR_AVERAGE" {"with_phosphorus_days"} else {"with_cations_days"})?;
+        if without<=0.0||with<=0.0 {
+            return Err(format!("published lifespan summary {id} must be positive"));
+        }
+    }
     let tol=manifest.get("tolerances").ok_or_else(||"tolerances required".to_string())?;
     let stock_tol=number_at(tol,"stock_absolute")?;
     let prod_tol=number_at(tol,"productivity_absolute")?;
@@ -273,7 +292,7 @@ mod tests {
         let r=validate_corpus(FIXTURE.as_bytes(),&m).expect("receipt");
         assert_eq!(r["result"],"PASS_SYNTHETIC_ROOT_TURNOVER");
         assert_eq!(r["case_count"],4);
-        assert_eq!(r["published_summary_effect_count"],6);
+        assert_eq!(r["published_summary_effect_count"],7);
         assert_eq!(r["case_results"][1]["disposition"],"STOCK_MATCH_WITH_PROCESS_MISMATCH");
     }
     #[test]
