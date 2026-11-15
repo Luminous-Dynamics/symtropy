@@ -107,6 +107,7 @@ fn positive_control_returns_a_pareto_front() {
     assert_eq!(result.disposition, DesignDisposition::ParetoFrontAvailable);
     assert_eq!(result.pareto_front.len(), 1);
     assert_eq!(result.pareto_front[0].candidate_id, "baseline");
+    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 1);
     assert!(result.rejected.is_empty());
 }
 
@@ -729,4 +730,63 @@ fn zero_budget_dimension_is_a_valid_hard_constraint() {
     simulation.resource_cost.facility_minutes = 0;
     let result = select_experiments(&[simulation], &frozen).unwrap();
     assert_eq!(result.pareto_front.len(), 1);
+}
+
+
+#[test]
+fn multiple_variant_contrasts_in_one_group_pair_count_only_once() {
+    let mut candidate = candidate("same-group-pair");
+    candidate.hypothesis_groups.push(HypothesisGroup {
+        hypothesis_id: "hypothesis-a-variant-2".into(),
+        hypothesis_sha256: digest('0'),
+        group_id: "model-family-a".into(),
+    });
+    candidate.hypothesis_contrasts.push(HypothesisContrast {
+        left_hypothesis_id: "hypothesis-a-variant-2".into(),
+        right_hypothesis_id: "hypothesis-b".into(),
+        separation_lower_bound: 0.70,
+        contrast_estimate_sha256: digest('a'),
+    });
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 1);
+}
+
+#[test]
+fn policy_can_require_more_than_one_independent_hypothesis_group_pair() {
+    let mut frozen = policy();
+    frozen.minimum_distinct_hypothesis_group_pairs = 2;
+    let candidate = candidate("one-group-pair");
+    let result = select_experiments(&[candidate], &frozen).unwrap();
+    assert!(reason(&result, "one-group-pair")
+        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+}
+
+#[test]
+fn two_distinct_group_pair_contrasts_satisfy_a_two_pair_policy() {
+    let mut frozen = policy();
+    frozen.minimum_distinct_hypothesis_group_pairs = 2;
+    let mut candidate = candidate("two-group-pairs");
+    candidate.hypothesis_groups.push(HypothesisGroup {
+        hypothesis_id: "hypothesis-c".into(),
+        hypothesis_sha256: digest('0'),
+        group_id: "model-family-c".into(),
+    });
+    candidate.hypothesis_contrasts.push(HypothesisContrast {
+        left_hypothesis_id: "hypothesis-a".into(),
+        right_hypothesis_id: "hypothesis-c".into(),
+        separation_lower_bound: 0.55,
+        contrast_estimate_sha256: digest('a'),
+    });
+    let result = select_experiments(&[candidate], &frozen).unwrap();
+    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 2);
+}
+
+#[test]
+fn parameter_identification_does_not_receive_model_pair_diversity_credit() {
+    let mut frozen = policy();
+    frozen.objective = ExperimentObjective::ParameterIdentification;
+    let mut candidate = candidate("parameter-objective");
+    candidate.objective = ExperimentObjective::ParameterIdentification;
+    let result = select_experiments(&[candidate], &frozen).unwrap();
+    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 0);
 }
