@@ -1,9 +1,7 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use construction_motion_oracle::{
-    AnalyticPath, Vec3, chord_collision, endpoints_only_collision,
-};
+use construction_motion_oracle::{AnalyticPath, Vec3, chord_collision, endpoints_only_collision};
 
 fn percentile(values: &[Duration], percentile: usize) -> Duration {
     let index = ((values.len() - 1) * percentile).div_ceil(100);
@@ -57,17 +55,9 @@ fn main() {
     );
 
     measure("linear-analytic-ccd", || {
-        black_box(linear.collides_with_stationary_sphere(
-            10.0,
-            linear_obstacle,
-            5.0,
-        ));
+        black_box(linear.collides_with_stationary_sphere(10.0, linear_obstacle, 5.0));
     });
     measure("semicircle-analytic-ccd", || {
-        black_box(arc.collides_with_stationary_sphere(
-            20.0,
-            arc_obstacle,
-            20.0,
-        ));
+        black_box(arc.collides_with_stationary_sphere(20.0, arc_obstacle, 20.0));
     });
 }

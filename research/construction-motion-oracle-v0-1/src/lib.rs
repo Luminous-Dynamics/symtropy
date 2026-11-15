@@ -5,7 +5,7 @@
 //! producer's geometric expansion helpers.
 
 use construction_motion_envelope::{
-    build, AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Segment,
+    AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build,
 };
 
 const COLLISION_EPSILON_MM: f64 = 1.0e-9;
@@ -124,16 +124,8 @@ impl AnalyticPath {
     pub fn exact_center_aabb(&self) -> Aabb3 {
         match *self {
             Self::Linear { start, end } => Aabb3 {
-                min: Vec3::new(
-                    start.x.min(end.x),
-                    start.y.min(end.y),
-                    start.z.min(end.z),
-                ),
-                max: Vec3::new(
-                    start.x.max(end.x),
-                    start.y.max(end.y),
-                    start.z.max(end.z),
-                ),
+                min: Vec3::new(start.x.min(end.x), start.y.min(end.y), start.z.min(end.z)),
+                max: Vec3::new(start.x.max(end.x), start.y.max(end.y), start.z.max(end.z)),
             },
             Self::UpperSemicircle { radius_mm, z_mm } => Aabb3 {
                 min: Vec3::new(-radius_mm, 0.0, z_mm),
@@ -157,11 +149,7 @@ impl AnalyticPath {
             }
             Self::UpperSemicircle { radius_mm, z_mm } => {
                 let angle = point.y.atan2(point.x).clamp(0.0, std::f64::consts::PI);
-                let projected = Vec3::new(
-                    radius_mm * angle.cos(),
-                    radius_mm * angle.sin(),
-                    z_mm,
-                );
+                let projected = Vec3::new(radius_mm * angle.cos(), radius_mm * angle.sin(), z_mm);
                 let start = Vec3::new(-radius_mm, 0.0, z_mm);
                 let end = Vec3::new(radius_mm, 0.0, z_mm);
                 projected
@@ -345,16 +333,8 @@ fn point_to_mm(point: Vec3) -> Point3Mm {
 
 pub fn aabb_from_kernel(aabb: construction_motion_envelope::AabbMm) -> Aabb3 {
     Aabb3 {
-        min: Vec3::new(
-            aabb.min.x as f64,
-            aabb.min.y as f64,
-            aabb.min.z as f64,
-        ),
-        max: Vec3::new(
-            aabb.max.x as f64,
-            aabb.max.y as f64,
-            aabb.max.z as f64,
-        ),
+        min: Vec3::new(aabb.min.x as f64, aabb.min.y as f64, aabb.min.z as f64),
+        max: Vec3::new(aabb.max.x as f64, aabb.max.y as f64, aabb.max.z as f64),
     }
 }
 
@@ -383,15 +363,7 @@ mod tests {
             numerical_mm: Vec3::new(1.0, 1.0, 1.0),
         };
         let expected = analytic_physical_outer(path, 35.0, physical_margins);
-        let slice = build_kernel_slice(
-            path,
-            "tool",
-            35,
-            zero(),
-            axis(10, 10, 10),
-            zero(),
-            zero(),
-        );
+        let slice = build_kernel_slice(path, "tool", 35, zero(), axis(10, 10, 10), zero(), zero());
         assert!(aabb_from_kernel(slice.physical_swept_outer).contains(expected));
     }
 
@@ -411,18 +383,12 @@ mod tests {
                 numerical_mm: Vec3::new(0.0, 0.0, 0.0),
             },
         );
-        let missing_arc_bound = build_kernel_slice(path, "tool", 25, zero(), zero(), zero(), zero());
+        let missing_arc_bound =
+            build_kernel_slice(path, "tool", 25, zero(), zero(), zero(), zero());
         assert!(!aabb_from_kernel(missing_arc_bound.physical_swept_outer).contains(expected));
 
-        let qualified_claim = build_kernel_slice(
-            path,
-            "tool",
-            25,
-            axis(0, 1_000, 0),
-            zero(),
-            zero(),
-            zero(),
-        );
+        let qualified_claim =
+            build_kernel_slice(path, "tool", 25, axis(0, 1_000, 0), zero(), zero(), zero());
         assert!(aabb_from_kernel(qualified_claim.physical_swept_outer).contains(expected));
     }
 
@@ -457,15 +423,7 @@ mod tests {
             radius_mm: 1_000.0,
             z_mm: 0.0,
         };
-        let slice = build_kernel_slice(
-            path,
-            "tool",
-            20,
-            axis(0, 1_000, 0),
-            zero(),
-            zero(),
-            zero(),
-        );
+        let slice = build_kernel_slice(path, "tool", 20, axis(0, 1_000, 0), zero(), zero(), zero());
         let envelope = aabb_from_kernel(slice.physical_swept_outer);
         let obstacle = Vec3::new(1_015.0, 1_015.0, 0.0);
         assert!(envelope_broad_phase_candidate(envelope, obstacle, 10.0));
@@ -506,17 +464,11 @@ mod tests {
             end: Vec3::new(200.0, 0.0, 0.0),
         };
         let tight = build_kernel_slice(path, "tool", 10, zero(), zero(), zero(), zero());
-        let wide = build_kernel_slice(
-            path,
-            "tool",
-            10,
-            zero(),
-            axis(30, 20, 10),
-            zero(),
-            zero(),
+        let wide = build_kernel_slice(path, "tool", 10, zero(), axis(30, 20, 10), zero(), zero());
+        assert!(
+            aabb_from_kernel(wide.physical_swept_outer)
+                .contains(aabb_from_kernel(tight.physical_swept_outer))
         );
-        assert!(aabb_from_kernel(wide.physical_swept_outer)
-            .contains(aabb_from_kernel(tight.physical_swept_outer)));
     }
 
     #[test]
