@@ -1,0 +1,129 @@
+{
+  "schema_version": "waterloop-physical-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
+  "cases": [
+    {
+      "case_id": "WL-T0-001-balanced-volume-closure",
+      "family": "volume_closure",
+      "expected": {
+        "input_total_l": 1500,
+        "output_total_l": 1500,
+        "signed_residual_l": 0,
+        "conservative_u95_bound_l": 11,
+        "closure_disposition": "CLOSED_WITHIN_DECLARED_BOUND",
+        "closure_pass": true
+      }
+    },
+    {
+      "case_id": "WL-T0-002-unbalanced-volume-closure",
+      "family": "volume_closure",
+      "expected": {
+        "signed_residual_l": 10,
+        "conservative_u95_bound_l": 1.2,
+        "closure_disposition": "NOT_CLOSED",
+        "closure_pass": false
+      }
+    },
+    {
+      "case_id": "WL-T0-003-deliverable-storage-sufficient",
+      "family": "storage_service",
+      "expected": {
+        "inventory_above_heel_ceiling_l": 220,
+        "measured_deliverable_l": 205,
+        "required_service_volume_l": 200,
+        "delivery_margin_l": 5,
+        "service_disposition": "SUFFICIENT",
+        "service_credit_eligible": true
+      }
+    },
+    {
+      "case_id": "WL-T0-004-deliverable-storage-insufficient",
+      "family": "storage_service",
+      "expected": {
+        "inventory_above_heel_ceiling_l": 220,
+        "measured_deliverable_l": 190,
+        "required_service_volume_l": 200,
+        "delivery_margin_l": -10,
+        "service_disposition": "INSUFFICIENT",
+        "service_credit_eligible": false
+      }
+    },
+    {
+      "case_id": "WL-T0-005-qualified-source-substitution",
+      "family": "source_substitution",
+      "expected": {
+        "source_substitution_disposition": "CREDITABLE_FOR_DECLARED_USE",
+        "reason": "ALL_CREDIT_GATES_MET",
+        "credited_mains_displacement_l": 100,
+        "unmet_matched_demand_l": 20,
+        "recovered_delivery_not_credited_l": 0
+      }
+    },
+    {
+      "case_id": "WL-T0-006-unqualified-source-no-credit",
+      "family": "source_substitution",
+      "expected": {
+        "source_substitution_disposition": "NOT_CREDITABLE",
+        "reason": "QUALITY_NOT_QUALIFIED_FOR_DECLARED_USE",
+        "credited_mains_displacement_l": 0,
+        "unmet_matched_demand_l": 120,
+        "recovered_delivery_not_credited_l": 100
+      }
+    },
+    {
+      "case_id": "WL-T0-007-hydraulic-power-known-answer",
+      "family": "pump_energy",
+      "expected": {
+        "hydraulic_power_w": 32.7
+      }
+    },
+    {
+      "case_id": "WL-T0-008-wire-to-water-energy",
+      "family": "pump_energy",
+      "expected": {
+        "wire_to_water_efficiency": 0.7,
+        "electrical_specific_energy_kwh_m3": 0.07785714285714287
+      }
+    },
+    {
+      "case_id": "WL-T0-009-service-floor-met",
+      "family": "service_floor",
+      "expected": {
+        "service_disposition": "FEASIBLE",
+        "reason": "ALL_SERVICE_FLOORS_MET",
+        "pressure_floor_met": true,
+        "flow_floor_met": true,
+        "service_credit_eligible": true
+      }
+    },
+    {
+      "case_id": "WL-T0-010-service-floor-not-met",
+      "family": "service_floor",
+      "expected": {
+        "service_disposition": "INFEASIBLE",
+        "reason": "MINIMUM_OUTLET_PRESSURE_NOT_MET",
+        "pressure_floor_met": false,
+        "flow_floor_met": true,
+        "service_credit_eligible": false
+      }
+    },
+    {
+      "case_id": "WL-T0-011-leak-event-metrics",
+      "family": "leak_metrics",
+      "expected": {
+        "event_precision": 0.8,
+        "event_recall": 0.8,
+        "false_alarms_per_100_sensor_days": 2
+      }
+    },
+    {
+      "case_id": "WL-T0-012-missed-leak-volume",
+      "family": "leak_metrics",
+      "expected": {
+        "point_missed_volume_l": 30,
+        "conservative_upper_missed_volume_l": 35.2
+      }
+    }
+  ]
+}
