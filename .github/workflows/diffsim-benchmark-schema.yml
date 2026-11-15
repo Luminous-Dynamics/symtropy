@@ -56,4 +56,8 @@ jobs:
           forged['results']['error_envelope']['evidence_class'] = 'empirical_estimate'
           forged['results']['error_envelope']['upper_bound_emitted'] = True
           assert list(validator.iter_errors(forged)), 'empirical curvature promoted to upper bound'
+          forged = copy.deepcopy(fixture)
+          forged['results']['error_envelope']['upper_bound_claim_conditional'] = True
+          forged['claim_boundary']['claims']['error_bound_claim'] = 'conditional_analytic_remainder'
+          assert list(validator.iter_errors(forged)), 'conditional upper-bound claim without emitted value accepted'
           PY
