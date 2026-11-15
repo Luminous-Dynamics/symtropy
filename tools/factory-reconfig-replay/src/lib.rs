@@ -406,10 +406,10 @@ mod tests {
     }
 
     #[test]
-    fn missing_phase_rejects() {
+    fn missing_phase_blocks_acceptance() {
         let mut p = plan(); p.steps.remove(3);
         let out = replay(&p, &context());
-        assert_eq!(out.disposition, Disposition::Reject); has(&out, Reason::MissingPhase);
+        assert_eq!(out.disposition, Disposition::Blocked); has(&out, Reason::MissingPhase);
     }
 
     #[test]
