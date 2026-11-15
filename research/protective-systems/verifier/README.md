@@ -91,17 +91,18 @@ SHA-256 published by the NIST Public Data Repository.
 From the repository root:
 
 ```sh
-cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-data-gate -- research/protective-systems/fixtures/body-armor-public-datasets-v0.1.json /path/to/V50.zip
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-data-gate -- /path/to/V50.zip
 ```
 
 Exit behavior:
 
-- `0`: registry entry is eligible and the archive digest matches;
+- `0`: the compile-time registry entry passes its local NIST allowlist checks and the archive digest matches;
 - `1`: input is valid but the archive digest does not match;
 - `2`: usage, registry, rights metadata, file access or hashing error.
 
-The gate prints the expected and observed digest and byte count. It does not
-download, extract, parse, train on or score the archive. A digest mismatch must
+The gate embeds the reviewed, version-controlled registry at compile time and
+prints the expected and observed digest and byte count. It does not download,
+extract, parse, train on or score the archive. A digest mismatch must
 stop the pipeline. The registry's Zenodo CFRP candidate remains excluded while
 its item-specific licence and permitted-use scope are unresolved.
 
