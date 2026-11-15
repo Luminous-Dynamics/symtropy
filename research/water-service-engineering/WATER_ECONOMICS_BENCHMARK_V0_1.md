@@ -91,9 +91,10 @@ The tariff owner supplies the matched baseline and actual municipal bill using t
 
 `C_per_critical_person_day = C_system / admitted_critical_person_days_delivered`
 
-If volume or person-days is zero, the corresponding ratio is Undefined. If tariff evidence is unadmitted, bill delta, incremental cost and household water-spend burden are Indeterminate. If cost ledger is unadmitted, total system cost is Indeterminate. If income is unavailable or not authorised, the burden ratio is Indeterminate while supported cost arithmetic remains reportable.
+If volume or person-days is zero, the corresponding ratio is Undefined. If tariff evidence is unadmitted or its billing-period duration does not match the cost period, bill delta, incremental cost and whole-system cost comparison are Indeterminate. The evaluator does not annualise, prorate or silently resample bills. If cost ledger is unadmitted, total system cost is Indeterminate. If income is unavailable or not authorised, the affordability burden is Indeterminate while an otherwise admitted cost/service comparison and unit-cost metrics remain reportable. Cost efficiency and household affordability are distinct outputs; one is not a proxy for the other.
 
 The evaluator requires:
+- tariff billing-period duration to match the system-cost period exactly within the declared numeric tolerance;
 - explicit ZAR currency, price date, region and 30-day period;
 - cost-use profile identity and service-use profile identity;
 - cost-ledger, tariff, income and service evidence admission flags;
@@ -104,7 +105,7 @@ The evaluator requires:
 
 T0 treats the supplied monthly capex equivalent as an already calculated result from the whole-life cost owner; it does not select a discount rate or annualisation policy. Future T1 must carry exact installed quote/asset life/replacement/discount/tax/finance assumptions from Sol-Atlas #816.
 
-## 5. T0 corpus cases 026–033
+## 5. T0 corpus cases 026–034
 
 | Case | Scenario | Expected safeguard |
 |---|---|---|
@@ -116,6 +117,7 @@ T0 treats the supplied monthly capex equivalent as an already calculated result 
 | 031 | Disposable-income evidence unavailable | No invented affordability ratio |
 | 032 | Cost/service intended-use mismatch | No volume credit or cost-per-useful-m³ claim |
 | 033 | Lower-cost configuration misses declared essential service floor | No economic-preference eligibility |
+| 034 | Utility bill covers a different number of days than the system-cost period | No bill-delta or whole-system cost comparison until periods match |
 
 Cases are synthetic and only verify arithmetic/admission semantics. Their numeric inputs are not product quotes, tariffs, measured households or field observations.
 
