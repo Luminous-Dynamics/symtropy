@@ -7,75 +7,194 @@
     "protocol_version": "v10.1",
     "source_url": "https://www.euroncap.com/general-2026-onwards/",
     "application_area_source": "https://www.euroncap.com/media/79890/euro-ncap-rating-review-2023.pdf",
-    "claim_boundary": "Protocol/rating crosswalk only; no vehicle score or safety claim."
+    "claim_boundary": "Protocol/rating crosswalk only; no vehicle score or safety claim.",
+    "vehicle_specification_sponsorship_testing_retesting_protocol_version": "v8.1",
+    "application_of_star_rating_version": "v2.1",
+    "application_area_version": "v2.0",
+    "protocol_catalogue_url": "https://www.euroncap.com/general-2026-onwards/",
+    "rating_review_source": "https://www.euroncap.com/media/79890/euro-ncap-rating-review-2023.pdf"
   },
   "stages": [
     {
       "id": "safe_driving",
       "points": 100,
       "best_in_class_weight_percent": 20,
-      "families": ["occupant_monitoring", "driver_engagement", "vehicle_assistance"],
+      "families": [
+        "occupant_monitoring",
+        "driver_engagement",
+        "vehicle_assistance"
+      ],
       "published_protocol_examples": [
-        {"name": "Assessment Protocol - SA - Safe Driving", "version": "v10.4", "source_url": "https://www.euroncap.com/safety-assist/"}
+        {
+          "name": "Assessment Protocol - SA - Safe Driving",
+          "version": "v10.4",
+          "source_url": "https://www.euroncap.com/safety-assist/"
+        }
       ]
     },
     {
       "id": "crash_avoidance",
       "points": 100,
       "best_in_class_weight_percent": 20,
-      "families": ["frontal_collisions", "lane_departure_collisions", "acceleration_prevention"],
+      "families": [
+        "frontal_collisions",
+        "lane_departure_collisions",
+        "acceleration_prevention"
+      ],
       "published_protocol_examples": [
-        {"name": "Assessment Protocol - SA - Collision Avoidance", "version": "v10.4.1", "source_url": "https://www.euroncap.com/safety-assist/"},
-        {"name": "AEB Car-to-Car Test Protocol", "version": "v4.3.1", "source_url": "https://www.euroncap.com/safety-assist/"}
+        {
+          "name": "Assessment Protocol - SA - Collision Avoidance",
+          "version": "v10.4.1",
+          "source_url": "https://www.euroncap.com/safety-assist/"
+        },
+        {
+          "name": "AEB Car-to-Car Test Protocol",
+          "version": "v4.3.1",
+          "source_url": "https://www.euroncap.com/safety-assist/"
+        }
       ]
     },
     {
       "id": "crash_protection",
       "points": 100,
       "best_in_class_weight_percent": 50,
-      "families": ["frontal_impact", "side_impact", "rear_impact_whiplash", "vulnerable_road_user_impact"],
+      "families": [
+        "frontal_impact",
+        "side_impact",
+        "rear_impact_whiplash",
+        "vulnerable_road_user_impact"
+      ],
       "protocol_discovery_url": "https://www.euroncap.com/protocols/"
     },
     {
       "id": "post_crash_safety",
       "points": 100,
       "best_in_class_weight_percent": 10,
-      "families": ["rescue_information", "post_crash_intervention", "extrication"],
+      "families": [
+        "rescue_information",
+        "post_crash_intervention",
+        "extrication"
+      ],
       "published_protocols": [
-        {"name": "Rescue & Extrication Test and Assessment Protocol", "version": "v1.1", "published": "2025-09", "implementation": "2026-01", "source_url": "https://www.euroncap.com/media/91774/euro-ncap-protocol-post-crash-v11.pdf"}
+        {
+          "name": "Rescue & Extrication Test and Assessment Protocol",
+          "version": "v1.1",
+          "published": "2025-09",
+          "implementation": "2026-01",
+          "source_url": "https://www.euroncap.com/media/91774/euro-ncap-protocol-post-crash-v11.pdf"
+        }
       ]
     }
   ],
   "balance_thresholds_percent": {
     "2026": {
-      "5_star": [60, 70, 80, 80],
-      "4_star": [50, 60, 70, 70],
-      "3_star": [40, 50, 60, 60],
-      "2_star": [30, 40, 50, 50],
-      "1_star": [20, 30, 40, 40]
+      "5_star": [
+        60,
+        70,
+        80,
+        80
+      ],
+      "4_star": [
+        50,
+        60,
+        70,
+        70
+      ],
+      "3_star": [
+        40,
+        50,
+        60,
+        60
+      ],
+      "2_star": [
+        30,
+        40,
+        50,
+        50
+      ],
+      "1_star": [
+        20,
+        30,
+        40,
+        40
+      ]
     },
     "2027": {
-      "5_star": [70, 80, 80, 80],
-      "4_star": [60, 70, 70, 70],
-      "3_star": [50, 60, 60, 60],
-      "2_star": [40, 50, 50, 50],
-      "1_star": [30, 40, 40, 40]
+      "5_star": [
+        70,
+        80,
+        80,
+        80
+      ],
+      "4_star": [
+        60,
+        70,
+        70,
+        70
+      ],
+      "3_star": [
+        50,
+        60,
+        60,
+        60
+      ],
+      "2_star": [
+        40,
+        50,
+        50,
+        50
+      ],
+      "1_star": [
+        30,
+        40,
+        40,
+        40
+      ]
     },
     "2028": {
-      "5_star": [80, 80, 80, 80],
-      "4_star": [70, 70, 70, 70],
-      "3_star": [60, 60, 60, 60],
-      "2_star": [50, 50, 50, 50],
-      "1_star": [40, 40, 40, 40]
+      "5_star": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "4_star": [
+        70,
+        70,
+        70,
+        70
+      ],
+      "3_star": [
+        60,
+        60,
+        60,
+        60
+      ],
+      "2_star": [
+        50,
+        50,
+        50,
+        50
+      ],
+      "1_star": [
+        40,
+        40,
+        40,
+        40
+      ]
     }
   },
-  "threshold_order": ["safe_driving", "crash_avoidance", "crash_protection", "post_crash_safety"],
+  "threshold_order": [
+    "safe_driving",
+    "crash_avoidance",
+    "crash_protection",
+    "post_crash_safety"
+  ],
   "non_compensatory_rules": [
     "Every stage must meet its star-level balance threshold; a weighted mean does not determine the overall star rating.",
     "The 20/20/50/10 weights are used for Best-in-Class ranking, not as a substitute for balance thresholds.",
-    "A maximum of five points of compensation is permitted only between adjacent stages among the first three; Safe Driving cannot compensate Crash Protection directly.",
-    "A five-star rating is blocked if a red-rated body region remains after modifiers on an applicable Crash Protection assessment.",
-    "At least ten points in Vulnerable Road User impacts in Crash Protection are required to score points for pedestrian/cyclist scenarios in Frontal Collisions under Crash Avoidance."
+    "The rating review permits at most 5 points of compensation between adjacent stages among the first three; Safe Driving cannot compensate Crash Protection directly. Apply only under the exact current Application of Star Rating protocol.",
+    "Applicable backstop mechanisms (including Crash Protection body-region and VRU-related backstops) must be evaluated against the current overall-assessment and stage protocol text; do not infer them from stage scores alone."
   ],
   "required_vehicle_record_fields": [
     "market_jurisdiction",
@@ -92,7 +211,12 @@
     "backstop_outcomes",
     "test_vehicle_selection_and_sponsorship_basis",
     "source_record_uri",
-    "retrieval_date"
+    "retrieval_date",
+    "vehicle_specification_sponsorship_testing_retesting_protocol_version",
+    "application_of_star_rating_version",
+    "application_area_version",
+    "stage_protocol_document_uri_and_revision_for_each_assessment"
   ],
-  "benchmark_implication": "Report the four stage scores and all balance/backstop outcomes separately. Do not use the Best-in-Class weighted mean as a safety score or compare against an unmatched market/configuration."
+  "benchmark_implication": "Store Overall Assessment, Vehicle Specification/Sponsorship/Testing/Retesting, Application of Star Rating, application area, and each stage-specific test protocol separately. Report four stage scores and all balance/backstop outcomes. Do not use Best-in-Class weights as a safety score or compare unmatched market/configuration.",
+  "stage_balance_explainer_url": "https://www.euroncap.com/media/79890/euro-ncap-rating-review-2023.pdf"
 }
