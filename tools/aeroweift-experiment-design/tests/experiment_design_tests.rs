@@ -1,7 +1,7 @@
 use aeroweift_experiment_design::{
     AuthorizationState, DesignDisposition, ExperimentCandidate, ExperimentDesignPolicy,
-    ExperimentModality, ExperimentObjective, HypothesisContrast, HypothesisGroup, RejectionReason, ResourceBudget,
-    ResourceCost, SemanticEquivalence, SelectionEvidenceRole, select_experiments,
+    ExperimentModality, ExperimentObjective, HypothesisContrast, HypothesisGroup, RejectionReason,
+    ResourceBudget, ResourceCost, SelectionEvidenceRole, SemanticEquivalence, select_experiments,
 };
 
 fn digest(ch: char) -> String {
@@ -63,8 +63,16 @@ fn candidate(id: &str) -> ExperimentCandidate {
         semantic_equivalence_receipt_sha256: Some(digest('7')),
         selection_evidence_role: SelectionEvidenceRole::AdaptiveDevelopment,
         hypothesis_groups: vec![
-            HypothesisGroup { hypothesis_id: "hypothesis-a".into(), hypothesis_sha256: digest('8'), group_id: "model-family-a".into() },
-            HypothesisGroup { hypothesis_id: "hypothesis-b".into(), hypothesis_sha256: digest('9'), group_id: "model-family-b".into() },
+            HypothesisGroup {
+                hypothesis_id: "hypothesis-a".into(),
+                hypothesis_sha256: digest('8'),
+                group_id: "model-family-a".into(),
+            },
+            HypothesisGroup {
+                hypothesis_id: "hypothesis-b".into(),
+                hypothesis_sha256: digest('9'),
+                group_id: "model-family-b".into(),
+            },
         ],
         hypothesis_contrasts: vec![HypothesisContrast {
             left_hypothesis_id: "hypothesis-a".into(),
@@ -92,7 +100,10 @@ fn candidate(id: &str) -> ExperimentCandidate {
     }
 }
 
-fn reason(result: &aeroweift_experiment_design::ExperimentDesignResult, id: &str) -> Vec<RejectionReason> {
+fn reason(
+    result: &aeroweift_experiment_design::ExperimentDesignResult,
+    id: &str,
+) -> Vec<RejectionReason> {
     result
         .rejected
         .iter()
@@ -107,7 +118,10 @@ fn positive_control_returns_a_pareto_front() {
     assert_eq!(result.disposition, DesignDisposition::ParetoFrontAvailable);
     assert_eq!(result.pareto_front.len(), 1);
     assert_eq!(result.pareto_front[0].candidate_id, "baseline");
-    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 1);
+    assert_eq!(
+        result.pareto_front[0].independent_hypothesis_group_pair_count,
+        1
+    );
     assert!(result.rejected.is_empty());
 }
 
@@ -143,7 +157,11 @@ fn real_cost_utility_tradeoff_preserves_multiple_pareto_options() {
     let result = select_experiments(&[expensive, cheap], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 2);
     assert_eq!(
-        result.pareto_front.iter().map(|x| x.candidate_id.as_str()).collect::<Vec<_>>(),
+        result
+            .pareto_front
+            .iter()
+            .map(|x| x.candidate_id.as_str())
+            .collect::<Vec<_>>(),
         vec!["cheap", "expensive"]
     );
 }
@@ -156,8 +174,13 @@ fn high_information_but_irrelevant_test_is_rejected() {
     irrelevant.decision_relevance = 0.10;
 
     let result = select_experiments(&[irrelevant], &policy()).unwrap();
-    assert_eq!(result.disposition, DesignDisposition::AbstainNoAdmissibleExperiment);
-    assert!(reason(&result, "irrelevant").contains(&RejectionReason::InsufficientDecisionRelevance));
+    assert_eq!(
+        result.disposition,
+        DesignDisposition::AbstainNoAdmissibleExperiment
+    );
+    assert!(
+        reason(&result, "irrelevant").contains(&RejectionReason::InsufficientDecisionRelevance)
+    );
 }
 
 #[test]
@@ -189,7 +212,9 @@ fn uncleared_safety_constraint_blocks_selection() {
     unsafe_candidate.safety_constraints_clear = false;
 
     let result = select_experiments(&[unsafe_candidate], &policy()).unwrap();
-    assert!(reason(&result, "safety-not-clear").contains(&RejectionReason::SafetyConstraintNotClear));
+    assert!(
+        reason(&result, "safety-not-clear").contains(&RejectionReason::SafetyConstraintNotClear)
+    );
 }
 
 #[test]
@@ -207,7 +232,9 @@ fn missing_independent_reference_is_rejected() {
     ungrounded.independent_reference_available = false;
 
     let result = select_experiments(&[ungrounded], &policy()).unwrap();
-    assert!(reason(&result, "no-reference").contains(&RejectionReason::MissingIndependentReference));
+    assert!(
+        reason(&result, "no-reference").contains(&RejectionReason::MissingIndependentReference)
+    );
 }
 
 #[test]
@@ -217,7 +244,9 @@ fn cross_implementation_test_requires_semantic_equivalence() {
     comparison.semantic_equivalence = SemanticEquivalence::Unknown;
 
     let result = select_experiments(&[comparison], &policy()).unwrap();
-    assert!(reason(&result, "cross-code").contains(&RejectionReason::SemanticEquivalenceNotEstablished));
+    assert!(
+        reason(&result, "cross-code").contains(&RejectionReason::SemanticEquivalenceNotEstablished)
+    );
 }
 
 #[test]
@@ -236,19 +265,32 @@ fn confirmatory_or_challenge_outcomes_cannot_drive_adaptive_selection() {
     contaminated.selection_evidence_role = SelectionEvidenceRole::ChallengeSealed;
 
     let result = select_experiments(&[contaminated], &policy()).unwrap();
-    assert!(reason(&result, "sealed-data").contains(&RejectionReason::SealedEvidenceUsedForSelection));
+    assert!(
+        reason(&result, "sealed-data").contains(&RejectionReason::SealedEvidenceUsedForSelection)
+    );
 }
 
 #[test]
 fn correlated_hypotheses_do_not_count_as_independent_models() {
     let mut false_diversity = candidate("correlated");
     false_diversity.hypothesis_groups = vec![
-        HypothesisGroup { hypothesis_id: "correlated-a".into(), hypothesis_sha256: digest('8'), group_id: "shared-family".into() },
-        HypothesisGroup { hypothesis_id: "correlated-b".into(), hypothesis_sha256: digest('9'), group_id: "shared-family".into() },
+        HypothesisGroup {
+            hypothesis_id: "correlated-a".into(),
+            hypothesis_sha256: digest('8'),
+            group_id: "shared-family".into(),
+        },
+        HypothesisGroup {
+            hypothesis_id: "correlated-b".into(),
+            hypothesis_sha256: digest('9'),
+            group_id: "shared-family".into(),
+        },
     ];
 
     let result = select_experiments(&[false_diversity], &policy()).unwrap();
-    assert!(reason(&result, "correlated").contains(&RejectionReason::InsufficientIndependentHypothesisGroups));
+    assert!(
+        reason(&result, "correlated")
+            .contains(&RejectionReason::InsufficientIndependentHypothesisGroups)
+    );
 }
 
 #[test]
@@ -263,7 +305,10 @@ fn model_discrimination_threshold_is_an_explicit_gate() {
     weak.expected_model_discrimination = 0.10;
 
     let result = select_experiments(&[weak], &policy()).unwrap();
-    assert!(reason(&result, "weak-discrimination").contains(&RejectionReason::InsufficientModelDiscrimination));
+    assert!(
+        reason(&result, "weak-discrimination")
+            .contains(&RejectionReason::InsufficientModelDiscrimination)
+    );
 }
 
 #[test]
@@ -326,7 +371,9 @@ fn decision_question_mismatch_is_not_borrowed_for_a_different_claim() {
     wrong_question.decision_question_id = "different-question".into();
 
     let result = select_experiments(&[wrong_question], &policy()).unwrap();
-    assert!(reason(&result, "wrong-question").contains(&RejectionReason::QuestionOrObjectiveMismatch));
+    assert!(
+        reason(&result, "wrong-question").contains(&RejectionReason::QuestionOrObjectiveMismatch)
+    );
 }
 
 #[test]
@@ -335,7 +382,9 @@ fn objective_mismatch_is_not_borrowed_for_a_different_question_type() {
     wrong_objective.objective = ExperimentObjective::ParameterIdentification;
 
     let result = select_experiments(&[wrong_objective], &policy()).unwrap();
-    assert!(reason(&result, "wrong-objective").contains(&RejectionReason::QuestionOrObjectiveMismatch));
+    assert!(
+        reason(&result, "wrong-objective").contains(&RejectionReason::QuestionOrObjectiveMismatch)
+    );
 }
 
 #[test]
@@ -391,19 +440,32 @@ fn reject_all_is_an_abstention_not_a_successful_recommendation() {
     candidate.authorization = AuthorizationState::Unknown;
 
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert_eq!(result.disposition, DesignDisposition::AbstainNoAdmissibleExperiment);
+    assert_eq!(
+        result.disposition,
+        DesignDisposition::AbstainNoAdmissibleExperiment
+    );
     assert!(result.pareto_front.is_empty());
-    assert!(result.rejected[0].reasons.contains(&RejectionReason::AuthorizationNotGranted));
-    assert!(result.rejected[0].reasons.contains(&RejectionReason::SafetyConstraintNotClear));
+    assert!(
+        result.rejected[0]
+            .reasons
+            .contains(&RejectionReason::AuthorizationNotGranted)
+    );
+    assert!(
+        result.rejected[0]
+            .reasons
+            .contains(&RejectionReason::SafetyConstraintNotClear)
+    );
 }
-
 
 #[test]
 fn model_discrimination_requires_semantically_comparable_outputs() {
     let mut unmatched = candidate("unmatched-models");
     unmatched.semantic_equivalence = SemanticEquivalence::NotRequired;
     let result = select_experiments(&[unmatched], &policy()).unwrap();
-    assert!(reason(&result, "unmatched-models").contains(&RejectionReason::SemanticEquivalenceNotEstablished));
+    assert!(
+        reason(&result, "unmatched-models")
+            .contains(&RejectionReason::SemanticEquivalenceNotEstablished)
+    );
 }
 
 #[test]
@@ -411,7 +473,9 @@ fn excessive_probability_of_uninformative_result_is_a_hard_gate() {
     let mut low_value = candidate("likely-uninformative");
     low_value.probability_uninformative = 0.95;
     let result = select_experiments(&[low_value], &policy()).unwrap();
-    assert!(reason(&result, "likely-uninformative").contains(&RejectionReason::TooLikelyUninformative));
+    assert!(
+        reason(&result, "likely-uninformative").contains(&RejectionReason::TooLikelyUninformative)
+    );
 }
 
 #[test]
@@ -422,7 +486,6 @@ fn empty_hypothesis_correlation_group_is_rejected() {
     assert!(reason(&result, "empty-group").contains(&RejectionReason::InvalidUtilityVector));
 }
 
-
 #[test]
 fn controlled_flight_always_requires_authorization_even_if_candidate_says_not_required() {
     let mut flight = candidate("flight-no-flag-bypass");
@@ -431,7 +494,10 @@ fn controlled_flight_always_requires_authorization_even_if_candidate_says_not_re
     flight.authorization = AuthorizationState::NotRequired;
     flight.authorization_receipt_sha256 = None;
     let result = select_experiments(&[flight], &policy()).unwrap();
-    assert!(reason(&result, "flight-no-flag-bypass").contains(&RejectionReason::AuthorizationNotGranted));
+    assert!(
+        reason(&result, "flight-no-flag-bypass")
+            .contains(&RejectionReason::AuthorizationNotGranted)
+    );
 }
 
 #[test]
@@ -439,7 +505,9 @@ fn affirmative_safety_gate_without_owner_receipt_is_rejected() {
     let mut candidate = candidate("no-safety-receipt");
     candidate.safety_gate_receipt_sha256 = None;
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "no-safety-receipt").contains(&RejectionReason::MissingEvidenceReceipt));
+    assert!(
+        reason(&result, "no-safety-receipt").contains(&RejectionReason::MissingEvidenceReceipt)
+    );
 }
 
 #[test]
@@ -447,7 +515,9 @@ fn affirmative_reference_gate_without_owner_receipt_is_rejected() {
     let mut candidate = candidate("no-reference-receipt");
     candidate.independent_reference_receipt_sha256 = None;
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "no-reference-receipt").contains(&RejectionReason::MissingEvidenceReceipt));
+    assert!(
+        reason(&result, "no-reference-receipt").contains(&RejectionReason::MissingEvidenceReceipt)
+    );
 }
 
 #[test]
@@ -463,7 +533,9 @@ fn estimator_build_and_confidence_method_are_pinned() {
     let mut candidate = candidate("other-estimator");
     candidate.estimator_build_sha256 = digest('9');
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "other-estimator").contains(&RejectionReason::ConfidenceContractMismatch));
+    assert!(
+        reason(&result, "other-estimator").contains(&RejectionReason::ConfidenceContractMismatch)
+    );
 }
 
 #[test]
@@ -493,7 +565,10 @@ fn pareto_front_preserves_tradeoffs_across_resource_dimensions() {
 #[test]
 fn confirmatory_and_challenge_partitions_remain_sealed() {
     for (id, role) in [
-        ("confirmatory-sealed", SelectionEvidenceRole::ConfirmatorySealed),
+        (
+            "confirmatory-sealed",
+            SelectionEvidenceRole::ConfirmatorySealed,
+        ),
         ("challenge-sealed", SelectionEvidenceRole::ChallengeSealed),
     ] {
         let mut candidate = candidate(id);
@@ -503,22 +578,27 @@ fn confirmatory_and_challenge_partitions_remain_sealed() {
     }
 }
 
-
 #[test]
 fn frozen_policy_can_require_authorization_for_hardware_in_the_loop() {
     let mut frozen = policy();
-    frozen.authorization_required_modalities.push(ExperimentModality::HardwareInLoop);
+    frozen
+        .authorization_required_modalities
+        .push(ExperimentModality::HardwareInLoop);
     let mut hil = candidate("hil-needs-authority");
     hil.modality = ExperimentModality::HardwareInLoop;
     hil.authorization = AuthorizationState::NotRequired;
     let result = select_experiments(&[hil], &frozen).unwrap();
-    assert!(reason(&result, "hil-needs-authority").contains(&RejectionReason::AuthorizationNotGranted));
+    assert!(
+        reason(&result, "hil-needs-authority").contains(&RejectionReason::AuthorizationNotGranted)
+    );
 }
 
 #[test]
 fn authorized_hardware_in_the_loop_requires_an_owner_receipt() {
     let mut frozen = policy();
-    frozen.authorization_required_modalities.push(ExperimentModality::HardwareInLoop);
+    frozen
+        .authorization_required_modalities
+        .push(ExperimentModality::HardwareInLoop);
     let mut hil = candidate("hil-authorized");
     hil.modality = ExperimentModality::HardwareInLoop;
     hil.authorization = AuthorizationState::Authorized;
@@ -530,43 +610,42 @@ fn authorized_hardware_in_the_loop_requires_an_owner_receipt() {
 #[test]
 fn duplicate_authorization_modalities_in_policy_fail_closed() {
     let mut frozen = policy();
-    frozen.authorization_required_modalities.push(ExperimentModality::ControlledFlight);
+    frozen
+        .authorization_required_modalities
+        .push(ExperimentModality::ControlledFlight);
     assert_eq!(
         select_experiments(&[candidate("test")], &frozen),
         Err(aeroweift_experiment_design::DesignError::InvalidPolicy)
     );
 }
 
-
 fn reference_dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
     let l = &left.resource_cost;
     let r = &right.resource_cost;
-    let no_worse =
-        left.expected_uncertainty_reduction >= right.expected_uncertainty_reduction
-            && left.expected_model_discrimination >= right.expected_model_discrimination
-            && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
-            && left.decision_relevance >= right.decision_relevance
-            && left.probability_uninformative <= right.probability_uninformative
-            && left.cost_units <= right.cost_units
-            && l.setup_minutes <= r.setup_minutes
-            && l.facility_minutes <= r.facility_minutes
-            && l.cpu_seconds <= r.cpu_seconds
-            && l.accelerator_seconds <= r.accelerator_seconds
-            && l.energy_joules <= r.energy_joules
-            && l.adjudication_person_minutes <= r.adjudication_person_minutes;
-    let strict =
-        left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
-            || left.expected_model_discrimination > right.expected_model_discrimination
-            || left.worst_case_robust_reduction > right.worst_case_robust_reduction
-            || left.decision_relevance > right.decision_relevance
-            || left.probability_uninformative < right.probability_uninformative
-            || left.cost_units < right.cost_units
-            || l.setup_minutes < r.setup_minutes
-            || l.facility_minutes < r.facility_minutes
-            || l.cpu_seconds < r.cpu_seconds
-            || l.accelerator_seconds < r.accelerator_seconds
-            || l.energy_joules < r.energy_joules
-            || l.adjudication_person_minutes < r.adjudication_person_minutes;
+    let no_worse = left.expected_uncertainty_reduction >= right.expected_uncertainty_reduction
+        && left.expected_model_discrimination >= right.expected_model_discrimination
+        && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
+        && left.decision_relevance >= right.decision_relevance
+        && left.probability_uninformative <= right.probability_uninformative
+        && left.cost_units <= right.cost_units
+        && l.setup_minutes <= r.setup_minutes
+        && l.facility_minutes <= r.facility_minutes
+        && l.cpu_seconds <= r.cpu_seconds
+        && l.accelerator_seconds <= r.accelerator_seconds
+        && l.energy_joules <= r.energy_joules
+        && l.adjudication_person_minutes <= r.adjudication_person_minutes;
+    let strict = left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
+        || left.expected_model_discrimination > right.expected_model_discrimination
+        || left.worst_case_robust_reduction > right.worst_case_robust_reduction
+        || left.decision_relevance > right.decision_relevance
+        || left.probability_uninformative < right.probability_uninformative
+        || left.cost_units < right.cost_units
+        || l.setup_minutes < r.setup_minutes
+        || l.facility_minutes < r.facility_minutes
+        || l.cpu_seconds < r.cpu_seconds
+        || l.accelerator_seconds < r.accelerator_seconds
+        || l.energy_joules < r.energy_joules
+        || l.adjudication_person_minutes < r.adjudication_person_minutes;
     no_worse && strict
 }
 
@@ -622,7 +701,10 @@ fn lower_worst_case_bound_cannot_restore_admissibility() {
         if step == 0 {
             assert_eq!(result.pareto_front.len(), 1);
         } else {
-            assert!(reason(&result, "robust-monotonic").contains(&RejectionReason::InsufficientRobustReduction));
+            assert!(
+                reason(&result, "robust-monotonic")
+                    .contains(&RejectionReason::InsufficientRobustReduction)
+            );
         }
     }
 }
@@ -636,7 +718,10 @@ fn increasing_uninformative_probability_cannot_restore_admissibility() {
         if step == 0 {
             assert_eq!(result.pareto_front.len(), 1);
         } else {
-            assert!(reason(&result, "uninformative-monotonic").contains(&RejectionReason::TooLikelyUninformative));
+            assert!(
+                reason(&result, "uninformative-monotonic")
+                    .contains(&RejectionReason::TooLikelyUninformative)
+            );
         }
     }
 }
@@ -659,7 +744,11 @@ fn increasing_each_resource_dimension_past_budget_never_admits_candidate() {
     let result = select_experiments(&mutations, &policy()).unwrap();
     assert!(result.pareto_front.is_empty());
     assert_eq!(
-        result.rejected.iter().filter(|item| item.reasons.contains(&RejectionReason::OverBudget)).count(),
+        result
+            .rejected
+            .iter()
+            .filter(|item| item.reasons.contains(&RejectionReason::OverBudget))
+            .count(),
         6
     );
 }
@@ -667,21 +756,28 @@ fn increasing_each_resource_dimension_past_budget_never_admits_candidate() {
 #[test]
 fn removing_an_affirmative_gate_receipt_cannot_improve_admissibility() {
     let mut candidate = candidate("receipt-deletion");
-    assert_eq!(select_experiments(std::slice::from_ref(&candidate), &policy()).unwrap().pareto_front.len(), 1);
+    assert_eq!(
+        select_experiments(std::slice::from_ref(&candidate), &policy())
+            .unwrap()
+            .pareto_front
+            .len(),
+        1
+    );
     candidate.envelope_receipt_sha256 = None;
     let result = select_experiments(&[candidate], &policy()).unwrap();
     assert!(result.pareto_front.is_empty());
     assert!(reason(&result, "receipt-deletion").contains(&RejectionReason::MissingEvidenceReceipt));
 }
 
-
 #[test]
 fn model_discrimination_without_explicit_pair_contrast_is_rejected() {
     let mut candidate = candidate("missing-contrast");
     candidate.hypothesis_contrasts.clear();
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "missing-contrast")
-        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+    assert!(
+        reason(&result, "missing-contrast")
+            .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts)
+    );
 }
 
 #[test]
@@ -689,10 +785,14 @@ fn within_family_contrast_cannot_claim_independent_model_discrimination() {
     let mut candidate = candidate("same-family-contrast");
     candidate.hypothesis_groups[1].group_id = "model-family-a".into();
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "same-family-contrast")
-        .contains(&RejectionReason::InvalidHypothesisContrast));
-    assert!(reason(&result, "same-family-contrast")
-        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+    assert!(
+        reason(&result, "same-family-contrast")
+            .contains(&RejectionReason::InvalidHypothesisContrast)
+    );
+    assert!(
+        reason(&result, "same-family-contrast")
+            .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts)
+    );
 }
 
 #[test]
@@ -700,8 +800,10 @@ fn low_pairwise_separation_is_not_counted_as_discrimination() {
     let mut candidate = candidate("weak-pair-separation");
     candidate.hypothesis_contrasts[0].separation_lower_bound = 0.19;
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "weak-pair-separation")
-        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+    assert!(
+        reason(&result, "weak-pair-separation")
+            .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts)
+    );
 }
 
 #[test]
@@ -709,8 +811,10 @@ fn duplicate_hypothesis_identity_is_rejected() {
     let mut candidate = candidate("duplicate-hypothesis");
     candidate.hypothesis_groups[1].hypothesis_id = "hypothesis-a".into();
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "duplicate-hypothesis")
-        .contains(&RejectionReason::InvalidHypothesisContrast));
+    assert!(
+        reason(&result, "duplicate-hypothesis")
+            .contains(&RejectionReason::InvalidHypothesisContrast)
+    );
 }
 
 #[test]
@@ -718,8 +822,10 @@ fn one_model_artifact_cannot_be_relabelled_as_two_independent_groups() {
     let mut candidate = candidate("same-digest-two-groups");
     candidate.hypothesis_groups[1].hypothesis_sha256 = digest('8');
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "same-digest-two-groups")
-        .contains(&RejectionReason::InvalidHypothesisContrast));
+    assert!(
+        reason(&result, "same-digest-two-groups")
+            .contains(&RejectionReason::InvalidHypothesisContrast)
+    );
 }
 
 #[test]
@@ -731,7 +837,6 @@ fn zero_budget_dimension_is_a_valid_hard_constraint() {
     let result = select_experiments(&[simulation], &frozen).unwrap();
     assert_eq!(result.pareto_front.len(), 1);
 }
-
 
 #[test]
 fn multiple_variant_contrasts_in_one_group_pair_count_only_once() {
@@ -748,7 +853,10 @@ fn multiple_variant_contrasts_in_one_group_pair_count_only_once() {
         contrast_estimate_sha256: digest('a'),
     });
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 1);
+    assert_eq!(
+        result.pareto_front[0].independent_hypothesis_group_pair_count,
+        1
+    );
 }
 
 #[test]
@@ -757,8 +865,10 @@ fn policy_can_require_more_than_one_independent_hypothesis_group_pair() {
     frozen.minimum_distinct_hypothesis_group_pairs = 2;
     let candidate = candidate("one-group-pair");
     let result = select_experiments(&[candidate], &frozen).unwrap();
-    assert!(reason(&result, "one-group-pair")
-        .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts));
+    assert!(
+        reason(&result, "one-group-pair")
+            .contains(&RejectionReason::InsufficientQualifiedHypothesisContrasts)
+    );
 }
 
 #[test]
@@ -778,7 +888,10 @@ fn two_distinct_group_pair_contrasts_satisfy_a_two_pair_policy() {
         contrast_estimate_sha256: digest('a'),
     });
     let result = select_experiments(&[candidate], &frozen).unwrap();
-    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 2);
+    assert_eq!(
+        result.pareto_front[0].independent_hypothesis_group_pair_count,
+        2
+    );
 }
 
 #[test]
@@ -788,5 +901,8 @@ fn parameter_identification_does_not_receive_model_pair_diversity_credit() {
     let mut candidate = candidate("parameter-objective");
     candidate.objective = ExperimentObjective::ParameterIdentification;
     let result = select_experiments(&[candidate], &frozen).unwrap();
-    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 0);
+    assert_eq!(
+        result.pareto_front[0].independent_hypothesis_group_pair_count,
+        0
+    );
 }
