@@ -150,7 +150,9 @@ impl fmt::Display for StepError {
             }
             Self::InvalidStepSize => write!(f, "step size must be finite and strictly positive"),
             Self::NonFiniteInput => write!(f, "input contains a non-finite value"),
-            Self::NonFiniteEnergyLedger => write!(f, "discrete energy/work ledger contains a non-finite value"),
+            Self::NonFiniteEnergyLedger => {
+                write!(f, "discrete energy/work ledger contains a non-finite value")
+            },
             Self::MatrixNotSymmetric { name, residual } => {
                 write!(f, "{name} is not symmetric (maximum residual {residual:e})")
             }
@@ -499,7 +501,11 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
 
 fn quadratic_form(matrix: &Matrix, vector: &[f64]) -> f64 {
     let mapped = mat_vec(matrix, vector);
-    vector.iter().zip(mapped.iter()).map(|(left, right)| left * right).sum()
+    vector
+        .iter()
+        .zip(mapped.iter())
+        .map(|(left, right)| left * right)
+        .sum()
 }
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {
@@ -564,17 +570,16 @@ fn discrete_energy_ledger(
 
     let contact_work_decomposition_residual =
         contact_impulse_work - contact_target_work - contact_complementarity_work;
-    let contact_work_scale = contact_impulse_work.abs()
-        + contact_target_work.abs()
-        + contact_complementarity_work.abs();
-    let relative_contact_work_decomposition_residual =
-        if contact_work_decomposition_residual == 0.0 {
-            0.0
-        } else if contact_work_scale > 0.0 {
-            contact_work_decomposition_residual.abs() / contact_work_scale
-        } else {
-            f64::INFINITY
-        };
+    let contact_work_scale =
+        contact_impulse_work.abs() + contact_target_work.abs() + contact_complementarity_work.abs();
+    let relative_contact_work_decomposition_residual = if contact_work_decomposition_residual == 0.0
+    {
+        0.0
+    } else if contact_work_scale > 0.0 {
+        contact_work_decomposition_residual.abs() / contact_work_scale
+    } else {
+        f64::INFINITY
+    };
 
     let values = [
         kinetic_energy_before,
@@ -1218,15 +1223,14 @@ mod tests {
         let inverse = Matrix::new(2, 2, vec![1.0, -2.0, 0.0, 1.0]).unwrap();
         let transpose_basis = Matrix::new(2, 2, vec![1.0, 0.0, 2.0, 1.0]).unwrap();
 
-        let rebase_matrix = |matrix: &Matrix| {
-            multiply(&multiply(&transpose_basis, matrix), &basis)
-        };
+        let rebase_matrix = |matrix: &Matrix| multiply(&multiply(&transpose_basis, matrix), &basis);
         let transform_tangent = |vector: &[f64]| mat_vec(&inverse, vector);
         let transform_covector = |vector: &[f64]| mat_vec(&transpose_basis, vector);
         let mut rebased_jacobian = Matrix::zeros(1, 2);
         for col in 0..2 {
-            rebased_jacobian[(0, col)] =
-                (0..2).map(|inner| physical.contact_jacobian[(0, inner)] * basis[(inner, col)]).sum();
+            rebased_jacobian[(0, col)] = (0..2)
+                .map(|inner| physical.contact_jacobian[(0, inner)] * basis[(inner, col)])
+                .sum();
         }
         let rebased = DiscreteStepInput {
             mass: rebase_matrix(&physical.mass),
@@ -1245,7 +1249,9 @@ mod tests {
 
         for index in 0..2 {
             assert!((lifted_velocity[index] - reference.next_velocity[index]).abs() < 1.0e-10);
-            assert!((lifted_position[index] - reference.next_position_error[index]).abs() < 1.0e-10);
+            assert!(
+                (lifted_position[index] - reference.next_position_error[index]).abs() < 1.0e-10
+            );
         }
         assert_eq!(transformed.active_contacts, reference.active_contacts);
         assert!((transformed.contact_impulse[0] - reference.contact_impulse[0]).abs() < 1.0e-10);
@@ -1259,11 +1265,20 @@ mod tests {
             (left.potential_energy_after, right.potential_energy_after),
             (left.external_force_work, right.external_force_work),
             (left.damping_dissipation, right.damping_dissipation),
-            (left.mass_increment_dissipation, right.mass_increment_dissipation),
-            (left.stiffness_increment_dissipation, right.stiffness_increment_dissipation),
+            (
+                left.mass_increment_dissipation,
+                right.mass_increment_dissipation,
+            ),
+            (
+                left.stiffness_increment_dissipation,
+                right.stiffness_increment_dissipation,
+            ),
             (left.contact_impulse_work, right.contact_impulse_work),
             (left.contact_target_work, right.contact_target_work),
-            (left.contact_complementarity_work, right.contact_complementarity_work),
+            (
+                left.contact_complementarity_work,
+                right.contact_complementarity_work,
+            ),
             (left.energy_balance_residual, right.energy_balance_residual),
         ];
         for (canonical, rebased_value) in pairs {
