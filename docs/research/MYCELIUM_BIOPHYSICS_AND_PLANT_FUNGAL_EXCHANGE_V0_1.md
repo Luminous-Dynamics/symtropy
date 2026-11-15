@@ -286,9 +286,17 @@ Reproduce graph evolution and flow separately, then measure their coupling:
 - relationships between edge radius, betweenness centrality, distance to root and measured flow;
 - held-out prediction of later network states and flow using early-time observations.
 
-Controls must include topology-only shortest-path, uniform-radius/uniform-flow, shuffled flow-to-edge assignment, degree-preserving rewiring and leave-strain-out evaluation. Do not infer measured flow from graph centrality alone. The source is limited to three AMF profiles in a 2D-constrained in-vitro system.
+Controls must include topology-only shortest-path, uniform-radius/uniform-flow, shuffled flow-to-edge assignment, degree-preserving rewiring and leave-strain-out evaluation. Do not infer measured flow from graph centrality alone. The Rust observation adapter `CytoplasmicFlowObservation` preserves individual signed stream/ROI/time/segment identities, including antiparallel streams. Volumetric flow is returned only when cross-section area is available; solute mass rate also requires an admitted concentration. The source is limited to three AMF profiles in a 2D-constrained in-vitro system.
 
 This benchmark tests whether structure and flow co-evolve to balance root delivery, exploration, robustness and construction cost. It does not imply that fungi optimize a human-designed objective; report the measured Pareto structure descriptively.
+
+### T9 — structural network resilience
+
+The separate qualification is [MYCO-TOPO-RESILIENCE-QUAL-001 #5461](https://github.com/Luminous-Dynamics/symtropy/issues/5461), with known-truth cases in `benchmarks/mycelium/topology-resilience-v0-1.json`.
+
+Measure active-segment bridges and articulation nodes; compare random edge deletion with betweenness-, bridge- and articulation-targeted removals, plus degree/radius/age-matched controls. Report root-reachable fraction, component count, largest-component ratio, normalized root/global efficiency, and edge/node survival curves. The graph kernel's iterative `active_graph_criticality()` is O(V+E), excludes inactive segments and handles parallel segments as distinct edges.
+
+This is structural fragility only. It must not be described as measured flow disruption, organismal resilience or nutrient-delivery loss without source-linked flow/tracer observations. The AMF source is observational and does not include randomized damage/re-growth experiments; simulated repair remains a hypothesis until experimentally measured.
 
 ## 6. Baselines and competitive positioning
 
