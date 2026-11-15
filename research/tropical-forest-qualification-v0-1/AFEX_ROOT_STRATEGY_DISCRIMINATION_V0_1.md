@@ -67,6 +67,30 @@ Evaluation rules:
 - quantify the value of a new AMF, morphology, phosphatase, tissue nutrient or soil-pH measurement using the existing decision-value and active-sensing owners;
 - do not promote association to causal mediation without explicit confounding, temporal and interference assumptions.
 
+## 5.1 External model tournament: three-pathway nutrient acquisition
+
+The next comparator should represent nutrient acquisition as distinct pathways, not as a binary AM-colonised/not-colonised trait. The 2026 ELMv2-SPRUCE modification (ELM-MYCI) explicitly separates:
+1. direct inorganic N/P uptake by uncolonised fine roots;
+2. mycorrhizal uptake of inorganic N/P;
+3. mycorrhizal acquisition of organic N/P.
+
+It also constrains fungal acquisition through host non-structural carbohydrate availability / carbon allocation. The study evaluated a boreal peatland ecosystem with spruce, tamarack and shrubs, not a tropical Amazon AFEX forest. Its architecture is an external comparator, not a matched model result. The study adds 37 parameters and identifies a need for direct constraints on uptake rates and half-saturation points, which is a useful warning against pathway proliferation without identifiability. Paper: https://gmd.copernicus.org/articles/19/5827/2026/; source code release: https://doi.org/10.5281/zenodo.17582789.
+
+Myco-CORPSE is a second, different comparator: it extends CORPSE to include mycorrhizal effects on soil carbon and nitrogen decomposition and has been applied to investigate fungal carbon allocation across eastern US forest inventory plots. It informs belowground C/N coupling and fungal carbon costs, but its ectomycorrhizal temperate-forest domain is not directly matched to AFEX's Central Amazon AM colonisation data:
+- https://doi.org/10.1016/j.soilbio.2023.109073
+- https://doi.org/10.1029/2025JG009198
+
+A 2026 trait study using in-situ 15N tracers across 63 subtropical tree species reports R²=0.37 for a mycorrhizal-type hierarchical trait model versus R²=0.19 for a root-only model. It supports testing mycorrhizal type as a modifier of trait–function relationships, but its species-level tracer task is different from AFEX plot-level turnover: https://doi.org/10.1111/pce.70522.
+
+The 2026 root-economics-space review warns that the fast–slow and direct-root–outsourcing axes vary with mycorrhizal guild and nutrient context. Do not collapse AM, ECM, ericoid, dual and non-mycorrhizal strategies into a universal scalar: https://doi.org/10.1016/j.tree.2026.02.003.
+
+The eight-model tournament and its machine-readable claim boundaries are recorded in:
+- [AFEX_ROOT_PATHWAY_MODEL_TOURNAMENT_V0_1.md](AFEX_ROOT_PATHWAY_MODEL_TOURNAMENT_V0_1.md);
+- [comparator matrix](cases/afex-root-pathway-model-tournament-v0.1.json);
+- [Rust qualification kernel](validator/src/afex_root_pathway_tournament_kernel.rs).
+
+The three-pathway model's organic route is currently unidentifiable from admitted AFEX records. Fungal carbon allocation, fungal nutrient-transfer rates, available organic N/P and species-resolved mycorrhizal types are not established in the current crosswalk. The model register therefore includes these as explicit data requirements and refuses to promote the comparator to an AFEX-calibrated model.
+
 ## 6. Proposed benchmark targets
 
 - 100% of unsupported depth/time joins refused.
