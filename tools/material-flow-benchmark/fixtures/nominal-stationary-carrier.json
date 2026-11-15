@@ -126,6 +126,7 @@
     "authorized_destination",
     "required_custody_complete",
     "no_critical_safety_violation",
-    "no_unauthorized_physical_mutation"
+    "no_unauthorized_physical_mutation",
+    "no_household_private_data_disclosure"
   ]
 }
