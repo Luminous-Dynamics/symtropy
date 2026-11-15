@@ -29,6 +29,8 @@ The public `symtropy-mycelium` crate currently provides a deterministic CPU-firs
 
 This is a useful stylized baseline for field-mediated growth. It does **not** yet represent explicit hyphal tips/segments, branching and anastomosis events, geometry-dependent transport conductance, species-specific physiology, plant-root interfaces, isotope-labelled exchange or field-calibrated fungal dynamics.
 
+A source-level accounting audit identified a potential non-conservative behavior in the current loop: local assimilation is credited to the local biomass pool and a further 25% of that same quantity is also credited to origin biomass, without a corresponding debit from the local biomass stock. Biomass decay is also currently applied without a typed detrital/element destination. This is a stylized-model accounting defect to audit and version, not a biological claim; see [MYCELIUM-V0-ACCOUNTING-AUDIT-001 #5419](https://github.com/Luminous-Dynamics/symtropy/issues/5419).
+
 The shared `symtropy-lifesim-core::FieldGrid` stores `f32` values but does not itself attach physical units or a conservation ledger to each channel. Its concentration sanitization/clamping is useful for bounded field storage, but clamping cannot silently serve as a mass-balance operation. Physical accounting must live in explicit typed state and flux records.
 
 ## 3. Core paradigm: graph + fields + ledgers
@@ -91,6 +93,8 @@ A bare `f32` channel must not be mistaken for a unit-bearing physical measuremen
 Represent resource movement along eligible hyphal segments and exchanges at declared boundaries. Transport properties may depend on geometry and physiology, but their constitutive law and parameters must be sourced or explicitly synthetic.
 
 Keep local soil diffusion, hyphal transport, plant uptake, microbial mediation and losses as separate paths. A connected graph is not automatically a functioning transport conduit; transport must be independently qualified.
+
+Transport must be decomposed into distinct regimes: external-medium diffusion, membrane exchange, passive inter-segment diffusion, selective/active transport, growth-induced advection, and microbial/extracellular transformation. BMX's published small-colony model uses passive concentration-gradient exchange between connected segments; the article states that larger-colony advection is a future requirement. The new passive transport primitive is only the numerical small-colony building block. The complete regime taxonomy, dimensional mapping and benchmark are tracked in [MYCO-TRANSPORT-REGIME-001 #5420](https://github.com/Luminous-Dynamics/symtropy/issues/5420).
 
 ### 3.4 Plant–fungus interface
 
@@ -272,7 +276,7 @@ A small manual-trace subset must not be represented as dense ground truth for th
 ## 6. Baselines and competitive positioning
 
 Use matched baselines:
-1. Existing Symtropy Mycelium V0 (stylized field model).
+1. Existing Symtropy Mycelium V0 (stylized field model; preserve as a legacy profile until [#5419](https://github.com/Luminous-Dynamics/symtropy/issues/5419) resolves its stock/flux accounting).
 2. Diffusion-only field transport.
 3. Simple branching random walk / lattice-growth null.
 4. BMX fungal model pinned to the published Zenodo release for matched 3D hyphal morphology/fusion/transport cases.
