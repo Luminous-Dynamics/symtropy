@@ -17,6 +17,7 @@ pub enum SpatialLocalizationError {
     InvalidBandwidth,
     InvalidEffectiveSampleThreshold,
     InvalidNeighbourRadius,
+    InvalidNeighborCount,
     EmptyCalibration,
     EmptyTestSet,
     EmptyIdentity,
@@ -64,6 +65,9 @@ pub struct SpatialLocalizationScenario {
     pub alpha: f64,
     /// Refuse finite local intervals if the weighted ESS is below this threshold.
     pub minimum_effective_sample_size: f64,
+    /// Optional cap on the nearest calibration points used for local weighting.
+    /// This is a diagnostic neighbourhood restriction, not a validity guarantee.
+    pub nearest_neighbor_count: Option<usize>,
     pub calibration_points: Vec<SpatialCalibrationPoint>,
     pub test_points: Vec<SpatialTestPoint>,
 }
@@ -76,6 +80,8 @@ pub struct LocalizedPredictionResult {
     pub effective_sample_size: f64,
     pub maximum_normalized_weight: f64,
     pub nearest_calibration_distance_m: f64,
+    pub selected_neighbor_count: usize,
+    pub selected_neighborhood_radius_m: Option<f64>,
     pub radius: Option<f64>,
     pub interval_lower: Option<f64>,
     pub interval_upper: Option<f64>,
@@ -179,6 +185,11 @@ pub fn evaluate_spatial_localization(
     if scenario.calibration_points.is_empty() {
         return Err(SpatialLocalizationError::EmptyCalibration);
     }
+    if scenario.nearest_neighbor_count.is_some_and(|count| {
+        count == 0 || count > scenario.calibration_points.len()
+    }) {
+        return Err(SpatialLocalizationError::InvalidNeighborCount);
+    }
     if scenario.test_points.is_empty() {
         return Err(SpatialLocalizationError::EmptyTestSet);
     }
@@ -217,12 +228,7 @@ pub fn evaluate_spatial_localization(
 
     let mut predictions = Vec::with_capacity(scenario.test_points.len());
     for test in &scenario.test_points {
-        let mut local = Vec::with_capacity(scenario.calibration_points.len());
-        let mut nearest_distance = f64::INFINITY;
-        let mut weight_sum = 0.0;
-        let mut squared_weight_sum = 0.0;
-        let mut maximum_weight: f64 = 0.0;
-
+        let mut candidates = Vec::with_capacity(scenario.calibration_points.len());
         for calibration in &scenario.calibration_points {
             let dx = test.x_m - calibration.x_m;
             let dy = test.y_m - calibration.y_m;
@@ -230,12 +236,38 @@ pub fn evaluate_spatial_localization(
             if !distance.is_finite() {
                 return Err(SpatialLocalizationError::NumericOverflow);
             }
-            nearest_distance = nearest_distance.min(distance);
             let weight = gaussian_weight(distance, scenario.bandwidth_m)?;
-            local.push((calibration.absolute_residual, weight));
+            candidates.push((
+                distance,
+                calibration.absolute_residual,
+                weight,
+                calibration.point_id.as_str(),
+            ));
+        }
+        candidates.sort_by(|left, right| {
+            left.0.total_cmp(&right.0).then_with(|| left.3.cmp(right.3))
+        });
+
+        let nearest_distance = candidates[0].0;
+        if let Some(neighbor_count) = scenario.nearest_neighbor_count {
+            candidates.truncate(neighbor_count);
+        }
+        let selected_neighbor_count = candidates.len();
+        let selected_neighborhood_radius_m = scenario
+            .nearest_neighbor_count
+            .map(|_| candidates.last().map(|candidate| candidate.0))
+            .flatten();
+        let local: Vec<(f64, f64)> = candidates
+            .iter()
+            .map(|candidate| (candidate.1, candidate.2))
+            .collect();
+        let mut weight_sum = 0.0;
+        let mut squared_weight_sum = 0.0;
+        let mut maximum_weight: f64 = 0.0;
+        for (_, weight) in &local {
             weight_sum += weight;
             squared_weight_sum += weight * weight;
-            maximum_weight = maximum_weight.max(weight);
+            maximum_weight = maximum_weight.max(*weight);
         }
 
         if !weight_sum.is_finite() || !squared_weight_sum.is_finite() {
@@ -292,6 +324,8 @@ pub fn evaluate_spatial_localization(
             effective_sample_size,
             maximum_normalized_weight,
             nearest_calibration_distance_m: nearest_distance,
+            selected_neighbor_count,
+            selected_neighborhood_radius_m,
             radius,
             interval_lower,
             interval_upper,
@@ -442,6 +476,7 @@ mod tests {
             bandwidth_m: 10.0,
             alpha: 0.1,
             minimum_effective_sample_size: 2.0,
+            nearest_neighbor_count: None,
             calibration_points: (0..10)
                 .map(|index| calibration(&format!("a-{index}"), 0.0, 1.0))
                 .collect(),
@@ -660,6 +695,40 @@ mod tests {
         assert_eq!(
             global_morans_i(&points, 2.0),
             Err(SpatialLocalizationError::NonFinitePredictionOrObservation)
+        );
+    }
+
+    #[test]
+    fn k_nearest_neighbor_cap_excludes_a_distant_high_residual_calibration_point() {
+        let mut value = scenario();
+        value.bandwidth_m = 50.0;
+        value.nearest_neighbor_count = Some(12);
+        value.calibration_points = (0..12)
+            .map(|index| calibration(&format!("local-{index}"), f64::from(index), 0.5))
+            .chain(std::iter::once(calibration("remote-outlier", 50.0, 50.0)))
+            .collect();
+        let result = evaluate_spatial_localization(&value).expect("k-neighbour result");
+        let local = &result.predictions[0];
+        assert_eq!(result.pooled_radius, Some(50.0));
+        assert_eq!(local.radius, Some(0.5));
+        assert_eq!(local.selected_neighbor_count, 12);
+        assert_eq!(local.selected_neighborhood_radius_m, Some(11.0));
+        assert_eq!(local.covered, Some(true));
+    }
+
+    #[test]
+    fn invalid_k_nearest_neighbor_counts_fail_closed() {
+        let mut zero = scenario();
+        zero.nearest_neighbor_count = Some(0);
+        assert_eq!(
+            evaluate_spatial_localization(&zero),
+            Err(SpatialLocalizationError::InvalidNeighborCount)
+        );
+        let mut too_many = scenario();
+        too_many.nearest_neighbor_count = Some(too_many.calibration_points.len() + 1);
+        assert_eq!(
+            evaluate_spatial_localization(&too_many),
+            Err(SpatialLocalizationError::InvalidNeighborCount)
         );
     }
 
