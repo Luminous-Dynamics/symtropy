@@ -38,10 +38,10 @@
             "derived_concentration_kg_per_m3": 0.0029999999999999996
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -77,10 +77,10 @@
             "derived_concentration_kg_per_m3": 0.01
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -116,10 +116,10 @@
             "derived_concentration_kg_per_m3": 0.004
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -155,10 +155,10 @@
             "derived_concentration_kg_per_m3": 0.002
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -179,10 +179,10 @@
         "baseline_complete_mix_concentration_kg_per_m3": null,
         "baseline_parity_max_abs_mass_error_kg": null,
         "outlet_ports": null,
-        "engine_hook_consumed_segment_truth": false,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": false
       }
     },
     {
@@ -203,10 +203,10 @@
         "baseline_complete_mix_concentration_kg_per_m3": null,
         "baseline_parity_max_abs_mass_error_kg": null,
         "outlet_ports": null,
-        "engine_hook_consumed_segment_truth": false,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": false
       }
     },
     {
@@ -235,10 +235,10 @@
             "derived_concentration_kg_per_m3": 0.002
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -274,10 +274,10 @@
             "derived_concentration_kg_per_m3": 0.002
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -313,10 +313,10 @@
             "derived_concentration_kg_per_m3": 0.0022222222222222222
           }
         ],
-        "engine_hook_consumed_segment_truth": true,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
       }
     },
     {
@@ -337,10 +337,10 @@
         "baseline_complete_mix_concentration_kg_per_m3": null,
         "baseline_parity_max_abs_mass_error_kg": null,
         "outlet_ports": null,
-        "engine_hook_consumed_segment_truth": false,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": false
       }
     }
   ]
