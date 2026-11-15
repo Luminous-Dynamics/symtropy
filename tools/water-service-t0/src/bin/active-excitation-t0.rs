@@ -530,7 +530,6 @@ fn compute_candidate(
     minimum_delay: f64,
     limits: &Value,
 ) -> Result<Value, String> {
-    let id = text(candidate, "design_id")?;
     if text(candidate, "waveform_provenance")? != "command_plus_calibrated_actuator_model" {
         return Ok(base_candidate(
             "INJECTOR_RESPONSE_UNRESOLVED",
@@ -678,9 +677,9 @@ fn compute_candidate(
         ));
     }
     let mut inlet_gain = vec![0.0; nin];
-    for inlet in 0..nin {
-        for outlet in 0..output_count {
-            inlet_gain[inlet] += kernel[outlet][inlet].iter().sum::<f64>();
+    for (inlet, total_gain) in inlet_gain.iter_mut().enumerate() {
+        for outlet in kernel.iter().take(output_count) {
+            *total_gain += outlet[inlet].iter().sum::<f64>();
         }
     }
     if inlet_gain.iter().any(|v| *v > 1.0 + 1.0e-9) {
@@ -798,9 +797,9 @@ fn compute_candidate(
             ));
         }
         let mut gain = vec![0.0; nin];
-        for inlet in 0..nin {
-            for outlet in 0..output_count {
-                gain[inlet] += model_kernel[outlet][inlet].iter().sum::<f64>();
+        for (inlet, total_gain) in gain.iter_mut().enumerate() {
+            for outlet in model_kernel.iter().take(output_count) {
+                *total_gain += outlet[inlet].iter().sum::<f64>();
             }
         }
         if gain.iter().any(|v| *v > 1.0 + 1.0e-9) {
