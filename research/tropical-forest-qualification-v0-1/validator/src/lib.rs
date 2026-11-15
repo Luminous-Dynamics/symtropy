@@ -4959,7 +4959,7 @@ mod tests {
         let receipt = evaluate(bytes).expect("AFEX root-turnover corpus dispatches");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_ROOT_TURNOVER");
         assert_eq!(receipt["case_count"], 4);
-        assert_eq!(receipt["published_summary_effect_count"], 6);
+        assert_eq!(receipt["published_summary_effect_count"], 7);
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
