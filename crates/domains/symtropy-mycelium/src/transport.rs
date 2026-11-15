@@ -59,6 +59,8 @@ pub struct TransportReport {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransportError {
     InvalidTimeStep,
+    EmptyCompartments,
+    NonFiniteTotalMass,
     InvalidVolume(NodeId),
     InvalidMass(NodeId),
     MixedSolutes,
@@ -80,6 +82,8 @@ impl fmt::Display for TransportError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidTimeStep => write!(f, "time step must be finite and positive"),
+            Self::EmptyCompartments => write!(f, "at least one transport compartment is required"),
+            Self::NonFiniteTotalMass => write!(f, "total mass is not finite"),
             Self::InvalidVolume(node) => {
                 write!(f, "compartment {:?} volume must be finite and positive", node)
             }
@@ -144,14 +148,7 @@ pub fn apply_passive_transport(
     }
 
     let Some(first) = compartments.first() else {
-        return Ok(TransportReport {
-            solute: SoluteId(0),
-            dt_hours,
-            total_mass_before_mg: 0.0,
-            total_mass_after_mg: 0.0,
-            conservation_residual_mg: 0.0,
-            edge_fluxes: Vec::new(),
-        });
+        return Err(TransportError::EmptyCompartments);
     };
     let solute = first.solute;
 
@@ -171,6 +168,9 @@ pub fn apply_passive_transport(
             return Err(TransportError::DuplicateCompartment(compartment.node));
         }
         total_before += compartment.mass_mg;
+        if !total_before.is_finite() {
+            return Err(TransportError::NonFiniteTotalMass);
+        }
     }
 
     let mut seen_edges = BTreeSet::new();
@@ -215,10 +215,20 @@ pub fn apply_passive_transport(
 
         proposed_delta[from_index] -= flux;
         proposed_delta[to_index] += flux;
+        if !proposed_delta[from_index].is_finite()
+            || !proposed_delta[to_index].is_finite()
+        {
+            return Err(TransportError::NonFiniteResult(segment.from));
+        }
         if flux > 0.0 {
             proposed_outgoing[from_index] += flux;
         } else {
             proposed_outgoing[to_index] += -flux;
+        }
+        if !proposed_outgoing[from_index].is_finite()
+            || !proposed_outgoing[to_index].is_finite()
+        {
+            return Err(TransportError::NonFiniteResult(segment.from));
         }
         fluxes.push(EdgeFlux {
             segment: edge.segment,
@@ -246,9 +256,15 @@ pub fn apply_passive_transport(
         }
         next[index].mass_mg = next_mass;
         total_after += next_mass;
+        if !total_after.is_finite() {
+            return Err(TransportError::NonFiniteTotalMass);
+        }
     }
 
     let residual = total_after - total_before;
+    if !residual.is_finite() {
+        return Err(TransportError::NonFiniteTotalMass);
+    }
     *compartments = next;
 
     Ok(TransportReport {
@@ -372,6 +388,41 @@ mod tests {
         assert_eq!(
             apply_passive_transport(&graph, &mut state, &[edge(0.1), edge(0.1)], 1.0),
             Err(TransportError::DuplicateTransportEdge(SegmentId(7)))
+        );
+        assert_eq!(state, before);
+    }
+
+    #[test]
+    fn empty_compartment_input_is_rejected() {
+        let graph = graph_with_edge(HyphalSegmentState::Active);
+        let mut state = Vec::new();
+        assert_eq!(
+            apply_passive_transport(&graph, &mut state, &[edge(0.1)], 1.0),
+            Err(TransportError::EmptyCompartments)
+        );
+    }
+
+    #[test]
+    fn mixed_solutes_are_rejected_without_mutation() {
+        let graph = graph_with_edge(HyphalSegmentState::Active);
+        let mut state = compartments(10.0, 0.0);
+        state[1].solute = SoluteId(43);
+        let before = state.clone();
+        assert_eq!(
+            apply_passive_transport(&graph, &mut state, &[edge(0.1)], 1.0),
+            Err(TransportError::MixedSolutes)
+        );
+        assert_eq!(state, before);
+    }
+
+    #[test]
+    fn missing_compartment_rejects_transport_without_mutation() {
+        let graph = graph_with_edge(HyphalSegmentState::Active);
+        let mut state = vec![compartments(10.0, 0.0)[0]];
+        let before = state.clone();
+        assert_eq!(
+            apply_passive_transport(&graph, &mut state, &[edge(0.1)], 1.0),
+            Err(TransportError::MissingCompartment(NodeId(2)))
         );
         assert_eq!(state, before);
     }
