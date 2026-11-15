@@ -280,6 +280,16 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let service_floors_met = boolean(input, "service_floors_met")?;
     let schedule = text(input, "tariff_schedule_revision")?;
     let bill_method = text(input, "tariff_bill_method_id")?;
+    let tariff_period_days = if tariff_admitted {
+        Some(positive(
+            number(input, "tariff_billing_period_days")?,
+            "tariff_billing_period_days",
+        )?)
+    } else {
+        None
+    };
+    let tariff_period_matches =
+        tariff_period_days.is_some_and(|days| nearly_equal(days, period_days));
 
     let mut gross_system_cost = None;
     let mut energy_cost = None;
@@ -301,7 +311,7 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let mut baseline_fixed = None;
     let mut actual_fixed = None;
     let mut bill_delta = None;
-    if tariff_admitted {
+    if tariff_admitted && tariff_period_matches {
         let baseline = nonnegative(number(input, "baseline_utility_bill_zar")?, "baseline_utility_bill_zar")?;
         let actual = nonnegative(number(input, "actual_utility_bill_zar")?, "actual_utility_bill_zar")?;
         let fixed_before = nonnegative(number(input, "baseline_fixed_charge_zar")?, "baseline_fixed_charge_zar")?;
@@ -358,7 +368,7 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let service_equivalence = if !service_admitted { "INDETERMINATE" }
         else if !service_use_matches { "NOT_COMPARABLE" }
         else if !service_floors_met { "FAIL" } else { "PASS" };
-    let economic_comparison = if !service_admitted || !cost_admitted || !tariff_admitted || !income_admitted {
+    let economic_comparison = if !service_admitted || !cost_admitted || !tariff_admitted || !tariff_period_matches {
         "INDETERMINATE"
     } else if !service_use_matches { "NOT_COMPARABLE" }
     else if !service_floors_met { "SERVICE_FLOORS_NOT_MET" } else { "ADMITTED" };
@@ -371,8 +381,9 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     Ok(json!({
         "cost_ledger_disposition": if cost_admitted { "ADMITTED" } else { "INDETERMINATE" },
         "cost_reason": if cost_admitted { "ALL_DECLARED_COST_COMPONENTS_ADMITTED" } else { "COST_LEDGER_NOT_ADMITTED" },
-        "tariff_disposition": if tariff_admitted { "ADMITTED" } else { "INDETERMINATE" },
-        "tariff_reason": if tariff_admitted { "VERSIONED_BASELINE_AND_ACTUAL_BILLS_ADMITTED" } else { "TARIFF_EVIDENCE_NOT_ADMITTED_NO_SAVINGS_CREDIT" },
+        "tariff_disposition": if tariff_admitted && tariff_period_matches { "ADMITTED" } else { "INDETERMINATE" },
+        "tariff_reason": if !tariff_admitted { "TARIFF_EVIDENCE_NOT_ADMITTED_NO_SAVINGS_CREDIT" } else if !tariff_period_matches { "TARIFF_BILLING_PERIOD_MISMATCH" } else { "VERSIONED_BASELINE_AND_ACTUAL_BILLS_ADMITTED" },
+        "tariff_billing_period_days": tariff_period_days,
         "tariff_schedule_revision": schedule,
         "tariff_bill_method_id": bill_method,
         "service_credit_disposition": service_credit_disposition,
