@@ -152,7 +152,7 @@ impl fmt::Display for StepError {
             Self::NonFiniteInput => write!(f, "input contains a non-finite value"),
             Self::NonFiniteEnergyLedger => {
                 write!(f, "discrete energy/work ledger contains a non-finite value")
-            },
+            }
             Self::MatrixNotSymmetric { name, residual } => {
                 write!(f, "{name} is not symmetric (maximum residual {residual:e})")
             }
