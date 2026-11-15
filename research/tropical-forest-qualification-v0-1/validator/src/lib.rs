@@ -1103,6 +1103,21 @@ fn validate_block_conformal_corpus(
         "synthetic block-calibration arithmetic only; group separation does not verify exchangeability or shift validity",
     );
 
+    let test_block_rows: Vec<Value> = result
+        .test_block_results
+        .iter()
+        .map(|block| {
+            json!({
+                "block_id": block.block_id,
+                "observation_count": block.observation_count,
+                "covered_observation_count": block.covered_observation_count,
+                "observation_coverage_fraction": block.observation_coverage_fraction,
+                "block_fully_covered": block.block_fully_covered,
+                "regime_is_declared_shift": block.regime_is_declared_shift
+            })
+        })
+        .collect();
+
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
@@ -1136,7 +1151,7 @@ fn validate_block_conformal_corpus(
         "block_full_block_coverage": result.block_full_block_coverage,
         "declared_in_domain_block_coverage": result.declared_in_domain_block_coverage,
         "declared_shift_block_coverage": result.declared_shift_block_coverage,
-        "test_block_results": result.test_block_results,
+        "test_block_results": test_block_rows,
         "exchangeability_status": result.exchangeability_status,
         "real_forest_coverage": "NOT_ESTABLISHED",
         "distribution_shift_guarantee": "NOT_ESTABLISHED",
@@ -1388,6 +1403,32 @@ fn validate_binary_event_brier_corpus(
         "synthetic Bernoulli scoring only; no event calibration, ecological forecast skill or blind evaluation is claimed",
     );
 
+    let reliability_bin_rows: Vec<Value> = summary
+        .reliability_bins
+        .iter()
+        .map(|bin| {
+            json!({
+                "lower_bound": bin.lower_bound,
+                "upper_bound": bin.upper_bound,
+                "case_count": bin.case_count,
+                "mean_forecast_probability": bin.mean_forecast_probability,
+                "observed_event_frequency": bin.observed_event_frequency
+            })
+        })
+        .collect();
+    let brier_summary = json!({
+        "eligible_case_count": summary.eligible_case_count,
+        "forecast_case_count": summary.forecast_case_count,
+        "abstained_case_count": summary.abstained_case_count,
+        "forecast_coverage_fraction": summary.forecast_coverage_fraction,
+        "mean_model_brier": summary.mean_model_brier,
+        "mean_baseline_brier_paired": summary.mean_baseline_brier_paired,
+        "mean_baseline_brier_all": summary.mean_baseline_brier_all,
+        "brier_skill_score": summary.brier_skill_score,
+        "reliability_bins": reliability_bin_rows,
+        "disposition": summary.disposition
+    });
+
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
@@ -1407,7 +1448,7 @@ fn validate_binary_event_brier_corpus(
         "checks_passed": checks.iter().filter(|check| check.passed).count(),
         "checks_total": checks.len(),
         "checks": check_values,
-        "summary": summary,
+        "summary": brier_summary,
         "case_scores": case_rows,
         "event_calibration": "NOT_ESTABLISHED",
         "ecological_forecast_skill": "NOT_ESTABLISHED",
@@ -1658,6 +1699,34 @@ fn validate_probabilistic_forecast_corpus(
         "synthetic empirical-ensemble scoring only; no calibration, ecological skill or blind evaluation is claimed",
     );
 
+    let risk_curve_rows: Vec<Value> = risk_curve
+        .iter()
+        .map(|point| {
+            json!({
+                "selected_count": point.selected_count,
+                "coverage_fraction": point.coverage_fraction,
+                "mean_crps_risk": point.mean_crps_risk
+            })
+        })
+        .collect();
+    let forecast_summary = json!({
+        "eligible_case_count": summary.eligible_case_count,
+        "forecast_case_count": summary.forecast_case_count,
+        "abstained_case_count": summary.abstained_case_count,
+        "forecast_coverage_fraction": summary.forecast_coverage_fraction,
+        "mean_model_crps": summary.mean_model_crps,
+        "mean_baseline_crps_paired": summary.mean_baseline_crps_paired,
+        "mean_baseline_crps_all": summary.mean_baseline_crps_all,
+        "crps_skill_score": summary.crps_skill_score,
+        "mean_absolute_error": summary.mean_absolute_error,
+        "interval_coverage_50": summary.interval_coverage_50,
+        "interval_coverage_80": summary.interval_coverage_80,
+        "interval_coverage_95": summary.interval_coverage_95,
+        "mean_interval_width_80": summary.mean_interval_width_80,
+        "mean_interval_width_95": summary.mean_interval_width_95,
+        "disposition": summary.disposition
+    });
+
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
@@ -1677,9 +1746,9 @@ fn validate_probabilistic_forecast_corpus(
         "checks_passed": checks.iter().filter(|check| check.passed).count(),
         "checks_total": checks.len(),
         "checks": check_values,
-        "summary": summary,
+        "summary": forecast_summary,
         "forecast_scores": forecast_rows,
-        "risk_coverage_curve": risk_curve,
+        "risk_coverage_curve": risk_curve_rows,
         "probabilistic_calibration": "NOT_ESTABLISHED",
         "ecological_forecast_skill": "NOT_ESTABLISHED",
         "external_data_ingested": false
