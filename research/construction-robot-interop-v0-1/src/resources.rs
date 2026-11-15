@@ -345,6 +345,12 @@ impl ReservationBook {
             .map_or(0, BTreeSet::len))
     }
 
+    /// Count all retained reservation records, including released, expired and
+    /// invalidated history. Exposes only the count, not the private event store.
+    pub fn historical_reservation_count(&self) -> usize {
+        self.reservations.len()
+    }
+
     /// Independent full-history active count for one resource. This deliberately
     /// scans historical records and is exposed for differential tests/benchmarks only.
     pub fn reference_active_reservation_count_for_resource(
