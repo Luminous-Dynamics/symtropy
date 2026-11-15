@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "campaign_id": "mfb-homeops-ten-fault-campaign-v1",
+  "base_scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
+  "base_scenario_schema_version": 1,
+  "base_scenario_source_commit": "240914e56939eade580a2b4245c5cf5592ddd276",
+  "episodes": [
+    {
+      "episode_id": "episode-wrong-tote",
+      "injection": {
+        "fault_id": "fault-wrong-tote",
+        "kind": "wrong_tote",
+        "at_segment_id": "segment-receiver-to-storage"
+      },
+      "expected_terminal_state": "rejected"
+    },
+    {
+      "episode_id": "episode-over-mass",
+      "injection": {
+        "fault_id": "fault-over-mass",
+        "kind": "over_mass",
+        "at_segment_id": "segment-receiver-to-storage"
+      },
+      "expected_terminal_state": "rejected"
+    },
+    {
+      "episode_id": "episode-stale-temperature",
+      "injection": {
+        "fault_id": "fault-stale-temperature",
+        "kind": "stale_temperature",
+        "at_segment_id": "segment-receiver-to-storage"
+      },
+      "expected_terminal_state": "safe_hold"
+    },
+    {
+      "episode_id": "episode-blocked-gate",
+      "injection": {
+        "fault_id": "fault-blocked-gate",
+        "kind": "blocked_transfer_gate",
+        "at_segment_id": "segment-receiver-to-storage"
+      },
+      "expected_terminal_state": "safe_hold"
+    },
+    {
+      "episode_id": "episode-damaged-seal",
+      "injection": {
+        "fault_id": "fault-damaged-seal",
+        "kind": "damaged_seal",
+        "at_segment_id": "segment-carrier-to-receiver"
+      },
+      "expected_terminal_state": "safe_hold"
+    },
+    {
+      "episode_id": "episode-duplicate-handoff",
+      "injection": {
+        "fault_id": "fault-duplicate-handoff",
+        "kind": "duplicate_handoff",
+        "at_segment_id": "segment-carrier-to-receiver"
+      },
+      "expected_terminal_state": "reconciliation_required"
+    },
+    {
+      "episode_id": "episode-missing-ack",
+      "injection": {
+        "fault_id": "fault-missing-ack",
+        "kind": "missing_receiver_acknowledgement",
+        "at_segment_id": "segment-carrier-to-receiver"
+      },
+      "expected_terminal_state": "reconciliation_required"
+    },
+    {
+      "episode_id": "episode-expired-grant",
+      "injection": {
+        "fault_id": "fault-expired-grant",
+        "kind": "expired_grant",
+        "at_segment_id": "segment-carrier-to-receiver"
+      },
+      "expected_terminal_state": "rejected"
+    },
+    {
+      "episode_id": "episode-power-interruption",
+      "injection": {
+        "fault_id": "fault-power-interruption",
+        "kind": "power_interruption",
+        "at_segment_id": "segment-receiver-to-storage"
+      },
+      "expected_terminal_state": "reconciliation_required"
+    },
+    {
+      "episode_id": "episode-network-loss",
+      "injection": {
+        "fault_id": "fault-network-loss",
+        "kind": "network_loss",
+        "at_segment_id": "segment-receiver-to-storage"
+      },
+      "expected_terminal_state": "reconciliation_required"
+    }
+  ]
+}
