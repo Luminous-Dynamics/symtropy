@@ -276,6 +276,11 @@ pub fn estimate_probability_sample_count_total(
         {
             return Err(AggregationError::InvalidSamplingFrame);
         }
+        if sample.sampling_frame_id != sampling_frame_id
+            || sample.sampling_design_id != sampling_design_id
+        {
+            return Err(AggregationError::InvalidSamplingFrame);
+        }
         if sample.design_kind != "probability_sample" {
             return Err(AggregationError::NonProbabilityDesign);
         }
@@ -337,10 +342,19 @@ pub struct CountVarianceEstimate {
 /// A negative realised estimate is retained and has no standard error; it is never
 /// clamped to zero. Local probability consistency does not authenticate the real design.
 pub fn estimate_ht_count_variance(
+    sampling_frame_id: &str,
+    sampling_design_id: &str,
+    population_unit_count: usize,
     samples: &[CountSample],
     pair_inclusions: &[PairInclusionProbability],
 ) -> Result<CountVarianceEstimate, AggregationError> {
-    if samples.is_empty() || samples.len() > 1_000_000 {
+    if sampling_frame_id.trim().is_empty()
+        || sampling_design_id.trim().is_empty()
+        || population_unit_count == 0
+        || samples.is_empty()
+        || samples.len() > population_unit_count
+        || samples.len() > 1_000_000
+    {
         return Err(AggregationError::InvalidSamplingFrame);
     }
 
@@ -443,8 +457,7 @@ pub fn estimate_ht_count_variance(
         add_term(diagonal)?;
     }
 
-    for left_index in 0..ordered.len() {
-        let left = ordered[left_index];
+    for (left_index, left) in ordered.iter().enumerate() {
         let left_id = left.sample_unit_id.as_str();
         let left_pi = left.inclusion_probability;
         let left_y_over_pi = (left.observed_count as f64) / left_pi;
@@ -924,7 +937,7 @@ mod tests {
             right_sample_unit_id: "b".to_string(),
             joint_inclusion_probability: 0.1,
         }];
-        let result = estimate_ht_count_variance(&samples, &pairs).expect("HT variance");
+        let result = estimate_ht_count_variance("frame", "design", 10, &samples, &pairs).expect("HT variance");
         assert!((result.variance_estimate - 252.0).abs() < 1e-12);
         assert!((result.standard_error.expect("non-negative variance") - 252.0_f64.sqrt()).abs() < 1e-12);
         assert_eq!(result.sample_pair_count, 1);
@@ -945,7 +958,7 @@ mod tests {
             right_sample_unit_id: "b".to_string(),
             joint_inclusion_probability: 0.125,
         }];
-        let result = estimate_ht_count_variance(&samples, &pairs).expect("Poisson HT variance");
+        let result = estimate_ht_count_variance("frame", "design", 10, &samples, &pairs).expect("Poisson HT variance");
         assert!((result.variance_estimate - 332.0).abs() < 1e-12);
         assert!((result.standard_error.expect("standard error") - 332.0_f64.sqrt()).abs() < 1e-12);
     }
@@ -961,7 +974,7 @@ mod tests {
             right_sample_unit_id: "b".to_string(),
             joint_inclusion_probability: 0.01,
         }];
-        let result = estimate_ht_count_variance(&samples, &pairs).expect("negative HT variance");
+        let result = estimate_ht_count_variance("frame", "design", 10, &samples, &pairs).expect("negative HT variance");
         assert!((result.variance_estimate - (-188_000_000.0)).abs() < 1e-6);
         assert_eq!(result.standard_error, None);
         assert_eq!(
@@ -977,7 +990,7 @@ mod tests {
             count_sample("b", 5, 0.25),
         ];
         assert_eq!(
-            estimate_ht_count_variance(&samples, &[]),
+            estimate_ht_count_variance("frame", "design", 10, &samples, &[]),
             Err(AggregationError::MissingJointInclusionProbability)
         );
     }
@@ -1001,7 +1014,7 @@ mod tests {
             },
         ];
         assert_eq!(
-            estimate_ht_count_variance(&samples, &pairs),
+            estimate_ht_count_variance("frame", "design", 10, &samples, &pairs),
             Err(AggregationError::DuplicateJointInclusionProbability)
         );
     }
@@ -1018,7 +1031,7 @@ mod tests {
             joint_inclusion_probability: 0.3,
         }];
         assert_eq!(
-            estimate_ht_count_variance(&samples, &pairs),
+            estimate_ht_count_variance("frame", "design", 10, &samples, &pairs),
             Err(AggregationError::InvalidJointInclusionProbability)
         );
     }
@@ -1035,7 +1048,7 @@ mod tests {
             joint_inclusion_probability: 0.1,
         }];
         assert_eq!(
-            estimate_ht_count_variance(&samples, &unknown),
+            estimate_ht_count_variance("frame", "design", 10, &samples, &unknown),
             Err(AggregationError::UnknownSampleUnit)
         );
         let non_finite = [PairInclusionProbability {
@@ -1044,7 +1057,7 @@ mod tests {
             joint_inclusion_probability: f64::NAN,
         }];
         assert_eq!(
-            estimate_ht_count_variance(&samples, &non_finite),
+            estimate_ht_count_variance("frame", "design", 10, &samples, &non_finite),
             Err(AggregationError::InvalidJointInclusionProbability)
         );
     }
