@@ -35,7 +35,7 @@ Passing this corpus cannot be promoted into a magnetic-support, orbital-ring, co
 
 ## Equations and accounting
 
-Let `x_s` and `x_r` be the stream-mass and support-mass coordinates, and let `y = x_s - x_r`. The synthetic port forces are:
+Let `x_s` and `x_r` be the two signed displacement states measured relative to a declared relaxed reference configuration; the constant physical spring free length is omitted as a coordinate offset. Let `y = x_s - x_r` be the relative spring extension/displacement. These are not absolute positions or orbital coordinates. The synthetic port forces are:
 
 ```text
 F_stream = -k*y - c*dy/dt
