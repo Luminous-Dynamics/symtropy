@@ -877,7 +877,6 @@ fn surveillance_observation_without_a_traffic_class_is_not_admissible() {
     );
 }
 
-
 #[test]
 fn external_traffic_observation_cannot_satisfy_ownship_position_role() {
     let mut receipts = graph();
