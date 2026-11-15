@@ -85,10 +85,10 @@ fn is_true(value: &Value, object: &str, key: &str) -> bool {
 }
 
 fn is_null_or_missing(value: &Value, object: &str, key: &str) -> bool {
-    match field(value, object).and_then(|v| v.get(key)) {
-        None | Some(Value::Null) => true,
-        _ => false,
-    }
+    matches!(
+        field(value, object).and_then(|v| v.get(key)),
+        None | Some(Value::Null)
+    )
 }
 
 fn has_nonempty_text(value: &Value, object: &str, key: &str) -> bool {
