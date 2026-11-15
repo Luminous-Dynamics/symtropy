@@ -811,7 +811,12 @@
         "claim_ceiling": "Synthetic estimand/covariance benchmark only; not raw plot-pair reproduction or empirical uncertainty calibration.",
         "root_strategy_issue": 5445,
         "root_strategy_protocol": "AFEX_ROOT_STRATEGY_DISCRIMINATION_V0_1.md",
-        "root_strategy_hypotheses": "cases/afex-root-strategy-hypotheses-v0.1.json"
+        "root_strategy_hypotheses": "cases/afex-root-strategy-hypotheses-v0.1.json",
+        "practical_design_issue": 5464,
+        "practical_design_protocol": "AFEX_PRACTICAL_DESIGN_V0_1.md",
+        "practical_design_fixture": "cases/afex-practical-design-synthetic-v0.1.json",
+        "practical_design_validator": "validator/src/afex_practical_design_kernel.rs",
+        "practical_design_claim_ceiling": "Synthetic linear-Gaussian design only; costs, prior, noise and utility are not actual AFEX assay data or field recommendations."
       }
     },
     {
