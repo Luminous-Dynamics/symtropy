@@ -96,6 +96,7 @@ jobs:
         cargo test --manifest-path research/protective-systems/verifier/Cargo.toml
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
+        cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
