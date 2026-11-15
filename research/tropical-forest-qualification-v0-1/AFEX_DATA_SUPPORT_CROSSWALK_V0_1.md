@@ -33,6 +33,18 @@ Do not concatenate the CSV files and assume row-to-row equivalence.
 
 The AFEX parent collection also lists litterfall herbivory, ant abundance, root mycorrhizal colonisation, root nutrient concentration, phosphatase activity, root morphology, soil microbial enzyme activity and fine-litterfall production. These remain discovery candidates until each child record is separately audited.
 
+### Belowground nutrient-acquisition traits (2018)
+
+Four additional AFEX child records are now registered:
+- [Fine-root AM colonisation](https://doi.org/10.5285/52f756a1-a0f6-4991-b21b-4042018a451f): February 2018, 0–10 cm only, five within-plot points averaged to a plot/community mean; percentage root length colonised by hyphae, arbuscules and vesicles. It is not a fungal nutrient-transfer flux.
+- [Fine-root morphology](https://doi.org/10.5285/4ccaab66-2818-41b8-8b31-1a710766c5d6): February 2018, 0–10 and 10–30 cm, five within-plot points and plant-community means by plot/depth; scanned length, area, volume, diameter and derived SRL/SRA/RTD.
+- [Fine-root potential phosphatase activity](https://doi.org/10.5285/6529004d-b6e8-429d-ac68-0f5324d7e5d0): February 2018, 0–10 and 10–30 cm, root-tip potential acid phosphomonoesterase assay within three days of sampling. Preserve its dry-mass-normalised fluorimetric units; it is not an in-situ P uptake flux.
+- [Fine-root nutrient concentration](https://doi.org/10.5285/ba190356-1731-4558-be7a-3fedc570663a): fine roots <2 mm, plot/depth means bulked over four intervals from November 2017 to August 2018; preserve this temporal composite, not a synthetic single-date observation.
+
+The 2021 AFEX study reports a cation-associated AM colonisation increase in 0–10 cm (41.90% to 50.40%, p=0.042), with no significant N or P main effect on colonisation. It reports P-associated root productivity/diameter increases and lower phosphatase activity, and cation-associated diameter/colonisation changes: https://doi.org/10.1111/nph.17154. These trait responses provide useful hypotheses for the 2026 turnover patterns, but the sources remain distinct campaigns and support.
+
+The mechanism-discrimination child [#5445](https://github.com/Luminous-Dynamics/symtropy/issues/5445) now records direct-foraging, mycorrhizal-outsourcing, combined-strategy, no-mediation and omitted-mechanism alternatives. Its [protocol](AFEX_ROOT_STRATEGY_DISCRIMINATION_V0_1.md) and [machine-readable matrix](cases/afex-root-strategy-hypotheses-v0.1.json) deliberately preserve the 0–10 cm AMF support and prohibit treating AM colonisation as causal mediation of 0–30 cm later turnover without additional assumptions and aligned stock/flow evidence.
+
 ### New 2026 root-turnover evidence (published summary, not raw data)
 
 Schmeisk-Rosa et al. (2026), [*Phosphorus and base cations drive contrasting root dynamics in a central Amazon forest*](https://doi.org/10.1007/s11104-026-08303-2), defines fine-root turnover as annual productivity divided by standing stock. It reports unchanged standing stock under nutrient additions, but P-associated turnover increases of 23% and 48% in years 1 and 2, a 24% year-2 turnover decrease with cation additions, a P×cation interaction that counteracts the P response, and a year-two N×cation grouping contrast. The paper's reported -N-CAT versus +N-CAT notation is retained rather than recast as a pure N main effect. The paper states that the EIDC in-growth-core resource above supplies productivity data, while the fine-root standing-stock data used in its turnover analysis are available from the corresponding author on reasonable request.
