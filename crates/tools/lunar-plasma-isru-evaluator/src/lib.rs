@@ -241,7 +241,11 @@ fn observation_is_metrologically_scoreable(
         scoreable = false;
     }
 
-    if observation.calibration_ref.as_deref() != Some(product_calibration_ref) {
+    if observation
+        .calibration_ref
+        .as_deref()
+        .is_some_and(|calibration_ref| calibration_ref != product_calibration_ref)
+    {
         rejected.push(
             "product calibration identity does not match the quantitative observation".to_owned(),
         );
