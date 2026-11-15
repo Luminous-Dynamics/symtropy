@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:artificial-gravity:run-manifest:1.0.0",
+  "title": "Luminous Artificial Gravity Run Manifest",
+  "description": "Domain-specific, versioned artifact manifest for artificial-gravity calculations and tests. It is not a claim ledger, certification record, or safety authorization.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_type",
+    "run_id",
+    "maturity",
+    "claim",
+    "configuration",
+    "model",
+    "execution",
+    "result",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "manifest_type": {
+      "const": "luminous.artificial-gravity.run"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maturity": {
+      "enum": [
+        "analytical_reference",
+        "numerical_simulation",
+        "hardware_in_loop",
+        "uncrewed_physical_test",
+        "human_analogue_study",
+        "orbital_exposure"
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement",
+        "scope",
+        "support_outcome"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "support_outcome": {
+          "enum": [
+            "supports",
+            "does_not_support",
+            "inconclusive",
+            "not_assessed"
+          ]
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "units",
+        "standard_gravity_m_s2",
+        "coordinate_frame",
+        "rotation",
+        "geometry"
+      ],
+      "properties": {
+        "units": {
+          "const": "SI"
+        },
+        "standard_gravity_m_s2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "coordinate_frame": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "handedness",
+            "origin",
+            "rotation_axis_unit_vector"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "handedness": {
+              "const": "right"
+            },
+            "origin": {
+              "$ref": "#/$defs/vector3"
+            },
+            "rotation_axis_unit_vector": {
+              "$ref": "#/$defs/vector3"
+            }
+          }
+        },
+        "rotation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rpm",
+            "angular_velocity_rad_s",
+            "angular_acceleration_rad_s2"
+          ],
+          "properties": {
+            "rpm": {
+              "type": "number",
+              "minimum": 0
+            },
+            "angular_velocity_rad_s": {
+              "$ref": "#/$defs/vector3"
+            },
+            "angular_acceleration_rad_s2": {
+              "$ref": "#/$defs/vector3"
+            }
+          }
+        },
+        "geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reference_radius_m"
+          ],
+          "properties": {
+            "reference_radius_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "inner_occupied_radius_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "outer_occupied_radius_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "body_length_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "target_g": {
+          "type": "number",
+          "minimum": 0
+        },
+        "relative_velocity_m_s": {
+          "$ref": "#/$defs/vector3"
+        },
+        "exposure_schedule": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "duration_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "duty_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "exercise_protocol_id": {
+              "type": "string"
+            }
+          }
+        },
+        "design_constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_body_gradient_fraction",
+            "maximum_rpm",
+            "maximum_coriolis_fraction",
+            "transverse_speed_m_s"
+          ],
+          "properties": {
+            "maximum_body_gradient_fraction": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "maximum_rpm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "maximum_coriolis_fraction": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "transverse_speed_m_s": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit_sha",
+        "path",
+        "blob_sha",
+        "implementation_kind"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "path": {
+          "type": "string"
+        },
+        "blob_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "implementation_kind": {
+          "enum": [
+            "analytic_reference",
+            "numerical_solver",
+            "reduced_order_model",
+            "digital_twin",
+            "firmware"
+          ]
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "command_or_procedure",
+        "environment",
+        "status"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "independent_analytic_calculation",
+            "compiled_binary",
+            "simulation",
+            "hardware_in_loop",
+            "physical_test",
+            "human_study"
+          ]
+        },
+        "command_or_procedure": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "toolchain": {
+          "type": "string"
+        },
+        "solver": {
+          "type": "string"
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "not_run",
+            "executed",
+            "aborted",
+            "invalidated"
+          ]
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "result_class",
+        "metrics",
+        "uncertainty_status"
+      ],
+      "properties": {
+        "result_class": {
+          "enum": [
+            "expected_fixture",
+            "analytical_output",
+            "simulation_output",
+            "measured_output",
+            "human_observation"
+          ]
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "value",
+              "unit",
+              "origin"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string"
+              },
+              "origin": {
+                "enum": [
+                  "derived",
+                  "simulated",
+                  "measured",
+                  "source_reported"
+                ]
+              },
+              "standard_uncertainty": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "coverage_factor": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "exclusiveMinimum": 0
+              }
+            }
+          }
+        },
+        "uncertainty_status": {
+          "enum": [
+            "not_applicable_analytic",
+            "not_quantified",
+            "quantified",
+            "incomplete"
+          ]
+        },
+        "design_decision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "active_constraint",
+            "minimum_radius_m",
+            "resulting_rpm",
+            "resulting_body_gradient_fraction",
+            "resulting_coriolis_fraction"
+          ],
+          "properties": {
+            "active_constraint": {
+              "enum": [
+                "body_gradient",
+                "maximum_rpm",
+                "coriolis_motion"
+              ]
+            },
+            "minimum_radius_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "resulting_rpm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "resulting_body_gradient_fraction": {
+              "type": "number",
+              "minimum": 0
+            },
+            "resulting_coriolis_fraction": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifacts",
+        "independent_review_status"
+      ],
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_type",
+              "sha256",
+              "media_type",
+              "locator"
+            ],
+            "properties": {
+              "artifact_type": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "media_type": {
+                "type": "string"
+              },
+              "locator": {
+                "type": "string"
+              },
+              "license": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "access_status": {
+                "enum": [
+                  "public",
+                  "controlled",
+                  "embargoed",
+                  "unavailable"
+                ]
+              }
+            }
+          }
+        },
+        "independent_review_status": {
+          "enum": [
+            "not_requested",
+            "pending",
+            "supports",
+            "does_not_support",
+            "inconclusive"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "vector3": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_type": "luminous.artificial-gravity.run",
+  "run_id": "fixture-zang-2026-0p5g-2rpm-intersection-v1",
+  "maturity": "analytical_reference",
+  "claim": {
+    "statement": "For target 0.5 g, assumed radial body length 1.75 m, 2% maximum ideal body gradient, 2 RPM maximum and 10% caller-selected Coriolis fraction at 1 m/s transverse movement, the ideal minimum radius is 111.782405876 m; the RPM constraint is active.",
+    "scope": "Ideal Newtonian rotating-frame analytic constraint intersection only. The Coriolis fraction is an engineering scenario parameter, not a human tolerance or medical safety threshold. Excludes structural dynamics, habitat mass closure, human physiology and physical validation.",
+    "support_outcome": "not_assessed"
+  },
+  "configuration": {
+    "units": "SI",
+    "standard_gravity_m_s2": 9.80665,
+    "coordinate_frame": {
+      "name": "right-handed habitat-local frame",
+      "handedness": "right",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation_axis_unit_vector": [
+        0,
+        0,
+        1
+      ]
+    },
+    "rotation": {
+      "rpm": 2,
+      "angular_velocity_rad_s": [
+        0,
+        0,
+        0.20943951023931953
+      ],
+      "angular_acceleration_rad_s2": [
+        0,
+        0,
+        0
+      ]
+    },
+    "geometry": {
+      "reference_radius_m": 111.78240587618983,
+      "inner_occupied_radius_m": 111.78240587618983,
+      "outer_occupied_radius_m": 111.78240587618983
+    },
+    "target_g": 0.5,
+    "relative_velocity_m_s": [
+      0,
+      1,
+      0
+    ],
+    "design_constraints": {
+      "maximum_body_gradient_fraction": 0.02,
+      "maximum_rpm": 2,
+      "maximum_coriolis_fraction": 0.1,
+      "transverse_speed_m_s": 1
+    }
+  },
+  "model": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "commit_sha": "7f048ed0b2f7f5fc74cac18982822fc2ed3c76f3",
+    "path": "research/artificial-gravity-v0/src/lib.rs",
+    "blob_sha": "08b6e612aec98c09489d31cf1d141afeaf8677d7",
+    "implementation_kind": "analytic_reference"
+  },
+  "execution": {
+    "method": "independent_analytic_calculation",
+    "command_or_procedure": "Independent evaluation of R_gradient=L/epsilon, R_rpm=a/(2*pi*Nmax/60)^2, R_Coriolis=4*v_perp^2/(c^2*a), and R_min=max(all three); this is not output captured from the Rust binary.",
+    "environment": "Independent arithmetic reference; Rust compiler and Cargo were unavailable in the current execution environment.",
+    "toolchain": "not_applicable_for_analytic_reference",
+    "solver": "closed-form kinematics",
+    "seed": null,
+    "status": "executed"
+  },
+  "result": {
+    "result_class": "expected_fixture",
+    "metrics": [
+      {
+        "name": "gradient_min_radius",
+        "value": 87.5,
+        "unit": "m",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "rpm_min_radius",
+        "value": 111.78240587618983,
+        "unit": "m",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "coriolis_min_radius",
+        "value": 81.57729703823425,
+        "unit": "m",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "selected_minimum_radius",
+        "value": 111.78240587618983,
+        "unit": "m",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "resulting_rpm",
+        "value": 2,
+        "unit": "rpm",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "resulting_body_gradient",
+        "value": 0.01565541541428532,
+        "unit": "fraction",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "resulting_coriolis_fraction",
+        "value": 0.08542754569167638,
+        "unit": "fraction of target acceleration",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      }
+    ],
+    "uncertainty_status": "not_applicable_analytic",
+    "design_decision": {
+      "active_constraint": "maximum_rpm",
+      "minimum_radius_m": 111.78240587618983,
+      "resulting_rpm": 2,
+      "resulting_body_gradient_fraction": 0.01565541541428532,
+      "resulting_coriolis_fraction": 0.08542754569167638
+    }
+  },
+  "evidence": {
+    "artifacts": [
+      {
+        "artifact_type": "independent coupled design constraint reference fixture",
+        "sha256": "371f353685bbbd4814d813a74f73ac37b08f3ca4b63d4977b38cf99a169a990d",
+        "media_type": "text/csv",
+        "locator": "research/artificial-gravity-v0/fixtures/codesign_constraint_intersection.csv",
+        "license": "Apache-2.0 OR MIT",
+        "access_status": "public"
+      }
+    ],
+    "independent_review_status": "not_requested"
+  }
+}
