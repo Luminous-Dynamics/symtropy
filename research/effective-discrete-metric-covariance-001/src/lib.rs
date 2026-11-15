@@ -97,7 +97,6 @@ impl LinearDiscreteProblem2V1 {
             || profile.maximum_effective_condition_inf < 1.0
             || !profile.maximum_residual.is_finite()
             || profile.maximum_residual <= 0.0
-            || profile.maximum_basis_entry <= 0
         {
             return Err(EffectiveMetricErrorV1::InvalidIdentifier);
         }
@@ -139,8 +138,7 @@ impl LinearDiscreteProblem2V1 {
 
     pub fn effective_metric(&self) -> Result<Matrix2, EffectiveMetricErrorV1> {
         let h = self.time_step;
-        let h_squared = h * h;
-        if !h_squared.is_finite() {
+            if !h_squared.is_finite() {
             return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
         }
         let mut result = [[0.0; 2]; 2];
