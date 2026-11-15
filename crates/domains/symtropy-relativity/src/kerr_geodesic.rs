@@ -674,6 +674,31 @@ pub struct KerrSachsFrameTransportDerivative {
     pub metric_compatibility_residual: f64,
 }
 
+
+
+/// Pointwise four-dimensional covariant geodesic-deviation operator.
+///
+/// The operator uses the declared coordinate basis and the curvature
+/// convention of the RiemannTensor4 type:
+///
+/// (D^2 xi)^mu / d lambda^2 = -R^mu_(alpha rho beta) k^alpha k^beta xi^rho.
+///
+/// This sign is chosen so that projection onto a parallel-transported
+/// orthonormal Sachs screen gives D'' = -T D, matching the local optical
+/// convention used by KerrCanonicalHamiltonian::optical_tidal_matrix.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrCovariantDeviationEvaluation {
+    pub coordinate_chart: KerrMinoCoordinateChart,
+    pub null_tangent: [f64; 4],
+    pub metric: [[f64; 4]; 4],
+    pub connection: [[[f64; 4]; 4]; 4],
+    pub deviation_operator: [[f64; 4]; 4],
+    pub null_constraint_residual: f64,
+    pub vacuum_ricci_residual: f64,
+    pub deviation_metric_symmetry_residual: f64,
+}
+
+
 /// Independent canonical Hamiltonian evaluator for exterior Kerr rays.
 ///
 /// The metric and its first derivatives are generated through the existing
@@ -1381,6 +1406,148 @@ impl KerrCanonicalHamiltonian {
             DifferentiatedMetric4::kerr_ingoing(self.hole, radius_m, state.coordinates.theta_rad)?;
         self.evaluate_differentiated(state, differentiated)
     }
+
+
+    /// Evaluate the full covariant geodesic-deviation operator at one canonical ray state.
+    ///
+    /// The returned matrix A^mu_rho satisfies
+    /// D ell^mu / d lambda = -A^mu_rho xi^rho, where
+    /// A^mu_rho = R^mu_(alpha rho beta) k^alpha k^beta.
+    /// The calculation independently reconstructs the metric, connection and
+    /// Riemann tensor from the differentiated metric in the selected chart.
+    /// It does not project onto a screen or assume a parallel-transported frame.
+    pub fn covariant_deviation_operator(
+        self,
+        state: KerrCanonicalState,
+        coordinate_chart: KerrMinoCoordinateChart,
+        tolerance: f64,
+    ) -> Result<KerrCovariantDeviationEvaluation, KerrGeodesicError> {
+        if !tolerance.is_finite() || tolerance <= 0.0 {
+            return Err(KerrGeodesicError::InvalidProjectionTolerance(tolerance));
+        }
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
+        let differentiated = match coordinate_chart {
+            KerrMinoCoordinateChart::BoyerLindquist => DifferentiatedMetric4::kerr_exterior(
+                self.hole,
+                radius_m,
+                state.coordinates.theta_rad,
+            )?,
+            KerrMinoCoordinateChart::IngoingKerr => DifferentiatedMetric4::kerr_ingoing(
+                self.hole,
+                radius_m,
+                state.coordinates.theta_rad,
+            )?,
+        };
+        let evaluation = self.evaluate_differentiated(state, differentiated)?;
+        let null_tangent = evaluation.derivative.coordinates;
+        let mass_length = self.hole.gravitational_radius_m();
+        let factors = [1.0, 1.0, 1.0 / mass_length, 1.0 / mass_length];
+        let source_metric = differentiated.metric.covariant();
+        let source_first = differentiated.first.components();
+        let source_second = differentiated.second.components();
+
+        // Convert SI-coordinate metric derivatives to the dimensionless
+        // canonical chart basis used by KerrCanonicalState.
+        let mut metric_components = [[0.0; 4]; 4];
+        let mut first_components = [[[0.0; 4]; 4]; 4];
+        let mut second_components = [[[[0.0; 4]; 4]; 4]; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                let scale = factors[mu] * factors[nu];
+                metric_components[mu][nu] = source_metric[mu][nu] * scale;
+                first_components[1][mu][nu] = source_first[1][mu][nu] * mass_length * scale;
+                first_components[2][mu][nu] = source_first[2][mu][nu] * scale;
+                second_components[1][1][mu][nu] =
+                    source_second[1][1][mu][nu] * mass_length * mass_length * scale;
+                second_components[1][2][mu][nu] =
+                    source_second[1][2][mu][nu] * mass_length * scale;
+                second_components[2][1][mu][nu] =
+                    source_second[2][1][mu][nu] * mass_length * scale;
+                second_components[2][2][mu][nu] = source_second[2][2][mu][nu] * scale;
+            }
+        }
+        let metric = MetricComponents4::new(metric_components)?;
+        let first = MetricDerivatives4::new(first_components).map_err(JetError::from)?;
+        let second = MetricSecondDerivatives4::new(second_components).map_err(JetError::from)?;
+        let connection = LeviCivitaConnection4::from_metric_and_derivatives(&metric, &first)
+            .map_err(JetError::from)?;
+        let curvature = RiemannTensor4::from_metric_derivatives(&metric, &first, &second)
+            .map_err(JetError::from)?;
+        let mixed = curvature.mixed();
+        let g = metric.covariant();
+
+        let mut null_constraint_residual = 0.0;
+        for mu in 0..4 {
+            for nu in 0..4 {
+                null_constraint_residual += g[mu][nu] * null_tangent[mu] * null_tangent[nu];
+            }
+        }
+        null_constraint_residual = null_constraint_residual.abs();
+
+        let ricci = curvature.ricci_tensor();
+        let mut vacuum_ricci_residual: f64 = 0.0;
+        for row in &ricci {
+            for value in row {
+                vacuum_ricci_residual = vacuum_ricci_residual.max(value.abs());
+            }
+        }
+
+        let mut deviation_operator = [[0.0; 4]; 4];
+        for mu in 0..4 {
+            for rho in 0..4 {
+                for alpha in 0..4 {
+                    for beta in 0..4 {
+                        deviation_operator[mu][rho] += mixed[mu][alpha][rho][beta]
+                            * null_tangent[alpha]
+                            * null_tangent[beta];
+                    }
+                }
+            }
+        }
+
+        let mut deviation_metric_symmetry_residual: f64 = 0.0;
+        for row in 0..4 {
+            for column in 0..4 {
+                let mut lowered_row = 0.0;
+                let mut lowered_column = 0.0;
+                for index in 0..4 {
+                    lowered_row += g[row][index] * deviation_operator[index][column];
+                    lowered_column += g[column][index] * deviation_operator[index][row];
+                }
+                deviation_metric_symmetry_residual = deviation_metric_symmetry_residual
+                    .max((lowered_row - lowered_column).abs());
+            }
+        }
+
+        if !null_constraint_residual.is_finite()
+            || !vacuum_ricci_residual.is_finite()
+            || !deviation_metric_symmetry_residual.is_finite()
+            || deviation_operator
+                .iter()
+                .flatten()
+                .any(|value| !value.is_finite())
+        {
+            return Err(KerrGeodesicError::NonFinite("covariant_deviation_operator"));
+        }
+        if null_constraint_residual > tolerance * 10.0 {
+            return Err(KerrGeodesicError::InvalidNullConstraint {
+                residual: null_constraint_residual,
+                tolerance: tolerance * 10.0,
+            });
+        }
+
+        Ok(KerrCovariantDeviationEvaluation {
+            coordinate_chart,
+            null_tangent,
+            metric: g,
+            connection: *connection.symbols(),
+            deviation_operator,
+            null_constraint_residual,
+            vacuum_ricci_residual,
+            deviation_metric_symmetry_residual,
+        })
+    }
+
 
     /// Evaluate the local Sachs optical-tidal matrix from the independent
     /// metric-curvature formulation in the requested Kerr coordinate chart.
