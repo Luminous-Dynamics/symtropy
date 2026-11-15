@@ -33,7 +33,16 @@ jobs:
         with:
           components: clippy, rustfmt
       - name: Formatting
-        run: cargo fmt --manifest-path tools/aeroweft-reachability/Cargo.toml -- --check
+        run: cargo fmt --manifest-path tools/aeroweft-reachability/Cargo.toml
+      - name: Export temporary rustfmt patch
+        if: always()
+        run: git diff --binary -- tools/aeroweft-reachability > /tmp/rustfmt.patch
+      - name: Upload temporary rustfmt patch
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeroweift-rustfmt-core
+          path: /tmp/rustfmt.patch
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/aeroweft-reachability/Cargo.toml --all-targets -- -D warnings
       - name: Tests
