@@ -472,6 +472,38 @@
         "admitted_source_inflow_total_m3": 0,
         "rejected_source_inflow_total_m3": 0.4
       }
+    },
+    {
+      "case_id": "WLS-T0-015-negative-inflow-reject",
+      "family": "storage_sizing",
+      "expected": {
+        "sizing_disposition": "REJECT",
+        "reason": "NEGATIVE_SOURCE_INFLOW_VOLUME",
+        "invalid_time_step_index": 1,
+        "minimum_required_usable_capacity_m3": null,
+        "gross_installed_volume_m3": null
+      }
+    },
+    {
+      "case_id": "WLS-T0-016-pump-efficiency-unadmitted",
+      "family": "pump_power",
+      "expected": {
+        "pump_power_disposition": "HYDRAULIC_POWER_ONLY_EFFICIENCY_NOT_ADMITTED",
+        "reason": "EFFICIENCY_EVIDENCE_NOT_ADMITTED",
+        "design_flow_m3_per_hour": 1.2,
+        "flow_m3_per_second": 0.0003333333333333333,
+        "total_dynamic_head_m": 18,
+        "water_density_kg_per_m3": 1000,
+        "gravity_m_per_s2": 9.80665,
+        "pump_efficiency": 0.55,
+        "pump_efficiency_evidence_admitted": false,
+        "hydraulic_power_kw": 0.0588399,
+        "electrical_input_lower_bound_kw": null,
+        "nonclaims": [
+          "This result is an idealized hydraulic/electrical power lower-bound calculation only.",
+          "It does not select a pump or establish pump curve, operating point, NPSH, transient, motor/drive, piping, control or field duty."
+        ]
+      }
     }
   ]
 }
