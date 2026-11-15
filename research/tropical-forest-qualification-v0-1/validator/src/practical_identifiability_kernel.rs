@@ -895,6 +895,26 @@ mod tests {
     }
 
     #[test]
+    fn individually_valid_correlations_with_non_positive_definite_joint_covariance_are_rejected() {
+        let mut value = manifest();
+        value["correlations"][0]["correlation"] = json!(-0.9);
+        value["correlations"].as_array_mut().unwrap().push(json!({
+            "left_observation_id": "stock_live_increment",
+            "right_observation_id": "growth",
+            "correlation": -0.9,
+            "meaning": "synthetic non-positive-definite control"
+        }));
+        value["correlations"].as_array_mut().unwrap().push(json!({
+            "left_observation_id": "stock_deadwood_increment",
+            "right_observation_id": "growth",
+            "correlation": -0.9,
+            "meaning": "synthetic non-positive-definite control"
+        }));
+        let raw = serde_json::to_vec(&value).expect("serialize non-positive-definite covariance");
+        assert!(validate_corpus(&raw, &value).is_err());
+    }
+
+    #[test]
     fn mutated_d_optimal_design_is_rejected() {
         let mut value = manifest();
         value["expected"]["d_optimal_designs"][0][0] = json!("growth");
