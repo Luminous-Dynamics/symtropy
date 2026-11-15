@@ -297,7 +297,10 @@ mod tests {
     #[test]
     fn trajectory_particle_velocity_is_not_promoted_to_bulk_flow() {
         let item = observation(12, 20, 3.0, Some(0.4));
-        assert_eq!(item.velocity_support, FlowVelocitySupport::TrajectoryParticle);
+        assert_eq!(
+            item.velocity_support,
+            FlowVelocitySupport::TrajectoryParticle
+        );
         assert_eq!(item.signed_volume_flow_mm3_per_s(), None);
         assert_eq!(item.signed_solute_mass_rate_mg_per_s(), None);
     }
