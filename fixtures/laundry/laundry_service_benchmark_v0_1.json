@@ -145,6 +145,267 @@
       ],
       "source_uri": "https://www.aeg.ie/laundry/laundry/dryers/heat-pump-dryer/tr948v4bc/",
       "scope_note": "Manufacturer product-page data for the PNC displayed on that regional listing. Other regions/product-number variants exist; use this PNC only and reconfirm all label details before control selection."
+    },
+    {
+      "id": "WASHER-DEFY-DAW397",
+      "appliance_class": "front_load_washer",
+      "manufacturer_model": "Defy DAW 397",
+      "product_number": "DAW397",
+      "capacity_kg": 10,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++ (-10%)",
+          "unit": "legacy label class",
+          "method_or_basis": "Defy 2025/26 product catalogue and current product page",
+          "scope_note": "Legacy class, not directly comparable with current A-G scale."
+        },
+        {
+          "id": "water_per_cycle",
+          "value": 55,
+          "unit": "L/cycle",
+          "method_or_basis": "Defy 2025/26 product catalogue performance table",
+          "scope_note": "Published catalogue value; verify exact market fiche and programme before physical controls."
+        },
+        {
+          "id": "maximum_spin_speed",
+          "value": 1400,
+          "unit": "rpm",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Maximum rating; not necessarily the actual spin in the reference programme."
+        },
+        {
+          "id": "wash_noise",
+          "value": 54,
+          "unit": "dB",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Wash noise; not spin noise."
+        },
+        {
+          "id": "spin_noise",
+          "value": 76,
+          "unit": "dB",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Acoustic method and rating conditions need matching."
+        },
+        {
+          "id": "motor_warranty",
+          "value": 10,
+          "unit": "years",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Motor warranty only; not whole-appliance reliability or service-life evidence."
+        }
+      ],
+      "source_uri": "https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-397",
+      "scope_note": "Local South African 10 kg washer sourcing lead. Water use and legacy energy class are from Defy 2025/26 catalogue; noise and motor warranty are from current product page. Not selected or measured as a control."
+    },
+    {
+      "id": "WASHER-BOSCH-WGA254ZRZA",
+      "appliance_class": "front_load_washer",
+      "manufacturer_model": "Bosch Series 4 WGA254ZRZA",
+      "product_number": "WGA254ZRZA",
+      "capacity_kg": 10,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "annual_energy",
+          "value": 167,
+          "unit": "kWh/year",
+          "method_or_basis": "Bosch South Africa specification sheet, stated 220 standard cycles/year",
+          "scope_note": "About 0.759 kWh/cycle on declared annual basis; not directly comparable to newer AEG EU label method."
+        },
+        {
+          "id": "annual_water",
+          "value": 11660,
+          "unit": "L/year",
+          "method_or_basis": "Bosch South Africa specification sheet, stated 220 standard cycles/year",
+          "scope_note": "About 53 L/cycle on declared annual basis; verify exact test programme."
+        },
+        {
+          "id": "remaining_moisture",
+          "value": 53,
+          "unit": "percent",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Confirm moisture basis and label methodology before comparing."
+        },
+        {
+          "id": "maximum_spin_speed",
+          "value": 1400,
+          "unit": "rpm",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Maximum rating."
+        },
+        {
+          "id": "spin_noise",
+          "value": 75,
+          "unit": "dB(A)",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Verify method and installation conditions."
+        },
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++",
+          "unit": "legacy label class",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Legacy class, not directly comparable to current A-G scale."
+        }
+      ],
+      "source_uri": "https://media3.bsh-group.com/Documents/specsheet/en-ZA/WGA254ZRZA.pdf",
+      "scope_note": "South African Bosch 10 kg reference. Annual usage divided by stated 220 cycles yields desk-normalized per-cycle estimates only. Not a physical control."
+    },
+    {
+      "id": "DRYER-DEFY-DTD323",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "Defy DTD323",
+      "product_number": "7188241440",
+      "capacity_kg": 9,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A++",
+          "unit": "legacy label class",
+          "method_or_basis": "Defy official product page and fiche under EU Regulation 392/2012",
+          "scope_note": "Legacy rating, not directly comparable with current A-G class."
+        },
+        {
+          "id": "condensation_efficiency",
+          "value": 81,
+          "unit": "percent",
+          "method_or_basis": "Defy official product page and product fiche",
+          "scope_note": "Manufacturer-reported full and half load values."
+        },
+        {
+          "id": "full_load_energy",
+          "value": 2.17,
+          "unit": "kWh/cycle",
+          "method_or_basis": "Defy product fiche under Commission Delegated Regulation (EU) 392/2012",
+          "scope_note": "Older standard cotton cupboard-dry test method; not comparable with AEG current label number without matched test."
+        },
+        {
+          "id": "half_load_energy",
+          "value": 1.16,
+          "unit": "kWh/cycle",
+          "method_or_basis": "Defy product fiche under Commission Delegated Regulation (EU) 392/2012",
+          "scope_note": "Older standard cotton cupboard-dry test method."
+        },
+        {
+          "id": "full_load_duration",
+          "value": 209,
+          "unit": "minutes",
+          "method_or_basis": "Defy product fiche",
+          "scope_note": "Old label method."
+        },
+        {
+          "id": "half_load_duration",
+          "value": 119,
+          "unit": "minutes",
+          "method_or_basis": "Defy product fiche",
+          "scope_note": "Old label method."
+        },
+        {
+          "id": "noise",
+          "value": 65,
+          "unit": "dB(A)",
+          "method_or_basis": "Defy product fiche",
+          "scope_note": "Weighted sound-power value under cited old label method."
+        },
+        {
+          "id": "supply",
+          "value": "230-240 V / 50 Hz",
+          "unit": "electrical supply",
+          "method_or_basis": "Defy official product page",
+          "scope_note": "Local electrical rating."
+        }
+      ],
+      "source_uri": "https://www.defy.co.za/products/tumble-dryers/tumble-dryers-heat-pump-dtd323",
+      "scope_note": "Current South African product page identifies a 9 kg heat-pump dryer; published fiche is under EU 392/2012 and uses an older label method. Desk reference only; acquire exact PNC and retest."
+    },
+    {
+      "id": "DRYER-LG-RH90V9JV2N",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "LG RH90V9JV2N",
+      "product_number": "RH90V9JV2N",
+      "capacity_kg": 9,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++ (-10%)",
+          "unit": "legacy label class",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "Legacy class; no comparable kWh/cycle value established from page."
+        },
+        {
+          "id": "heat_pump",
+          "value": "Dual Inverter Heat Pump",
+          "unit": "technology",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "Manufacturer product description."
+        },
+        {
+          "id": "condenser_cleaning",
+          "value": "Automatic condenser cleaning",
+          "unit": "feature",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "Service and fouling behaviour must be measured."
+        },
+        {
+          "id": "lint_filtration",
+          "value": "Dual lint filter",
+          "unit": "feature",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "No microfiber-capture claim inferred."
+        }
+      ],
+      "source_uri": "https://www.lg.com/za/laundry-care/heat-pump-dryers/rh90v9jv2n/",
+      "scope_note": "South African 9 kg heat-pump dryer sourcing lead. Product page lacks exact kWh/cycle and condensation figures needed for ranking; acquire model-specific compliance label before selection."
+    },
+    {
+      "id": "DRYER-SAMSUNG-DV90T6240LB",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "Samsung DV90T6240LB",
+      "product_number": "DV90T6240LB",
+      "capacity_kg": 9,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++",
+          "unit": "legacy label class",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Legacy class; do not infer energy values referenced to other model numbers on same page."
+        },
+        {
+          "id": "cycle_duration",
+          "value": 220,
+          "unit": "minutes",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Confirm programme and load basis from exact compliance label."
+        },
+        {
+          "id": "noise",
+          "value": 65,
+          "unit": "dB",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Confirm method and load conditions."
+        },
+        {
+          "id": "dryer_type",
+          "value": "Heat pump",
+          "unit": "technology",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Manufacturer specification."
+        }
+      ],
+      "source_uri": "https://www.samsung.com/za/washers-and-dryers/washing-machines/dv6000t-front-loading-hygiene-care-reversible-door-wrinkle-prevent-9kg-black-dv90t6240lb-fa/",
+      "scope_note": "South African 9 kg heat-pump dryer sourcing lead. Energy discussion on page names different Samsung models; values from those models are not assigned to this model."
     }
   ],
   "metrics": [
@@ -693,6 +954,48 @@
       "source_type": "internal_issue",
       "uri": "https://github.com/Luminous-Dynamics/symtropy/issues/1893",
       "scope_note": "Existing cross-appliance morphology owner; includes washer spin and dryer energy coupling hypothesis."
+    },
+    {
+      "id": "DEFY-DAW397",
+      "title": "Defy DAW397 official 10 kg South African product page",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-397",
+      "scope_note": "Current specs include 10 kg, 1400 rpm, wash/spin noise and motor warranty; catalogue provides 55 L and legacy A+++(-10%)."
+    },
+    {
+      "id": "DEFY-DTD323",
+      "title": "Defy DTD323 official 9 kg South African heat-pump dryer page",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.defy.co.za/products/tumble-dryers/tumble-dryers-heat-pump-dtd323",
+      "scope_note": "Current page identifies heat pump, 9 kg, 81% condensation and 230-240 V / 50 Hz."
+    },
+    {
+      "id": "DEFY-CATALOGUE-2025-26",
+      "title": "Defy Collection 2025/2026 product catalogue",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.defy.co.za/content/dam/bekoglobal/za/defy-documents/06_DefyCatalogue_AdditionalPages_AP.pdf",
+      "scope_note": "Lists capacity, water, legacy energy class, spin speed, dryer families, factories and service centres as manufacturer statements."
+    },
+    {
+      "id": "BOSCH-WGA254ZRZA",
+      "title": "Bosch South Africa WGA254ZRZA 10 kg washer specification sheet",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://media3.bsh-group.com/Documents/specsheet/en-ZA/WGA254ZRZA.pdf",
+      "scope_note": "Publishes 167 kWh/year, 11,660 L/year over 220 cycles, 53% remaining moisture, 1400 rpm and 75 dB spin noise."
+    },
+    {
+      "id": "LG-RH90V9JV2N",
+      "title": "LG South Africa RH90V9JV2N 9 kg heat-pump dryer",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.lg.com/za/laundry-care/heat-pump-dryers/rh90v9jv2n/",
+      "scope_note": "Local product page lists dual-inverter heat pump, A+++(-10%), auto condenser cleaning and dual lint filtration; exact kWh/cycle requires compliance label."
+    },
+    {
+      "id": "SAMSUNG-DV90T6240LB",
+      "title": "Samsung South Africa DV90T6240LB 9 kg heat-pump dryer",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.samsung.com/za/washers-and-dryers/washing-machines/dv6000t-front-loading-hygiene-care-reversible-door-wrinkle-prevent-9kg-black-dv90t6240lb-fa/",
+      "scope_note": "Local product page identifies 9 kg, heat pump, A+++ legacy class, 220-minute cycle and 65 dB; page mixes energy references to other models."
     }
   ]
 }
