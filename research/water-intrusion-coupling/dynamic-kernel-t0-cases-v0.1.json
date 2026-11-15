@@ -26,7 +26,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -64,7 +63,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -90,7 +90,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -138,7 +137,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -164,7 +164,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -202,7 +201,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -228,7 +228,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -270,7 +269,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -296,7 +296,6 @@
           "mass": 0.2,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -334,7 +333,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -360,7 +360,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -398,7 +397,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -426,7 +426,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -470,7 +469,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -496,7 +496,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": true,
@@ -534,7 +533,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -560,7 +560,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "out_of_domain",
         "flow_reversal_present": false,
@@ -598,7 +597,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -624,7 +624,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -662,7 +661,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -688,7 +688,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -764,7 +763,8 @@
         "per_sample_observation_sigma": 0.1,
         "minimum_resolvable_delay_seconds": 1,
         "minimum_delay_of_interest_seconds": 1,
-        "observation_noise_contract": "independent_equal_sigma"
+        "observation_noise_contract": "independent_equal_sigma",
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -790,7 +790,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -832,7 +831,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 2,
-        "minimum_delay_of_interest_seconds": 0.5
+        "minimum_delay_of_interest_seconds": 0.5,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -858,7 +858,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.01,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -896,7 +895,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
       }
     },
     {
@@ -922,7 +922,6 @@
           "mass": 0,
           "mass_unit": "mg"
         },
-        "mass_residual_standard_uncertainty": 0.1,
         "closure_sigma_limit": 3,
         "domain_state": "in_domain",
         "flow_reversal_present": false,
@@ -960,7 +959,8 @@
           ]
         ],
         "minimum_resolvable_delay_seconds": 1,
-        "minimum_delay_of_interest_seconds": 1
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.1
       }
     }
   ]
