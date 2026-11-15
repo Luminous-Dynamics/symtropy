@@ -181,6 +181,47 @@ The next physical-validation stage is defined in [ROTOR_DEMONSTRATOR_PROTOCOL.md
 The competitive baseline, evidence classes, matched kinematic table, multi-objective scorecard and proposed stretch targets are consolidated in [INDUSTRY_GAP_AND_BENCHMARK_SCORECARD.md](INDUSTRY_GAP_AND_BENCHMARK_SCORECARD.md), owned by [ARTGRAV-BENCH-001 #5295](https://github.com/Luminous-Dynamics/symtropy/issues/5295). It distinguishes measured ground research, historical NASA studies, public commercial roadmap targets and unvalidated concept proposals.
 
 
+
+## Coupled human–mechanics design-space reproduction
+
+A September 2026 Research Square preprint by Zhang proposes co-designing human exposure constraints and rotating habitat mechanics. Its abstract gives a useful reproducible example: 0.5 g, 1.75 m assumed body length, 2% head-to-foot gradient limit, and a 2 RPM reference. The gradient bound is 87.5 m; the 2 RPM radius bound is 111.7824 m. The intersection is the larger bound, 111.7824 m. This reproduces the published example's stated 87.5 m and 111.8 m values from the elementary equations. The source is a preprint, and this analytic reproduction does not verify its multiphysics simulations or any human tolerance threshold.
+
+- Preprint: https://doi.org/10.21203/rs.3.rs-10933822/v1
+- [ARTGRAV-CODESIGN-001 #5314](https://github.com/Luminous-Dynamics/symtropy/issues/5314)
+- [Constraint-intersection fixture](fixtures/codesign_constraint_intersection.csv)
+
+The Rust reference now supports three independently declared bounds: body gradient, maximum RPM, and a caller-specified Coriolis fraction for an explicitly supplied transverse movement speed. The Coriolis fraction is only a parameterized engineering envelope; it is not a validated comfort, safety or medical limit.
+
+Run the deterministic matrix:
+
+~~~bash
+cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin coupled_design_space
+~~~
+
+## Ideal ring scaling laws
+
+For a thin, uniformly rotating ring at fixed target radial acceleration, with total moving mass M fixed:
+
+- angular momentum scales as R^(3/2);
+- rotational kinetic energy scales as R;
+- ideal hoop tension at a cut is M a/(2π), independent of radius.
+
+For fixed linear mass density instead, total mass grows with circumference:
+
+- angular momentum scales as R^(5/2);
+- kinetic energy scales as R²;
+- ideal hoop tension scales as R.
+
+These are distinct mass-scaling assumptions. The tension relation is a limiting thin-ring membrane result—not structural qualification, pressure-vessel design, or a full mass estimate. Joint, shielding, pressure-shell, thermal, fatigue, buckling, dynamic and manufacturing effects are omitted.
+
+- [Ring scaling fixture](fixtures/ring_scaling_laws.csv)
+- [Ring scaling generator](src/bin/ring_scaling_matrix.rs)
+
+~~~bash
+cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin ring_scaling_matrix
+~~~
+
+
 ## Sources
 
 - Briard & Baatout (2026), *Artificial gravity for long-duration human spaceflight: physiological rationale, evidence gaps, risks, and research priorities*. https://doi.org/10.3389/frspt.2026.1967384
