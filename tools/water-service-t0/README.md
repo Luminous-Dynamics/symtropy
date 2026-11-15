@@ -32,7 +32,7 @@ Use existing Symtropy process-closure and hydraulic component owners for shared 
 
 ## WaterLoop physical-bench T0
 
-The `waterloop-physical-t0` binary adds a separate 15-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
+The `waterloop-physical-t0` binary adds a separate 25-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
 - conservative water-volume closure against an additive uncertainty bound;
 - measured deliverable volume versus gross tank inventory and operating heel;
 - source-substitution credit only at a matched end-use boundary with current meter calibration and use-specific quality evidence;
@@ -55,3 +55,12 @@ WATERLOOP_T0_REVISION="$(git rev-parse HEAD)" \
 ```
 
 The WaterLoop oracle is separate from the input vectors. Its receipt binds input, manifest, oracle and Cargo.lock digests plus the exact implementation revision. Qualification remains `NotRun`; the 12 cases are synthetic arithmetic/contract checks, not a physical test, water-quality assessment or savings claim. The declared additive uncertainty bound is deliberately conservative; it is not an independence-based root-sum-square estimate.
+
+
+### Time-resolved service continuity
+
+The same WaterLoop T0 evaluator now includes 10 additional continuity cases. It simulates a single declared use-class inventory over fixed time steps, with admitted inflow, maximum storage, overflow, measured outlet capacity, service-floor status and a protected reserve. Essential demand is allocated before discretionary demand; discretionary withdrawals cannot cross the reserve floor. Essential demand may draw the reserve down, with any resulting shortfall reported.
+
+The scenarios include normal service, a 72-hour South African Regulation 4 reference profile (4 people × 15 L/person/day), reserve exhaustion, pump outage with gravity fallback, compound demand surge, source restoration, service-floor failure, missing metrology, unqualified stored-water quality and rejected unqualified inflow.
+
+The regulatory profile is a reference scenario only. It does not establish WaterLoop compliance or potable water. Each scenario is deterministic inventory/service arithmetic, not hydraulic simulation or controller qualification.
