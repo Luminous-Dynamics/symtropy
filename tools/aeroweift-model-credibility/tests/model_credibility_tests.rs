@@ -502,3 +502,98 @@ fn confidence_interval_cannot_exclude_its_reported_point_estimate() {
         Err(ValidationError::InvalidPackage)
     );
 }
+
+
+#[test]
+fn increasing_error_upper_bound_never_restores_a_failed_gate() {
+    for step in 0..101 {
+        let mut candidate = package();
+        candidate.metrics[0].value = 4.0;
+        candidate.metrics[0].lower_confidence_bound = 3.9;
+        candidate.metrics[0].upper_confidence_bound = 5.0 + (step as f64 * 0.01);
+        let result = evaluate(&candidate, &policy());
+        if step == 0 {
+            assert!(result.is_ok());
+        } else {
+            assert_eq!(result, Err(ValidationError::MetricOutsideGate));
+        }
+    }
+}
+
+#[test]
+fn decreasing_coverage_lower_bound_never_restores_a_failed_gate() {
+    for step in 0..101 {
+        let mut candidate = package();
+        candidate.metrics[1].value = 0.98;
+        candidate.metrics[1].lower_confidence_bound = 0.95 - (step as f64 * 0.001);
+        candidate.metrics[1].upper_confidence_bound = 0.99;
+        let result = evaluate(&candidate, &policy());
+        if step == 0 {
+            assert!(result.is_ok());
+        } else {
+            assert_eq!(result, Err(ValidationError::MetricOutsideGate));
+        }
+    }
+}
+
+#[test]
+fn adding_calibration_overlap_never_improves_validation_status() {
+    for index in 0..100 {
+        let mut candidate = package();
+        let overlap = format!("cal-flight-{index}");
+        candidate.calibration.flight_group_ids.push(overlap.clone());
+        candidate.confirmatory.flight_group_ids.push(overlap);
+        assert_eq!(
+            evaluate(&candidate, &policy()),
+            Err(ValidationError::DataLeakage)
+        );
+    }
+}
+
+#[test]
+fn changing_any_model_identity_dimension_does_not_inherit_old_credit() {
+    for dimension in 0..9 {
+        let mut candidate = package();
+        match dimension {
+            0 => candidate.scope.model_artifact_sha256 = digest('8'),
+            1 => candidate.scope.aircraft_configuration_sha256 = digest('8'),
+            2 => candidate.scope.control_stack_sha256 = digest('8'),
+            3 => candidate.scope.sensor_stack_sha256 = digest('8'),
+            4 => candidate.scope.operating_domain_sha256 = digest('8'),
+            5 => candidate.scope.solver_configuration_sha256 = digest('8'),
+            6 => candidate.scope.horizontal_frame_id = "OTHER-FRAME".into(),
+            7 => candidate.scope.vertical_datum_id = "OTHER-DATUM".into(),
+            _ => candidate.scope.time_scale_id = "OTHER-TIME".into(),
+        }
+        assert_eq!(
+            evaluate(&candidate, &policy()).unwrap().disposition,
+            ValidationDisposition::NotCovered
+        );
+    }
+}
+
+#[test]
+fn deleting_each_required_metric_never_improves_admissibility() {
+    for index in 0..3 {
+        let mut candidate = package();
+        candidate.metrics.remove(index);
+        assert_eq!(
+            evaluate(&candidate, &policy()),
+            Err(ValidationError::MissingMetric)
+        );
+    }
+}
+
+#[test]
+fn confirmatory_scenario_overlap_is_rejected_for_many_mutations() {
+    for index in 0..100 {
+        let mut candidate = package();
+        let overlap = format!("scenario-shared-{index}");
+        candidate.calibration.scenario_group_ids.push(overlap.clone());
+        candidate.confirmatory.scenario_group_ids.push(overlap);
+        assert_eq!(
+            evaluate(&candidate, &policy()),
+            Err(ValidationError::DataLeakage)
+        );
+    }
+}
