@@ -314,8 +314,11 @@ fn epoch_invalidation_run(size: u64, active_after_release: u64) {
 
     let released_count = size - active_after_release;
     for index in 0..released_count {
-        book.release(&format!("reservation-{index:06}"), &format!("owner-{index:06}"))
-            .expect("release historical reservation");
+        book.release(
+            &format!("reservation-{index:06}"),
+            &format!("owner-{index:06}"),
+        )
+        .expect("release historical reservation");
     }
 
     let indexed_count = book
