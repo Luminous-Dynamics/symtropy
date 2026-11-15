@@ -539,7 +539,7 @@ fn decreasing_coverage_lower_bound_never_restores_a_failed_gate() {
 fn adding_calibration_overlap_never_improves_validation_status() {
     for index in 0..100 {
         let mut candidate = package();
-        let overlap = format!("cal-flight-{index}");
+        let overlap = format!("shared-flight-{index}");
         candidate.calibration.flight_group_ids.push(overlap.clone());
         candidate.confirmatory.flight_group_ids.push(overlap);
         assert_eq!(
