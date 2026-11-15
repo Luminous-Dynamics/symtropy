@@ -261,3 +261,13 @@ The programme now has three additional child lanes:
 The implementation and literature update are recorded in [FOREST_BLOCK_COVERAGE_INFERENCE_V0_1.md](FOREST_BLOCK_COVERAGE_INFERENCE_V0_1.md), [FOREST_SPATIAL_LOCALIZATION_V0_1.md](FOREST_SPATIAL_LOCALIZATION_V0_1.md), [FOREST_BLIND_MODEL_SET_CUSTODY_V0_1.md](FOREST_BLIND_MODEL_SET_CUSTODY_V0_1.md), and [INDUSTRY_AND_SOTA_LANDSCAPE_V0_1.md](INDUSTRY_AND_SOTA_LANDSCAPE_V0_1.md).
 
 The core claim boundary remains unchanged: no real forest observations have been ingested, no hindcast or field calibration has been performed, no LPJ-GUESS reproduction has been executed, and no SOTA superiority is established.
+
+
+### Executable synthetic receipts added 15 November 2026
+
+The standalone validator CLI now dispatches the block-coverage and spatial-localization corpora through digest-bound receipts:
+
+- `FOREST-BLOCK-COVERAGE-INFERENCE-001` → `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`
+- `FOREST-SPATIAL-LOCALIZATION-001` → `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`
+
+These paths reuse the library kernels, report exact source-manifest SHA-256 and per-case checks, and include mutation tests through the top-level `evaluate()` dispatcher. The CLI receipt adapters do not add new scientific guarantees: block independence remains a declared assumption; Gaussian spatial weighting remains diagnostic-only; Moran's I remains descriptive with no p-value. The 6 adapter unit tests are authored, bringing the package total to 170 authored Rust test functions. Cargo/Clippy/formatting execution remains unverified in the current runtime.
