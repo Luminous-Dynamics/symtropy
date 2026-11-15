@@ -503,7 +503,6 @@ fn confidence_interval_cannot_exclude_its_reported_point_estimate() {
     );
 }
 
-
 #[test]
 fn increasing_error_upper_bound_never_restores_a_failed_gate() {
     for step in 0..101 {
@@ -589,7 +588,10 @@ fn confirmatory_scenario_overlap_is_rejected_for_many_mutations() {
     for index in 0..100 {
         let mut candidate = package();
         let overlap = format!("scenario-shared-{index}");
-        candidate.calibration.scenario_group_ids.push(overlap.clone());
+        candidate
+            .calibration
+            .scenario_group_ids
+            .push(overlap.clone());
         candidate.confirmatory.scenario_group_ids.push(overlap);
         assert_eq!(
             evaluate(&candidate, &policy()),
