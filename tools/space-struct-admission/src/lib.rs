@@ -287,17 +287,16 @@ pub fn admit(
         reject.push(ReasonCode::RequestIdentityMalformed);
     }
 
-    if !request.requested_physics.is_empty() {
-        let unique: BTreeSet<_> = request.requested_physics.iter().collect();
-        if unique.len() != request.requested_physics.len() {
-            reject.push(ReasonCode::RequestIdentityMalformed);
-        }
+    if request.requested_physics.is_empty() || request.requested_observables.is_empty() {
+        reject.push(ReasonCode::RequestIdentityMalformed);
     }
-    if !request.requested_observables.is_empty() {
-        let unique: BTreeSet<_> = request.requested_observables.iter().collect();
-        if unique.len() != request.requested_observables.len() {
-            reject.push(ReasonCode::RequestIdentityMalformed);
-        }
+    let unique_physics: BTreeSet<_> = request.requested_physics.iter().collect();
+    if unique_physics.len() != request.requested_physics.len() {
+        reject.push(ReasonCode::RequestIdentityMalformed);
+    }
+    let unique_observables: BTreeSet<_> = request.requested_observables.iter().collect();
+    if unique_observables.len() != request.requested_observables.len() {
+        reject.push(ReasonCode::RequestIdentityMalformed);
     }
 
     if request.candidate != context.current_candidate {
@@ -670,6 +669,17 @@ mod tests {
 
         assert_eq!(result.disposition, AdmissionDisposition::NeedsEvidence);
         assert_reason(&result, ReasonCode::MaterialProfileMismatch);
+    }
+
+    #[test]
+    fn empty_physics_or_observable_set_is_rejected() {
+        let profile = ring_profile();
+        let mut request = base_request(&profile);
+        request.requested_observables.clear();
+        let result = admit(&request, &base_context(profile));
+
+        assert_eq!(result.disposition, AdmissionDisposition::Reject);
+        assert_reason(&result, ReasonCode::RequestIdentityMalformed);
     }
 
     #[test]
