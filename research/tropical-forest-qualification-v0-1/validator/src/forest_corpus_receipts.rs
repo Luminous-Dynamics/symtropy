@@ -158,7 +158,8 @@ pub fn validate_block_coverage_inference(raw: &[u8], manifest: &Value) -> Result
             let case_passed = unique && covered <= total
                 && point_matches && radius_matches && lower_matches && upper_matches
                 && result.total_blocks == total
-                && result.independence_status == "INDEPENDENT_BLOCK_ASSUMPTION_DECLARED_NOT_VERIFIED";
+                && result.independence_status
+                    == "INDEPENDENT_BLOCK_ASSUMPTION_DECLARED_NOT_VERIFIED";
             checks.push(check(
                 "BLOCK-COVERAGE-CASE-ORACLE-001",
                 case_passed,
@@ -196,8 +197,16 @@ pub fn validate_block_coverage_inference(raw: &[u8], manifest: &Value) -> Result
             let negative_arithmetic_matches =
                 close_enough(point, number_at(expected, "observed_coverage")?, 1e-12)
                 && close_enough(radius, number_at(expected, "hoeffding_radius")?, 1e-12)
-                && close_enough((point - radius).max(0.0), number_at(expected, "lower_bound")?, 1e-12)
-                && close_enough((point + radius).min(1.0), number_at(expected, "upper_bound")?, 1e-12);
+                && close_enough(
+                    (point - radius).max(0.0),
+                    number_at(expected, "lower_bound")?,
+                    1e-12,
+                )
+                && close_enough(
+                    (point + radius).min(1.0),
+                    number_at(expected, "upper_bound")?,
+                    1e-12,
+                );
             let rejected = unique
                 && negative_unit == "CORRELATED_OBSERVATIONS_NOT_INDEPENDENT_BLOCKS"
                 && disposition == "REJECT_AS_BLOCK_COVERAGE_INFERENCE"
@@ -205,13 +214,19 @@ pub fn validate_block_coverage_inference(raw: &[u8], manifest: &Value) -> Result
             checks.push(check(
                 "BLOCK-COVERAGE-PSEUDO-REPLICATION-NEGATIVE-CONTROL-001",
                 rejected,
-                format!("case={case_id}; observations={total}; reject_as_block_inference={rejected}"),
+                format!(
+                    "case={case_id}; observations={total}; reject_as_block_inference={rejected}"
+                ),
             ));
             rows.push(json!({
                 "case_id": case_id,
                 "covered_observations": covered,
                 "total_observations": total,
-                "disposition": if rejected { "REJECT_AS_BLOCK_COVERAGE_INFERENCE" } else { "FAIL_CONTROL" }
+                "disposition": if rejected {
+                    "REJECT_AS_BLOCK_COVERAGE_INFERENCE"
+                } else {
+                    "FAIL_CONTROL"
+                }
             }));
         }
     }
@@ -222,7 +237,10 @@ pub fn validate_block_coverage_inference(raw: &[u8], manifest: &Value) -> Result
     checks.push(check(
         "BLOCK-COVERAGE-CASE-SET-001",
         exact_cases && accepted_count == 6 && negative_count == 1,
-        format!("unique_cases={}; accepted={accepted_count}; negative_controls={negative_count}", seen.len()),
+        format!(
+            "unique_cases={}; accepted={accepted_count}; negative_controls={negative_count}",
+            seen.len()
+        ),
     ));
 
     Ok(receipt(
@@ -370,8 +388,11 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                     (None, None) => true,
                     _ => false,
                 };
-                let passed = close_enough(prediction.weighted_calibration_mass, expected_mass, 1e-10)
-                    && radius_match;
+                let passed = close_enough(
+                    prediction.weighted_calibration_mass,
+                    expected_mass,
+                    1e-10,
+                ) && radius_match;
                 comparison_passed &= passed;
                 comparison_rows.push(json!({
                     "bandwidth_m": bandwidth,
@@ -395,7 +416,9 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
         let mut passed = unique && result.method_status == method_status;
         let expected = expected.ok_or_else(|| format!("case {case_id} expected object missing"))?;
         if let Some(wanted) = expected.get("pooled_radius").and_then(Value::as_f64) {
-            passed &= result.pooled_radius.is_some_and(|actual| close_enough(actual, wanted, 1e-12));
+            passed &= result
+                .pooled_radius
+                .is_some_and(|actual| close_enough(actual, wanted, 1e-12));
         }
 
         let mut group_rows = Vec::new();
@@ -409,7 +432,10 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                 .filter(|prediction| prediction.covered == Some(false)).count();
             let coverage = if covered_count + uncovered_count == predictions.len() {
                 Some(f64::from(u32::try_from(covered_count).map_err(|_| "coverage count overflow")?)
-                    / f64::from(u32::try_from(predictions.len()).map_err(|_| "prediction count overflow")?))
+                    / f64::from(
+                        u32::try_from(predictions.len())
+                            .map_err(|_| "prediction count overflow")?,
+                    ))
             } else {
                 None
             };
@@ -616,7 +642,8 @@ mod tests {
 
     #[test]
     fn spatial_localization_receipt_rejects_mutated_region_coverage() {
-        let mut manifest: Value = serde_json::from_str(SPATIAL_FIXTURE).expect("valid spatial fixture");
+        let mut manifest: Value =
+            serde_json::from_str(SPATIAL_FIXTURE).expect("valid spatial fixture");
         manifest["cases"][1]["expected"]["region_b_coverage"] = json!(0.9);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
         let receipt = crate::evaluate(&bytes)
