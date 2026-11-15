@@ -552,8 +552,8 @@
     {
       "event_id": "event-inspection-001",
       "event_type": "inspection_recorded",
-      "occurred_at": "2026-11-14T09:00:00Z",
-      "recorded_at": "2026-11-14T09:10:00Z",
+      "occurred_at": "2026-11-13T13:00:00Z",
+      "recorded_at": "2026-11-13T13:10:00Z",
       "actor_ref": "actor-reviewer",
       "slot_id": "slot-inverter-01",
       "physical_instance_id": "instance-inverter-001",
