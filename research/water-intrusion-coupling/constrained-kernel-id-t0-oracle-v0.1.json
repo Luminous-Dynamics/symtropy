@@ -259,7 +259,7 @@
       "case_id": "CKI-T0-008-invalid-sample-weight",
       "expected": {
         "identification_disposition": "INVALID_INPUT",
-        "reason": "OBSERVATION_VARIANCE_AND_WEIGHTS_MUST_BE_POSITIVE_OR_INVERSE",
+        "reason": "OBSERVATION_VARIANCE_AND_WEIGHTS_MUST_BE_POSITIVE",
         "design_rank": null,
         "design_condition_number": null,
         "unconstrained_coefficients": null,
