@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/forest-blind-evaluation-receipt-v0.1.schema.json",
+  "title": "Forest blind challenge evaluation receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "challenge_round_id",
+    "protocol_sha256",
+    "hidden_manifest_commitment_sha256",
+    "candidate_submission_sha256",
+    "evaluator_bundle_sha256",
+    "execution_environment_sha256",
+    "runs",
+    "custody_attestation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "challenge_round_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "protocol_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "hidden_manifest_commitment_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_submission_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "evaluator_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "execution_environment_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "opaque_case_token",
+          "status",
+          "attempt_count",
+          "candidate_output_sha256",
+          "wall_time_ms",
+          "peak_memory_bytes"
+        ],
+        "properties": {
+          "opaque_case_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16,128}$"
+          },
+          "status": {
+            "enum": [
+              "COMPLETED",
+              "ABSTAINED",
+              "ERROR",
+              "TIMEOUT",
+              "RESOURCE_LIMIT",
+              "REJECTED_SCHEMA",
+              "REJECTED_DIGEST",
+              "NOT_RUN"
+            ]
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "candidate_output_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "wall_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "peak_memory_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cpu_time_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "protocol_violation_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "score_release": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "revealed",
+        "family_level_scores"
+      ],
+      "properties": {
+        "revealed": {
+          "type": "boolean"
+        },
+        "family_level_scores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family_pseudonym",
+              "metric_id",
+              "value",
+              "unit"
+            ],
+            "properties": {
+              "family_pseudonym": {
+                "type": "string",
+                "minLength": 1
+              },
+              "metric_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "custody_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "custodian_key_id",
+        "commitment_algorithm",
+        "commitment_opening_status",
+        "signature_base64"
+      ],
+      "properties": {
+        "custodian_key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commitment_algorithm": {
+          "const": "SHA-256-DOMAIN-SEPARATED-SALTED"
+        },
+        "commitment_opening_status": {
+          "enum": [
+            "SEALED",
+            "OPENED_AND_VERIFIED",
+            "REDACTED_AUDITOR_VERIFIED",
+            "FAILED"
+          ]
+        },
+        "signature_base64": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
