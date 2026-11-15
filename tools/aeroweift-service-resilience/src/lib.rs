@@ -314,6 +314,24 @@ pub struct CapabilityAssessment {
     pub providers: Vec<ProviderAssessment>,
 }
 
+/// Shared service failure affecting more than one assessed flight.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SharedServiceImpact {
+    /// Service identity.
+    pub service_id: String,
+    /// Flights whose required capability assessments depend on this service.
+    pub affected_flight_ids: Vec<String>,
+}
+
+/// Campaign result across multiple proposed/active flights.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ResilienceCampaignAssessment {
+    /// Per-flight assessments, sorted by flight ID.
+    pub flights: Vec<FlightAssessment>,
+    /// Shared service impacts, sorted by service ID.
+    pub shared_service_impacts: Vec<SharedServiceImpact>,
+}
+
 /// Full flight assessment, including required operator/neighbor evidence.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FlightAssessment {
@@ -355,6 +373,8 @@ pub enum ResilienceError {
     InvalidServiceObservation,
     /// Eligible service snapshots fork or reuse a source sequence.
     ServiceSequenceFork,
+    /// Duplicate flight IDs were supplied to a campaign.
+    DuplicateFlightId,
     /// Contingency binding is duplicated or malformed.
     InvalidContingencyBinding,
     /// Neighbor notification is duplicated or malformed.
@@ -777,5 +797,58 @@ pub fn evaluate_flight(
         missing_contingency_capabilities,
         missing_neighbor_flight_ids,
         affected_service_ids: affected_service_ids.into_iter().collect(),
+    })
+}
+
+
+/// Evaluate a multi-flight campaign and identify services shared by affected flights.
+///
+/// Each flight is evaluated under the same bitemporal cutoff and frozen policy.
+/// Shared impact means more than one flight has a non-qualified assessment for a
+/// capability relying on the same service identity. It is not a hazard probability
+/// or an operational instruction.
+pub fn evaluate_campaign(
+    scopes: &[FlightScope],
+    observations: &[ServiceObservation],
+    cutoff: BitemporalCutoff,
+    policy: &ResiliencePolicy,
+) -> Result<ResilienceCampaignAssessment, ResilienceError> {
+    let mut flight_ids = BTreeSet::new();
+    let mut flights = Vec::new();
+    let mut service_to_flights: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+
+    for scope in scopes {
+        if !flight_ids.insert(scope.flight_id.as_str()) {
+            return Err(ResilienceError::DuplicateFlightId);
+        }
+        let assessment = evaluate_flight(scope, observations, cutoff, policy)?;
+        for service_id in &assessment.affected_service_ids {
+            service_to_flights
+                .entry(service_id.clone())
+                .or_default()
+                .insert(scope.flight_id.clone());
+        }
+        flights.push(assessment);
+    }
+
+    if scopes.is_empty() {
+        return Err(ResilienceError::InvalidFlightScope);
+    }
+
+    flights.sort_by(|left, right| left.flight_id.cmp(&right.flight_id));
+    let mut shared_service_impacts: Vec<SharedServiceImpact> = service_to_flights
+        .into_iter()
+        .filter_map(|(service_id, impacted)| {
+            (impacted.len() > 1).then(|| SharedServiceImpact {
+                service_id,
+                affected_flight_ids: impacted.into_iter().collect(),
+            })
+        })
+        .collect();
+    shared_service_impacts.sort_by(|left, right| left.service_id.cmp(&right.service_id));
+
+    Ok(ResilienceCampaignAssessment {
+        flights,
+        shared_service_impacts,
     })
 }
