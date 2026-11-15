@@ -21,6 +21,8 @@ pub enum EvidenceKindV1 {
     KktResidual,
     NonlinearSensitivity,
     DiscreteStep,
+    /// Independently reconstructed discrete energy/work and impulse-work balance.
+    EnergyWorkLedger,
     TaskSemantics,
 }
 
@@ -296,6 +298,7 @@ fn required_kinds(claim: CompositionClaimV1) -> &'static [EvidenceKindV1] {
         EvidenceKindV1::KktResidual,
         EvidenceKindV1::NonlinearSensitivity,
         EvidenceKindV1::DiscreteStep,
+        EvidenceKindV1::EnergyWorkLedger,
     ];
     const TASK: &[EvidenceKindV1] = &[
         EvidenceKindV1::MathematicalSymmetry,
@@ -305,6 +308,7 @@ fn required_kinds(claim: CompositionClaimV1) -> &'static [EvidenceKindV1] {
         EvidenceKindV1::KktResidual,
         EvidenceKindV1::NonlinearSensitivity,
         EvidenceKindV1::DiscreteStep,
+        EvidenceKindV1::EnergyWorkLedger,
         EvidenceKindV1::TaskSemantics,
     ];
     match claim {
@@ -710,6 +714,7 @@ mod tests {
                 EvidenceKindV1::KktResidual => '1',
                 EvidenceKindV1::NonlinearSensitivity => '2',
                 EvidenceKindV1::DiscreteStep => '3',
+                EvidenceKindV1::EnergyWorkLedger => '5',
                 EvidenceKindV1::TaskSemantics => '4',
                 EvidenceKindV1::CoordinateCovariance => unreachable!(),
             })
@@ -755,6 +760,7 @@ mod tests {
             EvidenceKindV1::KktResidual,
             EvidenceKindV1::NonlinearSensitivity,
             EvidenceKindV1::DiscreteStep,
+            EvidenceKindV1::EnergyWorkLedger,
         ]
         .into_iter()
         .map(receipt)
