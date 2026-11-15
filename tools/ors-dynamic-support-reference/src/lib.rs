@@ -435,14 +435,11 @@ mod tests {
         preload_n: f64,
         elapsed_s: f64,
     ) -> (f64, f64) {
-        let reduced_mass =
-            mass_stream_kg * mass_support_kg / (mass_stream_kg + mass_support_kg);
+        let reduced_mass = mass_stream_kg * mass_support_kg / (mass_stream_kg + mass_support_kg);
         let natural_frequency = (stiffness_n_m / reduced_mass).sqrt();
-        let damping_ratio =
-            damping_n_s_m / (2.0 * (stiffness_n_m * reduced_mass).sqrt());
+        let damping_ratio = damping_n_s_m / (2.0 * (stiffness_n_m * reduced_mass).sqrt());
         assert!(damping_ratio < 1.0);
-        let damped_frequency =
-            natural_frequency * (1.0 - damping_ratio * damping_ratio).sqrt();
+        let damped_frequency = natural_frequency * (1.0 - damping_ratio * damping_ratio).sqrt();
         let amplitude = preload_n / stiffness_n_m;
         let phase = damping_ratio / (1.0 - damping_ratio * damping_ratio).sqrt();
         let angle = damped_frequency * elapsed_s;
@@ -453,8 +450,7 @@ mod tests {
         let separation = amplitude * decay * bracket;
         let velocity = amplitude
             * decay
-            * (-damped_frequency * sine
-                + phase * damped_frequency * cosine
+            * (-damped_frequency * sine + phase * damped_frequency * cosine
                 - damping_ratio * natural_frequency * bracket);
         (separation, velocity)
     }
@@ -465,7 +461,11 @@ mod tests {
         assert_eq!(cases.len(), 7);
         for case in &cases {
             let report = evaluate(&case.scenario).expect("simulation");
-            assert!(compare_to_golden(case, &report), "case {}", case.scenario.case_id);
+            assert!(
+                compare_to_golden(case, &report),
+                "case {}",
+                case.scenario.case_id
+            );
             let elapsed = case.scenario.duration_s - case.scenario.release_time_s;
             if case.scenario.preload_n > 0.0 && elapsed > 0.0 {
                 let (expected_y, expected_v) = exact_underdamped(
@@ -653,7 +653,10 @@ mod tests {
     #[test]
     fn rejects_invalid_corpus_header_and_duplicate_ids() {
         let corpus = include_str!("../cases-v0.1.csv");
-        assert_eq!(parse_corpus("case_id,wrong\n"), Err(ModelError::InvalidCorpus));
+        assert_eq!(
+            parse_corpus("case_id,wrong\n"),
+            Err(ModelError::InvalidCorpus)
+        );
         let first_case = corpus.lines().nth(1).expect("first case");
         let duplicate = format!("{EXPECTED_HEADER}\n{first_case}\n{first_case}\n");
         assert_eq!(parse_corpus(&duplicate), Err(ModelError::InvalidCorpus));
