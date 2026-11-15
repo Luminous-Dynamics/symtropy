@@ -269,6 +269,7 @@ pub fn normalize(
 
     validate_convention(expected_profile.profile, &mut errors);
     if input.convention != expected_profile.profile {
+        validate_convention(input.convention, &mut errors);
         errors.push(ValidationError::ConventionMismatch);
     }
 
