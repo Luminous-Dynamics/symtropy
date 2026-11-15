@@ -298,8 +298,8 @@ fn validate_bounds(
 ) -> Result<(), ProjectionError> {
     let minimum = [bounds.min.x, bounds.min.y, bounds.min.z];
     let maximum = [bounds.max.x, bounds.max.y, bounds.max.z];
-    for axis in 0..3 {
-        if minimum[axis] >= maximum[axis] {
+    for (axis, (minimum, maximum)) in minimum.iter().zip(maximum.iter()).enumerate() {
+        if minimum >= maximum {
             return Err(ProjectionError::InvalidBounds { role, axis });
         }
     }
