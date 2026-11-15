@@ -283,9 +283,9 @@
         "physical_outlet_mass": 1,
         "sensor_observed_outlet_mass": null,
         "known_inventory_mass": 0,
-        "signed_mass_residual": 1,
-        "mass_residual_standard_uncertainty": 0.01,
-        "standardized_abs_mass_residual": 100,
+        "signed_mass_residual": null,
+        "mass_residual_standard_uncertainty": null,
+        "standardized_abs_mass_residual": null,
         "predicted_physical_tail_mass": 0,
         "predicted_sensor_tail_mass": null,
         "per_inlet_kernel_area": [
@@ -649,6 +649,59 @@
           ],
           [
             0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-014-positive-mass-time-scale-invariance",
+      "expected": {
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "injected_mass": 10,
+        "physical_outlet_mass": 10,
+        "sensor_observed_outlet_mass": 10,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.1,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            7,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            7,
+            0,
+            0,
+            0
+          ],
+          [
+            3,
             0,
             0,
             0
