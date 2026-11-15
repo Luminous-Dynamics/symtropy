@@ -141,6 +141,11 @@ impl fmt::Display for TransportError {
 
 impl std::error::Error for TransportError {}
 
+/// Conservative explicit-step ceiling for the sum of incident edge conductances.
+///
+/// The per-node Courant number is dt * sum(conductance) / compartment volume.
+pub const MAX_EXPLICIT_TRANSPORT_COURANT: f64 = 1.0;
+
 /// Apply passive diffusion-like exchange over existing active graph segments.
 ///
 /// For a segment directed from a to b:
@@ -149,11 +154,8 @@ impl std::error::Error for TransportError {}
 ///
 /// where concentrations are in mg/mL. All proposed fluxes are computed from
 /// the same pre-step state, then settled together. The operation is atomic:
-/// any invalid edge or donor overdraw rejects the complete step and leaves
-/// compartments unchanged.
-pub const MAX_EXPLICIT_TRANSPORT_COURANT: f64 = 1.0;
-
-/// Apply passive diffusion-like exchange over existing active graph segments.
+/// invalid edges, an unstable explicit time step, or donor overdraw reject the
+/// complete step and leave compartments unchanged.
 pub fn apply_passive_transport(
     graph: &HyphalGraph,
     compartments: &mut [SoluteCompartment],
