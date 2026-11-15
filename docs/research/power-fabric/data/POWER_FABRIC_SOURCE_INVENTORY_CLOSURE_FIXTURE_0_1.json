@@ -36,7 +36,8 @@
     "expected_record_count": 6,
     "terminal_boundary_required": true,
     "terminal_boundary_digest": null,
-    "closure_evidence_ref": "receipt-traversal-r7"
+    "closure_evidence_ref": "receipt-traversal-r7",
+    "terminal_boundary_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
   },
   "pages": [
     {
@@ -52,7 +53,8 @@
       "record_identity_digests": [
         "2111111111111111111111111111111111111111111111111111111111111111",
         "2211111111111111111111111111111111111111111111111111111111111111"
-      ]
+      ],
+      "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
     {
       "page_id": "page-002",
@@ -67,7 +69,8 @@
       "record_identity_digests": [
         "2311111111111111111111111111111111111111111111111111111111111111",
         "2411111111111111111111111111111111111111111111111111111111111111"
-      ]
+      ],
+      "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
     {
       "page_id": "page-003",
@@ -82,7 +85,8 @@
       "record_identity_digests": [
         "2511111111111111111111111111111111111111111111111111111111111111",
         "2611111111111111111111111111111111111111111111111111111111111111"
-      ]
+      ],
+      "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     }
   ],
   "records": [
@@ -206,7 +210,9 @@
       "expected_diagnostic_codes": [],
       "expected_missing_page_indexes": [],
       "expected_unaccounted_record_digests": [],
-      "expected_conflict_record_digests": []
+      "expected_conflict_record_digests": [],
+      "snapshot_consistency_model_override": "immutable_export",
+      "traversal_kind_override": "immutable_manifest"
     },
     {
       "scenario_id": "INV-003",
@@ -537,7 +543,7 @@
     },
     {
       "scenario_id": "INV-023",
-      "description": "Source snapshot token changes after the first page was captured.",
+      "description": "A page reports a snapshot token different from the pinned source snapshot token.",
       "mutation_kind": "snapshot_token_changed",
       "target_page_id": "page-002",
       "as_known_at": "2026-11-15T08:00:00Z",
