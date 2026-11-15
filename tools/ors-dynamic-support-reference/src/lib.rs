@@ -42,7 +42,7 @@ impl fmt::Display for ModelError {
             Self::UnsupportedForceLaw => "force law is not admitted by this synthetic reference",
             Self::PhysicalClaimNotAdmitted => {
                 "physical claim classes are not admitted by this reference"
-            },
+            }
             Self::NonFiniteInput => "all numeric inputs must be finite",
             Self::NonPositiveMass => "both lumped masses must be positive",
             Self::NonPositiveStiffness => "synthetic spring stiffness must be positive",
@@ -52,12 +52,12 @@ impl fmt::Display for ModelError {
             Self::ReleaseOutsideDuration => "release time must lie in [0, duration]",
             Self::NonIntegralTimeGrid => {
                 "duration and release time must align to the fixed time step"
-            },
+            }
             Self::TooManyTimeSteps => "time grid exceeds the fixed maximum step count",
             Self::NonFiniteResult => "derived state or ledger value is non-finite",
             Self::InvalidCorpus => {
                 "frozen corpus has an invalid header, row, value or duplicate ID"
-            },
+            }
         };
         f.write_str(message)
     }
