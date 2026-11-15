@@ -304,7 +304,7 @@ The first deterministic evaluator is now implemented in the separate Rust packag
 - `research/hydrology/hydro-contextual-oracle-v0.1.json`
 - `research/hydrology/hydro-contextual-t0.schema.json`
 
-The 20-case synthetic suite covers:
+The 21-case synthetic suite covers:
 - B0 persistence / training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member reporting, including invalid/non-conservative members;
 - B2 repeated train-only calibration-reference summary;
@@ -319,3 +319,5 @@ The tool reads frozen arrays and run metadata. It does **not** create, calibrate
 The separate input/manifest/oracle identity is enforced in Rust. The CLI produces a receipt with SHA-256 digests for inputs, manifest, oracle and Cargo.lock, plus exact implementation revision. The workflow is `.github/workflows/hydro-contextual-t0.yml`.
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
+
+The 21-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
