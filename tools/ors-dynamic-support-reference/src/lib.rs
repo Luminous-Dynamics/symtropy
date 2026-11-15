@@ -263,8 +263,9 @@ fn mechanical_energy(state: &[f64; 7], scenario: &Scenario) -> f64 {
 
 /// Run the declared two-mass synthetic force-port case.
 ///
-/// State slots 4 and 5 accumulate viscous dissipation and external bias work.
-/// The energy residual is E_mechanical + E_dissipated - W_external - E_initial.
+/// State slots 4, 5 and 6 accumulate viscous dissipation, external work and
+/// external impulse, respectively. Momentum closes against the impulse; the
+/// energy residual is E_mechanical + E_dissipated - W_external - E_initial.
 pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
     let (steps, stream_release_step, support_release_step) = validate_scenario(scenario)?;
     let initial_separation = scenario.preload_n / scenario.stiffness_n_m;
