@@ -1120,10 +1120,8 @@ mod tests {
     }
     #[test]
     fn afex_root_turnover_delta_method_preserves_numerator_denominator_covariance() {
-        let (input, transform) = afex_root_turnover_delta_case(
-            0.005,
-            "afex-root-turnover-correlated",
-        );
+        let (input, transform) =
+            afex_root_turnover_delta_case(0.005, "afex-root-turnover-correlated");
         let result = propagate_linear_uncertainty(&input, &transform)
             .expect("positive-semidefinite correlated AFEX ratio covariance");
         assert_eq!(result.output_state.estimates, vec![1.2]);
@@ -1131,7 +1129,10 @@ mod tests {
         assert!((result.standard_uncertainties[0] - 0.0424_f64.sqrt()).abs() < 1.0e-12);
         assert_eq!(result.input_covariance.values[0][1], 0.005);
         assert_eq!(result.output_state.uncertainty_sources.len(), 3);
-        result.output_state.validate().expect("output lineage remains valid");
+        result
+            .output_state
+            .validate()
+            .expect("output lineage remains valid");
     }
 
     #[test]
@@ -1145,8 +1146,10 @@ mod tests {
         let independent = propagate_linear_uncertainty(&independent_input, &independent_transform)
             .expect("explicit zero-covariance AFEX ratio");
         assert!((independent.output_state.covariance.values[0][0] - 0.0544).abs() < 1.0e-12);
-        assert!(correlated.output_state.covariance.values[0][0]
-            < independent.output_state.covariance.values[0][0]);
+        assert!(
+            correlated.output_state.covariance.values[0][0]
+                < independent.output_state.covariance.values[0][0]
+        );
         assert_ne!(
             correlated.input_covariance.values[0][1],
             independent.input_covariance.values[0][1]
@@ -1164,8 +1167,9 @@ mod tests {
         let negative = propagate_linear_uncertainty(&negative_input, &negative_transform)
             .expect("negative covariance ratio");
         assert!((negative.output_state.covariance.values[0][0] - 0.0664).abs() < 1.0e-12);
-        assert!(negative.output_state.covariance.values[0][0]
-            > positive.output_state.covariance.values[0][0]);
+        assert!(
+            negative.output_state.covariance.values[0][0]
+                > positive.output_state.covariance.values[0][0]
+        );
     }
-
 }
