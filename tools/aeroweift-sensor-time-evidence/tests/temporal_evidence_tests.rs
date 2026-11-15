@@ -471,3 +471,38 @@ fn sensor_input_permutation_preserves_assessment() {
     let reversed = evaluate_cycle(&[second, first], &hardware_policy()).unwrap();
     assert_eq!(expected, reversed);
 }
+
+
+#[test]
+fn one_sensor_remains_modality_specific_not_fusion_qualified() {
+    let only = sensor(
+        "cw-1",
+        SensorModality::ContinuousWaveRadar,
+        1,
+        Some(window(0, 100_000, 10)),
+    );
+    let result = evaluate_cycle(&[only], &hardware_policy()).unwrap();
+    assert_eq!(result.disposition, TemporalDisposition::ModalitySpecificOnly);
+    assert!(result.gaps.contains(&TemporalGap::InsufficientSensors));
+}
+
+#[test]
+fn missing_calibration_does_not_create_a_fusion_time_claim_gap() {
+    let mut first = sensor(
+        "cw-1",
+        SensorModality::ContinuousWaveRadar,
+        1,
+        Some(window(0, 100_000, 10)),
+    );
+    let second = sensor(
+        "rf-1",
+        SensorModality::RfReceiver,
+        2,
+        Some(window(10, 100_010, 10)),
+    );
+    first.calibration_profile_sha256 = None;
+
+    let result = evaluate_cycle(&[first, second], &hardware_policy()).unwrap();
+    assert_eq!(result.disposition, TemporalDisposition::BoundedFusionTimeEligible);
+    assert!(result.gaps.contains(&TemporalGap::CalibrationProfileMissing));
+}
