@@ -258,3 +258,19 @@ The conformal comparison must distinguish prediction-set calibration, calibratio
 The tropical programme now adds [#5319 — realized block-coverage inference](https://github.com/Luminous-Dynamics/symtropy/issues/5319) to quantify finite test-block uncertainty. Its first Hoeffding implementation is a conservative independent-block baseline only; it does not replace the dependent-data methods above.
 
 **Competitive implication:** Luminous should not claim to beat LPJ-GUESS, FATES, SpeciesNet, a spatial conformal package, or a satellite forest product by one aggregate score. The testable differentiation is an evidence-qualified composition layer: source and rights admission, typed observation operators, support-aware aggregation, dependence-aware evidence fusion, model-set criticism, forecast calibration with explicit shift limits, and decision-value measurement. Any claim of superiority must be task-specific, matched on support and compute, and independently evaluated.
+
+
+## Spatial conditional coverage and localization stability (ICML 2026)
+
+Two additional 2026 comparator families materially strengthen the forest uncertainty tournament:
+
+- Braun, Holzmüller, Jordan & Bach, *Conditional Coverage Diagnostics for Conformal Prediction* (ICML/PMLR 306, 2026), introduces excess risk of target coverage (ERT). It formulates conditional-coverage violations as a classification-risk problem and reports higher statistical power than simpler conditional-coverage diagnostics in its experiments: https://proceedings.mlr.press/v306/braun26c.html
+- Min, Peng & Zou, *Stable Localized Conformal Prediction via Transduction* (ICML/PMLR 306, 2026), formalizes calibration-set conditional prediction-size variability and proposes StCP using labeled source-task and unlabeled target data. It is particularly relevant because localized methods can produce unstable interval sizes when calibration samples are limited: https://proceedings.mlr.press/v306/min26d.html
+
+The forest tournament should therefore report at least four reliability dimensions separately:
+1. marginal / whole-block coverage;
+2. conditional/local coverage diagnostics (ERT as an external comparator);
+3. calibration-conditional prediction-size stability (StCP as an external comparator);
+4. evaluation uncertainty for held-out block coverage (#5319).
+
+The new local Gaussian kernel in [#5327](https://github.com/Luminous-Dynamics/symtropy/issues/5327) is a deliberately limited engineering baseline. It does not implement ERT or StCP and makes no finite-sample spatial validity claim. The specialist external comparison remains spconform geostatistical and areal procedures, matched on exactly the same held-out sites and support.
