@@ -124,3 +124,16 @@ The Amazon RAINFOR EIDC 2017–2019 dataset can support a structural/stand-state
 ## 9. Claim ceiling
 
 The public manifest and its validator establish only that the challenge case definitions and declared expected dispositions are internally coherent. A future blind challenge can estimate sensitivity to its declared withheld mechanism families. Neither result proves that every ecological mechanism has been anticipated or that an ecosystem model is empirically valid.
+
+
+## November 2026: public development versus sealed evaluation
+
+The public development corpus remains intentionally public and must not be scored as a blind benchmark. A separate custody protocol and machine-readable candidate/receipt schemas are now tracked in [#5328 — FOREST-BLIND-ADEQUACY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5328):
+
+- [Sealed model-set custody protocol](FOREST_BLIND_MODEL_SET_CUSTODY_V0_1.md)
+- [Candidate submission schema](schemas/forest-blind-candidate-submission-v0.1.schema.json)
+- [Sealed evaluation receipt schema](schemas/forest-blind-evaluation-receipt-v0.1.schema.json)
+
+The protocol requires a separately controlled custodian, secret salt, a domain-separated SHA-256 commitment, immutable candidate submissions, separately signed evaluator receipts and a retained sealed reserve. No custodian or evaluator has been appointed; no blind challenge has run. These files specify a protocol, not an operational custody service.
+
+The hidden generator must include counterfactual pairs that distinguish latent ecological change from observation-process change, plus false-alarm controls for parameter/stochastic variation. The public repository must never contain the hidden generator, seed, truth bundle or commitment opening while the candidate is being evaluated.
