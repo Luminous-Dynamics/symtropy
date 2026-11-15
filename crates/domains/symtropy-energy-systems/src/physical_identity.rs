@@ -1448,7 +1448,10 @@ mod tests {
         )
     }
 
-    fn ledger(events: Vec<PhysicalEvent>) -> PhysicalIdentityLedger {
+    fn ledger_result(
+        events: Vec<PhysicalEvent>,
+        extra_instances: Vec<PhysicalInstance>,
+    ) -> Result<PhysicalIdentityLedger, PhysicalIdentityError> {
         let snapshot = InstallationSnapshot::new(
             "installation-test",
             "revision-1",
@@ -1456,16 +1459,14 @@ mod tests {
             "graph-test",
             "graph-revision-1",
             D2,
-        )
-        .unwrap();
-        let product = ProductModel::new("product-a", "manufacturer-a", "model-a", "catalogue-1")
-            .unwrap();
+        )?;
+        let product = ProductModel::new("product-a", "manufacturer-a", "model-a", "catalogue-1")?;
         let mut accepted = BTreeMap::new();
         accepted.insert(
             "product-a".to_owned(),
             ["A".to_owned()].into_iter().collect(),
         );
-        let slot = DesignSlot::new("slot-1", "cabinet-east", accepted, 1).unwrap();
+        let slot = DesignSlot::new("slot-1", "cabinet-east", accepted, 1)?;
         let instance = PhysicalInstance::new(
             "instance-1",
             "manufacturer-a",
@@ -1473,19 +1474,22 @@ mod tests {
             "product-a",
             "A",
             D3,
-        )
-        .unwrap();
-        let evidence = EvidenceRecord::new("evidence-1", D1, "source-receipt-1", 1, 1)
-            .unwrap();
+        )?;
+        let mut instances = vec![instance];
+        instances.extend(extra_instances);
+        let evidence = EvidenceRecord::new("evidence-1", D1, "source-receipt-1", 1, 1)?;
         PhysicalIdentityLedger::new(
             snapshot,
             vec![product],
             vec![slot],
-            vec![instance],
+            instances,
             vec![evidence],
             events,
         )
-        .unwrap()
+    }
+
+    fn ledger(events: Vec<PhysicalEvent>) -> PhysicalIdentityLedger {
+        ledger_result(events, Vec::new()).unwrap()
     }
 
     fn declared_and_delivered() -> Vec<PhysicalEvent> {
@@ -1641,6 +1645,15 @@ mod tests {
 
     #[test]
     fn replacement_resets_inspection_and_review_state() {
+        let replacement = PhysicalInstance::new(
+            "instance-2",
+            "manufacturer-a",
+            "serial-2",
+            "product-a",
+            "A",
+            D2,
+        )
+        .unwrap();
         let mut events = declared_and_delivered();
         events.push(
             event("install", PhysicalEventKind::UnitInstalled, "slot-1", 30, &["evidence-1"])
@@ -1661,30 +1674,28 @@ mod tests {
                 .with_review_attestation("attestation-1")
                 .with_predecessors(vec!["inspect".to_owned()]),
         );
-        // This test intentionally stops before the replacement event because the fixture
-        // helper has one physical instance. It still proves that a new install resets state
-        // when an assignment is removed and then reintroduced.
         events.push(
-            event("remove", PhysicalEventKind::UnitRemoved, "slot-1", 60, &["evidence-1"])
-                .with_instance("instance-1")
-                .with_location("cabinet-east")
+            event("deliver-new", PhysicalEventKind::UnitDelivered, "slot-1", 60, &["evidence-1"])
+                .with_instance("instance-2")
                 .with_predecessors(vec!["review".to_owned()]),
         );
         events.push(
-            event("redeliver", PhysicalEventKind::UnitDelivered, "slot-1", 70, &["evidence-1"])
-                .with_instance("instance-1")
-                .with_predecessors(vec!["remove".to_owned()]),
-        );
-        events.push(
-            event("reinstall", PhysicalEventKind::UnitInstalled, "slot-1", 80, &["evidence-1"])
-                .with_instance("instance-1")
+            event("replace", PhysicalEventKind::UnitReplaced, "slot-1", 70, &["evidence-1"])
+                .with_instance("instance-2")
+                .with_previous_instance("instance-1")
                 .with_location("cabinet-east")
-                .with_predecessors(vec!["redeliver".to_owned()]),
+                .with_predecessors(vec!["deliver-new".to_owned()]),
         );
-        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Valid));
+        let projection = ledger_result(events, vec![replacement])
+            .unwrap()
+            .project(100, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
+        );
+        assert_eq!(
+            projection.slots["slot-1"].active_assignments[0].physical_instance_id,
+            "instance-2"
         );
     }
 
@@ -1738,8 +1749,8 @@ mod tests {
             &["evidence-1"],
         )
         .with_predecessors(vec!["missing-event".to_owned()]);
-        let result = std::panic::catch_unwind(|| ledger(vec![event]));
-        assert!(result.is_err());
+        let result = ledger_result(vec![event], Vec::new());
+        assert!(matches!(result, Err(PhysicalIdentityError::UnknownPredecessor { .. })));
     }
 
     #[test]
