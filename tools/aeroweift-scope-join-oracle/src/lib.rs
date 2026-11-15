@@ -325,17 +325,6 @@ pub fn join_scope(input: &JoinInput) -> ScopeJoinResult {
         }
     }
 
-    if input.operation_claims.len() != required_owners.len() {
-        return blocked(
-            input,
-            Reason::DuplicateOperationClaim(EvidenceOwner::Intent),
-        );
-    }
-
-    if input.surveillance_claims.len() != requirements.len() {
-        return blocked(input, Reason::MissingRequiredCoverage);
-    }
-
     let mut matched_query_ids = Vec::with_capacity(requirements.len());
     for requirement in &requirements {
         let mut matches = input
@@ -406,12 +395,17 @@ pub fn join_scope(input: &JoinInput) -> ScopeJoinResult {
         matched_query_ids.push(requirement.query_id);
     }
 
-    let mut snapshot = canonical_snapshot(input);
+    for claim in &input.surveillance_claims {
+        if !requirements.iter().any(|item| item.query_id == claim.query_id) {
+            return blocked(input, Reason::UnexpectedSurveillanceClaim(claim.query_id));
+        }
+    }
+
     matched_query_ids.sort_unstable();
     ScopeJoinResult {
         disposition: ScopeJoinDisposition::ScopeMatchedForComposition,
         reason: None,
         matched_query_ids,
-        source_snapshot: std::mem::replace(&mut snapshot, input.clone()),
+        source_snapshot: canonical_snapshot(input),
     }
 }
