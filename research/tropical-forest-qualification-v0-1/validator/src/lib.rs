@@ -22,6 +22,7 @@ pub mod afex_design_kernel;
 pub mod afex_root_turnover_kernel;
 pub mod afex_ratio_estimand_kernel;
 pub mod afex_root_pathway_tournament_kernel;
+pub mod afex_root_pathway_identifiability_kernel;
 pub mod afex_root_distribution_kernel;
 
 use sha2::{Digest, Sha256};
@@ -3884,6 +3885,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return afex_root_pathway_tournament_kernel::validate_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("AFEX-ROOT-PATHWAY-IDENTIFIABILITY-001")
+    {
+        return afex_root_pathway_identifiability_kernel::validate_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("AFEX-ROOT-DISTRIBUTION-UQ-001")
     {
         return afex_root_distribution_kernel::validate_corpus(raw, &manifest);
@@ -5012,6 +5018,17 @@ mod tests {
         assert_eq!(receipt["model_count"], 8);
         assert_eq!(receipt["no_mediation_present"], true);
         assert_eq!(receipt["omitted_mechanism_present"], true);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
+    
+    #[test]
+    fn afex_root_pathway_identifiability_dispatches_with_exact_rank_receipt() {
+        let bytes = include_str!("../../cases/afex-root-pathway-identifiability-synthetic-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("AFEX pathway identifiability fixture dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_PATHWAY_IDENTIFIABILITY");
+        assert_eq!(receipt["ranks"], json!([0, 2, 3, 4]));
+        assert_eq!(receipt["nullities"], json!([4, 2, 1, 0]));
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
