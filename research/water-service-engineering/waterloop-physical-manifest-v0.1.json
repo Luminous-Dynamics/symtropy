@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
   "benchmark_id": "WATERLOOP-PHYSICAL-T0",
-  "case_count": 12,
+  "case_count": 15,
   "required_case_ids": [
     "WL-T0-001-balanced-volume-closure",
     "WL-T0-002-unbalanced-volume-closure",
@@ -16,7 +16,10 @@
     "WL-T0-009-service-floor-met",
     "WL-T0-010-service-floor-not-met",
     "WL-T0-011-leak-event-metrics",
-    "WL-T0-012-missed-leak-volume"
+    "WL-T0-012-missed-leak-volume",
+    "WL-T0-013-source-quality-without-evidence-no-credit",
+    "WL-T0-014-service-floor-missing-pressure-evidence",
+    "WL-T0-015-energy-boundary-mismatch-abstains"
   ],
   "families": [
     "volume_closure",
