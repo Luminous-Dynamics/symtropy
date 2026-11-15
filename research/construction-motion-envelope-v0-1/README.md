@@ -20,7 +20,7 @@ Each per-axis contribution and its evidence reference is preserved in the output
 
 Inputs are already in one admitted frame and one monotonic site clock domain. Each primitive center is piecewise linear over a declared time cell. The input producer supplies a per-axis outer bound on the true path's deviation from that chord over the entire cell, plus separately scoped localization, tracking, model, numerical, stopping and policy margins.
 
-The builder rejects missing evidence references, malformed context digests, time gaps/overlaps, missing/extra primitives, discontinuous centers, changing primitive radius and integer overflow.
+The builder binds an exact expected body-primitive ID set to the collision-model manifest and rejects omissions even when a primitive is missing from every time cell. It also preserves the nominal centerline in each output slice. It rejects missing evidence references, malformed context digests, time gaps/overlaps, per-slice primitive omissions, discontinuous centers, changing primitive radius and integer overflow.
 
 The producer-supplied path-deviation and stopping bounds are **not proven by this crate**. This code checks envelope arithmetic and contract consistency, not physical truth, validity or authenticity of upstream evidence. A digest-shaped string is an identifier, not a verified digest.
 

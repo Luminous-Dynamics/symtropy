@@ -17,6 +17,8 @@ fn context() -> Context {
         tool_config_sha256: "b".repeat(64),
         payload_config_sha256: "c".repeat(64),
         collision_model_sha256: "d".repeat(64),
+        primitive_set_ref: "benchmark-primitive-manifest".into(),
+        expected_primitive_ids: vec!["base".into(), "tool".into(), "payload".into()],
         calibration_ref: "cal".into(),
         controller_profile_ref: "controller".into(),
         frame_id: "frame".into(),

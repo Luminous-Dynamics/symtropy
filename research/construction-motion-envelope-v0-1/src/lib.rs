@@ -56,6 +56,10 @@ pub struct Context {
     pub tool_config_sha256: String,
     pub payload_config_sha256: String,
     pub collision_model_sha256: String,
+    /// External reference to the authoritative body-primitive manifest bound by the collision-model digest.
+    pub primitive_set_ref: String,
+    /// Exact expected link/tool/payload primitive IDs from that manifest.
+    pub expected_primitive_ids: Vec<String>,
     pub calibration_ref: String,
     pub controller_profile_ref: String,
     pub frame_id: String,
@@ -115,6 +119,8 @@ pub struct EnvelopeSlice {
     pub primitive_id: String,
     pub start_ms: u64,
     pub end_ms: u64,
+    pub from_mm: Point3Mm,
+    pub to_mm: Point3Mm,
     pub radius_mm: u64,
     pub physical_swept_outer: AabbMm,
     pub stopping_outer: AabbMm,
@@ -143,6 +149,7 @@ impl Report {
             &self.context.tool_config_sha256,
             &self.context.payload_config_sha256,
             &self.context.collision_model_sha256,
+            &self.context.primitive_set_ref,
             &self.context.calibration_ref,
             &self.context.controller_profile_ref,
             &self.context.frame_id,
@@ -154,12 +161,19 @@ impl Report {
         ] {
             put_str(&mut out, s);
         }
+        let expected_ids: BTreeSet<&str> = self.context.expected_primitive_ids.iter().map(String::as_str).collect();
+        put_u64(&mut out, expected_ids.len() as u64);
+        for primitive_id in expected_ids {
+            put_str(&mut out, primitive_id);
+        }
         put_u64(&mut out, self.slices.len() as u64);
         for s in &self.slices {
             put_u64(&mut out, u64::from(s.slice_index));
             put_str(&mut out, &s.primitive_id);
             put_u64(&mut out, s.start_ms);
             put_u64(&mut out, s.end_ms);
+            put_point(&mut out, s.from_mm);
+            put_point(&mut out, s.to_mm);
             put_u64(&mut out, s.radius_mm);
             for b in [
                 s.physical_swept_outer,
@@ -206,6 +220,7 @@ pub enum ErrorKind {
     TimeDiscontinuity,
     IntervalMismatch(u32),
     DuplicatePrimitive(String),
+    DuplicateExpectedPrimitive(String),
     PrimitiveSetChanged(u32),
     CenterDiscontinuity(String),
     RadiusChanged(String),
@@ -240,7 +255,7 @@ pub fn build(context: &Context, input: &[Segment]) -> Result<Report, ErrorKind> 
     }
 
     let mut out = Vec::with_capacity(input.len());
-    let mut primitive_set: Option<BTreeSet<String>> = None;
+    let expected_primitives: BTreeSet<String> = context.expected_primitive_ids.iter().cloned().collect();
     let mut previous: BTreeMap<String, (Point3Mm, u64)> = BTreeMap::new();
     let mut previous_end = None;
 
@@ -269,11 +284,8 @@ pub fn build(context: &Context, input: &[Segment]) -> Result<Report, ErrorKind> 
                 return Err(ErrorKind::DuplicatePrimitive(s.primitive_id.clone()));
             }
         }
-        if primitive_set.as_ref().is_some_and(|p| p != &current) {
+        if current != expected_primitives {
             return Err(ErrorKind::PrimitiveSetChanged(*index));
-        }
-        if primitive_set.is_none() {
-            primitive_set = Some(current);
         }
 
         for s in group {
@@ -320,6 +332,8 @@ pub fn build(context: &Context, input: &[Segment]) -> Result<Report, ErrorKind> 
                 primitive_id: s.primitive_id.clone(),
                 start_ms: start,
                 end_ms: end,
+                from_mm: s.from_mm,
+                to_mm: s.to_mm,
                 radius_mm: s.radius_mm,
                 physical_swept_outer: physical,
                 stopping_outer: stopping,
@@ -344,6 +358,7 @@ fn validate_context(c: &Context) -> Result<(), ErrorKind> {
         ("task_id", &c.task_id),
         ("trajectory_id", &c.trajectory_id),
         ("robot_id", &c.robot_id),
+        ("primitive_set_ref", &c.primitive_set_ref),
         ("calibration_ref", &c.calibration_ref),
         ("controller_profile_ref", &c.controller_profile_ref),
         ("frame_id", &c.frame_id),
@@ -351,6 +366,16 @@ fn validate_context(c: &Context) -> Result<(), ErrorKind> {
         ("clock_domain_id", &c.clock_domain_id),
     ] {
         required(n, v)?;
+    }
+    if c.expected_primitive_ids.is_empty() {
+        return Err(ErrorKind::Missing("expected_primitive_ids"));
+    }
+    let mut expected_ids = BTreeSet::new();
+    for id in &c.expected_primitive_ids {
+        required("expected_primitive_id", id)?;
+        if !expected_ids.insert(id) {
+            return Err(ErrorKind::DuplicateExpectedPrimitive(id.clone()));
+        }
     }
     for (n, v) in [
         ("platform_config_sha256", &c.platform_config_sha256),
@@ -470,6 +495,8 @@ mod tests {
             tool_config_sha256: "b".repeat(64),
             payload_config_sha256: "c".repeat(64),
             collision_model_sha256: "d".repeat(64),
+            primitive_set_ref: "manifest".into(),
+            expected_primitive_ids: vec!["tool".into()],
             calibration_ref: "cal".into(),
             controller_profile_ref: "controller".into(),
             frame_id: "frame".into(),
@@ -599,6 +626,8 @@ mod tests {
 
     #[test]
     fn canonical_bytes_ignore_input_order_but_bind_tool_revision() {
+        let mut c = context();
+        c.expected_primitive_ids = vec!["base".into(), "tool".into()];
         let a = seg(
             0,
             "base",
@@ -615,8 +644,8 @@ mod tests {
             Point3Mm::default(),
             Point3Mm { x: 10, y: 1, z: 0 },
         );
-        let x = build(&context(), &[a.clone(), b.clone()]).unwrap();
-        let y = build(&context(), &[b.clone(), a.clone()]).unwrap();
+        let x = build(&c, &[a.clone(), b.clone()]).unwrap();
+        let y = build(&c, &[b.clone(), a.clone()]).unwrap();
         assert_eq!(x.canonical_bytes(), y.canonical_bytes());
         let mut c = context();
         c.tool_config_sha256 = "9".repeat(64);
@@ -652,6 +681,8 @@ mod tests {
 
     #[test]
     fn rejects_missing_primitive_in_slice_and_discontinuous_centers() {
+        let mut c = context();
+        c.expected_primitive_ids = vec!["base".into(), "tool".into()];
         let a = seg(
             0,
             "base",
@@ -677,7 +708,7 @@ mod tests {
             Point3Mm { x: 20, y: 0, z: 0 },
         );
         assert_eq!(
-            build(&context(), &[a.clone(), b, c.clone()]).unwrap_err(),
+            build(&c, &[a.clone(), b, c.clone()]).unwrap_err(),
             ErrorKind::PrimitiveSetChanged(1)
         );
         let d = seg(
@@ -689,7 +720,7 @@ mod tests {
             Point3Mm { x: 20, y: 0, z: 0 },
         );
         assert!(matches!(
-            build(&context(), &[a, d]),
+            build(&c, &[a, d]),
             Err(ErrorKind::CenterDiscontinuity(_))
         ));
     }
@@ -722,6 +753,25 @@ mod tests {
         assert_eq!(
             build(&c, &[s]).unwrap_err(),
             ErrorKind::BadDigest("tool_config_sha256")
+        );
+    }
+
+
+    #[test]
+    fn rejects_whole_trajectory_omitting_declared_tool_or_payload_primitive() {
+        let mut c = context();
+        c.expected_primitive_ids = vec!["base".into(), "tool".into()];
+        let only_base = seg(
+            0,
+            "base",
+            0,
+            100,
+            Point3Mm::default(),
+            Point3Mm { x: 10, y: 0, z: 0 },
+        );
+        assert_eq!(
+            build(&c, &[only_base]).unwrap_err(),
+            ErrorKind::PrimitiveSetChanged(0)
         );
     }
 
