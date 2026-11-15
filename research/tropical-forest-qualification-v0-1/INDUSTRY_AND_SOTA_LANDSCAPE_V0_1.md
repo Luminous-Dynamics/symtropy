@@ -297,3 +297,14 @@ The immediate engineering comparison therefore has three separate axes:
 - matched empirical coverage, interval score, stability and spatial transfer on forest data.
 
 A green CRAN package check only speaks to the second axis.
+
+
+## 15 November 2026 — process-resolved forest trajectories
+
+The 2026 ForestPaths multi-model study is a particularly relevant industry baseline: it benchmarked nine vegetation-demography models (BiomeE, BiomeEP, CABLE-POP, EDv3, ELM-FATES, JULES-RED, LPJ-GUESS, ORCHIDEE and SEIB-DGVM) against tree growth, carbon turnover, biomass stocks and tree-size distributions across boreal, temperate and tropical forests. Its project summary reports mature-carbon agreement despite compensating overgrowth and undermortality, and identifies early post-disturbance structure/recovery and carbon turnover as important constraints: https://forestpaths.eu/news/forestpaths-study-reveals-how-vegetation-demographic-models-improve-understanding-forest-recovery-structure-and-carbon-dynamics
+
+This motivates [#5340 — process-resolved trajectory closure](https://github.com/Luminous-Dynamics/symtropy/issues/5340). The v0.1 synthetic Rust reference separates live/deadwood stocks, internal mortality transfer, growth, recruitment, decomposition and exports. Its adversarial case matches both pool trajectories exactly while making primitive fluxes wrong by up to 20 synthetic units; a stock-only score would miss this. The benchmark's qualification advantage is to expose process aliasing, not claim a better biological model.
+
+The next matched empirical comparison should use the published ForestPaths/VDM benchmark data and model versions where access and exact task definitions permit. At minimum, compare FATES and LPJ-GUESS outputs on the same sites, starting states, forcing windows, census boundaries and compute budgets; include stock-only, time-resolved stock, process-flux and recovery-trajectory scores. The ecological forecast-limit framework supplies a separate horizon-level target: forecast limits require verification data, a score and a reference tolerance, so forecast usefulness can be reported by lead time instead of one pooled score: https://doi.org/10.1111/2041-210X.70049
+
+EFI's public challenge infrastructure provides the complementary operational pattern—standardized submissions, metadata validation, proper scores and baseline comparisons. Its target themes include terrestrial carbon/water fluxes and phenology: https://ecoforecast.org/forecast-challenges/
