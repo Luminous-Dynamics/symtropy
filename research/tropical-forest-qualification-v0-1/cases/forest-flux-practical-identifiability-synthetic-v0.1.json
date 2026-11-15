@@ -16,12 +16,26 @@
     {
       "observation_id": "stock_live_increment",
       "standard_deviation": 10,
-      "row": [1, 1, -1, -1, 0, 0]
+      "row": [
+        1,
+        1,
+        -1,
+        -1,
+        0,
+        0
+      ]
     },
     {
       "observation_id": "stock_deadwood_increment",
       "standard_deviation": 12,
-      "row": [0, 0, 1, 0, -1, -1]
+      "row": [
+        0,
+        0,
+        1,
+        0,
+        -1,
+        -1
+      ]
     }
   ],
   "measurement_options": [
@@ -29,37 +43,79 @@
       "observation_id": "growth",
       "synthetic_effort_cost": 2,
       "standard_deviation": 2,
-      "row": [1, 0, 0, 0, 0, 0]
+      "row": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "observation_id": "recruitment",
       "synthetic_effort_cost": 4,
       "standard_deviation": 5,
-      "row": [0, 1, 0, 0, 0, 0]
+      "row": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "observation_id": "mortality",
       "synthetic_effort_cost": 3,
       "standard_deviation": 3,
-      "row": [0, 0, 1, 0, 0, 0]
+      "row": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ]
     },
     {
       "observation_id": "live_export",
       "synthetic_effort_cost": 6,
       "standard_deviation": 8,
-      "row": [0, 0, 0, 1, 0, 0]
+      "row": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ]
     },
     {
       "observation_id": "decomposition",
       "synthetic_effort_cost": 5,
       "standard_deviation": 4,
-      "row": [0, 0, 0, 0, 1, 0]
+      "row": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ]
     },
     {
       "observation_id": "deadwood_export",
       "synthetic_effort_cost": 5,
       "standard_deviation": 4,
-      "row": [0, 0, 0, 0, 0, 1]
+      "row": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
     }
   ],
   "correlations": [
@@ -96,24 +152,55 @@
     "full_rank_design_count": 18,
     "minimum_structural_cost": 14,
     "minimum_structural_cost_designs": [
-      ["growth", "recruitment", "mortality", "decomposition"],
-      ["growth", "recruitment", "mortality", "deadwood_export"]
+      [
+        "growth",
+        "recruitment",
+        "mortality",
+        "decomposition"
+      ],
+      [
+        "growth",
+        "recruitment",
+        "mortality",
+        "deadwood_export"
+      ]
     ],
     "d_optimal_designs": [
-      ["growth", "recruitment", "mortality", "live_export", "decomposition", "deadwood_export"]
+      [
+        "growth",
+        "recruitment",
+        "mortality",
+        "live_export",
+        "decomposition",
+        "deadwood_export"
+      ]
     ],
     "a_optimal_designs": [
-      ["growth", "recruitment", "mortality", "live_export", "decomposition", "deadwood_export"]
+      [
+        "growth",
+        "recruitment",
+        "mortality",
+        "live_export",
+        "decomposition",
+        "deadwood_export"
+      ]
     ],
     "e_optimal_designs": [
-      ["growth", "recruitment", "mortality", "live_export", "decomposition", "deadwood_export"]
+      [
+        "growth",
+        "recruitment",
+        "mortality",
+        "live_export",
+        "decomposition",
+        "deadwood_export"
+      ]
     ],
     "all_measurements_metrics": {
-      "minimum_fisher_eigenvalue": 0.02078059824180388,
-      "maximum_fisher_eigenvalue": 0.35485161798453024,
-      "fisher_condition_number": 17.076102134089812,
-      "log_determinant_fisher": -15.218882012962347,
-      "trace_gls_covariance": 106.44467155522625
+      "minimum_fisher_eigenvalue": 0.02098658266912344,
+      "maximum_fisher_eigenvalue": 0.35687739014878495,
+      "fisher_condition_number": 17.005026295864816,
+      "log_determinant_fisher": -15.037189651998585,
+      "trace_gls_covariance": 105.77207735813087
     }
   },
   "execution": {
