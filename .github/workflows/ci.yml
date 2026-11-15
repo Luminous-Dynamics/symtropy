@@ -84,5 +84,12 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Test Factory Reconfiguration Replay
+      if: ${{ hashFiles('tools/factory-reconfig-replay/Cargo.toml') != '' }}
+      run: |
+        cargo fmt --manifest-path tools/factory-reconfig-replay/Cargo.toml --all -- --check
+        cargo clippy --manifest-path tools/factory-reconfig-replay/Cargo.toml --locked --all-targets -- -D warnings
+        cargo test --manifest-path tools/factory-reconfig-replay/Cargo.toml --locked --all-targets
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
