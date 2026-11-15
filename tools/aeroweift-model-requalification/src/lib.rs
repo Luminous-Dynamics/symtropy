@@ -348,7 +348,8 @@ pub fn evaluate_claim(
     let mut event_ids = BTreeSet::new();
     let mut evaluated_dependencies = claim.dependencies.clone();
 
-    // Canonical event order makes input-array permutation semantically irrelevant.
+    // Source sequence controls causal digest succession; effective and recorded times
+    // only control whether an event is visible at the requested bitemporal cutoff.
     let mut ordered_events: Vec<&ChangeEvent> = events
         .iter()
         .filter(|event| {
@@ -357,15 +358,11 @@ pub fn evaluate_claim(
         .collect();
     ordered_events.sort_by(|left, right| {
         (
-            left.effective_at,
-            left.recorded_at,
             left.source_id.as_str(),
             left.source_sequence,
             left.event_id.as_str(),
         )
             .cmp(&(
-                right.effective_at,
-                right.recorded_at,
                 right.source_id.as_str(),
                 right.source_sequence,
                 right.event_id.as_str(),
@@ -452,14 +449,7 @@ pub fn evaluate_claim(
                     && event.recorded_at <= claim.recorded_at
                     && event.evidence_state == ChangeEvidenceState::OwnerQualified
             })
-            .max_by_key(|event| {
-                (
-                    event.effective_at,
-                    event.recorded_at,
-                    event.source_sequence,
-                    event.event_id.as_str(),
-                )
-            });
+            .max_by_key(|event| event.source_sequence);
         if let Some(event) = latest_baseline
             && event.successor_digest != dependency.digest
         {
