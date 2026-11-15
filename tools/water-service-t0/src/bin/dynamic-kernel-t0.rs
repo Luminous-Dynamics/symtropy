@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, env, fs, path::{Path, PathBuf}};
 
 const PROGRAMME: &str = "WATER-MIXING-DYNAMIC-OPERATOR-001";
-const CASE_COUNT: usize = 13;
+const CASE_COUNT: usize = 14;
 const EVIDENCE_CEILING: &str = "synthetic discrete causal-kernel arithmetic only";
 
 type Matrix = Vec<Vec<f64>>;
@@ -385,4 +385,12 @@ mod tests{
     #[test]fn inadequate_sampling_resolution_is_explicit(){assert_eq!(row("DK-T0-012-temporal-resolution-inadequate")["operator_disposition"],"TEMPORAL_RESOLUTION_INADEQUATE");}
     #[test]fn incomplete_outlet_observation_is_not_a_complete_operator(){assert_eq!(row("DK-T0-013-partial-outlet-boundary")["operator_disposition"],"PARTIAL_OUTLET_BOUNDARY");}
     #[test]fn kernel_area_above_one_is_rejected(){let mut x=load("input");x["cases"][0]["inputs"]["kernel"][0][0][0]=json!(1.2);assert_eq!(compute(&x["cases"][0]["inputs"],0.1).unwrap()["operator_disposition"],"INVALID_KERNEL");}
+    #[test]fn positive_mass_rescaling_preserves_kernel_disposition(){
+        let base=row("DK-T0-001-static-zero-delay-limit");
+        let scaled=row("DK-T0-014-positive-mass-time-scale-invariance");
+        assert_eq!(base["operator_disposition"],scaled["operator_disposition"]);
+        assert_eq!(base["per_inlet_kernel_area"],scaled["per_inlet_kernel_area"]);
+        assert!((scaled["injected_mass"].as_f64().unwrap()-10.0*base["injected_mass"].as_f64().unwrap()).abs()<1.0e-9);
+        assert!((scaled["mass_residual_standard_uncertainty"].as_f64().unwrap()-10.0*base["mass_residual_standard_uncertainty"].as_f64().unwrap()).abs()<1.0e-9);
+    }
 }
