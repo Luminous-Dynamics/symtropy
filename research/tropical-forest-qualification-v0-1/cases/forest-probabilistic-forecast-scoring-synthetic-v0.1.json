@@ -9,7 +9,7 @@
     "horizon_days": 365
   },
   "baseline_kind": "SYNTHETIC_POINT_MASS_REFERENCE",
-  "claim_ceiling": "Six public synthetic continuous forecast cases exercise empirical CRPS, nearest-rank interval diagnostics, paired CRPS skill against a baseline, and explicit abstention coverage. A separate six-case confidence-ranked slice exercises the full empirical CRPS risk–coverage curve. Five forecasts are emitted and one abstains in the main slice. This is not a calibrated forecast, an ecological evaluation, a blind test or a claim of SOTA skill.",
+  "claim_ceiling": "Six public synthetic continuous forecast cases exercise empirical CRPS, weighted interval score (WIS), nearest-rank interval diagnostics, paired CRPS/WIS skill against a baseline, and explicit abstention coverage. A separate six-case confidence-ranked slice exercises the full empirical CRPS risk–coverage curve. Five forecasts are emitted and one abstains in the main slice. This is not a calibrated forecast, an ecological evaluation, a blind test or a claim of SOTA skill.",
   "cases": [
     {
       "forecast_id": "FORECAST-CRPS-TWO-MEMBER-REFERENCE-001",
@@ -35,7 +35,9 @@
         "lower_80": 0,
         "upper_80": 2,
         "lower_95": 0,
-        "upper_95": 2
+        "upper_95": 2,
+        "model_wis": 0.35714285714285715,
+        "baseline_wis": 1
       }
     },
     {
@@ -62,7 +64,9 @@
         "lower_80": 1,
         "upper_80": 3,
         "lower_95": 1,
-        "upper_95": 3
+        "upper_95": 3,
+        "model_wis": 0.35714285714285715,
+        "baseline_wis": 2
       }
     },
     {
@@ -89,7 +93,9 @@
         "lower_80": 2,
         "upper_80": 2,
         "lower_95": 2,
-        "upper_95": 2
+        "upper_95": 2,
+        "model_wis": 3,
+        "baseline_wis": 5
       }
     },
     {
@@ -118,7 +124,9 @@
         "lower_80": -2,
         "upper_80": 4,
         "lower_95": -2,
-        "upper_95": 4
+        "upper_95": 4,
+        "model_wis": 0.6428571428571429,
+        "baseline_wis": 1
       }
     },
     {
@@ -142,7 +150,9 @@
         "lower_80": null,
         "upper_80": null,
         "lower_95": null,
-        "upper_95": null
+        "upper_95": null,
+        "model_wis": null,
+        "baseline_wis": 4
       }
     },
     {
@@ -169,7 +179,9 @@
         "lower_80": 8,
         "upper_80": 10,
         "lower_95": 8,
-        "upper_95": 10
+        "upper_95": 10,
+        "model_wis": 7.214285714285714,
+        "baseline_wis": 1
       }
     }
   ],
@@ -188,7 +200,11 @@
     "interval_coverage_95": 0.6,
     "mean_interval_width_80": 2.4,
     "mean_interval_width_95": 2.4,
-    "disposition": "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE"
+    "disposition": "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE",
+    "mean_model_wis": 2.3142857142857145,
+    "mean_baseline_wis_paired": 2,
+    "mean_baseline_wis_all": 2.3333333333333335,
+    "wis_skill_score": -0.15714285714285725
   },
   "execution": {
     "runner": "EMPIRICAL_ENSEMBLE_CRPS_AND_SELECTIVE_COVERAGE",
