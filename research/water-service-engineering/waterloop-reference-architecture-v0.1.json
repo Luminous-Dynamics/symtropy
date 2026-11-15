@@ -513,7 +513,9 @@
     "initial_state": "BYPASS_SAFE",
     "safe_states": [
       "BYPASS_SAFE",
-      "MAINTENANCE_LOCKOUT"
+      "MAINTENANCE_LOCKOUT",
+      "POWER_LOSS_SAFE",
+      "SENSOR_OR_COMMS_LOSS_SAFE"
     ],
     "states": [
       "BYPASS_SAFE",
