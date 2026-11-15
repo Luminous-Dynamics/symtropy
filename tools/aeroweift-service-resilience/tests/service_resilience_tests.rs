@@ -253,6 +253,10 @@ fn common_mode_providers_do_not_count_as_independent_redundancy() {
         1
     );
     assert_eq!(
+        result.affected_service_ids,
+        vec!["surveillance-service-1".to_string(), "surveillance-service-2".to_string()]
+    );
+    assert_eq!(
         result.disposition,
         FlightEvidenceDisposition::NewPlanningBlocked
     );
@@ -522,5 +526,36 @@ fn invalid_effective_or_knowledge_cutoff_is_rejected() {
     assert_eq!(
         evaluate_flight(&flight, &healthy_services(), cutoff(-1, 50), &policy()),
         Err(ResilienceError::InvalidCutoff)
+    );
+}
+
+
+#[test]
+fn unqualified_provider_outage_claim_is_indeterminate_not_a_confirmed_failure() {
+    let flight = scope("flight-a", FlightMode::Proposed);
+    let mut services = healthy_services();
+    services[0].declared_state = DeclaredServiceState::Unavailable;
+    services[0].owner_evidence = OwnerEvidenceState::Unqualified;
+    let result = evaluate_flight(&flight, &services, cutoff(50, 50), &policy()).unwrap();
+    assert_eq!(
+        result.capabilities[1].status,
+        CapabilityStatus::Unqualified
+    );
+    assert_eq!(
+        result.disposition,
+        FlightEvidenceDisposition::NewPlanningBlocked
+    );
+}
+
+#[test]
+fn untrusted_conflict_report_cannot_claim_conflicting_provider_state() {
+    let flight = scope("flight-a", FlightMode::Proposed);
+    let mut services = healthy_services();
+    services[0].declared_state = DeclaredServiceState::Conflicting;
+    services[0].trust_evidence = TrustEvidenceState::Unqualified;
+    let result = evaluate_flight(&flight, &services, cutoff(50, 50), &policy()).unwrap();
+    assert_eq!(
+        result.capabilities[1].status,
+        CapabilityStatus::Unqualified
     );
 }
