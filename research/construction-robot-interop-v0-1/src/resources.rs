@@ -989,14 +989,14 @@ mod tests {
         }
 
         for capacity in [1_u32, 2, 3, 4, 5, 8] {
-            book.resources
-                .insert("work-zone-A".to_owned(), capacity);
+            book.resources.insert("work-zone-A".to_owned(), capacity);
             for (start_index, start) in
-                [500_u64, 1_000, 2_500, 5_000, 9_999, 12_000, 18_000, 25_000].into_iter().enumerate()
-            {
-                for (duration_index, duration) in [100_u64, 250, 1_000, 5_000, 12_000]
+                [500_u64, 1_000, 2_500, 5_000, 9_999, 12_000, 18_000, 25_000]
                     .into_iter()
                     .enumerate()
+            {
+                for (duration_index, duration) in
+                    [100_u64, 250, 1_000, 5_000, 12_000].into_iter().enumerate()
                 {
                     for units in [1_u32, 2, 3] {
                         let uncertainty = [0_u64, 50, 250, 500]
@@ -1017,8 +1017,7 @@ mod tests {
                         let indexed = book.preview_reservation(&candidate, 0);
                         let full_scan = full_scan_capacity_preview(&book, &candidate, 0);
                         assert_eq!(
-                            indexed,
-                            full_scan,
+                            indexed, full_scan,
                             "capacity verdict diverged: capacity={capacity}, candidate={candidate:?}"
                         );
                     }
@@ -1097,18 +1096,9 @@ mod tests {
         assert!(book.global_by_resource.is_empty());
         assert!(book.expiry_index.is_empty());
 
-        assert_eq!(
-            book.state("trace-0"),
-            Some(ReservationState::Released)
-        );
-        assert_eq!(
-            book.state("trace-2"),
-            Some(ReservationState::Expired)
-        );
-        assert_eq!(
-            book.state("trace-419"),
-            Some(ReservationState::Invalidated)
-        );
+        assert_eq!(book.state("trace-0"), Some(ReservationState::Released));
+        assert_eq!(book.state("trace-2"), Some(ReservationState::Expired));
+        assert_eq!(book.state("trace-419"), Some(ReservationState::Invalidated));
         assert_eq!(book.reservations.len(), 420);
     }
 
@@ -1623,11 +1613,8 @@ mod tests {
             book.reserve(item, 0).expect("historical reservation");
         }
         for index in 0..1_900_u64 {
-            book.release(
-                &format!("history-{index}"),
-                &format!("robot-{index}"),
-            )
-            .expect("owner release");
+            book.release(&format!("history-{index}"), &format!("robot-{index}"))
+                .expect("owner release");
         }
 
         assert_eq!(
@@ -1656,41 +1643,8 @@ mod tests {
     #[test]
     fn inconsistent_active_epoch_index_rejects_before_any_mutation() {
         let mut book = book(2);
-        book.reserve(
-            request("valid-active", "robot-a", 100, 200, 300, 1),
-            0,
-        )
-        .expect("active reservation");
-        let before_buckets = book.time_buckets.clone();
-        let before_expiry = book.expiry_index.clone();
-        book.active_by_resource
-            .get_mut("work-zone-A")
-            .expect("active resource index")
-            .insert("missing-reservation-id".to_owned());
-
-        assert_eq!(
-            book.advance_site_epoch("site-epoch-2"),
-            Err(ReservationError::IndexInconsistent(
-                "missing-reservation-id".to_owned()
-            ))
-        );
-        assert_eq!(book.current_site_epoch(), "site-epoch-1");
-        assert_eq!(
-            book.state("valid-active"),
-            Some(ReservationState::Active)
-        );
-        assert_eq!(book.time_buckets, before_buckets);
-        assert_eq!(book.expiry_index, before_expiry);
-    }
-
-    #[test]
-    fn inconsistent_active_epoch_index_rejects_before_any_mutation() {
-        let mut book = book(2);
-        book.reserve(
-            request("valid-active", "robot-a", 100, 200, 300, 1),
-            0,
-        )
-        .expect("active reservation");
+        book.reserve(request("valid-active", "robot-a", 100, 200, 300, 1), 0)
+            .expect("active reservation");
         let before_buckets = book.time_buckets.clone();
         let before_expiry = book.expiry_index.clone();
         book.active_by_resource
