@@ -35,12 +35,24 @@
       "asset_id": "carrier-01",
       "kind": "road_carrier",
       "capability_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "maximum_payload_mass_g": 25000,
+      "maximum_payload_dimensions_mm": {
+        "length_mm": 1000,
+        "width_mm": 700,
+        "height_mm": 600
+      },
       "supported_modes": ["road"]
     },
     {
       "asset_id": "transfer-gate-01",
       "kind": "transfer_mechanism",
       "capability_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "maximum_payload_mass_g": 10000,
+      "maximum_payload_dimensions_mm": {
+        "length_mm": 400,
+        "width_mm": 400,
+        "height_mm": 300
+      },
       "supported_modes": ["fixed_transfer"]
     }
   ],
@@ -68,6 +80,11 @@
       "length_mm": 300,
       "width_mm": 250,
       "height_mm": 200
+    },
+    "external_dimensions_mm": {
+      "length_mm": 320,
+      "width_mm": 270,
+      "height_mm": 220
     },
     "tare_mass_g": 700,
     "maximum_gross_mass_g": 5000,
