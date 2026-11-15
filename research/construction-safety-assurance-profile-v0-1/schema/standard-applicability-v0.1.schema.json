@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-safety-applicability-v0.1.json",
+  "title": "Construction Robotics Safety Standard Applicability Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "assessed_at",
+    "source_basis",
+    "machine_classes",
+    "standards",
+    "revision_watch",
+    "prohibited_inferences"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-safety-applicability/0.1"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assessed_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "source_basis": {
+      "type": "string",
+      "minLength": 1
+    },
+    "machine_classes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "class_id",
+          "description",
+          "standard_hypotheses",
+          "mandatory_review_questions"
+        ],
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard_hypotheses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mandatory_review_questions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "standards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "edition_or_series",
+          "publication_status",
+          "status_as_of",
+          "scope_summary",
+          "scope_exclusions_or_limits",
+          "default_applicability",
+          "source_urls",
+          "symtropy_evidence_relationship",
+          "non_claim"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "edition_or_series": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publication_status": {
+            "enum": [
+              "PUBLISHED",
+              "UNDER_DEVELOPMENT",
+              "SERIES_OVERVIEW"
+            ]
+          },
+          "status_as_of": {
+            "type": "string",
+            "format": "date"
+          },
+          "scope_summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scope_exclusions_or_limits": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "default_applicability": {
+            "enum": [
+              "APPLICABLE",
+              "PARTIALLY_APPLICABLE",
+              "OUT_OF_SCOPE",
+              "REQUIRES_EXPERT_REVIEW",
+              "NOT_ASSESSED"
+            ]
+          },
+          "source_urls": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "symtropy_evidence_relationship": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "non_claim": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "revision_watch": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identifier",
+          "status",
+          "source_url",
+          "handling"
+        ],
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "handling": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "prohibited_inferences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
