@@ -137,118 +137,118 @@ fn make_case(
         chord_distance,
         candidate,
     ) = match family {
-            Family::Linear => {
-                let length = if is_holdout {
-                    3_000 + rng.range(3_001)
-                } else {
-                    200 + rng.range(2_800)
-                };
-                let start = Point {
-                    x: -length,
-                    y: 0,
-                    z: 0,
-                };
-                let end = Point {
-                    x: length,
-                    y: 0,
-                    z: 0,
-                };
-                let obstacle = Point {
-                    x: -length - 500 + rng.range((2 * length + 1_001) as u32),
-                    y: rng.range(1_201) - 600,
-                    z: rng.range(801) - 400,
-                };
-                let analytic = point_segment_distance(obstacle, start, end);
-                let endpoint = distance(obstacle, start).min(distance(obstacle, end));
-                let minimum = Point {
-                    x: -length - moving_radius,
-                    y: -moving_radius,
-                    z: -moving_radius,
-                };
-                let maximum = Point {
-                    x: length + moving_radius,
-                    y: moving_radius,
-                    z: moving_radius,
-                };
-                let obstacle_min = Point {
-                    x: obstacle.x - obstacle_radius,
-                    y: obstacle.y - obstacle_radius,
-                    z: obstacle.z - obstacle_radius,
-                };
-                let obstacle_max = Point {
-                    x: obstacle.x + obstacle_radius,
-                    y: obstacle.y + obstacle_radius,
-                    z: obstacle.z + obstacle_radius,
-                };
-                (
-                    start,
-                    end,
-                    "\"arc_radius_mm\":0,\"arc_z_mm\":0".to_owned(),
-                    obstacle,
-                    analytic,
-                    endpoint,
-                    analytic,
-                    aabb_overlap(minimum, maximum, obstacle_min, obstacle_max),
-                )
-            }
-            Family::UpperSemicircle => {
-                let radius = if is_holdout {
-                    2_000 + rng.range(3_001)
-                } else {
-                    300 + rng.range(1_700)
-                };
-                let degrees = rng.range(360) - 90;
-                let angle = (degrees as f64).to_radians();
-                let radial = (radius + rng.range(1_001) - 500).max(50);
-                let obstacle = Point {
-                    x: ((radial as f64) * angle.cos()).round() as i64,
-                    y: ((radial as f64) * angle.sin()).round() as i64,
-                    z: rng.range(501) - 250,
-                };
-                let start = Point {
-                    x: -radius,
-                    y: 0,
-                    z: 0,
-                };
-                let end = Point {
-                    x: radius,
-                    y: 0,
-                    z: 0,
-                };
-                let analytic = semicircle_distance(obstacle, radius);
-                let endpoint = distance(obstacle, start).min(distance(obstacle, end));
-                let chord = point_segment_distance(obstacle, start, end);
-                let minimum = Point {
-                    x: -radius - moving_radius,
-                    y: -moving_radius,
-                    z: -moving_radius,
-                };
-                let maximum = Point {
-                    x: radius + moving_radius,
-                    y: radius + moving_radius,
-                    z: moving_radius,
-                };
-                let obstacle_min = Point {
-                    x: obstacle.x - obstacle_radius,
-                    y: obstacle.y - obstacle_radius,
-                    z: obstacle.z - obstacle_radius,
-                };
-                let obstacle_max = Point {
-                    x: obstacle.x + obstacle_radius,
-                    y: obstacle.y + obstacle_radius,
-                    z: obstacle.z + obstacle_radius,
-                };
-                (
-                    start,
-                    end,
-                    format!("\"arc_radius_mm\":{radius},\"arc_z_mm\":0"),
-                    obstacle,
-                    analytic,
-                    endpoint,
-                    chord,
-                    aabb_overlap(minimum, maximum, obstacle_min, obstacle_max),
-                )
-            }
+        Family::Linear => {
+            let length = if is_holdout {
+                3_000 + rng.range(3_001)
+            } else {
+                200 + rng.range(2_800)
+            };
+            let start = Point {
+                x: -length,
+                y: 0,
+                z: 0,
+            };
+            let end = Point {
+                x: length,
+                y: 0,
+                z: 0,
+            };
+            let obstacle = Point {
+                x: -length - 500 + rng.range((2 * length + 1_001) as u32),
+                y: rng.range(1_201) - 600,
+                z: rng.range(801) - 400,
+            };
+            let analytic = point_segment_distance(obstacle, start, end);
+            let endpoint = distance(obstacle, start).min(distance(obstacle, end));
+            let minimum = Point {
+                x: -length - moving_radius,
+                y: -moving_radius,
+                z: -moving_radius,
+            };
+            let maximum = Point {
+                x: length + moving_radius,
+                y: moving_radius,
+                z: moving_radius,
+            };
+            let obstacle_min = Point {
+                x: obstacle.x - obstacle_radius,
+                y: obstacle.y - obstacle_radius,
+                z: obstacle.z - obstacle_radius,
+            };
+            let obstacle_max = Point {
+                x: obstacle.x + obstacle_radius,
+                y: obstacle.y + obstacle_radius,
+                z: obstacle.z + obstacle_radius,
+            };
+            (
+                start,
+                end,
+                "\"arc_radius_mm\":0,\"arc_z_mm\":0".to_owned(),
+                obstacle,
+                analytic,
+                endpoint,
+                analytic,
+                aabb_overlap(minimum, maximum, obstacle_min, obstacle_max),
+            )
+        }
+        Family::UpperSemicircle => {
+            let radius = if is_holdout {
+                2_000 + rng.range(3_001)
+            } else {
+                300 + rng.range(1_700)
+            };
+            let degrees = rng.range(360) - 90;
+            let angle = (degrees as f64).to_radians();
+            let radial = (radius + rng.range(1_001) - 500).max(50);
+            let obstacle = Point {
+                x: ((radial as f64) * angle.cos()).round() as i64,
+                y: ((radial as f64) * angle.sin()).round() as i64,
+                z: rng.range(501) - 250,
+            };
+            let start = Point {
+                x: -radius,
+                y: 0,
+                z: 0,
+            };
+            let end = Point {
+                x: radius,
+                y: 0,
+                z: 0,
+            };
+            let analytic = semicircle_distance(obstacle, radius);
+            let endpoint = distance(obstacle, start).min(distance(obstacle, end));
+            let chord = point_segment_distance(obstacle, start, end);
+            let minimum = Point {
+                x: -radius - moving_radius,
+                y: -moving_radius,
+                z: -moving_radius,
+            };
+            let maximum = Point {
+                x: radius + moving_radius,
+                y: radius + moving_radius,
+                z: moving_radius,
+            };
+            let obstacle_min = Point {
+                x: obstacle.x - obstacle_radius,
+                y: obstacle.y - obstacle_radius,
+                z: obstacle.z - obstacle_radius,
+            };
+            let obstacle_max = Point {
+                x: obstacle.x + obstacle_radius,
+                y: obstacle.y + obstacle_radius,
+                z: obstacle.z + obstacle_radius,
+            };
+            (
+                start,
+                end,
+                format!("\"arc_radius_mm\":{radius},\"arc_z_mm\":0"),
+                obstacle,
+                analytic,
+                endpoint,
+                chord,
+                aabb_overlap(minimum, maximum, obstacle_min, obstacle_max),
+            )
+        }
         };
 
     let contact = analytic_distance <= (moving_radius + obstacle_radius) as f64;
