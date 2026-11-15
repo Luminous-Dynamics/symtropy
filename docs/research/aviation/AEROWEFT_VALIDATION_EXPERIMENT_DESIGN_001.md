@@ -63,7 +63,7 @@ Hard eligibility gates include:
 - independent reference measurement/oracle available;
 - semantic equivalence established for cross-implementation comparisons;
 - no use of sealed confirmatory or challenge outcomes to select the experiment;
-- two or more exact model hypotheses with distinct artifact digests and correlation/lineage groups for model-discrimination claims; explicit pairwise contrasts name both hypothesis IDs, provide a conservative lower bound on predicted outcome separation, and bind a contrast-estimate digest; multiple variants from one correlated family count as one group-pair, not multiple independent distinctions;
+- two or more exact model hypotheses with distinct artifact digests and correlation/lineage groups for model-discrimination claims; explicit pairwise contrasts name both hypothesis IDs, provide a conservative lower bound on predicted outcome separation, and bind a contrast-estimate digest; multiple variants from one correlated family count as one group-pair, not multiple independent distinctions; the reported Pareto pair count and dominance relation use the same frozen minimum contrast-separation threshold as admission;
 - probability of an uninformative result below a frozen policy maximum;
 - frozen policy thresholds and cost budget satisfied.
 
@@ -71,7 +71,7 @@ Only after eligibility is established does Pareto ranking happen. Benefits are m
 
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 57 adversarial tests:
+The dependency-free Rust suite currently contains 58 adversarial tests:
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
@@ -150,4 +150,4 @@ A passing result qualifies the selector only for the supplied synthetic candidat
 
 ### Semantic boundary clarification
 
-Controlled flight always requires external authorization; the frozen campaign policy has an explicit `authorization_required_modalities` set and can require it for HIL or other modalities too. For model-form discrimination, the common scenario/measurement contract and explicit pairwise prediction contrasts must match, but competing model outputs are expected to differ; implementation-equivalence receipts are required specifically for cross-implementation comparisons, not as a blanket requirement for physical model hypotheses.
+Controlled flight always requires external authorization; the frozen campaign policy has an explicit `authorization_required_modalities` set and can require it for HIL or other modalities too. For model-form discrimination, the common scenario/measurement contract and explicit pairwise prediction contrasts must match, but competing model outputs are expected to differ; implementation-equivalence receipts are required specifically for cross-implementation comparisons, not as a blanket requirement for physical model hypotheses. The Pareto result's model-family-pair count uses the exact same policy separation floor used for admission.
