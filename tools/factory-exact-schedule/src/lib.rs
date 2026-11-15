@@ -866,6 +866,24 @@ mod tests {
     }
 
     #[test]
+    fn verifier_rejects_incomplete_machine_order_certificate() {
+        let instance = reference_instance();
+        let result = solve_exact(&instance);
+        let mut schedule = result.optimal_schedule.unwrap();
+        schedule.machine_orders[0].operation_ids.pop();
+        assert!(!verify_schedule(&instance, &schedule));
+    }
+
+    #[test]
+    fn verifier_rejects_timestamp_tampering() {
+        let instance = reference_instance();
+        let result = solve_exact(&instance);
+        let mut schedule = result.optimal_schedule.unwrap();
+        schedule.operations[0].processing_end += 1;
+        assert!(!verify_schedule(&instance, &schedule));
+    }
+
+    #[test]
     fn deterministic_exact_result_is_reproducible() {
         assert_eq!(solve_exact(&reference_instance()), solve_exact(&reference_instance()));
     }
