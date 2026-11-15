@@ -35,6 +35,11 @@ fn valid_input() -> CompositionInput {
         intent_disposition: IntentDisposition::Conforming,
         intent_receipt_ref: Some("synthetic-intent-receipt"),
         intent_identity: IDENTITY,
+        profile_required_traffic_classes: vec![
+            TrafficClass::CooperativeCrewed,
+            TrafficClass::NonCooperativeCrewed,
+        ],
+        profile_traffic_class_requirement_ref: Some("synthetic-profile-traffic-class-requirement"),
         required_traffic_classes: vec![
             TrafficClass::CooperativeCrewed,
             TrafficClass::NonCooperativeCrewed,
@@ -183,6 +188,14 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
                 item.identity.frame_id = "";
             }
         }
+        40 => input.profile_traffic_class_requirement_ref = None,
+        41 => input.profile_required_traffic_classes.clear(),
+        42 => input
+            .profile_required_traffic_classes
+            .retain(|class| *class == TrafficClass::CooperativeCrewed),
+        43 => input
+            .profile_required_traffic_classes
+            .push(TrafficClass::NonCooperativeCrewed),
         _ => unreachable!("fault index is bounded by the campaign"),
     }
 }
@@ -560,7 +573,7 @@ fn duplicate_required_traffic_class_is_rejected() {
 
 #[test]
 fn exhaustive_pairs_and_seeded_ten_thousand_fault_trials_never_admit() {
-    const FAULTS: usize = 40;
+    const FAULTS: usize = 44;
 
     // Exhaust every single mutator and every unordered pair of mutators.
     for first in 0..FAULTS {
@@ -606,6 +619,56 @@ fn exhaustive_pairs_and_seeded_ten_thousand_fault_trials_never_admit() {
         );
         assert!(result.class_occupancy.is_empty());
     }
+}
+
+#[test]
+fn missing_profile_traffic_class_requirement_receipt_blocks_composition() {
+    let mut input = valid_input();
+    input.profile_traffic_class_requirement_ref = None;
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::MissingProfileTrafficClassRequirementReceipt)
+    );
+}
+
+#[test]
+fn profile_owned_required_class_set_cannot_be_empty() {
+    let mut input = valid_input();
+    input.profile_required_traffic_classes.clear();
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::NoProfileRequiredTrafficClasses)
+    );
+}
+
+#[test]
+fn request_cannot_omit_a_profile_required_traffic_class() {
+    let mut input = valid_input();
+    input
+        .required_traffic_classes
+        .retain(|class| *class == TrafficClass::CooperativeCrewed);
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::ProfileTrafficClassRequirementMismatch)
+    );
+}
+
+#[test]
+fn profile_cannot_duplicate_a_required_traffic_class() {
+    let mut input = valid_input();
+    input
+        .profile_required_traffic_classes
+        .push(TrafficClass::NonCooperativeCrewed);
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::DuplicateProfileRequiredTrafficClass(
+            TrafficClass::NonCooperativeCrewed
+        ))
+    );
 }
 
 #[test]
