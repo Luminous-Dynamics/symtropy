@@ -3,9 +3,9 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_production_optioneering_core::{
-    evaluate_option_set, EvidenceDisposition, FunctionalOutcomeContract, OptionCandidate,
-    MeasurementBasis, OptionTier, PerformanceRequirement, ScenarioCase, ScenarioResult, StageDisposition,
-    StageGateDecision,
+    EvidenceDisposition, FunctionalOutcomeContract, MeasurementBasis, OptionCandidate, OptionTier,
+    PerformanceRequirement, ScenarioCase, ScenarioResult, StageDisposition, StageGateDecision,
+    evaluate_option_set,
 };
 
 fn contract() -> FunctionalOutcomeContract {
@@ -38,12 +38,7 @@ fn qualified(id: &str) -> EvidenceDisposition {
     }
 }
 
-fn scenario_result(
-    index: usize,
-    scenario_id: &str,
-    cost: u64,
-    duration: u64,
-) -> ScenarioResult {
+fn scenario_result(index: usize, scenario_id: &str, cost: u64, duration: u64) -> ScenarioResult {
     let design = format!("design-option-{index:05}");
     ScenarioResult {
         scenario_id: scenario_id.to_owned(),
@@ -86,12 +81,7 @@ fn options(size: usize) -> Vec<OptionCandidate> {
                 ),
                 (
                     "outage-rework".to_owned(),
-                    scenario_result(
-                        index,
-                        "outage-rework",
-                        cost + 500,
-                        nominal_duration + 4_000,
-                    ),
+                    scenario_result(index, "outage-rework", cost + 500, nominal_duration + 4_000),
                 ),
             ]);
             OptionCandidate {
