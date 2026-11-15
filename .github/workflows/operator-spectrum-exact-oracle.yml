@@ -42,7 +42,7 @@ jobs:
       - name: Install pinned exact-rational oracle
         run: python3 -m pip install --disable-pip-version-check sympy==1.14.0
       - name: Verify frozen fixture against exact rational root isolation
-        run: python3 research/operator-spectrum-oracle-001/operator_spectrum_oracle.py --check-fixture
+        run: python3 research/operator-spectrum-oracle-001/operator_spectrum_oracle.py --input research/operator-spectrum-oracle-001/operator-spectrum-inputs-v0.1.json --check-fixture
       - name: Format
         run: cargo fmt --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all -- --check
       - name: Test all metric and operator contracts
