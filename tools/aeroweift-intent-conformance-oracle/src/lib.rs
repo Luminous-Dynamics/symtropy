@@ -315,6 +315,8 @@ pub enum ConformanceReason {
     InvalidObservedAtInterval,
     /// Receipt precedes the latest possible observation time.
     ReceiptBeforeObservation,
+    /// Receipt tick is later than the evaluation tick.
+    ReceiptAfterEvaluation,
     /// Observation is stale based on observed-at, not receipt time.
     StaleObservation,
     /// Upstream PNT/time evidence is unqualified.
@@ -615,7 +617,10 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         };
         covered_window_ticks = next_covered;
 
-        let reason = if !observation.position.is_valid() {
+        let reason = if observation.observation_id.trim().is_empty()
+            || observation.source_id.trim().is_empty()
+            || !observation.position.is_valid()
+        {
             Some(ConformanceReason::InvalidObservationWindow)
         } else if !observation.observed_at.is_valid()
             || observation.observed_at.lower < support.start
@@ -624,6 +629,8 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             Some(ConformanceReason::InvalidObservedAtInterval)
         } else if observation.receipt_tick < observation.observed_at.upper {
             Some(ConformanceReason::ReceiptBeforeObservation)
+        } else if observation.receipt_tick > policy.evaluation_tick {
+            Some(ConformanceReason::ReceiptAfterEvaluation)
         } else if observation
             .receipt_tick
             .checked_sub(observation.observed_at.lower)
@@ -756,10 +763,7 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         );
     };
 
-    let qualified_observed = match definite_inside
-        .checked_add(definite_outside)
-        .and_then(|value| value.checked_add(possible_outside.saturating_sub(definite_outside)))
-    {
+    let qualified_observed = match definite_inside.checked_add(possible_outside) {
         Some(value) => value,
         None => {
             return empty(
