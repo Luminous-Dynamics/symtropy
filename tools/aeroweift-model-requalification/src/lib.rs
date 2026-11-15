@@ -131,6 +131,8 @@ pub struct ChangeFeedCoverage {
     pub first_sequence: u64,
     /// Last source sequence included in this coverage statement.
     pub last_sequence: u64,
+    /// Knowledge/record time at which this coverage manifest became available.
+    pub recorded_at: i64,
     /// Source's completeness assertion.
     pub completeness: CoverageCompleteness,
     /// Owner-declared evidence state for the coverage receipt.
@@ -206,6 +208,14 @@ pub enum EvaluationError {
 pub struct ClaimAssessment {
     /// Claim being assessed.
     pub claim_id: String,
+    /// Exact model-validation package digest for the claim.
+    pub validation_package_sha256: String,
+    /// Effective-time cutoff used for this assessment.
+    pub effective_cutoff: i64,
+    /// Knowledge-time cutoff used for this assessment.
+    pub knowledge_cutoff: i64,
+    /// Exact change-impact policy digest used for this assessment.
+    pub policy_sha256: String,
     /// Status at this effective-time and knowledge-time cutoff.
     pub status: ClaimStatus,
     /// Dependency dimensions with known relevant change events.
@@ -291,6 +301,7 @@ fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationEr
     let mut keys = BTreeSet::new();
     for item in coverage {
         if item.source_id.trim().is_empty()
+            || item.recorded_at < 0
             || item.knowledge_from > item.knowledge_through
             || !is_sha256(&item.manifest_sha256)
             || item.effective_from > item.effective_through
@@ -349,7 +360,13 @@ pub fn evaluate_claim(
     // Events outside either requested cutoff were not part of this historical view.
     // They must not poison an earlier as-known assessment.
     validate_events(&eligible_events)?;
-    validate_coverage(coverage)?;
+    let eligible_coverage: Vec<ChangeFeedCoverage> = coverage
+        .iter()
+        .filter(|item| item.recorded_at <= cutoff.known_at)
+        .cloned()
+        .collect();
+    // A future-recorded coverage correction cannot change an earlier as-known view.
+    validate_coverage(&eligible_coverage)?;
     if !is_sha256(&policy.policy_sha256) {
         return Err(EvaluationError::InvalidClaim);
     }
@@ -381,7 +398,7 @@ pub fn evaluate_claim(
 
     for dependency in &claim.dependencies {
         if !coverage_is_complete(
-            coverage,
+            &eligible_coverage,
             dependency,
             cutoff,
             claim.validated_at_effective,
@@ -402,7 +419,7 @@ pub fn evaluate_claim(
             if event.source_id != dependency.change_source_id {
                 return Err(EvaluationError::ChangeSourceMismatch);
             }
-            let event_is_covered = coverage.iter().any(|item| {
+            let event_is_covered = eligible_coverage.iter().any(|item| {
                 item.dependency == dependency.kind
                     && item.source_id == dependency.change_source_id
                     && item.first_sequence <= event.source_sequence
@@ -507,8 +524,13 @@ pub fn evaluate_claim(
         ClaimStatus::StillApplicable
     };
 
+    evaluated_dependencies.sort_by_key(|dependency| dependency.kind);
     Ok(ClaimAssessment {
         claim_id: claim.claim_id.clone(),
+        validation_package_sha256: claim.validation_package_sha256.clone(),
+        effective_cutoff: cutoff.effective_at,
+        knowledge_cutoff: cutoff.known_at,
+        policy_sha256: policy.policy_sha256.clone(),
         status,
         affected_dimensions: affected.into_iter().collect(),
         event_ids: event_ids.into_iter().collect(),
