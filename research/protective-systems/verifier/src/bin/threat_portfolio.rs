@@ -17,11 +17,12 @@ const REGISTRY: &str =
 const CASES: &str =
     include_str!("../../../fixtures/protective-threat-decision-cases-v0.1.json");
 
-const DISPOSITIONS: [&str; 5] = [
+const DISPOSITIONS: [&str; 6] = [
     "INVEST_IMPLEMENT",
     "PILOT_VALIDATE",
     "MONITOR_PREPARE",
     "DEFER_NO_DEDICATED_INVESTMENT",
+    "ABSTAIN_INSUFFICIENT_CONTEXT",
     "REJECT_INFEASIBLE",
 ];
 
