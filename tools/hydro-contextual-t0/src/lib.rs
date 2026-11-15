@@ -681,7 +681,6 @@ fn interval_calibration_metrics(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn ensemble_crps(input: &Value) -> Result<Value, String> {
     let observed = number(input, "observed")?;
     let members = numeric_array(input, "ensemble_members")?;
@@ -695,7 +694,10 @@ fn ensemble_crps(input: &Value) -> Result<Value, String> {
         }));
     }
     let member_count = members.len() as f64;
-    let first_term = members.iter().map(|value| (value - observed).abs()).sum::<f64>()
+    let first_term = members
+        .iter()
+        .map(|value| (value - observed).abs())
+        .sum::<f64>()
         / member_count;
     let pairwise_sum = members
         .iter()
@@ -774,7 +776,10 @@ fn brier_reliability(input: &Value) -> Result<Value, String> {
             "reliability_bins": null
         }));
     }
-    if let Some(index) = outcomes.iter().position(|outcome| *outcome != 0.0 && *outcome != 1.0) {
+    if let Some(index) = outcomes
+        .iter()
+        .position(|outcome| *outcome != 0.0 && *outcome != 1.0)
+    {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
             "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
@@ -1101,7 +1106,6 @@ mod tests {
             "LOG10_TRANSFORM_REQUIRES_STRICTLY_POSITIVE_OBSERVED_AND_PREDICTED_FLOW"
         );
     }
-
 
     #[test]
     fn ensemble_crps_uses_full_member_distribution() {
