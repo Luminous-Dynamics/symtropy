@@ -16,6 +16,7 @@ pub mod support_kernel;
 pub mod spatial_localization_kernel;
 pub mod trajectory_budget_kernel;
 pub mod flux_identifiability_kernel;
+pub mod practical_identifiability_kernel;
 pub mod forestpaths_crosswalk_kernel;
 
 use sha2::{Digest, Sha256};
@@ -3847,6 +3848,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return flux_identifiability_kernel::validate_corpus(raw, &manifest);
     }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-FLUX-PRACTICAL-IDENTIFIABILITY-001")
+    {
+        return practical_identifiability_kernel::validate_corpus(raw, &manifest);
+    }
     if manifest.get("crosswalk_id").and_then(Value::as_str)
         == Some("FORESTPATHS-D-BEN-ADMISSION-001")
     {
@@ -4222,6 +4228,8 @@ mod tests {
         include_str!("../../cases/forest-process-trajectory-synthetic-v0.1.json");
     const FLUX_IDENTIFIABILITY_FIXTURE: &str =
         include_str!("../../cases/forest-flux-identifiability-synthetic-v0.1.json");
+    const PRACTICAL_IDENTIFIABILITY_FIXTURE: &str =
+        include_str!("../../cases/forest-flux-practical-identifiability-synthetic-v0.1.json");
     const FORESTPATHS_CROSSWALK_FIXTURE: &str =
         include_str!("../../cases/forestpaths-dben-source-crosswalk-v0.1.json");
 
@@ -4845,6 +4853,20 @@ mod tests {
         assert_eq!(
             receipt["source_manifest_sha256"],
             sha256_hex(FORESTPATHS_CROSSWALK_FIXTURE.as_bytes())
+        );
+    }
+
+    #[test]
+    fn practical_identifiability_corpus_dispatches_with_covariance_receipt() {
+        let receipt = evaluate(PRACTICAL_IDENTIFIABILITY_FIXTURE.as_bytes())
+            .expect("practical-identifiability corpus dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_PRACTICAL_IDENTIFIABILITY");
+        assert_eq!(receipt["baseline_structural_rank"], 2);
+        assert_eq!(receipt["full_rank_design_count"], 18);
+        assert_eq!(receipt["d_optimal_designs"][0].as_array().unwrap().len(), 6);
+        assert_eq!(
+            receipt["source_manifest_sha256"],
+            sha256_hex(PRACTICAL_IDENTIFIABILITY_FIXTURE.as_bytes())
         );
     }
 
