@@ -1,0 +1,151 @@
+{
+  "schema_version": "luminous.plasma-co2-quench-operating-points.v0",
+  "benchmark_id": "PLASMA-QUENCH-TWIN-001",
+  "frozen_at": "2026-11-15",
+  "claim_ceiling": "source_pinned_research_registry_not_luminous_measurement",
+  "physical_measurements_by_luminous": false,
+  "plasma_solver_outputs_by_luminous": false,
+  "ranking_policy": "no ranking until operating points have matched feed, regime, pressure, power boundary, product definition and auxiliary/thermal boundary",
+  "evidence_classes": ["PUBLISHED_LAB_EXPERIMENT", "PUBLISHED_NUMERICAL_STUDY"],
+  "operating_points": [
+    {
+      "id": "counterflow-magd-792w",
+      "source_case_id": "CO2-COUNTERFLOW-ARC-EXPERIMENT-2026",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "reactor": "atmospheric gliding arc with magnetic acceleration discharge stabilization and coaxial cold-gas counterflow",
+      "feed": "CO2",
+      "gas_flow_slm": 4.0,
+      "electrical_power_w": 792.0,
+      "observations": [
+        {"metric":"co2_conversion","value":0.236,"unit":"fraction","status":"source_reported_experiment"},
+        {"metric":"energy_efficiency","value":0.251,"unit":"fraction","status":"source_reported_experiment"}
+      ],
+      "comparison_status": "NOT_COMPARABLE",
+      "claim_ceiling": "source-reported MAGD operating point; source-specific energy denominator requires reconciliation"
+    },
+    {
+      "id": "counterflow-low-power-302w",
+      "source_case_id": "CO2-COUNTERFLOW-ARC-EXPERIMENT-2026",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "reactor": "low-power plasma-cold gas counterflow configuration",
+      "feed": "CO2",
+      "electrical_power_w": 302.0,
+      "observations": [
+        {"metric":"energy_efficiency","value":0.462,"unit":"fraction","status":"source_reported_experiment"},
+        {"metric":"co2_conversion","value":null,"unit":"fraction","status":"not_reported_in_highlight"}
+      ],
+      "comparison_status": "NOT_COMPARABLE",
+      "claim_ceiling": "46.2% efficiency remains tied to its 302 W point; no conversion value is borrowed from another configuration"
+    },
+    {
+      "id": "counterflow-ratio2p5-distance30mm",
+      "source_case_id": "CO2-COUNTERFLOW-ARC-EXPERIMENT-2026",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "reactor": "coaxial counterflow parameter sweep",
+      "feed": "CO2",
+      "counterflow_gas_ratio": 2.5,
+      "counterflow_distance_mm": 30.0,
+      "observations": [
+        {"metric":"relative_conversion_increase","value":2.073,"unit":"fractional_increase","status":"source_reported_relative_change"},
+        {"metric":"relative_energy_efficiency_increase","value":2.036,"unit":"fractional_increase","status":"source_reported_relative_change"}
+      ],
+      "comparison_status": "NOT_COMPARABLE",
+      "claim_ceiling": "source-defined relative improvements; not absolute conversion or efficiency"
+    },
+    {
+      "id": "particle-assisted-al2o3-model",
+      "source_case_id": "CO2-QUENCH-PARTICLE-CATALYTIC-KINETIC-MODEL-2026",
+      "evidence_class": "PUBLISHED_NUMERICAL_STUDY",
+      "reactor": "atmospheric warm plasma effluent kinetic model",
+      "modeled_effluent_temperature_k": 3500.0,
+      "quench_temperature_k": 1500.0,
+      "observations": [
+        {"metric":"co2_conversion","value":0.79,"unit":"fraction","status":"model_prediction"},
+        {"metric":"energy_efficiency","value":0.47,"unit":"fraction","status":"model_prediction"},
+        {"metric":"baseline_co2_conversion","value":0.49,"unit":"fraction","status":"model_prediction"},
+        {"metric":"baseline_energy_efficiency","value":0.29,"unit":"fraction","status":"model_prediction"}
+      ],
+      "comparison_status": "MODEL_ONLY_NOT_EXPERIMENT",
+      "claim_ceiling": "kinetic-model prediction; no physical validation of particle-assisted configuration is asserted"
+    },
+    {
+      "id": "so2-catalytic-quench-model",
+      "source_case_id": "CO2-QUENCH-PARTICLE-CATALYTIC-KINETIC-MODEL-2026",
+      "evidence_class": "PUBLISHED_NUMERICAL_STUDY",
+      "reactor": "SO2-assisted gas-phase catalytic quench model",
+      "observations": [
+        {"metric":"co2_conversion","value":0.72,"unit":"fraction","status":"model_prediction"},
+        {"metric":"energy_efficiency","value":0.43,"unit":"fraction","status":"model_prediction"}
+      ],
+      "comparison_status": "MODEL_ONLY_NOT_EXPERIMENT",
+      "claim_ceiling": "kinetic-model prediction only"
+    },
+    {
+      "id": "arc-multidimensional-cfd-stable-takeover",
+      "source_case_id": "CO2-ARC-QUENCH-MULTIDIMENSIONAL-CFD-2026",
+      "evidence_class": "PUBLISHED_NUMERICAL_STUDY",
+      "reactor": "2D axisymmetric atmospheric CO2 arc model",
+      "quench_architecture": ["nozzle_constriction","actively_cooled_heat_exchanger"],
+      "observations": [
+        {"metric":"co2_conversion","value":0.20,"unit":"fraction","status":"model_prediction_up_to"},
+        {"metric":"energy_efficiency","value":0.30,"unit":"fraction","status":"model_prediction_approaching"}
+      ],
+      "comparison_status": "MODEL_WITH_EXPERIMENTAL_COMPARISON",
+      "claim_ceiling": "model prediction compared to published experiments under stable takeover operation"
+    },
+    {
+      "id": "arc-heat-exchanger-perfect-wall",
+      "source_case_id": "CO2-ARC-QUENCH-MULTIDIMENSIONAL-CFD-2026",
+      "evidence_class": "PUBLISHED_NUMERICAL_STUDY",
+      "reactor": "2D axisymmetric heat-exchanger quench model",
+      "assumptions": ["perfect_wall_cooling"],
+      "specific_energy_input_upper_eV_per_molecule": 5.0,
+      "observations": [
+        {"metric":"energy_efficiency","value":0.30,"unit":"fraction","status":"model_prediction_greater_than"},
+        {"metric":"co2_conversion","value":0.50,"unit":"fraction","status":"conditional_model_prediction_greater_than_under_perfect_wall_cooling"}
+      ],
+      "comparison_status": "IDEAL_BOUNDARY_MODEL_ONLY",
+      "claim_ceiling": "ideal cooling sensitivity; not demonstrated physical performance"
+    },
+    {
+      "id": "magnetically-rotating-thermal-management",
+      "source_case_id": "CO2-THERMAL-MANAGEMENT-REACTOR-2026",
+      "evidence_class": "PUBLISHED_LAB_EXPERIMENT",
+      "reactor": "magnetically rotating discharge with vertical slow flow",
+      "observations": [
+        {"metric":"radiation_loss_share","value":0.70,"unit":"fraction","status":"source_reported_up_to"},
+        {"metric":"temperature_gradient","value":110.0,"unit":"K_per_mm","status":"source_reported_up_to"},
+        {"metric":"temperature_change_rate","value":1000.0,"unit":"K_per_s","status":"source_reported_up_to"},
+        {"metric":"catalyst_zone_temperature","value":800.0,"unit":"degC","status":"source_reported_greater_than"}
+      ],
+      "comparison_status": "THERMAL_SOURCE_CASE_NOT_PRODUCT_EFFICIENCY",
+      "claim_ceiling": "source-specific thermal observations and model; not universal warm-plasma values"
+    }
+  ],
+  "hard_comparability_fields": [
+    "feed_and_gas_composition",
+    "pressure",
+    "reactor_and_discharge_regime",
+    "geometry_revision",
+    "power_meter_boundary",
+    "specific_energy_denominator",
+    "conversion_and_selectivity_definition",
+    "product_species_and_purity",
+    "sampling_and_calibration",
+    "quench_gas_particle_or_catalyst_inputs",
+    "pressure_drop_and_auxiliary_energy",
+    "heat_recovery_boundary",
+    "duty_cycle_uptime_and_maintenance"
+  ],
+  "negative_controls": [
+    {"id":"NC-01","mutation":"borrow 23.6% conversion from the 792 W point into the 302 W / 46.2% efficiency point","expected":"REJECTED"},
+    {"id":"NC-02","mutation":"treat 207.3% / 203.6% relative improvement as absolute conversion / efficiency","expected":"REJECTED"},
+    {"id":"NC-03","mutation":"promote 79% / 47% particle-assisted kinetic-model output to experimental performance","expected":"REJECTED"},
+    {"id":"NC-04","mutation":"treat >50% conversion under perfect wall cooling as measured reactor output","expected":"REJECTED"},
+    {"id":"NC-05","mutation":"transfer the warm-NH3 turbulence result to CO2 without chemistry/regime validation","expected":"REJECTED"},
+    {"id":"NC-06","mutation":"omit quench-gas, pressure-drop, particle/catalyst, cooling or separation energy","expected":"BLOCKED"},
+    {"id":"NC-07","mutation":"treat one reactor's radiation-loss fraction as a universal warm-plasma constant","expected":"REJECTED"},
+    {"id":"NC-08","mutation":"rank DBD, warm arc and kinetic-model outputs without matched denominators and evidence classes","expected":"NOT_COMPARABLE"}
+  ],
+  "comparison_policy":"No candidate ranking until all hard comparability fields are matched or their mismatch is explicitly carried as NOT_COMPARABLE."
+}
