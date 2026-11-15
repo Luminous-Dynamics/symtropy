@@ -968,7 +968,10 @@ mod tests {
             &evidence,
         )
         .unwrap();
-        assert_eq!(output.physical_step_status, CompositionStatusV1::Inconclusive);
+        assert_eq!(
+            output.physical_step_status,
+            CompositionStatusV1::Inconclusive
+        );
     }
 
     #[test]
