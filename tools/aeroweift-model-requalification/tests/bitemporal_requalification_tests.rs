@@ -675,3 +675,48 @@ fn unsupported_change_dimension_is_reported_explicitly() {
         vec![DependencyKind::SensorStack]
     );
 }
+
+
+#[test]
+fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matches() {
+    let mut baseline_claim = claim();
+    baseline_claim.dependencies[1].digest = digest('h');
+    let events = vec![
+        event(
+            "baseline-sensor-step-1",
+            "sensor-registry",
+            1,
+            DependencyKind::SensorStack,
+            'c',
+            'g',
+            5,
+            6,
+            ChangeClass::MaterialChange,
+            ChangeEvidenceState::OwnerQualified,
+        ),
+        event(
+            "baseline-sensor-step-2",
+            "sensor-registry",
+            2,
+            DependencyKind::SensorStack,
+            '9',
+            'h',
+            7,
+            8,
+            ChangeClass::MaterialChange,
+            ChangeEvidenceState::OwnerQualified,
+        ),
+    ];
+    let result = assess(
+        &baseline_claim,
+        &events,
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
+    assert_eq!(result.status, ClaimStatus::Indeterminate);
+    assert_eq!(
+        result.indeterminate_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
+}
