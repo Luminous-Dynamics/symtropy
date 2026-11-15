@@ -7,3 +7,5 @@ description = "Finite synthetic cross-layer evidence composition oracle for Aero
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
