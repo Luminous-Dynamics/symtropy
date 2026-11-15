@@ -419,3 +419,19 @@ The 2026 AFEX root paper defines turnover at plot level as productivity divided 
 New work: [#5443 — AFEX-RATIO-ESTIMAND-001](https://github.com/Luminous-Dynamics/symtropy/issues/5443), with [protocol](AFEX_RATIO_ESTIMAND_V0_1.md), [synthetic fixture](cases/afex-ratio-estimand-synthetic-v0.1.json), and [Rust validator](validator/src/afex_ratio_estimand_kernel.rs). The synthetic pair has identical stock and productivity marginal means/variances, but opposite stock–productivity covariance: the pooled ratio stays 2.0 while the equal-plot mean changes from 2.0 to 3.2083. It also distinguishes mean of plot-level inverse turnover (292.96 days in the reverse-pairing counterexample) from inverse mean turnover (113.84 days). A first-order delta-method variance changes from 0 to 1.0667 (SE 1.0328) when covariance changes; this is an approximation, not a Fieller interval or coverage guarantee.
 
 This is a synthetic data-integrity counterexample, not AFEX reanalysis. The paper's root-stock denominator data remain request-only. The benchmark is designed to stop support or identity corruption from masquerading as a biological conclusion.
+
+
+### AFEX mechanism discrimination: direct foraging versus mycorrhizal outsourcing
+
+The one-year AFEX root-trait paper (Lugli et al. 2021, DOI 10.1111/nph.17154) reported that P increased annual root productivity and root diameter while reducing potential root phosphatase activity; cations increased root diameter and AM colonisation, and P/cation additions increased corresponding root tissue concentrations. In the 0–10 cm layer, AM colonisation was 41.90% without cations and 50.40% with cations (p=0.042), while N and P main effects on colonisation were not significant. EIDC provides the AM colonisation, morphology, phosphatase and tissue-nutrient child datasets under separate records with distinct sample operators and supports.
+
+The 2026 root-turnover study suggests longer root lifespan under cation addition and hypothesizes a possible mycorrhizal mechanism, but explicitly leaves that mechanism for future study. The two studies can motivate, but do not prove, a path from cation assignment through AM colonisation to later whole-profile turnover. The 2018 AM record is 0–10 cm only; 2026 turnover is a 0–30 cm response. The mediator was not randomized, and the available trait records do not provide a pre-treatment mediator baseline.
+
+New work:
+- [#5445 — AFEX-ROOT-STRATEGY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5445)
+- [Mechanism-discrimination protocol](AFEX_ROOT_STRATEGY_DISCRIMINATION_V0_1.md)
+- [Machine-readable hypothesis / support matrix](cases/afex-root-strategy-hypotheses-v0.1.json)
+
+The tournament treats root morphology, biochemical P mining, AM colonisation and tissue concentrations as different dimensions—not a forced one-dimensional conservative/acquisitive axis—and includes a no-mediation model and an omitted-mechanism model. This aligns with the 2026 data–model integration review's emphasis on nutrient and microbial process gaps in manipulative experiments (DOI 10.1093/jpe/rtag033) and the 2026 ecosystem-ensemble review's call for model-intercomparison diagnostics to drive model selection and weighting (DOI 10.1111/gcb.70987).
+
+A November 2026 *Journal of Ecology* study on a Scots pine chronosequence further develops the root-based “do-it-yourself” and mycorrhizal “outsourcing” distinction, finding both root and fungal acquisition traits shift with stand development (DOI 10.1111/1365-2745.70474). It is a conceptual comparator only: a different tree, forest type and ectomycorrhizal setting, not a matched Amazon AFEX baseline.
