@@ -104,7 +104,7 @@ pub fn split_conformal_radius(
     nonconformity_scores: &[f64],
     alpha: f64,
 ) -> Result<Option<f64>, ConformalError> {
-    if !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
+    if !alpha.is_finite() || alpha < 0.0 || alpha >= 1.0 {
         return Err(ConformalError::InvalidMiscoverage);
     }
     if nonconformity_scores.is_empty() || nonconformity_scores.len() > 1_000_000 {
@@ -274,7 +274,7 @@ pub fn evaluate_block_conformal(
         block_scores.push(maximum);
     }
 
-    let mut test_block_ids = BTreeSet::new();
+    let mut test_block_ids = calibration_block_ids.clone();
     let mut test_groups = BTreeSet::new();
     let expected_test_size = block_size.ok_or(ConformalError::EmptyCalibration)?;
     for block in &scenario.test_blocks {
@@ -505,11 +505,12 @@ mod tests {
     }
 
     #[test]
-    fn zero_miscoverage_and_nonfinite_miscoverage_are_rejected() {
-        assert_eq!(
-            split_conformal_radius(&[1.0], 0.0),
-            Err(ConformalError::InvalidMiscoverage)
-        );
+    fn zero_miscoverage_returns_an_unbounded_radius() {
+        assert_eq!(split_conformal_radius(&[1.0], 0.0), Ok(None));
+    }
+
+    #[test]
+    fn unit_and_nonfinite_miscoverage_are_rejected() {
         assert_eq!(
             split_conformal_radius(&[1.0], 1.0),
             Err(ConformalError::InvalidMiscoverage)
@@ -517,6 +518,16 @@ mod tests {
         assert_eq!(
             split_conformal_radius(&[1.0], f64::NAN),
             Err(ConformalError::InvalidMiscoverage)
+        );
+    }
+
+    #[test]
+    fn calibration_and_test_block_ids_must_be_disjoint() {
+        let mut value = scenario();
+        value.test_blocks[0].block_id = value.calibration_blocks[0].block_id.clone();
+        assert_eq!(
+            evaluate_block_conformal(&value),
+            Err(ConformalError::DuplicateBlockIdentity)
         );
     }
 
