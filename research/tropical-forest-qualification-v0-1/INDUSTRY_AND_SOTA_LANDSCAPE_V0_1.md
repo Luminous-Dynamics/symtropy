@@ -392,3 +392,14 @@ When the record-level data pass admission, compare at identical plot/time suppor
 A comparator that cannot represent a manipulated nutrient or process must be marked not applicable, not silently treated as a weak model. Use intention-to-treat by assigned plot as the primary estimand; keep treatment compliance and dose as separate observations. Hold out whole plots/blocks or future time windows according to the preregistered question—never split tree rows from the same plot across train/test.
 
 Success would be a qualified prediction of treatment contrasts and response trajectories that beats paired baselines on held-out plot-level evidence, preserves uncertainty coverage and pool closure, and reports runtime and observation cost. A lower pooled biomass RMSE alone is not sufficient. The synthetic rank and allocation checks are design facts only; empirical forecast skill, causal effects, statistical power and SOTA superiority remain unestablished.
+
+
+### 2026 process-model and causal-evidence updates
+
+A March 2026 review of data–model integration in global-change manipulative experiments identifies nutrient interactions and microbial processes as persistent modelling gaps. It recommends mechanism-specific data, multi-site experimental networks and model-guided targeted observations: https://doi.org/10.1093/jpe/rtag033.
+
+An August 2026 ecosystem multi-model ensemble review argues that model intercomparison must evaluate process fidelity and responses to manipulative perturbations, not only mean outcome errors. MIP results should inform model selection and weighting, while model diversity must avoid shared code/parameterization redundancy: https://doi.org/10.1111/gcb.70987.
+
+The AFEX programme can test these recommendations by evaluating model response to all factorial perturbations, preserving time-dependent root turnover, exposing common omissions in candidate models, and selecting new root/soil/canopy measurements by their ability to discriminate competing process explanations. The February 2026 causal-ecology perspective emphasizes that causal assumptions remain partly untestable and must be stated and stress-tested; predictive fit alone does not validate a causal claim: https://doi.org/10.1038/s41467-026-69878-z.
+
+The matched AFEX competition should therefore include an **as-published reproduction lane** and a separate preregistered robustness lane. For the 2026 root paper, reproduce the published mixed-effects formulas and term simplification only when the denominator stock data are available; do not label the synthetic summary check a raw-data reproduction.
