@@ -1,0 +1,426 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-FACTORIAL-DESIGN-001",
+  "evidence_class": "synthetic_factorial_design",
+  "claim_ceiling": "This deterministic synthetic allocation validates only the declared complete-block 2x2x2 design and the assignment-versus-observation-unit contract. It does not establish any real AFEX allocation, treatment effect, ecological mechanism, process calibration, or forecast skill. EMPIRICAL_TREATMENT_EFFECTS_NOT_ESTABLISHED.",
+  "design": {
+    "design_type": "synthetic_randomized_complete_block_full_factorial",
+    "factors": [
+      "N",
+      "P",
+      "C"
+    ],
+    "factor_levels": [
+      0,
+      1
+    ],
+    "blocks": [
+      "B1",
+      "B2",
+      "B3",
+      "B4"
+    ],
+    "treatments": [
+      "N0-P0-C0",
+      "N0-P0-C1",
+      "N0-P1-C0",
+      "N0-P1-C1",
+      "N1-P0-C0",
+      "N1-P0-C1",
+      "N1-P1-C0",
+      "N1-P1-C1"
+    ],
+    "expected_block_count": 4,
+    "expected_treatment_count": 8,
+    "expected_plot_count": 32,
+    "assignment_unit": "plot",
+    "fixed_effect_design_columns": [
+      "intercept",
+      "N",
+      "P",
+      "C",
+      "NP",
+      "NC",
+      "PC",
+      "NPC",
+      "block_B2",
+      "block_B3",
+      "block_B4"
+    ],
+    "expected_full_design_rank": 11,
+    "expected_residual_degrees_of_freedom": 21
+  },
+  "nested_measurements": {
+    "treatment_assignment_unit": "plot",
+    "observation_unit": "tree",
+    "repeated_measurement_unit": "tree_by_measurement_date",
+    "source_metadata_tree_count": 1299,
+    "source_metadata_tree_count_status": "DESCRIBED_BY_OFFICIAL_DATASET_RECORD_NOT_RECOUNTED_FROM_INGESTED_BYTES",
+    "independent_treatment_unit_count": 32,
+    "tree_rows_are_independent_treatment_replicates": false,
+    "repeated_readings_are_independent_treatment_replicates": false
+  },
+  "source_metadata": {
+    "record_title": "Tree census and diameter increment in fertilised plots in the Central Amazon, 2017-2020",
+    "doi": "10.5285/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3",
+    "record_url": "https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3",
+    "licence": "Open Government Licence as stated by EIDC record",
+    "external_data_ingested": false,
+    "archive_checksum_verified": false
+  },
+  "plots": [
+    {
+      "plot_id": "AFEX-SYN-B1-P01",
+      "block_id": "B1",
+      "treatment_id": "N0-P1-C1",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 1
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P02",
+      "block_id": "B1",
+      "treatment_id": "N0-P0-C0",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 2
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P03",
+      "block_id": "B1",
+      "treatment_id": "N1-P1-C1",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 3
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P04",
+      "block_id": "B1",
+      "treatment_id": "N1-P0-C0",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 4
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P05",
+      "block_id": "B1",
+      "treatment_id": "N0-P0-C1",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 5
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P06",
+      "block_id": "B1",
+      "treatment_id": "N1-P1-C0",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 6
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P07",
+      "block_id": "B1",
+      "treatment_id": "N0-P1-C0",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 7
+    },
+    {
+      "plot_id": "AFEX-SYN-B1-P08",
+      "block_id": "B1",
+      "treatment_id": "N1-P0-C1",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 8
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P01",
+      "block_id": "B2",
+      "treatment_id": "N0-P1-C1",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 1
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P02",
+      "block_id": "B2",
+      "treatment_id": "N0-P0-C0",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 2
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P03",
+      "block_id": "B2",
+      "treatment_id": "N1-P1-C1",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 3
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P04",
+      "block_id": "B2",
+      "treatment_id": "N1-P0-C0",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 4
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P05",
+      "block_id": "B2",
+      "treatment_id": "N0-P0-C1",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 5
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P06",
+      "block_id": "B2",
+      "treatment_id": "N1-P1-C0",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 6
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P07",
+      "block_id": "B2",
+      "treatment_id": "N0-P1-C0",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 7
+    },
+    {
+      "plot_id": "AFEX-SYN-B2-P08",
+      "block_id": "B2",
+      "treatment_id": "N1-P0-C1",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 8
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P01",
+      "block_id": "B3",
+      "treatment_id": "N0-P1-C1",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 1
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P02",
+      "block_id": "B3",
+      "treatment_id": "N0-P0-C0",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 2
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P03",
+      "block_id": "B3",
+      "treatment_id": "N1-P1-C1",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 3
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P04",
+      "block_id": "B3",
+      "treatment_id": "N1-P0-C0",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 4
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P05",
+      "block_id": "B3",
+      "treatment_id": "N0-P0-C1",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 5
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P06",
+      "block_id": "B3",
+      "treatment_id": "N1-P1-C0",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 6
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P07",
+      "block_id": "B3",
+      "treatment_id": "N0-P1-C0",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 7
+    },
+    {
+      "plot_id": "AFEX-SYN-B3-P08",
+      "block_id": "B3",
+      "treatment_id": "N1-P0-C1",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 8
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P01",
+      "block_id": "B4",
+      "treatment_id": "N0-P1-C1",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 1
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P02",
+      "block_id": "B4",
+      "treatment_id": "N0-P0-C0",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 2
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P03",
+      "block_id": "B4",
+      "treatment_id": "N1-P1-C1",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 1
+      },
+      "assignment_order_within_block": 3
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P04",
+      "block_id": "B4",
+      "treatment_id": "N1-P0-C0",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 0
+      },
+      "assignment_order_within_block": 4
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P05",
+      "block_id": "B4",
+      "treatment_id": "N0-P0-C1",
+      "factors": {
+        "N": 0,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 5
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P06",
+      "block_id": "B4",
+      "treatment_id": "N1-P1-C0",
+      "factors": {
+        "N": 1,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 6
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P07",
+      "block_id": "B4",
+      "treatment_id": "N0-P1-C0",
+      "factors": {
+        "N": 0,
+        "P": 1,
+        "C": 0
+      },
+      "assignment_order_within_block": 7
+    },
+    {
+      "plot_id": "AFEX-SYN-B4-P08",
+      "block_id": "B4",
+      "treatment_id": "N1-P0-C1",
+      "factors": {
+        "N": 1,
+        "P": 0,
+        "C": 1
+      },
+      "assignment_order_within_block": 8
+    }
+  ]
+}
