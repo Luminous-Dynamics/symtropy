@@ -169,6 +169,30 @@ fn definite_outside_duration_above_profile_threshold_is_nonconforming() {
     assert_eq!(result.definite_outside_ppm, 60_000);
 }
 
+
+#[test]
+fn definite_breach_is_not_hidden_by_unassessable_remainder() {
+    let mut stale_remainder = observation("unassessable-rest", 6, 100, (1, 2));
+    stale_remainder.observed_at = ci(6, 7);
+    stale_remainder.receipt_tick = 100;
+    let mut request = input(vec![
+        observation("definite-outside", 0, 6, (12, 13)),
+        stale_remainder,
+    ]);
+    request.policy.maximum_observation_age_ticks = 20;
+
+    let result = evaluate(&request);
+    assert_status(
+        &result,
+        ConformanceStatus::Nonconforming,
+        Some(ConformanceReason::DefiniteDeviationThresholdExceeded),
+    );
+    assert_eq!(result.definite_outside_ticks, 6);
+    assert_eq!(result.unassessable_ticks, 94);
+    assert_eq!(result.definite_outside_ppm, 60_000);
+    assert_eq!(result.possible_outside_ppm, 1_000_000);
+}
+
 #[test]
 fn isolated_definite_outside_sample_below_threshold_is_not_confirmed() {
     let result = evaluate(&input(vec![
