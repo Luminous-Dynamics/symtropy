@@ -3,7 +3,7 @@
 //!
 //! This is a read-only metadata compiler. It does not authenticate issuers,
 //! execute machinery, authorize maintenance, or establish physical validity.
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -18,12 +18,18 @@ const FIXTURE: &str = include_str!(
 );
 
 fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
-    value.get(key).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty())
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
 }
 
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
-        && value.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 fn is_git_sha(value: &str) -> bool {
@@ -38,16 +44,15 @@ fn is_utc_timestamp(value: &str) -> bool {
         || bytes[10] != b'T'
         || [13, 16].iter().any(|i| bytes[*i] != b':')
         || bytes[19] != b'Z'
-        || bytes.iter().enumerate().any(|(i, b)| {
-            !matches!(i, 4 | 7 | 10 | 13 | 16 | 19) && !b.is_ascii_digit()
-        })
+        || bytes
+            .iter()
+            .enumerate()
+            .any(|(i, b)| !matches!(i, 4 | 7 | 10 | 13 | 16 | 19) && !b.is_ascii_digit())
     {
         return false;
     }
 
-    let number = |range: std::ops::Range<usize>| -> Option<u32> {
-        value.get(range)?.parse().ok()
-    };
+    let number = |range: std::ops::Range<usize>| -> Option<u32> { value.get(range)?.parse().ok() };
     let (Some(year), Some(month), Some(day), Some(hour), Some(minute), Some(second)) = (
         number(0..4),
         number(5..7),
@@ -66,40 +71,63 @@ fn is_utc_timestamp(value: &str) -> bool {
         2 => 28,
         _ => return false,
     };
-    (1..=days_in_month).contains(&day)
-        && hour <= 23
-        && minute <= 59
-        && second <= 59
+    (1..=days_in_month).contains(&day) && hour <= 23 && minute <= 59 && second <= 59
 }
 
 fn exact_keys(value: &Value, allowed: &[&str]) -> bool {
-    let Some(object) = value.as_object() else { return false };
+    let Some(object) = value.as_object() else {
+        return false;
+    };
     object.keys().all(|key| allowed.contains(&key.as_str()))
 }
 
 fn valid_case_shape(case: &Value) -> bool {
-    if !exact_keys(case, &["case_id", "qualification", "request", "expected_disposition"])
-        || text(case, "case_id").is_none()
+    if !exact_keys(
+        case,
+        &[
+            "case_id",
+            "qualification",
+            "request",
+            "expected_disposition",
+        ],
+    ) || text(case, "case_id").is_none()
         || text(case, "expected_disposition").is_none()
     {
         return false;
     }
-    let Some(qualification) = case.get("qualification") else { return false };
-    let Some(request) = case.get("request") else { return false };
+    let Some(qualification) = case.get("qualification") else {
+        return false;
+    };
+    let Some(request) = case.get("request") else {
+        return false;
+    };
     if !exact_keys(
         qualification,
         &[
-            "qualification_id", "state", "claim_class", "asset_id",
-            "configuration_sha256", "scope_sha256", "valid_from_utc",
-            "valid_until_utc", "operating_regimes", "capability_ids",
-            "retention_suite_sha256", "max_worst_case_regression_pp", "dependencies",
+            "qualification_id",
+            "state",
+            "claim_class",
+            "asset_id",
+            "configuration_sha256",
+            "scope_sha256",
+            "valid_from_utc",
+            "valid_until_utc",
+            "operating_regimes",
+            "capability_ids",
+            "retention_suite_sha256",
+            "max_worst_case_regression_pp",
+            "dependencies",
             "required_dependency_ids",
         ],
     ) || !exact_keys(
         request,
         &[
-            "request_id", "asset_id", "configuration_sha256", "requested_regime",
-            "dependency_evidence", "model_update_retention_receipt",
+            "request_id",
+            "asset_id",
+            "configuration_sha256",
+            "requested_regime",
+            "dependency_evidence",
+            "model_update_retention_receipt",
         ],
     ) {
         return false;
@@ -117,31 +145,50 @@ fn valid_case_shape(case: &Value) -> bool {
     }
 
     const ALL_DEPENDENCY_IDS: &[&str] = &[
-        "sensor_topology", "calibration", "timebase", "source_payload",
-        "diagnostic_model", "evaluator", "validation_profile",
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "source_payload",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile",
     ];
-    let required: BTreeSet<String> = if let Some(value) = qualification.get("required_dependency_ids") {
-        let Some(values) = value.as_array() else { return false };
-        let mut set = BTreeSet::new();
-        for item in values {
-            let Some(id) = item.as_str() else { return false };
-            if !ALL_DEPENDENCY_IDS.contains(&id) || !set.insert(id.to_owned()) {
+    let required: BTreeSet<String> =
+        if let Some(value) = qualification.get("required_dependency_ids") {
+            let Some(values) = value.as_array() else {
+                return false;
+            };
+            let mut set = BTreeSet::new();
+            for item in values {
+                let Some(id) = item.as_str() else {
+                    return false;
+                };
+                if !ALL_DEPENDENCY_IDS.contains(&id) || !set.insert(id.to_owned()) {
+                    return false;
+                }
+            }
+            if set.is_empty() {
                 return false;
             }
-        }
-        if set.is_empty() { return false; }
-        set
-    } else {
-        ALL_DEPENDENCY_IDS.iter().map(|id| (*id).to_owned()).collect()
-    };
-    let actual_dependencies: BTreeSet<String> = dependencies.iter()
+            set
+        } else {
+            ALL_DEPENDENCY_IDS
+                .iter()
+                .map(|id| (*id).to_owned())
+                .collect()
+        };
+    let actual_dependencies: BTreeSet<String> = dependencies
+        .iter()
         .filter_map(|item| text(item, "dependency_id").map(str::to_owned))
         .collect();
     if actual_dependencies.len() != dependencies.len() || actual_dependencies != required {
         return false;
     }
 
-    let Some(evidence_map) = request.get("dependency_evidence").and_then(Value::as_object) else {
+    let Some(evidence_map) = request
+        .get("dependency_evidence")
+        .and_then(Value::as_object)
+    else {
         return false;
     };
     let expected_evidence_ids: BTreeSet<String> = required.clone();
@@ -150,16 +197,26 @@ fn valid_case_shape(case: &Value) -> bool {
         return false;
     }
     const IDS: &[&str] = &[
-        "sensor_topology", "calibration", "timebase", "source_payload",
-        "diagnostic_model", "evaluator", "validation_profile",
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "source_payload",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile",
     ];
     for (id, evidence) in evidence_map {
         if !IDS.contains(&id.as_str())
             || !exact_keys(
                 evidence,
                 &[
-                    "sha256", "evidence_state", "evidence_class", "valid_until_utc",
-                    "payload_verified", "independence_status", "review_status",
+                    "sha256",
+                    "evidence_state",
+                    "evidence_class",
+                    "valid_until_utc",
+                    "payload_verified",
+                    "independence_status",
+                    "review_status",
                 ],
             )
             || text(evidence, "sha256").is_none()
@@ -177,14 +234,24 @@ fn valid_case_shape(case: &Value) -> bool {
             exact_keys(
                 receipt,
                 &[
-                    "receipt_id", "prior_qualification_id", "old_model_sha256", "new_model_sha256",
-                    "scope_sha256", "verification_suite_sha256", "evidence_profile_sha256",
-                    "review_status", "result", "retained_capability_ids", "tested_regimes",
-                    "worst_case_regression_pp", "maximum_allowed_regression_pp",
-                    "unknown_fault_rejection_passed", "calibration_retention_passed", "scope_unchanged",
+                    "receipt_id",
+                    "prior_qualification_id",
+                    "old_model_sha256",
+                    "new_model_sha256",
+                    "scope_sha256",
+                    "verification_suite_sha256",
+                    "evidence_profile_sha256",
+                    "review_status",
+                    "result",
+                    "retained_capability_ids",
+                    "tested_regimes",
+                    "worst_case_regression_pp",
+                    "maximum_allowed_regression_pp",
+                    "unknown_fault_rejection_passed",
+                    "calibration_retention_passed",
+                    "scope_unchanged",
                 ],
-            )
-            && text(receipt, "receipt_id").is_some()
+            ) && text(receipt, "receipt_id").is_some()
         })
         .unwrap_or(true);
     if !retention_receipt_shape_valid {
@@ -206,7 +273,10 @@ fn string_set(value: &Value, key: &str) -> Option<BTreeSet<String>> {
 }
 
 fn dependency_by_id<'a>(dependencies: &'a Value, id: &str) -> Option<&'a Value> {
-    dependencies.as_array()?.iter().find(|item| text(item, "dependency_id") == Some(id))
+    dependencies
+        .as_array()?
+        .iter()
+        .find(|item| text(item, "dependency_id") == Some(id))
 }
 
 fn request_evidence<'a>(request: &'a Value, id: &str) -> Option<&'a Value> {
@@ -219,28 +289,55 @@ fn retention_receipt_valid(
     old_model_sha256: &str,
     new_model_sha256: &str,
 ) -> bool {
-    let Some(receipt) = request.get("model_update_retention_receipt").filter(|v| !v.is_null()) else {
+    let Some(receipt) = request
+        .get("model_update_retention_receipt")
+        .filter(|v| !v.is_null())
+    else {
         return false;
     };
 
-    let Some(capabilities) = string_set(qualification, "capability_ids") else { return false };
-    let Some(regimes) = string_set(qualification, "operating_regimes") else { return false };
-    let Some(retained_capabilities) = string_set(receipt, "retained_capability_ids") else { return false };
-    let Some(tested_regimes) = string_set(receipt, "tested_regimes") else { return false };
+    let Some(capabilities) = string_set(qualification, "capability_ids") else {
+        return false;
+    };
+    let Some(regimes) = string_set(qualification, "operating_regimes") else {
+        return false;
+    };
+    let Some(retained_capabilities) = string_set(receipt, "retained_capability_ids") else {
+        return false;
+    };
+    let Some(tested_regimes) = string_set(receipt, "tested_regimes") else {
+        return false;
+    };
 
     let Some(profile) = dependency_by_id(
         qualification.get("dependencies").unwrap_or(&Value::Null),
         "validation_profile",
-    ).and_then(|v| text(v, "sha256")) else { return false };
-    let Some(suite) = text(qualification, "retention_suite_sha256") else { return false };
-    let Some(scope) = text(qualification, "scope_sha256") else { return false };
-    let Some(max_regression) = qualification.get("max_worst_case_regression_pp").and_then(Value::as_f64) else {
+    )
+    .and_then(|v| text(v, "sha256")) else {
         return false;
     };
-    let Some(measured_regression) = receipt.get("worst_case_regression_pp").and_then(Value::as_f64) else {
+    let Some(suite) = text(qualification, "retention_suite_sha256") else {
         return false;
     };
-    let Some(receipt_limit) = receipt.get("maximum_allowed_regression_pp").and_then(Value::as_f64) else {
+    let Some(scope) = text(qualification, "scope_sha256") else {
+        return false;
+    };
+    let Some(max_regression) = qualification
+        .get("max_worst_case_regression_pp")
+        .and_then(Value::as_f64)
+    else {
+        return false;
+    };
+    let Some(measured_regression) = receipt
+        .get("worst_case_regression_pp")
+        .and_then(Value::as_f64)
+    else {
+        return false;
+    };
+    let Some(receipt_limit) = receipt
+        .get("maximum_allowed_regression_pp")
+        .and_then(Value::as_f64)
+    else {
         return false;
     };
 
@@ -264,8 +361,14 @@ fn retention_receipt_valid(
         && receipt_limit <= max_regression
         && measured_regression >= 0.0
         && measured_regression <= receipt_limit
-        && receipt.get("unknown_fault_rejection_passed").and_then(Value::as_bool) == Some(true)
-        && receipt.get("calibration_retention_passed").and_then(Value::as_bool) == Some(true)
+        && receipt
+            .get("unknown_fault_rejection_passed")
+            .and_then(Value::as_bool)
+            == Some(true)
+        && receipt
+            .get("calibration_retention_passed")
+            .and_then(Value::as_bool)
+            == Some(true)
         && receipt.get("scope_unchanged").and_then(Value::as_bool) == Some(true)
 }
 
@@ -287,15 +390,13 @@ fn physical_evidence_is_admissible(qualification: &Value, request: &Value) -> bo
         && physical_class("calibration")
         && physical_class("timebase")
         && physical_class("source_payload")
-        && request_evidence(request, "sensor_topology")
-            .and_then(|v| text(v, "independence_status"))
+        && request_evidence(request, "sensor_topology").and_then(|v| text(v, "independence_status"))
             == Some("INDEPENDENTLY_AUDITED")
         && request_evidence(request, "source_payload")
             .and_then(|v| v.get("payload_verified"))
             .and_then(Value::as_bool)
             == Some(true)
-        && request_evidence(request, "validation_profile")
-            .and_then(|v| text(v, "review_status"))
+        && request_evidence(request, "validation_profile").and_then(|v| text(v, "review_status"))
             == Some("INDEPENDENTLY_REVIEWED")
 }
 
@@ -307,30 +408,48 @@ fn evaluate(
     match text(qualification, "state") {
         Some("QUALIFIED") => {}
         Some("EXPIRED") => return ("EXPIRED", "prior qualification is explicitly expired"),
-        Some("REVOKED") => return ("REQUALIFICATION_REQUIRED", "prior qualification was revoked"),
-        _ => return ("NOT_EVALUATED", "prior qualification state is missing or unsupported"),
+        Some("REVOKED") => {
+            return (
+                "REQUALIFICATION_REQUIRED",
+                "prior qualification was revoked",
+            );
+        }
+        _ => {
+            return (
+                "NOT_EVALUATED",
+                "prior qualification state is missing or unsupported",
+            );
+        }
     }
     if !matches!(
         text(qualification, "claim_class"),
         Some("SYNTHETIC_CONTRACT" | "PHYSICAL_ENGINEERING_CAPABILITY")
     ) {
-        return ("NOT_EVALUATED", "qualification claim class is missing or unsupported");
+        return (
+            "NOT_EVALUATED",
+            "qualification claim class is missing or unsupported",
+        );
     }
     if string_set(qualification, "capability_ids").is_none()
         || !is_sha256(text(qualification, "scope_sha256").unwrap_or(""))
         || !is_sha256(text(qualification, "retention_suite_sha256").unwrap_or(""))
     {
-        return ("NOT_EVALUATED", "qualification capability scope or retention metadata is invalid");
+        return (
+            "NOT_EVALUATED",
+            "qualification capability scope or retention metadata is invalid",
+        );
     }
 
-    let (Some(q_asset), Some(r_asset)) = (
-        text(qualification, "asset_id"),
-        text(request, "asset_id"),
-    ) else {
+    let (Some(q_asset), Some(r_asset)) =
+        (text(qualification, "asset_id"), text(request, "asset_id"))
+    else {
         return ("NOT_EVALUATED", "asset identity is missing");
     };
     if q_asset != r_asset {
-        return ("OUT_OF_SCOPE", "request refers to a different physical asset");
+        return (
+            "OUT_OF_SCOPE",
+            "request refers to a different physical asset",
+        );
     }
 
     let (Some(q_config), Some(r_config)) = (
@@ -343,7 +462,10 @@ fn evaluate(
         return ("NOT_EVALUATED", "asset configuration digest is invalid");
     }
     if q_config != r_config {
-        return ("REQUALIFICATION_REQUIRED", "installed configuration digest changed");
+        return (
+            "REQUALIFICATION_REQUIRED",
+            "installed configuration digest changed",
+        );
     }
 
     let Some(regime) = text(request, "requested_regime") else {
@@ -353,7 +475,10 @@ fn evaluate(
         return ("NOT_EVALUATED", "qualified operating-regime set is invalid");
     };
     if !regimes.contains(regime) {
-        return ("OUT_OF_SCOPE", "requested operating regime is outside the qualified envelope");
+        return (
+            "OUT_OF_SCOPE",
+            "requested operating regime is outside the qualified envelope",
+        );
     }
 
     if !is_utc_timestamp(as_of_utc) {
@@ -363,10 +488,16 @@ fn evaluate(
         text(qualification, "valid_from_utc"),
         text(qualification, "valid_until_utc"),
     ) else {
-        return ("NOT_EVALUATED", "qualification validity interval is incomplete");
+        return (
+            "NOT_EVALUATED",
+            "qualification validity interval is incomplete",
+        );
     };
     if !is_utc_timestamp(valid_from) || !is_utc_timestamp(valid_until) || valid_from > valid_until {
-        return ("NOT_EVALUATED", "qualification validity interval is invalid");
+        return (
+            "NOT_EVALUATED",
+            "qualification validity interval is invalid",
+        );
     }
     if as_of_utc < valid_from {
         return ("NOT_EVALUATED", "qualification is not yet valid");
@@ -375,11 +506,15 @@ fn evaluate(
         return ("EXPIRED", "qualification validity interval has elapsed");
     }
 
-    let Some(qualified_dependencies) = qualification.get("dependencies").and_then(Value::as_array) else {
+    let Some(qualified_dependencies) = qualification.get("dependencies").and_then(Value::as_array)
+    else {
         return ("NOT_EVALUATED", "qualification dependency list is missing");
     };
     if qualified_dependencies.is_empty() {
-        return ("NOT_EVALUATED", "qualification has no declared dependencies");
+        return (
+            "NOT_EVALUATED",
+            "qualification has no declared dependencies",
+        );
     }
 
     let mut seen = BTreeSet::new();
@@ -404,7 +539,10 @@ fn evaluate(
                     return ("NOT_EVALUATED", "required dependency identity is malformed");
                 };
                 if !ALL_DEPENDENCIES.contains(&id) || !required.insert(id.to_owned()) {
-                    return ("NOT_EVALUATED", "required dependency set contains an unknown or duplicate identity");
+                    return (
+                        "NOT_EVALUATED",
+                        "required dependency set contains an unknown or duplicate identity",
+                    );
                 }
             }
             if required.is_empty() {
@@ -418,10 +556,11 @@ fn evaluate(
         let Some(id) = text(qualified, "dependency_id") else {
             return ("NOT_EVALUATED", "dependency identity is missing");
         };
-        if !required_dependencies.contains(id)
-            || !seen.insert(id.to_owned())
-        {
-            return ("NOT_EVALUATED", "qualification contains an unknown or duplicate dependency identity");
+        if !required_dependencies.contains(id) || !seen.insert(id.to_owned()) {
+            return (
+                "NOT_EVALUATED",
+                "qualification contains an unknown or duplicate dependency identity",
+            );
         }
         let Some(expected_digest) = text(qualified, "sha256") else {
             return ("NOT_EVALUATED", "qualified dependency digest is missing");
@@ -430,16 +569,29 @@ fn evaluate(
             return ("NOT_EVALUATED", "qualified dependency digest is invalid");
         }
         let Some(actual) = request_evidence(request, id) else {
-            return ("NOT_EVALUATED", "a required dependency is absent from the request");
+            return (
+                "NOT_EVALUATED",
+                "a required dependency is absent from the request",
+            );
         };
         match text(actual, "evidence_state") {
-            Some("CONFLICTED") => return ("CONFLICTED", "a required evidence source is conflicted"),
-            Some("EXPIRED" | "STALE") => return ("EXPIRED", "a required evidence source is stale or expired"),
+            Some("CONFLICTED") => {
+                return ("CONFLICTED", "a required evidence source is conflicted");
+            }
+            Some("EXPIRED" | "STALE") => {
+                return ("EXPIRED", "a required evidence source is stale or expired");
+            }
             Some("UNKNOWN" | "NOT_EVALUATED" | "UNVERIFIED") | None => {
-                return ("NOT_EVALUATED", "a required evidence source is unqualified or unknown");
+                return (
+                    "NOT_EVALUATED",
+                    "a required evidence source is unqualified or unknown",
+                );
             }
             Some("REVOKED") => {
-                return ("REQUALIFICATION_REQUIRED", "a required evidence qualification was revoked");
+                return (
+                    "REQUALIFICATION_REQUIRED",
+                    "a required evidence qualification was revoked",
+                );
             }
             Some("QUALIFIED") => {}
             Some(_) => return ("NOT_EVALUATED", "a required evidence state is unsupported"),
@@ -464,26 +616,44 @@ fn evaluate(
             if id == "diagnostic_model" {
                 model_change = Some((expected_digest.to_owned(), actual_digest.to_owned()));
             } else {
-                return ("REQUALIFICATION_REQUIRED", "a non-model prerequisite digest changed");
+                return (
+                    "REQUALIFICATION_REQUIRED",
+                    "a non-model prerequisite digest changed",
+                );
             }
         }
     }
     if seen != required_dependencies {
-        return ("NOT_EVALUATED", "qualification omits one or more required dependency identities");
+        return (
+            "NOT_EVALUATED",
+            "qualification omits one or more required dependency identities",
+        );
     }
 
     if !physical_evidence_is_admissible(qualification, request) {
-        return ("NOT_EVALUATED", "physical claim lacks independently qualified physical source evidence");
+        return (
+            "NOT_EVALUATED",
+            "physical claim lacks independently qualified physical source evidence",
+        );
     }
 
     if let Some((old_model, new_model)) = model_change {
         if retention_receipt_valid(qualification, request, &old_model, &new_model) {
-            return ("REQUALIFIED", "exact-scope independent model-retention receipt passed");
+            return (
+                "REQUALIFIED",
+                "exact-scope independent model-retention receipt passed",
+            );
         }
-        return ("REQUALIFICATION_REQUIRED", "model changed without a complete exact-scope retention receipt");
+        return (
+            "REQUALIFICATION_REQUIRED",
+            "model changed without a complete exact-scope retention receipt",
+        );
     }
 
-    ("SUPPORTED", "all declared scope and dependency predicates match")
+    (
+        "SUPPORTED",
+        "all declared scope and dependency predicates match",
+    )
 }
 
 fn evaluate_document(input: &Value, source_commit: &str, case_sha256: &str) -> Value {
@@ -492,7 +662,10 @@ fn evaluate_document(input: &Value, source_commit: &str, case_sha256: &str) -> V
     let as_of = text(input, "as_of_utc").unwrap_or("");
     let version_ok = text(input, "schema_version") == Some(VERSION)
         && text(input, "evidence_class") == Some("SYNTHETIC_KNOWN_TRUTH")
-        && exact_keys(input, &["schema_version", "evidence_class", "as_of_utc", "cases"])
+        && exact_keys(
+            input,
+            &["schema_version", "evidence_class", "as_of_utc", "cases"],
+        )
         && is_utc_timestamp(as_of);
     let cases = input.get("cases").and_then(Value::as_array);
 
@@ -502,7 +675,10 @@ fn evaluate_document(input: &Value, source_commit: &str, case_sha256: &str) -> V
             let expected = text(case, "expected_disposition").unwrap_or("INVALID_EXPECTATION");
             let (actual, reason) = match (case.get("qualification"), case.get("request")) {
                 (Some(q), Some(r)) if version_ok && valid_case_shape(case) => evaluate(q, r, as_of),
-                _ => ("NOT_EVALUATED", "case schema version, evidence class, or strict case shape is invalid"),
+                _ => (
+                    "NOT_EVALUATED",
+                    "case schema version, evidence class, or strict case shape is invalid",
+                ),
             };
             *counts.entry(actual.to_owned()).or_default() += 1;
             results.push(json!({
@@ -518,7 +694,9 @@ fn evaluate_document(input: &Value, source_commit: &str, case_sha256: &str) -> V
     let passed = version_ok
         && cases.is_some()
         && !results.is_empty()
-        && results.iter().all(|item| item["passed"].as_bool() == Some(true));
+        && results
+            .iter()
+            .all(|item| item["passed"].as_bool() == Some(true));
 
     json!({
         "schema_version": VERSION,
@@ -539,7 +717,9 @@ fn evaluate_document(input: &Value, source_commit: &str, case_sha256: &str) -> V
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
     let Some(path) = args.next() else {
-        eprintln!("usage: qualification_scope <fixture.json> --source-commit <sha> --case-sha256 <sha256>");
+        eprintln!(
+            "usage: qualification_scope <fixture.json> --source-commit <sha> --case-sha256 <sha256>"
+        );
         return ExitCode::from(2);
     };
     let mut source_commit = String::new();
@@ -580,8 +760,15 @@ fn main() -> ExitCode {
 
     let report = evaluate_document(&input, &source_commit, &actual_digest);
     let passed = report["result"].as_str() == Some("pass");
-    println!("{}", serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_owned()));
-    if passed { ExitCode::SUCCESS } else { ExitCode::from(1) }
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report).unwrap_or_else(|_| "{}".to_owned())
+    );
+    if passed {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    }
 }
 
 #[cfg(test)]
@@ -620,15 +807,28 @@ mod tests {
             serde_json::json!(["sensor_topology", "calibration", "timebase"]);
         let retained = ["sensor_topology", "calibration", "timebase"];
         case["qualification"]["dependencies"] = serde_json::Value::Array(
-            case["qualification"]["dependencies"].as_array().unwrap().iter()
-                .filter(|dependency| retained.contains(&dependency["dependency_id"].as_str().unwrap()))
-                .cloned().collect()
+            case["qualification"]["dependencies"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|dependency| {
+                    retained.contains(&dependency["dependency_id"].as_str().unwrap())
+                })
+                .cloned()
+                .collect(),
         );
-        let evidence = case["request"]["dependency_evidence"].as_object_mut().unwrap();
+        let evidence = case["request"]["dependency_evidence"]
+            .as_object_mut()
+            .unwrap();
         evidence.retain(|key, _| retained.contains(&key.as_str()));
         assert!(valid_case_shape(&case));
         assert_eq!(
-            evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z").0,
+            evaluate(
+                &case["qualification"],
+                &case["request"],
+                "2026-11-14T00:00:00Z"
+            )
+            .0,
             "SUPPORTED"
         );
     }
@@ -639,7 +839,10 @@ mod tests {
         let mut case = input["cases"][0].clone();
         case["qualification"]["required_dependency_ids"] =
             serde_json::json!(["sensor_topology", "calibration", "timebase"]);
-        case["qualification"]["dependencies"].as_array_mut().unwrap().pop();
+        case["qualification"]["dependencies"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         assert!(!valid_case_shape(&case));
     }
 
@@ -651,15 +854,28 @@ mod tests {
             serde_json::json!(["sensor_topology", "calibration", "timebase"]);
         let retained = ["sensor_topology", "calibration", "timebase"];
         case["qualification"]["dependencies"] = serde_json::Value::Array(
-            case["qualification"]["dependencies"].as_array().unwrap().iter()
-                .filter(|dependency| retained.contains(&dependency["dependency_id"].as_str().unwrap()))
-                .cloned().collect()
+            case["qualification"]["dependencies"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|dependency| {
+                    retained.contains(&dependency["dependency_id"].as_str().unwrap())
+                })
+                .cloned()
+                .collect(),
         );
-        let evidence = case["request"]["dependency_evidence"].as_object_mut().unwrap();
+        let evidence = case["request"]["dependency_evidence"]
+            .as_object_mut()
+            .unwrap();
         evidence.retain(|key, _| key != "calibration" && retained.contains(&key.as_str()));
         assert!(!valid_case_shape(&case));
         assert_eq!(
-            evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z").0,
+            evaluate(
+                &case["qualification"],
+                &case["request"],
+                "2026-11-14T00:00:00Z"
+            )
+            .0,
             "NOT_EVALUATED"
         );
     }
@@ -668,10 +884,19 @@ mod tests {
     fn legacy_cases_without_dependency_subset_retain_the_seven_dependency_default() {
         let input = fixture();
         let case = input["cases"][0].clone();
-        assert!(case["qualification"].get("required_dependency_ids").is_none());
+        assert!(
+            case["qualification"]
+                .get("required_dependency_ids")
+                .is_none()
+        );
         assert!(valid_case_shape(&case));
         assert_eq!(
-            evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z").0,
+            evaluate(
+                &case["qualification"],
+                &case["request"],
+                "2026-11-14T00:00:00Z"
+            )
+            .0,
             "SUPPORTED"
         );
     }
@@ -679,27 +904,51 @@ mod tests {
     #[test]
     fn model_update_without_retention_evidence_never_inherits_qualification() {
         let input = fixture();
-        let case = input["cases"].as_array().unwrap().iter()
-            .find(|v| v["case_id"] == "model-changed-no-retention").unwrap();
-        let (actual, _) = evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z");
+        let case = input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["case_id"] == "model-changed-no-retention")
+            .unwrap();
+        let (actual, _) = evaluate(
+            &case["qualification"],
+            &case["request"],
+            "2026-11-14T00:00:00Z",
+        );
         assert_eq!(actual, "REQUALIFICATION_REQUIRED");
     }
 
     #[test]
     fn retention_receipt_cannot_expand_the_qualified_capability_set() {
         let input = fixture();
-        let case = input["cases"].as_array().unwrap().iter()
-            .find(|v| v["case_id"] == "model-update-widened-capabilities").unwrap();
-        let (actual, _) = evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z");
+        let case = input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["case_id"] == "model-update-widened-capabilities")
+            .unwrap();
+        let (actual, _) = evaluate(
+            &case["qualification"],
+            &case["request"],
+            "2026-11-14T00:00:00Z",
+        );
         assert_eq!(actual, "REQUALIFICATION_REQUIRED");
     }
 
     #[test]
     fn simulator_payload_cannot_support_a_physical_capability_claim() {
         let input = fixture();
-        let case = input["cases"].as_array().unwrap().iter()
-            .find(|v| v["case_id"] == "physical-claim-simulator-only").unwrap();
-        let (actual, _) = evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z");
+        let case = input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["case_id"] == "physical-claim-simulator-only")
+            .unwrap();
+        let (actual, _) = evaluate(
+            &case["qualification"],
+            &case["request"],
+            "2026-11-14T00:00:00Z",
+        );
         assert_eq!(actual, "NOT_EVALUATED");
     }
 
@@ -715,8 +964,7 @@ mod tests {
     fn unknown_evidence_dependency_keys_fail_closed() {
         let input = fixture();
         let mut case = input["cases"][0].clone();
-        case["request"]["dependency_evidence"]["unregistered_shadow_channel"] =
-            serde_json::json!({"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        case["request"]["dependency_evidence"]["unregistered_shadow_channel"] = serde_json::json!({"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                                "evidence_state":"QUALIFIED","evidence_class":"MEASURED_PHYSICAL"});
         assert!(!valid_case_shape(&case));
     }
@@ -724,9 +972,17 @@ mod tests {
     #[test]
     fn qualification_must_declare_the_complete_dependency_set() {
         let input = fixture();
-        let case = input["cases"].as_array().unwrap().iter()
-            .find(|v| v["case_id"] == "qualification-omits-required-dependency").unwrap();
-        let (actual, _) = evaluate(&case["qualification"], &case["request"], "2026-11-14T00:00:00Z");
+        let case = input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["case_id"] == "qualification-omits-required-dependency")
+            .unwrap();
+        let (actual, _) = evaluate(
+            &case["qualification"],
+            &case["request"],
+            "2026-11-14T00:00:00Z",
+        );
         assert_eq!(actual, "NOT_EVALUATED");
     }
 
