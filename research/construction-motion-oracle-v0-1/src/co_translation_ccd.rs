@@ -53,6 +53,9 @@ pub fn co_translating_capsule_vs_capsule(
     }
 
     let relative_translation = moving_translation.sub(obstacle_translation);
+    if !is_finite(relative_translation) {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
     let relative = translating_capsule_vs_capsule(moving, relative_translation, obstacle)?;
     let common_world_shift = obstacle_translation.scale(relative.time_parameter);
     let moving_point = relative.moving_point.add(common_world_shift);
@@ -130,15 +133,23 @@ fn swept_bounds(
         return Err(TranslationCcdError::NonFiniteTranslation);
     }
 
-    let final_capsule = Capsule::new(
-        capsule.start.add(translation),
-        capsule.end.add(translation),
-        capsule.radius_mm,
-    )
-    .map_err(|error| match error {
-        crate::CapsuleError::InvalidRadius => TranslationCcdError::InvalidRadius,
-        crate::CapsuleError::NonFiniteCoordinate => TranslationCcdError::NumericalOverflow,
-    })?;
+    if !capsule.radius_mm.is_finite() || capsule.radius_mm < 0.0 {
+        return Err(TranslationCcdError::InvalidRadius);
+    }
+    if !is_finite(capsule.start) || !is_finite(capsule.end) {
+        return Err(TranslationCcdError::NonFiniteCoordinate);
+    }
+
+    let final_start = capsule.start.add(translation);
+    let final_end = capsule.end.add(translation);
+    if !is_finite(final_start) || !is_finite(final_end) {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
+    let final_capsule = Capsule {
+        start: final_start,
+        end: final_end,
+        radius_mm: capsule.radius_mm,
+    };
     let initial = capsule.aabb();
     let final_bounds = final_capsule.aabb();
     let bounds = CapsuleAabb3 {
@@ -184,6 +195,13 @@ mod tests {
         let obstacle_delta = p(-20.0, 0.0, 0.0);
 
         assert!(!endpoints_only_co_translating_capsule_collision(
+            moving,
+            moving_delta,
+            obstacle,
+            obstacle_delta,
+        )
+        .unwrap());
+        assert!(co_translating_capsule_swept_aabb_candidate(
             moving,
             moving_delta,
             obstacle,
