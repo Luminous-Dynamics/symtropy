@@ -365,7 +365,7 @@ fn flatten(instance: &Instance) -> (Vec<FlatOperation>, Vec<Vec<usize>>, Vec<Vec
 
     for (job_index, job) in instance.jobs.iter().enumerate() {
         let mut job_ops = Vec::with_capacity(job.operations.len());
-        for (job_position, operation) in job.operations.iter().enumerate() {
+        for operation in &job.operations {
             let machine_index = machine_indices
                 .iter()
                 .find(|(id, _)| *id == operation.machine_id)
