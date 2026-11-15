@@ -6,10 +6,10 @@
   "claim_ceiling": "This public synthetic two-pool reference checks arithmetic, continuity, budget closure and process aliasing only. It does not establish empirical ecological validation, field measurements, calibrated forest dynamics, forecast skill or model adequacy.",
   "units": "SYNTHETIC_BIOMASS_UNITS_PER_DECLARED_INTERVAL",
   "tolerances": {
-    "stock_absolute": 0.000000001,
-    "flow_absolute": 0.000000001,
-    "budget_absolute": 0.000000001,
-    "continuity_absolute": 0.000000001
+    "stock_absolute": 1e-9,
+    "flow_absolute": 1e-9,
+    "budget_absolute": 1e-9,
+    "continuity_absolute": 1e-9
   },
   "pool_contract": {
     "live_end": "live_start + growth + recruitment - mortality_to_deadwood - live_export",
@@ -31,41 +31,77 @@
       "description": "Candidate reproduces both pool trajectories and every declared flow.",
       "reference_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 20, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 20,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 55
         },
         {
-          "period_index": 1, "period_id": "recovery-year-1",
-          "live_start": 110, "deadwood_start": 55,
-          "growth": 15, "recruitment": 5, "mortality_to_deadwood": 20,
-          "live_export": 15, "decomposition": 10, "deadwood_export": 0,
-          "live_end": 95, "deadwood_end": 65
+          "period_index": 1,
+          "period_id": "recovery-year-1",
+          "live_start": 110,
+          "deadwood_start": 55,
+          "growth": 15,
+          "recruitment": 5,
+          "mortality_to_deadwood": 20,
+          "live_export": 15,
+          "decomposition": 10,
+          "deadwood_export": 0,
+          "live_end": 95,
+          "deadwood_end": 65
         }
       ],
       "candidate_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 20, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 20,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 55
         },
         {
-          "period_index": 1, "period_id": "recovery-year-1",
-          "live_start": 110, "deadwood_start": 55,
-          "growth": 15, "recruitment": 5, "mortality_to_deadwood": 20,
-          "live_export": 15, "decomposition": 10, "deadwood_export": 0,
-          "live_end": 95, "deadwood_end": 65
+          "period_index": 1,
+          "period_id": "recovery-year-1",
+          "live_start": 110,
+          "deadwood_start": 55,
+          "growth": 15,
+          "recruitment": 5,
+          "mortality_to_deadwood": 20,
+          "live_export": 15,
+          "decomposition": 10,
+          "deadwood_export": 0,
+          "live_end": 95,
+          "deadwood_end": 65
         }
       ],
       "expected": {
         "disposition": "PROCESS_AND_STATE_MATCH",
         "max_stock_absolute_error": 0,
         "max_flow_absolute_error": 0,
-        "candidate_max_budget_absolute_residual": 0
+        "candidate_max_budget_absolute_residual": 0,
+        "cumulative_flow_absolute_errors": {
+          "growth": 0,
+          "recruitment": 0,
+          "mortality_to_deadwood": 0,
+          "live_export": 0,
+          "decomposition": 0,
+          "deadwood_export": 0
+        }
       }
     },
     {
@@ -73,41 +109,77 @@
       "description": "Candidate exactly matches both observed pool trajectories while overpredicting growth and mortality and compensating with decomposition.",
       "reference_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 20, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 20,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 55
         },
         {
-          "period_index": 1, "period_id": "recovery-year-1",
-          "live_start": 110, "deadwood_start": 55,
-          "growth": 15, "recruitment": 5, "mortality_to_deadwood": 20,
-          "live_export": 15, "decomposition": 10, "deadwood_export": 0,
-          "live_end": 95, "deadwood_end": 65
+          "period_index": 1,
+          "period_id": "recovery-year-1",
+          "live_start": 110,
+          "deadwood_start": 55,
+          "growth": 15,
+          "recruitment": 5,
+          "mortality_to_deadwood": 20,
+          "live_export": 15,
+          "decomposition": 10,
+          "deadwood_export": 0,
+          "live_end": 95,
+          "deadwood_end": 65
         }
       ],
       "candidate_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 40, "recruitment": 10, "mortality_to_deadwood": 35,
-          "live_export": 5, "decomposition": 28, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 40,
+          "recruitment": 10,
+          "mortality_to_deadwood": 35,
+          "live_export": 5,
+          "decomposition": 28,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 55
         },
         {
-          "period_index": 1, "period_id": "recovery-year-1",
-          "live_start": 110, "deadwood_start": 55,
-          "growth": 35, "recruitment": 5, "mortality_to_deadwood": 40,
-          "live_export": 15, "decomposition": 30, "deadwood_export": 0,
-          "live_end": 95, "deadwood_end": 65
+          "period_index": 1,
+          "period_id": "recovery-year-1",
+          "live_start": 110,
+          "deadwood_start": 55,
+          "growth": 35,
+          "recruitment": 5,
+          "mortality_to_deadwood": 40,
+          "live_export": 15,
+          "decomposition": 30,
+          "deadwood_export": 0,
+          "live_end": 95,
+          "deadwood_end": 65
         }
       ],
       "expected": {
         "disposition": "STOCK_FIT_WITH_PROCESS_MISMATCH",
         "max_stock_absolute_error": 0,
         "max_flow_absolute_error": 20,
-        "candidate_max_budget_absolute_residual": 0
+        "candidate_max_budget_absolute_residual": 0,
+        "cumulative_flow_absolute_errors": {
+          "growth": 40,
+          "recruitment": 0,
+          "mortality_to_deadwood": 40,
+          "live_export": 0,
+          "decomposition": 40,
+          "deadwood_export": 0
+        }
       }
     },
     {
@@ -115,41 +187,77 @@
       "description": "Candidate budget closes but its live and total stock trajectory departs from the reference.",
       "reference_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 20, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 20,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 55
         },
         {
-          "period_index": 1, "period_id": "recovery-year-1",
-          "live_start": 110, "deadwood_start": 55,
-          "growth": 15, "recruitment": 5, "mortality_to_deadwood": 20,
-          "live_export": 15, "decomposition": 10, "deadwood_export": 0,
-          "live_end": 95, "deadwood_end": 65
+          "period_index": 1,
+          "period_id": "recovery-year-1",
+          "live_start": 110,
+          "deadwood_start": 55,
+          "growth": 15,
+          "recruitment": 5,
+          "mortality_to_deadwood": 20,
+          "live_export": 15,
+          "decomposition": 10,
+          "deadwood_export": 0,
+          "live_end": 95,
+          "deadwood_end": 65
         }
       ],
       "candidate_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 10, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 100, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 10,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 100,
+          "deadwood_end": 55
         },
         {
-          "period_index": 1, "period_id": "recovery-year-1",
-          "live_start": 100, "deadwood_start": 55,
-          "growth": 15, "recruitment": 5, "mortality_to_deadwood": 20,
-          "live_export": 15, "decomposition": 10, "deadwood_export": 0,
-          "live_end": 85, "deadwood_end": 65
+          "period_index": 1,
+          "period_id": "recovery-year-1",
+          "live_start": 100,
+          "deadwood_start": 55,
+          "growth": 15,
+          "recruitment": 5,
+          "mortality_to_deadwood": 20,
+          "live_export": 15,
+          "decomposition": 10,
+          "deadwood_export": 0,
+          "live_end": 85,
+          "deadwood_end": 65
         }
       ],
       "expected": {
         "disposition": "TRAJECTORY_STATE_MISMATCH",
         "max_stock_absolute_error": 10,
         "max_flow_absolute_error": 10,
-        "candidate_max_budget_absolute_residual": 0
+        "candidate_max_budget_absolute_residual": 0,
+        "cumulative_flow_absolute_errors": {
+          "growth": 10,
+          "recruitment": 0,
+          "mortality_to_deadwood": 0,
+          "live_export": 0,
+          "decomposition": 0,
+          "deadwood_export": 0
+        }
       }
     },
     {
@@ -157,27 +265,49 @@
       "description": "Candidate reports a deadwood stock one unit above the value explained by declared inputs and losses.",
       "reference_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 20, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 55
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 20,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 55
         }
       ],
       "candidate_intervals": [
         {
-          "period_index": 0, "period_id": "pre-disturbance",
-          "live_start": 100, "deadwood_start": 50,
-          "growth": 20, "recruitment": 10, "mortality_to_deadwood": 15,
-          "live_export": 5, "decomposition": 8, "deadwood_export": 2,
-          "live_end": 110, "deadwood_end": 56
+          "period_index": 0,
+          "period_id": "pre-disturbance",
+          "live_start": 100,
+          "deadwood_start": 50,
+          "growth": 20,
+          "recruitment": 10,
+          "mortality_to_deadwood": 15,
+          "live_export": 5,
+          "decomposition": 8,
+          "deadwood_export": 2,
+          "live_end": 110,
+          "deadwood_end": 56
         }
       ],
       "expected": {
         "disposition": "BUDGET_NOT_CLOSED",
         "max_stock_absolute_error": 1,
         "max_flow_absolute_error": 0,
-        "candidate_max_budget_absolute_residual": 1
+        "candidate_max_budget_absolute_residual": 1,
+        "cumulative_flow_absolute_errors": {
+          "growth": 0,
+          "recruitment": 0,
+          "mortality_to_deadwood": 0,
+          "live_export": 0,
+          "decomposition": 0,
+          "deadwood_export": 0
+        }
       }
     }
   ],
