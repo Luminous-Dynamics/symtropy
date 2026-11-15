@@ -86,3 +86,16 @@ These are proposed targets, not achieved outcomes.
 ## 6. Claim ceiling
 
 The ELM-MYCI, Myco-CORPSE and 2026 mycorrhizal-trait studies are external architectural/methodological comparators. They are not matched AFEX benchmark results. No pathway model has been fit, no fungal carbon cost or nutrient transfer is estimated, and no AFEX raw dataset has been ingested.
+
+## 7. Structural identifiability before fitting
+
+The multi-pathway model is not automatically identifiable merely because each pathway has a biological interpretation. The follow-on [#5449 pathway observability benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/5449) demonstrates the exact limit in a simplified shared-rate model.
+
+With unknown direct-root inorganic, mycorrhizal inorganic, mycorrhizal organic and host-to-fungal carbon-cost rates, hypothetical total nutrient uptake across three colonisation fractions has exact rank 2 for four unknowns. The fungal inorganic and organic columns are identical; carbon cost is unobserved. A source-specific fungal tracer raises rank to 3, and a separate host-to-fungal carbon-allocation observation raises it to 4.
+
+The current AFEX AM colonisation, morphology, phosphatase and tissue-concentration records provide no direct source-specific flux equation for those pathway rates. The exact-rank fixture and Rust validator make this limitation executable:
+- [Identifiability protocol](AFEX_PATHWAY_IDENTIFIABILITY_V0_1.md);
+- [synthetic matrix corpus](cases/afex-root-pathway-identifiability-synthetic-v0.1.json);
+- [exact-rank Rust kernel](validator/src/afex_root_pathway_identifiability_kernel.rs).
+
+This rank result is structural under the declared operator, not proof of biological validity or practical precision.
