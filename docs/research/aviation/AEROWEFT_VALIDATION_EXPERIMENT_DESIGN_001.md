@@ -58,14 +58,15 @@ Hard eligibility gates include:
 - independent reference measurement/oracle available;
 - semantic equivalence established for cross-implementation comparisons;
 - no use of sealed confirmatory or challenge outcomes to select the experiment;
-- two or more distinct independent model-family groups for model-discrimination claims;
+- two or more distinct independent model-family groups and established semantic equivalence for model-discrimination claims;
+- probability of an uninformative result below a frozen policy maximum;
 - frozen policy thresholds and cost budget satisfied.
 
 Only after eligibility is established does Pareto ranking happen. Benefits are maximized; cost and uninformative probability are minimized. The output is a set of nondominated options, not a single "winner" forced by arbitrary scalarization.
 
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 26 adversarial tests:
+The dependency-free Rust suite currently contains 29 adversarial tests:
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
