@@ -176,6 +176,11 @@ Follow-on: https://github.com/Luminous-Dynamics/symtropy/issues/5291.
 The next physical-validation stage is defined in [ROTOR_DEMONSTRATOR_PROTOCOL.md](ROTOR_DEMONSTRATOR_PROTOCOL.md) and [ARTGRAV-ROTOR-001 #5292](https://github.com/Luminous-Dynamics/symtropy/issues/5292). It is a planning/assurance package only. It requires professional engineering review, rated containment, an energy-bounded operating envelope, remote operation, independent protective systems, calibrated instruments and inert payloads only. It contains no rotor construction recipe and does not authorize operation or human occupancy.
 
 
+## Industry gap and benchmark scorecard
+
+The competitive baseline, evidence classes, matched kinematic table, multi-objective scorecard and proposed stretch targets are consolidated in [INDUSTRY_GAP_AND_BENCHMARK_SCORECARD.md](INDUSTRY_GAP_AND_BENCHMARK_SCORECARD.md), owned by [ARTGRAV-BENCH-001 #5295](https://github.com/Luminous-Dynamics/symtropy/issues/5295). It distinguishes measured ground research, historical NASA studies, public commercial roadmap targets and unvalidated concept proposals.
+
+
 ## Sources
 
 - Briard & Baatout (2026), *Artificial gravity for long-duration human spaceflight: physiological rationale, evidence gaps, risks, and research priorities*. https://doi.org/10.3389/frspt.2026.1967384
