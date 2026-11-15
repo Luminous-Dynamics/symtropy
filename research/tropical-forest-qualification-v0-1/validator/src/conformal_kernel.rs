@@ -70,6 +70,8 @@ pub struct BlockCoverage {
     pub covered_observation_count: usize,
     pub observation_coverage_fraction: f64,
     pub block_fully_covered: bool,
+    pub pooled_mean_interval_score: Option<f64>,
+    pub block_mean_interval_score: Option<f64>,
     pub regime_is_declared_shift: bool,
 }
 
@@ -81,6 +83,8 @@ pub struct BlockConformalResult {
     pub block_maximum_radius: Option<f64>,
     pub pooled_interval_width: Option<f64>,
     pub block_interval_width: Option<f64>,
+    pub pooled_mean_interval_score: Option<f64>,
+    pub block_mean_interval_score: Option<f64>,
     pub test_block_count: usize,
     pub test_observation_count: usize,
     pub pooled_observation_coverage: Option<f64>,
@@ -176,6 +180,42 @@ fn coverage_for_radius(
         }
     }
     Ok((covered, covered == observations.len()))
+}
+
+
+fn mean_winkler_score_for_radius(
+    predictions: &[f64],
+    observations: &[f64],
+    radius: Option<f64>,
+    alpha: f64,
+) -> Result<Option<f64>, ConformalError> {
+    if predictions.is_empty() || predictions.len() != observations.len() {
+        return Err(ConformalError::UnequalBlockSize);
+    }
+    let Some(radius) = radius else {
+        return Ok(None);
+    };
+    if !radius.is_finite() || radius < 0.0 || !alpha.is_finite() || alpha <= 0.0 || alpha >= 1.0 {
+        return Err(ConformalError::InvalidMiscoverage);
+    }
+    let mut total = 0.0;
+    for (prediction, observation) in predictions.iter().zip(observations) {
+        if !prediction.is_finite() || !observation.is_finite() {
+            return Err(ConformalError::NonFinitePrediction);
+        }
+        let absolute_error = (prediction - observation).abs();
+        let score = (2.0 * radius) + (2.0 / alpha) * (absolute_error - radius).max(0.0);
+        if !score.is_finite() {
+            return Err(ConformalError::NumericOverflow);
+        }
+        total += score;
+    }
+    let mean = total / checked_count(observations.len())?;
+    if mean.is_finite() {
+        Ok(Some(mean))
+    } else {
+        Err(ConformalError::NumericOverflow)
+    }
 }
 
 pub fn evaluate_block_conformal(
@@ -282,6 +322,8 @@ pub fn evaluate_block_conformal(
     let mut shifted_covered_blocks = 0usize;
     let mut shifted_block_count = 0usize;
     let mut test_observation_count = 0usize;
+    let mut pooled_interval_score_total = 0.0;
+    let mut block_interval_score_total = 0.0;
     let mut test_block_results = Vec::with_capacity(scenario.test_blocks.len());
 
     for block in &scenario.test_blocks {
@@ -295,6 +337,24 @@ pub fn evaluate_block_conformal(
             &block.observations,
             block_maximum_radius,
         )?;
+        let pooled_mean_interval_score = mean_winkler_score_for_radius(
+            &block.point_predictions,
+            &block.observations,
+            pooled_observation_radius,
+            scenario.alpha,
+        )?;
+        let block_mean_interval_score = mean_winkler_score_for_radius(
+            &block.point_predictions,
+            &block.observations,
+            block_maximum_radius,
+            scenario.alpha,
+        )?;
+        if let Some(score) = pooled_mean_interval_score {
+            pooled_interval_score_total += score;
+        }
+        if let Some(score) = block_mean_interval_score {
+            block_interval_score_total += score;
+        }
         pooled_observation_covered += pooled_covered;
         block_observation_covered += block_covered;
         pooled_fully_covered_blocks += if pooled_full { 1 } else { 0 };
@@ -315,6 +375,8 @@ pub fn evaluate_block_conformal(
             observation_coverage_fraction: checked_count(block_covered)?
                 / checked_count(block.observations.len())?,
             block_fully_covered: block_full,
+            pooled_mean_interval_score,
+            block_mean_interval_score,
             regime_is_declared_shift: is_shifted,
         });
     }
@@ -322,6 +384,16 @@ pub fn evaluate_block_conformal(
     let test_block_count = scenario.test_blocks.len();
     let pooled_interval_width = pooled_observation_radius.map(|radius| 2.0 * radius);
     let block_interval_width = block_maximum_radius.map(|radius| 2.0 * radius);
+    let pooled_mean_interval_score = if test_block_count == 0 || pooled_observation_radius.is_none() {
+        None
+    } else {
+        Some(pooled_interval_score_total / checked_count(test_block_count)?)
+    };
+    let block_mean_interval_score = if test_block_count == 0 || block_maximum_radius.is_none() {
+        None
+    } else {
+        Some(block_interval_score_total / checked_count(test_block_count)?)
+    };
     let pooled_observation_coverage = if test_observation_count == 0 {
         None
     } else {
@@ -360,6 +432,8 @@ pub fn evaluate_block_conformal(
         block_maximum_radius,
         pooled_interval_width,
         block_interval_width,
+        pooled_mean_interval_score,
+        block_mean_interval_score,
         test_block_count,
         test_observation_count,
         pooled_observation_coverage,
@@ -446,6 +520,14 @@ mod tests {
         assert_eq!(result.block_maximum_radius, Some(9.0));
         assert_eq!(result.pooled_interval_width, Some(2.0));
         assert_eq!(result.block_interval_width, Some(18.0));
+    }
+
+
+    #[test]
+    fn winkler_interval_score_compares_interval_width_and_miscoverage() {
+        let result = evaluate_block_conformal(&scenario()).expect("block conformal");
+        assert!((result.pooled_mean_interval_score.unwrap() - (55.0 / 3.0)).abs() < 1e-12);
+        assert!((result.block_mean_interval_score.unwrap() - 19.0).abs() < 1e-12);
     }
 
     #[test]
