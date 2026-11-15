@@ -353,7 +353,12 @@ pub fn evaluate_claim(
     let eligible_events: Vec<ChangeEvent> = events
         .iter()
         .filter(|event| {
-            event.effective_at <= cutoff.effective_at && event.recorded_at <= cutoff.known_at
+            event.effective_at <= cutoff.effective_at
+                && event.recorded_at <= cutoff.known_at
+                && claim
+                    .dependencies
+                    .iter()
+                    .any(|dependency| dependency.kind == event.dependency)
         })
         .cloned()
         .collect();
