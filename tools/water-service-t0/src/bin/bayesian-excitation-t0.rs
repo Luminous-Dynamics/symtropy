@@ -571,6 +571,13 @@ fn compute_candidate(
             entropy,
         ));
     }
+    if text(candidate, "sensor_calibration_state")? != "calibrated" {
+        return Ok(base_candidate(
+            "SENSOR_RESPONSE_UNRESOLVED",
+            "SENSOR_CALIBRATION_NOT_AVAILABLE",
+            entropy,
+        ));
+    }
     if !bool_field(candidate, "all_inlets_observed")? {
         return Ok(base_candidate(
             "PARTIAL_INLET_BOUNDARY",
@@ -1243,7 +1250,7 @@ mod tests {
     #[test]
     fn all_candidates_match_the_frozen_information_bound_oracle() {
         let evaluation = result();
-        assert_eq!(evaluation["candidate_count"], 10);
+        assert_eq!(evaluation["candidate_count"], 11);
         assert_eq!(evaluation["verification_state"], "MatchedFrozenOracle");
     }
 
@@ -1326,6 +1333,14 @@ mod tests {
         assert_eq!(
             row("BD-T0-008-command-only")["candidate_state"],
             "INJECTOR_RESPONSE_UNRESOLVED"
+        );
+    }
+
+    #[test]
+    fn uncalibrated_sensor_response_is_refused() {
+        assert_eq!(
+            row("BD-T0-011-uncalibrated-sensor")["candidate_state"],
+            "SENSOR_RESPONSE_UNRESOLVED"
         );
     }
 
