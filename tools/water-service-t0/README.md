@@ -32,7 +32,7 @@ Use existing Symtropy process-closure and hydraulic component owners for shared 
 
 ## WaterLoop physical-bench T0
 
-The `waterloop-physical-t0` binary adds a separate 33-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
+The `waterloop-physical-t0` binary adds a separate 34-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
 - conservative water-volume closure against an additive uncertainty bound;
 - measured deliverable volume versus gross tank inventory and operating heel;
 - source-substitution credit only at a matched end-use boundary with current meter calibration and use-specific quality evidence;
@@ -71,8 +71,10 @@ The full time-resolved service semantics, scenario families, South African regul
 
 ### Household economics — cost per verified service
 
-The 33-case WaterLoop evaluator now includes eight synthetic household-economics cases (026–033). It consumes admitted cost components and versioned baseline/actual utility bills; it does not calculate municipal tariffs. It keeps fixed charges explicit, computes gross system cost and incremental household spend separately, calculates ZAR per verified useful m³ / critical person-day, and computes a water-spend burden only when resident-authorised disposable-income evidence is admitted.
+The 33-case WaterLoop evaluator now includes nine synthetic household-economics cases (026–034). It consumes admitted cost components and versioned baseline/actual utility bills; it does not calculate municipal tariffs. It keeps fixed charges explicit, computes gross system cost and incremental household spend separately, calculates ZAR per verified useful m³ / critical person-day, and computes a water-spend burden only when resident-authorised disposable-income evidence is admitted.
 
 The cases cover a rising-block bill delta, unadmitted tariff, zero useful volume, unadmitted cost ledger, missing income, intended-use mismatch and a lower-cost design that fails its essential service floor. A cheaper design cannot win the comparison when it fails the required service floor.
 
 Protocol: [WATER_ECONOMICS_BENCHMARK_V0_1.md](../../research/water-service-engineering/WATER_ECONOMICS_BENCHMARK_V0_1.md). All values are synthetic; no household affordability, actual tariff, savings or product performance is qualified.
+
+Cost comparison and affordability are intentionally separate: missing income leaves the resident affordability burden Indeterminate but does not suppress an otherwise admitted cost-per-service comparison. The evaluator also rejects a tariff bill whose billing-period duration differs from the declared system-cost period.
