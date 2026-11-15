@@ -63,7 +63,7 @@ pub struct BlockConformalScenario {
     pub exchangeability_basis: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BlockCoverage {
     pub block_id: String,
     pub observation_count: usize,
@@ -303,10 +303,10 @@ pub fn evaluate_block_conformal(
         let is_shifted = block.regime == "KNOWN_SHIFT_NEGATIVE_CONTROL";
         if is_shifted {
             shifted_block_count += 1;
-            shifted_covered_blocks += usize::from(block_full);
+            shifted_covered_blocks += if block_full { 1 } else { 0 };
         } else {
             in_domain_block_count += 1;
-            in_domain_covered_blocks += usize::from(block_full);
+            in_domain_covered_blocks += if block_full { 1 } else { 0 };
         }
         test_block_results.push(BlockCoverage {
             block_id: block.block_id.clone(),
