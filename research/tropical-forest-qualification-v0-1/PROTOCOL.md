@@ -319,3 +319,10 @@ The code repository has Apache-2.0 licensing, but this applies to repository sou
 The source crosswalk is now machine-readable at `cases/forestpaths-dben-source-crosswalk-v0.1.json` and checked by `validator/src/forestpaths_crosswalk_kernel.rs`. The CLI receipt verifies model/run/site/equilibrium mapping widths, source blob SHA syntax, 24 unique unit-declared quantities, model-specific forcing IDs, composite flux claims, five distinct size-class families, and data/code/Rmd DOI roles. It deliberately returns only `PASS_SYNTHETIC_FORESTPATHS_CROSSWALK`; no archive bytes are authenticated or ingested.
 
 Nine kernel unit tests plus one top-level dispatch/receipt test are authored. The current package count is 205 authored Rust tests. Independent JavaScript crosswalk checks reproduce the source manifest's nine model IDs, eight run tokens per model, all 27 model/site equilibrium window pairs, 24 unique variables, five distinct size-class families, composite growth/mortality semantics and DOI-role separation. This is structural cross-checking, not Rust execution or empirical reproduction. All Rust tests remain unexecuted in the present local runtime.
+
+
+### ForestPaths archive-role resolution
+
+The Zenodo 14415143 dataset page's setup section links a separate Zenodo software release: [15870478 — DBEN_Eckes_Shephard_et_al v1.0.0](https://zenodo.org/records/15870478). The latter archives the analysis repository code as a separate software object (published MD5 `8a4d79b4a94dc58a67e36d7e7100cee1`). The dataset archive (14415143) and code archive (15870478) must be retrieved and hash-verified separately. The current v1.0.0 R Markdown still refers to 14415142 for the data; that reference remains unresolved and is not substituted for the dataset record.
+
+The GitHub `v1.0.0` tag's inspected helper, format and R Markdown blobs match the inspected `main` versions. The observation processing script named by Zenodo metadata remains unavailable at the declared paths in both tag and main. The software record's visible license field is not populated; the GitHub `LICENSE` is Apache-2.0 for repository code, not an automatic data license.
