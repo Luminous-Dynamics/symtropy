@@ -585,9 +585,10 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let a_optima = collect_optima(&designs, "trace_gls_covariance", false)?;
     let e_optima = collect_optima(&designs, "minimum_fisher_eigenvalue", true)?;
 
-    let all_options_ids: Vec<String> = options.iter().map(|option| option.observation.id.clone()).collect();
+    let option_count_u64 = u64::try_from(options.len())
+        .map_err(|_| "measurement option count exceeds u64".to_string())?;
     let full_design = designs.iter().find(|design| {
-        design["measurement_count"].as_u64() == Some(options.len() as u64)
+        design["measurement_count"].as_u64() == Some(option_count_u64)
     }).ok_or_else(|| "full measurement design is missing".to_string())?;
     let full_design_metrics = json!({
         "measurement_ids": full_design["measurement_ids"],
@@ -774,7 +775,7 @@ mod tests {
     }
 
     #[test]
-    fn perfect_correlation_is_rejected_as_non_positive_definite_covariance() {
+    fn unit_correlation_is_rejected_at_the_covariance_input_boundary() {
         let mut value = manifest();
         value["correlations"][0]["correlation"] = json!(1.0);
         let raw = serde_json::to_vec(&value).expect("serialize singular correlation");
