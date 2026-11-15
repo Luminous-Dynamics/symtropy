@@ -615,13 +615,13 @@
         "reason": "ONE_OR_MORE_OUTLETS_NOT_OBSERVED",
         "injected_mass": 1,
         "physical_outlet_mass": 1,
-        "sensor_observed_outlet_mass": 1,
+        "sensor_observed_outlet_mass": null,
         "known_inventory_mass": 0,
-        "signed_mass_residual": 0,
-        "mass_residual_standard_uncertainty": 0.01,
-        "standardized_abs_mass_residual": 0,
+        "signed_mass_residual": null,
+        "mass_residual_standard_uncertainty": null,
+        "standardized_abs_mass_residual": null,
         "predicted_physical_tail_mass": 0,
-        "predicted_sensor_tail_mass": 0,
+        "predicted_sensor_tail_mass": null,
         "per_inlet_kernel_area": [
           1,
           0
