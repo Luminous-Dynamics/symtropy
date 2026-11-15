@@ -5,9 +5,9 @@ Standalone, offline Rust evaluator for the synthetic fixture in the Lunar Plasma
 ## Run from the Symtropy repository root
 
 ```sh
-cargo test --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml
-cargo run --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml -- benchmarks/plasma/lunar-plasma-isru-process-v0.json
-cargo clippy --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml
+cargo run --locked --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml -- benchmarks/plasma/lunar-plasma-isru-process-v0.json
+cargo clippy --locked --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml --all-targets -- -D warnings
 ```
 
 The package has its own Cargo workspace boundary. It does not join the root workspace and does not launch plasma solvers or use network access.
