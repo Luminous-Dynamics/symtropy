@@ -126,6 +126,7 @@ fn parse_tensor(
     Ok(result)
 }
 
+#[allow(clippy::needless_range_loop)]
 fn cholesky(matrix: &Matrix) -> Result<Matrix, String> {
     let n = matrix.len();
     if n == 0 || matrix.iter().any(|row| row.len() != n) {
@@ -168,6 +169,7 @@ fn cholesky(matrix: &Matrix) -> Result<Matrix, String> {
     Ok(lower)
 }
 
+#[allow(clippy::needless_range_loop)]
 fn solve_spd(lower: &Matrix, rhs: &[f64]) -> Result<Vector, String> {
     let n = lower.len();
     if rhs.len() != n {
@@ -199,6 +201,7 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| a * b).sum()
 }
 
+#[allow(clippy::needless_range_loop)]
 fn convolve_channels(input: &Matrix, response: &Matrix) -> Result<Matrix, String> {
     if input.is_empty() || input.len() != response.len() {
         return Err("channel convolution count mismatch".into());
@@ -286,6 +289,7 @@ fn eigenvalues_2x2(matrix: &Matrix) -> Result<Vector, String> {
     Ok(values)
 }
 
+#[allow(clippy::needless_range_loop)]
 fn fisher_information(jacobian: &Matrix, covariance_lower: &Matrix) -> Result<Matrix, String> {
     if jacobian.is_empty()
         || jacobian.iter().any(|row| row.len() != TARGET_PARAMETER_COUNT)
@@ -539,6 +543,7 @@ fn validate_prior_particles(
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compute_candidate(
     candidate: &Value,
     particles: &[Value],
@@ -866,6 +871,7 @@ fn compare(left: &Value, right: &Value) -> bool {
     }
 }
 
+#[allow(clippy::needless_range_loop)]
 fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, String> {
     if text(input, "schema_version")? != "bayesian-excitation-t0-input-v0.1"
         || text(oracle, "schema_version")? != "bayesian-excitation-t0-oracle-v0.1"
@@ -942,12 +948,9 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
     if direction_raw.len() != TARGET_PARAMETER_COUNT {
         return Err("exactly two target parameter directions are required in v0.1".into());
     }
-    let nin = array(&cases[0], "candidates")?
-        .first()
-        .and_then(|candidate| candidate.get("commanded_inlet_mass_flux"))
-        .and_then(Value::as_array)
-        .map(Vec::len)
-        .ok_or_else(|| "cannot infer commanded inlet count".to_owned())?;
+    if usize_value(config, "target_parameter_count")? != TARGET_PARAMETER_COUNT {
+        return Err("target parameter count differs from the v0.1 contract".into());
+    }
     let candidates = array(&cases[0], "candidates")?;
     let first_command = array(&candidates[0], "commanded_inlet_mass_flux")?;
     let first_nin = first_command.len();
