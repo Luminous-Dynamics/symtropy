@@ -491,7 +491,7 @@ mod tests {
     use super::*;
 
     fn r(id: &str, generation: &str, digit: char) -> ExactRef {
-        ExactRef::new(id, generation, &digit.to_string().repeat(64))
+        ExactRef::new(id, generation, digit)
     }
 
     fn evidence(phase: Phase) -> Evidence {
