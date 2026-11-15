@@ -195,6 +195,23 @@ fn definite_breach_is_not_hidden_by_unassessable_remainder() {
     assert_eq!(result.possible_outside_ppm, 1_000_000);
 }
 
+
+#[test]
+fn widening_position_uncertainty_cannot_improve_conformance() {
+    let narrow = evaluate(&input(vec![observation("narrow", 0, 100, (1, 2))]));
+    assert_status(&narrow, ConformanceStatus::Conforming, None);
+
+    let wide = evaluate(&input(vec![observation("wide", 0, 100, (-2, 2))]));
+    assert_status(
+        &wide,
+        ConformanceStatus::PotentiallyNonconforming,
+        Some(ConformanceReason::ObservedSetStraddlesDeviationBoundary),
+    );
+    assert_eq!(wide.definite_inside_ticks, 0);
+    assert_eq!(wide.possible_outside_ticks, 100);
+    assert!(wide.possible_outside_ppm >= narrow.possible_outside_ppm);
+}
+
 #[test]
 fn isolated_definite_outside_sample_below_threshold_is_not_confirmed() {
     let result = evaluate(&input(vec![
