@@ -170,6 +170,17 @@ Concrete artifacts now started on this PR branch:
 
 The crucial distinction is that **multiple streams are not necessarily multiple independent pieces of evidence**. Two satellite products may share the same upstream imagery, algorithm family or validation data. The new consilience benchmark will preserve those dependencies and require source-by-source support/validity before any fusion score is allowed.
 
+## Probabilistic uncertainty calibration and dependent data (2026)
+
+The forecasting competition is no longer just point-forecasting plus an aggregate CRPS. Current specialist methods address distinct data regimes:
+
+- Spatial conformal tooling such as `spconform` supports point-referenced and areal spatial/spatio-temporal prediction, with diagnostics for marginal validity, Winkler interval score, spatial strata, boundary effects and Moran's I. It is a relevant comparator for the forest spatial problem, not a proof that a generic pooled pixel split is valid: https://cran.r-project.org/web/packages/spconform/vignettes/spconform-intro.html
+- EnbPI provides sequential ensemble intervals without ordinary exchangeability, but its theory relies on time-series assumptions including strongly mixing errors: https://doi.org/10.1109/TPAMI.2023.3272339
+- September 2026 work studies realized conformal coverage inference under temporal dependence and long memory, motivating block-based confidence intervals around observed coverage: https://arxiv.org/abs/2609.33868
+- July 2026 online conformal work highlights that signed long-run coverage can hide persistent stretches of miscoverage and argues to evaluate coverage and interval efficiency together: https://arxiv.org/abs/2607.26577
+
+**Luminous qualification contribution to test:** calibrate at predeclared site/campaign/spatial blocks; report both observation coverage and simultaneous whole-block coverage; measure width/WIS at matched realized coverage; show what breaks under a held-out disturbance shift. This is a composition and falsification layer around established methods—not a claim that block conformal is a new SOTA algorithm. The synthetic v0.1 slice is tracked in [#5285](https://github.com/Luminous-Dynamics/symtropy/issues/5285).
+
 ## 5. Fair benchmark tournament
 
 For each declared task, freeze:
