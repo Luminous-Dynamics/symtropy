@@ -2094,7 +2094,7 @@ mod tests {
                 .with_configuration(D2)
                 .with_predecessors(vec!["review".to_owned()]),
         );
-        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Valid));
+        let projection = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
