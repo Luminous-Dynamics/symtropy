@@ -27,15 +27,25 @@ fn validate(s: Scenario) -> Result<(), String> {
         return Err("dry textile mass must be finite and positive".into());
     }
     for (name, value) in [
-        ("inlet residual moisture", s.inlet_residual_moisture_dry_basis),
-        ("outlet residual moisture", s.outlet_residual_moisture_dry_basis),
+        (
+            "inlet residual moisture",
+            s.inlet_residual_moisture_dry_basis,
+        ),
+        (
+            "outlet residual moisture",
+            s.outlet_residual_moisture_dry_basis,
+        ),
     ] {
         if !value.is_finite() || !(0.0..=5.0).contains(&value) {
-            return Err(format!("{name} must be finite and between 0 and 5 kg/kg dry textile"));
+            return Err(format!(
+                "{name} must be finite and between 0 and 5 kg/kg dry textile"
+            ));
         }
     }
     if s.inlet_residual_moisture_dry_basis <= s.outlet_residual_moisture_dry_basis {
-        return Err("inlet moisture must exceed outlet moisture for a positive extraction delta".into());
+        return Err(
+            "inlet moisture must exceed outlet moisture for a positive extraction delta".into(),
+        );
     }
     if !s.latent_heat_low_mj_per_kg.is_finite()
         || !s.latent_heat_high_mj_per_kg.is_finite()
@@ -56,9 +66,8 @@ fn validate(s: Scenario) -> Result<(), String> {
 
 fn screen(s: Scenario) -> Result<ScreeningResult, String> {
     validate(s)?;
-    let water_removed =
-        s.dry_textile_mass_kg
-            * (s.inlet_residual_moisture_dry_basis - s.outlet_residual_moisture_dry_basis);
+    let water_removed = s.dry_textile_mass_kg
+        * (s.inlet_residual_moisture_dry_basis - s.outlet_residual_moisture_dry_basis);
 
     // 1 kWh = 3.6 MJ. This is latent thermal duty only, not total dryer input.
     let thermal_low = water_removed * s.latent_heat_low_mj_per_kg / 3.6;
