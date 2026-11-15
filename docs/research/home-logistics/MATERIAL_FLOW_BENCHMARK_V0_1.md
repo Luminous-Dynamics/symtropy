@@ -4,7 +4,7 @@
 **Status:** Research benchmark specification v0.1; proposed, not yet implemented  
 **Date:** 2026-11-15  
 **Tracking:** Symtropy #5422  
-**Related:** Symtropy #5393; Mycelix #6258, #6259, #6264, #6267, #6269 and PRs #6265/#6268; Symthaea PR #12343 and CEB evidence-continuity protocols; Sol-Atlas PR #879
+**Related:** Symtropy #5393, #5422 and #5447; Mycelix #6258, #6259, #6264, #6267, #6269 and PRs #6265/#6268; Symthaea PR #12343 and CEB evidence-continuity protocols; Sol-Atlas PR #879
 
 ## 1. Thesis and benchmark boundary
 
@@ -389,6 +389,25 @@ The benchmark branch now includes a standalone Rust tool at `tools/material-flow
 - A dedicated GitHub Actions workflow for formatting, Clippy, tests and fixture validation.
 
 The first implementation intentionally does not authenticate signatures, query Hearth or Commons, model 3D packing, simulate physics, or prove real-world safety. It validates internal consistency of the declared scenario contract only.
+
+### 12.2 Machine-checkable ten-fault campaign
+
+The standalone tool now also defines a `FaultCampaignManifest` and `mfb-validate-campaign` CLI. A campaign binds to the base scenario ID, schema version and source commit; it requires ten independent episodes, one for each v1 fault family, unique episode/fault identities, valid segment references and fault-specific expected terminal oracles.
+
+| Fault episode | Expected terminal state |
+|---|---|
+| Wrong tote | Rejected |
+| Over-mass | Rejected |
+| Expired household grant | Rejected |
+| Stale temperature observation | Safe hold |
+| Blocked transfer gate | Safe hold |
+| Damaged seal | Safe hold |
+| Duplicate handoff | Reconciliation required |
+| Missing receiver acknowledgement | Reconciliation required |
+| Power interruption | Reconciliation required |
+| Network loss | Reconciliation required |
+
+The fixture `tools/material-flow-benchmark/fixtures/ten-fault-campaign.json` and its CLI verify only that the declared test campaign is complete and internally consistent. It does not execute a fault injection, simulate a physical response or prove safe recovery. Those results require the Symtropy scenario runner and later evidence levels.
 
 **Verification status (2026-11-15):** the dedicated GitHub Actions run `43761927353` on exact PR source head `967b8be74b50b39515a49be510eae57a69a6aca3` completed successfully. Its job passed formatting, Clippy with `-D warnings`, all **24 Rust unit tests**, and nominal-fixture CLI validation. The standalone tool has a committed `Cargo.lock`; Clippy, tests and fixture execution all use `--locked`. The final workflow is non-mutating and does not alter source or lock state. The environment itself has no Rust/Cargo toolchain, so no local compile/test claim is made. No physical simulation, HIL, guarded rig or field operation has been run; the fixture is only a validated scenario contract.
 
