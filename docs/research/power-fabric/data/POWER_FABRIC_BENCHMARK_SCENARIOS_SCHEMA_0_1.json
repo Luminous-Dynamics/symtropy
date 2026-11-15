@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-benchmark-corpus-0.1.schema.json",
+  "title": "Power Fabric Benchmark Scenario Registry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "snapshot_date",
+    "source_policy",
+    "cases",
+    "performance_sizes",
+    "target_metrics",
+    "measurement_status"
+  ],
+  "properties": {
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "source_policy": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "performance_sizes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "target_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frozen_contract_acceptance_rate",
+        "silent_in_scope_semantic_loss_rate",
+        "change_invalidation_recall",
+        "false_positive_invalidation_rate",
+        "incremental_vs_full_semantic_equivalence_rate",
+        "human_non_hazardous_task_accuracy_target",
+        "critical_false_safe_interpretations_target",
+        "comparative_integration_effort_reduction_hypothesis",
+        "build_lock_reproducibility_rate",
+        "derived_output_digest_match_rate",
+        "derived_artifact_invalidation_recall"
+      ],
+      "properties": {
+        "frozen_contract_acceptance_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "silent_in_scope_semantic_loss_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "change_invalidation_recall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_positive_invalidation_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "incremental_vs_full_semantic_equivalence_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "human_non_hazardous_task_accuracy_target": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "critical_false_safe_interpretations_target": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "comparative_integration_effort_reduction_hypothesis": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "build_lock_reproducibility_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "derived_output_digest_match_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "derived_artifact_invalidation_recall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "measurement_status": {
+      "enum": [
+        "scenario_registry_authored_not_executed",
+        "executed_with_results",
+        "independently_reproduced"
+      ]
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "family",
+        "input",
+        "expected",
+        "oracle"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "ir_contract",
+            "adapter",
+            "change_impact",
+            "resilience",
+            "human_projection",
+            "build_receipt",
+            "derived_artifact"
+          ]
+        },
+        "input": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected": {
+          "type": "string",
+          "minLength": 1
+        },
+        "oracle": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
