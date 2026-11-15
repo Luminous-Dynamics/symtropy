@@ -353,24 +353,32 @@ fn validate_precedence_graph(
     Ok(())
 }
 
-fn canonical_fingerprint(
+struct InstanceMetadata<'a> {
     format: SourceFormat,
-    instance_id: &str,
-    source_family: Option<&str>,
+    instance_id: &'a str,
+    source_family: Option<&'a str>,
     machine_count: usize,
     declared_job_count: Option<usize>,
     average_flexibility: Option<f64>,
+}
+
+fn canonical_fingerprint(
+    metadata: &InstanceMetadata<'_>,
     operations: &[FlexibleOperation],
     precedences: &[Precedence],
 ) -> String {
     let mut canonical = format!(
         "{}|{}|{}|{}|{}|{}|",
-        format.as_str(),
-        instance_id,
-        source_family.unwrap_or(""),
-        machine_count,
-        declared_job_count.map_or_else(|| "-".to_owned(), |value| value.to_string()),
-        average_flexibility.map_or_else(|| "-".to_owned(), |value| format!("{value:.12}")),
+        metadata.format.as_str(),
+        metadata.instance_id,
+        metadata.source_family.unwrap_or(""),
+        metadata.machine_count,
+        metadata
+            .declared_job_count
+            .map_or_else(|| "-".to_owned(), |value| value.to_string()),
+        metadata
+            .average_flexibility
+            .map_or_else(|| "-".to_owned(), |value| format!("{value:.12}")),
     );
     for operation in operations {
         canonical.push_str(&format!(
@@ -411,23 +419,18 @@ fn canonical_fingerprint(
 }
 
 fn build_instance(
-    format: SourceFormat,
-    instance_id: &str,
-    source_family: Option<&str>,
-    machine_count: usize,
-    declared_job_count: Option<usize>,
-    average_flexibility: Option<f64>,
+    metadata: InstanceMetadata<'_>,
     operations: Vec<FlexibleOperation>,
     precedences: Vec<Precedence>,
 ) -> Result<FlexibleInstance, ParseError> {
-    if instance_id.trim().is_empty() {
+    if metadata.instance_id.trim().is_empty() {
         return Err(ParseError::new(
             None,
             ParseErrorKind::EmptyInstanceId,
             "instance identifier is empty",
         ));
     }
-    if machine_count == 0 {
+    if metadata.machine_count == 0 {
         return Err(ParseError::new(
             None,
             ParseErrorKind::ZeroMachines,
@@ -442,25 +445,16 @@ fn build_instance(
         ));
     }
     validate_precedence_graph(operations.len(), &precedences)?;
-    let fingerprint = canonical_fingerprint(
-        format,
-        instance_id,
-        source_family,
-        machine_count,
-        declared_job_count,
-        average_flexibility,
-        &operations,
-        &precedences,
-    );
+    let fingerprint = canonical_fingerprint(&metadata, &operations, &precedences);
     Ok(FlexibleInstance {
         parser_version: PARSER_VERSION,
         source: FJSPLIB_SOURCE,
-        source_format: format,
-        instance_id: instance_id.to_owned(),
-        source_family: source_family.map(str::to_owned),
-        machine_count,
-        declared_job_count,
-        average_flexibility,
+        source_format: metadata.format,
+        instance_id: metadata.instance_id.to_owned(),
+        source_family: metadata.source_family.map(str::to_owned),
+        machine_count: metadata.machine_count,
+        declared_job_count: metadata.declared_job_count,
+        average_flexibility: metadata.average_flexibility,
         operations,
         precedences,
         canonical_fingerprint_fnv1a64: fingerprint,
@@ -497,7 +491,7 @@ pub fn parse_fjsp(
         ));
     }
 
-    let job_count = parse_usize(header_tokens.get(0), header.number, "job count")?;
+    let job_count = parse_usize(header_tokens.first(), header.number, "job count")?;
     let machine_count = parse_usize(header_tokens.get(1), header.number, "machine count")?;
     let average_flexibility =
         parse_f64(header_tokens.get(2), header.number, "average flexibility")?;
@@ -551,7 +545,7 @@ pub fn parse_fjsp(
     let mut precedences = Vec::new();
     for (job_id, line) in lines.iter().skip(1).enumerate() {
         let tokens: Vec<&str> = line.content.split_whitespace().collect();
-        let operation_count = parse_usize(tokens.get(0), line.number, "operation count")?;
+        let operation_count = parse_usize(tokens.first(), line.number, "operation count")?;
         if operation_count == 0 {
             return Err(ParseError::new(
                 Some(line.number),
@@ -603,12 +597,14 @@ pub fn parse_fjsp(
     }
 
     build_instance(
-        SourceFormat::Fjsp,
-        instance_id,
-        source_family,
-        machine_count,
-        Some(job_count),
-        Some(average_flexibility),
+        InstanceMetadata {
+            format: SourceFormat::Fjsp,
+            instance_id,
+            source_family,
+            machine_count,
+            declared_job_count: Some(job_count),
+            average_flexibility: Some(average_flexibility),
+        },
         operations,
         precedences,
     )
@@ -724,12 +720,14 @@ pub fn parse_fajsp(
     }
 
     build_instance(
-        SourceFormat::Fajsp,
-        instance_id,
-        source_family,
-        machine_count,
-        (!job_ids.is_empty()).then_some(job_ids.len()),
-        None,
+        InstanceMetadata {
+            format: SourceFormat::Fajsp,
+            instance_id,
+            source_family,
+            machine_count,
+            declared_job_count: (!job_ids.is_empty()).then_some(job_ids.len()),
+            average_flexibility: None,
+        },
         operations,
         precedences,
     )
