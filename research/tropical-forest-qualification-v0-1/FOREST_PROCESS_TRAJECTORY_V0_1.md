@@ -44,13 +44,13 @@ where `M_t` is an internal pool transfer. Summing the equations gives:
 
 Mortality cancels from the total ecosystem-pool budget, but it must not disappear from the live/deadwood process diagnostics. A model can match total carbon while placing carbon in the wrong pool, or match both pool states while using incorrect gross fluxes.
 
-The benchmark does not collapse these errors into a composite score.
+The benchmark does not collapse these errors into a composite score. Every case binds six separate cumulative flow-error oracles; omitting or mutating one flow field fails validation.
 
 ## 3. Implemented v0.1 reference
 
 New artifacts:
 
-- `validator/src/trajectory_budget_kernel.rs`: offline Rust reference kernel, nine authored unit tests, ordered-period and continuity checks, pool-specific budget residuals, per-period state errors and primitive-flow error metrics.
+- `validator/src/trajectory_budget_kernel.rs`: offline Rust reference kernel, eleven kernel unit tests plus one top-level dispatch test, ordered-period and continuity checks, pool-specific budget residuals, per-period state errors and primitive-flow error metrics.
 - `cases/forest-process-trajectory-synthetic-v0.1.json`: four public synthetic known-truth cases.
 - `FOREST_PROCESS_TRAJECTORY_V0_1.md`: method, matched benchmark protocol and claim limits.
 - `validator/src/lib.rs`: corpus dispatch under `FOREST-PROCESS-TRAJECTORY-001`.
@@ -63,7 +63,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
   research/tropical-forest-qualification-v0-1/cases/forest-process-trajectory-synthetic-v0.1.json
 ```
 
-The receipt includes SHA-256 of the exact fixture bytes, per-case dispositions, per-period state errors, per-flow errors, pool residuals, and explicit `ecological_validation: NOT_ESTABLISHED`.
+The receipt includes SHA-256 of the exact fixture bytes, per-case dispositions, per-period state errors, each primitive and cumulative flow error, pool residuals, and explicit `ecological_validation: NOT_ESTABLISHED`.
 
 ### Synthetic cases
 
