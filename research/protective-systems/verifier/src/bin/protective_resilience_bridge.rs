@@ -44,23 +44,11 @@ fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key)?.as_str()
 }
 
-fn required_text(value: &Value, key: &str, path: &str) -> Result<&str, String> {
+fn required_text<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, String> {
     text(value, key)
         .map(str::trim)
         .filter(|item| !item.is_empty())
         .ok_or_else(|| format!("{path}.{key} must be non-empty text"))
-}
-
-fn require_nested_text<'a>(
-    value: &'a Value,
-    parent: &str,
-    key: &str,
-    path: &str,
-) -> Result<&'a str, String> {
-    let nested = value
-        .get(parent)
-        .ok_or_else(|| format!("{path}.{parent} is required"))?;
-    required_text(nested, key, &format!("{path}.{parent}"))
 }
 
 fn reject_unqualified_numeric_claims(value: &Value, path: &str) -> Result<(), String> {
@@ -373,7 +361,7 @@ mod tests {
     fn embedded_bridge_fixture_is_valid_and_all_hazard_refs_resolve() {
         let report = run().expect("valid embedded bridge fixture");
         assert_eq!(report.case_count, 6);
-        assert_eq!(report.unique_hazard_family_count, 5);
+        assert_eq!(report.unique_hazard_family_count, 6);
         assert!(report.structural_checks_passed);
     }
 
