@@ -50,10 +50,9 @@ impl PerformanceRequirement {
         if let (Some(minimum), Some(maximum)) = (self.minimum_value, self.maximum_value)
             && minimum > maximum
         {
-                return Err(OptioneeringError::InvalidPerformanceRange(
-                    self.metric_id.clone(),
-                ));
-            }
+            return Err(OptioneeringError::InvalidPerformanceRange(
+                self.metric_id.clone(),
+            ));
         }
         Ok(())
     }
@@ -625,22 +624,20 @@ impl OptioneeringError {
                     if let Some(minimum) = requirement.minimum_value
                         && actual < &minimum
                     {
-                            failures.push(ScenarioFailure::PerformanceBelowMinimum {
-                                metric_id: requirement.metric_id.clone(),
-                                minimum,
-                                actual: *actual,
-                            });
-                        }
+                        failures.push(ScenarioFailure::PerformanceBelowMinimum {
+                            metric_id: requirement.metric_id.clone(),
+                            minimum,
+                            actual: *actual,
+                        });
                     }
                     if let Some(maximum) = requirement.maximum_value
                         && actual > &maximum
                     {
-                            failures.push(ScenarioFailure::PerformanceAboveMaximum {
-                                metric_id: requirement.metric_id.clone(),
-                                maximum,
-                                actual: *actual,
-                            });
-                        }
+                        failures.push(ScenarioFailure::PerformanceAboveMaximum {
+                            metric_id: requirement.metric_id.clone(),
+                            maximum,
+                            actual: *actual,
+                        });
                     }
                 }
             }
