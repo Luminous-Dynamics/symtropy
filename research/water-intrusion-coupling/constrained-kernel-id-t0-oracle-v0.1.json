@@ -66,31 +66,31 @@
         "identification_disposition": "IDENTIFIED_SYNTHETIC",
         "reason": null,
         "design_rank": 2,
-        "design_condition_number": 1.7320508075688772,
+        "design_condition_number": 2.1988256746932358,
         "observation_noise_contract": "independent_diagonal_variance",
-        "total_training_weight": 3,
-        "total_holdout_weight": 2,
+        "total_training_weight": 2.25,
+        "total_holdout_weight": 1.25,
         "unconstrained_coefficients": [
-          0.45000000000000007,
-          0.3499999999999999
+          0.44999999999999996,
+          0.3500000000000001
         ],
         "clipped_coefficients": [
-          0.45000000000000007,
-          0.3499999999999999
+          0.44999999999999996,
+          0.3500000000000001
         ],
         "constrained_coefficients": [
-          0.44999999916757843,
-          0.35000000083242155
+          0.45000019769677024,
+          0.3499998023032298
         ],
-        "unconstrained_training_mse": 2.0543252740130515e-33,
-        "clipped_training_mse": 2.0543252740130515e-33,
-        "constrained_training_mse": 4.619504535862088e-19,
-        "unconstrained_holdout_mse": 3.0814879110195774e-33,
-        "clipped_holdout_mse": 3.0814879110195774e-33,
-        "constrained_holdout_mse": 6.929256803793132e-19,
-        "unconstrained_min_coefficient": 0.3499999999999999,
-        "clipped_min_coefficient": 0.3499999999999999,
-        "constrained_min_coefficient": 0.35000000083242155,
+        "unconstrained_training_mse": 2.7391003653507353e-33,
+        "clipped_training_mse": 2.7391003653507353e-33,
+        "constrained_training_mse": 2.1713340531025522e-14,
+        "unconstrained_holdout_mse": 4.930380657631324e-33,
+        "clipped_holdout_mse": 4.930380657631324e-33,
+        "constrained_holdout_mse": 3.908401295584594e-14,
+        "unconstrained_min_coefficient": 0.3500000000000001,
+        "clipped_min_coefficient": 0.3500000000000001,
+        "constrained_min_coefficient": 0.3499998023032298,
         "unconstrained_gain_by_group": [
           0.8
         ],
@@ -103,13 +103,13 @@
         "constrained_gain_target_by_group": [
           0.8
         ],
-        "solver_iterations": 64,
+        "solver_iterations": 60,
         "solver_converged": true,
         "constraint_satisfied": true,
         "blind_holdout_improvement_vs_clip": false,
-        "true_coefficient_rmse_unconstrained": 5.551115123125783e-17,
-        "true_coefficient_rmse_clipped": 5.551115123125783e-17,
-        "true_coefficient_rmse_constrained": 8.324215761135179e-10,
+        "true_coefficient_rmse_unconstrained": 8.777083671441753e-17,
+        "true_coefficient_rmse_clipped": 8.777083671441753e-17,
+        "true_coefficient_rmse_constrained": 1.9769677020442522e-7,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
         "release_authorized": false
