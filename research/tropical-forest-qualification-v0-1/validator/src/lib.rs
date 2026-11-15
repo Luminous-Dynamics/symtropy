@@ -10,6 +10,7 @@ pub mod canopy_kernel;
 pub mod conformal_kernel;
 pub mod coverage_inference_kernel;
 pub mod forecast_kernel;
+pub mod forest_corpus_receipts;
 pub mod model_set_kernel;
 pub mod support_kernel;
 pub mod spatial_localization_kernel;
@@ -3822,6 +3823,16 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-CONSILIENCE-DEPENDENCE-001")
     {
         return validate_consilience_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-BLOCK-COVERAGE-INFERENCE-001")
+    {
+        return forest_corpus_receipts::validate_block_coverage_inference(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-SPATIAL-LOCALIZATION-001")
+    {
+        return forest_corpus_receipts::validate_spatial_localization(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
