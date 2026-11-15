@@ -1,17 +1,13 @@
 use aeroweft_reachability_core::{
-    propagate_bounded_velocity, AxisVelocityEnvelope, InitialPosition, Interval, ProfileIdentity,
-    ReachabilityRequest, VelocityEnvelope, VelocityStep,
+    AxisVelocityEnvelope, InitialPosition, Interval, ProfileIdentity, ReachabilityRequest,
+    VelocityEnvelope, VelocityStep, propagate_bounded_velocity,
 };
 
 fn interval(lo: f64, hi: f64) -> Interval {
     Interval::new(lo, hi).expect("valid fixture interval")
 }
 
-fn axis(
-    nominal: Interval,
-    state: Interval,
-    disturbance: Interval,
-) -> AxisVelocityEnvelope {
+fn axis(nominal: Interval, state: Interval, disturbance: Interval) -> AxisVelocityEnvelope {
     AxisVelocityEnvelope {
         nominal_velocity_mps: nominal,
         velocity_estimation_uncertainty_mps: state,
@@ -44,7 +40,11 @@ fn independent_integer_millimetre_oracle_is_inside_the_tube() {
             start_utc_ms: 0,
             end_utc_ms: 1_000,
             velocity: VelocityEnvelope {
-                east: axis(interval(10.0, 10.0), interval(-2.0, 2.0), interval(-1.0, 1.0)),
+                east: axis(
+                    interval(10.0, 10.0),
+                    interval(-2.0, 2.0),
+                    interval(-1.0, 1.0),
+                ),
                 north: axis(interval(0.0, 0.0), interval(0.0, 0.0), interval(0.0, 0.0)),
                 up: axis(interval(0.0, 0.0), interval(0.0, 0.0), interval(0.0, 0.0)),
             },
@@ -58,8 +58,7 @@ fn independent_integer_millimetre_oracle_is_inside_the_tube() {
     for initial_mm in [2_000_i128, 3_000_i128] {
         for velocity_mmps in (7_000_i128..=13_000_i128).step_by(1_000) {
             for elapsed_ms in (0_i128..=1_000_i128).step_by(100) {
-                let exact_position_mm =
-                    initial_mm + (velocity_mmps * elapsed_ms) / 1_000_i128;
+                let exact_position_mm = initial_mm + (velocity_mmps * elapsed_ms) / 1_000_i128;
                 let exact_position_m = exact_position_mm as f64 / 1_000.0;
                 assert!(occupancy.lower() <= exact_position_m);
                 assert!(occupancy.upper() >= exact_position_m);

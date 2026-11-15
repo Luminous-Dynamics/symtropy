@@ -1,17 +1,13 @@
 use aeroweft_reachability_core::{
-    propagate_bounded_velocity, AxisVelocityEnvelope, InitialPosition, Interval, ProfileIdentity,
-    ReachabilityRequest, VelocityEnvelope, VelocityStep,
+    AxisVelocityEnvelope, InitialPosition, Interval, ProfileIdentity, ReachabilityRequest,
+    VelocityEnvelope, VelocityStep, propagate_bounded_velocity,
 };
 
 fn interval(lower: f64, upper: f64) -> Interval {
     Interval::new(lower, upper).expect("fixture intervals are finite and ordered")
 }
 
-fn axis(
-    nominal: Interval,
-    state: Interval,
-    disturbance: Interval,
-) -> AxisVelocityEnvelope {
+fn axis(nominal: Interval, state: Interval, disturbance: Interval) -> AxisVelocityEnvelope {
     AxisVelocityEnvelope {
         nominal_velocity_mps: nominal,
         velocity_estimation_uncertainty_mps: state,
@@ -40,7 +36,11 @@ fn independent_integer_oracle_checks_signed_motion_on_all_axes() {
             start_utc_ms: 0,
             end_utc_ms: 2_000,
             velocity: VelocityEnvelope {
-                east: axis(interval(-10.0, -10.0), interval(-2.0, 2.0), interval(-1.0, 1.0)),
+                east: axis(
+                    interval(-10.0, -10.0),
+                    interval(-2.0, 2.0),
+                    interval(-1.0, 1.0),
+                ),
                 north: axis(interval(-3.0, -1.0), interval(0.0, 0.0), interval(0.0, 0.0)),
                 up: axis(interval(0.5, 1.5), interval(0.0, 0.0), interval(0.0, 0.0)),
             },

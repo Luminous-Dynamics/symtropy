@@ -296,10 +296,7 @@ pub fn propagate_bounded_velocity(
         if !elapsed_nearest.is_finite() || elapsed_nearest <= 0.0 {
             return Err(ReachabilityError::InvalidTime);
         }
-        let elapsed_seconds = Interval::new(
-            next_down(elapsed_nearest),
-            next_up(elapsed_nearest),
-        )?;
+        let elapsed_seconds = Interval::new(next_down(elapsed_nearest), next_up(elapsed_nearest))?;
         let elapsed_during_slice = Interval::new(0.0, elapsed_seconds.upper())?;
 
         let east_velocity = step.velocity.east.total()?;
@@ -321,12 +318,12 @@ pub fn propagate_bounded_velocity(
 
         // Endpoint state is carried into the next contiguous interval.
         position = InitialPosition {
-            east_m: position.east_m.checked_add(
-                east_velocity.checked_mul(elapsed_seconds)?,
-            )?,
-            north_m: position.north_m.checked_add(
-                north_velocity.checked_mul(elapsed_seconds)?,
-            )?,
+            east_m: position
+                .east_m
+                .checked_add(east_velocity.checked_mul(elapsed_seconds)?)?,
+            north_m: position
+                .north_m
+                .checked_add(north_velocity.checked_mul(elapsed_seconds)?)?,
             up_m: position
                 .up_m
                 .checked_add(up_velocity.checked_mul(elapsed_seconds)?)?,
@@ -411,11 +408,7 @@ mod tests {
         }
     }
 
-    fn request(
-        start: u64,
-        end: u64,
-        east: AxisVelocityEnvelope,
-    ) -> ReachabilityRequest {
+    fn request(start: u64, end: u64, east: AxisVelocityEnvelope) -> ReachabilityRequest {
         ReachabilityRequest {
             profile: profile(),
             initial_position: InitialPosition {
@@ -437,7 +430,11 @@ mod tests {
 
     #[test]
     fn integer_oracle_is_contained_for_all_bounded_east_velocities() {
-        let east = axis(interval(10.0, 10.0), interval(-2.0, 2.0), interval(-1.0, 1.0));
+        let east = axis(
+            interval(10.0, 10.0),
+            interval(-2.0, 2.0),
+            interval(-1.0, 1.0),
+        );
         let tube = propagate_bounded_velocity(&request(0, 1_000, east)).unwrap();
         let slice = tube.slices[0];
 
@@ -454,8 +451,16 @@ mod tests {
 
     #[test]
     fn widening_disturbance_cannot_shrink_the_tube() {
-        let narrow = axis(interval(10.0, 10.0), interval(0.0, 0.0), interval(-0.5, 0.5));
-        let wide = axis(interval(10.0, 10.0), interval(0.0, 0.0), interval(-2.0, 2.0));
+        let narrow = axis(
+            interval(10.0, 10.0),
+            interval(0.0, 0.0),
+            interval(-0.5, 0.5),
+        );
+        let wide = axis(
+            interval(10.0, 10.0),
+            interval(0.0, 0.0),
+            interval(-2.0, 2.0),
+        );
         let narrow_tube = propagate_bounded_velocity(&request(0, 1_000, narrow)).unwrap();
         let wide_tube = propagate_bounded_velocity(&request(0, 1_000, wide)).unwrap();
 
@@ -475,7 +480,11 @@ mod tests {
 
     #[test]
     fn repeated_replay_is_bitwise_deterministic_for_fixed_inputs() {
-        let east = axis(interval(10.0, 10.0), interval(-0.1, 0.1), interval(-0.2, 0.2));
+        let east = axis(
+            interval(10.0, 10.0),
+            interval(-0.1, 0.1),
+            interval(-0.2, 0.2),
+        );
         let input = request(0, 1_000, east);
         assert_eq!(
             propagate_bounded_velocity(&input).unwrap(),
@@ -522,7 +531,11 @@ mod tests {
 
     #[test]
     fn negative_velocity_occupancy_contains_integer_reference_samples() {
-        let east = axis(interval(-10.0, -10.0), interval(-2.0, 2.0), interval(-1.0, 1.0));
+        let east = axis(
+            interval(-10.0, -10.0),
+            interval(-2.0, 2.0),
+            interval(-1.0, 1.0),
+        );
         let tube = propagate_bounded_velocity(&request(0, 1_000, east)).unwrap();
         let occupancy = tube.slices[0].east_m;
 

@@ -1,6 +1,6 @@
 use aeroweft_reachability_core::{
-    propagate_bounded_velocity, AxisVelocityEnvelope, InitialPosition, Interval, ProfileIdentity,
-    ReachabilityRequest, VelocityEnvelope, VelocityStep,
+    AxisVelocityEnvelope, InitialPosition, Interval, ProfileIdentity, ReachabilityRequest,
+    VelocityEnvelope, VelocityStep, propagate_bounded_velocity,
 };
 
 fn interval(lower: f64, upper: f64) -> Interval {
@@ -82,8 +82,8 @@ fn analytic_extrema_oracle_covers_continuous_slices_and_composed_endpoints() {
         ],
     };
 
-    let tube = propagate_bounded_velocity(&request)
-        .expect("the bounded analytic fixture must propagate");
+    let tube =
+        propagate_bounded_velocity(&request).expect("the bounded analytic fixture must propagate");
 
     // First complete continuous slice, including t=0 and its endpoint limit.
     assert_contains(tube.slices[0].east_m, 0.0, 9.0);
