@@ -106,7 +106,9 @@ extract, parse, train on or score the archive. A digest mismatch must
 stop the pipeline. The registry's Zenodo CFRP candidate remains excluded while
 its item-specific licence and permitted-use scope are unresolved.
 
-The gate includes known-answer SHA-256 tests and registry fail-closed tests.
+The gate tests include a SHA-256 known-answer vector, exact registry identity,
+malformed digest rejection, duplicate-record rejection, wrong filename rejection,
+a synthetic checksum-mismatch negative control and the excluded Zenodo status.
 A passing digest proves byte identity only; it does not validate the dataset's
 experimental design, statistics, current relevance, armour performance or
 product conformity.
