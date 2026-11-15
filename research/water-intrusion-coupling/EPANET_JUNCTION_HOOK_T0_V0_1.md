@@ -118,3 +118,27 @@ Unit tests also mutate an outlet mass without updating the snapshot digest and r
 - Native Rust fmt/test/Clippy and exact-head CI must pass before even the synthetic implementation is considered verified.
 
 The public API limitation is intentional: this synthetic validator tests the future fork-hook contract, not a capability the public Toolkit currently exposes.
+
+
+## 11. Implemented synthetic T0 validator
+
+The branch adds the Rust binary at tools/water-service-t0/src/bin/epanet-junction-hook-t0.rs with 13 authored unit tests and ten frozen snapshots, a separate oracle, a manifest and an exact-revision workflow.
+
+The validator checks:
+- consumed segment portions, not full available segment volume;
+- exact engine/build, node, geometry, operator and snapshot provenance fields;
+- quality-step alignment with the next hydraulic event;
+- explicit CONCEN volume/mass and MASS integrated-per-step source handling;
+- unsupported FLOWPACED/SETPOINT refusal;
+- exact outgoing port identity including pipes and terminal demand/emitter/leakage;
+- no mass assigned to zero-volume outlets;
+- independently signed volume and tracer-mass balances;
+- baseline complete-mix parity as a zero-delay reference;
+- partial boundary and residual abstention rather than normalization;
+- snapshot SHA-256 recomputation and mutation rejection.
+
+An independent JavaScript mirror was used to recompute all ten dispositions and verify all ten canonical snapshot digests. The baseline complete-mix reference concentration is 0.003 kg/m3 for the frozen two-inlet fixture. The multiple-leading-segment fixture uses consumed portions only, totalling 0.006 kg. Separate cases produce an open mass residual of 0.002 kg with zero volume residual, and an open volume residual of 0.1 m3 with zero mass residual.
+
+This is a synthetic contract validator. It receives supplied leading-segment records; it does not obtain them from the public Toolkit or execute EPANET. The public Toolkit exposes link-level EN_LINKQUAL but not the internal leading-segment records consumed at the junction. An actual fork hook must produce these snapshots.
+
+**Evidence status:** authored 13 Rust tests; native cargo fmt/test/clippy have not been run in this authoring environment. The workflow is exact-revision gated; queued/pending does not equal pass. No engine hook, EPANET fork, operational plugin or physical mixing experiment is implemented.
