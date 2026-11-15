@@ -1,11 +1,12 @@
 use metric_induced_error_envelope_reference::{
-    CartesianQ, Cotangent, DenseY, Metric, MetricProfileV1, RectangularTangentToTangentOperator,
+    CartesianQ, Cotangent, DenseY, Metric, MetricProfileV1,
     nonlinear_sensitivity::{
         CurvatureEvidenceV1, NonlinearSensitivityStatusV1, observable_sensitivity,
         propagate_output_error,
     },
     operator::OperatorConditionProfileV1,
 };
+use metric_induced_error_envelope_reference::rectangular_operator::RectangularTangentToTangentOperator;
 
 #[derive(Clone, Copy)]
 struct Case {
