@@ -43,3 +43,8 @@ The measurement receipt is intentionally local to the synthetic plasma process f
 - a sampling interval and raw trace artifact are identified.
 
 The expanded fixture contains 15 scenarios: 1 synthetic pass, 8 blocked, 5 rejected and 1 not comparable. UTC timestamps are checked for normalized form and real calendar/time ranges; impossible dates are refused. No calibration or measurement values in the fixture represent an actual instrument or experiment.
+
+
+## Evidence-reference boundary
+
+The synthetic evaluator checks the presence and internal consistency of calibration, recovery, cross-sensitivity, interval and raw-artifact identifiers plus their declared metadata. It does **not** fetch, authenticate or independently inspect any real calibration certificate, reference-gas certificate, raw trace, or recovery study. A real physical qualification must resolve and review those artifacts under the existing measurement-system and evidence authorities; non-empty IDs are not proof of traceability.
