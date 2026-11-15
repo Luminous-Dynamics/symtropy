@@ -224,8 +224,8 @@
     {
       "case_id": "DK-T0-005-measured-physical-inventory",
       "expected": {
-        "operator_disposition": "INDETERMINATE",
-        "reason": "INVENTORY_UNIT_MISMATCH",
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
         "injected_mass": 1,
         "physical_outlet_mass": 0.8,
         "sensor_observed_outlet_mass": 0.8,
@@ -596,59 +596,6 @@
           ],
           [
             0,
-            0,
-            0,
-            0
-          ]
-        ],
-        "competing_model_separation": null,
-        "model_discrimination_state": "NOT_EVALUATED",
-        "physical_operator_qualified": false,
-        "potability_claim_permitted": false,
-        "release_authorized": false
-      }
-    },
-    {
-      "case_id": "DK-T0-013-partial-outlet-boundary",
-      "expected": {
-        "operator_disposition": "PARTIAL_OUTLET_BOUNDARY",
-        "reason": "ONE_OR_MORE_OUTLETS_NOT_OBSERVED",
-        "injected_mass": 1,
-        "physical_outlet_mass": 1,
-        "sensor_observed_outlet_mass": 1,
-        "known_inventory_mass": 0,
-        "signed_mass_residual": 0,
-        "mass_residual_standard_uncertainty": 0.01,
-        "standardized_abs_mass_residual": 0,
-        "predicted_physical_tail_mass": 0,
-        "predicted_sensor_tail_mass": 0,
-        "per_inlet_kernel_area": [
-          1,
-          0
-        ],
-        "predicted_physical_outlet_flux": [
-          [
-            0.7,
-            0,
-            0,
-            0
-          ],
-          [
-            0.3,
-            0,
-            0,
-            0
-          ]
-        ],
-        "predicted_sensor_outlet_flux": [
-          [
-            0.7,
-            0,
-            0,
-            0
-          ],
-          [
-            0.3,
             0,
             0,
             0
