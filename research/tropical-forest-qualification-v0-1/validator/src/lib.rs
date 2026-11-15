@@ -4206,6 +4206,8 @@ mod tests {
         include_str!("../../cases/forest-variable-aware-aggregation-synthetic-v0.1.json");
     const CONSILIENCE_FIXTURE: &str =
         include_str!("../../cases/forest-consilience-dependence-synthetic-v0.1.json");
+    const PROCESS_TRAJECTORY_FIXTURE: &str =
+        include_str!("../../cases/forest-process-trajectory-synthetic-v0.1.json");
 
     #[test]
     fn consilience_corpus_matches_twelve_synthetic_dependency_pairs() {
@@ -4788,6 +4790,19 @@ mod tests {
             .find(|check| check["id"] == "DECISION-VALUE-HIGH-UNCERTAINTY-ZERO-EVSI-001")
             .expect("zero-EVSI check is present");
         assert_eq!(check["passed"], true);
+    }
+
+    #[test]
+    fn process_trajectory_corpus_dispatches_through_top_level_evaluator() {
+        let receipt = evaluate(PROCESS_TRAJECTORY_FIXTURE.as_bytes())
+            .expect("process-trajectory corpus dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_PROCESS_TRAJECTORY");
+        assert_eq!(receipt["corpus_id"], "FOREST-PROCESS-TRAJECTORY-001");
+        assert_eq!(receipt["case_results"].as_array().unwrap().len(), 4);
+        assert_eq!(
+            receipt["source_manifest_sha256"],
+            sha256_hex(PROCESS_TRAJECTORY_FIXTURE.as_bytes())
+        );
     }
 
     #[test]
