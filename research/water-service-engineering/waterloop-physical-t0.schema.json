@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-physical-t0.schema.json",
+  "title": "WaterLoop Physical T0 Synthetic Benchmark Corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "profile",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-physical-t0-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_water_service_arithmetic_and_contract_semantics_only"
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "profile_revision",
+        "all_values_are_synthetic"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "type": "string"
+        },
+        "profile_revision": {
+          "type": "string"
+        },
+        "all_values_are_synthetic": {
+          "const": true
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "family",
+          "inputs"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "family": {
+            "enum": [
+              "volume_closure",
+              "storage_service",
+              "source_substitution",
+              "pump_energy",
+              "service_floor",
+              "leak_metrics"
+            ]
+          },
+          "inputs": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

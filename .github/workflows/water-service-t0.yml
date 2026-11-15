@@ -45,12 +45,23 @@ jobs:
           WATER_SERVICE_T0_REVISION: ${{ github.sha }}
         run: |
           set -euo pipefail
-          cargo run --locked --package water-service-t0 -- \
+          cargo run --locked --package water-service-t0 --bin water-service-t0 -- \
             research/water-service-engineering/t0-known-answer-vectors-v0.1.json \
             research/water-service-engineering/benchmark-manifest-v0.1.json \
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Evaluate WaterLoop physical T0 exact checked-out revision
+        id: waterloop-evaluate
+        env:
+          WATERLOOP_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin waterloop-physical-t0 -- \
+            research/water-service-engineering/waterloop-physical-t0-v0.1.json \
+            research/water-service-engineering/waterloop-physical-manifest-v0.1.json \
+            research/water-service-engineering/waterloop-physical-oracle-v0.1.json \
+            artifacts/water-service-t0/waterloop-physical-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +73,17 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            research/water-service-engineering/waterloop-physical-t0-v0.1.json
+            research/water-service-engineering/waterloop-physical-manifest-v0.1.json
+            research/water-service-engineering/waterloop-physical-oracle-v0.1.json
+            research/water-service-engineering/waterloop-physical-t0.schema.json
+            artifacts/water-service-t0/waterloop-physical-receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          WATERLOOP_EVALUATE_OUTCOME: ${{ steps.waterloop-evaluate.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$WATERLOOP_EVALUATE_OUTCOME" = "success"

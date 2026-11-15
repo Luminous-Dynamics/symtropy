@@ -107,3 +107,18 @@ A dedicated child workstream now benchmarks mechanism-aware membrane fouling est
 ## Executable T0 evaluator
 
 The 23-case input corpus now has a **separate expected-output oracle**. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+
+## WaterLoop physical bench T0 extension
+
+The companion `waterloop-physical-t0` corpus adds a synthetic-first, 15-case known-answer contract for the initial WaterLoop bench. It is deliberately separate from the existing 23-case pump/treatment/leak T0 evaluator.
+
+Inputs, manifest, independent oracle and corpus schema:
+- `waterloop-physical-t0-v0.1.json`
+- `waterloop-physical-manifest-v0.1.json`
+- `waterloop-physical-oracle-v0.1.json`
+- `waterloop-physical-t0.schema.json`
+
+The new cases address water-volume closure with conservative uncertainty bounds, measured usable storage, use-qualified source substitution, hydraulic power, wire-to-water energy, service-floor admission and event-level leak metrics. The workflow runs both evaluators on the same exact checked-out revision and publishes separate receipts.
+
+This is software contract/arithmetic evidence only. It does not qualify a pump, tank, meter, treatment train, source, laboratory result, water quality, service outcome or field savings. Physical T1 work remains gated by the WaterLoop design review and instrument/calibration qualification.
