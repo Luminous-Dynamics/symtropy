@@ -77,7 +77,15 @@ fn time(stage: Stage) -> ReceiptTime {
             observed_at: None,
             received_at: None,
         },
-        Stage::ConflictScreening | Stage::Schedule | Stage::IntentConformance => ReceiptTime {
+        Stage::IntentConformance => ReceiptTime {
+            evaluated_at: 6,
+            produced_at: 7,
+            valid_from: 0,
+            valid_until: 100,
+            observed_at: None,
+            received_at: None,
+        },
+        Stage::ConflictScreening | Stage::Schedule => ReceiptTime {
             evaluated_at: 8,
             produced_at: 9,
             valid_from: 0,
@@ -225,12 +233,34 @@ fn graph() -> Vec<Receipt> {
         NonCoop,
         vec![edge(&profile, R::CoverageProfile)],
     );
+    let authorization = receipt(
+        "authorization",
+        S::Authorization,
+        11,
+        Q,
+        vec![],
+        None,
+    );
+    let intent_conformance = receipt(
+        "intent-conformance",
+        S::IntentConformance,
+        12,
+        Q,
+        vec![
+            edge(&authorization, R::CurrentAuthorization),
+            edge(&pnt, R::SubjectPosition),
+            edge(&cooperative, R::SubjectTrack),
+            edge(&restrictions, R::ActiveRestrictions),
+        ],
+        None,
+    );
     let conflict = receipt(
         "conflict-screen",
         S::ConflictScreening,
-        10,
+        13,
         Q,
         vec![
+            edge(&intent_conformance, R::OperationalIntentConformance),
             edge(&reachability, R::ReachableOccupancy),
             edge(&profile, R::RequiredTrafficClasses),
             edge(&restrictions, R::ActiveRestrictions),
@@ -251,6 +281,8 @@ fn graph() -> Vec<Receipt> {
         noncooperative,
         cooperative_observation,
         conflict,
+        authorization,
+        intent_conformance,
     ]
 }
 
@@ -275,7 +307,7 @@ fn verify_graph(
 fn positive_control_is_structurally_bound_only() {
     let result = verify_graph(&graph()).expect("positive control should pass");
     assert_eq!(result.disposition, StructuralDisposition::CausallyBoundOnly);
-    assert_eq!(result.receipt_ids.len(), 11);
+    assert_eq!(result.receipt_ids.len(), 13);
     assert!(result.receipt_ids.contains(&"conflict-screen".to_string()));
     assert_eq!(
         result.trust_not_evaluated,
@@ -323,7 +355,9 @@ fn cross_aircraft_splice_is_rejected() {
 #[test]
 fn authorization_revision_splice_is_rejected() {
     let mut receipts = graph();
-    receipts[9].subject.authorization_revision += 1;
+    receipt_mut(&mut receipts, "authorization")
+        .subject
+        .authorization_revision += 1;
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::SubjectMismatch)
@@ -363,7 +397,12 @@ fn evaluation_window_splice_is_rejected() {
 #[test]
 fn parent_payload_digest_must_match_exactly() {
     let mut receipts = graph();
-    receipt_mut(&mut receipts, root_id()).parents[0].parent_payload_sha256 = digest('f');
+    receipt_mut(&mut receipts, root_id())
+        .parents
+        .iter_mut()
+        .find(|edge| edge.role == ParentRole::ReachableOccupancy)
+        .unwrap()
+        .parent_payload_sha256 = digest('f');
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::ParentDigestMismatch)
@@ -373,7 +412,12 @@ fn parent_payload_digest_must_match_exactly() {
 #[test]
 fn missing_parent_is_rejected() {
     let mut receipts = graph();
-    receipt_mut(&mut receipts, root_id()).parents[0].parent_receipt_id = "absent-parent".into();
+    receipt_mut(&mut receipts, root_id())
+        .parents
+        .iter_mut()
+        .find(|edge| edge.role == ParentRole::ReachableOccupancy)
+        .unwrap()
+        .parent_receipt_id = "absent-parent".into();
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::ParentMissing)
@@ -384,7 +428,11 @@ fn missing_parent_is_rejected() {
 fn parent_stage_must_match_the_semantic_role() {
     let mut receipts = graph();
     let pnt = receipts[5].clone();
-    receipt_mut(&mut receipts, root_id()).parents[0] = edge(&pnt, ParentRole::ReachableOccupancy);
+    *receipt_mut(&mut receipts, root_id())
+        .parents
+        .iter_mut()
+        .find(|edge| edge.role == ParentRole::ReachableOccupancy)
+        .unwrap() = edge(&pnt, ParentRole::ReachableOccupancy);
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::RoleMismatch)
