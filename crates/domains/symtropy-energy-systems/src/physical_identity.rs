@@ -1824,6 +1824,102 @@ mod tests {
     }
 
     #[test]
+    fn rejected_review_never_promotes_installation() {
+        let mut events = declared_and_delivered();
+        events.push(
+            event("install", PhysicalEventKind::UnitInstalled, "slot-1", 30, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_location("cabinet-east")
+                .with_predecessors(vec!["deliver".to_owned()]),
+        );
+        events.push(
+            event("inspect", PhysicalEventKind::InspectionRecorded, "slot-1", 40, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_location("cabinet-east")
+                .with_predecessors(vec!["install".to_owned()]),
+        );
+        events.push(
+            event("review", PhysicalEventKind::IndependentReconciliationRecorded, "slot-1", 50, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_location("cabinet-east")
+                .with_review_attestation("attestation-rejected")
+                .with_predecessors(vec!["inspect".to_owned()]),
+        );
+        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Invalid));
+        assert_eq!(
+            projection.slots["slot-1"].status,
+            SlotStatus::InstalledUnreconciled
+        );
+        assert!(projection.slots["slot-1"].diagnostics.iter().any(|item| {
+            item.code == PhysicalIdentityDiagnosticCode::ReviewRejected
+        }));
+    }
+
+    #[test]
+    fn configuration_change_requires_new_inspection_and_review() {
+        let mut events = declared_and_delivered();
+        events.push(
+            event("install", PhysicalEventKind::UnitInstalled, "slot-1", 30, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_location("cabinet-east")
+                .with_predecessors(vec!["deliver".to_owned()]),
+        );
+        events.push(
+            event("inspect", PhysicalEventKind::InspectionRecorded, "slot-1", 40, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_location("cabinet-east")
+                .with_predecessors(vec!["install".to_owned()]),
+        );
+        events.push(
+            event("review", PhysicalEventKind::IndependentReconciliationRecorded, "slot-1", 50, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_location("cabinet-east")
+                .with_review_attestation("attestation-1")
+                .with_predecessors(vec!["inspect".to_owned()]),
+        );
+        events.push(
+            event("config-change", PhysicalEventKind::ConfigurationChanged, "slot-1", 60, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_configuration(D2)
+                .with_predecessors(vec!["review".to_owned()]),
+        );
+        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Valid));
+        assert_eq!(
+            projection.slots["slot-1"].status,
+            SlotStatus::InstalledUnreconciled
+        );
+        assert_eq!(
+            projection.slots["slot-1"].active_assignments[0].configuration_sha256,
+            D2
+        );
+    }
+
+    #[test]
+    fn event_dependency_cycle_is_rejected() {
+        let first = event(
+            "first",
+            PhysicalEventKind::DesignSlotDeclared,
+            "slot-1",
+            10,
+            &["evidence-1"],
+        )
+        .with_predecessors(vec!["second".to_owned()]);
+        let second = event(
+            "second",
+            PhysicalEventKind::DesignSlotDeclared,
+            "slot-1",
+            10,
+            &["evidence-1"],
+        )
+        .with_predecessors(vec!["first".to_owned()]);
+        let result = ledger_result(vec![first, second], Vec::new());
+        assert!(matches!(
+            result,
+            Err(PhysicalIdentityError::EventDependencyCycle)
+        ));
+    }
+
+    #[test]
     fn relocation_invalidates_reconciliation_until_reinspected() {
         let mut events = declared_and_delivered();
         events.push(
