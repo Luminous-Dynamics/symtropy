@@ -311,7 +311,56 @@
         "checksum_status": "PUBLISHED_MD5_CAPTURED_NOT_REVERIFIED",
         "next_gate": "Retrieve exact files in network-enabled environment; verify published MD5 and locally compute SHA-256; audit rights, embedded README, contents, variables, dimensions, units, site/time identities, and D-BEN schema before admission."
       },
-      "owner_issue": 5352
+      "owner_issue": 5352,
+      "analysis_repository": {
+        "url": "https://github.com/teatree1212/DBEN_Eckes_Shephard_et_al",
+        "license": "Apache-2.0 (verified from the repository LICENSE file; applies to repository code, not automatically to the separate data archive)",
+        "current_file_blob_shas": {
+          "scripts/Eckes-Shephard_et_al2025.Rmd": "5354a054234bf28f37d04c8341cdf611728c63a0",
+          "scripts/DBEN_helper_functions.R": "395aa877985de55c38080d5b74a920035e5efe87",
+          "scripts/Format-DBEN_Eckes-Shephard_et_al2025.R": "6f8c1a69654feac83a463ca3582d8c5ff7564c65",
+          "LICENSE": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
+        },
+        "analysis_script_setup_doi": "10.5281/zenodo.14415142",
+        "paper_data_availability_doi": "10.5281/zenodo.14415143",
+        "doi_mismatch_status": "UNRESOLVED_SCRIPT_AND_PAPER_REFER_TO_DIFFERENT_RECORD_IDS",
+        "model_sites": [
+          "FIN",
+          "BIA",
+          "BCI"
+        ],
+        "model_names_in_helper": [
+          "JULES-RED",
+          "FATES",
+          "ORCHIDEE",
+          "LPJ-GUESS",
+          "CABLE-POP",
+          "BiomeEP",
+          "BiomeE-Standalone",
+          "SEIB-DGVM",
+          "EDv3"
+        ],
+        "declared_dben_variables": [
+          "cveg",
+          "cwood",
+          "cwood_size",
+          "nstem_size",
+          "lai",
+          "CA",
+          "BA",
+          "height",
+          "WBgrowth",
+          "BAgrowth",
+          "cmort",
+          "stemmort",
+          "gpp",
+          "npp",
+          "nbp"
+        ],
+        "expected_observation_processing_script": "Process_observations.R is described in Zenodo record but was not found at the two expected paths in the current default GitHub branch during this audit; locate exact source or reproduce its archived version before processing raw observations.",
+        "environment": "R + DGVMTools and helper packages declared in scripts; no renv.lock found at repository root during this audit; pin actual R/package versions during reproduction."
+      },
+      "schema_warning": "The repository helper lists model-specific names and 15 output variables for FIN/BIA/BCI. Treat these as the analysis script's declared vocabulary, not an immutable D-BEN standard. The Zenodo record calls D-BEN informal and not settled; the paper-specific mapping and per-model adapters must be audited."
     }
   ],
   "cross_source_admission_gates": [
