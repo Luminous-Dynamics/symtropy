@@ -78,7 +78,7 @@ It checks:
 - independent stock, productivity and turnover comparisons;
 - exact fixture digest in the receipt.
 
-The fixture also transcribes six published summary comparisons (means, SEs, p-values and reported rounded percent changes). The verifier checks only the percentage arithmetic against the reported means. It does not recompute the paper's p-values, standard errors, confidence intervals, root stocks or treatment effects.
+The fixture also transcribes seven published turnover comparisons (means, SEs, p-values and rounded percentage changes), a non-significant standing-stock conclusion, and two lifespan summaries. The verifier checks only the percentage arithmetic against the reported means. It does not recompute the paper's p-values, standard errors, confidence intervals, root stocks or treatment effects. The N×cation year-two result retains the paper's `-N-CAT` versus `+N-CAT` grouping and is not reinterpreted as a pure N main effect.
 
 Run from repository root:
 
