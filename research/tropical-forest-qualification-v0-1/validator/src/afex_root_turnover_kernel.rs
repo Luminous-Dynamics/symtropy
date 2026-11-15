@@ -34,23 +34,8 @@ fn expected_support(period: &str) -> Result<(&'static str, &'static str, &'stati
         _ => Err(format!("unsupported AFEX root period: {period}")),
     }
 }
-fn parse_metric(record: &Value, label: &str, value_key: &str, unit_key: &str) -> Result<f64, String> {
-    let v = number_at(record, value_key)?;
-    let unit = string_at(record, unit_key)?;
-    let expected = if value_key == "stock_value" { "Mg C ha-1" } else { "Mg C ha-1 yr-1" };
-    if unit != expected { return Err(format!("{label} unit must be {expected}")); }
-    if value_key == "stock_value" && v <= 0.0 {
-        return Err(format!("{label} stock must be positive"));
-    }
-    if value_key == "productivity_value" && v < 0.0 {
-        return Err(format!("{label} productivity must be non-negative"));
-    }
-    Ok(v)
-}
 #[derive(Clone, Debug)]
 struct Estimate {
-    plot_id: String,
-    depth: (u64, u64),
     stock: f64,
     productivity: f64,
     turnover: f64,
@@ -76,42 +61,8 @@ fn parse_estimate(record: &Value, expected_plot: &str, expected_depth: (u64,u64)
         return Err(format!("{label} turnover does not equal productivity / stock"));
     }
     let lifespan=if turnover>0.0 {Some(365.25/turnover)} else {None};
-    Ok(Estimate{plot_id,depth:(d0,d1),stock,productivity,turnover,lifespan_days:lifespan})
+    Ok(Estimate{stock,productivity,turnover,lifespan_days:lifespan})
 }
-fn validate_series(series: &Value, period: &str, expected_plot: &str, depth: (u64,u64), label: &str) -> Result<Estimate,String> {
-    let (stock_date,productivity_start,productivity_end)=expected_support(period)?;
-    let stock=series.get("stock").ok_or_else(||format!("{label}.stock is required"))?;
-    let productivity=series.get("productivity").ok_or_else(||format!("{label}.productivity is required"))?;
-    if string_at(stock,"date")?!=stock_date {
-        return Err(format!("{label} stock date does not match {period} support"));
-    }
-    if string_at(productivity,"start")?!=productivity_start
-        || string_at(productivity,"end")?!=productivity_end {
-        return Err(format!("{label} productivity interval does not match {period} support"));
-    }
-    if string_at(stock,"unit")?!="Mg C ha-1" {
-        return Err(format!("{label} stock unit must be Mg C ha-1"));
-    }
-    if string_at(productivity,"unit")?!="Mg C ha-1 yr-1" {
-        return Err(format!("{label} productivity unit must be Mg C ha-1 yr-1"));
-    }
-    let stock_value=number_at(stock,"value")?;
-    let productivity_value=number_at(productivity,"value")?;
-    if stock_value<=0.0 || productivity_value<0.0 {
-        return Err(format!("{label} requires positive stock and non-negative productivity"));
-    }
-    let turnover=productivity_value/stock_value;
-    let record=json!({
-        "plot_id":series.get("plot_id").and_then(Value::as_str).unwrap_or(""),
-        "depth_cm":series.get("depth_cm").cloned().unwrap_or(Value::Null),
-        "stock":{"stock_value":stock_value,"unit":"Mg C ha-1"},
-        "productivity":{"productivity_value":productivity_value,"unit":"Mg C ha-1 yr-1"},
-        "turnover_value":turnover
-    });
-    parse_estimate(&record,expected_plot,depth,label)
-}
-fn round_percent(value: f64) -> f64 { (value*100.0).round()/100.0 }
-
 pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
     if string_at(manifest,"schema_version")?!="0.1.0"
         || string_at(manifest,"benchmark_id")?!="LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
@@ -245,9 +196,15 @@ fn parse_series_wrapper(series:&Value,period:&str,plot:&str,depth:(u64,u64),labe
     let productivity_value=number_at(prod,"value")?;
     if stock_value<=0.0||productivity_value<0.0 { return Err(format!("{label} invalid positive stock / non-negative productivity")); }
     let turnover=productivity_value/stock_value;
+    let declared_depth=series.get("depth_cm").and_then(Value::as_array)
+        .ok_or_else(||format!("{label}.depth_cm is required"))?;
+    if declared_depth.len()!=2 || declared_depth[0].as_u64()!=Some(depth.0)
+        || declared_depth[1].as_u64()!=Some(depth.1) {
+        return Err(format!("{label} depth support mismatch"));
+    }
     let record=json!({
         "plot_id":series.get("plot_id").and_then(Value::as_str).unwrap_or(""),
-        "depth_cm":series.get("depth_cm").cloned().unwrap_or(json!([depth.0,depth.1])),
+        "depth_cm":series.get("depth_cm").cloned().unwrap_or(Value::Null),
         "stock":{"stock_value":stock_value,"unit":"Mg C ha-1"},
         "productivity":{"productivity_value":productivity_value,"unit":"Mg C ha-1 yr-1"},
         "turnover_value":turnover
