@@ -6,6 +6,11 @@
 
 mod capsule;
 mod translation_ccd;
+mod two_moving_capsules;
+pub use two_moving_capsules::{
+    endpoints_only_two_moving_capsules_collision, two_moving_capsules_aabb_candidate,
+    two_moving_capsules_collision, two_moving_capsules_vs_capsules,
+};
 pub use translation_ccd::{
     TranslationCcdError, TranslatingCapsuleClosestApproach,
     endpoints_only_translating_capsule_collision, translating_capsule_aabb_candidate,
