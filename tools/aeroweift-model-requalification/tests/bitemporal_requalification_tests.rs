@@ -135,7 +135,7 @@ fn sensor_calibration_change_invalidates_sensor_claim_not_model_artifact() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::MaterialChange,
@@ -152,7 +152,7 @@ fn sensor_calibration_change_invalidates_sensor_claim_not_model_artifact() {
         vec![DependencyKind::SensorStack]
     );
     assert_eq!(result.evaluated_dependencies[0].digest, digest('b'));
-    assert_eq!(result.evaluated_dependencies[1].digest, digest('g'));
+    assert_eq!(result.evaluated_dependencies[1].digest, digest('7'));
 }
 
 #[test]
@@ -163,7 +163,7 @@ fn unrelated_model_change_does_not_mark_sensor_dimension_as_changed() {
         2,
         DependencyKind::ModelArtifact,
         'b',
-        'h',
+        '8',
         40,
         42,
         ChangeClass::MaterialChange,
@@ -190,7 +190,7 @@ fn late_recorded_event_does_not_rewrite_earlier_knowledge_cutoff() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         20,
         30,
         ChangeClass::MaterialChange,
@@ -219,7 +219,7 @@ fn event_not_yet_effective_does_not_invalidate_earlier_effective_cutoff() {
         2,
         DependencyKind::ModelArtifact,
         'b',
-        'h',
+        '8',
         60,
         30,
         ChangeClass::MaterialChange,
@@ -285,7 +285,7 @@ fn owner_unqualified_change_event_is_indeterminate_not_ignored() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::MaterialChange,
@@ -311,7 +311,7 @@ fn corrective_reference_event_contradicts_dependent_claim() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::CorrectiveChange,
@@ -335,7 +335,7 @@ fn retirement_preserves_historical_claim_without_current_reliance() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::Retirement,
@@ -354,7 +354,7 @@ fn unsupported_change_class_does_not_receive_automatic_pass() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::Unsupported,
@@ -378,7 +378,7 @@ fn broken_dependency_digest_chain_is_indeterminate() {
         2,
         DependencyKind::SensorStack,
         '9',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::MaterialChange,
@@ -397,7 +397,7 @@ fn two_changes_must_form_exact_digest_chain() {
             2,
             DependencyKind::SensorStack,
             'c',
-            'g',
+            '7',
             20,
             21,
             ChangeClass::MaterialChange,
@@ -408,8 +408,8 @@ fn two_changes_must_form_exact_digest_chain() {
             "sensor-registry",
             3,
             DependencyKind::SensorStack,
-            'g',
-            'h',
+            '7',
+            '8',
             40,
             41,
             ChangeClass::MaterialChange,
@@ -418,7 +418,7 @@ fn two_changes_must_form_exact_digest_chain() {
     ];
     let result = assess(&claim(), &events, &complete_coverage(), cutoff(50, 50)).unwrap();
     assert_eq!(result.status, ClaimStatus::RequalificationRequired);
-    assert_eq!(result.evaluated_dependencies[1].digest, digest('h'));
+    assert_eq!(result.evaluated_dependencies[1].digest, digest('8'));
     assert_eq!(
         result.event_ids,
         vec!["sensor-step-1".to_string(), "sensor-step-2".to_string()]
@@ -428,14 +428,14 @@ fn two_changes_must_form_exact_digest_chain() {
 #[test]
 fn events_already_known_at_claim_creation_are_part_of_its_baseline() {
     let mut baseline_claim = claim();
-    baseline_claim.dependencies[1].digest = digest('g');
+    baseline_claim.dependencies[1].digest = digest('7');
     let baseline = event!(
         "sensor-before-claim",
         "sensor-registry",
         1,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         5,
         6,
         ChangeClass::MaterialChange,
@@ -460,7 +460,7 @@ fn late_recorded_correction_changes_later_view_but_not_earlier_view() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         5,
         30,
         ChangeClass::CorrectiveChange,
@@ -492,7 +492,7 @@ fn duplicate_event_id_is_rejected() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::MaterialChange,
@@ -518,7 +518,7 @@ fn reused_source_sequence_is_rejected_as_fork_or_duplicate() {
             2,
             DependencyKind::SensorStack,
             'c',
-            'g',
+            '7',
             40,
             42,
             ChangeClass::MaterialChange,
@@ -529,8 +529,8 @@ fn reused_source_sequence_is_rejected_as_fork_or_duplicate() {
             "sensor-registry",
             2,
             DependencyKind::SensorStack,
-            'g',
-            'h',
+            '7',
+            '8',
             41,
             43,
             ChangeClass::MaterialChange,
@@ -562,7 +562,7 @@ fn event_array_permutation_preserves_the_exact_result() {
             2,
             DependencyKind::SensorStack,
             'c',
-            'g',
+            '7',
             20,
             21,
             ChangeClass::MaterialChange,
@@ -574,7 +574,7 @@ fn event_array_permutation_preserves_the_exact_result() {
             2,
             DependencyKind::ModelArtifact,
             'b',
-            'h',
+            '8',
             30,
             31,
             ChangeClass::MaterialChange,
@@ -628,7 +628,7 @@ fn material_change_plus_incomplete_other_feed_remains_indeterminate_but_explains
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::MaterialChange,
@@ -660,7 +660,7 @@ fn known_contradiction_is_not_hidden_by_an_unrelated_coverage_gap() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::CorrectiveChange,
@@ -692,7 +692,7 @@ fn historical_retirement_dimension_is_reported_explicitly() {
         2,
         DependencyKind::ModelArtifact,
         'b',
-        'h',
+        '8',
         40,
         42,
         ChangeClass::Retirement,
@@ -714,7 +714,7 @@ fn unsupported_change_dimension_is_reported_explicitly() {
         2,
         DependencyKind::SensorStack,
         'c',
-        'g',
+        '7',
         40,
         42,
         ChangeClass::Unsupported,
@@ -736,7 +736,7 @@ fn unsupported_change_dimension_is_reported_explicitly() {
 #[test]
 fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matches() {
     let mut baseline_claim = claim();
-    baseline_claim.dependencies[1].digest = digest('h');
+    baseline_claim.dependencies[1].digest = digest('8');
     let events = vec![
         event!(
             "baseline-sensor-step-1",
@@ -744,7 +744,7 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
             1,
             DependencyKind::SensorStack,
             'c',
-            'g',
+            '7',
             5,
             6,
             ChangeClass::MaterialChange,
@@ -756,7 +756,7 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
             2,
             DependencyKind::SensorStack,
             '9',
-            'h',
+            '8',
             7,
             8,
             ChangeClass::MaterialChange,
@@ -786,7 +786,7 @@ fn source_sequence_not_effective_time_orders_causal_digest_succession() {
             2,
             DependencyKind::SensorStack,
             'c',
-            'g',
+            '7',
             30,
             31,
             ChangeClass::MaterialChange,
@@ -797,8 +797,8 @@ fn source_sequence_not_effective_time_orders_causal_digest_succession() {
             "sensor-registry",
             3,
             DependencyKind::SensorStack,
-            'g',
-            'h',
+            '7',
+            '8',
             20,
             32,
             ChangeClass::CorrectiveChange,
@@ -814,5 +814,5 @@ fn source_sequence_not_effective_time_orders_causal_digest_succession() {
             "sensor-correction-seq-2".to_string()
         ]
     );
-    assert_eq!(result.evaluated_dependencies[1].digest, digest('h'));
+    assert_eq!(result.evaluated_dependencies[1].digest, digest('8'));
 }
