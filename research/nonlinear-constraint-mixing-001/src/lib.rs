@@ -96,11 +96,7 @@ impl NonlinearMixingChartV1 {
     }
 
     /// W_new = T W_old T^T.
-    pub fn transform_delassus(
-        self,
-        g: Vector2,
-        w_old: Matrix2,
-    ) -> Result<Matrix2, MixingErrorV1> {
+    pub fn transform_delassus(self, g: Vector2, w_old: Matrix2) -> Result<Matrix2, MixingErrorV1> {
         let t = self.jacobian(g)?;
         mat_mul2(&mat_mul2(&t, &w_old)?, &transpose2(t))
     }
@@ -113,10 +109,7 @@ pub fn base_constraint_jet(q: Vector3) -> Result<ConstraintJetV1, MixingErrorV1>
     let g2 = q[2] - 0.25 * q[0];
     Ok(ConstraintJetV1 {
         residual: [finite(g1)?, finite(g2)?],
-        jacobian: [
-            [q[0], q[1], 0.0],
-            [-0.25, 0.0, 1.0],
-        ],
+        jacobian: [[q[0], q[1], 0.0], [-0.25, 0.0, 1.0]],
         hessians: [
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
             [[0.0; 3]; 3],
@@ -141,9 +134,11 @@ pub fn compose_constraint_jet(
     let outer = outer3(base.jacobian[0], base.jacobian[0])?;
     for row in 0..3 {
         for column in 0..3 {
-            hessian_second[row][column] =
-                finite(hessian_second[row][column] + 2.0 * chart.beta * outer[row][column]
-                    + 2.0 * chart.beta * base.residual[0] * base.hessians[0][row][column])?;
+            hessian_second[row][column] = finite(
+                hessian_second[row][column]
+                    + 2.0 * chart.beta * outer[row][column]
+                    + 2.0 * chart.beta * base.residual[0] * base.hessians[0][row][column],
+            )?;
         }
     }
 
@@ -158,10 +153,7 @@ pub fn compose_constraint_jet(
 pub fn circle_plane_projection_jet(q: Vector3) -> Result<ConstraintJetV1, MixingErrorV1> {
     validate_vector3(q)?;
     Ok(ConstraintJetV1 {
-        residual: [
-            finite(0.5 * (q[0] * q[0] + q[1] * q[1] - 1.0))?,
-            q[2],
-        ],
+        residual: [finite(0.5 * (q[0] * q[0] + q[1] * q[1] - 1.0))?, q[2]],
         jacobian: [[q[0], q[1], 0.0], [0.0, 0.0, 1.0]],
         hessians: [
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]],
@@ -192,10 +184,7 @@ pub fn iterate_circle_plane_projection(
     maximum_iterations: usize,
     residual_tolerance: f64,
 ) -> Result<Vector3, MixingErrorV1> {
-    if maximum_iterations == 0
-        || !residual_tolerance.is_finite()
-        || residual_tolerance <= 0.0
-    {
+    if maximum_iterations == 0 || !residual_tolerance.is_finite() || residual_tolerance <= 0.0 {
         return Err(MixingErrorV1::InvalidChart);
     }
     let mut q = start;
@@ -265,18 +254,13 @@ pub fn generalized_constraint_force(
     validate_vector2(multiplier)?;
     let mut force = [0.0; 3];
     for column in 0..3 {
-        force[column] = finite(
-            jacobian[0][column] * multiplier[0]
-                + jacobian[1][column] * multiplier[1],
-        )?;
+        force[column] =
+            finite(jacobian[0][column] * multiplier[0] + jacobian[1][column] * multiplier[1])?;
     }
     Ok(force)
 }
 
-pub fn delassus(
-    jacobian: Matrix2x3,
-    mass: Matrix3,
-) -> Result<Matrix2, MixingErrorV1> {
+pub fn delassus(jacobian: Matrix2x3, mass: Matrix3) -> Result<Matrix2, MixingErrorV1> {
     let mut inverse_rows = [[0.0; 3]; 2];
     for row in 0..2 {
         inverse_rows[row] = solve_spd3(mass, jacobian[row])?;
@@ -314,10 +298,7 @@ pub fn pullback_constraint_jet_coordinates(
     })
 }
 
-pub fn pullback_mass_metric(
-    mass_q: Matrix3,
-    q_from_y: Matrix3,
-) -> Result<Matrix3, MixingErrorV1> {
+pub fn pullback_mass_metric(mass_q: Matrix3, q_from_y: Matrix3) -> Result<Matrix3, MixingErrorV1> {
     mat_mul3(&mat_mul3(&transpose3(q_from_y), &mass_q)?, &q_from_y)
 }
 
@@ -356,9 +337,8 @@ fn mat_mul2(left: &Matrix2, right: &Matrix2) -> Result<Matrix2, MixingErrorV1> {
     let mut output = [[0.0; 2]; 2];
     for row in 0..2 {
         for column in 0..2 {
-            output[row][column] = finite(
-                left[row][0] * right[0][column] + left[row][1] * right[1][column],
-            )?;
+            output[row][column] =
+                finite(left[row][0] * right[0][column] + left[row][1] * right[1][column])?;
         }
     }
     Ok(output)
@@ -368,25 +348,18 @@ fn transpose2(matrix: Matrix2) -> Matrix2 {
     [[matrix[0][0], matrix[1][0]], [matrix[0][1], matrix[1][1]]]
 }
 
-fn mat_mul_2x2_2x3(
-    left: Matrix2,
-    right: Matrix2x3,
-) -> Result<Matrix2x3, MixingErrorV1> {
+fn mat_mul_2x2_2x3(left: Matrix2, right: Matrix2x3) -> Result<Matrix2x3, MixingErrorV1> {
     let mut output = [[0.0; 3]; 2];
     for row in 0..2 {
         for column in 0..3 {
-            output[row][column] = finite(
-                left[row][0] * right[0][column] + left[row][1] * right[1][column],
-            )?;
+            output[row][column] =
+                finite(left[row][0] * right[0][column] + left[row][1] * right[1][column])?;
         }
     }
     Ok(output)
 }
 
-fn mat_mul_2x3_3(
-    left: Matrix2x3,
-    right: Matrix3,
-) -> Result<Matrix2x3, MixingErrorV1> {
+fn mat_mul_2x3_3(left: Matrix2x3, right: Matrix3) -> Result<Matrix2x3, MixingErrorV1> {
     let mut output = [[0.0; 3]; 2];
     for row in 0..2 {
         for column in 0..3 {
@@ -567,8 +540,7 @@ mod tests {
 
         fn add(self, other: Self) -> Self {
             Self::new(
-                self.numerator * other.denominator
-                    + other.numerator * self.denominator,
+                self.numerator * other.denominator + other.numerator * self.denominator,
                 self.denominator * other.denominator,
             )
         }
@@ -607,10 +579,7 @@ mod tests {
 
         // At g1=1/2 and beta=1/2, Dphi = [[1,0],[1/2,1]].
         let t = [[one, zero], [half, one]];
-        let jacobian = [
-            [half, quarter, zero],
-            [r(-1, 4), zero, one],
-        ];
+        let jacobian = [[half, quarter, zero], [r(-1, 4), zero, one]];
         let jacobian_new = [
             jacobian[0],
             [
@@ -623,10 +592,7 @@ mod tests {
 
         let lambda_old = [half, r(3, 4)];
         // T^-T = [[1,-1/2],[0,1]].
-        let lambda_new = [
-            lambda_old[0].sub(half.mul(lambda_old[1])),
-            lambda_old[1],
-        ];
+        let lambda_new = [lambda_old[0].sub(half.mul(lambda_old[1])), lambda_old[1]];
         let force_old = [
             jacobian[0][0]
                 .mul(lambda_old[0])
@@ -652,10 +618,7 @@ mod tests {
         assert_eq!(force_old, force_new);
         assert_eq!(force_old, [r(1, 16), r(1, 8), r(3, 4)]);
 
-        let w_old = [
-            [r(5, 16), r(-1, 8)],
-            [r(-1, 8), r(17, 16)],
-        ];
+        let w_old = [[r(5, 16), r(-1, 8)], [r(-1, 8), r(17, 16)]];
         let tw = [
             [w_old[0][0], w_old[0][1]],
             [
@@ -669,25 +632,26 @@ mod tests {
         ];
         assert_eq!(
             w_new_expected,
-            [
-                [r(5, 16), r(1, 32)],
-                [r(1, 32), r(65, 64)],
-            ]
+            [[r(5, 16), r(1, 32)], [r(1, 32), r(65, 64)],]
         );
         let w_new_direct = [
             [
-                jacobian_new[0][0].mul(jacobian_new[0][0])
+                jacobian_new[0][0]
+                    .mul(jacobian_new[0][0])
                     .add(jacobian_new[0][1].mul(jacobian_new[0][1]))
                     .add(jacobian_new[0][2].mul(jacobian_new[0][2])),
-                jacobian_new[0][0].mul(jacobian_new[1][0])
+                jacobian_new[0][0]
+                    .mul(jacobian_new[1][0])
                     .add(jacobian_new[0][1].mul(jacobian_new[1][1]))
                     .add(jacobian_new[0][2].mul(jacobian_new[1][2])),
             ],
             [
-                jacobian_new[1][0].mul(jacobian_new[0][0])
+                jacobian_new[1][0]
+                    .mul(jacobian_new[0][0])
                     .add(jacobian_new[1][1].mul(jacobian_new[0][1]))
                     .add(jacobian_new[1][2].mul(jacobian_new[0][2])),
-                jacobian_new[1][0].mul(jacobian_new[1][0])
+                jacobian_new[1][0]
+                    .mul(jacobian_new[1][0])
                     .add(jacobian_new[1][1].mul(jacobian_new[1][1]))
                     .add(jacobian_new[1][2].mul(jacobian_new[1][2])),
             ],
@@ -698,15 +662,9 @@ mod tests {
         // T*g_ddot + (0, 2*beta*g_dot_1^2) = (3/4, 9/8).
         let g_dot = [half, r(-1, 4)];
         let g_ddot = [r(3, 4), half];
-        let linear = [
-            g_ddot[0],
-            half.mul(g_ddot[0]).add(g_ddot[1]),
-        ];
+        let linear = [g_ddot[0], half.mul(g_ddot[0]).add(g_ddot[1])];
         let curvature = [zero, quarter];
-        let transformed_ddot = [
-            linear[0].add(curvature[0]),
-            linear[1].add(curvature[1]),
-        ];
+        let transformed_ddot = [linear[0].add(curvature[0]), linear[1].add(curvature[1])];
         assert_eq!(transformed_ddot, [r(3, 4), r(9, 8)]);
         assert_eq!(t[1][0].mul(g_dot[0]).add(t[1][1].mul(g_dot[1])), zero);
     }
@@ -735,8 +693,7 @@ mod tests {
             .transform_multiplier(base.residual, lambda_base)
             .unwrap();
         let base_force = generalized_constraint_force(base.jacobian, lambda_base).unwrap();
-        let new_force =
-            generalized_constraint_force(transformed.jacobian, lambda_new).unwrap();
+        let new_force = generalized_constraint_force(transformed.jacobian, lambda_new).unwrap();
 
         assert_vec3_close(base_force, new_force, 2.0e-14);
     }
@@ -748,9 +705,7 @@ mod tests {
         let transformed = reparameterized_constraint_jet(q(), mapping).unwrap();
         let old_w = delassus(base.jacobian, mass_q()).unwrap();
         let new_w = delassus(transformed.jacobian, mass_q()).unwrap();
-        let expected = mapping
-            .transform_delassus(base.residual, old_w)
-            .unwrap();
+        let expected = mapping.transform_delassus(base.residual, old_w).unwrap();
         for row in 0..2 {
             for column in 0..2 {
                 assert_close(new_w[row][column], expected[row][column], 2.0e-13);
@@ -771,8 +726,7 @@ mod tests {
             NonlinearMixingChartV1::new(0.0).unwrap(),
         )
         .unwrap();
-        let transformed =
-            constraint_kinematics(q_value, velocity, acceleration, mapping).unwrap();
+        let transformed = constraint_kinematics(q_value, velocity, acceleration, mapping).unwrap();
         let g = base_constraint_jet(q_value).unwrap().residual;
         let t = mapping.jacobian(g).unwrap();
         let expected_linear = mat_vec2(t, base.acceleration_residual).unwrap();
@@ -818,9 +772,7 @@ mod tests {
             constraint_kinematics(q_value, velocity, acceleration, mapping).unwrap();
         let g = base_constraint_jet(q_value).unwrap().residual;
         let naive = mat_vec2(mapping.jacobian(g).unwrap(), base.acceleration_residual).unwrap();
-        assert!(
-            (transformed.acceleration_residual[1] - naive[1]).abs() > 1.0e-3
-        );
+        assert!((transformed.acceleration_residual[1] - naive[1]).abs() > 1.0e-3);
     }
 
     #[test]
@@ -839,7 +791,8 @@ mod tests {
         assert_close(old_virtual_work, new_virtual_work, 1.0e-14);
 
         let old_residual_pairing = dot2(lambda_base, base.residual).unwrap();
-        let new_residual_pairing = dot2(lambda_new, mapping.forward(base.residual).unwrap()).unwrap();
+        let new_residual_pairing =
+            dot2(lambda_new, mapping.forward(base.residual).unwrap()).unwrap();
         assert!((old_residual_pairing - new_residual_pairing).abs() > 1.0e-4);
     }
 
@@ -848,7 +801,11 @@ mod tests {
         let mapping = chart();
         let s = [[1.0, 2.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]];
         let q_value = q();
-        let y = [q_value[0] - 2.0 * (q_value[1] - q_value[2]), q_value[1] - q_value[2], q_value[2]];
+        let y = [
+            q_value[0] - 2.0 * (q_value[1] - q_value[2]),
+            q_value[1] - q_value[2],
+            q_value[2],
+        ];
         let mass_y = pullback_mass_metric(mass_q(), s).unwrap();
 
         let jet_q = reparameterized_constraint_jet(q_value, mapping).unwrap();
@@ -858,7 +815,11 @@ mod tests {
         let expected_j_y = transform_jacobian_coordinates(jet_q.jacobian, s).unwrap();
         for row in 0..2 {
             for column in 0..3 {
-                assert_close(jet_y.jacobian[row][column], expected_j_y[row][column], 1.0e-14);
+                assert_close(
+                    jet_y.jacobian[row][column],
+                    expected_j_y[row][column],
+                    1.0e-14,
+                );
             }
         }
 
@@ -874,11 +835,7 @@ mod tests {
     #[test]
     fn nonlinear_chart_changes_first_projection_step_but_not_metric_nearest_endpoint() {
         let start = [1.5, 0.8, 0.7];
-        let mass = [
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ];
+        let mass = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         let linear_chart = NonlinearMixingChartV1::new(0.0).unwrap();
         let nonlinear_chart = chart();
         let base_jet = compose_constraint_jet(
@@ -902,8 +859,7 @@ mod tests {
         let linear_solution =
             iterate_circle_plane_projection(start, mass, linear_chart, 100, 2.0e-13).unwrap();
         let nonlinear_solution =
-            iterate_circle_plane_projection(start, mass, nonlinear_chart, 100, 2.0e-13)
-                .unwrap();
+            iterate_circle_plane_projection(start, mass, nonlinear_chart, 100, 2.0e-13).unwrap();
         assert_vec3_close(linear_solution, exact, 2.0e-11);
         assert_vec3_close(nonlinear_solution, exact, 2.0e-11);
     }
