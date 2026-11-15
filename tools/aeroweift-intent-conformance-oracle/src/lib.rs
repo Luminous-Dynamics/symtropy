@@ -753,6 +753,22 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
     let definite_outside_ppm = ratio_ppm(definite_outside, evaluation_duration);
     let possible_outside_ppm = ratio_ppm(possible_or_unknown_ticks, evaluation_duration);
 
+    if definite_outside_ppm > policy.maximum_definite_outside_ppm {
+        return ConformanceAssessment {
+            status: ConformanceStatus::Nonconforming,
+            reason: Some(ConformanceReason::DefiniteDeviationThresholdExceeded),
+            definite_inside_ticks: definite_inside,
+            definite_outside_ticks: definite_outside,
+            possible_outside_ticks: possible_outside,
+            unassessable_ticks: unassessable,
+            unobserved_ticks: unobserved,
+            qualified_observed_ticks: qualified_observed,
+            definite_outside_ppm,
+            possible_outside_ppm,
+            lineage,
+        };
+    }
+
     if unassessable > 0 {
         return ConformanceAssessment {
             status: ConformanceStatus::NotAssessable,
@@ -806,22 +822,6 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             Some(ConformanceReason::NoQualifiedObservation),
             lineage,
         );
-    }
-
-    if definite_outside_ppm > policy.maximum_definite_outside_ppm {
-        return ConformanceAssessment {
-            status: ConformanceStatus::Nonconforming,
-            reason: Some(ConformanceReason::DefiniteDeviationThresholdExceeded),
-            definite_inside_ticks: definite_inside,
-            definite_outside_ticks: definite_outside,
-            possible_outside_ticks: possible_outside,
-            unassessable_ticks: unassessable,
-            unobserved_ticks: unobserved,
-            qualified_observed_ticks: qualified_observed,
-            definite_outside_ppm,
-            possible_outside_ppm,
-            lineage,
-        };
     }
 
     if possible_outside > 0 {
