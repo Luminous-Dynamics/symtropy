@@ -193,6 +193,7 @@ fn validate_envelope(
     let mut input_ids = BTreeSet::new();
     let mut output_ids = BTreeSet::new();
     let mut artifact_receipts = Vec::new();
+    let mut artifact_paths = BTreeSet::new();
     let mut all_revisions_known = true;
     let mut all_rights_cleared = true;
     let mut all_dataset_crs_known = true;
@@ -263,15 +264,19 @@ fn validate_envelope(
                 return Err(format!("{artifact_path}.sha256 must be lowercase hexadecimal SHA-256"));
             }
 
-            let (label, bytes) = match relative_path {
-                "model-evidence-payloads/synthetic-input.json" => ("input", input_bytes),
-                "model-evidence-payloads/synthetic-output.json" => ("output", output_bytes),
-                other => {
-                    return Err(format!(
-                        "{artifact_path}: path outside frozen fixture allow-list: {other}"
-                    ));
-                }
+            let (expected_path, bytes) = match direction {
+                "INPUT" => ("model-evidence-payloads/synthetic-input.json", input_bytes),
+                "OUTPUT" => ("model-evidence-payloads/synthetic-output.json", output_bytes),
+                _ => unreachable!("direction was validated above"),
             };
+            if relative_path != expected_path {
+                return Err(format!(
+                    "{artifact_path}: artifact path does not match dataset direction"
+                ));
+            }
+            if !artifact_paths.insert(relative_path.to_owned()) {
+                return Err(format!("{artifact_path}: duplicate artifact path"));
+            }
             if expected_length != bytes.len() as u64 {
                 return Err(format!(
                     "{artifact_path}: byte length mismatch for {relative_path}; expected {expected_length}, received {}",
@@ -293,11 +298,13 @@ fn validate_envelope(
                 sha256: digest,
                 integrity_verified: true,
             });
-            let _ = label;
         }
     }
     if input_ids.is_empty() || output_ids.is_empty() {
         return Err("at least one INPUT and one OUTPUT dataset are required".to_owned());
+    }
+    if artifact_receipts.len() != 2 || artifact_paths.len() != 2 {
+        return Err("E1 v0.1 frozen fixture requires one distinct artifact per dataset".to_owned());
     }
 
     let edges = root
@@ -380,7 +387,7 @@ fn validate_envelope(
     {
         "ABSTAIN_INCOMPLETE_EXTERNAL_EVIDENCE"
     } else {
-        "ENVELOPE_INTEGRITY_VERIFIED_PHYSICAL_VALIDITY_UNASSESSED"
+        "ENVELOPE_METADATA_COMPLETE_SOURCE_AUTHENTICITY_UNVERIFIED"
     };
 
     let canonical = serde_json::to_vec(&root)
@@ -457,9 +464,35 @@ mod tests {
     }
 
     #[test]
+    fn input_dataset_cannot_claim_output_artifact() {
+        let mut root = fixture_value();
+        root["datasets"][0]["artifacts"][0]["relative_path"] =
+            Value::String("model-evidence-payloads/synthetic-output.json".into());
+        root["datasets"][0]["artifacts"][0]["byte_length"] = Value::from(272);
+        root["datasets"][0]["artifacts"][0]["sha256"] =
+            Value::String("ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("input/output artifact mismatch");
+        assert!(error.contains("does not match dataset direction"));
+    }
+
+    #[test]
+    fn artifact_path_cannot_be_reused_across_datasets() {
+        let mut root = fixture_value();
+        root["datasets"][1]["artifacts"][0]["relative_path"] =
+            Value::String("model-evidence-payloads/synthetic-input.json".into());
+        root["datasets"][1]["artifacts"][0]["byte_length"] = Value::from(228);
+        root["datasets"][1]["artifacts"][0]["sha256"] =
+            Value::String("7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("output/input artifact mismatch");
+        assert!(error.contains("does not match dataset direction"));
+    }
+
+    #[test]
     fn incomplete_lineage_is_rejected() {
         let mut root = fixture_value();
-        root["lineage_edges"].as_array_mut().expect("edges").pop();
+        let _ = root["lineage_edges"].as_array_mut().expect("edges").pop();
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("incomplete lineage");
         assert!(error.contains("lineage_edges do not connect"));
