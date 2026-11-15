@@ -213,3 +213,21 @@ Research owners:
 - [#5328 — sealed model-set custody](https://github.com/Luminous-Dynamics/symtropy/issues/5328)
 
 The new module/corpus artifacts are specification and unit-test-level work. They do not produce a production receipt through the CLI, run Rust in the current runtime, ingest real data, or establish ecological validity.
+
+## Block-coverage and spatial-localization CLI receipts
+
+The new evaluation kernels are now wired into the same deterministic CLI receipt path as the earlier synthetic corpora:
+
+```bash
+# Realized whole-block coverage uncertainty; block count is the evaluation unit
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-block-coverage-inference-synthetic-v0.1.json
+
+# Spatially localized residual intervals, local ESS, abstention and Moran's I
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-spatial-localization-synthetic-v0.1.json
+```
+
+The CLI emits source-manifest SHA-256, per-case checks and explicit claim ceilings. Success result names are `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE` and `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`. These are synthetic arithmetic/diagnostic receipts only; neither claims ecological calibration, spatial conditional validity, independent block structure or field performance.
+
+The `forest_corpus_receipts` module adds mutation tests for interval-oracle corruption, pseudo-replication acceptance, local undercoverage mutation and Moran reference mutation. Those tests are authored but have not been run in the current environment.
