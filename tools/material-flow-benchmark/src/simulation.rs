@@ -461,11 +461,6 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
         && first.final_speed_m_s.to_bits() == replay.final_speed_m_s.to_bits();
 
     let geometry = tote_geometry(scenario)?;
-    let package_half_m = [
-        millimetres(scenario.package.dimensions_mm.length_mm) / 2.0,
-        millimetres(scenario.package.dimensions_mm.height_mm) / 2.0,
-        millimetres(scenario.package.dimensions_mm.width_mm) / 2.0,
-    ];
     let [x, y, z] = first.final_position_m;
     let [ix, iy, iz] = geometry.inner_half_m;
     let [aabb_x, aabb_y, aabb_z] = first.final_world_aabb_half_extents_m;
@@ -542,6 +537,9 @@ mod tests {
         assert!(result.replay_bitwise_equal);
         assert!(result.safe_inside_tote, "{result:?}");
         assert!(result.settled, "{result:?}");
+        assert!(result.physics_numerically_healthy, "{result:?}");
+        assert!(result.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M);
+        assert_eq!(result.non_finite_body_count, 0);
         assert_eq!(
             result.transaction_state,
             PhysicalTransactionState::Completed
