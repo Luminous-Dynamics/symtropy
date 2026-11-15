@@ -64,6 +64,8 @@ fn policy() -> ValidationPolicy {
                 comparator: Comparator::AtMost,
                 threshold: 5.0,
                 minimum_independent_units: 12,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
             },
             MetricGate {
                 metric: MetricKind::PredictionIntervalCoverage,
@@ -73,6 +75,8 @@ fn policy() -> ValidationPolicy {
                 comparator: Comparator::AtLeast,
                 threshold: 0.95,
                 minimum_independent_units: 100,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
             },
             MetricGate {
                 metric: MetricKind::OutOfDomainDetectionRecall,
@@ -82,6 +86,8 @@ fn policy() -> ValidationPolicy {
                 comparator: Comparator::AtLeast,
                 threshold: 0.90,
                 minimum_independent_units: 20,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
             },
         ],
     }
@@ -121,6 +127,10 @@ fn package() -> ValidationPackage {
                 modality: EvidenceModality::ControlledFlight,
                 confirmatory_manifest_sha256: digest('3'),
                 value: 4.2,
+                lower_confidence_bound: 4.2,
+                upper_confidence_bound: 4.2,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
                 independent_unit_count: 14,
             },
             MetricEvidence {
@@ -130,6 +140,10 @@ fn package() -> ValidationPackage {
                 modality: EvidenceModality::ControlledFlight,
                 confirmatory_manifest_sha256: digest('3'),
                 value: 0.96,
+                lower_confidence_bound: 0.96,
+                upper_confidence_bound: 0.96,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
                 independent_unit_count: 120,
             },
             MetricEvidence {
@@ -139,6 +153,10 @@ fn package() -> ValidationPackage {
                 modality: EvidenceModality::Synthetic,
                 confirmatory_manifest_sha256: digest('3'),
                 value: 0.95,
+                lower_confidence_bound: 0.95,
+                upper_confidence_bound: 0.95,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
                 independent_unit_count: 25,
             },
         ],
@@ -333,6 +351,10 @@ fn unrequested_metric_cannot_be_smuggled_into_a_package() {
         modality: EvidenceModality::Synthetic,
         confirmatory_manifest_sha256: digest('3'),
         value: 0.1,
+        lower_confidence_bound: 0.1,
+        upper_confidence_bound: 0.1,
+        confidence_level: 0.95,
+        confidence_method_sha256: digest('9'),
         independent_unit_count: 30,
     });
     assert_eq!(
@@ -402,9 +424,78 @@ fn metric_gate_cannot_claim_a_stratum_outside_required_domain() {
         comparator: Comparator::AtMost,
         threshold: 1.0,
         minimum_independent_units: 1,
+                confidence_level: 0.95,
+                confidence_method_sha256: digest('9'),
     });
     assert_eq!(
         evaluate(&package(), &invalid_policy),
         Err(ValidationError::InvalidPolicy)
+    );
+}
+
+
+#[test]
+fn error_gate_uses_upper_confidence_bound_not_point_estimate() {
+    let mut candidate = package();
+    candidate.metrics[0].value = 4.9;
+    candidate.metrics[0].lower_confidence_bound = 4.8;
+    candidate.metrics[0].upper_confidence_bound = 5.2;
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::MetricOutsideGate)
+    );
+}
+
+#[test]
+fn coverage_gate_uses_lower_confidence_bound_not_point_estimate() {
+    let mut candidate = package();
+    candidate.metrics[1].value = 0.97;
+    candidate.metrics[1].lower_confidence_bound = 0.93;
+    candidate.metrics[1].upper_confidence_bound = 0.99;
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::MetricOutsideGate)
+    );
+}
+
+#[test]
+fn metric_interval_method_must_match_frozen_gate() {
+    let mut candidate = package();
+    candidate.metrics[0].confidence_method_sha256 = digest('7');
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::ConfidenceContractMismatch)
+    );
+}
+
+#[test]
+fn confidence_level_must_match_frozen_gate() {
+    let mut candidate = package();
+    candidate.metrics[0].confidence_level = 0.90;
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::ConfidenceContractMismatch)
+    );
+}
+
+#[test]
+fn inverted_confidence_interval_is_rejected() {
+    let mut candidate = package();
+    candidate.metrics[0].lower_confidence_bound = 5.1;
+    candidate.metrics[0].upper_confidence_bound = 4.9;
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::InvalidPackage)
+    );
+}
+
+#[test]
+fn confidence_interval_cannot_exclude_its_reported_point_estimate() {
+    let mut candidate = package();
+    candidate.metrics[0].lower_confidence_bound = 4.0;
+    candidate.metrics[0].upper_confidence_bound = 4.1;
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::InvalidPackage)
     );
 }
