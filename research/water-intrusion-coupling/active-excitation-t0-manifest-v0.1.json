@@ -1,0 +1,8 @@
+{
+  "schema_version": "active-excitation-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-ACTIVE-EXPERIMENT-DESIGN-001",
+  "case_count": 1,
+  "case_ids": [
+    "AE-T0-CORPUS-001"
+  ]
+}
