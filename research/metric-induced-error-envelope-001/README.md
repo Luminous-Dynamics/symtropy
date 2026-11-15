@@ -155,3 +155,23 @@ Run it with:
 The JSON records the fixture ID, crate version, target architecture/OS, available parallelism, iteration count, sample count and raw timing summary. Record the CPU model, OS image, compiler commit and machine configuration alongside each retained report; the program intentionally does not guess those facts from portable runtime APIs.
 
 These timings are **only the reference-layer microbenchmark**. They are not comparable to Drake, MuJoCo or Pinocchio solver timings, do not establish a general overhead bound, and do not measure physical integration. Matched solver comparisons are tracked separately in Symtropy #4805.
+
+## Rectangular constraint-space / Delassus integration
+
+The `constraint_space_receipt` module composes the metric-aware rectangular Jacobian spectrum with the mechanical Delassus operator. It binds the generalized-velocity mass metric M, the independent constraint-rate metric C, and the Jacobian used to construct W = J M^-1 J^T.
+
+For B = L_C^T J L_M^-T, the whitened Delassus identity is B B^T = L_C^T W L_C. The receipt records the rectangular singular values and their squares as eigenvalue estimates of the constraint-metric-whitened Delassus operator. The Delassus cometric is constructed through Cholesky whitening; M inverse is never formed.
+
+Two independent coordinate changes are tested: generalized coordinates q = S y and constraint-rate coordinates c = T d. Their represented quantities obey J_d = T^-1 J_q S, M_y = S^T M_q S, and C_d = T^T C_c T. The Delassus matrix transforms as W_d = T^-1 W_q T^-T.
+
+The full-row-rank path exposes multiplier, residual-dual and minimum-kinetic-correction operations. Rank-deficient and overdetermined maps retain rank/nullity receipts but receive no SPD multiplier-solve authority. Redundant-constraint multiplier equivalence remains the separate quotient-space programme.
+
+### Deterministic constraint-space ladder
+
+`examples/constraint_space_ladder.rs` applies five simultaneous domain and constraint-coordinate rebases. It checks rectangular singular values, whitened Delassus eigenvalue estimates, Delassus matrix congruence, constraint-rate and covector norms, virtual-work pairing, residual dual norms, multiplier covariance, and the lifted minimum-kinetic physical correction.
+
+Run with:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_space_ladder
+
+The exact-head workflow validates and uploads the five-row CSV receipt. This is a bounded dense mechanics regression, not a qualification of sparse articulated solvers, redundant-constraint quotient algorithms, nonsmooth contact/friction, or production throughput.
