@@ -1,3 +1,4 @@
+use metric_induced_error_envelope_reference::rectangular_operator::RectangularTangentToTangentOperator;
 use metric_induced_error_envelope_reference::{
     CartesianQ, Cotangent, DenseY, Metric, MetricProfileV1,
     nonlinear_sensitivity::{
@@ -6,7 +7,6 @@ use metric_induced_error_envelope_reference::{
     },
     operator::OperatorConditionProfileV1,
 };
-use metric_induced_error_envelope_reference::rectangular_operator::RectangularTangentToTangentOperator;
 
 #[derive(Clone, Copy)]
 struct Case {
@@ -28,11 +28,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output_metric = Metric::<DenseY, 1>::admit([[1.0]], metric_profile)?;
 
     let cases = [
-        Case { id: "affine", derivative_at_origin: 0.25, second_derivative: 0.0, observable_gradient: 2.0 },
-        Case { id: "curvature_dominates", derivative_at_origin: 0.05, second_derivative: 10.0, observable_gradient: 0.5 },
-        Case { id: "stiff_nonlinear", derivative_at_origin: 2.0, second_derivative: 4.0, observable_gradient: 1.5 },
-        Case { id: "sign_changing", derivative_at_origin: -1.5, second_derivative: 6.0, observable_gradient: -0.75 },
-        Case { id: "near_flat", derivative_at_origin: 0.01, second_derivative: 0.4, observable_gradient: 3.0 },
+        Case {
+            id: "affine",
+            derivative_at_origin: 0.25,
+            second_derivative: 0.0,
+            observable_gradient: 2.0,
+        },
+        Case {
+            id: "curvature_dominates",
+            derivative_at_origin: 0.05,
+            second_derivative: 10.0,
+            observable_gradient: 0.5,
+        },
+        Case {
+            id: "stiff_nonlinear",
+            derivative_at_origin: 2.0,
+            second_derivative: 4.0,
+            observable_gradient: 1.5,
+        },
+        Case {
+            id: "sign_changing",
+            derivative_at_origin: -1.5,
+            second_derivative: 6.0,
+            observable_gradient: -0.75,
+        },
+        Case {
+            id: "near_flat",
+            derivative_at_origin: 0.01,
+            second_derivative: 0.4,
+            observable_gradient: 3.0,
+        },
     ];
     let radii = [1.0e-4, 1.0e-3, 1.0e-2, 2.5e-2, 5.0e-2, 1.0e-1];
     let sample_intervals = 2_000usize;
@@ -52,8 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let output_gradient = Cotangent::<DenseY, 1>::new([case.observable_gradient])?;
         let observable_curvature = CurvatureEvidenceV1::AnalyticUpperBound {
-            second_derivative_norm_bound:
-                (case.observable_gradient * case.second_derivative).abs(),
+            second_derivative_norm_bound: (case.observable_gradient * case.second_derivative).abs(),
             valid_radius: 1.0e-1,
             evidence_id: format!("analytic-Hphi-composed-{}", case.id),
         };
@@ -83,8 +107,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let normalized = -1.0 + 2.0 * sample as f64 / sample_intervals as f64;
                 let x = radius * normalized;
                 // Exact synthetic one-dimensional map: F(x) = a*x + 0.5*h*x^2.
-                let next = case.derivative_at_origin * x
-                    + 0.5 * case.second_derivative * x * x;
+                let next = case.derivative_at_origin * x + 0.5 * case.second_derivative * x * x;
                 observed_state_max = observed_state_max.max(next.abs());
                 observed_observable_max =
                     observed_observable_max.max((case.observable_gradient * next).abs());
@@ -93,9 +116,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let state_upper = output
                 .total_output_error_upper_estimate
                 .ok_or("analytic curvature did not produce a state upper estimate")?;
-            let observable_upper = observable
-                .total_observable_change_upper_estimate
-                .ok_or("analytic composite curvature did not produce an observable upper estimate")?;
+            let observable_upper = observable.total_observable_change_upper_estimate.ok_or(
+                "analytic composite curvature did not produce an observable upper estimate",
+            )?;
 
             let state_coverage = observed_state_max <= state_upper + 1.0e-12;
             let observable_coverage = observed_observable_max <= observable_upper + 1.0e-12;
@@ -131,8 +154,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 status
             );
 
-            assert!(state_coverage, "state envelope failed sampled coverage for {} at radius {}", case.id, radius);
-            assert!(observable_coverage, "observable envelope failed sampled coverage for {} at radius {}", case.id, radius);
+            assert!(
+                state_coverage,
+                "state envelope failed sampled coverage for {} at radius {}",
+                case.id, radius
+            );
+            assert!(
+                observable_coverage,
+                "observable envelope failed sampled coverage for {} at radius {}",
+                case.id, radius
+            );
             assert!(state_tightness.is_finite() && state_tightness >= 1.0 - 1.0e-10);
             assert!(observable_tightness.is_finite() && observable_tightness >= 1.0 - 1.0e-10);
         }
