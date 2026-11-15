@@ -22,9 +22,7 @@
 
 use core::marker::PhantomData;
 
-use crate::constraint_metric::{
-    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1,
-};
+use crate::constraint_metric::{ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1};
 use crate::rectangular_operator::{
     RectangularOperatorConditionReceiptV1, RectangularOperatorStatusV1,
     RectangularTangentToTangentOperator,
@@ -195,17 +193,16 @@ impl<Domain: CoordinateFrame, ConstraintSpace: CoordinateFrame, const N: usize, 
             K.saturating_sub(singular_values.len()),
         ));
 
-        let rank_status = if operator_receipt.status
-            == RectangularOperatorStatusV1::OutsideConditionEnvelope
-        {
-            ConstraintMapRankStatusV1::OutsideConditionEnvelope
-        } else if operator_receipt.numerical_rank == K {
-            ConstraintMapRankStatusV1::FullRowRank
-        } else if operator_receipt.numerical_rank == N && K > N {
-            ConstraintMapRankStatusV1::FullColumnRankNotSurjective
-        } else {
-            ConstraintMapRankStatusV1::RankDeficient
-        };
+        let rank_status =
+            if operator_receipt.status == RectangularOperatorStatusV1::OutsideConditionEnvelope {
+                ConstraintMapRankStatusV1::OutsideConditionEnvelope
+            } else if operator_receipt.numerical_rank == K {
+                ConstraintMapRankStatusV1::FullRowRank
+            } else if operator_receipt.numerical_rank == N && K > N {
+                ConstraintMapRankStatusV1::FullColumnRankNotSurjective
+            } else {
+                ConstraintMapRankStatusV1::RankDeficient
+            };
 
         // W is SPD only for a full-row-rank constraint map. Do not regularize
         // a singular Delassus matrix to manufacture a multiplier inverse.
