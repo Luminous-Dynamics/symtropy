@@ -91,6 +91,14 @@ The eight-model tournament and its machine-readable claim boundaries are recorde
 
 The three-pathway model's organic route is currently unidentifiable from admitted AFEX records. Fungal carbon allocation, fungal nutrient-transfer rates, available organic N/P and species-resolved mycorrhizal types are not established in the current crosswalk. The model register therefore includes these as explicit data requirements and refuses to promote the comparator to an AFEX-calibrated model.
 
+## 5.2 Pathway observability gate
+
+Before fitting any multi-pathway model, require an exact identifiability report for the actual observation operator. [#5449](https://github.com/Luminous-Dynamics/symtropy/issues/5449) shows that AM colonisation fraction is a covariate, not a source-specific uptake measurement. In a simplified model with four unknowns (direct-root inorganic, mycorrhizal inorganic, mycorrhizal organic and host-to-fungal carbon cost), colonisation plus hypothetical total uptake across varied fractions identifies at most two parameter combinations. Mycorrhizal inorganic and organic terms are aliased; carbon cost has no observation equation.
+
+A source-specific fungal nutrient tracer can break the inorganic/organic alias. A separate host-to-fungal carbon allocation measurement is needed to identify fungal carbon cost. This is a measurement-design result, not evidence that the proposed assays will be precise or feasible in AFEX.
+
+See [AFEX_PATHWAY_IDENTIFIABILITY_V0_1.md](AFEX_PATHWAY_IDENTIFIABILITY_V0_1.md), its [four-case synthetic fixture](cases/afex-root-pathway-identifiability-synthetic-v0.1.json), and [exact-rank validator](validator/src/afex_root_pathway_identifiability_kernel.rs).
+
 ## 6. Proposed benchmark targets
 
 - 100% of unsupported depth/time joins refused.
