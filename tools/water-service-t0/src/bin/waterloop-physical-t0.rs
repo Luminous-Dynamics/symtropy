@@ -437,7 +437,12 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
             "ADMITTED"
         };
     let affordability_disposition =
-        if !income_admitted || !cost_admitted || !tariff_admitted || !service_admitted {
+        if !income_admitted
+            || !cost_admitted
+            || !tariff_admitted
+            || !tariff_period_matches
+            || !service_admitted
+        {
             "INDETERMINATE"
         } else if !service_use_matches {
             "NOT_COMPARABLE"
@@ -1241,7 +1246,7 @@ mod tests {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &oracle)
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 33);
+        assert_eq!(result["matched_case_count"], 32);
         assert_eq!(
             result["mismatches"].as_array().expect("mismatches").len(),
             1
@@ -1351,6 +1356,8 @@ mod tests {
         assert_eq!(actual["tariff_reason"], "TARIFF_BILLING_PERIOD_MISMATCH");
         assert_eq!(actual["utility_bill_delta_zar"], Value::Null);
         assert_eq!(actual["economic_comparison_disposition"], "INDETERMINATE");
+        assert_eq!(actual["affordability_disposition"], "INDETERMINATE");
+        assert_eq!(actual["economic_preference_eligible"], false);
     }
 
     #[test]
