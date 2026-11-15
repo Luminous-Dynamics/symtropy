@@ -50,7 +50,7 @@ The benchmark does not collapse these errors into a composite score.
 
 New artifacts:
 
-- `validator/src/trajectory_budget_kernel.rs`: offline Rust reference kernel, eight authored unit tests, ordered-period and continuity checks, pool-specific budget residuals, per-period state errors and primitive-flow error metrics.
+- `validator/src/trajectory_budget_kernel.rs`: offline Rust reference kernel, nine authored unit tests, ordered-period and continuity checks, pool-specific budget residuals, per-period state errors and primitive-flow error metrics.
 - `cases/forest-process-trajectory-synthetic-v0.1.json`: four public synthetic known-truth cases.
 - `FOREST_PROCESS_TRAJECTORY_V0_1.md`: method, matched benchmark protocol and claim limits.
 - `validator/src/lib.rs`: corpus dispatch under `FOREST-PROCESS-TRAJECTORY-001`.
