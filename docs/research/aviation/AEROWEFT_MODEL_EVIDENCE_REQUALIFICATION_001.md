@@ -68,11 +68,12 @@ Change classes:
 
 Every dependency requires a matching coverage record with:
 - source namespace and dependency kind;
-- effective-time interval;
-- knowledge-time frontier;
+- effective-time interval beginning no later than the original qualification time and ending no earlier than the requested effective cutoff;
+- knowledge-time interval beginning no later than the original claim-recorded time and ending no earlier than the requested knowledge cutoff;
 - sequence interval;
 - completeness state;
 - owner-declared evidence state;
+- source sequence interval containing each supplied event used in the assessment;
 - manifest digest.
 
 A missing, partial, unknown or unqualified coverage receipt produces an indeterminate dimension. Absence of a change event is not proof of no change unless the declared coverage is complete through both requested cutoffs.
@@ -102,13 +103,13 @@ The original claim and its historical evidence are never mutated or deleted.
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 30 tests including:
+The Rust suite currently exercises 33 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
 - late-recorded event is absent from an earlier knowledge cutoff and present at a later one;
 - scheduled but not-yet-effective event does not invalidate an earlier effective cutoff;
-- missing/partial/out-of-frontier feed coverage;
+- missing/partial/out-of-frontier feed coverage, including sequence-frontier gaps and coverage that starts after the claim baseline;
 - unqualified event input;
 - corrective, retirement and unsupported change classes;
 - broken and valid multi-step dependency digest chains;
