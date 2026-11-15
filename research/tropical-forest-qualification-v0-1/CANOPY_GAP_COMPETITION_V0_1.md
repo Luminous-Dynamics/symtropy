@@ -30,6 +30,10 @@ The 2026 LPJ-GUESS paper provides a concrete, reproducible challenge rather than
 - PPA formed a recruitment layer at 20% harvest but did not retain it to 60 years in the reported cases.
 - SEC retained a recruitment layer beyond 60 years even at 20% harvest.
 - SEC averaged 2.26× the runtime of standard LPD in the article's patch-count experiment; PPA averaged 1.54×.
+- SEC averaged 2.26× the runtime of standard LPD in the article's patch-count experiment; PPA averaged 1.54×.
+- For the article's biomass RMSE-convergence criterion, LPJ and SEC required 10 patches, PPA 15 and LPD 20. For mortality, SEC and LPD reached the criterion with 20 patches, while LPJ and PPA required 30.
+- The published revision-13221 source archive is available from [Zenodo record 18133363](https://zenodo.org/records/18133363), 6.0 MB, under the article's stated Mozilla Public License 2.0 code-availability terms: https://doi.org/10.5194/gmd-19-3595-2026.
+- The article states that the cohort individuals do not mutually shade (they are aligned without crown overlap) and the direct-light assumption is zenith-only; solar-angle effects were not represented in the canopy-gap analysis.
 - The article notes SEC was not part of the cited 2025 demographic vegetation model intercomparison.
 
 These results are specific to the article's model version, sites, assumptions and experiment. The Luminous comparison must reproduce the source case where possible and must compare runtime and ecological output together. It must not imply that SEC universally dominates PPA or every cohort canopy.
@@ -92,3 +96,14 @@ Use LPJ-GUESS, FATES and an individual-tree reference only where their scientifi
 ## 9. Claim ceiling
 
 A pass on the analytical toy fixture proves only that the implementation distinguishes aggregate-equal but spatially different canopy arrangements and preserves declared invariants. It does not validate canopy radiation, tropical allometry, tree mortality, recruitment, species coexistence or forestry decisions.
+
+
+### Reproduction and extension boundary
+
+Pin the exact source archive, version, compiler/build configuration, site inputs, parameter files, random seeds and all output artifacts before execution. First reproduce the paper's BCI recruitment-layer result and runtime/patch-count comparison. The archive's public availability does not mean its code has been imported into Symtropy; review the license and dependency requirements before any code reuse. Prefer running it as an external reference executable with a separate, auditable environment manifest.
+
+Only after reproduction should the Luminous research extension test two limitations identified by the paper:
+1. **Overlapping crown interactions:** replace the perfect cohort alignment/no-mutual-shading assumption with an explicit crown-overlap/light-interception representation.
+2. **Solar geometry:** account for solar elevation/azimuth, topographic horizon and diffuse/direct radiation in local understory illumination.
+
+These extensions need independent validation (e.g. mapped crown footprints, hemispherical photographs / understory PAR measurements or equivalent calibrated references). They are research hypotheses, not yet implemented capabilities. Use adaptive spatial fidelity: resolve crown/light detail only where it changes the recruitment or decision output, and publish the error–runtime–memory frontier.
