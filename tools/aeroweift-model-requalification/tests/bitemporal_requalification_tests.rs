@@ -599,3 +599,79 @@ fn material_change_plus_incomplete_other_feed_remains_indeterminate_but_explains
         vec![DependencyKind::ModelArtifact]
     );
 }
+
+
+#[test]
+fn known_contradiction_is_not_hidden_by_an_unrelated_coverage_gap() {
+    let correction = event(
+        "sensor-correction-known",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        'g',
+        40,
+        42,
+        ChangeClass::CorrectiveChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let only_sensor = vec![coverage(
+        DependencyKind::SensorStack,
+        "sensor-registry",
+        CoverageCompleteness::Complete,
+        ChangeEvidenceState::OwnerQualified,
+    )];
+    let result = assess(&claim(), &[correction], &only_sensor, cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::Contradicted);
+    assert_eq!(
+        result.contradicted_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
+    assert_eq!(
+        result.indeterminate_dimensions,
+        vec![DependencyKind::ModelArtifact]
+    );
+}
+
+#[test]
+fn historical_retirement_dimension_is_reported_explicitly() {
+    let retired = event(
+        "solver-retired",
+        "model-registry",
+        2,
+        DependencyKind::ModelArtifact,
+        'b',
+        'h',
+        40,
+        42,
+        ChangeClass::Retirement,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let result = assess(&claim(), &[retired], &complete_coverage(), cutoff(50, 50)).unwrap();
+    assert_eq!(
+        result.historical_only_dimensions,
+        vec![DependencyKind::ModelArtifact]
+    );
+    assert!(result.contradicted_dimensions.is_empty());
+}
+
+#[test]
+fn unsupported_change_dimension_is_reported_explicitly() {
+    let unsupported = event(
+        "unknown-sensor-change",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        'g',
+        40,
+        42,
+        ChangeClass::Unsupported,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let result = assess(&claim(), &[unsupported], &complete_coverage(), cutoff(50, 50)).unwrap();
+    assert_eq!(
+        result.unsupported_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
+}
