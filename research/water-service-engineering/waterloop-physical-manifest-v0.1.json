@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
   "benchmark_id": "WATERLOOP-PHYSICAL-T0",
-  "case_count": 33,
+  "case_count": 34,
   "required_case_ids": [
     "WL-T0-001-balanced-volume-closure",
     "WL-T0-002-unbalanced-volume-closure",
@@ -37,7 +37,8 @@
     "WL-T0-030-economics-unadmitted-cost-ledger",
     "WL-T0-031-economics-income-unavailable",
     "WL-T0-032-economics-use-profile-mismatch",
-    "WL-T0-033-economics-low-cost-service-floor-failure"
+    "WL-T0-033-economics-low-cost-service-floor-failure",
+    "WL-T0-034-economics-tariff-billing-period-mismatch"
   ],
   "families": [
     "volume_closure",
@@ -68,6 +69,8 @@
     "Cost per verified useful m3 requires admitted service evidence and exact equality of cost-use and service-use profile identities.",
     "Missing cost, tariff or income evidence is Indeterminate and never silently converted to zero.",
     "An architecture that does not meet the declared essential service floor is not eligible for economic preference even when its arithmetic cost is lower.",
-    "Affordability burden is reported only from resident-authorised disposable-income evidence; no universal threshold or credit decision is created."
+    "Affordability burden is reported only from resident-authorised disposable-income evidence; no universal threshold or credit decision is created.",
+    "Cost-period days and versioned utility tariff billing-period days must match exactly within the declared numeric tolerance; mismatched bills are Indeterminate and cannot be used for household savings or cost-comparison eligibility.",
+    "Cost/service efficiency comparison does not require household income evidence; income is required only for the separate resident-authorised affordability burden."
   ]
 }
