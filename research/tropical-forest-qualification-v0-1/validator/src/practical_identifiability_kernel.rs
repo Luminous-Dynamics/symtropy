@@ -37,7 +37,8 @@ struct InformationMetrics {
     condition_number: f64,
     log_determinant: f64,
     trace_inverse: f64,
-    gls_covariance_diagonal: Vec<f64>,
+    gls_covariance_diagonal: Option<Vec<f64>>,
+    practical_status: &'static str,
 }
 
 fn sha256_hex(raw: &[u8]) -> String {
@@ -278,7 +279,7 @@ fn inverse(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, String> {
         }
         augmented[row][count + row] = 1.0;
     }
-    let threshold = (scale * 1e-14).max(1e-15);
+    let threshold = f64::MIN_POSITIVE;
     for column in 0..count {
         let mut pivot_row = column;
         for row in (column + 1)..count {
@@ -381,6 +382,8 @@ fn information_metrics(
     rows: &[Vec<i64>],
     variable_count: usize,
     correlations: &BTreeMap<(String, String), f64>,
+    minimum_fisher_eigenvalue_threshold: f64,
+    maximum_condition_number_threshold: f64,
 ) -> Result<InformationMetrics, String> {
     let covariance = covariance_matrix(observations, correlations);
     let lower = cholesky_lower(&covariance)?;
@@ -394,11 +397,24 @@ fn information_metrics(
     }
     let condition_number = maximum_eigenvalue / minimum_eigenvalue;
     let log_determinant = eigenvalues.iter().map(|value| value.ln()).sum::<f64>();
-    let gls_covariance = inverse(&fisher)?;
-    let trace_inverse = (0..variable_count).map(|index| gls_covariance[index][index]).sum::<f64>();
-    if !condition_number.is_finite() || !log_determinant.is_finite() || !trace_inverse.is_finite() {
+    let trace_inverse = eigenvalues.iter().map(|value| 1.0 / value).sum::<f64>();
+    let gls_covariance_diagonal = inverse(&fisher).ok().map(|gls_covariance| {
+        (0..variable_count)
+            .map(|index| gls_covariance[index][index])
+            .collect::<Vec<_>>()
+    });
+    if !condition_number.is_finite() || !log_determinant.is_finite()
+        || !trace_inverse.is_finite()
+    {
         return Err("practical-identifiability metrics are non-finite".to_string());
     }
+    let practical_status = if minimum_eigenvalue < minimum_fisher_eigenvalue_threshold
+        || condition_number > maximum_condition_number_threshold
+    {
+        "PRACTICALLY_WEAK"
+    } else {
+        "INFORMATION_SUFFICIENT_UNDER_DECLARED_SYNTHETIC_THRESHOLDS"
+    };
     Ok(InformationMetrics {
         eigenvalues,
         minimum_eigenvalue,
@@ -406,9 +422,8 @@ fn information_metrics(
         condition_number,
         log_determinant,
         trace_inverse,
-        gls_covariance_diagonal: (0..variable_count)
-            .map(|index| gls_covariance[index][index])
-            .collect(),
+        gls_covariance_diagonal,
+        practical_status,
     })
 }
 
@@ -457,6 +472,8 @@ fn evaluate_designs(
     options: &[MeasurementOption],
     correlations: &BTreeMap<(String, String), f64>,
     variable_count: usize,
+    minimum_fisher_eigenvalue_threshold: f64,
+    maximum_condition_number_threshold: f64,
 ) -> Result<Vec<Value>, String> {
     let subset_count = 1_u32.checked_shl(
         u32::try_from(options.len()).map_err(|_| "too many measurement options".to_string())?
@@ -482,11 +499,18 @@ fn evaluate_designs(
         let rank = exact_structural_rank_for_observation_rows(&matrix, variable_count)?;
         let structurally_identifiable = rank == variable_count;
         let metrics = if structurally_identifiable {
-            Some(information_metrics(&observations, &matrix, variable_count, correlations)?)
+            Some(information_metrics(
+                &observations,
+                &matrix,
+                variable_count,
+                correlations,
+                minimum_fisher_eigenvalue_threshold,
+                maximum_condition_number_threshold,
+            )?)
         } else {
             None
         };
-        let (minimum_eigenvalue, maximum_eigenvalue, condition_number, log_determinant, trace_inverse, covariance_diagonal, eigenvalues) =
+        let (minimum_eigenvalue, maximum_eigenvalue, condition_number, log_determinant, trace_inverse, covariance_diagonal, eigenvalues, practical_status) =
             if let Some(metrics) = metrics {
                 (
                     Some(metrics.minimum_eigenvalue),
@@ -496,9 +520,10 @@ fn evaluate_designs(
                     Some(metrics.trace_inverse),
                     Some(metrics.gls_covariance_diagonal),
                     Some(metrics.eigenvalues),
+                    Some(metrics.practical_status),
                 )
             } else {
-                (None, None, None, None, None, None, None)
+                (None, None, None, None, None, None, None, None)
             };
         designs.push(json!({
             "measurement_ids": measurement_ids,
@@ -513,6 +538,7 @@ fn evaluate_designs(
             "log_determinant_fisher": log_determinant,
             "trace_gls_covariance": trace_inverse,
             "gls_covariance_diagonal": covariance_diagonal,
+            "practical_status": practical_status,
             "fisher_eigenvalues": eigenvalues
         }));
     }
@@ -554,12 +580,26 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let mut known_ids = base_ids.clone();
     known_ids.extend(options.iter().map(|option| option.observation.id.clone()));
     let correlations = correlation_map(manifest, &known_ids)?;
+    let thresholds = manifest.get("practical_information_thresholds")
+        .ok_or_else(|| "practical_information_thresholds is required".to_string())?;
+    let minimum_fisher_eigenvalue_threshold = number_at(thresholds, "minimum_fisher_eigenvalue")?;
+    let maximum_condition_number_threshold = number_at(thresholds, "maximum_condition_number")?;
+    if minimum_fisher_eigenvalue_threshold <= 0.0 || maximum_condition_number_threshold <= 1.0 {
+        return Err("practical-information thresholds must be positive and condition threshold > 1".to_string());
+    }
     let maximum_observations = base.len() + options.len();
     if maximum_observations > MAX_OBSERVATIONS {
         return Err(format!("observation count exceeds {MAX_OBSERVATIONS}"));
     }
 
-    let designs = evaluate_designs(&base, &options, &correlations, variable_count)?;
+    let designs = evaluate_designs(
+        &base,
+        &options,
+        &correlations,
+        variable_count,
+        minimum_fisher_eigenvalue_threshold,
+        maximum_condition_number_threshold,
+    )?;
     let baseline_rows: Vec<Vec<i64>> = base.iter().map(|item| item.row.clone()).collect();
     let baseline_rank = exact_structural_rank_for_observation_rows(&baseline_rows, variable_count)?;
     let full_rank_count = designs.iter()
@@ -597,7 +637,8 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         "fisher_condition_number": full_design["fisher_condition_number"],
         "log_determinant_fisher": full_design["log_determinant_fisher"],
         "trace_gls_covariance": full_design["trace_gls_covariance"],
-        "gls_covariance_diagonal": full_design["gls_covariance_diagonal"]
+        "gls_covariance_diagonal": full_design["gls_covariance_diagonal"],
+        "practical_status": full_design["practical_status"]
     });
 
     let expected = manifest.get("expected")
@@ -715,6 +756,10 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         "a_optimal_designs": a_optima,
         "e_optimal_designs": e_optima,
         "all_measurements_metrics": full_design_metrics,
+        "practical_information_thresholds": {
+            "minimum_fisher_eigenvalue": minimum_fisher_eigenvalue_threshold,
+            "maximum_condition_number": maximum_condition_number_threshold
+        },
         "designs": designs,
         "observation_noise_model": "SYNTHETIC_LINEAR_GAUSSIAN_KNOWN_COVARIANCE",
         "parameter_prior": "NONE",
@@ -765,6 +810,34 @@ mod tests {
             independent["all_measurements_metrics"]["trace_gls_covariance"],
             original["all_measurements_metrics"]["trace_gls_covariance"]
         );
+    }
+
+    #[test]
+    fn exact_full_rank_nearly_collinear_measurements_are_practically_weak() {
+        let observations = vec![
+            Observation {
+                id: "nearly-collinear-a".to_string(),
+                row: vec![1, 0],
+                standard_deviation: 1.0,
+            },
+            Observation {
+                id: "nearly-collinear-b".to_string(),
+                row: vec![1_000, 1],
+                standard_deviation: 1.0,
+            },
+        ];
+        let rows = observations.iter().map(|observation| observation.row.clone()).collect::<Vec<_>>();
+        assert_eq!(exact_structural_rank_for_observation_rows(&rows, 2).unwrap(), 2);
+        let metrics = information_metrics(
+            &observations,
+            &rows,
+            2,
+            &BTreeMap::new(),
+            0.01,
+            30.0,
+        ).expect("finite near-collinear information metrics");
+        assert_eq!(metrics.practical_status, "PRACTICALLY_WEAK");
+        assert!(metrics.condition_number > 30.0);
     }
 
     #[test]
