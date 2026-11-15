@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: material-flow-benchmark-\${{ github.ref }}
+  group: material-flow-benchmark-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
