@@ -1,0 +1,686 @@
+{
+  "schema_version": "sensor-observation-contract-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-SENSOR-OBSERVATION-CONTRACT-001",
+  "cases": [
+    {
+      "case_id": "SOC-T0-001-complete-measured",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-002-reconstructed-outlet",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "reconstructed",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-003-missing-outlet",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-004-confirmed-fault",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "fault_confirmed",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-005-suspected-drift",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "drifting",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-006-expired-calibration",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "expired",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-007-clock-uncertain",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "uncertain",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-008-truncated-tail",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "truncated",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-009-stuck-sensor",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "stuck",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-010-invalid-digest",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "measured_calibrated",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "not-a-digest",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    },
+    {
+      "case_id": "SOC-T0-011-all-inferred",
+      "boundary": {
+        "inlets": [
+          {
+            "channel_id": "inlet-A",
+            "role": "inlet",
+            "measurement_state": "model_imputed",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "inlet-B",
+            "role": "inlet",
+            "measurement_state": "model_imputed",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "outlets": [
+          {
+            "channel_id": "outlet-A",
+            "role": "outlet",
+            "measurement_state": "model_imputed",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "channel_id": "outlet-B",
+            "role": "outlet",
+            "measurement_state": "model_imputed",
+            "health_state": "healthy",
+            "calibration_state": "current",
+            "clock_state": "synchronized",
+            "window_state": "complete",
+            "sample_count": 4,
+            "raw_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
+      }
+    }
+  ]
+}
