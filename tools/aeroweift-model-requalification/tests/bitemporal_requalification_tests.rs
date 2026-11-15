@@ -66,31 +66,33 @@ fn complete_coverage() -> Vec<ChangeFeedCoverage> {
     ]
 }
 
-fn event(
-    id: &str,
-    source: &str,
-    sequence: u64,
-    dependency: DependencyKind,
-    prior: char,
-    successor: char,
-    effective_at: i64,
-    recorded_at: i64,
-    class: ChangeClass,
-    state: ChangeEvidenceState,
-) -> ChangeEvent {
-    ChangeEvent {
-        event_id: id.into(),
-        source_id: source.into(),
-        source_sequence: sequence,
-        dependency,
-        prior_digest: digest(prior),
-        successor_digest: digest(successor),
-        effective_at,
-        recorded_at,
-        change_class: class,
-        evidence_state: state,
-        event_sha256: digest('e'),
-    }
+macro_rules! event {
+    (
+        $id:expr,
+        $source:expr,
+        $sequence:expr,
+        $dependency:expr,
+        $prior:expr,
+        $successor:expr,
+        $effective_at:expr,
+        $recorded_at:expr,
+        $class:expr,
+        $state:expr $(,)?
+    ) => {
+        ChangeEvent {
+            event_id: $id.into(),
+            source_id: $source.into(),
+            source_sequence: $sequence,
+            dependency: $dependency,
+            prior_digest: digest($prior),
+            successor_digest: digest($successor),
+            effective_at: $effective_at,
+            recorded_at: $recorded_at,
+            change_class: $class,
+            evidence_state: $state,
+            event_sha256: digest('e'),
+        }
+    };
 }
 
 fn policy() -> RequalificationPolicy {
@@ -127,7 +129,7 @@ fn positive_control_is_still_applicable_under_complete_coverage() {
 
 #[test]
 fn sensor_calibration_change_invalidates_sensor_claim_not_model_artifact() {
-    let change = event(
+    let change = event!(
         "sensor-cal-rotate",
         "sensor-registry",
         2,
@@ -155,7 +157,7 @@ fn sensor_calibration_change_invalidates_sensor_claim_not_model_artifact() {
 
 #[test]
 fn unrelated_model_change_does_not_mark_sensor_dimension_as_changed() {
-    let change = event(
+    let change = event!(
         "model-v2",
         "model-registry",
         2,
@@ -182,7 +184,7 @@ fn unrelated_model_change_does_not_mark_sensor_dimension_as_changed() {
 
 #[test]
 fn late_recorded_event_does_not_rewrite_earlier_knowledge_cutoff() {
-    let late = event(
+    let late = event!(
         "late-sensor-recal",
         "sensor-registry",
         2,
@@ -196,7 +198,7 @@ fn late_recorded_event_does_not_rewrite_earlier_knowledge_cutoff() {
     );
     let historical = assess(
         &claim(),
-        &[late.clone()],
+        std::slice::from_ref(&late),
         &complete_coverage(),
         cutoff(25, 25),
     )
@@ -211,7 +213,7 @@ fn late_recorded_event_does_not_rewrite_earlier_knowledge_cutoff() {
 
 #[test]
 fn event_not_yet_effective_does_not_invalidate_earlier_effective_cutoff() {
-    let scheduled = event(
+    let scheduled = event!(
         "future-control-change",
         "model-registry",
         2,
@@ -277,7 +279,7 @@ fn feed_knowledge_frontier_must_reach_requested_knowledge_cutoff() {
 
 #[test]
 fn owner_unqualified_change_event_is_indeterminate_not_ignored() {
-    let uncertain = event(
+    let uncertain = event!(
         "sensor-event-untrusted",
         "sensor-registry",
         2,
@@ -303,7 +305,7 @@ fn owner_unqualified_change_event_is_indeterminate_not_ignored() {
 
 #[test]
 fn corrective_reference_event_contradicts_dependent_claim() {
-    let correction = event(
+    let correction = event!(
         "reference-correction",
         "sensor-registry",
         2,
@@ -327,7 +329,7 @@ fn corrective_reference_event_contradicts_dependent_claim() {
 
 #[test]
 fn retirement_preserves_historical_claim_without_current_reliance() {
-    let retired = event(
+    let retired = event!(
         "sensor-retired",
         "sensor-registry",
         2,
@@ -346,7 +348,7 @@ fn retirement_preserves_historical_claim_without_current_reliance() {
 
 #[test]
 fn unsupported_change_class_does_not_receive_automatic_pass() {
-    let unsupported = event(
+    let unsupported = event!(
         "new-change-semantics",
         "sensor-registry",
         2,
@@ -370,7 +372,7 @@ fn unsupported_change_class_does_not_receive_automatic_pass() {
 
 #[test]
 fn broken_dependency_digest_chain_is_indeterminate() {
-    let broken = event(
+    let broken = event!(
         "sensor-chain-break",
         "sensor-registry",
         2,
@@ -389,7 +391,7 @@ fn broken_dependency_digest_chain_is_indeterminate() {
 #[test]
 fn two_changes_must_form_exact_digest_chain() {
     let events = vec![
-        event(
+        event!(
             "sensor-step-1",
             "sensor-registry",
             2,
@@ -401,7 +403,7 @@ fn two_changes_must_form_exact_digest_chain() {
             ChangeClass::MaterialChange,
             ChangeEvidenceState::OwnerQualified,
         ),
-        event(
+        event!(
             "sensor-step-2",
             "sensor-registry",
             3,
@@ -427,7 +429,7 @@ fn two_changes_must_form_exact_digest_chain() {
 fn events_already_known_at_claim_creation_are_part_of_its_baseline() {
     let mut baseline_claim = claim();
     baseline_claim.dependencies[1].digest = digest('g');
-    let baseline = event(
+    let baseline = event!(
         "sensor-before-claim",
         "sensor-registry",
         1,
@@ -452,7 +454,7 @@ fn events_already_known_at_claim_creation_are_part_of_its_baseline() {
 
 #[test]
 fn late_recorded_correction_changes_later_view_but_not_earlier_view() {
-    let correction = event(
+    let correction = event!(
         "late-correction",
         "sensor-registry",
         2,
@@ -466,7 +468,7 @@ fn late_recorded_correction_changes_later_view_but_not_earlier_view() {
     );
     let before = assess(
         &claim(),
-        &[correction.clone()],
+        std::slice::from_ref(&correction),
         &complete_coverage(),
         cutoff(50, 25),
     )
@@ -484,7 +486,7 @@ fn late_recorded_correction_changes_later_view_but_not_earlier_view() {
 
 #[test]
 fn duplicate_event_id_is_rejected() {
-    let e = event(
+    let e = event!(
         "duplicate",
         "sensor-registry",
         2,
@@ -510,7 +512,7 @@ fn duplicate_event_id_is_rejected() {
 #[test]
 fn reused_source_sequence_is_rejected_as_fork_or_duplicate() {
     let events = vec![
-        event(
+        event!(
             "source-event-a",
             "sensor-registry",
             2,
@@ -522,7 +524,7 @@ fn reused_source_sequence_is_rejected_as_fork_or_duplicate() {
             ChangeClass::MaterialChange,
             ChangeEvidenceState::OwnerQualified,
         ),
-        event(
+        event!(
             "source-event-b",
             "sensor-registry",
             2,
@@ -554,7 +556,7 @@ fn duplicate_coverage_for_one_dependency_source_is_rejected() {
 #[test]
 fn event_array_permutation_preserves_the_exact_result() {
     let events = vec![
-        event(
+        event!(
             "sensor-step-1",
             "sensor-registry",
             2,
@@ -566,7 +568,7 @@ fn event_array_permutation_preserves_the_exact_result() {
             ChangeClass::MaterialChange,
             ChangeEvidenceState::OwnerQualified,
         ),
-        event(
+        event!(
             "model-step-1",
             "model-registry",
             2,
@@ -620,7 +622,7 @@ fn evidence_coverage_deletion_cannot_improve_a_claim_status() {
 
 #[test]
 fn material_change_plus_incomplete_other_feed_remains_indeterminate_but_explains_known_impact() {
-    let change = event(
+    let change = event!(
         "sensor-known-change",
         "sensor-registry",
         2,
@@ -652,7 +654,7 @@ fn material_change_plus_incomplete_other_feed_remains_indeterminate_but_explains
 
 #[test]
 fn known_contradiction_is_not_hidden_by_an_unrelated_coverage_gap() {
-    let correction = event(
+    let correction = event!(
         "sensor-correction-known",
         "sensor-registry",
         2,
@@ -684,7 +686,7 @@ fn known_contradiction_is_not_hidden_by_an_unrelated_coverage_gap() {
 
 #[test]
 fn historical_retirement_dimension_is_reported_explicitly() {
-    let retired = event(
+    let retired = event!(
         "solver-retired",
         "model-registry",
         2,
@@ -706,7 +708,7 @@ fn historical_retirement_dimension_is_reported_explicitly() {
 
 #[test]
 fn unsupported_change_dimension_is_reported_explicitly() {
-    let unsupported = event(
+    let unsupported = event!(
         "unknown-sensor-change",
         "sensor-registry",
         2,
@@ -736,7 +738,7 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
     let mut baseline_claim = claim();
     baseline_claim.dependencies[1].digest = digest('h');
     let events = vec![
-        event(
+        event!(
             "baseline-sensor-step-1",
             "sensor-registry",
             1,
@@ -748,7 +750,7 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
             ChangeClass::MaterialChange,
             ChangeEvidenceState::OwnerQualified,
         ),
-        event(
+        event!(
             "baseline-sensor-step-2",
             "sensor-registry",
             2,
@@ -778,7 +780,7 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
 #[test]
 fn source_sequence_not_effective_time_orders_causal_digest_succession() {
     let events = vec![
-        event(
+        event!(
             "sensor-change-seq-1",
             "sensor-registry",
             2,
@@ -790,7 +792,7 @@ fn source_sequence_not_effective_time_orders_causal_digest_succession() {
             ChangeClass::MaterialChange,
             ChangeEvidenceState::OwnerQualified,
         ),
-        event(
+        event!(
             "sensor-correction-seq-2",
             "sensor-registry",
             3,
