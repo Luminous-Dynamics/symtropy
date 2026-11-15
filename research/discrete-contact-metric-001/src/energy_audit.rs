@@ -392,6 +392,143 @@ pub fn audit_discrete_energy_ledger(
     })
 }
 
+fn append_u64(bytes: &mut Vec<u8>, value: usize) {
+    bytes.extend_from_slice(&(value as u64).to_le_bytes());
+}
+
+fn append_f64(bytes: &mut Vec<u8>, value: f64) {
+    bytes.extend_from_slice(&value.to_bits().to_le_bytes());
+}
+
+fn append_vector(bytes: &mut Vec<u8>, values: &[f64]) {
+    append_u64(bytes, values.len());
+    for value in values {
+        append_f64(bytes, *value);
+    }
+}
+
+fn append_matrix(bytes: &mut Vec<u8>, matrix: &super::Matrix) {
+    append_u64(bytes, matrix.rows);
+    append_u64(bytes, matrix.cols);
+    for row in 0..matrix.rows {
+        for column in 0..matrix.cols {
+            append_f64(bytes, matrix[(row, column)]);
+        }
+    }
+}
+
+fn append_ledger(bytes: &mut Vec<u8>, ledger: &DiscreteEnergyLedger) {
+    for value in [
+        ledger.kinetic_energy_before,
+        ledger.kinetic_energy_after,
+        ledger.potential_energy_before,
+        ledger.potential_energy_after,
+        ledger.external_force_work,
+        ledger.damping_dissipation,
+        ledger.mass_increment_dissipation,
+        ledger.stiffness_increment_dissipation,
+        ledger.contact_impulse_work,
+        ledger.contact_target_work,
+        ledger.contact_complementarity_work,
+        ledger.energy_balance_residual,
+        ledger.relative_energy_balance_residual,
+        ledger.contact_work_decomposition_residual,
+        ledger.relative_contact_work_decomposition_residual,
+    ] {
+        append_f64(bytes, value);
+    }
+}
+
+fn append_audit_receipt(bytes: &mut Vec<u8>, receipt: &EnergyAuditReceipt) {
+    for value in [
+        receipt.kinetic_energy_before,
+        receipt.kinetic_energy_after,
+        receipt.potential_energy_before,
+        receipt.potential_energy_after,
+        receipt.external_force_work,
+        receipt.damping_dissipation,
+        receipt.mass_increment_dissipation,
+        receipt.stiffness_increment_dissipation,
+        receipt.contact_impulse_work,
+        receipt.contact_target_work,
+        receipt.contact_complementarity_work,
+        receipt.energy_balance_residual,
+        receipt.relative_energy_balance_residual,
+        receipt.contact_work_decomposition_residual,
+        receipt.relative_contact_work_decomposition_residual,
+        receipt.maximum_absolute_field_difference,
+        receipt.maximum_scaled_field_difference,
+    ] {
+        append_f64(bytes, value);
+    }
+    append_u64(bytes, receipt.checked_ledger_fields);
+    append_u64(bytes, receipt.checked_position_components);
+    append_u64(bytes, receipt.checked_contact_slack_components);
+}
+
+/// Canonical little-endian byte payload for a successfully audited energy/work
+/// artifact. Floats are encoded by their exact IEEE-754 bit pattern; lengths
+/// are u64 little-endian; matrix entries are row-major. The fixed magic/version
+/// prefix is part of the format. Hash the returned bytes with an approved
+/// SHA-256 implementation outside this crate before submitting an evidence
+/// receipt to the cross-layer composer.
+///
+/// The payload binds the complete numerical step input, accepted output,
+/// published ledger, audit tolerance profile, and independently replayed
+/// audit receipt. Higher-level model/fixture/frame/unit identities remain part
+/// of the caller's separate immutable problem binding.
+pub fn canonical_energy_audit_payload(
+    input: &DiscreteStepInput,
+    result: &DiscreteStepResult,
+    profile: EnergyAuditProfile,
+) -> Result<(Vec<u8>, EnergyAuditReceipt), EnergyAuditError> {
+    let receipt = audit_discrete_energy_ledger(input, result, profile)?;
+    let mut bytes = Vec::with_capacity(1024);
+    bytes.extend_from_slice(b"LUMINOUS-ENERGY-AUDIT-V0.1\0");
+
+    append_f64(&mut bytes, profile.absolute_tolerance);
+    append_f64(&mut bytes, profile.relative_tolerance);
+
+    append_matrix(&mut bytes, &input.mass);
+    append_matrix(&mut bytes, &input.damping);
+    append_matrix(&mut bytes, &input.stiffness);
+    append_vector(&mut bytes, &input.position_error);
+    append_vector(&mut bytes, &input.velocity);
+    append_vector(&mut bytes, &input.external_force);
+    append_matrix(&mut bytes, &input.contact_jacobian);
+    append_vector(&mut bytes, &input.contact_gap);
+    append_f64(&mut bytes, input.dt);
+
+    append_matrix(&mut bytes, &result.effective_metric);
+    append_vector(&mut bytes, &result.unconstrained_velocity);
+    append_vector(&mut bytes, &result.next_velocity);
+    append_vector(&mut bytes, &result.next_position_error);
+    append_vector(&mut bytes, &result.discrete_acceleration);
+    append_vector(&mut bytes, &result.contact_impulse);
+    append_vector(&mut bytes, &result.contact_slack);
+    append_u64(&mut bytes, result.active_contacts.len());
+    for active in &result.active_contacts {
+        bytes.push(u8::from(*active));
+    }
+    append_ledger(&mut bytes, &result.energy_ledger);
+
+    for value in [
+        result.max_metric_equation_residual,
+        result.max_scaled_metric_equation_residual,
+        result.max_negative_impulse,
+        result.max_negative_contact_slack,
+        result.max_complementarity_residual,
+        result.max_scaled_dual_feasibility_residual,
+        result.max_scaled_primal_feasibility_residual,
+        result.max_scaled_complementarity_residual,
+    ] {
+        append_f64(&mut bytes, value);
+    }
+
+    append_audit_receipt(&mut bytes, &receipt);
+    Ok((bytes, receipt))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -416,6 +553,39 @@ mod tests {
             contact_gap: vec![0.005],
             dt: 0.1,
         }
+    }
+
+    #[test]
+    fn canonical_payload_is_deterministic_and_binds_exact_input_and_result() {
+        let input = fixture_with_contact();
+        let result = solve_discrete_step(&input).unwrap();
+        let (first, first_receipt) =
+            canonical_energy_audit_payload(&input, &result, profile()).unwrap();
+        let (second, second_receipt) =
+            canonical_energy_audit_payload(&input, &result, profile()).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first_receipt, second_receipt);
+        assert!(first.starts_with(b"LUMINOUS-ENERGY-AUDIT-V0.1\\0"));
+
+        let mut changed_input = fixture_with_contact();
+        changed_input.external_force[0] += 0.125;
+        let changed_result = solve_discrete_step(&changed_input).unwrap();
+        let (changed, _) =
+            canonical_energy_audit_payload(&changed_input, &changed_result, profile()).unwrap();
+        assert_ne!(first, changed);
+    }
+
+    #[test]
+    fn canonical_payload_refuses_a_tampered_published_ledger() {
+        let input = fixture_with_contact();
+        let mut result = solve_discrete_step(&input).unwrap();
+        result.energy_ledger.contact_impulse_work += 0.5;
+        assert_eq!(
+            canonical_energy_audit_payload(&input, &result, profile()),
+            Err(EnergyAuditError::LedgerFieldMismatch(
+                "contact_impulse_work"
+            ))
+        );
     }
 
     #[test]
