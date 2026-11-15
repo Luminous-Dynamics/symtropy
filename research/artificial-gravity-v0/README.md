@@ -224,6 +224,19 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --
 ~~~
 
 
+
+## Exact spin-up / spin-down trajectory oracle
+
+The AG-SIM-1 reference adds an exact constant-angular-acceleration solution for a point fixed to a rotor about a fixed z-axis. It emits inertial position, velocity and acceleration and independently checks that inertial acceleration cancels the rotating-frame centrifugal plus Euler pseudo-acceleration.
+
+The fixture covers spin-up, steady rotation and spin-down: fixtures/spin_profile_exact.csv.
+
+~~~bash
+cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin spin_profile_matrix
+~~~
+
+Follow-on issue: https://github.com/Luminous-Dynamics/symtropy/issues/5316. This is an exact kinematic trajectory oracle, not a flexible-body, extended-rotor, attitude-control or structural dynamics solver.
+
 ## Sources
 
 - Briard & Baatout (2026), *Artificial gravity for long-duration human spaceflight: physiological rationale, evidence gaps, risks, and research priorities*. https://doi.org/10.3389/frspt.2026.1967384
