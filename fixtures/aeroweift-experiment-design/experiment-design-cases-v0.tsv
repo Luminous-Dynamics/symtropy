@@ -54,3 +54,5 @@ one-family-pair-multiple-variants|pair-deduplication|ONE_INDEPENDENT_PAIR
 two-pair-policy-one-pair-candidate|minimum-group-pair-count|REJECT
 two-independent-group-pairs|two-contrasts|ADMIT
 zero-facility-resource-budget|budget-zero|ADMIT_IF_COST_ZERO
+model-form-discrimination-without-output-equivalence|output-inequivalence|ADMISSIBLE_WHEN_COMMON_EXPERIMENT_CONTRACT_MATCHES
+weak-contrast-not-counted-in-pareto-metric|pair-count-threshold|ONLY_POLICY_QUALIFIED_PAIRS_COUNTED
