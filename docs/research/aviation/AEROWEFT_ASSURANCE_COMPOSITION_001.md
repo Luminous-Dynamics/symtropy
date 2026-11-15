@@ -78,35 +78,40 @@ A positive disposition preserves each class's coverage receipt, optional observa
 
 Golden fixture: `fixtures/aeroweift-assurance-composition/evidence-composition-v0.json`.
 
-The 28-case fixture contains positive controls and fault injections for:
-1. fully qualified conforming path;
-2. qualified fallback PNT path;
-3. no report under qualified coverage;
-4. stale PNT with a fresh delivery receipt;
-5. statistical-only navigation;
-6. PNT clock-scale mismatch;
-7. overlapping/unqualified dual-clock interval;
-8. nominal receiver multiplicity with unqualified common-mode independence;
-9. cooperative-only coverage while non-cooperative traffic is required;
-10. unknown TDoA clock dependency;
-11. stale track delivered with a fresh receipt;
-12. missing surveillance qualification receipt;
-13. non-assessable reachability;
-14. expired/superseded authorization;
-15. intersecting dynamic restriction;
-16. non-intersecting restriction positive control;
-17. definite nonconformance despite unrelated upstream degradation;
-18. contingency after profile-owned contact-loss timeout;
-19. potentially nonconforming intent;
-20. missing PNT/reachability/intent lineage;
-21. frame/profile/time-scale identity mismatch;
-22. duplicate class evidence;
-23. class-order permutation and replay determinism;
-24. horizontal-frame mismatch;
-25. vertical-datum mismatch and absent vertical-datum identity;
-26. duplicate required traffic-class declarations;
-27. complete source-snapshot retention on accepted and rejected decisions;
-28. repeated-evaluation determinism.
+The **32 explicit synthetic cases** cover:
+
+1. `fully-qualified-positive-control` — valid fully qualified input reaches conflict-screen eligibility only.
+2. `accepted-qualified-fallback` — owner-accepted fallback PNT remains admissible.
+3. `qualified-coverage-no-report` — possible occupancy remains unresolved.
+4. `stale-pnt-fresh-delivery` — fresh delivery cannot refresh stale PNT.
+5. `statistical-only-navigation` — statistical-only navigation cannot become a hard bound.
+6. `pnt-clock-scale-mismatch` — PNT time-scale identity mismatch.
+7. `dual-clock-interval-overlap` — unqualified/overlapping dual-clock evidence is rejected.
+8. `correlated-receiver-multiplicity` — receiver multiplicity cannot substitute for independence.
+9. `cooperative-only-coverage` — cooperative coverage cannot satisfy a non-cooperative requirement.
+10. `unknown-tdoa-clock-dependency` — unresolved TDoA clock dependencies block that class.
+11. `stale-track-fresh-receipt` — fresh receipt cannot make an old track current.
+12. `missing-surveillance-qualification-receipt` — missing qualification lineage blocks admission.
+13. `reachability-not-assessable` — unqualified reachability cannot enter conflict screening.
+14. `expired-or-superseded-authorization` — stale authority requires reauthorization.
+15. `intersecting-dynamic-restriction` — effective intersecting restriction requires reauthorization.
+16. `nonintersecting-dynamic-restriction-control` — non-intersecting restriction does not invalidate the intent.
+17. `definite-nonconformance-despite-unrelated-pnt-degradation` — definite nonconformance is preserved.
+18. `profile-timeout-contingency` — contact loss produces a contingency handoff.
+19. `potentially-nonconforming-intent` — possible deviation is not promoted to conforming.
+20. `missing-pnt-receipt` — missing PNT lineage blocks admission.
+21. `missing-reachability-receipt` — missing reachability lineage blocks admission.
+22. `missing-intent-receipt` — missing intent lineage blocks admission.
+23. `surveillance-frame-mismatch` — mismatched horizontal frame is rejected.
+24. `duplicate-traffic-class-evidence` — ambiguous duplicate class evidence is rejected.
+25. `permuted-class-order-replay` — list permutation preserves semantic output.
+26. `vertical-datum-mismatch` — mismatched vertical datum is rejected.
+27. `missing-vertical-datum-identity` — incomplete datum identity is rejected.
+28. `duplicate-required-traffic-class` — duplicate request requirements are rejected.
+29. `missing-profile-traffic-class-requirement-receipt` — caller cannot supply an unreceipted profile obligation set.
+30. `empty-profile-owned-required-traffic-classes` — empty profile obligations are not vacuously valid.
+31. `request-omits-profile-required-non-cooperative-class` — request cannot weaken the profile-owned class set.
+32. `duplicate-profile-required-traffic-class` — duplicate profile obligations are rejected.
 
 All values, identities, receipts, aircraft, traffic, restrictions and timelines are fictional. Synthetic fixture success is not a sensor, navigation, airworthiness, operational or safety validation.
 
