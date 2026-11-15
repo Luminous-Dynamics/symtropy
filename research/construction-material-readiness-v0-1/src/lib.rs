@@ -32,7 +32,10 @@ impl WorkPackageBinding {
             ("floor_id", self.floor_id.as_str()),
             ("work_package_id", self.work_package_id.as_str()),
             ("task_id", self.task_id.as_str()),
-            ("design_revision_digest", self.design_revision_digest.as_str()),
+            (
+                "design_revision_digest",
+                self.design_revision_digest.as_str(),
+            ),
             ("site_epoch", self.site_epoch.as_str()),
             (
                 "requirement_revision_digest",
@@ -95,7 +98,10 @@ impl MaterialRequirement {
                 "substitution_requirement_revision_digest",
                 &substitute.requirement_revision_digest,
             )?;
-            require_non_empty("substitute_material_class_id", &substitute.material_class_id)?;
+            require_non_empty(
+                "substitute_material_class_id",
+                &substitute.material_class_id,
+            )?;
             require_non_empty("substitute_grade_id", &substitute.grade_id)?;
             require_non_empty("substitution_approval_ref", &substitute.approval_ref)?;
             require_non_empty("substitution_authority_ref", &substitute.authority_ref)?;
@@ -517,7 +523,8 @@ pub fn assess_material_kit(
                     detail: "The same lot is allocated across kit lines beyond its single source-owned reservation quantity".to_owned(),
                 };
                 line.blockers.push(blocker);
-                line.disposition = worse(line.disposition, ReadinessDisposition::InsufficientQuantity);
+                line.disposition =
+                    worse(line.disposition, ReadinessDisposition::InsufficientQuantity);
             }
         }
     }
@@ -565,10 +572,13 @@ fn assess_material_compatibility(
     if lot.material_class_id != requirement.material_class_id
         || lot.grade_id != requirement.grade_id
     {
-        let approved = requirement.approved_substitutions.iter().find(|substitute| {
-            substitute.material_class_id == lot.material_class_id
-                && substitute.grade_id == lot.grade_id
-        });
+        let approved = requirement
+            .approved_substitutions
+            .iter()
+            .find(|substitute| {
+                substitute.material_class_id == lot.material_class_id
+                    && substitute.grade_id == lot.grade_id
+            });
         match approved {
             Some(substitute)
                 if substitute.project_id == binding.project_id
@@ -625,8 +635,24 @@ fn assess_material_compatibility(
         blockers,
         dispositions,
     );
-    assess_logistics(&lot.logistics, lot, requirement, binding, now_ms, blockers, dispositions);
-    assess_inventory(&lot.inventory, lot, requirement, binding, now_ms, blockers, dispositions);
+    assess_logistics(
+        &lot.logistics,
+        lot,
+        requirement,
+        binding,
+        now_ms,
+        blockers,
+        dispositions,
+    );
+    assess_inventory(
+        &lot.inventory,
+        lot,
+        requirement,
+        binding,
+        now_ms,
+        blockers,
+        dispositions,
+    );
 }
 
 fn assess_evidence(
@@ -1133,12 +1159,18 @@ mod tests {
     #[test]
     fn exact_qualified_lot_with_current_reservation_is_ready() {
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[lot()],
             5_000,
         )
         .expect("assessment");
-        assert_eq!(result.disposition, ReadinessDisposition::ReadyForWorkPackage);
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::ReadyForWorkPackage
+        );
         assert!(!result.source_records_mutated);
         assert_eq!(result.source_receipt_refs.len(), 4);
     }
@@ -1148,13 +1180,19 @@ mod tests {
         let mut item = lot();
         item.logistics.disposition = LogisticsDisposition::InTransit;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
         assert_eq!(result.disposition, ReadinessDisposition::AwaitingDelivery);
-        assert_eq!(result.lines[0].blockers[0].code, BlockerCode::DeliveryNotReceived);
+        assert_eq!(
+            result.lines[0].blockers[0].code,
+            BlockerCode::DeliveryNotReceived
+        );
     }
 
     #[test]
@@ -1162,12 +1200,18 @@ mod tests {
         let mut item = lot();
         item.logistics.disposition = LogisticsDisposition::DeliveredAwaitingAcceptance;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
-        assert_eq!(result.disposition, ReadinessDisposition::ReceivingReviewRequired);
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::ReceivingReviewRequired
+        );
     }
 
     #[test]
@@ -1175,13 +1219,21 @@ mod tests {
         let mut item = lot();
         item.provenance.disposition = EvidenceDisposition::AssertionOnly;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
         assert_eq!(result.disposition, ReadinessDisposition::HeldUnknown);
-        assert!(result.lines[0].blockers.iter().any(|b| b.code == BlockerCode::EvidenceAssertionOnly));
+        assert!(
+            result.lines[0]
+                .blockers
+                .iter()
+                .any(|b| b.code == BlockerCode::EvidenceAssertionOnly)
+        );
     }
 
     #[test]
@@ -1189,7 +1241,10 @@ mod tests {
         let mut item = lot();
         item.quality.disposition = EvidenceDisposition::Revoked;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
@@ -1202,7 +1257,10 @@ mod tests {
         let mut item = lot();
         item.quality.design_revision_digest = "design-r6".to_owned();
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
@@ -1215,13 +1273,21 @@ mod tests {
         let mut item = lot();
         item.inventory.disposition = InventoryDisposition::AvailableNotReserved;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
         assert_eq!(result.disposition, ReadinessDisposition::HeldUnknown);
-        assert!(result.lines[0].blockers.iter().any(|b| b.code == BlockerCode::InventoryNotReserved));
+        assert!(
+            result.lines[0]
+                .blockers
+                .iter()
+                .any(|b| b.code == BlockerCode::InventoryNotReserved)
+        );
     }
 
     #[test]
@@ -1229,12 +1295,18 @@ mod tests {
         let mut item = lot();
         item.inventory.reserved_quantity_milli = 800_000;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 800_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 800_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
-        assert_eq!(result.disposition, ReadinessDisposition::InsufficientQuantity);
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::InsufficientQuantity
+        );
     }
 
     #[test]
@@ -1253,12 +1325,18 @@ mod tests {
         item.material_class_id = "approved-rebar-alt".to_owned();
         item.grade_id = "500A".to_owned();
         let result = assess_material_kit(
-            &kit(vec![req], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![req],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
-        assert_eq!(result.disposition, ReadinessDisposition::ReadyForWorkPackage);
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::ReadyForWorkPackage
+        );
     }
 
     #[test]
@@ -1278,7 +1356,10 @@ mod tests {
         item.grade_id = "500A".to_owned();
 
         let result = assess_material_kit(
-            &kit(vec![req], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![req],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
@@ -1326,12 +1407,18 @@ mod tests {
         item.material_class_id = "approved-rebar-alt".to_owned();
         item.grade_id = "500A".to_owned();
         let result = assess_material_kit(
-            &kit(vec![req], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![req],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
-        assert_eq!(result.disposition, ReadinessDisposition::SubstitutionApprovalRequired);
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::SubstitutionApprovalRequired
+        );
     }
 
     #[test]
@@ -1354,9 +1441,14 @@ mod tests {
             5_000,
         )
         .expect("assessment");
-        assert_eq!(result.disposition, ReadinessDisposition::InsufficientQuantity);
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::InsufficientQuantity
+        );
         assert!(result.lines.iter().any(|line| {
-            line.blockers.iter().any(|b| b.detail.contains("allocated across kit lines"))
+            line.blockers
+                .iter()
+                .any(|b| b.detail.contains("allocated across kit lines"))
         }));
     }
 
@@ -1365,7 +1457,10 @@ mod tests {
         let mut item = lot();
         item.logistics.disposition = LogisticsDisposition::Quarantined;
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
@@ -1378,13 +1473,21 @@ mod tests {
         let mut item = lot();
         item.unit_code = "pieces".to_owned();
         let result = assess_material_kit(
-            &kit(vec![requirement()], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
             &[item],
             5_000,
         )
         .expect("assessment");
         assert_eq!(result.disposition, ReadinessDisposition::HeldUnknown);
-        assert!(result.lines[0].blockers.iter().any(|b| b.code == BlockerCode::UnitMismatch));
+        assert!(
+            result.lines[0]
+                .blockers
+                .iter()
+                .any(|b| b.code == BlockerCode::UnitMismatch)
+        );
     }
 
     #[test]
@@ -1402,8 +1505,19 @@ mod tests {
             5_000,
         )
         .expect("assessment");
-        assert_ne!(result.disposition, ReadinessDisposition::ReadyForWorkPackage);
-        assert_eq!(result.lines[1].disposition, ReadinessDisposition::HeldUnknown);
-        assert!(result.lines[1].blockers.iter().any(|b| b.code == BlockerCode::MissingAllocation));
+        assert_ne!(
+            result.disposition,
+            ReadinessDisposition::ReadyForWorkPackage
+        );
+        assert_eq!(
+            result.lines[1].disposition,
+            ReadinessDisposition::HeldUnknown
+        );
+        assert!(
+            result.lines[1]
+                .blockers
+                .iter()
+                .any(|b| b.code == BlockerCode::MissingAllocation)
+        );
     }
 }
