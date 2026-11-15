@@ -434,7 +434,9 @@ fn compute(case: &Value, minimum_separation: f64) -> Result<Value, String> {
             ));
         };
         let alternate_measured = convolve_sensor(&alternate, response)?;
-        if case.get("observation_noise_contract").and_then(Value::as_str)
+        if case
+            .get("observation_noise_contract")
+            .and_then(Value::as_str)
             != Some("independent_equal_sigma")
         {
             return Ok(base(
