@@ -283,3 +283,17 @@ The current CRAN version is 0.1.2 (published 19 October 2026). It provides local
 The package documentation describes local weighted calibration and a local-exchangeability rationale. This is materially stronger than the current Luminous Gaussian diagnostic, which is a benchmark baseline only and makes no finite-sample spatial-coverage guarantee. The correct competitive sequence is to run both on identical held-out data and study supports, verify each method's assumptions, and compare coverage/interval score/width/stability/runtime. Do not claim the diagnostic kernel reimplements or outperforms spconform.
 
 A dedicated follow-on now tracks fixed-versus-adaptive neighbourhoods and calibration-set stability: [#5332 — FOREST-LOCALIZATION-STABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5332). Its external methods include the spconform k-neighbour option and StCP's calibration-set stability objective.
+
+
+### Release-quality and license boundary
+
+CRAN's package-check report last updated 10 November 2026 lists version 0.1.2 as `OK` across its listed Linux, Windows and macOS check flavors. This is evidence of package installation/check compatibility under those CRAN environments, not evidence of ecological coverage or superior forecast performance: https://cran.r-project.org/web/checks/check_results_spconform.html
+
+CRAN lists spconform under GPL-3. Treat it as an external executable / benchmark dependency unless Luminous explicitly chooses a compatible licensing approach. The forest Rust diagnostic is independently written and is not copied from the R implementation: https://cran.r-project.org/web/packages/spconform/index.html
+
+The immediate engineering comparison therefore has three separate axes:
+- method semantics and statistical assumptions;
+- software portability / packaging / reproducibility;
+- matched empirical coverage, interval score, stability and spatial transfer on forest data.
+
+A green CRAN package check only speaks to the second axis.
