@@ -734,22 +734,23 @@ impl HyphalGraph {
                         continue;
                     }
 
-                    if !discovery.contains_key(&neighbor) {
-                        parent.insert(neighbor, (current, edge_id));
-                        *child_count.entry(current).or_default() += 1;
-                        clock += 1;
-                        discovery.insert(neighbor, clock);
-                        low.insert(neighbor, clock);
-                        child_count.insert(neighbor, 0);
-                        stack.push((neighbor, 0));
-                    } else {
-                        let neighbor_discovery = *discovery
-                            .get(&neighbor)
-                            .expect("visited neighbor has discovery time");
-                        let current_low = low
-                            .get_mut(&current)
-                            .expect("visited node has low-link value");
-                        *current_low = (*current_low).min(neighbor_discovery);
+                    match discovery.entry(neighbor) {
+                        std::collections::btree_map::Entry::Vacant(entry) => {
+                            parent.insert(neighbor, (current, edge_id));
+                            *child_count.entry(current).or_default() += 1;
+                            clock += 1;
+                            entry.insert(clock);
+                            low.insert(neighbor, clock);
+                            child_count.insert(neighbor, 0);
+                            stack.push((neighbor, 0));
+                        }
+                        std::collections::btree_map::Entry::Occupied(entry) => {
+                            let neighbor_discovery = *entry.get();
+                            let current_low = low
+                                .get_mut(&current)
+                                .expect("visited node has low-link value");
+                            *current_low = (*current_low).min(neighbor_discovery);
+                        }
                     }
                 } else {
                     stack.pop();
