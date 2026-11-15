@@ -314,9 +314,23 @@ impl ScenarioManifest {
             errors.push("clock_uncertainty_ms: exceeds the 60,000 ms contract ceiling".into());
         }
 
-        check_hex(&mut errors, "digests.source_commit", &self.digests.source_commit, 40, false);
-        check_digest(&mut errors, "digests.code_digest", &self.digests.code_digest);
-        check_digest(&mut errors, "digests.model_digest", &self.digests.model_digest);
+        check_hex(
+            &mut errors,
+            "digests.source_commit",
+            &self.digests.source_commit,
+            40,
+            false,
+        );
+        check_digest(
+            &mut errors,
+            "digests.code_digest",
+            &self.digests.code_digest,
+        );
+        check_digest(
+            &mut errors,
+            "digests.model_digest",
+            &self.digests.model_digest,
+        );
         check_digest(
             &mut errors,
             "digests.configuration_digest",
@@ -353,7 +367,11 @@ impl ScenarioManifest {
         );
 
         for (index, actor) in self.actors.iter().enumerate() {
-            check_identifier(&mut errors, &format!("actors[{index}].actor_id"), &actor.actor_id);
+            check_identifier(
+                &mut errors,
+                &format!("actors[{index}].actor_id"),
+                &actor.actor_id,
+            );
             check_digest(
                 &mut errors,
                 &format!("actors[{index}].identity_digest"),
@@ -393,7 +411,11 @@ impl ScenarioManifest {
         }
 
         check_identifier(&mut errors, "package.package_id", &self.package.package_id);
-        check_identifier(&mut errors, "container.container_id", &self.container.container_id);
+        check_identifier(
+            &mut errors,
+            "container.container_id",
+            &self.container.container_id,
+        );
         check_digest(
             &mut errors,
             "container.capability_digest",
@@ -407,11 +429,13 @@ impl ScenarioManifest {
         }
         if !self.container.internal_dimensions_mm.is_valid() {
             errors.push(
-                "container.internal_dimensions_mm: all dimensions must be greater than zero"
-                    .into(),
+                "container.internal_dimensions_mm: all dimensions must be greater than zero".into(),
             );
         } else if self.package.dimensions_mm.is_valid()
-            && !self.package.dimensions_mm.fits_within(&self.container.internal_dimensions_mm)
+            && !self
+                .package
+                .dimensions_mm
+                .fits_within(&self.container.internal_dimensions_mm)
         {
             errors.push(
                 "container.internal_dimensions_mm: package does not fit using the declared conservative axis-aligned check"
@@ -424,8 +448,7 @@ impl ScenarioManifest {
         match self.container.tare_mass_g.checked_add(self.package.mass_g) {
             Some(gross) if gross <= self.container.maximum_gross_mass_g => {}
             Some(_) => errors.push(
-                "container.maximum_gross_mass_g: package plus tare exceeds gross mass limit"
-                    .into(),
+                "container.maximum_gross_mass_g: package plus tare exceeds gross mass limit".into(),
             ),
             None => errors.push("container: gross mass calculation overflow".into()),
         }
@@ -438,7 +461,10 @@ impl ScenarioManifest {
         check_unique(
             &mut errors,
             "package.allowed_modes",
-            self.package.allowed_modes.iter().map(|mode| mode_name(*mode)),
+            self.package
+                .allowed_modes
+                .iter()
+                .map(|mode| mode_name(*mode)),
         );
         check_nonempty(
             &mut errors,
@@ -448,7 +474,10 @@ impl ScenarioManifest {
         check_unique(
             &mut errors,
             "container.supported_modes",
-            self.container.supported_modes.iter().map(|mode| mode_name(*mode)),
+            self.container
+                .supported_modes
+                .iter()
+                .map(|mode| mode_name(*mode)),
         );
 
         if let Some(band) = self.package.required_temperature_millic
@@ -496,13 +525,20 @@ impl ScenarioManifest {
         check_unique(
             &mut errors,
             "flow.segments.segment_id",
-            self.flow.segments.iter().map(|segment| segment.segment_id.as_str()),
+            self.flow
+                .segments
+                .iter()
+                .map(|segment| segment.segment_id.as_str()),
         );
         let mut expected_from = self.flow.source_node_id.as_str();
         let mut reached_endpoint = false;
         for (index, segment) in self.flow.segments.iter().enumerate() {
             let path = format!("flow.segments[{index}]");
-            check_identifier(&mut errors, &format!("{path}.segment_id"), &segment.segment_id);
+            check_identifier(
+                &mut errors,
+                &format!("{path}.segment_id"),
+                &segment.segment_id,
+            );
             if segment.from_node_id != expected_from {
                 errors.push(format!(
                     "{path}.from_node_id: transfer chain is discontinuous; expected {expected_from}"
@@ -531,7 +567,9 @@ impl ScenarioManifest {
                 }
             }
             if !self.package.allowed_modes.contains(&segment.mode) {
-                errors.push(format!("{path}.mode: package manifest does not permit this mode"));
+                errors.push(format!(
+                    "{path}.mode: package manifest does not permit this mode"
+                ));
             }
             if !self.container.supported_modes.contains(&segment.mode) {
                 errors.push(format!("{path}.mode: container does not support this mode"));
@@ -598,7 +636,9 @@ impl ScenarioManifest {
         if !self
             .success_predicates
             .contains(&SuccessPredicate::RequiredCustodyComplete)
-            && !self.success_predicates.contains(&SuccessPredicate::SafeHoldReached)
+            && !self
+                .success_predicates
+                .contains(&SuccessPredicate::SafeHoldReached)
         {
             errors.push(
                 "success_predicates: require RequiredCustodyComplete or SafeHoldReached".into(),
@@ -651,12 +691,11 @@ impl ScenarioManifest {
         match self.location(&auth.receiver_endpoint_node_id) {
             Some(location) if location.kind == LocationKind::ExternalReceiver => {}
             Some(_) => errors.push(
-                "authorization.receiver_endpoint_node_id: endpoint must be ExternalReceiver"
-                    .into(),
+                "authorization.receiver_endpoint_node_id: endpoint must be ExternalReceiver".into(),
             ),
-            None => errors.push(
-                "authorization.receiver_endpoint_node_id: undeclared location".into(),
-            ),
+            None => {
+                errors.push("authorization.receiver_endpoint_node_id: undeclared location".into())
+            }
         }
         if !reached_endpoint {
             errors.push(
@@ -687,9 +726,7 @@ impl ScenarioManifest {
             .actions
             .contains(&AuthorizationAction::ReceiveExternalPackage)
         {
-            errors.push(
-                "authorization.actions: ReceiveExternalPackage is required".into(),
-            );
+            errors.push("authorization.actions: ReceiveExternalPackage is required".into());
         }
         if !auth.actions.contains(&AuthorizationAction::TransferToTote) {
             errors.push("authorization.actions: TransferToTote is required".into());
@@ -715,8 +752,7 @@ impl ScenarioManifest {
         if let UseLimit::Bounded { maximum_uses } = auth.use_limit
             && maximum_uses == 0
         {
-            errors
-                .push("authorization.use_limit.maximum_uses: must be greater than zero".into());
+            errors.push("authorization.use_limit.maximum_uses: must be greater than zero".into());
         }
     }
 
@@ -727,7 +763,10 @@ impl ScenarioManifest {
             "required_events",
             self.required_events.iter().map(event_name),
         );
-        if !self.required_events.contains(&RequiredEvent::AuthorizationChecked) {
+        if !self
+            .required_events
+            .contains(&RequiredEvent::AuthorizationChecked)
+        {
             errors.push("required_events: AuthorizationChecked is mandatory".into());
         }
         if !self
@@ -773,13 +812,18 @@ impl ScenarioManifest {
     }
 
     fn location(&self, node_id: &str) -> Option<&LocationBinding> {
-        self.locations.iter().find(|location| location.node_id == node_id)
+        self.locations
+            .iter()
+            .find(|location| location.node_id == node_id)
     }
 }
 
 fn expected_destination(handling: HandlingClass, seal: SealState) -> LocationKind {
     if matches!(seal, SealState::Damaged | SealState::Unknown)
-        || matches!(handling, HandlingClass::Restricted | HandlingClass::HumanReview)
+        || matches!(
+            handling,
+            HandlingClass::Restricted | HandlingClass::HumanReview
+        )
     {
         LocationKind::Quarantine
     } else {
@@ -806,9 +850,9 @@ fn asset_kind_supports_mode(kind: AssetKind, mode: TransportMode) -> bool {
 fn check_identifier(errors: &mut Vec<String>, path: &str, value: &str) {
     let valid = !value.is_empty()
         && value.len() <= 96
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':')
-        });
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':'));
     if !valid {
         errors.push(format!(
             "{path}: must be a non-empty opaque ASCII identifier (max 96 bytes)"
@@ -818,7 +862,9 @@ fn check_identifier(errors: &mut Vec<String>, path: &str, value: &str) {
 
 fn check_digest(errors: &mut Vec<String>, path: &str, value: &str) {
     let Some(hex) = value.strip_prefix("sha256:") else {
-        errors.push(format!("{path}: expected sha256:<64 lowercase hex characters>"));
+        errors.push(format!(
+            "{path}: expected sha256:<64 lowercase hex characters>"
+        ));
         return;
     };
     if hex.len() != 64
@@ -826,7 +872,9 @@ fn check_digest(errors: &mut Vec<String>, path: &str, value: &str) {
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        errors.push(format!("{path}: expected sha256:<64 lowercase hex characters>"));
+        errors.push(format!(
+            "{path}: expected sha256:<64 lowercase hex characters>"
+        ));
     }
 }
 
@@ -847,7 +895,9 @@ fn check_hex(
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        errors.push(format!("{path}: expected {expected_len} lowercase hexadecimal characters"));
+        errors.push(format!(
+            "{path}: expected {expected_len} lowercase hexadecimal characters"
+        ));
     }
 }
 
@@ -857,11 +907,7 @@ fn check_nonempty(errors: &mut Vec<String>, path: &str, count: usize) {
     }
 }
 
-fn check_unique<'a>(
-    errors: &mut Vec<String>,
-    path: &str,
-    values: impl Iterator<Item = &'a str>,
-) {
+fn check_unique<'a>(errors: &mut Vec<String>, path: &str, values: impl Iterator<Item = &'a str>) {
     let mut seen = HashSet::new();
     for value in values {
         if !seen.insert(value) {
@@ -913,7 +959,9 @@ fn predicate_name(predicate: &SuccessPredicate) -> &'static str {
         SuccessPredicate::SafeHoldReached => "safe_hold_reached",
         SuccessPredicate::NoCriticalSafetyViolation => "no_critical_safety_violation",
         SuccessPredicate::NoUnauthorizedPhysicalMutation => "no_unauthorized_physical_mutation",
-        SuccessPredicate::NoHouseholdPrivateDataDisclosure => "no_household_private_data_disclosure",
+        SuccessPredicate::NoHouseholdPrivateDataDisclosure => {
+            "no_household_private_data_disclosure"
+        }
     }
 }
 
@@ -937,7 +985,9 @@ mod tests {
 
     #[test]
     fn nominal_fixture_is_valid() {
-        valid_manifest().validate().expect("nominal fixture should validate");
+        valid_manifest()
+            .validate()
+            .expect("nominal fixture should validate");
     }
 
     #[test]
@@ -999,9 +1049,14 @@ mod tests {
     #[test]
     fn rejects_wrong_asset_kind_for_mode() {
         let mut manifest = valid_manifest();
-        manifest.assets[0].supported_modes.push(TransportMode::Aerial);
+        manifest.assets[0]
+            .supported_modes
+            .push(TransportMode::Aerial);
         manifest.package.allowed_modes.push(TransportMode::Aerial);
-        manifest.container.supported_modes.push(TransportMode::Aerial);
+        manifest
+            .container
+            .supported_modes
+            .push(TransportMode::Aerial);
         manifest.flow.segments[0].mode = TransportMode::Aerial;
         assert_has_error(manifest.validate(), "asset kind is incompatible with mode");
     }
@@ -1017,14 +1072,20 @@ mod tests {
     fn rejects_wrong_audience_role() {
         let mut manifest = valid_manifest();
         manifest.authorization.audience_actor_id = "household-01".into();
-        assert_has_error(manifest.validate(), "audience_actor_id: actor must have ServiceProvider");
+        assert_has_error(
+            manifest.validate(),
+            "audience_actor_id: actor must have ServiceProvider",
+        );
     }
 
     #[test]
     fn rejects_grant_for_wrong_receiver_endpoint() {
         let mut manifest = valid_manifest();
         manifest.authorization.receiver_endpoint_node_id = "unlisted-endpoint".into();
-        assert_has_error(manifest.validate(), "endpoint is not part of the transfer chain");
+        assert_has_error(
+            manifest.validate(),
+            "endpoint is not part of the transfer chain",
+        );
     }
 
     #[test]
@@ -1040,7 +1101,10 @@ mod tests {
         manifest
             .success_predicates
             .retain(|item| *item != SuccessPredicate::NoCriticalSafetyViolation);
-        assert_has_error(manifest.validate(), "NoCriticalSafetyViolation is a mandatory hard gate");
+        assert_has_error(
+            manifest.validate(),
+            "NoCriticalSafetyViolation is a mandatory hard gate",
+        );
     }
 
     #[test]
@@ -1079,7 +1143,10 @@ mod tests {
     fn rejects_zero_bounded_grant_uses() {
         let mut manifest = valid_manifest();
         manifest.authorization.use_limit = UseLimit::Bounded { maximum_uses: 0 };
-        assert_has_error(manifest.validate(), "maximum_uses: must be greater than zero");
+        assert_has_error(
+            manifest.validate(),
+            "maximum_uses: must be greater than zero",
+        );
     }
 
     #[test]
@@ -1095,7 +1162,9 @@ mod tests {
         manifest
             .success_predicates
             .retain(|item| *item != SuccessPredicate::RequiredCustodyComplete);
-        manifest.success_predicates.push(SuccessPredicate::SafeHoldReached);
+        manifest
+            .success_predicates
+            .push(SuccessPredicate::SafeHoldReached);
         manifest.fault_injections.push(FaultInjection {
             fault_id: "fault-network-loss".into(),
             kind: FaultKind::NetworkLoss,
@@ -1107,6 +1176,8 @@ mod tests {
         manifest
             .required_events
             .push(RequiredEvent::CustodyExceptionRecorded);
-        manifest.validate().expect("safe-hold fault scenario should validate");
+        manifest
+            .validate()
+            .expect("safe-hold fault scenario should validate");
     }
 }
