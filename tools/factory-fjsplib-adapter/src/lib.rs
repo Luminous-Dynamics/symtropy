@@ -231,7 +231,7 @@ fn validate_precedence_graph(
         if edge.before == edge.after {
             return Err(ParseError::new(None, ParseErrorKind::SelfPrecedence, format!("operation {} precedes itself", edge.before)));
         }
-        if !seen.insert((edge.before, edge.after, edge.job_id)) {
+        if !seen.insert((edge.before, edge.after)) {
             return Err(ParseError::new(
                 None,
                 ParseErrorKind::DuplicatePrecedence,
@@ -500,7 +500,7 @@ pub fn parse_fajsp(
         instance_id,
         source_family,
         machine_count,
-        Some(job_ids.len()),
+        (!job_ids.is_empty()).then_some(job_ids.len()),
         None,
         operations,
         precedences,
@@ -624,6 +624,47 @@ mod tests {
 ";
         let error = parse_fajsp("bad-edge", None, input).unwrap_err();
         assert_eq!(error.kind, ParseErrorKind::PrecedenceEndpointOutOfRange);
+    }
+
+
+    #[test]
+    fn fajsp_assembly_join_graph_is_preserved_without_linearizing() {
+        let input = "3 2 2
+0 2 0
+1 2 1
+1 0 5
+1 1 7
+1 0 9
+";
+        let instance = parse_fajsp("assembly-join", Some("yfjs"), input).unwrap();
+        assert_eq!(instance.declared_job_count, Some(2));
+        assert_eq!(instance.precedences, vec![
+            Precedence { before: 0, after: 2, job_id: Some(0) },
+            Precedence { before: 1, after: 2, job_id: Some(1) },
+        ]);
+    }
+
+    #[test]
+    fn fajsp_without_job_labels_does_not_claim_zero_jobs() {
+        let input = "2 0 2
+1 0 5
+1 1 7
+";
+        let instance = parse_fajsp("unlinked", None, input).unwrap();
+        assert_eq!(instance.declared_job_count, None);
+        assert!(instance.precedences.is_empty());
+    }
+
+    #[test]
+    fn duplicate_precedence_pair_is_rejected_even_with_different_job_labels() {
+        let input = "2 2 2
+0 1 0
+0 1 1
+1 0 5
+1 1 7
+";
+        let error = parse_fajsp("duplicate-edge", None, input).unwrap_err();
+        assert_eq!(error.kind, ParseErrorKind::DuplicatePrecedence);
     }
 
     #[test]
