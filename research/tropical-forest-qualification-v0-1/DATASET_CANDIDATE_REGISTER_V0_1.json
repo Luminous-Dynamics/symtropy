@@ -290,8 +290,8 @@
         },
         {
           "name": "observations.zip",
-          "compressed_size_bytes": 430694,
-          "published_md5": "75c53d963e30f1089d23b1752765d822"
+          "published_md5": "75c53d963e30f1089d23b1752765d822",
+          "compressed_size_displayed": "430.6 kB"
         }
       ],
       "rights": {
