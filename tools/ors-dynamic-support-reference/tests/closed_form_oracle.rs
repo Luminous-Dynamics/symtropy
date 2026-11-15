@@ -4,18 +4,18 @@
 //! The oracle uses the reduced-mass state-space matrix exponential, not the
 //! implementation's RK4 stages or energy accumulator.
 
-use ors_dynamic_support_reference::{evaluate, parse_corpus, Scenario};
+use ors_dynamic_support_reference::{Scenario, evaluate, parse_corpus};
 
-fn exact_state_space(
-    scenario: &Scenario,
-    elapsed_s: f64,
-) -> (f64, f64) {
+fn exact_state_space(scenario: &Scenario, elapsed_s: f64) -> (f64, f64) {
     let reduced_mass = (scenario.mass_stream_kg * scenario.mass_support_kg)
         / (scenario.mass_stream_kg + scenario.mass_support_kg);
     let alpha = scenario.damping_n_s_m / (2.0 * reduced_mass);
     let omega_n_squared = scenario.stiffness_n_m / reduced_mass;
     let omega_d_squared = omega_n_squared - alpha * alpha;
-    assert!(omega_d_squared >= 0.0, "oracle supports underdamped fixtures only");
+    assert!(
+        omega_d_squared >= 0.0,
+        "oracle supports underdamped fixtures only"
+    );
 
     let omega_d = omega_d_squared.sqrt();
     let initial_separation = scenario.preload_n / scenario.stiffness_n_m;
@@ -31,13 +31,8 @@ fn exact_state_space(
     // Matrix exponential:
     // exp([0,1;-wn²,-2alpha]t) = exp(-alpha*t) * (I*cos(wd*t) + B*sin(wd*t)/wd)
     // for B = [alpha,1;-wn²,-alpha], with B² = -wd² I.
-    let separation = initial_separation
-        * decay
-        * (cosine + alpha * sine_over_frequency);
-    let velocity = -initial_separation
-        * decay
-        * omega_n_squared
-        * sine_over_frequency;
+    let separation = initial_separation * decay * (cosine + alpha * sine_over_frequency);
+    let velocity = -initial_separation * decay * omega_n_squared * sine_over_frequency;
     (separation, velocity)
 }
 
@@ -50,12 +45,10 @@ fn consumer_side_state_space_oracle_matches_all_frozen_cases() {
     for case in cases {
         let result = evaluate(&case.scenario).expect("synthetic evaluation succeeds");
         let elapsed = case.scenario.duration_s - case.scenario.release_time_s;
-        let (expected_separation, expected_velocity) =
-            exact_state_space(&case.scenario, elapsed);
+        let (expected_separation, expected_velocity) = exact_state_space(&case.scenario, elapsed);
 
         assert!(
-            (result.final_separation_m - expected_separation).abs()
-                <= case.absolute_tolerance,
+            (result.final_separation_m - expected_separation).abs() <= case.absolute_tolerance,
             "{} separation differs from independent state-space oracle",
             case.scenario.case_id
         );
@@ -85,16 +78,13 @@ fn mass_and_force_scale_together_without_changing_kinematic_response() {
     scaled.preload_n *= 17.0;
     let scaled_result = evaluate(&scaled).expect("scaled response");
 
-    assert!(
-        (original.final_separation_m - scaled_result.final_separation_m).abs() < 1.0e-10
-    );
+    assert!((original.final_separation_m - scaled_result.final_separation_m).abs() < 1.0e-10);
     assert!(
         (original.final_relative_velocity_mps - scaled_result.final_relative_velocity_mps).abs()
             < 1.0e-9
     );
     assert!(
-        (17.0 * original.final_dissipated_energy_j - scaled_result.final_dissipated_energy_j)
-            .abs()
+        (17.0 * original.final_dissipated_energy_j - scaled_result.final_dissipated_energy_j).abs()
             < 1.0e-5
     );
 }
@@ -117,12 +107,9 @@ fn identical_reduced_mass_gives_identical_relative_response() {
     );
     let alternative_result = evaluate(&alternative).expect("swapped inertia response");
 
+    assert!((original.final_separation_m - alternative_result.final_separation_m).abs() < 1.0e-10);
     assert!(
-        (original.final_separation_m - alternative_result.final_separation_m).abs() < 1.0e-10
-    );
-    assert!(
-        (original.final_relative_velocity_mps
-            - alternative_result.final_relative_velocity_mps)
+        (original.final_relative_velocity_mps - alternative_result.final_relative_velocity_mps)
             .abs()
             < 1.0e-9
     );
