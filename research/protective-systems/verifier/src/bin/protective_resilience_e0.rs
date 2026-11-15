@@ -318,9 +318,13 @@ fn lifecycle_cost(portfolio: &Value) -> Result<u64, String> {
     Ok(total)
 }
 
-fn validate_status<'a>(value: &'a Value, label: &str) -> Result<&'a str, String> {
+fn validate_status<'a>(
+    value: &'a Value,
+    label: &str,
+    allowed: &[&str],
+) -> Result<&'a str, String> {
     let status = required_text(value, "status", label)?;
-    if !["PASS", "FAIL", "VIOLATED", "UNKNOWN"].contains(&status) {
+    if !allowed.contains(&status) {
         return Err(format!("{label}.status is unsupported: {status}"));
     }
     required_text(value, "owner_contract", label)?;
@@ -472,12 +476,19 @@ fn evaluate_portfolio(
     let safety = portfolio
         .get("mandatory_safety")
         .ok_or_else(|| format!("{portfolio_id}.mandatory_safety is required"))?;
-    let safety_status = validate_status(safety, &format!("{portfolio_id}.mandatory_safety"))?;
+    let safety_status = validate_status(
+        safety,
+        &format!("{portfolio_id}.mandatory_safety"),
+        &["PASS", "VIOLATED", "UNKNOWN"],
+    )?;
     let buffer = portfolio
         .get("buffer_recovery")
         .ok_or_else(|| format!("{portfolio_id}.buffer_recovery is required"))?;
-    let buffer_status =
-        validate_status(buffer, &format!("{portfolio_id}.buffer_recovery"))?;
+    let buffer_status = validate_status(
+        buffer,
+        &format!("{portfolio_id}.buffer_recovery"),
+        &["PASS", "FAIL", "UNKNOWN"],
+    )?;
 
     let (service_totals, service_pass) =
         service_totals_report(&aggregates, context.baseline_aggregates, context.limits, &metric_by_service)?;
