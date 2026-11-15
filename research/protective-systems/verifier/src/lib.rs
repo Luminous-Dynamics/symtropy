@@ -308,10 +308,7 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
                 );
             }
         }
-        "CURRENT"
-        | "CURRENT_SNAPSHOT"
-        | "CURRENT_REFERENCE"
-        | "CURRENT_PUBLISHED"
+        "CURRENT" | "CURRENT_SNAPSHOT" | "CURRENT_REFERENCE" | "CURRENT_PUBLISHED"
         | "SNAPSHOT_GUIDANCE" => {}
         _ => return decision(ABSTAIN_UNKNOWN, "UNRECOGNIZED_STANDARD_CURRENTNESS"),
     }
@@ -598,20 +595,17 @@ mod tests {
         assert!(error.messages.iter().any(|m| m.contains("duplicate 1")));
     }
 
-
     #[test]
     fn standards_registry_current_published_status_is_supported() {
         let mut root = corpus();
-        root["cases"][0]["standard"]["currentness"] =
-            serde_json::json!("CURRENT_PUBLISHED");
+        root["cases"][0]["standard"]["currentness"] = serde_json::json!("CURRENT_PUBLISHED");
         assert_eq!(evaluate_case(&root["cases"][0]).0, ACCEPT_RECORD_ONLY);
     }
 
     #[test]
     fn amended_registry_reference_requires_explicit_addenda() {
         let mut root = corpus();
-        root["cases"][0]["standard"]["currentness"] =
-            serde_json::json!("CURRENT_WITH_AMENDMENTS");
+        root["cases"][0]["standard"]["currentness"] = serde_json::json!("CURRENT_WITH_AMENDMENTS");
         root["cases"][0]["standard"]["addenda"] = serde_json::json!([]);
         let result = evaluate_case(&root["cases"][0]);
         assert_eq!(result.0, REJECT_STALE_OR_REVOKED);
@@ -627,8 +621,7 @@ mod tests {
     #[test]
     fn verify_locally_status_abstains_and_context_only_rejects_scope() {
         let mut root = corpus();
-        root["cases"][0]["standard"]["currentness"] =
-            serde_json::json!("VERIFY_LOCALLY");
+        root["cases"][0]["standard"]["currentness"] = serde_json::json!("VERIFY_LOCALLY");
         assert_eq!(evaluate_case(&root["cases"][0]).0, ABSTAIN_UNKNOWN);
 
         root["cases"][0]["standard"]["currentness"] = serde_json::json!("CONTEXT_ONLY");
