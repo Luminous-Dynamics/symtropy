@@ -906,3 +906,44 @@ fn parameter_identification_does_not_receive_model_pair_diversity_credit() {
         0
     );
 }
+
+
+#[test]
+fn model_form_discrimination_uses_common_experiment_contract_not_output_equivalence() {
+    let mut comparison = candidate("model-form-comparison");
+    comparison.modality = ExperimentModality::Simulation;
+    comparison.semantic_equivalence = SemanticEquivalence::NotRequired;
+    comparison.semantic_equivalence_receipt_sha256 = None;
+    let result = select_experiments(&[comparison], &policy()).unwrap();
+    assert_eq!(result.pareto_front[0].candidate_id, "model-form-comparison");
+}
+
+#[test]
+fn cross_implementation_comparison_still_requires_semantic_equivalence() {
+    let mut comparison = candidate("cross-implementation-no-equivalence");
+    comparison.modality = ExperimentModality::CrossImplementation;
+    comparison.semantic_equivalence = SemanticEquivalence::NotRequired;
+    comparison.semantic_equivalence_receipt_sha256 = None;
+    let result = select_experiments(&[comparison], &policy()).unwrap();
+    assert!(reason(&result, "cross-implementation-no-equivalence")
+        .contains(&RejectionReason::SemanticEquivalenceNotEstablished));
+}
+
+#[test]
+fn reported_hypothesis_pair_count_uses_the_frozen_separation_floor() {
+    let mut candidate = candidate("policy-threshold-pair-count");
+    candidate.hypothesis_groups.push(HypothesisGroup {
+        hypothesis_id: "hypothesis-c".into(),
+        hypothesis_sha256: digest('0'),
+        group_id: "model-family-c".into(),
+    });
+    candidate.hypothesis_contrasts.push(HypothesisContrast {
+        left_hypothesis_id: "hypothesis-a".into(),
+        right_hypothesis_id: "hypothesis-c".into(),
+        separation_lower_bound: 0.19,
+        contrast_estimate_sha256: digest('a'),
+    });
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert_eq!(result.pareto_front.len(), 1);
+    assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 1);
+}
