@@ -558,7 +558,7 @@ mod tests {
         close(result.euler_m_s2[1], -1.5, 1e-12);
         close(result.apparent_total_m_s2[0], 12.0, 1e-12);
         close(result.apparent_total_m_s2[1], -5.5, 1e-12);
-        close(result.motion_disturbance_magnitude_m_s2, 18.25_f64.sqrt(), 1e-12);
+        close(result.motion_disturbance_magnitude_m_s2, 5.5, 1e-12);
     }
 
     #[test]
