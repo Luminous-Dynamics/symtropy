@@ -113,7 +113,10 @@ pub fn empirical_crps(samples: &[f64], observed: f64) -> Result<f64, ForecastErr
     let mut sorted = samples.to_vec();
     sorted.sort_by(f64::total_cmp);
 
-    let absolute_error_sum = sorted.iter().map(|value| (value - observed).abs()).sum::<f64>();
+    let absolute_error_sum = sorted
+        .iter()
+        .map(|value| (value - observed).abs())
+        .sum::<f64>();
     let mut pairwise_correction = 0.0;
     for (index, value) in sorted.iter().enumerate() {
         let index_f64 = count_as_f64(index)?;
@@ -128,13 +131,7 @@ pub fn empirical_crps(samples: &[f64], observed: f64) -> Result<f64, ForecastErr
     Ok(score.max(0.0))
 }
 
-
-fn interval_score(
-    lower: f64,
-    upper: f64,
-    observed: f64,
-    alpha: f64,
-) -> Result<f64, ForecastError> {
+fn interval_score(lower: f64, upper: f64, observed: f64, alpha: f64) -> Result<f64, ForecastError> {
     if !lower.is_finite()
         || !upper.is_finite()
         || !observed.is_finite()
@@ -145,8 +142,16 @@ fn interval_score(
     {
         return Err(ForecastError::NonFiniteValue);
     }
-    let lower_penalty = if observed < lower { lower - observed } else { 0.0 };
-    let upper_penalty = if observed > upper { observed - upper } else { 0.0 };
+    let lower_penalty = if observed < lower {
+        lower - observed
+    } else {
+        0.0
+    };
+    let upper_penalty = if observed > upper {
+        observed - upper
+    } else {
+        0.0
+    };
     let score = (upper - lower) + (2.0 / alpha) * (lower_penalty + upper_penalty);
     if score.is_finite() {
         Ok(score)
@@ -212,7 +217,10 @@ pub fn empirical_quantile(samples: &[f64], probability: f64) -> Result<f64, Fore
             return Ok(*value);
         }
     }
-    sorted.last().copied().ok_or(ForecastError::InvalidEnsembleSize)
+    sorted
+        .last()
+        .copied()
+        .ok_or(ForecastError::InvalidEnsembleSize)
 }
 
 fn ensemble_mean(samples: &[f64]) -> Result<f64, ForecastError> {
@@ -422,8 +430,6 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
     })
 }
 
-
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectiveRiskCase {
     pub forecast_id: String,
@@ -461,20 +467,13 @@ pub fn selective_risk_coverage_curve(
         if !ids.insert(case.forecast_id.as_str()) {
             return Err(ForecastError::DuplicateForecastIdentity);
         }
-        if !case.confidence_score.is_finite()
-            || !(0.0..=1.0).contains(&case.confidence_score)
-        {
+        if !case.confidence_score.is_finite() || !(0.0..=1.0).contains(&case.confidence_score) {
             return Err(ForecastError::InvalidConfidenceScore);
         }
         let crps = empirical_crps(&case.forecast_samples, case.observed)?;
         ranked.push((case.forecast_id.as_str(), case.confidence_score, crps));
     }
-    ranked.sort_by(|left, right| {
-        right
-            .1
-            .total_cmp(&left.1)
-            .then_with(|| left.0.cmp(right.0))
-    });
+    ranked.sort_by(|left, right| right.1.total_cmp(&left.1).then_with(|| left.0.cmp(right.0)));
 
     let denominator = count_as_f64(ranked.len())?;
     let mut cumulative_risk = 0.0;
@@ -604,7 +603,8 @@ pub fn summarize_binary_event_forecasts(
         }
         let score = score_binary_event_case(case)?;
         all_baseline_total += score.baseline_brier;
-        if let (Some(model_brier), Some(probability)) = (score.model_brier, case.event_probability) {
+        if let (Some(model_brier), Some(probability)) = (score.model_brier, case.event_probability)
+        {
             forecast_case_count += 1;
             model_brier_total += model_brier;
             paired_baseline_total += score.baseline_brier;
@@ -700,14 +700,27 @@ mod tests {
         }
     }
 
-
-
     #[test]
     fn risk_coverage_curve_ranks_high_confidence_forecasts_first() {
         let cases = [
-            SelectiveRiskCase { forecast_id: "a".to_string(), confidence_score: 0.9, forecast_samples: vec![0.0, 1.0], observed: 0.5 },
-            SelectiveRiskCase { forecast_id: "b".to_string(), confidence_score: 0.8, forecast_samples: vec![2.0, 2.0], observed: 3.0 },
-            SelectiveRiskCase { forecast_id: "c".to_string(), confidence_score: 0.7, forecast_samples: vec![0.0, 2.0], observed: 1.0 },
+            SelectiveRiskCase {
+                forecast_id: "a".to_string(),
+                confidence_score: 0.9,
+                forecast_samples: vec![0.0, 1.0],
+                observed: 0.5,
+            },
+            SelectiveRiskCase {
+                forecast_id: "b".to_string(),
+                confidence_score: 0.8,
+                forecast_samples: vec![2.0, 2.0],
+                observed: 3.0,
+            },
+            SelectiveRiskCase {
+                forecast_id: "c".to_string(),
+                confidence_score: 0.7,
+                forecast_samples: vec![0.0, 2.0],
+                observed: 1.0,
+            },
         ];
         let curve = selective_risk_coverage_curve(&cases).expect("risk-coverage curve");
         assert_eq!(curve.len(), 3);
@@ -718,8 +731,18 @@ mod tests {
 
     #[test]
     fn risk_coverage_curve_is_input_order_invariant_with_id_tie_breaks() {
-        let a = SelectiveRiskCase { forecast_id: "a".to_string(), confidence_score: 0.8, forecast_samples: vec![0.0], observed: 1.0 };
-        let b = SelectiveRiskCase { forecast_id: "b".to_string(), confidence_score: 0.8, forecast_samples: vec![0.0], observed: 2.0 };
+        let a = SelectiveRiskCase {
+            forecast_id: "a".to_string(),
+            confidence_score: 0.8,
+            forecast_samples: vec![0.0],
+            observed: 1.0,
+        };
+        let b = SelectiveRiskCase {
+            forecast_id: "b".to_string(),
+            confidence_score: 0.8,
+            forecast_samples: vec![0.0],
+            observed: 2.0,
+        };
         let left = selective_risk_coverage_curve(&[a.clone(), b.clone()]).unwrap();
         let right = selective_risk_coverage_curve(&[b, a]).unwrap();
         assert_eq!(left, right);
@@ -727,9 +750,12 @@ mod tests {
 
     #[test]
     fn risk_coverage_curve_rejects_out_of_range_confidence() {
-        let result = selective_risk_coverage_curve(&[
-            SelectiveRiskCase { forecast_id: "bad".to_string(), confidence_score: 1.1, forecast_samples: vec![0.0], observed: 0.0 },
-        ]);
+        let result = selective_risk_coverage_curve(&[SelectiveRiskCase {
+            forecast_id: "bad".to_string(),
+            confidence_score: 1.1,
+            forecast_samples: vec![0.0],
+            observed: 0.0,
+        }]);
         assert_eq!(result, Err(ForecastError::InvalidConfidenceScore));
     }
 
@@ -741,31 +767,74 @@ mod tests {
 
     #[test]
     fn brier_score_rejects_probabilities_outside_unit_interval() {
-        assert_eq!(brier_score(-0.01, true), Err(ForecastError::InvalidProbability));
-        assert_eq!(brier_score(1.01, false), Err(ForecastError::InvalidProbability));
-        assert_eq!(brier_score(f64::NAN, true), Err(ForecastError::InvalidProbability));
+        assert_eq!(
+            brier_score(-0.01, true),
+            Err(ForecastError::InvalidProbability)
+        );
+        assert_eq!(
+            brier_score(1.01, false),
+            Err(ForecastError::InvalidProbability)
+        );
+        assert_eq!(
+            brier_score(f64::NAN, true),
+            Err(ForecastError::InvalidProbability)
+        );
     }
 
     #[test]
     fn binary_event_summary_keeps_abstention_in_coverage_denominator() {
         let cases = [
-            BinaryEventForecast { forecast_id: "a".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: Some(0.8), observed_event: true, baseline_probability: 0.5 },
-            BinaryEventForecast { forecast_id: "b".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: Some(0.1), observed_event: false, baseline_probability: 0.5 },
-            BinaryEventForecast { forecast_id: "c".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: None, observed_event: true, baseline_probability: 0.5 },
+            BinaryEventForecast {
+                forecast_id: "a".to_string(),
+                event_name: "disturbance".to_string(),
+                horizon_days: 30,
+                event_probability: Some(0.8),
+                observed_event: true,
+                baseline_probability: 0.5,
+            },
+            BinaryEventForecast {
+                forecast_id: "b".to_string(),
+                event_name: "disturbance".to_string(),
+                horizon_days: 30,
+                event_probability: Some(0.1),
+                observed_event: false,
+                baseline_probability: 0.5,
+            },
+            BinaryEventForecast {
+                forecast_id: "c".to_string(),
+                event_name: "disturbance".to_string(),
+                horizon_days: 30,
+                event_probability: None,
+                observed_event: true,
+                baseline_probability: 0.5,
+            },
         ];
         let result = summarize_binary_event_forecasts(&cases).expect("Brier summary");
         assert_eq!(result.eligible_case_count, 3);
         assert_eq!(result.forecast_case_count, 2);
         assert_eq!(result.abstained_case_count, 1);
         assert!((result.forecast_coverage_fraction - (2.0 / 3.0)).abs() < 1e-12);
-        assert_eq!(result.reliability_bins.iter().map(|bin| bin.case_count).sum::<usize>(), 2);
+        assert_eq!(
+            result
+                .reliability_bins
+                .iter()
+                .map(|bin| bin.case_count)
+                .sum::<usize>(),
+            2
+        );
     }
 
     #[test]
     fn binary_event_summary_has_no_brier_skill_when_all_abstain() {
-        let result = summarize_binary_event_forecasts(&[
-            BinaryEventForecast { forecast_id: "a".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: None, observed_event: true, baseline_probability: 0.5 },
-        ]).expect("all-abstention Brier summary");
+        let result = summarize_binary_event_forecasts(&[BinaryEventForecast {
+            forecast_id: "a".to_string(),
+            event_name: "disturbance".to_string(),
+            horizon_days: 30,
+            event_probability: None,
+            observed_event: true,
+            baseline_probability: 0.5,
+        }])
+        .expect("all-abstention Brier summary");
         assert_eq!(result.forecast_coverage_fraction, 0.0);
         assert_eq!(result.mean_model_brier, None);
         assert_eq!(result.brier_skill_score, None);
@@ -774,14 +843,26 @@ mod tests {
 
     #[test]
     fn binary_event_summary_rejects_duplicate_and_mixed_horizon_cases() {
-        let first = BinaryEventForecast { forecast_id: "same".to_string(), event_name: "disturbance".to_string(), horizon_days: 30, event_probability: Some(0.5), observed_event: true, baseline_probability: 0.5 };
+        let first = BinaryEventForecast {
+            forecast_id: "same".to_string(),
+            event_name: "disturbance".to_string(),
+            horizon_days: 30,
+            event_probability: Some(0.5),
+            observed_event: true,
+            baseline_probability: 0.5,
+        };
         let mut duplicate = first.clone();
-        assert_eq!(summarize_binary_event_forecasts(&[first.clone(), duplicate.clone()]), Err(ForecastError::DuplicateForecastIdentity));
+        assert_eq!(
+            summarize_binary_event_forecasts(&[first.clone(), duplicate.clone()]),
+            Err(ForecastError::DuplicateForecastIdentity)
+        );
         duplicate.forecast_id = "other".to_string();
         duplicate.horizon_days = 90;
-        assert_eq!(summarize_binary_event_forecasts(&[first, duplicate]), Err(ForecastError::MixedEventSlice));
+        assert_eq!(
+            summarize_binary_event_forecasts(&[first, duplicate]),
+            Err(ForecastError::MixedEventSlice)
+        );
     }
-
 
     #[test]
     fn weighted_interval_score_matches_two_member_hand_calculation() {
@@ -825,14 +906,20 @@ mod tests {
 
     #[test]
     fn empirical_crps_rejects_empty_and_non_finite_ensemble() {
-        assert_eq!(empirical_crps(&[], 1.0), Err(ForecastError::InvalidEnsembleSize));
-        assert_eq!(empirical_crps(&[f64::NAN], 1.0), Err(ForecastError::NonFiniteValue));
+        assert_eq!(
+            empirical_crps(&[], 1.0),
+            Err(ForecastError::InvalidEnsembleSize)
+        );
+        assert_eq!(
+            empirical_crps(&[f64::NAN], 1.0),
+            Err(ForecastError::NonFiniteValue)
+        );
     }
 
     #[test]
     fn score_forecast_case_preserves_abstention() {
-        let score = score_forecast_case(&forecast("abstain", &[], &[0.0], 2.0))
-            .expect("abstention score");
+        let score =
+            score_forecast_case(&forecast("abstain", &[], &[0.0], 2.0)).expect("abstention score");
         assert_eq!(score.model_crps, None);
         assert_eq!(score.baseline_crps, 2.0);
         assert_eq!(score.model_mean, None);
@@ -873,10 +960,8 @@ mod tests {
 
     #[test]
     fn zero_score_baseline_has_undefined_skill_not_division_by_zero() {
-        let result = summarize_forecasts(&[
-            forecast("a", &[1.0, 1.0], &[1.0], 1.0),
-        ])
-        .expect("zero-baseline summary");
+        let result = summarize_forecasts(&[forecast("a", &[1.0, 1.0], &[1.0], 1.0)])
+            .expect("zero-baseline summary");
         assert_eq!(result.mean_baseline_crps_paired, Some(0.0));
         assert_eq!(result.crps_skill_score, None);
     }
