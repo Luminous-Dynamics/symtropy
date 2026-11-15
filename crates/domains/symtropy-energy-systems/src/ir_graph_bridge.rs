@@ -866,6 +866,90 @@ mod tests {
             Err(GraphBridgeError::UnknownEvidenceStateMapping{..})));
     }
 
+
+    #[test]
+    fn declared_claims_cannot_be_promoted_to_field_observed() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Declared, GraphEvidenceState::FieldObserved)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Declared,
+                requested_state: GraphEvidenceState::FieldObserved,
+            })
+        ));
+    }
+
+    #[test]
+    fn declared_claims_cannot_be_promoted_to_independently_reviewed() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Declared, GraphEvidenceState::IndependentlyReviewed)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Declared,
+                requested_state: GraphEvidenceState::IndependentlyReviewed,
+            })
+        ));
+    }
+
+    #[test]
+    fn observed_claims_cannot_be_promoted_to_independently_reviewed() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Observed, GraphEvidenceState::IndependentlyReviewed)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Observed,
+                requested_state: GraphEvidenceState::IndependentlyReviewed,
+            })
+        ));
+    }
+
+    #[test]
+    fn verified_claims_cannot_directly_claim_independent_review() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Verified, GraphEvidenceState::IndependentlyReviewed)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Verified,
+                requested_state: GraphEvidenceState::IndependentlyReviewed,
+            })
+        ));
+    }
+
+    #[test]
+    fn conservative_domain_mappings_are_accepted() {
+        assert!(IrGraphMappingProfile::new(
+            "profile:conservative", "0.1",
+            BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+            BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+            BTreeMap::from([
+                (ClaimDomain::DesignIntent, GraphEvidenceState::DesignDeclared),
+                (ClaimDomain::Declared, GraphEvidenceState::DesignDeclared),
+                (ClaimDomain::Observed, GraphEvidenceState::FieldObserved),
+            ]),
+            BTreeMap::new(), BTreeMap::new(),
+        ).is_ok());
+    }
+
     #[test]
     fn module_configuration_identity_is_preserved_and_stale_state_surfaces() {
         let mut p = profile();
