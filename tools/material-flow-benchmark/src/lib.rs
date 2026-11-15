@@ -451,12 +451,12 @@ impl ScenarioManifest {
             self.container.supported_modes.iter().map(|mode| mode_name(*mode)),
         );
 
-        if let Some(band) = self.package.required_temperature_millic {
-            if band.minimum > band.maximum {
-                errors.push(
-                    "package.required_temperature_millic: minimum must not exceed maximum".into(),
-                );
-            }
+        if let Some(band) = self.package.required_temperature_millic
+            && band.minimum > band.maximum
+        {
+            errors.push(
+                "package.required_temperature_millic: minimum must not exceed maximum".into(),
+            );
         }
         match self.package.handling_class {
             HandlingClass::Chilled | HandlingClass::Frozen
@@ -544,16 +544,14 @@ impl ScenarioManifest {
             );
         }
 
-        match destination.map(|location| location.kind) {
-            Some(kind) => {
-                let expected = expected_destination(self.package.handling_class, self.package.seal_state);
-                if kind != expected {
-                    errors.push(format!(
-                        "flow.destination_node_id: destination must be {expected:?} for this package handling/seal state"
-                    ));
-                }
+        if let Some(kind) = destination.map(|location| location.kind) {
+            let expected =
+                expected_destination(self.package.handling_class, self.package.seal_state);
+            if kind != expected {
+                errors.push(format!(
+                    "flow.destination_node_id: destination must be {expected:?} for this package handling/seal state"
+                ));
             }
-            None => {}
         }
 
         self.validate_authorization(&mut errors, reached_endpoint);
@@ -706,20 +704,19 @@ impl ScenarioManifest {
             },
             None => None,
         };
-        if let Some(action) = required_destination_action {
-            if !auth.actions.contains(&action) {
-                errors.push(
-                    "authorization.actions: missing action required by destination storage class"
-                        .into(),
-                );
-            }
+        if let Some(action) = required_destination_action
+            && !auth.actions.contains(&action)
+        {
+            errors.push(
+                "authorization.actions: missing action required by destination storage class"
+                    .into(),
+            );
         }
-        if let UseLimit::Bounded { maximum_uses } = auth.use_limit {
-            if maximum_uses == 0 {
-                errors.push(
-                    "authorization.use_limit.maximum_uses: must be greater than zero".into(),
-                );
-            }
+        if let UseLimit::Bounded { maximum_uses } = auth.use_limit
+            && maximum_uses == 0
+        {
+            errors
+                .push("authorization.use_limit.maximum_uses: must be greater than zero".into());
         }
     }
 
@@ -753,17 +750,16 @@ impl ScenarioManifest {
                 &format!("fault_injections[{index}].fault_id"),
                 &fault.fault_id,
             );
-            if let Some(segment_id) = &fault.at_segment_id {
-                if !self
+            if let Some(segment_id) = &fault.at_segment_id
+                && !self
                     .flow
                     .segments
                     .iter()
                     .any(|segment| segment.segment_id == *segment_id)
-                {
-                    errors.push(format!(
-                        "fault_injections[{index}].at_segment_id: undeclared segment"
-                    ));
-                }
+            {
+                errors.push(format!(
+                    "fault_injections[{index}].at_segment_id: undeclared segment"
+                ));
             }
         }
     }
