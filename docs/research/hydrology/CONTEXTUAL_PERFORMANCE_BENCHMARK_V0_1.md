@@ -320,12 +320,12 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 27-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 32-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
 
 
 ### Executable process-specific metrics — 15 November 2026
 
-The contextual T0 suite has been extended from 21 to 27 cases to cover the metric gaps identified in the protocol:
+The contextual T0 suite has been extended from 21 to 32 cases to cover the metric gaps identified in the protocol:
 - **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
@@ -367,3 +367,32 @@ A complementary 3 July 2026 study benchmarked 47 conceptual rainfall–runoff mo
 7. **Complexity/uncertainty:** report parameter and structural spread, runtime/energy, memory, data burden and calibration effort alongside each metric; publish Pareto sets, not one weighted score.
 
 The existing 27-case corpus is only a metric/split software contract. It does not yet execute 1,000 model simulations or establish lower/upper catchment benchmarks. That is the next model-run tournament after source data and the B1 prior definitions are qualified.
+
+
+## 15. Proper probabilistic scoring — implementation cases 028–032
+
+The evaluator now extends the 27-case process-aware metric suite with five synthetic proper-score cases:
+- **Empirical ensemble CRPS:**
+  `CRPS(F,y) = mean_m |x_m-y| - (1/(2M²)) Σ_m Σ_n |x_m-x_n|`.
+  It scores the full finite ensemble distribution, penalizing both lack of sharpness and lack of accuracy. Streamflow values below zero are rejected in this profile.
+- **Binary threshold-event Brier score:** `BS = (p-o)²`, where the event definition is frozen by ID and observed outcome is binary.
+- **Batch Brier + reliability diagnostic:** mean Brier score and five predeclared probability bins; each bin reports sample count, mean forecast probability and observed event frequency. Empty bins remain null.
+- Invalid probabilities outside [0,1] and non-binary labels reject. No clipping.
+
+The five added cases bring the suite to 32, with matching input/manifest/oracle IDs and an expanded schema. These fixtures verify arithmetic and guardrails only.
+
+### Forecast-verification benchmark targets
+
+WMO's *Guidelines on the Verification of Hydrological Forecasts* and ECMWF's December 2025 *A Hydrologist's Guide to the CRPS* support proper probabilistic verification, comparison against reference forecasts and multiple forecast horizons. Next T1/T2 studies should report, separately by lead time, event class and catchment:
+1. CRPS and CRPSS against a declared reference forecast;
+2. Brier score and Brier skill score for predeclared flood/low-flow thresholds;
+3. reliability and sharpness together, with bin/event counts and confidence intervals;
+4. quantile reliability and weighted interval score across multiple nominal coverages;
+5. probability of detection, false-alarm ratio, critical success index and warning lead time for operational event thresholds;
+6. value-of-information / decision utility under transparent loss matrices, without allowing the model to redefine the decision threshold after seeing test outcomes.
+
+Use event-block bootstrap or another predeclared dependence-aware uncertainty method; daily streamflow records are autocorrelated and must not be treated as independent forecast cases. A small reliability plot with five observations is not evidence of calibrated forecasts.
+
+Sources:
+- WMO, *Guidelines on the Verification of Hydrological Forecasts*, WMO-No. 1364 (2025): https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
+- Ruparell et al., *A Hydrologist's Guide to the CRPS*, ECMWF Technical Memorandum 935 (December 2025), DOI 10.21957/16101872b5: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
