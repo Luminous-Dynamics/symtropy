@@ -18,6 +18,7 @@ pub mod trajectory_budget_kernel;
 pub mod flux_identifiability_kernel;
 pub mod practical_identifiability_kernel;
 pub mod forestpaths_crosswalk_kernel;
+pub mod afex_design_kernel;
 
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -3858,6 +3859,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return forestpaths_crosswalk_kernel::validate_corpus(raw, &manifest);
     }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("AFEX-FACTORIAL-DESIGN-001")
+    {
+        return afex_design_kernel::validate_corpus(raw, &manifest);
+    }
     if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
     }
@@ -4930,4 +4936,14 @@ mod tests {
     fn malformed_json_is_rejected_before_scoring() {
         assert!(evaluate(b"{not-json").is_err());
     }
+    
+    #[test]
+    fn afex_factorial_design_dispatches_through_top_level_evaluator() {
+        let bytes = include_str!("../../cases/afex-factorial-design-synthetic-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("AFEX synthetic design corpus dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_AFEX_DESIGN");
+        assert_eq!(receipt["full_design_rank"], 11);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
 }
