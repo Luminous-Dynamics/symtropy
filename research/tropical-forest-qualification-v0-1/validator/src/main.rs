@@ -60,6 +60,7 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt"
             | Some("PASS_SYNTHETIC_BLOCK_CONFORMAL")
             | Some("PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE")
             | Some("PASS_SYNTHETIC_SPATIAL_LOCALIZATION")
+            | Some("PASS_SYNTHETIC_PROCESS_TRAJECTORY")
     );
     if !successful_result {
         process::exit(1);
