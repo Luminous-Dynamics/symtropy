@@ -639,3 +639,8 @@ feed or flight-preparation service.
 ### Track P — subject-scoped causal receipt binding (#5337)
 
 Verifies that each composed result was derived from the exact aircraft, flight, scenario, operational-intent revision, authorization revision, model profile, coordinate/time basis and parent evidence it claims to consume. Uses typed parent roles, exact parent digest references, validity and causal-time checks, producer-sequence fork detection, graph-cycle and orphan rejection, and profile-owned traffic-class obligations. The positive result is `CAUSALLY_BOUND_ONLY`; byte integrity, signature identity, issuer authority and revocation remain explicitly not evaluated. Synthetic structural benchmark only; no flight authority or operational safety claim. Implementation: `tools/aeroweift-causal-receipt-binding/` and `docs/research/aviation/AEROWEFT_CAUSAL_RECEIPT_BINDING_001.md`.
+
+
+### Track Q — trusted evidence custody and historical/current reliance (#5351)
+
+AeroWeft-facing adapter to Mycelix's role-separated signed evidence, pinned trust roots, sensor provenance, revocation and evidence-lease owners. Verifies canonical bytes, signatures, signer identity, issuer role/predicate/subject scope, trust-policy epoch/root, key lifecycle and (where required) SCITT transparency proofs. Historical authenticity, current reliance, physical truth, source independence and operational authority remain separate facets. Reuse Mycelix #5899/#5895/#5863/#2143/#181/#2688/#1215; do not create a parallel DID registry, trust-root store, transparency service or generic currentness/lease algebra. No trust result mints flight/dispatch/control authority. Synthetic verifier only until cryptographic known-answer fixtures and independent review pass.
