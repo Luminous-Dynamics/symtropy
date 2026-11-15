@@ -111,5 +111,6 @@ jobs:
     - name: Emit and Verify Exact Schedule Certificate
       run: |
         cargo run --quiet --manifest-path tools/factory-exact-schedule/Cargo.toml --bin schedule-oracle | tee /tmp/factory-exact-schedule.tsv
-        test "$(wc -l < /tmp/factory-exact-schedule.tsv)" -eq 2
-        grep -F $'JSSP-3X3-SPT-GAP-001\tEXACT\ttrue\t26\t34\t8\t216\t128\t88' /tmp/factory-exact-schedule.tsv
+        test "$(wc -l < /tmp/factory-exact-schedule.tsv)" -eq 27
+        grep -F SUMMARY\tEXACT_ORACLE\tJSSP-3X3-SPT-GAP-001\t-\t-\t-\t-\t-\t-\t-\t-\t26\tstatus=EXACT;proven=true;gap_ticks=8;orders=216;cyclic=128;feasible=88' /tmp/factory-exact-schedule.tsv
+        grep -F SUMMARY\tSPT_BASELINE\tJSSP-3X3-SPT-GAP-001\t-\t-\t-\t-\t-\t-\t-\t-\t34\tgap_ticks=8' /tmp/factory-exact-schedule.tsv
