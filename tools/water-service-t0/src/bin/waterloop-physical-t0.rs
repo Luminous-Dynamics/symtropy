@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CASE_COUNT: usize = 12;
+const CASE_COUNT: usize = 15;
 const SCHEMA_VERSION: &str = "waterloop-physical-t0-v0.1";
 const CLAIM_CEILING: &str = "synthetic_water_service_arithmetic_and_contract_semantics_only";
 
@@ -143,12 +143,14 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "service_credit_eligible": sufficient
             }))
         }
-        "WL-T0-005-qualified-source-substitution" | "WL-T0-006-unqualified-source-no-credit" => {
+        "WL-T0-005-qualified-source-substitution" | "WL-T0-006-unqualified-source-no-credit" | "WL-T0-013-source-quality-without-evidence-no-credit" => {
             let recovered = nonnegative(number(input, "recovered_outlet_delivery_l")?, "recovered_outlet_delivery_l")?;
             let demand = nonnegative(number(input, "matched_end_use_demand_l")?, "matched_end_use_demand_l")?;
             let source_confirmed = boolean(input, "source_identity_confirmed")?;
             let meter_calibrated = boolean(input, "meter_calibration_current")?;
             let same_window = boolean(input, "same_comparison_window")?;
+            let quality_evidence_ref = boolean(input, "quality_evidence_reference_present")?;
+            let quality_profile_revision = boolean(input, "quality_profile_revision_present")?;
             let recovered_use = text(input, "recovered_use_class")?;
             let baseline_use = text(input, "baseline_use_class")?;
             let quality = text(input, "quality_disposition")?;
@@ -156,6 +158,8 @@ fn compute(case: &Value) -> Result<Value, String> {
             let eligible = source_confirmed
                 && meter_calibrated
                 && same_window
+                && quality_evidence_ref
+                && quality_profile_revision
                 && use_matches
                 && quality == "QUALIFIED_FOR_DECLARED_USE";
             let credit = if eligible { recovered.min(demand) } else { 0.0 };
@@ -165,6 +169,10 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "METER_CALIBRATION_NOT_CURRENT"
             } else if !same_window {
                 "COMPARISON_WINDOW_MISMATCH"
+            } else if !quality_evidence_ref {
+                "QUALITY_EVIDENCE_REFERENCE_MISSING"
+            } else if !quality_profile_revision {
+                "QUALITY_PROFILE_REVISION_MISSING"
             } else if !use_matches {
                 "END_USE_MISMATCH"
             } else if quality != "QUALIFIED_FOR_DECLARED_USE" {
@@ -194,24 +202,49 @@ fn compute(case: &Value) -> Result<Value, String> {
             let hydraulic_energy = nonnegative(number(input, "hydraulic_output_energy_kwh")?, "hydraulic_output_energy_kwh")?;
             let electrical_energy = positive(number(input, "electrical_input_energy_kwh")?, "electrical_input_energy_kwh")?;
             let delivered_volume = positive(number(input, "measured_delivered_volume_m3")?, "measured_delivered_volume_m3")?;
+            let windows_aligned = boolean(input, "hydraulic_and_electrical_windows_aligned")?;
+            let delivery_boundary_matched = boolean(input, "delivered_volume_boundary_matched")?;
+            let auxiliary_loads_included = boolean(input, "auxiliary_loads_included")?;
+            if !windows_aligned || !delivery_boundary_matched || !auxiliary_loads_included {
+                let reason = if !windows_aligned {
+                    "ENERGY_WINDOWS_NOT_ALIGNED"
+                } else if !delivery_boundary_matched {
+                    "DELIVERY_BOUNDARY_MISMATCH"
+                } else {
+                    "AUXILIARY_LOADS_OMITTED"
+                };
+                return Ok(json!({
+                    "measurement_disposition": "INDETERMINATE",
+                    "reason": reason,
+                    "wire_to_water_efficiency": null,
+                    "electrical_specific_energy_kwh_m3": null
+                }));
+            }
             let efficiency = hydraulic_energy / electrical_energy;
             if efficiency > 1.0 + 1.0e-9 {
                 return Err("wire-to-water efficiency exceeds unity; reject evidence/model boundary".to_owned());
             }
             Ok(json!({
+                "measurement_disposition": "ADMITTED",
+                "reason": "BOUNDARIES_AND_WINDOWS_MATCH",
                 "wire_to_water_efficiency": efficiency,
                 "electrical_specific_energy_kwh_m3": electrical_energy / delivered_volume
             }))
         }
-        "WL-T0-009-service-floor-met" | "WL-T0-010-service-floor-not-met" => {
+        "WL-T0-009-service-floor-met" | "WL-T0-010-service-floor-not-met" | "WL-T0-014-service-floor-missing-pressure-evidence" => {
             let pressure = nonnegative(number(input, "measured_outlet_pressure_pa")?, "measured_outlet_pressure_pa")?;
             let minimum_pressure = nonnegative(number(input, "minimum_service_pressure_pa")?, "minimum_service_pressure_pa")?;
             let flow = nonnegative(number(input, "measured_outlet_flow_m3_s")?, "measured_outlet_flow_m3_s")?;
             let minimum_flow = nonnegative(number(input, "minimum_service_flow_m3_s")?, "minimum_service_flow_m3_s")?;
+            let pressure_admitted = boolean(input, "pressure_measurement_admitted")?;
+            let flow_admitted = boolean(input, "flow_measurement_admitted")?;
             let pressure_met = pressure >= minimum_pressure;
             let flow_met = flow >= minimum_flow;
-            let feasible = pressure_met && flow_met;
-            let reason = if !pressure_met {
+            let evidence_complete = pressure_admitted && flow_admitted;
+            let feasible = evidence_complete && pressure_met && flow_met;
+            let reason = if !evidence_complete {
+                "CRITICAL_MEASUREMENT_NOT_ADMITTED"
+            } else if !pressure_met {
                 "MINIMUM_OUTLET_PRESSURE_NOT_MET"
             } else if !flow_met {
                 "MINIMUM_OUTLET_FLOW_NOT_MET"
@@ -219,10 +252,10 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "ALL_SERVICE_FLOORS_MET"
             };
             Ok(json!({
-                "service_disposition": if feasible { "FEASIBLE" } else { "INFEASIBLE" },
+                "service_disposition": if !evidence_complete { "INDETERMINATE" } else if feasible { "FEASIBLE" } else { "INFEASIBLE" },
                 "reason": reason,
-                "pressure_floor_met": pressure_met,
-                "flow_floor_met": flow_met,
+                "pressure_floor_met": if pressure_admitted { json!(pressure_met) } else { Value::Null },
+                "flow_floor_met": if flow_admitted { json!(flow_met) } else { Value::Null },
                 "service_credit_eligible": feasible
             }))
         }
@@ -257,6 +290,39 @@ fn compute(case: &Value) -> Result<Value, String> {
             Ok(json!({
                 "point_missed_volume_l": point,
                 "conservative_upper_missed_volume_l": upper
+            }))
+        }
+        "WL-T0-015-energy-boundary-mismatch-abstains" => {
+            let hydraulic_energy = nonnegative(number(input, "hydraulic_output_energy_kwh")?, "hydraulic_output_energy_kwh")?;
+            let electrical_energy = positive(number(input, "electrical_input_energy_kwh")?, "electrical_input_energy_kwh")?;
+            let delivered_volume = positive(number(input, "measured_delivered_volume_m3")?, "measured_delivered_volume_m3")?;
+            let windows_aligned = boolean(input, "hydraulic_and_electrical_windows_aligned")?;
+            let delivery_boundary_matched = boolean(input, "delivered_volume_boundary_matched")?;
+            let auxiliary_loads_included = boolean(input, "auxiliary_loads_included")?;
+            if !windows_aligned || !delivery_boundary_matched || !auxiliary_loads_included {
+                let reason = if !windows_aligned {
+                    "ENERGY_WINDOWS_NOT_ALIGNED"
+                } else if !delivery_boundary_matched {
+                    "DELIVERY_BOUNDARY_MISMATCH"
+                } else {
+                    "AUXILIARY_LOADS_OMITTED"
+                };
+                return Ok(json!({
+                    "measurement_disposition": "INDETERMINATE",
+                    "reason": reason,
+                    "wire_to_water_efficiency": null,
+                    "electrical_specific_energy_kwh_m3": null
+                }));
+            }
+            let efficiency = hydraulic_energy / electrical_energy;
+            if efficiency > 1.0 + 1.0e-9 {
+                return Err("wire-to-water efficiency exceeds unity; reject evidence/model boundary".to_owned());
+            }
+            Ok(json!({
+                "measurement_disposition": "ADMITTED",
+                "reason": "BOUNDARIES_AND_WINDOWS_MATCH",
+                "wire_to_water_efficiency": efficiency,
+                "electrical_specific_energy_kwh_m3": electrical_energy / delivered_volume
             }))
         }
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
@@ -547,7 +613,7 @@ mod tests {
     fn volume_residual_outside_uncertainty_is_not_closed() {
         let case = fixture("inputs")["cases"][1].clone();
         let actual = compute(&case).expect("valid arithmetic inputs");
-        assert_eq!(actual["closure_pass"], false);
+        assert!(!actual["closure_pass"].as_bool().expect("closure boolean"));
         assert_eq!(actual["closure_disposition"], "NOT_CLOSED");
     }
 
@@ -572,6 +638,32 @@ mod tests {
         case["inputs"]["hydraulic_output_energy_kwh"] = json!(2.0);
         case["inputs"]["electrical_input_energy_kwh"] = json!(1.0);
         assert!(compute(&case).is_err());
+    }
+
+    #[test]
+    fn quality_label_without_evidence_reference_is_not_credited() {
+        let case = fixture("inputs")["cases"][12].clone();
+        let actual = compute(&case).expect("synthetic source-substitution case");
+        assert_eq!(actual["source_substitution_disposition"], "NOT_CREDITABLE");
+        assert_eq!(actual["credited_mains_displacement_l"], 0.0);
+        assert_eq!(actual["reason"], "QUALITY_EVIDENCE_REFERENCE_MISSING");
+    }
+
+    #[test]
+    fn missing_pressure_measurement_abstains_from_service_credit() {
+        let case = fixture("inputs")["cases"][13].clone();
+        let actual = compute(&case).expect("synthetic service-floor case");
+        assert_eq!(actual["service_disposition"], "INDETERMINATE");
+        assert_eq!(actual["service_credit_eligible"], false);
+        assert_eq!(actual["pressure_floor_met"], Value::Null);
+    }
+
+    #[test]
+    fn mismatched_energy_boundary_abstains_from_efficiency_claim() {
+        let case = fixture("inputs")["cases"][14].clone();
+        let actual = compute(&case).expect("synthetic energy-boundary case");
+        assert_eq!(actual["measurement_disposition"], "INDETERMINATE");
+        assert_eq!(actual["wire_to_water_efficiency"], Value::Null);
     }
 
     #[test]
