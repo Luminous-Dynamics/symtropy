@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
     env, fs,
@@ -477,7 +478,7 @@ fn validate(input: &Value, oracle: &Value, manifest: &Value) -> Result<(), Strin
     let m = array(manifest, "case_ids")?;
     if a.len() != CASE_COUNT
         || b.len() != CASE_COUNT
-        || num(manifest, "case_count")? != CASE_COUNT as f64
+        || number(manifest, "case_count")? != CASE_COUNT as f64
     {
         return Err("frozen operator-invariant case count mismatch".into());
     }
