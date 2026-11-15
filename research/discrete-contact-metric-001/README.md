@@ -90,7 +90,45 @@ The regression suite checks the one-contact step at uniform mass scales `1e-12`,
 
 Non-finite admission is fail-closed: any NaN/infinite impulse, row velocity/slack, contributing term, or overflowed effective-metric equation returns an infinite normalized residual. Regression controls cover NaN, infinity, and overflow from finite matrix/velocity inputs so an IEEE `NaN` cannot be silently discarded by a `max()` reduction.
 
-Still outstanding: a normalized energy/work ledger (including contact work and frictional dissipation), error bounds under nonzero restitution and friction, and independent KKT residual comparison on a broader corpus. The current reference remains frictionless, zero restitution, fixed-J, single-step and small-island only.
+## Discrete energy / work ledger
+
+The current implementation emits a separate `DiscreteEnergyLedger` for each accepted step. Let
+`Δv = v_next - v` and `Δq = q_next - q = h v_next`. Multiplying the discrete momentum equation by
+`v_next` gives the algebraic balance
+
+```
+ΔT + ΔV
+  + h * v_nextᵀ D v_next
+  + 1/2 * Δvᵀ M Δv
+  + 1/2 * Δqᵀ K Δq
+  = h * fᵀ v_next + pᵀ J v_next.
+```
+
+The ledger records kinetic and potential energy before/after, external force work,
+physical damping dissipation, the two increment terms introduced by the implicit
+update, and the actual contact-impulse work `pᵀ J v_next`. It also splits contact work into
+the contact-target contribution `pᵀ(-gap/h)` and the complementarity product
+`pᵀ slack`. Their reconstruction residual checks that the reported contact work
+matches the declared unilateral target and slack.
+
+The mass/stiffness increment terms are method-induced discrete terms; they are not
+physical damping. A positive-gap contact can have negative impulse work because
+the discrete constraint prevents predicted penetration before the next state.
+The frictionless, zero-restitution model does not contain a frictional dissipation
+term, and this ledger must not be generalized to frictional contact without adding
+the corresponding impulse/work law.
+
+New regressions cover the no-contact limit, a touching contact with zero impulse
+work, a positive-gap pre-contact impulse whose work is included in the balance,
+and invariance of the energy ledger under a dense non-orthogonal unimodular
+coordinate re-basing. The existing solver residuals and complementarity checks
+remain separate from the energy identity; a small energy residual is not a
+substitute for satisfying the contact equations.
+
+Still outstanding: error bounds under nonzero restitution and friction, independent
+KKT residual comparison on a broader corpus, and an energy/work ledger for
+frictional/contact-law extensions. The current reference remains frictionless,
+zero restitution, fixed-J, single-step and small-island only.
 
 ## Benchmark lanes — keep unlike workloads separate
 
