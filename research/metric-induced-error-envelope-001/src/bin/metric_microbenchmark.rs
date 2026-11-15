@@ -11,8 +11,8 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use metric_induced_error_envelope_reference::{
-    CartesianQ, Cotangent, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent,
-    vector_euclidean, vector_inf,
+    CartesianQ, ConstraintSpace, Cotangent, DelassusMetricV1, DenseY, Matrix, Metric,
+    MetricProfileV1, Rebasis, Tangent, pairing, vector_euclidean, vector_inf,
 };
 
 const N: usize = 6;
@@ -79,15 +79,19 @@ where
     }
 }
 
-struct BenchmarkFixture {
-    metric_q: Metric<CartesianQ, N>,
-    rebasis: Rebasis<CartesianQ, DenseY, N>,
-    vector_q: Tangent<CartesianQ, N>,
-    covector_q: Cotangent<CartesianQ, N>,
-    vector_y: Tangent<DenseY, N>,
-    covector_y: Cotangent<DenseY, N>,
-    metric_y: Metric<DenseY, N>,
-}
+const CONSTRAINTS: usize = 3;
+
+type BenchmarkFixture = (
+    Metric<CartesianQ, N>,
+    Rebasis<CartesianQ, DenseY, N>,
+    Tangent<CartesianQ, N>,
+    Cotangent<CartesianQ, N>,
+    Tangent<DenseY, N>,
+    Cotangent<DenseY, N>,
+    Metric<DenseY, N>,
+    DelassusMetricV1<CartesianQ, ConstraintSpace, N, CONSTRAINTS>,
+    [[f64; N]; CONSTRAINTS],
+);
 
 fn fixture() -> BenchmarkFixture {
     let profile = MetricProfileV1::default();
@@ -116,15 +120,37 @@ fn fixture() -> BenchmarkFixture {
     let vector_y = rebasis.tangent_to_to(&vector_q).unwrap();
     let covector_y = rebasis.cotangent_to_to(&covector_q).unwrap();
 
-    BenchmarkFixture {
-        metric_q,
-        rebasis,
-        vector_q,
-        covector_q,
-        vector_y,
-        covector_y,
-        metric_y,
+    let jacobian: [[f64; N]; CONSTRAINTS] = [
+        [1.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+    ];
+    let delassus =
+        DelassusMetricV1::<CartesianQ, ConstraintSpace, N, CONSTRAINTS>::from_mass_jacobian(
+            &metric_q, jacobian, profile,
+        )
+        .unwrap();
+
+    (
+        metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y, delassus, jacobian,
+    )
+}
+
+fn direct_delassus(
+    mass: &Metric<CartesianQ, N>,
+    jacobian: &[[f64; N]; CONSTRAINTS],
+    profile: MetricProfileV1,
+) -> Metric<ConstraintSpace, CONSTRAINTS> {
+    let mut matrix = [[0.0; CONSTRAINTS]; CONSTRAINTS];
+    for column in 0..CONSTRAINTS {
+        let column_covector = Cotangent::<CartesianQ, N>::new(jacobian[column]).unwrap();
+        let raised_column = mass.raise(&column_covector).unwrap();
+        for row in 0..CONSTRAINTS {
+            let row_covector = Cotangent::<CartesianQ, N>::new(jacobian[row]).unwrap();
+            matrix[row][column] = pairing(&row_covector, &raised_column);
+        }
     }
+    Metric::<ConstraintSpace, CONSTRAINTS>::admit(matrix, profile).unwrap()
 }
 
 fn json_number(value: f64) -> String {
@@ -239,59 +265,50 @@ fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> Strin
 
 fn main() {
     let start_all = Instant::now();
-    let fixture = fixture();
+    let (
+        metric_q,
+        rebasis,
+        vector_q,
+        covector_q,
+        vector_y,
+        covector_y,
+        metric_y,
+        delassus,
+        jacobian,
+    ) = fixture();
 
     let measurements = vec![
         measure("raw_euclidean_tangent_q", ITERATIONS, SAMPLES, || {
-            vector_euclidean(black_box(fixture.vector_q.components()))
+            vector_euclidean(black_box(vector_q.components()))
         }),
         measure("raw_infinity_tangent_q", ITERATIONS, SAMPLES, || {
-            vector_inf(black_box(fixture.vector_q.components()))
+            vector_inf(black_box(vector_q.components()))
         }),
         measure("metric_tangent_norm_q", ITERATIONS, SAMPLES, || {
-            fixture
-                .metric_q
-                .tangent_norm(black_box(&fixture.vector_q))
-                .unwrap()
+            metric_q.tangent_norm(black_box(&vector_q)).unwrap()
         }),
         measure("dual_metric_cotangent_norm_q", ITERATIONS, SAMPLES, || {
-            fixture
-                .metric_q
-                .cotangent_norm(black_box(&fixture.covector_q))
-                .unwrap()
+            metric_q.cotangent_norm(black_box(&covector_q)).unwrap()
         }),
         measure("metric_tangent_norm_y", ITERATIONS, SAMPLES, || {
-            fixture
-                .metric_y
-                .tangent_norm(black_box(&fixture.vector_y))
-                .unwrap()
+            metric_y.tangent_norm(black_box(&vector_y)).unwrap()
         }),
         measure("dual_metric_cotangent_norm_y", ITERATIONS, SAMPLES, || {
-            fixture
-                .metric_y
-                .cotangent_norm(black_box(&fixture.covector_y))
-                .unwrap()
+            metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
         }),
         measure("tangent_pushforward_q_to_y", ITERATIONS, SAMPLES, || {
-            let value = fixture
-                .rebasis
-                .tangent_to_to(black_box(&fixture.vector_q))
-                .unwrap();
+            let value = rebasis.tangent_to_to(black_box(&vector_q)).unwrap();
             vector_euclidean(value.components())
         }),
         measure("cotangent_pullback_q_to_y", ITERATIONS, SAMPLES, || {
-            let value = fixture
-                .rebasis
-                .cotangent_to_to(black_box(&fixture.covector_q))
-                .unwrap();
+            let value = rebasis.cotangent_to_to(black_box(&covector_q)).unwrap();
             vector_euclidean(value.components())
         }),
         measure("metric_rebasis_q_to_y", ITERATIONS / 10, SAMPLES, || {
-            let metric = fixture
-                .rebasis
-                .metric_to_to(black_box(&fixture.metric_q), MetricProfileV1::default())
+            let metric = rebasis
+                .metric_to_to(black_box(&metric_q), MetricProfileV1::default())
                 .unwrap();
-            metric.tangent_norm(&fixture.vector_y).unwrap()
+            metric.tangent_norm(&vector_y).unwrap()
         }),
         measure(
             "metric_admission_cholesky_q",
@@ -299,7 +316,7 @@ fn main() {
             SAMPLES,
             || {
                 let admitted = Metric::<CartesianQ, N>::admit(
-                    *black_box(fixture.metric_q.matrix()),
+                    *black_box(metric_q.matrix()),
                     MetricProfileV1::default(),
                 )
                 .unwrap();
@@ -307,14 +324,62 @@ fn main() {
             },
         ),
         measure("metric_and_dual_norms_y_pair", ITERATIONS, SAMPLES, || {
-            fixture
-                .metric_y
-                .tangent_norm(black_box(&fixture.vector_y))
+            metric_y.tangent_norm(black_box(&vector_y)).unwrap()
+                + metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
+        }),
+        measure(
+            "delassus_whitened_gram_construct",
+            ITERATIONS / 100,
+            SAMPLES,
+            || {
+                DelassusMetricV1::<CartesianQ, ConstraintSpace, N, CONSTRAINTS>::from_mass_jacobian(
+                    black_box(&metric_q),
+                    *black_box(&jacobian),
+                    MetricProfileV1::default(),
+                )
                 .unwrap()
-                + fixture
-                    .metric_y
-                    .cotangent_norm(black_box(&fixture.covector_y))
+                .matrix()[0][0]
+            },
+        ),
+        measure(
+            "delassus_direct_mass_solve_construct",
+            ITERATIONS / 100,
+            SAMPLES,
+            || {
+                direct_delassus(
+                    black_box(&metric_q),
+                    black_box(&jacobian),
+                    MetricProfileV1::default(),
+                )
+                .matrix()[0][0]
+            },
+        ),
+        measure(
+            "delassus_multiplier_metric_norm",
+            ITERATIONS,
+            SAMPLES,
+            || {
+                delassus
+                    .multiplier_norm(
+                        &metric_induced_error_envelope_reference::ConstraintMultiplierV1::<
+                            ConstraintSpace,
+                            CONSTRAINTS,
+                        >::new([0.5, -1.0, 0.75])
+                        .unwrap(),
+                    )
                     .unwrap()
+            },
+        ),
+        measure("delassus_residual_dual_norm", ITERATIONS, SAMPLES, || {
+            delassus
+                .residual_norm(
+                    &metric_induced_error_envelope_reference::ConstraintResidualV1::<
+                        ConstraintSpace,
+                        CONSTRAINTS,
+                    >::new([0.1, -0.2, 0.15])
+                    .unwrap(),
+                )
+                .unwrap()
         }),
     ];
 
