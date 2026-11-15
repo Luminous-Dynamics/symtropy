@@ -234,12 +234,10 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
         }
         if let (Some(timebase_id), Some(qualification_sha256)) =
             (&self.timebase_id, &self.timebase_qualification_sha256)
+            && (sample.timebase_id.as_str() != timebase_id.as_str()
+                || sample.timebase_qualification_sha256.as_str() != qualification_sha256.as_str())
         {
-            if sample.timebase_id.as_str() != timebase_id.as_str()
-                || sample.timebase_qualification_sha256.as_str() != qualification_sha256.as_str()
-            {
-                return Err(StreamingError::TimebaseChanged);
-            }
+            return Err(StreamingError::TimebaseChanged);
         }
         if let Some(previous) = self.previous_time_interval {
             if time_interval.is_strictly_before(previous) {
