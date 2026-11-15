@@ -436,7 +436,7 @@ fn validate_case(case:&Value)->Result<ValidatedPairCase,Errors>{
         if !matches!(text(policy,"profile_state"),Some("PREREGISTERED"|"DRAFT"|"UNKNOWN")){
             push(&mut errors,"COMPARISON_PROFILE_STATE_INVALID",&path,"invalid comparison policy state");
         }
-        if policy["minimum_independent_episodes_per_window"].as_u64().is_none_or(|n|n<2||n>100000){
+        if policy["minimum_independent_episodes_per_window"].as_u64().is_none_or(|n|!(2..=100000).contains(&n)){
             push(&mut errors,"INDEPENDENT_EPISODE_MINIMUM_INVALID",&format!("{path}.comparison_tolerances.minimum_independent_episodes_per_window"),"preregistered minimum must be an integer in 2..=100000");
         }
         for key in ["maximum_load_delta_percent","maximum_speed_delta_rpm","maximum_ambient_temperature_delta_c"]{
