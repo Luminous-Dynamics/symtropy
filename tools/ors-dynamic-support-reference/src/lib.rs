@@ -40,7 +40,9 @@ impl fmt::Display for ModelError {
         let message = match self {
             Self::InvalidCaseId => "case ID must use only ASCII letters, digits, '_' or '-'",
             Self::UnsupportedForceLaw => "force law is not admitted by this synthetic reference",
-            Self::PhysicalClaimNotAdmitted => "physical claim classes are not admitted by this reference",
+            Self::PhysicalClaimNotAdmitted => {
+                "physical claim classes are not admitted by this reference"
+            },
             Self::NonFiniteInput => "all numeric inputs must be finite",
             Self::NonPositiveMass => "both lumped masses must be positive",
             Self::NonPositiveStiffness => "synthetic spring stiffness must be positive",
@@ -48,10 +50,14 @@ impl fmt::Display for ModelError {
             Self::NegativePreload => "preload must be non-negative",
             Self::InvalidDuration => "duration and time step must be positive",
             Self::ReleaseOutsideDuration => "release time must lie in [0, duration]",
-            Self::NonIntegralTimeGrid => "duration and release time must align to the fixed time step",
+            Self::NonIntegralTimeGrid => {
+                "duration and release time must align to the fixed time step"
+            },
             Self::TooManyTimeSteps => "time grid exceeds the fixed maximum step count",
             Self::NonFiniteResult => "derived state or ledger value is non-finite",
-            Self::InvalidCorpus => "frozen corpus has an invalid header, row, value or duplicate ID",
+            Self::InvalidCorpus => {
+                "frozen corpus has an invalid header, row, value or duplicate ID"
+            },
         };
         f.write_str(message)
     }
@@ -99,9 +105,9 @@ pub struct SimulationReport {
 
 fn valid_case_id(value: &str) -> bool {
     !value.is_empty()
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-'
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
 }
 
 fn finite(values: &[f64]) -> bool {
@@ -224,9 +230,7 @@ fn rk4_step(
     let k4 = derivative(&stage4, bias_force_n, scenario)?;
 
     let output: [f64; 6] = std::array::from_fn(|index| {
-        state[index]
-            + (step_s / 6.0)
-                * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
+        state[index] + (step_s / 6.0) * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
     });
     if finite(&output) {
         Ok(output)
@@ -291,8 +295,7 @@ pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
 
         let separation = state[0] - state[2];
         let relative_velocity = state[1] - state[3];
-        let momentum = scenario.mass_stream_kg * state[1]
-            + scenario.mass_support_kg * state[3];
+        let momentum = scenario.mass_stream_kg * state[1] + scenario.mass_support_kg * state[3];
         let energy_residual =
             mechanical_energy(&state, scenario) + state[4] - state[5] - initial_energy;
 
@@ -334,8 +337,7 @@ pub fn compare_to_golden(case: &GoldenCase, report: &SimulationReport) -> bool {
     let momentum_match =
         report.max_abs_linear_momentum_residual_kg_mps <= 1.0e-10 * momentum_scale.max(1.0);
     let energy_scale = report.initial_energy_j.max(1.0);
-    let energy_match =
-        report.max_abs_energy_balance_residual_j <= 1.0e-6 * energy_scale;
+    let energy_match = report.max_abs_energy_balance_residual_j <= 1.0e-6 * energy_scale;
     state_match && momentum_match && energy_match
 }
 
@@ -386,7 +388,10 @@ pub fn parse_corpus(input: &str) -> Result<Vec<GoldenCase>, ModelError> {
         {
             return Err(ModelError::InvalidCorpus);
         }
-        if cases.iter().any(|existing| existing.scenario.case_id == scenario.case_id) {
+        if cases
+            .iter()
+            .any(|existing| existing.scenario.case_id == scenario.case_id)
+        {
             return Err(ModelError::InvalidCorpus);
         }
         cases.push(GoldenCase {
