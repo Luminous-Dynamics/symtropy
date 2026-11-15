@@ -196,6 +196,10 @@ pub struct MetricGate {
 /// Frozen evaluation policy independent of the submitted package.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ValidationPolicy {
+    /// Digest of the frozen validation policy manifest.
+    pub policy_manifest_sha256: String,
+    /// Exact evaluator build permitted to produce metric evidence.
+    pub required_evaluator_build_sha256: String,
     /// Exact model and operating-domain identity requested for credit.
     pub expected_scope: ModelScope,
     /// Exact reference measurement/calibration profile required for all datasets.
@@ -209,6 +213,10 @@ pub struct ValidationPolicy {
 /// Validation package with separated calibration/development/confirmatory manifests.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ValidationPackage {
+    /// Exact evaluator build that produced the metric results.
+    pub evaluator_build_sha256: String,
+    /// Exact frozen policy manifest used for evaluation.
+    pub policy_manifest_sha256: String,
     /// Exact model and operating-domain identity under evaluation.
     pub scope: ModelScope,
     /// Calibration dataset manifest.
@@ -243,6 +251,10 @@ pub struct ValidationResult {
     pub model_artifact_sha256: String,
     /// Operating-domain digest string.
     pub operating_domain_sha256: String,
+    /// Exact evaluator build digest string.
+    pub evaluator_build_sha256: String,
+    /// Exact validation-policy manifest digest string.
+    pub policy_manifest_sha256: String,
 }
 
 /// Typed reason a validation package cannot receive structural credit.
@@ -268,6 +280,8 @@ pub enum ValidationError {
     InsufficientIndependentUnits,
     /// A measured statistic falls outside its preregistered gate.
     MetricOutsideGate,
+    /// Evaluator build or policy manifest differs from the frozen requirement.
+    EvaluatorOrPolicyMismatch,
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -343,7 +357,9 @@ pub fn evaluate(
     package: &ValidationPackage,
     policy: &ValidationPolicy,
 ) -> Result<ValidationResult, ValidationError> {
-    if !policy.expected_scope.is_complete()
+    if !is_sha256(&policy.policy_manifest_sha256)
+        || !is_sha256(&policy.required_evaluator_build_sha256)
+        || !policy.expected_scope.is_complete()
         || !is_sha256(&policy.expected_reference_measurement_profile_sha256)
         || policy.required_strata.is_empty()
         || !unique_nonempty(&policy.required_strata)
@@ -370,11 +386,18 @@ pub fn evaluate(
         .required_strata
         .iter()
         .any(|stratum| !policy.gates.iter().any(|gate| gate.stratum_id == *stratum))
+        || policy
+            .gates
+            .iter()
+            .any(|gate| !policy.required_strata.contains(&gate.stratum_id))
     {
         return Err(ValidationError::InvalidPolicy);
     }
 
-    if !package.scope.is_complete() {
+    if !package.scope.is_complete()
+        || !is_sha256(&package.evaluator_build_sha256)
+        || !is_sha256(&package.policy_manifest_sha256)
+    {
         return Err(ValidationError::InvalidPackage);
     }
     if package.scope != policy.expected_scope {
@@ -384,7 +407,15 @@ pub fn evaluate(
             covered_strata: Vec::new(),
             model_artifact_sha256: package.scope.model_artifact_sha256.clone(),
             operating_domain_sha256: package.scope.operating_domain_sha256.clone(),
+            evaluator_build_sha256: package.evaluator_build_sha256.clone(),
+            policy_manifest_sha256: package.policy_manifest_sha256.clone(),
         });
+    }
+
+    if package.evaluator_build_sha256 != policy.required_evaluator_build_sha256
+        || package.policy_manifest_sha256 != policy.policy_manifest_sha256
+    {
+        return Err(ValidationError::EvaluatorOrPolicyMismatch);
     }
 
     validate_manifest(
@@ -509,5 +540,7 @@ pub fn evaluate(
         covered_strata,
         model_artifact_sha256: package.scope.model_artifact_sha256.clone(),
         operating_domain_sha256: package.scope.operating_domain_sha256.clone(),
+        evaluator_build_sha256: package.evaluator_build_sha256.clone(),
+        policy_manifest_sha256: package.policy_manifest_sha256.clone(),
     })
 }
