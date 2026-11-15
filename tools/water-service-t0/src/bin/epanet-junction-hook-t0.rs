@@ -363,7 +363,7 @@ fn validate(input: &Value, oracle: &Value, manifest: &Value) -> Result<(), Strin
     let ids = arr(manifest, "case_ids")?;
     if cases.len() != CASE_COUNT
         || expected.len() != CASE_COUNT
-        || usize_value(manifest, "case_count")? != CASE_COUNT
+        || num(manifest, "case_count")? != CASE_COUNT as f64
     {
         return Err("frozen hook case count mismatch".into());
     }
