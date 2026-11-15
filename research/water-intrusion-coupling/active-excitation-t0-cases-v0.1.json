@@ -1,0 +1,448 @@
+{
+  "schema_version": "active-excitation-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-ACTIVE-EXPERIMENT-DESIGN-001",
+  "configuration": {
+    "sample_interval_seconds": 1,
+    "minimum_delay_of_interest_seconds": 10,
+    "rank_relative_tolerance": 1e-8,
+    "target_parameter_count": 2,
+    "parameter_scales": [
+      1,
+      1,
+      1
+    ],
+    "measurement_covariance": [
+      [
+        0.01,
+        0.0034999999999999996,
+        0.001225,
+        0.0004287499999999999,
+        0.00015006249999999997,
+        0.00005252187499999998,
+        0.000018382656249999995,
+        0.000006433929687499997
+      ],
+      [
+        0.0034999999999999996,
+        0.01,
+        0.0034999999999999996,
+        0.001225,
+        0.0004287499999999999,
+        0.00015006249999999997,
+        0.00005252187499999998,
+        0.000018382656249999995
+      ],
+      [
+        0.001225,
+        0.0034999999999999996,
+        0.01,
+        0.0034999999999999996,
+        0.001225,
+        0.0004287499999999999,
+        0.00015006249999999997,
+        0.00005252187499999998
+      ],
+      [
+        0.0004287499999999999,
+        0.001225,
+        0.0034999999999999996,
+        0.01,
+        0.0034999999999999996,
+        0.001225,
+        0.0004287499999999999,
+        0.00015006249999999997
+      ],
+      [
+        0.00015006249999999997,
+        0.0004287499999999999,
+        0.001225,
+        0.0034999999999999996,
+        0.01,
+        0.0034999999999999996,
+        0.001225,
+        0.0004287499999999999
+      ],
+      [
+        0.00005252187499999998,
+        0.00015006249999999997,
+        0.0004287499999999999,
+        0.001225,
+        0.0034999999999999996,
+        0.01,
+        0.0034999999999999996,
+        0.001225
+      ],
+      [
+        0.000018382656249999995,
+        0.00005252187499999998,
+        0.00015006249999999997,
+        0.0004287499999999999,
+        0.001225,
+        0.0034999999999999996,
+        0.01,
+        0.0034999999999999996
+      ],
+      [
+        0.000006433929687499997,
+        0.000018382656249999995,
+        0.00005252187499999998,
+        0.00015006249999999997,
+        0.0004287499999999999,
+        0.001225,
+        0.0034999999999999996,
+        0.01
+      ]
+    ],
+    "limits": {
+      "maximum_injected_mass_kg": 2,
+      "maximum_inlet_mass_flux": 0.8,
+      "maximum_inlet_slew_kg_s2": 0.6,
+      "maximum_duration_seconds": 20,
+      "maximum_condition_number": 100,
+      "minimum_singular_value": 0.5,
+      "minimum_model_separation": 1
+    }
+  },
+  "actuators": {
+    "calibration_state": "calibrated",
+    "response": [
+      [
+        0.5,
+        0.5
+      ],
+      [
+        0.5,
+        0.5
+      ]
+    ]
+  },
+  "sensors": {
+    "calibration_state": "calibrated",
+    "minimum_resolvable_delay_seconds": 2,
+    "response": [
+      [
+        0.5,
+        0.5
+      ]
+    ]
+  },
+  "physics": {
+    "kernel_at_reference": [
+      [
+        [
+          0.4,
+          0.1,
+          0
+        ],
+        [
+          0.3,
+          0.1,
+          0
+        ]
+      ]
+    ],
+    "parameter_kernel_directions": [
+      [
+        [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      ]
+    ],
+    "competing_models": [
+      {
+        "model_id": "equal_gain_fast",
+        "kernel": [
+          [
+            [
+              0.5,
+              0,
+              0
+            ],
+            [
+              0.5,
+              0,
+              0
+            ]
+          ]
+        ]
+      },
+      {
+        "model_id": "equal_gain_delayed",
+        "kernel": [
+          [
+            [
+              0,
+              0,
+              0.5
+            ],
+            [
+              0,
+              0,
+              0.5
+            ]
+          ]
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "AE-T0-CORPUS-001",
+      "candidates": [
+        {
+          "design_id": "AE-T0-001-orthogonal-pulses",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.8,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-002-synchronous-pulses",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0.8,
+              0,
+              0,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-003-above-sensor-bandwidth",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.8,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 1,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-004-partial-outlet-boundary",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.8,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": false,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-005-uncalibrated-injector",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "uncalibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.8,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-006-over-limit-dose-and-rate",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              2,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              2,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-007-low-dose-low-information",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.05,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.05,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-008-command-only",
+          "waveform_provenance": "command_only",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.8,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": true,
+          "include_full_tail": true
+        },
+        {
+          "design_id": "AE-T0-009-truncated-temporal-window",
+          "waveform_provenance": "command_plus_calibrated_actuator_model",
+          "actuator_calibration_state": "calibrated",
+          "commanded_inlet_mass_flux": [
+            [
+              0.8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.8,
+              0
+            ]
+          ],
+          "minimum_feature_period_seconds": 4,
+          "all_inlets_observed": true,
+          "all_outlets_observed": true,
+          "temporal_boundary_complete": false,
+          "include_full_tail": false
+        }
+      ]
+    }
+  ]
+}

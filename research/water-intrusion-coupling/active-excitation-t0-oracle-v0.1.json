@@ -1,0 +1,302 @@
+{
+  "schema_version": "active-excitation-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-ACTIVE-EXPERIMENT-DESIGN-001",
+  "physical_operator_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "AE-T0-CORPUS-001",
+      "candidates": [
+        {
+          "candidate_state": "ELIGIBLE_DESIGN_CANDIDATE",
+          "reason": null,
+          "actual_inlet_mass_flux": [
+            [
+              0.4,
+              0.4,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.4,
+              0.4,
+              0
+            ]
+          ],
+          "injected_mass_kg": 1.6,
+          "maximum_inlet_mass_flux": 0.4,
+          "maximum_inlet_slew_kg_s2": 0.4,
+          "duration_seconds": 8,
+          "target_information": {
+            "singular_values": [
+              4.350802002669231,
+              2.5971048634072424
+            ],
+            "rank": 2,
+            "condition_number": 1.6752508009866207,
+            "log_determinant": 4.849515014144855,
+            "minimum_singular_value": 2.5971048634072424
+          },
+          "design_rank": 2,
+          "condition_number": 1.6752508009866207,
+          "minimum_singular_value": 2.5971048634072424,
+          "log_determinant": 4.849515014144855,
+          "pairwise_model_separations": [
+            {
+              "model_a": "equal_gain_fast",
+              "model_b": "equal_gain_delayed",
+              "mahalanobis_separation": 2.9713733910533406
+            }
+          ],
+          "minimum_model_separation": 2.9713733910533406,
+          "pareto_optimal": true,
+          "selected": true,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-001-orthogonal-pulses"
+        },
+        {
+          "candidate_state": "UNIDENTIFIABLE_DESIGN",
+          "reason": null,
+          "actual_inlet_mass_flux": [
+            [
+              0.4,
+              0.4,
+              0,
+              0,
+              0
+            ],
+            [
+              0.4,
+              0.4,
+              0,
+              0,
+              0
+            ]
+          ],
+          "injected_mass_kg": 1.6,
+          "maximum_inlet_mass_flux": 0.4,
+          "maximum_inlet_slew_kg_s2": 0.4,
+          "duration_seconds": 8,
+          "target_information": {
+            "singular_values": [
+              5.011589286799107,
+              0
+            ],
+            "rank": 1,
+            "condition_number": null,
+            "log_determinant": null,
+            "minimum_singular_value": 0
+          },
+          "design_rank": 1,
+          "condition_number": null,
+          "minimum_singular_value": 0,
+          "log_determinant": null,
+          "pairwise_model_separations": [
+            {
+              "model_a": "equal_gain_fast",
+              "model_b": "equal_gain_delayed",
+              "mahalanobis_separation": 6.15192277634837
+            }
+          ],
+          "minimum_model_separation": 6.15192277634837,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-002-synchronous-pulses"
+        },
+        {
+          "candidate_state": "SENSOR_BANDWIDTH_INADEQUATE",
+          "reason": "EXCITATION_FEATURE_FASTER_THAN_CALIBRATED_SENSOR_RESOLUTION",
+          "actual_inlet_mass_flux": null,
+          "injected_mass_kg": null,
+          "maximum_inlet_mass_flux": null,
+          "maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "target_information": null,
+          "design_rank": null,
+          "condition_number": null,
+          "minimum_singular_value": null,
+          "log_determinant": null,
+          "pairwise_model_separations": null,
+          "minimum_model_separation": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-003-above-sensor-bandwidth"
+        },
+        {
+          "candidate_state": "PARTIAL_OUTLET_BOUNDARY",
+          "reason": "ONE_OR_MORE_OUTLET_CHANNELS_NOT_OBSERVED",
+          "actual_inlet_mass_flux": null,
+          "injected_mass_kg": null,
+          "maximum_inlet_mass_flux": null,
+          "maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "target_information": null,
+          "design_rank": null,
+          "condition_number": null,
+          "minimum_singular_value": null,
+          "log_determinant": null,
+          "pairwise_model_separations": null,
+          "minimum_model_separation": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-004-partial-outlet-boundary"
+        },
+        {
+          "candidate_state": "INJECTOR_RESPONSE_UNRESOLVED",
+          "reason": "ACTUATOR_RESPONSE_NOT_CALIBRATED",
+          "actual_inlet_mass_flux": null,
+          "injected_mass_kg": null,
+          "maximum_inlet_mass_flux": null,
+          "maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "target_information": null,
+          "design_rank": null,
+          "condition_number": null,
+          "minimum_singular_value": null,
+          "log_determinant": null,
+          "pairwise_model_separations": null,
+          "minimum_model_separation": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-005-uncalibrated-injector"
+        },
+        {
+          "candidate_state": "OPERATIONAL_CONSTRAINT_VIOLATION",
+          "reason": "INJECTION_DOSE_LIMIT_EXCEEDED",
+          "actual_inlet_mass_flux": null,
+          "injected_mass_kg": null,
+          "maximum_inlet_mass_flux": null,
+          "maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "target_information": null,
+          "design_rank": null,
+          "condition_number": null,
+          "minimum_singular_value": null,
+          "log_determinant": null,
+          "pairwise_model_separations": null,
+          "minimum_model_separation": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-006-over-limit-dose-and-rate"
+        },
+        {
+          "candidate_state": "INSUFFICIENT_INFORMATION",
+          "reason": null,
+          "actual_inlet_mass_flux": [
+            [
+              0.025,
+              0.025,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0.025,
+              0.025,
+              0
+            ]
+          ],
+          "injected_mass_kg": 0.1,
+          "maximum_inlet_mass_flux": 0.025,
+          "maximum_inlet_slew_kg_s2": 0.025,
+          "duration_seconds": 8,
+          "target_information": {
+            "singular_values": [
+              0.27192512516682693,
+              0.16231905396295265
+            ],
+            "rank": 2,
+            "condition_number": 1.6752508009866207,
+            "log_determinant": -6.240839874814269,
+            "minimum_singular_value": 0.16231905396295265
+          },
+          "design_rank": 2,
+          "condition_number": 1.6752508009866207,
+          "minimum_singular_value": 0.16231905396295265,
+          "log_determinant": -6.240839874814269,
+          "pairwise_model_separations": [
+            {
+              "model_a": "equal_gain_fast",
+              "model_b": "equal_gain_delayed",
+              "mahalanobis_separation": 0.1857108369408338
+            }
+          ],
+          "minimum_model_separation": 0.1857108369408338,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-007-low-dose-low-information"
+        },
+        {
+          "candidate_state": "INJECTOR_RESPONSE_UNRESOLVED",
+          "reason": "COMMAND_ONLY_OR_UNSUPPORTED_WAVEFORM_PROVENANCE",
+          "actual_inlet_mass_flux": null,
+          "injected_mass_kg": null,
+          "maximum_inlet_mass_flux": null,
+          "maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "target_information": null,
+          "design_rank": null,
+          "condition_number": null,
+          "minimum_singular_value": null,
+          "log_determinant": null,
+          "pairwise_model_separations": null,
+          "minimum_model_separation": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-008-command-only"
+        },
+        {
+          "candidate_state": "PARTIAL_TEMPORAL_WINDOW",
+          "reason": "COMPLETE_SENSOR_AND_PHYSICAL_TAIL_NOT_INCLUDED",
+          "actual_inlet_mass_flux": null,
+          "injected_mass_kg": null,
+          "maximum_inlet_mass_flux": null,
+          "maximum_inlet_slew_kg_s2": null,
+          "duration_seconds": null,
+          "target_information": null,
+          "design_rank": null,
+          "condition_number": null,
+          "minimum_singular_value": null,
+          "log_determinant": null,
+          "pairwise_model_separations": null,
+          "minimum_model_separation": null,
+          "pareto_optimal": false,
+          "selected": false,
+          "physical_operator_qualified": false,
+          "potability_claim_permitted": false,
+          "release_authorized": false,
+          "design_id": "AE-T0-009-truncated-temporal-window"
+        }
+      ]
+    }
+  ]
+}
