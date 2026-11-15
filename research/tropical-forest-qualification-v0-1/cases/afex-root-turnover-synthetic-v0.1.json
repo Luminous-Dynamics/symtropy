@@ -152,7 +152,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2017-08",
           "end": "2018-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "candidate": {
         "plot_id": "SYN-P01",
@@ -166,7 +170,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2017-08",
           "end": "2018-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "expected_disposition": "PROCESS_AND_STOCK_MATCH"
     },
@@ -190,7 +198,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2017-08",
           "end": "2018-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "candidate": {
         "plot_id": "SYN-P02",
@@ -204,7 +216,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2017-08",
           "end": "2018-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "expected_disposition": "STOCK_MATCH_WITH_PROCESS_MISMATCH"
     },
@@ -228,7 +244,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2018-09",
           "end": "2019-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "candidate": {
         "plot_id": "SYN-P03",
@@ -242,7 +262,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2018-09",
           "end": "2019-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "expected_disposition": "STATE_MISMATCH"
     },
@@ -266,7 +290,11 @@
           "unit": "Mg C ha-1 yr-1",
           "start": "2018-09",
           "end": "2019-09"
-        }
+        },
+        "depth_cm": [
+          0,
+          30
+        ]
       },
       "candidate": {
         "plot_id": "SYN-P04",
