@@ -284,16 +284,35 @@ def validate_candidate(
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, type=Path)
-    parser.add_argument("--candidate", required=True, type=Path)
-    parser.add_argument("--oracle-output", required=True, type=Path)
-    parser.add_argument("--validation-output", required=True, type=Path)
-    parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--check-fixture", action="store_true")
+    parser.add_argument("--candidate", type=Path)
+    parser.add_argument("--oracle-output", type=Path)
+    parser.add_argument("--validation-output", type=Path)
+    parser.add_argument("--source-commit")
     parser.add_argument("--relative-tolerance", type=float, default=5.0e-10)
     args = parser.parse_args()
 
     input_document = json.loads(args.input.read_text(encoding="utf-8"))
-    candidate_document = json.loads(args.candidate.read_text(encoding="utf-8"))
     oracle = build_oracle(input_document)
+    if args.check_fixture:
+        print(json.dumps({
+            "fixture_count": len(oracle["fixtures"]),
+            "result": "PASS",
+            "root_isolation_epsilon": oracle["root_isolation_epsilon"],
+        }, sort_keys=True))
+        return 0
+
+    required = {
+        "--candidate": args.candidate,
+        "--oracle-output": args.oracle_output,
+        "--validation-output": args.validation_output,
+        "--source-commit": args.source_commit,
+    }
+    missing = [name for name, value in required.items() if value is None]
+    if missing:
+        parser.error("missing required arguments for candidate validation: " + ", ".join(missing))
+
+    candidate_document = json.loads(args.candidate.read_text(encoding="utf-8"))
     validation = validate_candidate(
         oracle,
         candidate_document,
