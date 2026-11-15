@@ -82,6 +82,7 @@ impl CaptureWindow {
     fn is_valid(self) -> bool {
         self.start.is_valid()
             && self.end.is_valid()
+            && self.start.lower_ns <= self.end.lower_ns
             && self.start.upper_ns <= self.end.upper_ns
     }
 }
