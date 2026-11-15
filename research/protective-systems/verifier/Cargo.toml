@@ -19,3 +19,7 @@ path = "src/bin/voi.rs"
 [[bin]]
 name = "protective-robust"
 path = "src/bin/robust.rs"
+
+[[bin]]
+name = "protective-threat-portfolio"
+path = "src/bin/threat_portfolio.rs"
