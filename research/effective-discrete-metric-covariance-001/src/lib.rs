@@ -434,8 +434,7 @@ fn build_energy_ledger(
         + mass_increment_dissipation.abs()
         + stiffness_increment_dissipation.abs()
         + external_work.abs();
-    let relative_balance_residual =
-        balance_residual.abs() / balance_scale.max(f64::MIN_POSITIVE);
+    let relative_balance_residual = balance_residual.abs() / balance_scale.max(f64::MIN_POSITIVE);
 
     let values = [
         kinetic_energy_before,
@@ -905,8 +904,14 @@ mod tests {
         assert!(ledger.relative_balance_residual < 2.0e-13);
         assert!(ledger.balance_residual.abs() < 2.0e-13);
         assert_eq!(ledger.external_work, result.discrete_work);
-        assert_eq!(ledger.potential_energy_before, result.quadratic_potential_before);
-        assert_eq!(ledger.potential_energy_after, result.quadratic_potential_after);
+        assert_eq!(
+            ledger.potential_energy_before,
+            result.quadratic_potential_before
+        );
+        assert_eq!(
+            ledger.potential_energy_after,
+            result.quadratic_potential_after
+        );
         assert!(ledger.damping_dissipation >= 0.0);
         assert!(ledger.mass_increment_dissipation >= 0.0);
         assert!(ledger.stiffness_increment_dissipation >= 0.0);
@@ -933,8 +938,12 @@ mod tests {
         let physical = fixture(0.35);
         let frame = IntegerFrame2V1::upper_shear(6);
         let rebased_problem = rebase_problem(&physical, &frame, profile).unwrap();
-        let canonical = solve_discrete_step(&physical, profile).unwrap().energy_ledger;
-        let rebased = solve_discrete_step(&rebased_problem, profile).unwrap().energy_ledger;
+        let canonical = solve_discrete_step(&physical, profile)
+            .unwrap()
+            .energy_ledger;
+        let rebased = solve_discrete_step(&rebased_problem, profile)
+            .unwrap()
+            .energy_ledger;
 
         let canonical_values = [
             canonical.kinetic_energy_before,
