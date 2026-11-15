@@ -260,6 +260,12 @@ pub enum RejectionReason {
     InsufficientIndependentHypothesisGroups,
     /// Candidate utility estimate is malformed or non-finite.
     InvalidUtilityVector,
+    /// A positive gate is missing its owner evidence receipt.
+    MissingEvidenceReceipt,
+    /// Scope/design/manifest identity is malformed or mismatched.
+    InvalidEvidenceBinding,
+    /// Estimator build or confidence method differs from the frozen policy.
+    ConfidenceContractMismatch,
     /// A required owner evidence receipt is missing or malformed.
     MissingEvidenceReceipt,
     /// Candidate evidence/scope digest is malformed.
@@ -350,6 +356,20 @@ fn bounded_unit_interval(value: f64) -> bool {
 
 fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
     if policy.decision_question_id.trim().is_empty()
+        || !is_sha256(&policy.campaign_sha256)
+        || !is_sha256(&policy.model_scope_sha256)
+        || !is_sha256(&policy.intended_use_profile_sha256)
+        || !is_sha256(&policy.required_estimator_build_sha256)
+        || !is_sha256(&policy.required_estimate_method_sha256)
+        || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
+        || policy.minimum_estimate_confidence_level == 0.0
+        || policy.minimum_estimate_confidence_level == 1.0
+        || policy.resource_budget.setup_minutes == 0
+        || policy.resource_budget.facility_minutes == 0
+        || policy.resource_budget.cpu_seconds == 0
+        || policy.resource_budget.accelerator_seconds == 0
+        || policy.resource_budget.energy_joules == 0
+        || policy.resource_budget.adjudication_person_minutes == 0
         || !is_sha256(&policy.policy_sha256)
         || policy.maximum_cost_units == 0
         || !bounded_unit_interval(policy.minimum_decision_relevance)
@@ -377,25 +397,53 @@ fn candidate_rejection_reasons(
 ) -> Vec<RejectionReason> {
     let mut reasons = BTreeSet::new();
 
-    if candidate.candidate_id.trim().is_empty()
+    if candidate.campaign_sha256 != policy.campaign_sha256
+        || candidate.model_scope_sha256 != policy.model_scope_sha256
+        || candidate.intended_use_profile_sha256 != policy.intended_use_profile_sha256
         || candidate.decision_question_id != policy.decision_question_id
         || candidate.objective != policy.objective
     {
         reasons.insert(RejectionReason::QuestionOrObjectiveMismatch);
     }
-    if candidate.requires_external_authorization
+    if (candidate.requires_external_authorization
+        || candidate.modality == ExperimentModality::ControlledFlight)
         && candidate.authorization != AuthorizationState::Authorized
     {
         reasons.insert(RejectionReason::AuthorizationNotGranted);
     }
+    if candidate.safety_constraints_clear
+        && candidate.safety_gate_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
     if !candidate.safety_constraints_clear {
         reasons.insert(RejectionReason::SafetyConstraintNotClear);
+    }
+    if candidate.within_declared_envelope
+        && candidate.envelope_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     if !candidate.within_declared_envelope {
         reasons.insert(RejectionReason::OutsideDeclaredEnvelope);
     }
+    if candidate.independent_reference_available
+        && candidate.independent_reference_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
     if !candidate.independent_reference_available {
         reasons.insert(RejectionReason::MissingIndependentReference);
+    }
+    if candidate.semantic_equivalence == SemanticEquivalence::Established
+        && candidate.semantic_equivalence_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
+    if candidate.authorization == AuthorizationState::Authorized
+        && candidate.authorization_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     if candidate.modality == ExperimentModality::CrossImplementation
         && candidate.semantic_equivalence != SemanticEquivalence::Established
@@ -422,8 +470,30 @@ fn candidate_rejection_reasons(
         || !bounded_unit_interval(candidate.decision_relevance)
         || !bounded_unit_interval(candidate.probability_uninformative)
         || candidate.cost_units == 0
+        || !bounded_unit_interval(candidate.estimate_confidence_level)
+        || candidate.estimate_confidence_level == 0.0
+        || candidate.estimate_confidence_level == 1.0
+        || !is_sha256(&candidate.estimate_method_sha256)
+        || !is_sha256(&candidate.estimator_build_sha256)
+        || !is_sha256(&candidate.campaign_sha256)
+        || !is_sha256(&candidate.model_scope_sha256)
+        || !is_sha256(&candidate.intended_use_profile_sha256)
+        || !is_sha256(&candidate.design_sha256)
+        || !is_sha256(&candidate.scenario_manifest_sha256)
+        || !is_sha256(&candidate.measurement_plan_sha256)
+        || candidate.authorization_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.safety_gate_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.envelope_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.independent_reference_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.semantic_equivalence_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::InvalidUtilityVector);
+    }
+    if candidate.estimator_build_sha256 != policy.required_estimator_build_sha256
+        || candidate.estimate_method_sha256 != policy.required_estimate_method_sha256
+        || candidate.estimate_confidence_level < policy.minimum_estimate_confidence_level
+    {
+        reasons.insert(RejectionReason::ConfidenceContractMismatch);
     }
     if candidate.decision_relevance < policy.minimum_decision_relevance {
         reasons.insert(RejectionReason::InsufficientDecisionRelevance);
@@ -436,7 +506,9 @@ fn candidate_rejection_reasons(
     {
         reasons.insert(RejectionReason::InsufficientModelDiscrimination);
     }
-    if candidate.cost_units > policy.maximum_cost_units {
+    if candidate.cost_units > policy.maximum_cost_units
+        || !candidate.resource_cost.within(policy.resource_budget)
+    {
         reasons.insert(RejectionReason::OverBudget);
     }
     if candidate.probability_uninformative > policy.maximum_probability_uninformative {
@@ -459,14 +531,26 @@ fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
         && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
         && left.decision_relevance >= right.decision_relevance
         && left.probability_uninformative <= right.probability_uninformative
-        && left.cost_units <= right.cost_units;
+        && left.cost_units <= right.cost_units
+        && left.resource_cost.setup_minutes <= right.resource_cost.setup_minutes
+        && left.resource_cost.facility_minutes <= right.resource_cost.facility_minutes
+        && left.resource_cost.cpu_seconds <= right.resource_cost.cpu_seconds
+        && left.resource_cost.accelerator_seconds <= right.resource_cost.accelerator_seconds
+        && left.resource_cost.energy_joules <= right.resource_cost.energy_joules
+        && left.resource_cost.adjudication_person_minutes <= right.resource_cost.adjudication_person_minutes;
 
     let strictly_better = left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
         || left.expected_model_discrimination > right.expected_model_discrimination
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
         || left.decision_relevance > right.decision_relevance
         || left.probability_uninformative < right.probability_uninformative
-        || left.cost_units < right.cost_units;
+        || left.cost_units < right.cost_units
+        || left.resource_cost.setup_minutes < right.resource_cost.setup_minutes
+        || left.resource_cost.facility_minutes < right.resource_cost.facility_minutes
+        || left.resource_cost.cpu_seconds < right.resource_cost.cpu_seconds
+        || left.resource_cost.accelerator_seconds < right.resource_cost.accelerator_seconds
+        || left.resource_cost.energy_joules < right.resource_cost.energy_joules
+        || left.resource_cost.adjudication_person_minutes < right.resource_cost.adjudication_person_minutes;
 
     no_worse && strictly_better
 }
@@ -480,6 +564,7 @@ fn to_pareto(candidate: &ExperimentCandidate) -> ParetoCandidate {
         decision_relevance: candidate.decision_relevance,
         probability_uninformative: candidate.probability_uninformative,
         cost_units: candidate.cost_units,
+        resource_cost: candidate.resource_cost,
     }
 }
 
