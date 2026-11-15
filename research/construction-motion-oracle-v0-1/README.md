@@ -38,7 +38,7 @@ The frozen inputs/results can be adapted to:
 - Tesseract CONTINUOUS and LVS_CONTINUOUS evaluators;
 - additional independently versioned checkers.
 
-The MoveIt continuous robot-world call and self-collision checks are distinct scopes. Tesseract evaluator interpolation/cast rules must be recorded. No adapter result is accepted as analytical truth, and a missing backend is NOT_RUN, never PASS.
+The MoveIt continuous robot-world API and self-collision checks are distinct scopes; backend support must also be verified. The currently inspected MoveIt FCL continuous overload is a stub, while the Bullet tutorial documents CCD. Tesseract evaluator interpolation/cast rules must be recorded. No adapter result is accepted as analytical truth, and a missing backend is NOT_RUN, never PASS.
 
 See docs/differential-adapter-contract.md.
 

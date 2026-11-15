@@ -39,12 +39,19 @@ At minimum capture:
 - ROS distribution and exact MoveIt commit/version;
 - FCL or Bullet detector identity;
 - continuous robot-world query mode and both endpoint RobotState digests;
+- exact runtime capability probe and raw backend result proving the selected overload actually executed.
+
+**Backend-specific caution:** the abstract `CollisionEnv` API documents continuous robot-world checking between two RobotState values, while the currently inspected MoveIt `CollisionEnvFCL` implementation logs `Continuous collision not implemented` / `Not implemented` for those overloads. The MoveIt Bullet collision-checker tutorial separately documents Bullet's continuous collision capabilities. Therefore:
+- treat MoveIt FCL continuous robot-world as `NOT_RUN` / unsupported for the inspected implementation unless a later exact commit proves otherwise;
+- do not infer FCL CCD from the abstract API;
+- test the actual Bullet CCD path separately, pinning exact MoveIt/Bullet commits and interpolation semantics;
+- a call that logs an error, returns an untouched result, or cannot prove execution is `UNRESOLVED`, never a clear result.
 - AllowedCollisionMatrix digest;
 - robot-world versus self-collision scope;
 - padding/scaling and transform state;
 - model, tool, payload and obstacle digests.
 
-MoveIt's continuous robot-world checking API documents checking between two robot states, ignoring allowed collisions and not performing self-collision checking in that call. Self-collision requires a separately declared query. Do not report one as the other.
+MoveIt's abstract continuous robot-world checking API describes a query between two robot states, with allowed collisions ignored and self-collision excluded from that call. Backend implementation is decisive: the currently inspected FCL implementation leaves the continuous overload unimplemented, while the MoveIt Bullet tutorial documents CCD support. Pin the actual backend commit and prove the selected path executed. Self-collision requires a separately declared query. Do not report one as the other.
 
 ## Tesseract adapter
 
