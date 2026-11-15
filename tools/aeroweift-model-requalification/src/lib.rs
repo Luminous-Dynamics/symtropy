@@ -285,9 +285,7 @@ fn validate_events(events: &[ChangeEvent]) -> Result<(), EvaluationError> {
     Ok(())
 }
 
-fn validate_coverage(
-    coverage: &[ChangeFeedCoverage],
-) -> Result<(), EvaluationError> {
+fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationError> {
     let mut keys = BTreeSet::new();
     for item in coverage {
         if item.source_id.trim().is_empty()
