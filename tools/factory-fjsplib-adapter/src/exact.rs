@@ -1,0 +1,478 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+//! Exhaustive exact makespan oracle for tiny FJSPLib flexible instances.
+//!
+//! Enumerates every eligible-machine assignment and every per-machine operation
+//! order, rejects cyclic precedence combinations, and computes earliest starts
+//! by longest-path propagation. It reports EXACT only when the complete search
+//! finishes within the public bounds below.
+
+use super::FlexibleInstance;
+use std::collections::{BTreeSet, VecDeque};
+
+pub const MAX_EXACT_OPERATIONS: usize = 9;
+pub const MAX_ASSIGNMENT_COMBINATIONS: u64 = 100_000;
+pub const MAX_MACHINE_ORDER_COMBINATIONS: u64 = 500_000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExactStatus {
+    Exact,
+    Inconclusive,
+    NoFeasibleSchedule,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InconclusiveReason {
+    TooManyOperations,
+    AssignmentSearchBoundExceeded,
+    MachineOrderSearchBoundExceeded,
+    ArithmeticOverflow,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ScheduledOperation {
+    pub operation_id: usize,
+    pub machine_id: usize,
+    pub processing_ticks: u64,
+    pub sequence_index: usize,
+    pub start_ticks: u64,
+    pub end_ticks: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MachineOrder {
+    pub machine_id: usize,
+    pub operation_ids: Vec<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct FlexibleSchedule {
+    // Field order defines the deterministic tie-break order.
+    pub makespan: u64,
+    pub selected_machines: Vec<usize>,
+    pub machine_orders: Vec<MachineOrder>,
+    pub operations: Vec<ScheduledOperation>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SearchStats {
+    pub assignment_combinations: u64,
+    pub machine_order_combinations: u64,
+    pub cyclic_combinations: u64,
+    pub feasible_combinations: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExactResult {
+    pub status: ExactStatus,
+    pub optimality_proven: bool,
+    pub inconclusive_reason: Option<InconclusiveReason>,
+    pub schedule: Option<FlexibleSchedule>,
+    pub stats: SearchStats,
+}
+
+fn factorial(value: usize) -> Option<u64> {
+    (2..=value).try_fold(1u64, |acc, factor| acc.checked_mul(factor as u64))
+}
+
+fn assignment_count(instance: &FlexibleInstance) -> Option<u64> {
+    instance.operations.iter().try_fold(1u64, |count, operation| {
+        count.checked_mul(operation.alternatives.len() as u64)
+    })
+}
+
+fn order_count_for_assignment(
+    instance: &FlexibleInstance,
+    selected_machines: &[usize],
+) -> Option<u64> {
+    let mut per_machine = vec![0usize; instance.machine_count];
+    for machine_id in selected_machines {
+        let count = per_machine.get_mut(*machine_id)?;
+        *count += 1;
+    }
+    per_machine.into_iter().try_fold(1u64, |product, count| {
+        product.checked_mul(factorial(count)?)
+    })
+}
+
+fn preflight_order_count(instance: &FlexibleInstance, index: usize,
+    selected_machines: &mut Vec<usize>, total: &mut u64) -> bool {
+    if index == instance.operations.len() {
+        let Some(count) = order_count_for_assignment(instance, selected_machines) else {
+            return false;
+        };
+        let Some(next) = total.checked_add(count) else {
+            return false;
+        };
+        *total = next;
+        return *total <= MAX_MACHINE_ORDER_COMBINATIONS;
+    }
+
+    for alternative in &instance.operations[index].alternatives {
+        selected_machines.push(alternative.machine_id);
+        let within_bound = preflight_order_count(instance, index + 1, selected_machines, total);
+        selected_machines.pop();
+        if !within_bound {
+            return false;
+        }
+    }
+    true
+}
+
+fn permutations(values: &[usize]) -> Vec<Vec<usize>> {
+    fn visit(values: &[usize], used: &mut [bool], current: &mut Vec<usize>,
+        output: &mut Vec<Vec<usize>>) {
+        if current.len() == values.len() {
+            output.push(current.clone());
+            return;
+        }
+        for index in 0..values.len() {
+            if !used[index] {
+                used[index] = true;
+                current.push(values[index]);
+                visit(values, used, current, output);
+                current.pop();
+                used[index] = false;
+            }
+        }
+    }
+
+    let mut output = Vec::new();
+    visit(values, &mut vec![false; values.len()],
+        &mut Vec::with_capacity(values.len()), &mut output);
+    output
+}
+
+fn evaluate_machine_orders(
+    instance: &FlexibleInstance,
+    selected_machines: &[usize],
+    machine_orders: &[Vec<usize>],
+) -> Option<FlexibleSchedule> {
+    let operation_count = instance.operations.len();
+    let durations: Vec<u64> = instance.operations.iter().enumerate().map(|(index, operation)| {
+        let machine_id = selected_machines[index];
+        operation.alternatives.iter()
+            .find(|alternative| alternative.machine_id == machine_id)
+            .map(|alternative| alternative.processing_ticks)
+    }).collect::<Option<Vec<_>>>()?;
+
+    let mut outgoing = vec![Vec::<(usize, u64)>::new(); operation_count];
+    let mut indegree = vec![0usize; operation_count];
+    let mut edges = BTreeSet::new();
+
+    // Job / assembly precedence edges.
+    for edge in &instance.precedences {
+        if edges.insert((edge.before, edge.after)) {
+            outgoing[edge.before].push((edge.after, durations[edge.before]));
+            indegree[edge.after] += 1;
+        }
+    }
+
+    // Unary machine-capacity edges. Each order is a disjunctive choice.
+    for order in machine_orders {
+        for pair in order.windows(2) {
+            let from = pair[0];
+            let to = pair[1];
+            if edges.insert((from, to)) {
+                outgoing[from].push((to, durations[from]));
+                indegree[to] += 1;
+            }
+        }
+    }
+
+    let mut ready = VecDeque::new();
+    for (operation, degree) in indegree.iter().enumerate() {
+        if *degree == 0 {
+            ready.push_back(operation);
+        }
+    }
+
+    let mut earliest = vec![0u64; operation_count];
+    let mut visited = 0usize;
+    while let Some(from) = ready.pop_front() {
+        visited += 1;
+        for (to, weight) in &outgoing[from] {
+            earliest[*to] = earliest[*to].max(earliest[from].checked_add(*weight)?);
+            indegree[*to] -= 1;
+            if indegree[*to] == 0 {
+                ready.push_back(*to);
+            }
+        }
+    }
+    if visited != operation_count {
+        return None;
+    }
+
+    let mut scheduled = Vec::with_capacity(operation_count);
+    let mut makespan = 0u64;
+    for (operation_id, operation) in instance.operations.iter().enumerate() {
+        let start_ticks = earliest[operation_id];
+        let end_ticks = start_ticks.checked_add(durations[operation_id])?;
+        makespan = makespan.max(end_ticks);
+        let machine_id = selected_machines[operation_id];
+        let sequence_index = machine_orders[machine_id]
+            .iter().position(|candidate| *candidate == operation_id)?;
+        scheduled.push(ScheduledOperation {
+            operation_id,
+            machine_id,
+            processing_ticks: durations[operation_id],
+            sequence_index,
+            start_ticks,
+            end_ticks,
+        });
+    }
+
+    let public_orders = machine_orders.iter().enumerate().map(|(machine_id, order)| MachineOrder {
+        machine_id,
+        operation_ids: order.clone(),
+    }).collect();
+
+    Some(FlexibleSchedule {
+        makespan,
+        selected_machines: selected_machines.to_vec(),
+        machine_orders: public_orders,
+        operations: scheduled,
+    })
+}
+
+fn enumerate_machine_orders(
+    instance: &FlexibleInstance,
+    selected_machines: &[usize],
+    machine_permutations: &[Vec<Vec<usize>>],
+    machine_index: usize,
+    current: &mut Vec<Vec<usize>>,
+    stats: &mut SearchStats,
+    best: &mut Option<FlexibleSchedule>,
+) -> bool {
+    if machine_index == machine_permutations.len() {
+        stats.machine_order_combinations += 1;
+        let Some(schedule) = evaluate_machine_orders(instance, selected_machines, current) else {
+            stats.cyclic_combinations += 1;
+            return true;
+        };
+        stats.feasible_combinations += 1;
+        if best.as_ref().is_none_or(|incumbent| schedule < *incumbent) {
+            *best = Some(schedule);
+        }
+        return true;
+    }
+
+    for order in &machine_permutations[machine_index] {
+        current.push(order.clone());
+        let complete = enumerate_machine_orders(
+            instance, selected_machines, machine_permutations,
+            machine_index + 1, current, stats, best,
+        );
+        current.pop();
+        if !complete {
+            return false;
+        }
+    }
+    true
+}
+
+fn enumerate_assignments(
+    instance: &FlexibleInstance,
+    operation_index: usize,
+    selected_machines: &mut Vec<usize>,
+    stats: &mut SearchStats,
+    best: &mut Option<FlexibleSchedule>,
+) -> bool {
+    if operation_index == instance.operations.len() {
+        stats.assignment_combinations += 1;
+        let Some(order_count) = order_count_for_assignment(instance, selected_machines) else {
+            return false;
+        };
+        if stats.machine_order_combinations.checked_add(order_count)
+            .is_none_or(|total| total > MAX_MACHINE_ORDER_COMBINATIONS) {
+            return false;
+        }
+
+        let mut machine_operations = vec![Vec::<usize>::new(); instance.machine_count];
+        for (operation_id, machine_id) in selected_machines.iter().enumerate() {
+            machine_operations[*machine_id].push(operation_id);
+        }
+        let machine_permutations: Vec<Vec<Vec<usize>>> = machine_operations.iter()
+            .map(|operations| permutations(operations))
+            .collect();
+
+        return enumerate_machine_orders(
+            instance,
+            selected_machines,
+            &machine_permutations,
+            0,
+            &mut Vec::with_capacity(instance.machine_count),
+            stats,
+            best,
+        );
+    }
+
+    for alternative in &instance.operations[operation_index].alternatives {
+        selected_machines.push(alternative.machine_id);
+        let complete = enumerate_assignments(
+            instance,
+            operation_index + 1,
+            selected_machines,
+            stats,
+            best,
+        );
+        selected_machines.pop();
+        if !complete {
+            return false;
+        }
+    }
+    true
+}
+
+/// Solve a tiny FJSP/FAJSP makespan instance by exhaustive machine-assignment
+/// and machine-order enumeration. A search exceeding its declared envelope is
+/// INCONCLUSIVE, never silently truncated and never reported as optimal.
+pub fn solve_exact(instance: &FlexibleInstance) -> ExactResult {
+    if instance.operations.len() > MAX_EXACT_OPERATIONS {
+        return ExactResult {
+            status: ExactStatus::Inconclusive,
+            optimality_proven: false,
+            inconclusive_reason: Some(InconclusiveReason::TooManyOperations),
+            schedule: None,
+            stats: SearchStats::default(),
+        };
+    }
+
+    let Some(assignments) = assignment_count(instance) else {
+        return ExactResult {
+            status: ExactStatus::Inconclusive,
+            optimality_proven: false,
+            inconclusive_reason: Some(InconclusiveReason::AssignmentSearchBoundExceeded),
+            schedule: None,
+            stats: SearchStats::default(),
+        };
+    };
+    if assignments > MAX_ASSIGNMENT_COMBINATIONS {
+        return ExactResult {
+            status: ExactStatus::Inconclusive,
+            optimality_proven: false,
+            inconclusive_reason: Some(InconclusiveReason::AssignmentSearchBoundExceeded),
+            schedule: None,
+            stats: SearchStats::default(),
+        };
+    }
+
+    let mut total_order_combinations = 0u64;
+    if !preflight_order_count(instance, 0, &mut Vec::with_capacity(instance.operations.len()),
+        &mut total_order_combinations) {
+        return ExactResult {
+            status: ExactStatus::Inconclusive,
+            optimality_proven: false,
+            inconclusive_reason: Some(InconclusiveReason::MachineOrderSearchBoundExceeded),
+            schedule: None,
+            stats: SearchStats::default(),
+        };
+    }
+
+    let mut stats = SearchStats::default();
+    let mut best = None;
+    let completed = enumerate_assignments(
+        instance,
+        0,
+        &mut Vec::with_capacity(instance.operations.len()),
+        &mut stats,
+        &mut best,
+    );
+    if !completed {
+        return ExactResult {
+            status: ExactStatus::Inconclusive,
+            optimality_proven: false,
+            inconclusive_reason: Some(InconclusiveReason::ArithmeticOverflow),
+            schedule: None,
+            stats,
+        };
+    }
+
+    match best {
+        Some(schedule) => ExactResult {
+            status: ExactStatus::Exact,
+            optimality_proven: true,
+            inconclusive_reason: None,
+            schedule: Some(schedule),
+            stats,
+        },
+        None => ExactResult {
+            status: ExactStatus::NoFeasibleSchedule,
+            optimality_proven: false,
+            inconclusive_reason: None,
+            schedule: None,
+            stats,
+        },
+    }
+}
+
+/// Independent certificate verifier: checks complete assignment, eligible
+/// machine membership, precedence, machine order/no-overlap, timestamps and
+/// makespan against the supplied normalized instance.
+pub fn verify_schedule(instance: &FlexibleInstance, schedule: &FlexibleSchedule) -> bool {
+    if schedule.operations.len() != instance.operations.len()
+        || schedule.selected_machines.len() != instance.operations.len()
+        || schedule.machine_orders.len() != instance.machine_count
+    {
+        return false;
+    }
+
+    let mut by_id = vec![None; instance.operations.len()];
+    for scheduled in &schedule.operations {
+        if scheduled.operation_id >= by_id.len()
+            || by_id[scheduled.operation_id].replace(scheduled).is_some()
+        {
+            return false;
+        }
+        if scheduled.machine_id != schedule.selected_machines[scheduled.operation_id] {
+            return false;
+        }
+        if !instance.operations[scheduled.operation_id].alternatives.iter().any(|alternative| {
+            alternative.machine_id == scheduled.machine_id
+                && alternative.processing_ticks == scheduled.processing_ticks
+        }) {
+            return false;
+        }
+        if scheduled.start_ticks.checked_add(scheduled.processing_ticks) != Some(scheduled.end_ticks) {
+            return false;
+        }
+    }
+
+    for edge in &instance.precedences {
+        let (Some(before), Some(after)) = (by_id[edge.before], by_id[edge.after]) else {
+            return false;
+        };
+        if before.end_ticks > after.start_ticks {
+            return false;
+        }
+    }
+
+    let mut seen = BTreeSet::new();
+    for (machine_id, order) in schedule.machine_orders.iter().enumerate() {
+        if order.machine_id != machine_id {
+            return false;
+        }
+        let mut previous_end = 0u64;
+        for (sequence_index, operation_id) in order.operation_ids.iter().enumerate() {
+            if !seen.insert(*operation_id) {
+                return false;
+            }
+            let Some(operation) = by_id.get(*operation_id).and_then(|value| *value) else {
+                return false;
+            };
+            if operation.machine_id != machine_id
+                || operation.sequence_index != sequence_index
+                || operation.start_ticks < previous_end
+            {
+                return false;
+            }
+            previous_end = operation.end_ticks;
+        }
+    }
+    if seen.len() != instance.operations.len() {
+        return false;
+    }
+
+    let makespan = by_id.iter().filter_map(|operation| operation.map(|op| op.end_ticks))
+        .max().unwrap_or(0);
+    makespan == schedule.makespan
+}
