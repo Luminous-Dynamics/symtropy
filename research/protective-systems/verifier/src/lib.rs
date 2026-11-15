@@ -316,6 +316,19 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
         return decision(ABSTAIN_UNKNOWN, "STANDARD_ID_OR_APPLICABILITY_UNKNOWN");
     }
 
+    // NIJ 0123.00 defines protection levels and associated test threats. It
+    // does not itself specify a product-performance test method. A torso
+    // performance claim based on 0123.00 alone must therefore abstain.
+    if domain == "human_worn"
+        && standard_id == "NIJ-0123.00"
+        && nested_bool(case, "claim", "performance_claim_permitted") == Some(true)
+    {
+        return decision(
+            ABSTAIN_UNKNOWN,
+            "THREAT_SPECIFICATION_NOT_PRODUCT_TEST_METHOD",
+        );
+    }
+
     // Configuration changes do not inherit prior evidence automatically.
     let tested_revision = nested_text(case, "evidence", "tested_configuration_revision");
     let current_revision = nested_text(case, "subject", "configuration_revision");
@@ -338,6 +351,37 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
             ABSTAIN_UNKNOWN,
             "MODEL_PREDICTION_NOT_COMPLETE_ARTICLE_TEST",
         );
+    }
+
+    // Ballistic compliance does not establish wearer fit, mobility, task
+    // performance or thermal/moisture usability. If one of those outcomes is
+    // claimed, require a separate wearer-assessment record bound to this
+    // configuration. These references establish record completeness only.
+    let wearer_usability_claim = [
+        "wearer",
+        "fit",
+        "mobility",
+        "thermal",
+        "moisture",
+        "task_performance",
+    ]
+    .iter()
+    .any(|term| proposition.contains(term));
+    if domain == "human_worn"
+        && wearer_usability_claim
+        && nested_bool(case, "claim", "performance_claim_permitted") == Some(true)
+    {
+        let wearer_evidence_complete = has_nonempty_text(case, "evidence", "wearer_assessment_ref")
+            && has_nonempty_text(case, "evidence", "anthropometry_profile_ref")
+            && has_nonempty_text(case, "evidence", "movement_task_protocol_ref")
+            && has_nonempty_text(case, "evidence", "mobility_outcomes_ref")
+            && has_nonempty_text(case, "evidence", "thermal_moisture_outcomes_ref");
+        if !wearer_evidence_complete {
+            return decision(
+                ABSTAIN_UNKNOWN,
+                "WEARER_USABILITY_CLAIM_MISSING_WEARER_EVIDENCE",
+            );
+        }
     }
 
     // Explicitly incomplete records represent unknown dimensions, not zeros.
@@ -455,6 +499,12 @@ mod tests {
     use super::*;
 
     const FIXTURES: &str = include_str!("../../fixtures/benchmark-cases-v0.1.json");
+    const BODY_ARMOR_FIXTURES: &str =
+        include_str!("../../fixtures/body-armor-cases-v0.1.json");
+
+    fn body_armor_corpus() -> Value {
+        parse_corpus(BODY_ARMOR_FIXTURES).expect("body-armour fixture corpus must parse")
+    }
 
     fn corpus() -> Value {
         parse_corpus(FIXTURES).expect("embedded fixture corpus must parse")
@@ -637,6 +687,71 @@ mod tests {
         let result = evaluate_case(&root["cases"][8]);
         assert_eq!(result.0, ABSTAIN_UNKNOWN);
         assert_eq!(result.1, "INCOMPLETE_OR_UNKNOWN_PROTECTION_DIMENSIONS");
+    }
+
+    #[test]
+    fn body_armor_v01_corpus_matches_every_expected_decision() {
+        let report = evaluate_corpus(&body_armor_corpus()).expect("body-armour corpus must validate");
+        assert_eq!(report.case_count, 8);
+        assert_eq!(report.passed_count, 8);
+        assert_eq!(report.failed_count, 0);
+        assert!(report.conformance_pass);
+        assert_eq!(
+            report.claim_ceiling,
+            "record_conformance_only_no_physical_performance_claim"
+        );
+    }
+
+    #[test]
+    fn nij_0123_threat_spec_is_not_a_product_test_method() {
+        let root = body_armor_corpus();
+        let result = evaluate_case(&root["cases"][1]);
+        assert_eq!(result.0, ABSTAIN_UNKNOWN);
+        assert_eq!(result.1, "THREAT_SPECIFICATION_NOT_PRODUCT_TEST_METHOD");
+    }
+
+    #[test]
+    fn south_african_sans_currentness_must_be_verified_locally() {
+        let root = body_armor_corpus();
+        let result = evaluate_case(&root["cases"][2]);
+        assert_eq!(result.0, ABSTAIN_UNKNOWN);
+        assert_eq!(result.1, "STANDARD_CURRENTNESS_UNKNOWN");
+    }
+
+    #[test]
+    fn body_armor_configuration_change_requires_independent_review() {
+        let root = body_armor_corpus();
+        let result = evaluate_case(&root["cases"][3]);
+        assert_eq!(result.0, REQUIRE_INDEPENDENT_REVIEW);
+        assert_eq!(result.1, "CONFIGURATION_CHANGED_AFTER_TEST");
+    }
+
+    #[test]
+    fn wearer_usability_claim_requires_separate_wearer_evidence() {
+        let root = body_armor_corpus();
+        let missing = evaluate_case(&root["cases"][4]);
+        assert_eq!(missing.0, ABSTAIN_UNKNOWN);
+        assert_eq!(missing.1, "WEARER_USABILITY_CLAIM_MISSING_WEARER_EVIDENCE");
+
+        let complete = evaluate_case(&root["cases"][5]);
+        assert_eq!(complete.0, ACCEPT_RECORD_ONLY);
+        assert_eq!(complete.1, "RECORD_FIELDS_COMPLETE_NO_PHYSICAL_CLAIM");
+    }
+
+    #[test]
+    fn model_only_injury_reduction_claim_abstains() {
+        let root = body_armor_corpus();
+        let result = evaluate_case(&root["cases"][6]);
+        assert_eq!(result.0, ABSTAIN_UNKNOWN);
+        assert_eq!(result.1, "MODEL_PREDICTION_NOT_COMPLETE_ARTICLE_TEST");
+    }
+
+    #[test]
+    fn body_armor_current_amended_standard_requires_addenda() {
+        let root = body_armor_corpus();
+        let result = evaluate_case(&root["cases"][7]);
+        assert_eq!(result.0, REJECT_STALE_OR_REVOKED);
+        assert_eq!(result.1, "CURRENT_AMENDED_REFERENCE_MISSING_APPLICABLE_ADDENDA");
     }
 
     #[test]
