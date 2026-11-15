@@ -245,6 +245,73 @@
       "downloaded": false,
       "data_ingested": false,
       "next_gate": "Obtain the exact FAM/SNIF release and field methodology; verify repeat waves, Amazon subunit design, variable support and legal conditions before admission."
+    },
+    {
+      "source_id": "FORESTPATHS-VDM-NINE-MODEL-BENCHMARK-2025",
+      "provider": "Zenodo; ForestPaths / New Phytologist author consortium",
+      "dataset_title": "Analysis code and benchmark data processing code for Demography, dynamics and data: building confidence for simulating changes in the world's forests",
+      "doi": "10.5281/zenodo.14415143",
+      "paper_doi": "10.1111/nph.70643",
+      "record_url": "https://zenodo.org/records/14415143",
+      "paper_url": "https://nph.onlinelibrary.wiley.com/doi/10.1111/nph.70643",
+      "code_repository": "https://github.com/teatree1212/DBEN_Eckes_Shephard_et_al",
+      "temporal": {
+        "paper_publication": "2025",
+        "simulations": "post-disturbance recovery monitored for at least 420 years",
+        "observation_temporal_resolution": "varies by source and site; some benchmark data are chronosequences, not repeated same-plot panels",
+        "longitudinal_panel": "MUST_VERIFY_PER_OBSERVATION_ASSET"
+      },
+      "spatial": {
+        "coverage_note": "Nine vegetation-demography models compared across boreal, temperate and tropical forest sites. Simulation sites in the paper include FIN, BIA and BCI; additional observational benchmarks include other sites/chronosequences.",
+        "support": "site / plot / size class / model output grid; exact per-variable support must be inventoried",
+        "scale_warning": "Align observation and model support before scoring; the paper identifies scale mismatch as a potential comparison failure."
+      },
+      "contents": {
+        "processed_observations": "CSV files under observations/2_processed",
+        "model_outputs": "Mostly netCDF under model_outputs, generally in D-BEN format",
+        "analysis_scripts": "Linked GitHub repository; Zenodo instructions reference exact repository",
+        "model_families": [
+          "BiomeE",
+          "BiomeEP",
+          "CABLE-POP",
+          "EDv3",
+          "ELM-FATES",
+          "JULES-RED",
+          "LPJ-GUESS",
+          "ORCHIDEE",
+          "SEIB-DGVM"
+        ]
+      },
+      "files": [
+        {
+          "name": "model_outputs.zip",
+          "compressed_size_bytes": 5746787,
+          "published_md5": "0bde6b925bf5ca5e0aec604fc50abd58"
+        },
+        {
+          "name": "observations.zip",
+          "compressed_size_bytes": 430694,
+          "published_md5": "75c53d963e30f1089d23b1752765d822"
+        }
+      ],
+      "rights": {
+        "visible_record_rights_field": "NOT_POPULATED_IN_RETRIEVED_LANDING_PAGE",
+        "license_status": "NOT_CONFIRMED",
+        "attribution_required": "Cite Eckes-Shephard et al. 2025 and exact Zenodo record; inspect embedded archive attributions and reuse conditions",
+        "restriction": "Do not infer dataset/derivative license from the paper publication license alone."
+      },
+      "intended_use": "Empirical reproduction of published nine-model VDM stock, growth, mortality, carbon-turnover, size-class and post-disturbance recovery results; process-trajectory and flux-identifiability validation.",
+      "disallowed_inference": "Do not treat chronosequences as same-plot longitudinal time series or infer growth/mortality rates without the exact source observation semantics and compatible temporal support. Do not claim all nine model source codes are equally accessible; JULES-RED requires access application per paper.",
+      "admission_status": "PUBLIC_ARCHIVE_CANDIDATE_LICENSE_AND_FILE_AUDIT_PENDING",
+      "downloaded": false,
+      "data_ingested": false,
+      "retrieval": {
+        "binary_retrieval_status": "NOT_RETRIEVED_IN_CURRENT_RUNTIME",
+        "blocker": "container DNS resolver could not resolve zenodo.org; binary download attempts failed",
+        "checksum_status": "PUBLISHED_MD5_CAPTURED_NOT_REVERIFIED",
+        "next_gate": "Retrieve exact files in network-enabled environment; verify published MD5 and locally compute SHA-256; audit rights, embedded README, contents, variables, dimensions, units, site/time identities, and D-BEN schema before admission."
+      },
+      "owner_issue": 5352
     }
   ],
   "cross_source_admission_gates": [
