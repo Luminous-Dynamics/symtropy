@@ -34,12 +34,6 @@ jobs:
           components: clippy, rustfmt
       - name: Formatting
         run: cargo fmt --manifest-path tools/material-flow-benchmark/Cargo.toml -- --check
-      - name: Generate lockfile for new Symtropy physics dependencies
-        run: cargo generate-lockfile --manifest-path tools/material-flow-benchmark/Cargo.toml
-      - name: Export generated MFB lockfile for exact-branch pinning
-        run: |
-          echo "MFB_LOCK_B64_BEGIN"
-          base64 -w0 tools/material-flow-benchmark/Cargo.lock
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -50,6 +44,43 @@ jobs:
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
       - name: Run nominal L1 Symtropy physics episode and replay check
         run: |
-          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > /tmp/mfb-l1-result.json
-          grep -q '"accepted": true' /tmp/mfb-l1-result.json
-          grep -q '"replay_bitwise_equal": true' /tmp/mfb-l1-result.json
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/result.json
+          grep -q '"accepted": true' mfb-l1-evidence/result.json
+          grep -q '"replay_bitwise_equal": true' mfb-l1-evidence/result.json
+          {
+            echo "source_sha=${GITHUB_SHA}"
+            echo "workflow_run_id=${GITHUB_RUN_ID}"
+            echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo
+            echo "[rustc]"
+            rustc -Vv
+            echo
+            echo "[cargo]"
+            cargo -V
+            echo
+            echo "[host]"
+            uname -a
+            lscpu
+            echo
+            echo "[target]"
+            rustc -vV | grep '^host:'
+            echo
+            echo "[features]"
+            cargo tree --locked --manifest-path tools/material-flow-benchmark/Cargo.toml -e features
+            echo
+            echo "[scenario_digest]"
+            sha256sum tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
+            echo
+            echo "[simulation_result_digest]"
+            sha256sum mfb-l1-evidence/result.json
+          } > mfb-l1-evidence/environment.txt
+          cat mfb-l1-evidence/environment.txt
+          cat mfb-l1-evidence/result.json
+      - name: Upload reproducible MFB L1 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfb-l1-evidence-${{ github.sha }}
+          path: mfb-l1-evidence/
+          if-no-files-found: error
+          retention-days: 90
