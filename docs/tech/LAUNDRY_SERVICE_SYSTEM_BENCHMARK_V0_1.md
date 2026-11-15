@@ -36,9 +36,27 @@ The values below are **public desk references**, not measurements performed by t
 Sources:
 - Washer: [AEG LR9WW80409 label data / EPREL cross-reference](https://energielabeleu.com/model/aeg-lr9ww80409-914505606).
 - Dryer: [AEG Ireland TR948V4BC product page](https://www.aeg.ie/laundry/laundry/dryers/heat-pump-dryer/tr948v4bc/). The current page identifies PNC 916 900 129.
+- South African washer and dryer leads: [Defy DAW 397](https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-397), [Defy DTD323](https://www.defy.co.za/products/tumble-dryers/tumble-dryers-heat-pump-dtd323), [Defy 2025/26 catalogue](https://www.defy.co.za/content/dam/bekoglobal/za/defy-documents/06_DefyCatalogue_AdditionalPages_AP.pdf), [Bosch WGA254ZRZA technical sheet](https://media3.bsh-group.com/Documents/specsheet/en-ZA/WGA254ZRZA.pdf), [LG RH90V9JV2N](https://www.lg.com/za/laundry-care/heat-pump-dryers/rh90v9jv2n/) and [Samsung DV90T6240LB](https://www.samsung.com/za/washers-and-dryers/washing-machines/dv6000t-front-loading-hygiene-care-reversible-door-wrinkle-prevent-9kg-black-dv90t6240lb-fa/).
 - The EU entry benchmark for 7 kg heat-pump dryers is an older regulatory reference, not the 2026 market frontier. It is useful as a regulatory floor/reference, not as a “best-in-market” comparator: [Commission Regulation (EU) 2023/2533](https://eur-lex.europa.eu/eli/reg/2023/2533/oj/eng).
 
 **Critical comparison rule:** the washer and dryer figures above must not be combined into a synthetic pair score. The first acquisition task is to select matched controls, document their programme/load compatibility, then measure whole-process service on a common textile workload.
+
+
+### South African desk references and market implications
+
+The initial European references are not sufficient for a South African product decision. The following local-market product families are useful sourcing leads; they are **not acquired or selected controls**.
+
+| Local-market reference | Public specification | Benchmark use and caveat |
+|---|---|---|
+| Defy DAW 397, 10 kg front-loader | Defy’s 2025/26 catalogue lists A+++(-10%), 55 L/wash and 1400 rpm; the current product page lists 54 dB wash noise, 76 dB spin noise and a 10-year motor warranty | Strong local 10 kg reference. A+++(-10%) is a legacy label scale; motor warranty is not a whole-appliance durability guarantee |
+| Bosch WGA254ZRZA, 10 kg front-loader | Bosch South Africa spec sheet: 167 kWh/year and 11,660 L/year at 220 cycles (about 0.759 kWh and 53 L per cycle on that declared basis), 53% remaining moisture, 1400 rpm and 75 dB spin noise | Second local 10 kg reference with explicit annual denominators. Older A+++ scale/formula is not directly comparable to current EU label methods |
+| Defy DTD323, 9 kg heat-pump dryer | Current Defy page identifies it as a heat-pump dryer; A++ legacy class, 81% full- and half-load condensation efficiency, 230–240 V / 50 Hz. Product fiche under EU Regulation 392/2012 reports 2.17 kWh full load, 1.16 kWh half load, 209/119 min and 65 dB | Local dryer reference, but fiche is an older label method. Retest under one common protocol; use 81% condensation as a manufacturer reference, not an independently verified result |
+| LG RH90V9JV2N, 9 kg heat-pump dryer | LG South Africa lists A+++(-10%), dual-inverter heat pump, auto-cleaning condenser, dual lint filter and sensor drying | Third local-market dryer family for acquisition and service-task comparison; exact kWh/cycle and condensation figures need the model-specific South African compliance label |
+| Samsung DV90T6240LB, 9 kg heat-pump dryer | Samsung South Africa lists 9 kg, heat-pump technology, A+++ legacy class, 220 min cycle time and 65 dB | Another local-market sourcing lead; its product page mixes references to other Samsung model numbers in the energy narrative, so do not attribute those kWh figures to DV90T6240LB |
+
+Defy’s 2025/26 catalogue also states that it has local manufacturing in Durban and Ezakheni and 18 national service centres. Therefore **“locally manufactured and repairable” is not a sufficient differentiator by itself**. We need audited repair turnaround, parts fill rate, stocked service components, restoration quality, product life, transparent service documentation and measured household cost. Supplier-reported network statements must be checked during field work.
+
+The Bosch 10 kg sheet yields 53 L/cycle only by dividing its published 11,660 L/year by its stated 220 annual cycles. That is useful desk normalization, not a matched IEC 60456:2024 result. Likewise, older A+++(-10%) and A++ classes must remain separate from current A–G label scales until controls are run under one method.
 
 ## 3. Standard methods and regulatory gate
 
