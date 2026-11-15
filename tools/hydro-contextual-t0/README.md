@@ -37,3 +37,15 @@ The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exa
 
 All v0.1 cases are synthetic. No DWS/SAWS/Highveld bytes are acquired, no catchment is calibrated, no flood/groundwater/rainfall-runoff solver is qualified, no field forecast skill is established, and no synthetic result may be represented as South African field performance.
 The corpus includes all 12 named HCB-NC-01 through HCB-NC-12 leakage controls, including a separate rejection when the final test set is used to select a winning model.
+
+
+### Event, low-flow and probabilistic interval metrics (cases 022–026)
+
+The corpus now covers the process-specific metrics called for by #5338/#5356:
+- named-event peak magnitude error and signed/absolute peak timing error using a frozen event window and fixed step duration; ties choose the earliest peak;
+- event-specific NSE and volume bias alongside peak metrics;
+- low-flow log10 error below a predeclared threshold, over strictly positive observed/predicted values only; no zero pseudocount or silent exclusion;
+- probabilistic prediction-interval empirical coverage and mean width, preserving nominal coverage and coverage error;
+- invalid interval bounds reject, and low-flow logarithms abstain when zero flow appears.
+
+These are separate diagnostics, not a composite score. A four-sample interval fixture is only arithmetic conformance, not a statistical calibration claim; useful interval calibration requires many independent events and strata.
