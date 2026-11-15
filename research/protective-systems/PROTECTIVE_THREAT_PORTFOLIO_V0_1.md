@@ -134,6 +134,8 @@ Do not monetize away hard safety requirements. Report Pareto-efficient portfolio
 - Source, publication date, maturity, context and claim limit on every entry.
 - No unsupported probability or damage figures.
 - Unknown and conflicting evidence preserved explicitly.
+- Ten synthetic decision fixtures exercise established hazards, rare high consequence, emerging technology, unknown frequency, unsupported exotic claims, absence of exposure, overlapping benefits, ordinal-score misuse and safety-floor violation.
+- A mandatory safety-floor violation returns REJECT_INFEASIBLE, never an economic trade-off.
 
 ### T1 — ranking stability
 - Change event-frequency ranges, exposed asset and consequence assumptions.
@@ -177,7 +179,11 @@ Proposed targets (not achieved):
 - 100% reproducible frozen decision outputs from evidence, assumptions, cost model and method version.
 - demonstrate measurable lifecycle-cost or service-resilience improvements on independently reviewed cases before claiming superiority.
 
-## 8. Safety and evidence boundary
+## 8. Synthetic decision corpus
+
+The frozen synthetic cases are in `research/protective-systems/fixtures/protective-threat-decision-cases-v0.1.json`. They are qualitative controls only; they contain no actual weapon performance parameters, event probabilities or damage calculations. The corpus includes explicit negative controls for unsupported exotic threats, unknown likelihood, absent asset exposure, double-counted multi-hazard benefits, multiplication of ordinal scores and safety-floor violations. `REJECT_INFEASIBLE` is a hard disposition, not a low ranking.
+
+## 9. Safety and evidence boundary
 
 This register does not contain weapon recipes, construction instructions, transmission parameters, target analysis, damage calculations or protection-defeat guidance. It does not authorize physical testing, procurement or human-subject research. The only positive result this portfolio can produce is a defensible *research/investment-priority disposition* for a declared asset context.
 
