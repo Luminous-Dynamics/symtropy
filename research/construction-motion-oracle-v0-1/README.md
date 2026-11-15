@@ -15,6 +15,12 @@ It consumes the envelope producer's output only to test containment and broad-ph
 
 The semicircle case is deliberately adversarial: its endpoint chord is the diameter, which misses an obstacle at the arc apex. Endpoints-only and chord-only baselines therefore return false while the analytical continuous oracle returns true.
 
+## Capsule narrow phase
+
+The follow-on capsule module represents a stationary capsule as a finite 3D centreline segment plus radius and computes the exact finite-segment closest approach to a moving sphere's straight centre path. It handles parallel, collinear, skew and degenerate segments. The swept-sphere/capsule AABB is broad phase only; the segment-distance result is the analytic narrow phase.
+
+This is not a rotating capsule, an articulated link sweep or a general mesh CCD implementation.
+
 ## Current synthetic corpus
 
 The machine-readable fixture contains 12 explicit geometry cases with path endpoints/arc parameters, body and obstacle radii, all seven per-axis margin channels, expected analytic/endpoints/chord/physical/stopping/coordination outcomes, primitive-manifest completeness, and six controlled mutations. All current cases are development cases; there is no claim of a statistically sufficient held-out corpus yet. See schema/oracle-corpus-v0.1.schema.json. Adapter results use schema/adapter-result-v0.1.schema.json.
@@ -27,9 +33,10 @@ The Rust unit suite includes:
 - conservative AABB false-positive candidate;
 - separation of physical collision from stopping/policy overlap;
 - uncertainty monotonicity;
-- uniform-scale collision invariance.
+- uniform-scale collision invariance;
+- capsule transverse hit, parallel near miss, exact tangency, skew/parallel/collinear/degenerate segments, endpoint clamping, broad-phase false positive, and capsule rigid-transform/scale invariance.
 
-All values are synthetic and expressed in millimetres. The upper semicircle is planar, has a fixed z coordinate and covers exactly 180 degrees. The linear reference is piecewise straight. The oracle does not prove general articulated-robot containment or arbitrary mesh swept volumes.
+All values are synthetic and expressed in millimetres. The upper semicircle is planar, has a fixed z coordinate and covers exactly 180 degrees. The linear reference is piecewise straight. The sphere oracle does not prove general articulated-robot containment or arbitrary mesh swept volumes. The capsule extension covers moving sphere versus stationary capsule only.
 
 ## Industry differential adapters
 
