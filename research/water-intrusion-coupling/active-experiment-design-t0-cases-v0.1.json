@@ -28,6 +28,7 @@
             "domain_state": "in_domain",
             "observation_variance": [
               1,
+              1,
               1
             ],
             "sensitivity_matrix": [
@@ -60,6 +61,7 @@
             "all_port_directions_observed": true,
             "domain_state": "in_domain",
             "observation_variance": [
+              1,
               1,
               1
             ],
@@ -107,6 +109,7 @@
             "domain_state": "in_domain",
             "observation_variance": [
               1,
+              1,
               1
             ],
             "sensitivity_matrix": [
@@ -139,6 +142,7 @@
             "all_port_directions_observed": true,
             "domain_state": "in_domain",
             "observation_variance": [
+              1,
               1,
               1
             ],
@@ -214,6 +218,7 @@
             "all_port_directions_observed": true,
             "domain_state": "in_domain",
             "observation_variance": [
+              1,
               1,
               1
             ],
@@ -303,6 +308,7 @@
             "domain_state": "in_domain",
             "observation_variance": [
               1,
+              1,
               1
             ],
             "sensitivity_matrix": [
@@ -335,6 +341,7 @@
             "all_port_directions_observed": true,
             "domain_state": "in_domain",
             "observation_variance": [
+              1,
               1,
               1
             ],
