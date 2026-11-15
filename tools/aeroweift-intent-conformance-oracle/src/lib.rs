@@ -749,6 +749,13 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         );
     }
 
+    let Some(evaluation_duration) = policy.evaluation_window.duration() else {
+        return empty(
+            ConformanceStatus::NotAssessable,
+            Some(ConformanceReason::InvalidPolicyOrAuthorization),
+            lineage,
+        );
+    };
     let Some(unobserved) = evaluation_duration.checked_sub(covered_window_ticks) else {
         return empty(
             ConformanceStatus::NotAssessable,
@@ -766,14 +773,6 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
                 lineage,
             );
         }
-    };
-
-    let Some(evaluation_duration) = policy.evaluation_window.duration() else {
-        return empty(
-            ConformanceStatus::NotAssessable,
-            Some(ConformanceReason::InvalidPolicyOrAuthorization),
-            lineage,
-        );
     };
     let Some(possible_or_unknown_ticks) = possible_outside
         .checked_add(unassessable)
