@@ -34,7 +34,8 @@ A missing upstream result is not silently reconstructed by this bridge. It yield
 
 Every comparison must freeze:
 
-- context identifier and declared system boundary;
+- context identifier, jurisdiction and declared system boundary;
+- applicable legal, regulatory, municipal, sector and standards requirements, including exact edition/amendment, effective status, scope, authority and applicability rationale;
 - affected services and beneficiary strata;
 - baseline and intervention portfolio identifiers;
 - hazard-family references and scenario references;
@@ -187,3 +188,102 @@ It may not claim:
 The intended advance is a reproducible chain:
 
 **hazard evidence → context → service requirements → owner-qualified scenarios → service/buffer/safety trajectories → lifecycle portfolio comparison → independent evidence and bounded claims.**
+
+
+## 11. Industry comparators and interoperability boundary
+
+A fair comparison must recognize established work rather than relabel it as new.
+
+### IN-CORE and NIST community resilience methods
+
+IN-CORE is a serious external comparator, not a straw-man baseline. Its published architecture already connects community inventories, hazard and fragility information, physical infrastructure damage/functionality, repair/recovery/restoration and social/economic impacts. Its services include hazard, damage/functionality/repair/recovery/restoration (DFR3), data and geospatial functions. NIST's Community Resilience Planning Guide supplies a stakeholder-led planning method and performance goals expressed as recovery times for community functions.
+
+The Luminous bridge must therefore **not** claim novelty for:
+- infrastructure dependency modelling;
+- hazard-to-damage-to-functionality chains;
+- community recovery trajectories;
+- social/economic consequence assessment; or
+- recovery-time performance goals.
+
+Instead, benchmark interoperability and the additional decision-assurance contract:
+- Can a result from an authoritative external or domain model be imported with its scenario, boundary, data revision, method revision, uncertainty and claim ceiling intact?
+- Can the bridge compare complete portfolios across several model owners without silently substituting missing values or treating model output as physical truth?
+- Are mandatory human-safety/service constraints non-compensatory?
+- Are service, reserve/buffer, maintenance and ecological/physical recovery kept distinct?
+- Are shared benefits attributed once, with overlaps explicitly reconciled?
+- Can all accepted recommendations be reproduced from frozen evidence and configuration receipts?
+
+Where an IN-CORE testbed/data set is accessible and its scope is compatible, use the published baseline or platform output as a comparison. Do not claim a matched result until hazards, asset boundary, service demand, scenario, recovery assumptions, population and evaluation horizon have been aligned. If a compatible dataset cannot be obtained, report an interoperability gap, not a benchmark win.
+
+References:
+- NIST-funded IN-CORE measurement-science and model architecture: https://www.nist.gov/publications/interdependent-networked-community-resilience-modeling-environment-core
+- NIST Center of Excellence and IN-CORE service architecture: https://www.nist.gov/community-resilience/center-excellence
+- IN-CORE open platform and technical documentation: https://in-core.org/ and https://dev.in-core.org/doc/incore/introduction.html
+- NIST community planning guide and performance goals: https://www.nist.gov/community-resilience/planning-guide and https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1190GB-16.pdf
+
+### ISO 22301 / SANS 22301
+
+ISO 22301 is a business-continuity management-system standard, not a physical hazard simulator or a guarantee that a facility will never be disrupted. Treat it as an organizational capability / process evidence comparator: business-impact analysis, continuity objectives, roles, plans, exercises, monitoring, management review and continual improvement. A certificate's scope and audit evidence must be inspected; the existence of a certificate alone does not prove a particular service trajectory.
+
+For South African deployments, the SABS catalogue lists SANS 22301 (version 2.00). The exact adopted edition, amendment, scope and applicable sector rules must be confirmed for each deployment rather than inferred from a generic ISO reference. The South African Disaster Management Act 57 of 2002 and the 2023 National Disaster Management Framework review establish a multi-level disaster-planning context; local/provincial/municipal applicability requires competent local review.
+
+References:
+- SABS standards catalogue: https://www.sabs.co.za/sabs-standards
+- South African Disaster Management Act 57 of 2002: https://www.gov.za/documents/disaster-management-act
+- National Disaster Management Framework review, Government Gazette 48874 (30 June 2023): https://www.gov.za/sites/default/files/gcis_document/202307/48874gon3635.pdf
+- ISO 22301 overview: https://www.iso.org/standard/75106.html
+
+### Operational technology implementation references
+
+NIST SP 1339 makes backup testing and recovery exercise review part of OT recovery discipline. NIST SP 1800-45 supplies water/wastewater OT remote-access reference designs. These are implementation evidence and architecture comparators, not a substitute for physical service performance tests or local compliance review.
+
+The standards crosswalk must always distinguish:
+- published final standard / guidance;
+- national adoption and edition;
+- draft or public-comment document;
+- sector-specific regulation;
+- local operator policy;
+- independent physical qualification.
+
+As of this snapshot, NIST SP 800-82 Rev. 4 is an initial public draft, not final guidance.
+
+## 12. Comparison protocol: how a superiority claim can be earned
+
+The first comparison should be a frozen, synthetic, hand-solvable case that exercises a subset of the real owner interfaces. The next should be an accessible, rights-cleared retrospective case with an independent domain reviewer. Do not begin with a city-scale digital twin or an opaque AI-vs-AI leaderboard.
+
+For every baseline, freeze:
+- the same context/jurisdiction, boundary, service demand and beneficiary strata;
+- the same admitted scenario(s), event order and time horizon;
+- the same source data and source revisions;
+- the same permitted observations and engineering assumptions;
+- the same mandatory safety/service floors;
+- the same lifecycle cost boundary and discount assumptions;
+- the same compute / human-review / measurement budget where relevant.
+
+Baselines must include:
+1. no-change / persistence;
+2. a simple competent domain rule or current operator baseline;
+3. the applicable continuity-management plan / exercise evidence;
+4. an applicable external model or tool such as IN-CORE only where a genuinely matched testbed is available;
+5. existing Symtropy domain owners and their bounded exact oracles;
+6. a portfolio bridge result.
+
+Report native-unit outcomes and uncertainty intervals, not a universal rank. Required comparisons include service-deficit area, time below floor, sustained recovery time, reserve and maintenance condition, worst-served stratum, human-safety feasibility, whole-life cost and decision reproducibility.
+
+Prospective stretch goals for a future independent case study—not current results:
+- at least 20% lower fully burdened lifecycle cost while preserving every agreed safety and service floor; **or**
+- at least 20% lower integrated critical-service deficit at equal fully burdened lifecycle budget;
+- zero false-feasible decisions on the frozen negative-control set;
+- 100% deterministic reproduction from frozen inputs and exact model/evidence revisions;
+- zero unadjudicated duplicate benefit claims or unsupported probability claims.
+
+The 20% thresholds are proposed materiality targets. Before evaluation, reviewers must verify that the sample, scenario severity and measurement precision can resolve an effect of that size. If the data cannot support a 20% estimate, report the confidence interval and the smallest detectable effect; do not present an underpowered null as proof of equivalence.
+
+A superiority claim requires:
+- baseline reproduction first;
+- an independently reviewed protocol and frozen holdout;
+- complete cost accounting;
+- uncertainty and applicability limits;
+- disclosure of cases where the Luminous bridge loses or abstains.
+
+Synthetic case success demonstrates software contract conformance only. It is not evidence that a real protective system, facility or community is more resilient.
