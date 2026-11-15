@@ -10,7 +10,8 @@
       "INVEST_IMPLEMENT",
       "PILOT_VALIDATE",
       "MONITOR_PREPARE",
-      "DEFER_NO_DEDICATED_INVESTMENT"
+      "DEFER_NO_DEDICATED_INVESTMENT",
+      "REJECT_INFEASIBLE"
     ],
     "dimensions": [
       "evidence_maturity",
