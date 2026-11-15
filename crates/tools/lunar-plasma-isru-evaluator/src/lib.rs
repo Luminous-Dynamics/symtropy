@@ -79,6 +79,36 @@ pub struct Observation {
     method: String,
     species: String,
     evidence_class: String,
+    #[serde(default)]
+    calibration_ref: Option<String>,
+    #[serde(default)]
+    calibration_species: Option<String>,
+    #[serde(default)]
+    calibration_method: Option<String>,
+    #[serde(default)]
+    calibration_valid_from_utc: Option<String>,
+    #[serde(default)]
+    calibration_valid_until_utc: Option<String>,
+    #[serde(default)]
+    observed_at_utc: Option<String>,
+    #[serde(default)]
+    expanded_uncertainty_fraction: Option<f64>,
+    #[serde(default)]
+    decision_margin_fraction: Option<f64>,
+    #[serde(default)]
+    measured_mass_g: Option<f64>,
+    #[serde(default)]
+    sampling_recovery_fraction: Option<f64>,
+    #[serde(default)]
+    sampling_recovery_check_ref: Option<String>,
+    #[serde(default)]
+    cross_sensitivity_status: Option<String>,
+    #[serde(default)]
+    cross_sensitivity_check_ref: Option<String>,
+    #[serde(default)]
+    sampling_interval_id: Option<String>,
+    #[serde(default)]
+    raw_artifact_ref: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -165,6 +195,159 @@ fn non_empty(value: &str) -> bool {
 
 fn valid_nonnegative(value: f64) -> bool {
     value.is_finite() && value >= 0.0
+}
+
+fn valid_utc_timestamp(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    bytes.len() == 20
+        && bytes[4] == b'-'
+        && bytes[7] == b'-'
+        && bytes[10] == b'T'
+        && bytes[13] == b':'
+        && bytes[16] == b':'
+        && bytes[19] == b'Z'
+        && bytes.iter().enumerate().all(|(index, byte)| {
+            matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
+        })
+}
+
+fn observation_is_metrologically_scoreable(
+    observation: &Observation,
+    product_calibration_ref: &str,
+    product_mass_g: f64,
+    blocked: &mut Vec<String>,
+    rejected: &mut Vec<String>,
+) -> bool {
+    let mut scoreable = true;
+
+    let required_strings = [
+        observation.calibration_ref.as_deref(),
+        observation.calibration_species.as_deref(),
+        observation.calibration_method.as_deref(),
+        observation.calibration_valid_from_utc.as_deref(),
+        observation.calibration_valid_until_utc.as_deref(),
+        observation.observed_at_utc.as_deref(),
+        observation.sampling_recovery_check_ref.as_deref(),
+        observation.cross_sensitivity_status.as_deref(),
+        observation.cross_sensitivity_check_ref.as_deref(),
+        observation.sampling_interval_id.as_deref(),
+        observation.raw_artifact_ref.as_deref(),
+    ];
+    if required_strings.iter().any(|value| value.is_none_or(|s| !non_empty(s))) {
+        blocked.push("quantitative observation is missing calibration, validity, sampling, interference or raw-artifact evidence".to_owned());
+        scoreable = false;
+    }
+
+    if observation.calibration_ref.as_deref() != Some(product_calibration_ref) {
+        rejected.push("product calibration identity does not match the quantitative observation".to_owned());
+        scoreable = false;
+    }
+    if observation.calibration_species.as_deref() != Some("O2") {
+        rejected.push("calibration species scope does not match O2".to_owned());
+        scoreable = false;
+    }
+    if observation.calibration_method.as_deref() != Some(observation.method.as_str()) {
+        rejected.push("calibration method scope does not match the observation method".to_owned());
+        scoreable = false;
+    }
+
+    match (
+        observation.calibration_valid_from_utc.as_deref(),
+        observation.calibration_valid_until_utc.as_deref(),
+        observation.observed_at_utc.as_deref(),
+    ) {
+        (Some(start), Some(end), Some(observed))
+            if valid_utc_timestamp(start)
+                && valid_utc_timestamp(end)
+                && valid_utc_timestamp(observed)
+                && start <= observed
+                && observed <= end => {}
+        (Some(start), Some(end), Some(observed))
+            if valid_utc_timestamp(start)
+                && valid_utc_timestamp(end)
+                && valid_utc_timestamp(observed) =>
+        {
+            blocked.push("calibration is not valid at the observation timestamp".to_owned());
+            scoreable = false;
+        }
+        _ => {
+            blocked.push("calibration validity timestamps are missing or not normalized UTC timestamps".to_owned());
+            scoreable = false;
+        }
+    }
+
+    match (
+        observation.expanded_uncertainty_fraction,
+        observation.decision_margin_fraction,
+    ) {
+        (Some(uncertainty), Some(margin))
+            if uncertainty.is_finite()
+                && uncertainty >= 0.0
+                && margin.is_finite()
+                && margin > 0.0 =>
+        {
+            if uncertainty > margin / 3.0 {
+                blocked.push("expanded measurement uncertainty exceeds one-third of the declared decision margin".to_owned());
+                scoreable = false;
+            }
+        }
+        _ => {
+            blocked.push("expanded uncertainty or decision margin is missing or invalid".to_owned());
+            scoreable = false;
+        }
+    }
+
+    match (
+        observation.measured_mass_g,
+        observation.sampling_recovery_fraction,
+        observation.sampling_recovery_check_ref.as_deref(),
+    ) {
+        (Some(measured), Some(recovery), Some(check_ref))
+            if measured.is_finite()
+                && measured > 0.0
+                && recovery.is_finite()
+                && recovery > 0.0
+                && recovery <= 1.0
+                && non_empty(check_ref) =>
+        {
+            let corrected_mass = measured / recovery;
+            if !close_enough(corrected_mass, product_mass_g, 1.0e-6) {
+                rejected.push("sampling-recovery-corrected gas mass does not match accepted O2 product mass".to_owned());
+                scoreable = false;
+            }
+        }
+        (Some(_), Some(recovery), _)
+            if !recovery.is_finite() || recovery <= 0.0 || recovery > 1.0 =>
+        {
+            rejected.push("sampling recovery fraction is outside (0, 1]".to_owned());
+            scoreable = false;
+        }
+        _ => {
+            blocked.push("quantitative observation lacks measured mass or independently checked sampling recovery".to_owned());
+            scoreable = false;
+        }
+    }
+
+    match observation.cross_sensitivity_status.as_deref() {
+        Some("passed") if observation.cross_sensitivity_check_ref.as_deref().is_some_and(non_empty) => {}
+        Some("failed") => {
+            rejected.push("cross-sensitivity qualification failed".to_owned());
+            scoreable = false;
+        }
+        _ => {
+            blocked.push("species cross-sensitivity qualification is absent or incomplete".to_owned());
+            scoreable = false;
+        }
+    }
+
+    if observation.sampling_interval_id.as_deref().is_none_or(|s| !non_empty(s))
+        || observation.raw_artifact_ref.as_deref().is_none_or(|s| !non_empty(s))
+    {
+        blocked.push("sampling interval or raw measurement artifact identity is absent".to_owned());
+        scoreable = false;
+    }
+
+    scoreable
 }
 
 fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
@@ -350,6 +533,14 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                                 .contains("mass_flow"))
                     {
                         blocked.push("product measurement is not a synthetic quantitative gas or mass-flow observation".to_owned());
+                        product_scoreable = false;
+                    } else if !observation_is_metrologically_scoreable(
+                        observation,
+                        calibration,
+                        mass,
+                        &mut blocked,
+                        &mut rejected,
+                    ) {
                         product_scoreable = false;
                     }
                 } else {
@@ -634,8 +825,8 @@ mod tests {
     #[test]
     fn frozen_fixture_matches_all_eight_dispositions() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(report.scenario_count, 8);
-        assert_eq!(report.matched_expectations, 8);
+        assert_eq!(report.scenario_count, 13);
+        assert_eq!(report.matched_expectations, 13);
         assert_eq!(report.mismatched_expectations, 0);
         assert_eq!(report.evidence_class, "synthetic");
         assert!(!report.physical_measurements);
@@ -776,6 +967,53 @@ mod tests {
         value["scenarios"][0]["expected_disposition"] = json!("BLOCKED");
         let report = audit_manifest_json(&value.to_string()).expect("manifest structure parses");
         assert_eq!(report.mismatched_expectations, 1);
+    }
+
+
+    #[test]
+    fn expired_calibration_blocks_product_claim() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(result_for(&report, "blocked-expired-calibration").disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn uncertainty_must_resolve_the_declared_decision_margin() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(result_for(&report, "blocked-uncertainty-exceeds-decision-margin").disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn sampling_recovery_requires_an_independent_check() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(result_for(&report, "blocked-unverified-sampling-recovery").disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn calibration_species_scope_mismatch_is_rejected() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(result_for(&report, "rejected-calibration-species-scope").disposition, "REJECTED");
+    }
+
+    #[test]
+    fn sampling_recovery_corrected_mass_must_match_product() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(result_for(&report, "rejected-sampling-recovery-mass-mismatch").disposition, "REJECTED");
+    }
+
+    #[test]
+    fn missing_calibration_identity_blocks_product_claim() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["observations"][1]["calibration_ref"] = serde_json::Value::Null;
+        let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
+        assert_eq!(result_for(&report, "synthetic-balanced-accounting-positive").disposition, "BLOCKED");
+    }
+
+    #[test]
+    fn raw_measurement_trace_is_required() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["observations"][1]["raw_artifact_ref"] = serde_json::Value::Null;
+        let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
+        assert_eq!(result_for(&report, "synthetic-balanced-accounting-positive").disposition, "BLOCKED");
     }
 
     #[test]
