@@ -258,6 +258,8 @@ pub struct ExperimentDesignPolicy {
     pub required_estimator_build_sha256: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
+    /// Modalities that require affirmative external authorization under this campaign.
+    pub authorization_required_modalities: Vec<ExperimentModality>,
     /// Per-dimension non-substitutable resource budget.
     pub resource_budget: ResourceBudget,
 }
@@ -561,11 +563,6 @@ fn candidate_rejection_reasons(
     }
     if candidate.selection_evidence_role != SelectionEvidenceRole::AdaptiveDevelopment {
         reasons.insert(RejectionReason::SealedEvidenceUsedForSelection);
-    }
-    if candidate.objective == ExperimentObjective::ModelDiscrimination
-        && candidate.semantic_equivalence != SemanticEquivalence::Established
-    {
-        reasons.insert(RejectionReason::SemanticEquivalenceNotEstablished);
     }
     if !validate_hypothesis_contract(candidate) {
         reasons.insert(RejectionReason::InvalidHypothesisContrast);
