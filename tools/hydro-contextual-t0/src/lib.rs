@@ -695,7 +695,8 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
             compute_attainment(input)
         }
 
-        "HC-T0-022-event-peak-magnitude-and-timing" => event_peak_metrics(input),
+        "HC-T0-022-event-peak-magnitude-and-timing"
+        | "HC-T0-027-event-peak-ties-earliest-index" => event_peak_metrics(input),
         "HC-T0-023-low-flow-log10-error" | "HC-T0-026-low-flow-log-zero-abstains" => {
             low_flow_log_metrics(input)
         }
