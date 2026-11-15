@@ -321,6 +321,8 @@ pub enum VerificationError {
     DuplicateParentRole,
     /// A surveillance receipt's class or report/no-report evidence does not match its claim.
     SurveillanceEvidenceMismatch,
+    /// An external traffic observation was presented as focal ownship position evidence.
+    ObservationRoleMismatch,
     /// Receipt graph contains a directed cycle.
     Cycle,
     /// A supplied receipt is not an ancestor of the declared root.
@@ -588,6 +590,11 @@ pub fn verify(
                 return Err(VerificationError::ParentNotQualified);
             }
             match edge.role {
+                ParentRole::PositionObservation
+                    if parent.observation_traffic_class.is_some() =>
+                {
+                    return Err(VerificationError::ObservationRoleMismatch);
+                }
                 ParentRole::SurveillanceObservation
                     if receipt.traffic_class.is_none()
                         || parent.observation_traffic_class != receipt.traffic_class =>
