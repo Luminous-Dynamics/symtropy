@@ -1,3 +1,6 @@
+// Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 //! Dry-run request admission for Symthaea structural analysis proposals.
 //!
 //! This module is intentionally not a solver runner. It has no process,
