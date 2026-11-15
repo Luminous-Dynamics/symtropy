@@ -8,6 +8,7 @@ const IDENTITY: EvidenceIdentity = EvidenceIdentity {
     time_scale_id: "SYNTHETIC-TIME-1",
     profile_id: "SYNTHETIC-PROFILE-1",
     frame_id: "SYNTHETIC-FRAME-1",
+    vertical_datum_id: "SYNTHETIC-DATUM-1",
 };
 
 fn evidence(class: TrafficClass) -> SurveillanceEvidence {
@@ -340,6 +341,73 @@ fn degrading_any_positive_pnt_state_cannot_improve_admissibility() {
     let mut degraded = valid_input();
     degraded.pnt_disposition = PntDisposition::Indeterminate;
     assert_eq!(compose(&degraded).decision, Decision::NotAssessable);
+}
+
+#[test]
+fn accepted_receipt_lineage_preserves_complete_owner_input_snapshot() {
+    let input = valid_input();
+    let result = compose(&input);
+    assert_eq!(result.source_snapshot, input);
+    assert_eq!(
+        result.source_snapshot.pnt_receipt_ref,
+        Some("synthetic-pnt-receipt")
+    );
+    assert_eq!(
+        result.source_snapshot.reachability_receipt_ref,
+        Some("synthetic-reachability-receipt")
+    );
+    assert_eq!(
+        result.source_snapshot.intent_receipt_ref,
+        Some("synthetic-intent-receipt")
+    );
+    assert_eq!(result.source_snapshot.surveillance.len(), 2);
+}
+
+#[test]
+fn rejected_composition_still_preserves_all_submitted_evidence_references() {
+    let mut input = valid_input();
+    input.pnt_disposition = PntDisposition::Stale;
+    let result = compose(&input);
+    assert_eq!(result.decision, Decision::NotAssessable);
+    assert_eq!(result.class_occupancy.len(), 0);
+    assert_eq!(result.source_snapshot, input);
+}
+
+#[test]
+fn vertical_datum_mismatch_blocks_composition() {
+    let mut input = valid_input();
+    input.surveillance[0].identity.vertical_datum_id = "OTHER-DATUM";
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::IdentityMismatch(IdentityOwner::Surveillance))
+    );
+}
+
+#[test]
+fn missing_vertical_datum_identity_is_not_admissible() {
+    let mut input = valid_input();
+    input.expected_identity.vertical_datum_id = "";
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::IncompleteIdentity(IdentityOwner::Expected))
+    );
+}
+
+#[test]
+fn duplicate_required_traffic_class_is_rejected() {
+    let mut input = valid_input();
+    input
+        .required_traffic_classes
+        .push(TrafficClass::NonCooperativeCrewed);
+    let result = compose(&input);
+    assert_eq!(
+        result.reason,
+        Some(Reason::DuplicateRequiredTrafficClass(
+            TrafficClass::NonCooperativeCrewed
+        ))
+    );
 }
 
 #[test]
