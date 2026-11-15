@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, env, fs, path::{Path, PathBuf}};
 
 const PROGRAMME:&str="WATER-MIXING-CONSTRAINED-IDENTIFICATION-001";
-const CASE_COUNT:usize=6;
+const CASE_COUNT:usize=8;
 const EVIDENCE_CEILING:&str="synthetic passive-kernel constrained-identification arithmetic only";
 type Matrix=Vec<Vec<f64>>;
 type Vector=Vec<f64>;
@@ -66,9 +66,25 @@ fn predict(x:&Matrix,h:&Vector)->Result<Vector,String>{
     if y.iter().any(|v|!v.is_finite()){return Err("prediction overflow".into());}
     Ok(y)
 }
-fn mse(actual:&Vector,predicted:&Vector)->Result<f64,String>{
-    if actual.len()!=predicted.len()||actual.is_empty(){return Err("MSE length mismatch or empty vector".into());}
-    Ok(actual.iter().zip(predicted).map(|(a,b)|(a-b).powi(2)).sum::<f64>()/actual.len() as f64)
+fn weighted_system(x:&Matrix,y:&Vector,weights:&Vector)->Result<(Matrix,Vector),String>{
+    if x.len()!=y.len()||x.len()!=weights.len()||x.is_empty(){return Err("weighted design dimensions invalid".into());}
+    let columns=x[0].len();
+    if x.iter().any(|r|r.len()!=columns){return Err("weighted design is not rectangular".into());}
+    let mut wx=Vec::with_capacity(x.len());
+    let mut wy=Vec::with_capacity(y.len());
+    for ((row,value),weight) in x.iter().zip(y).zip(weights){
+        if !weight.is_finite()||*weight<=0.0{return Err("sample weights must be positive finite".into());}
+        let scale=weight.sqrt();
+        wx.push(row.iter().map(|v|v*scale).collect());
+        wy.push(value*scale);
+    }
+    Ok((wx,wy))
+}
+fn weighted_mse(actual:&Vector,predicted:&Vector,weights:&Vector)->Result<f64,String>{
+    if actual.len()!=predicted.len()||actual.len()!=weights.len()||actual.is_empty(){return Err("weighted MSE length mismatch or empty vector".into());}
+    let total=weights.iter().sum::<f64>();
+    if !total.is_finite()||total<=0.0{return Err("weighted MSE total weight invalid".into());}
+    Ok(actual.iter().zip(predicted).zip(weights).map(|((a,b),w)|w*(a-b).powi(2)).sum::<f64>()/total)
 }
 fn solve_linear(mut a:Matrix,mut b:Vector,tol:f64)->Result<Vector,String>{
     let n=b.len();
@@ -184,8 +200,14 @@ fn group_gains(h:&Vector,groups:&[Vec<usize>])->Vector{
 }
 fn coefficients_min(h:&Vector)->f64{h.iter().copied().fold(f64::INFINITY,f64::min)}
 fn coefficient_rmse(a:&Vector,b:&Vector)->f64{(a.iter().zip(b).map(|(x,y)|(x-y).powi(2)).sum::<f64>()/a.len() as f64).sqrt()}
-fn evaluate_fit(x:&Matrix,y:&Vector,holdout_x:&Matrix,holdout_y:&Vector,h:&Vector)->Result<(f64,f64),String>{
-    Ok((mse(y,&predict(x,h)?)?,mse(holdout_y,&predict(holdout_x,h)?)?))
+fn evaluate_fit(
+    x:&Matrix,y:&Vector,weights:&Vector,
+    holdout_x:&Matrix,holdout_y:&Vector,holdout_weights:&Vector,h:&Vector
+)->Result<(f64,f64),String>{
+    Ok((
+        weighted_mse(y,&predict(x,h)?,weights)?,
+        weighted_mse(holdout_y,&predict(holdout_x,h)?,holdout_weights)?
+    ))
 }
 fn compute(case:&Value)->Result<Value,String>{
     let x_rows=array(case,"design_matrix")?;
@@ -194,10 +216,37 @@ fn compute(case:&Value)->Result<Value,String>{
     if p==0{return Ok(base("INVALID_INPUT","DESIGN_MATRIX_HAS_ZERO_COLUMNS"));}
     let x=matrix(case,"design_matrix",m,p)?;
     let y=vector(case,"observations",m)?;
+    if x.iter().flatten().any(|v|*v<0.0)||y.iter().any(|v|*v<0.0){
+        return Ok(base("INVALID_INPUT","PASSIVE_TRACER_DESIGN_AND_OBSERVATIONS_MUST_BE_NONNEGATIVE"));
+    }
+    let noise_contract=field(case,"observation_noise_contract")?.as_str().ok_or_else(||"observation_noise_contract must be text".to_owned())?;
+    if noise_contract!="independent_diagonal_variance"{
+        return Ok(base("REJECTED_CONTRACT","UNSUPPORTED_OR_UNDECLARED_OBSERVATION_COVARIANCE"));
+    }
+    let variance=vector(case,"observation_variance",m)?;
+    let weights=vector(case,"sample_weights",m)?;
+    if variance.iter().zip(&weights).any(|(v,w)|*v<=0.0||*w<=0.0){
+        return Ok(base("INVALID_INPUT","OBSERVATION_VARIANCE_AND_WEIGHTS_MUST_BE_POSITIVE"));
+    }
+    if variance.iter().zip(&weights).any(|(v,w)|(v*w-1.0).abs()>1.0e-8*(v*w).abs().max(1.0)){
+        return Ok(base("INVALID_INPUT","SAMPLE_WEIGHTS_MUST_BE_INVERSE_VARIANCE"));
+    }
     let hx_rows=array(case,"holdout_design_matrix")?;
     if hx_rows.is_empty(){return Ok(base("INVALID_INPUT","EMPTY_HOLDOUT_DESIGN"));}
     let hm=hx_rows.len();let holdout_x=matrix(case,"holdout_design_matrix",hm,p)?;
     let holdout_y=vector(case,"holdout_observations",hm)?;
+    if holdout_x.iter().flatten().any(|v|*v<0.0)||holdout_y.iter().any(|v|*v<0.0){
+        return Ok(base("INVALID_INPUT","PASSIVE_TRACER_HOLDOUT_MUST_BE_NONNEGATIVE"));
+    }
+    let holdout_variance=vector(case,"holdout_observation_variance",hm)?;
+    let holdout_weights=vector(case,"holdout_sample_weights",hm)?;
+    if holdout_variance.iter().zip(&holdout_weights).any(|(v,w)|*v<=0.0||*w<=0.0){
+        return Ok(base("INVALID_INPUT","HOLDOUT_VARIANCE_AND_WEIGHTS_MUST_BE_POSITIVE"));
+    }
+    if holdout_variance.iter().zip(&holdout_weights).any(|(v,w)|(v*w-1.0).abs()>1.0e-8*(v*w).abs().max(1.0)){
+        return Ok(base("INVALID_INPUT","HOLDOUT_WEIGHTS_MUST_BE_INVERSE_VARIANCE"));
+    }
+    let (weighted_x,weighted_y)=weighted_system(&x,&y,&weights)?;
     let truth=vector(case,"true_coefficients",p)?;
     if truth.iter().any(|v|*v<0.0){return Ok(base("INVALID_INPUT","TRUE_KERNEL_NEGATIVE"));}
     let groups_raw=array(case,"mass_groups")?;
@@ -214,17 +263,17 @@ fn compute(case:&Value)->Result<Value,String>{
     let solve_tol=number(case,"solver_tolerance")?;
     let max_iterations=usize_value(case,"maximum_iterations")?;
     if rank_tol<=0.0||rank_tol>=0.1||max_condition<=1.0||solve_tol<=0.0||max_iterations==0{return Ok(base("INVALID_INPUT","RANK_SOLVER_OR_ITERATION_THRESHOLD_INVALID"));}
-    let (rank,condition,_)=design_metrics(&x,rank_tol)?;
+    let (rank,condition,_)=design_metrics(&weighted_x,rank_tol)?;
     if rank<p{return Ok(json!({"identification_disposition":"UNIDENTIFIABLE","reason":"DESIGN_MATRIX_RANK_DEFICIENT","design_rank":rank,"design_condition_number":condition,"physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false}));}
     if condition.is_none_or(|v|v>max_condition){return Ok(json!({"identification_disposition":"ILL_CONDITIONED","reason":"DESIGN_MATRIX_CONDITION_EXCEEDS_LIMIT","design_rank":rank,"design_condition_number":condition,"physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false}));}
-    let xtx=gram(&x)?;let xty=transpose_multiply(&x,&y)?;
+    let xtx=gram(&weighted_x)?;let xty=transpose_multiply(&weighted_x,&weighted_y)?;
     let unconstrained=match solve_linear(xtx,xty,rank_tol*rank_tol){Ok(v)=>v,Err(_)=>return Ok(base("UNIDENTIFIABLE","UNCONSTRAINED_NORMAL_EQUATION_SINGULAR"))};
     let clipped=unconstrained.iter().map(|v|v.max(0.0)).collect::<Vector>();
-    let (constrained,iterations,converged)=constrained_fit(&x,&y,&groups,&targets,solve_tol,max_iterations)?;
+    let (constrained,iterations,converged)=constrained_fit(&weighted_x,&weighted_y,&groups,&targets,solve_tol,max_iterations)?;
     if !converged{return Ok(json!({"identification_disposition":"SOLVER_NOT_CONVERGED","reason":"PROJECTED_GRADIENT_DID_NOT_CONVERGE","design_rank":rank,"design_condition_number":condition,"solver_iterations":iterations,"solver_converged":false,"physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false}));}
-    let (u_train,u_hold)=evaluate_fit(&x,&y,&holdout_x,&holdout_y,&unconstrained)?;
-    let (c_train,c_hold)=evaluate_fit(&x,&y,&holdout_x,&holdout_y,&clipped)?;
-    let (n_train,n_hold)=evaluate_fit(&x,&y,&holdout_x,&holdout_y,&constrained)?;
+    let (u_train,u_hold)=evaluate_fit(&x,&y,&weights,&holdout_x,&holdout_y,&holdout_weights,&unconstrained)?;
+    let (c_train,c_hold)=evaluate_fit(&x,&y,&weights,&holdout_x,&holdout_y,&holdout_weights,&clipped)?;
+    let (n_train,n_hold)=evaluate_fit(&x,&y,&weights,&holdout_x,&holdout_y,&holdout_weights,&constrained)?;
     let ug=group_gains(&unconstrained,&groups);let cg=group_gains(&clipped,&groups);let ng=group_gains(&constrained,&groups);
     let coeff_tol=number(case,"constraint_tolerance")?;
     let constraint_ok=constrained.iter().all(|v|*v>=-coeff_tol)
@@ -234,6 +283,9 @@ fn compute(case:&Value)->Result<Value,String>{
     Ok(json!({
         "identification_disposition":state,"reason":null,
         "design_rank":rank,"design_condition_number":condition,
+        "observation_noise_contract":noise_contract,
+        "total_training_weight":weights.iter().sum::<f64>(),
+        "total_holdout_weight":holdout_weights.iter().sum::<f64>(),
         "unconstrained_coefficients":unconstrained,"clipped_coefficients":clipped,"constrained_coefficients":constrained,
         "unconstrained_training_mse":u_train,"clipped_training_mse":c_train,"constrained_training_mse":n_train,
         "unconstrained_holdout_mse":u_hold,"clipped_holdout_mse":c_hold,"constrained_holdout_mse":n_hold,
