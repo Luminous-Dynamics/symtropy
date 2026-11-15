@@ -846,6 +846,150 @@ mod tests {
         );
     }
 
+    fn reconciliation_event(outcome: ReconciliationOutcome) -> TransactionEventKind {
+        TransactionEventKind::ReconciliationResolved {
+            outcome,
+            primary_evidence_digest: format!("sha256:{}", "a".repeat(64)),
+            independent_evidence_digest: format!("sha256:{}", "b".repeat(64)),
+        }
+    }
+
+    #[test]
+    fn independent_reconciliation_closes_unknown_outcome_without_rearming_dispatch() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-timeout",
+                "carrier-01",
+                TransactionEventKind::ActuationTimeout
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-reconcile",
+                "independent-custodian-01",
+                reconciliation_event(ReconciliationOutcome::NoActionTaken)
+            ))
+            .unwrap(),
+            EventDisposition::Reconciled
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciledNoAction);
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::BlockedByState(PhysicalTransactionState::ReconciledNoAction)
+        );
+    }
+
+    #[test]
+    fn source_or_receiver_cannot_self_reconcile() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(
+            2,
+            "event-timeout",
+            "carrier-01",
+            TransactionEventKind::ActuationTimeout
+        ))
+        .unwrap();
+
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-reconcile",
+                "carrier-01",
+                reconciliation_event(ReconciliationOutcome::Returned)
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn reconciliation_requires_two_distinct_well_formed_evidence_digests() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(
+            2,
+            "event-timeout",
+            "carrier-01",
+            TransactionEventKind::ActuationTimeout
+        ))
+        .unwrap();
+        let invalid = TransactionEventKind::ReconciliationResolved {
+            outcome: ReconciliationOutcome::Quarantined,
+            primary_evidence_digest: format!("sha256:{}", "a".repeat(64)),
+            independent_evidence_digest: format!("sha256:{}", "a".repeat(64)),
+        };
+
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-reconcile",
+                "independent-custodian-01",
+                invalid
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn sensor_disagreement_after_dispatch_requires_reconciliation() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-sensor-disagreement",
+                "receiver-01",
+                TransactionEventKind::SensorDisagreement
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+
+    #[test]
+    fn sensor_disagreement_before_dispatch_enters_safe_hold() {
+        let mut tx = transaction();
+        authorize(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-sensor-disagreement",
+                "receiver-01",
+                TransactionEventKind::SensorDisagreement
+            ))
+            .unwrap(),
+            EventDisposition::SafeHold
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::SafeHold);
+    }
+
+    #[test]
+    fn sequence_overflow_cannot_reuse_the_maximum_sequence() {
+        let mut tx = transaction();
+        tx.last_sequence = u64::MAX;
+        assert_eq!(
+            tx.record_event(event(
+                u64::MAX,
+                "event-overflow",
+                "carrier-01",
+                TransactionEventKind::NetworkPartition
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+
     #[test]
     fn network_partition_after_release_requires_reconciliation() {
         let mut tx = transaction();
