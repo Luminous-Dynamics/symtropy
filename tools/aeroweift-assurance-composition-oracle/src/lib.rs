@@ -176,7 +176,7 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
     }
 
     if !has_reference(input.intent_receipt_ref) {
-        return not_assessable(Reason::MissingIntentReceipt);
+        return not_assessable(input, Reason::MissingIntentReceipt);
     }
 
     if !identity_is_complete(input.intent_identity) {
@@ -304,7 +304,7 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
             }
             SurveillanceDisposition::NoQualifiedCoverage
             | SurveillanceDisposition::UnqualifiedTrack => {
-                return not_assessable(Reason::SurveillanceNotQualified(traffic_class));
+                return not_assessable(input, Reason::SurveillanceNotQualified(traffic_class));
             }
         };
 
