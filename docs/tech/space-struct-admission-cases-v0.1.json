@@ -120,7 +120,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "4444444444444444444444444444444444444444444444444444444444444444",
         "backend_generation": "0.1.0",
-        "backend_digest": "8888888888888888888888888888888888888888888888888888888888888888"
+        "backend_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -150,7 +156,13 @@
         "expected_model_profile_digest": "4444444444444444444444444444444444444444444444444444444444444444",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "8888888888888888888888888888888888888888888888888888888888888888",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -198,7 +210,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "5555555555555555555555555555555555555555555555555555555555555555",
         "backend_generation": "0.1.0",
-        "backend_digest": "9999999999999999999999999999999999999999999999999999999999999999"
+        "backend_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -228,7 +246,13 @@
         "expected_model_profile_digest": "5555555555555555555555555555555555555555555555555555555555555555",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "9999999999999999999999999999999999999999999999999999999999999999",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -273,7 +297,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "6666666666666666666666666666666666666666666666666666666666666666",
         "backend_generation": "0.1.0",
-        "backend_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "backend_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -303,7 +333,13 @@
         "expected_model_profile_digest": "6666666666666666666666666666666666666666666666666666666666666666",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -350,7 +386,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "7777777777777777777777777777777777777777777777777777777777777777",
         "backend_generation": "0.1.0",
-        "backend_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "backend_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -380,7 +422,13 @@
         "expected_model_profile_digest": "7777777777777777777777777777777777777777777777777777777777777777",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -425,7 +473,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "8888888888888888888888888888888888888888888888888888888888888888",
         "backend_generation": "0.1.0",
-        "backend_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        "backend_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": false,
@@ -455,7 +509,13 @@
         "expected_model_profile_digest": "8888888888888888888888888888888888888888888888888888888888888888",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -503,7 +563,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "9999999999999999999999999999999999999999999999999999999999999999",
         "backend_generation": "0.1.0",
-        "backend_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        "backend_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -533,7 +599,13 @@
         "expected_model_profile_digest": "9999999999999999999999999999999999999999999999999999999999999999",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -579,7 +651,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "backend_generation": "0.1.0",
-        "backend_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        "backend_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -609,7 +687,13 @@
         "expected_model_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-        "qualified_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1"
+        "qualified_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -655,7 +739,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "backend_generation": "0.1.0",
-        "backend_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        "backend_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -685,7 +775,13 @@
         "expected_model_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -730,7 +826,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "backend_generation": "0.1.0",
-        "backend_digest": "0000000000000000000000000000000000000000000000000000000000000000"
+        "backend_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -760,7 +862,13 @@
         "expected_model_profile_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "0000000000000000000000000000000000000000000000000000000000000000",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     },
     {
@@ -805,7 +913,13 @@
         "model_profile_generation": "0.1.0",
         "model_profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "backend_generation": "0.1.0",
-        "backend_digest": "1111111111111111111111111111111111111111111111111111111111111111"
+        "backend_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
       },
       "context": {
         "backend_allowlisted": true,
@@ -835,7 +949,102 @@
         "expected_model_profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "expected_backend_generation": "0.1.0",
         "expected_backend_digest": "1111111111111111111111111111111111111111111111111111111111111111",
-        "qualified_model_profile_id": null
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
+      }
+    },
+    {
+      "case_id": "NEG-STALE-MISSION-001",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "MISSION_IDENTITY_MISMATCH"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS",
+          "HOOP_STRAIN",
+          "RADIAL_EXTENSION"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null,
+        "request_id": "REQ-POS-RING-SYNTHETIC-001",
+        "request_generation": "v1",
+        "request_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "backend_generation": "0.1.0",
+        "backend_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m0",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null
       }
     }
   ]
