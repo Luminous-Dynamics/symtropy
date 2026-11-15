@@ -255,8 +255,7 @@ pub fn evaluate_spatial_localization(
         let selected_neighbor_count = candidates.len();
         let selected_neighborhood_radius_m = scenario
             .nearest_neighbor_count
-            .map(|_| candidates.last().map(|candidate| candidate.0))
-            .flatten();
+            .and_then(|_| candidates.last().map(|candidate| candidate.0));
         let local: Vec<(f64, f64)> = candidates
             .iter()
             .map(|candidate| (candidate.1, candidate.2))
