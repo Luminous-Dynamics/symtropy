@@ -31,10 +31,10 @@ Reconciliation closes the *record*, not the physical transaction atomically. It 
 The `mfb-simulate` binary runs a reduced-order package drop into an open-top tote using the existing `symtropy-physics` engine:
 - 3D rigid-box proxy for the package;
 - static rigid-box tote base and walls derived from internal/external dimensions;
-- fixed 240 Hz timestep (960 steps over four seconds) with the physics crate's `deterministic-net` Q16.16 quantization feature;
+- fixed 480 Hz timestep (1,920 steps over four seconds) with the physics crate's `deterministic-net` Q16.16 quantization feature;
 - command tape and per-tick bitwise world snapshots;
 - independent same-host replay comparison;
-- final package envelope, containment and settling checks;
+- rotated package world-space envelope, containment, settling, numerical-invariant and maximum-contact-penetration checks (current gate: 5 mm);
 - custody state-machine completion only after the simulated placement and replay checks pass.
 
 Run it from the repository root:
@@ -54,6 +54,10 @@ This is an actual headless rigid-body simulation, but it is a **reduced-order st
 The exact-head workflow run [43768458267](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267) passed the 53-test Rust suite, Clippy, both fixture validators and the nominal L1 simulation. The L1 evidence artifact is `mfb-l1-evidence-c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1` (artifact ID `14183207787`), containing raw `result.json` and `environment.txt`.
 
 Observed nominal outputs: package centre `[-0.0024414, 0.0455627, -0.0003204] m`; final linear/angular speed `0`; same-host bitwise replay `true`; safe containment `true`; transaction `completed`; accepted `true`; non-finite bodies `0`; maximum contact penetration `0.0102563 m` (10.26 mm); rotation orthogonality error `3.33e-15`. The 10.26 mm penetration is a baseline to improve, not a high-fidelity contact claim. The code currently permits 40 mm in this demonstrator; issue [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469) tracks tighter contact/convergence validation.
+
+### Contact-depth refinement record
+
+The first 120 Hz L1 baseline measured 10.26 mm maximum contact penetration. Refining the same four-second episode to 240 Hz reduced it to 5.023 mm (approximately 51% lower) while preserving replay and placement acceptance. That narrowly missed the stricter 5 mm engineering target, so the current source advances to 480 Hz / 1,920 ticks and changes the hard L1 acceptance gate to 5 mm. Its exact-head result remains pending until the dedicated workflow completes. Do not substitute the earlier 40 mm permissive demonstrator threshold for this tighter gate.
 
 ## Tier-B free-fall convergence check
 
