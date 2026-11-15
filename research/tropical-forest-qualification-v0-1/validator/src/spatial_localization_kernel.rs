@@ -512,7 +512,11 @@ mod tests {
         assert_eq!(covered, 90);
         assert_eq!(uncovered, 10);
         assert!(result.predictions[..90].iter().all(|prediction| prediction.covered == Some(true)));
-        assert!(result.predictions[90..].iter().all(|prediction| prediction.covered == Some(false)));
+        assert!(
+            result.predictions[90..]
+                .iter()
+                .all(|prediction| prediction.covered == Some(false))
+        );
     }
 
     #[test]
