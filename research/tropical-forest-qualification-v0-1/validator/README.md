@@ -37,6 +37,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-observation-admission-contract-synthetic-v0.1.json
 
+# Block-aware split conformal calibration (spatial/campaign group units)
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-block-conformal-synthetic-v0.1.json
+
 # Binary event Brier / reliability scoring (disturbance event probabilities)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-binary-event-brier-synthetic-v0.1.json
@@ -59,7 +63,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -99,6 +103,14 @@ Twenty kernel unit tests cover identity, containment, partial and zero overlap, 
 ## Decision-value corpus
 
 The public forest decision-value corpus defines twenty case families and checks two worked synthetic examples. The arithmetic oracle verifies that high information can have zero decision value when the loss matrix is state-invariant, and independently recomputes the positive-EVSI example (gross 8.8 synthetic loss units; net 5.8 after cost). This is not execution of the existing EVSI policy kernel or a field-survey recommendation.
+
+## Block-aware split conformal calibration
+
+The `conformal_kernel` calibrates at a declared spatial/campaign block unit using the maximum absolute residual within each equal-sized calibration block. It computes the finite-sample split-conformal rank `ceil((n+1)(1-alpha))`, returning an unbounded radius when the requested rank exceeds the number of available blocks. It compares this with a naïve pooled observation-level residual radius and reports observation coverage separately from whole-block coverage.
+
+The nine-calibration-block synthetic corpus returns `PASS_SYNTHETIC_BLOCK_CONFORMAL`: pooled radius 1 / width 2 versus block-maximum radius 9 / width 18. Its held-out blocks yield 90% pooled point coverage, 93.33% block-method point coverage, but only one of three entire blocks is fully covered at the block radius. One shifted negative-control block is reported separately with zero whole-block coverage. This is an intentionally small dependence example, not forest calibration.
+
+The kernel checks unique training/calibration/test identities, disjoint groups, equal block sizes, finite residuals and declared test-regime labels. The receipt labels exchangeability `DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED`; group separation is not proof of exchangeability. Thirteen kernel tests and three library corpus/mutation tests cover finite-sample ranks, insufficient calibration, leakage, regime mutation and coverage oracles. See [FOREST_BLOCK_CONFORMAL_BENCHMARK_V0_1.md](../FOREST_BLOCK_CONFORMAL_BENCHMARK_V0_1.md) and [#5285](https://github.com/Luminous-Dynamics/symtropy/issues/5285).
 
 ## Binary event Brier scoring
 
@@ -143,6 +155,7 @@ The public forest model-set corpus contains 30 development descriptors (three va
 | Known-truth model-set diagnostics | `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS` | Five public toy counterexamples distinguish structural disagreement, common omission, history-fit failure and matched control; no ecological detector is claimed |
 | Probabilistic forecast scoring | `PASS_SYNTHETIC_FORECAST_SCORING` | Six cases check empirical CRPS, paired baseline skill, central interval coverage/width and explicit abstention coverage; no empirical calibration is claimed |
 | Binary event Brier scoring | `PASS_SYNTHETIC_BRIER` | Six cases check Bernoulli Brier scores, paired baseline skill, five reliability bins and explicit abstention coverage; no event calibration is claimed |
+| Block-aware conformal calibration | `PASS_SYNTHETIC_BLOCK_CONFORMAL` | Nine calibration blocks compare pooled and block-maximum radii, report point and whole-block coverage separately, and expose a shifted negative control; exchangeability remains unverified |
 | Decision value | `MANIFEST_VALID` | Twenty public development cases, the zero-EVSI counterexample, and the positive-EVSI worked arithmetic are coherent; the existing EVSI policy kernel is not executed by this validator |
 
 ## Dataset candidate register
@@ -172,4 +185,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 117 Rust unit tests: 44 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel and 20 in the probabilistic/event-forecast kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 133 Rust unit tests: 47 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 20 in the probabilistic/event-forecast kernel and 13 in the block-conformal kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
