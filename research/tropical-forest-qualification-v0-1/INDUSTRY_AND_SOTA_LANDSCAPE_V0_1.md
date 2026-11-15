@@ -236,3 +236,25 @@ Do not collapse these into one weighted score. A major rights failure, invalid a
 ## 8. Claim ceiling
 
 This is a desk-research comparison and tournament plan. It does not mean Luminous has reproduced any competitor, matched any competitor's data product, obtained any data licence, run any ecological hindcast, or demonstrated a performance advantage.
+
+
+## November 2026 research refresh: digital-twin integration and inference frontiers
+
+A 15 October 2026 review defines Digital Twin Forestry as an emerging informatics framework that continuously connects multisensor Earth-observation data with ecosystem models through data assimilation and uncertainty-aware forecasting. It also highlights retrieval uncertainty, cloud/optical limitations, SAR saturation in dense forest, sparse lidar footprints, and scale mismatch between metre/sub-metre observations and kilometre-scale model grids. This supports the need for explicit observation operators and uncertainty-preserving support conversion; it does not establish that any existing product is a complete validated forest twin: https://link.springer.com/article/10.1007/s44564-026-00029-8
+
+The 2026 forest computer-vision review (190 studies) gives two useful warnings for an honest tournament: it reports that only 23% of reviewed studies used consistent train/test splits or confidence intervals, and reports a 20–45% cross-biome performance degradation range in the reviewed studies. Its pooled architecture accuracy figures must not be compared directly with biomass, recruitment or ecological forecast scores; task labels, data and transfer regimes differ: https://link.springer.com/article/10.1007/s10531-026-03412-x
+
+The LPJ-GUESS SEC challenge remains a concrete process-fidelity benchmark. In the BCI harvest experiment, the standard canopy representation did not sustain a recruitment layer, PPA could not maintain one to 60 years, and SEC maintained one beyond 60 years under harvest intensities as low as 20%. The same study reports average runtime factors of 1.54× for PPA and 2.26× for SEC relative to the standard LPD canopy scheme. Reproduce these outcomes and the compute profile with matched inputs before claiming a better canopy representation: https://gmd.copernicus.org/articles/19/3595/2026/
+
+### Current uncertainty-method tournament additions
+
+The conformal comparison must distinguish prediction-set calibration, calibration-sample variability, and evaluation-sample uncertainty. They are not interchangeable.
+
+- Ramos, Graziadei & Cabezas (2026), *Conformal Prediction via Transported Beta Laws*, PMLR 329, studies the calibration-conditional coverage distribution. Under continuous iid calibration scores the reference law is Beta(k, n+1-k); test-side shift and clustered calibration alter that law: https://proceedings.mlr.press/v329/r-ramos26a.html
+- Zhai, Cheng & Wu (2026), *Conformal Coverage of Time Series: Validity and Inference*, studies realized coverage under temporal dependence, including block-based standard errors and long-memory cases: https://arxiv.org/abs/2609.33868
+- Liu, Dobriban & Orabona (2026), *Online Conformal Prediction via Universal Portfolio Algorithms*, PMLR 306, develops parameter-free online conformal prediction with finite-time coverage / interval-size analysis: https://proceedings.mlr.press/v306/liu26y.html
+- The CRAN release of spconform 0.1.2 (19 October 2026) supplies an active spatial comparator for point-referenced and areal data, with local weighting and spatial diagnostics: https://cran.r-project.org/web/packages/spconform/
+
+The tropical programme now adds [#5319 — realized block-coverage inference](https://github.com/Luminous-Dynamics/symtropy/issues/5319) to quantify finite test-block uncertainty. Its first Hoeffding implementation is a conservative independent-block baseline only; it does not replace the dependent-data methods above.
+
+**Competitive implication:** Luminous should not claim to beat LPJ-GUESS, FATES, SpeciesNet, a spatial conformal package, or a satellite forest product by one aggregate score. The testable differentiation is an evidence-qualified composition layer: source and rights admission, typed observation operators, support-aware aggregation, dependence-aware evidence fusion, model-set criticism, forecast calibration with explicit shift limits, and decision-value measurement. Any claim of superiority must be task-specific, matched on support and compute, and independently evaluated.
