@@ -640,7 +640,7 @@ pub fn parse_fajsp(
         ));
     }
 
-    let operation_count = parse_usize(header_tokens.get(0), header.number, "operation count")?;
+    let operation_count = parse_usize(header_tokens.first(), header.number, "operation count")?;
     let precedence_count = parse_usize(header_tokens.get(1), header.number, "precedence count")?;
     let machine_count = parse_usize(header_tokens.get(2), header.number, "machine count")?;
     if operation_count == 0 {
@@ -689,7 +689,7 @@ pub fn parse_fajsp(
                 "FAJSP precedence record must contain before, after, job",
             ));
         }
-        let before = parse_usize(tokens.get(0), line.number, "precedence before-operation")?;
+        let before = parse_usize(tokens.first(), line.number, "precedence before-operation")?;
         let after = parse_usize(tokens.get(1), line.number, "precedence after-operation")?;
         let job_id = parse_usize(tokens.get(2), line.number, "precedence job identifier")?;
         job_ids.insert(job_id);
