@@ -100,6 +100,9 @@ jobs:
         components: clippy, rustfmt
 
 
+    - name: Check Formatting
+      run: cargo fmt --manifest-path tools/factory-matched-routes/Cargo.toml -- --check
+
     - name: Run Clippy
       run: cargo clippy --manifest-path tools/factory-matched-routes/Cargo.toml --all-targets -- -D warnings
 
