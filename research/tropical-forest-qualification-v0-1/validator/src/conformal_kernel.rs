@@ -297,8 +297,8 @@ pub fn evaluate_block_conformal(
         )?;
         pooled_observation_covered += pooled_covered;
         block_observation_covered += block_covered;
-        pooled_fully_covered_blocks += usize::from(pooled_full);
-        block_fully_covered_blocks += usize::from(block_full);
+        pooled_fully_covered_blocks += if pooled_full { 1 } else { 0 };
+        block_fully_covered_blocks += if block_full { 1 } else { 0 };
         test_observation_count += block.observations.len();
         let is_shifted = block.regime == "KNOWN_SHIFT_NEGATIVE_CONTROL";
         if is_shifted {
