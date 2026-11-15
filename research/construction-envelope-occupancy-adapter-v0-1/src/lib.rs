@@ -24,7 +24,10 @@ pub enum ProjectionError {
     UnexpectedPrimitive(String),
     SliceNotInReport,
     InvalidSliceInterval,
-    InvalidBounds { role: &'static str, axis: usize },
+    InvalidBounds {
+        role: &'static str,
+        axis: usize,
+    },
     OuterBoundDoesNotContain {
         outer: &'static str,
         inner: &'static str,
@@ -171,10 +174,7 @@ pub fn project_slice(
         reservation,
     };
 
-    Ok(ProjectedOccupancy {
-        occupancy,
-        lineage,
-    })
+    Ok(ProjectedOccupancy { occupancy, lineage })
 }
 
 fn validate_context(context: &Context) -> Result<(), ProjectionError> {
@@ -183,21 +183,39 @@ fn validate_context(context: &Context) -> Result<(), ProjectionError> {
         ("site_epoch", context.site_epoch.as_str()),
         ("frame_id", context.frame_id.as_str()),
         ("clock_domain_id", context.clock_domain_id.as_str()),
-        ("design_revision_sha256", context.design_revision_sha256.as_str()),
+        (
+            "design_revision_sha256",
+            context.design_revision_sha256.as_str(),
+        ),
         ("primitive_set_ref", context.primitive_set_ref.as_str()),
         ("calibration_ref", context.calibration_ref.as_str()),
-        ("controller_profile_ref", context.controller_profile_ref.as_str()),
+        (
+            "controller_profile_ref",
+            context.controller_profile_ref.as_str(),
+        ),
     ] {
         require_non_empty(field, value)?;
     }
 
     for (field, digest) in [
-        ("platform_config_sha256", context.platform_config_sha256.as_str()),
+        (
+            "platform_config_sha256",
+            context.platform_config_sha256.as_str(),
+        ),
         ("tool_config_sha256", context.tool_config_sha256.as_str()),
-        ("payload_config_sha256", context.payload_config_sha256.as_str()),
-        ("collision_model_sha256", context.collision_model_sha256.as_str()),
+        (
+            "payload_config_sha256",
+            context.payload_config_sha256.as_str(),
+        ),
+        (
+            "collision_model_sha256",
+            context.collision_model_sha256.as_str(),
+        ),
         ("transform_sha256", context.transform_sha256.as_str()),
-        ("design_revision_sha256", context.design_revision_sha256.as_str()),
+        (
+            "design_revision_sha256",
+            context.design_revision_sha256.as_str(),
+        ),
         (
             "trajectory_profile_sha256",
             context.trajectory_profile_sha256.as_str(),
@@ -209,9 +227,7 @@ fn validate_context(context: &Context) -> Result<(), ProjectionError> {
     }
 
     if context.expected_primitive_ids.is_empty() {
-        return Err(ProjectionError::EmptyField(
-            "expected_primitive_ids",
-        ));
+        return Err(ProjectionError::EmptyField("expected_primitive_ids"));
     }
 
     let mut seen = std::collections::BTreeSet::new();
@@ -259,10 +275,22 @@ fn validate_evidence(
         ("path_deviation_evidence", evidence.path_deviation.as_str()),
         ("localization_evidence", evidence.localization.as_str()),
         ("tracking_evidence", evidence.tracking.as_str()),
-        ("model_uncertainty_evidence", evidence.model_uncertainty.as_str()),
-        ("numerical_enclosure_evidence", evidence.numerical_enclosure.as_str()),
-        ("stopping_reachability_evidence", evidence.stopping_reachability.as_str()),
-        ("policy_clearance_evidence", evidence.policy_clearance.as_str()),
+        (
+            "model_uncertainty_evidence",
+            evidence.model_uncertainty.as_str(),
+        ),
+        (
+            "numerical_enclosure_evidence",
+            evidence.numerical_enclosure.as_str(),
+        ),
+        (
+            "stopping_reachability_evidence",
+            evidence.stopping_reachability.as_str(),
+        ),
+        (
+            "policy_clearance_evidence",
+            evidence.policy_clearance.as_str(),
+        ),
     ] {
         require_non_empty(field, value)?;
     }
