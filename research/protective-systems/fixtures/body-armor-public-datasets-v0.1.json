@@ -43,7 +43,8 @@
             "meaning": "1 = perforated; 0 = stopped"
           }
         ],
-        "additional_file": "README text file"
+        "additional_file": "README text file",
+        "panel_identity": "not declared in catalog metadata; must be checked against archive README and CSV contents before attempting panel-wise validation"
       },
       "associated_method_reference": {
         "title": "Analysis of Three Different Regression Models to Estimate the Ballistic Performance of New and Environmentally Conditioned Body Armor",
@@ -53,7 +54,8 @@
           "logistic response model",
           "probit response model",
           "complementary log-log response model"
-        ]
+        ],
+        "panel_validation_method": "leave-one-panel-out cross-validation: fit on n-1 panels, test on the held-out panel, repeat for each panel (NISTIR 7760 section 3.1.5)"
       },
       "intended_benchmark_use": [
         "historical reproduction of the NISTIR 7760 statistical analysis",
@@ -64,7 +66,8 @@
         "Only six armour-system CSV files are declared.",
         "The CSV schema contains velocity and binary perforation outcome; it does not provide material/process descriptors suitable for architecture-level transfer claims.",
         "The data are historical and tied to the NIJ 0101.06 context.",
-        "The source is not an NIJ Compliant Products List and the dataset is not a product conformity assessment."
+        "The source is not an NIJ Compliant Products List and the dataset is not a product conformity assessment.",
+        "Catalog metadata declares velocity and binary perforation outcome columns but does not establish that panel identity is retained in the downloadable CSVs; panel-wise cross-validation may therefore be impossible from the released archive."
       ],
       "ingestion_state": "METADATA_VERIFIED_ARCHIVE_NOT_YET_INGESTED",
       "evidence_class": "historical_experimental_data"
