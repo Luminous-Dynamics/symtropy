@@ -107,7 +107,7 @@ All quantities in the positive control are invented solely to exercise arithmeti
 3. Feedstock mass ledger closure with a declared tolerance and uncertainty basis.
 4. Separate reagent inventory closure; no hidden makeup, purge, residue binding or ending inventory.
 5. Species identity is immutable through observation → capture → purification → product mapping.
-6. O2 product requires a quantitative species-specific measurement, exact calibration identity/scope, calibration validity at observation time, uncertainty within one-third of the declared decision margin, independent sampling-recovery check, cross-sensitivity pass, interval identity and raw trace.
+6. O2 product requires a quantitative species-specific measurement, exact calibration identity/scope, calibration validity at observation time (including actual calendar/time ranges), uncertainty within one-third of the declared decision margin, independent sampling-recovery check, cross-sensitivity pass, interval identity and raw trace.
 7. Complete, non-overlapping grid-side meter coverage before computing system energy intensity.
 8. Coproduct credits require a product acceptance and receiving-process identity.
 9. Comparison requires the same feedstock strata, accepted product contract and energy boundary.
