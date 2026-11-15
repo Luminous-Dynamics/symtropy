@@ -277,7 +277,6 @@
     {
       "scenario_id": "wind_restored_rudder_fault_remains",
       "trigger_component_ids": [
-        "wind_sensor",
         "rudder_feedback"
       ],
       "directly_invalidated_capability_ids": [
