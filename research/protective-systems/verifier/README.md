@@ -97,3 +97,26 @@ Its positive result means only that the qualitative registry and synthetic
 decision-boundary corpus satisfy their declared v0.1 structure and rules. It is
 not a threat forecast, a physical protection qualification or a recommendation
 for a specific real-world installation.
+
+
+## Defensive resilience evidence bridge
+
+The `protective-resilience-bridge` binary validates six synthetic conformance
+cases connecting the threat portfolio to the existing service-cascade,
+cross-scale resilience, recovery-quality, robust-decision, value-of-information
+and measurement owners.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge
+```
+
+The gate checks owner references, hazard-family references, frozen case
+semantics, separate service/buffer recovery, single-credit shared benefits,
+non-compensatory human-safety floors, null service benefit from observations
+that do not change a decision, and abstention when event frequency is unknown.
+Its digest is a canonical JSON-fixture digest, not a physical-evidence receipt.
+The positive result is synthetic contract conformance only.
