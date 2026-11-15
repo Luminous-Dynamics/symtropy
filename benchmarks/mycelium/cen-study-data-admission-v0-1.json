@@ -1,0 +1,57 @@
+{
+  "schema_version": "myco.source-admission.v0.1",
+  "source_id": "CEN-WASCHK-2026",
+  "title": "Common endophyte network resource-exchange study",
+  "publication": {
+    "citation": "Waschk et al., Resource exchange through common endophyte networks formed by non-mycorrhizal fungi, Scientific Reports, 8 June 2026",
+    "doi": "10.1038/s41598-026-56653-9",
+    "url": "https://doi.org/10.1038/s41598-026-56653-9",
+    "publication_license": "CC BY 4.0",
+    "publication_license_is_not_dataset_license": true
+  },
+  "code_and_data": {
+    "repository_url": "https://gitlab.com/fungalecology/cen",
+    "repository_revision": null,
+    "exact_archive_sha256": null,
+    "data_files_inventory": [],
+    "data_license": "unverified",
+    "code_license": "unverified",
+    "redistribution_status": "not_authorized_until_independently_verified",
+    "downloaded": false,
+    "ingested": false
+  },
+  "study_profile": {
+    "host_species": [
+      "Arabidopsis thaliana"
+    ],
+    "fungal_species": [
+      "Trichoderma viride",
+      "Mucor hiemalis",
+      "Fusarium temperatum"
+    ],
+    "system": "controlled triple-compartment Petri dish / common endophyte network",
+    "treatment_notes": "isotope-labelled nutrient / carbon assays under study-specific compartment conditions",
+    "evidence_class": "published controlled experiment"
+  },
+  "admission_gaps": [
+    "verify exact GitLab revision and archive file inventory",
+    "verify data and script licensing separately from article licence",
+    "verify isotope label identity, source compartment and assay units for every raw file",
+    "preserve replicate, treatment, timepoint and destructive-sampling identity",
+    "record damaged or excluded samples and the exact endpoint affected",
+    "map all hypha-permissive / hypha-exclusion / plant-presence / isotope-control arms",
+    "retain missing donorless and isotope controls as design limitations rather than imputing them",
+    "assess the reported D2O abiotic-transfer signal as a competing explanation",
+    "do not merge 13C and 15N into a common scalar exchange measure",
+    "distinguish direct fungal transfer, microbial mediation, diffusion and contamination hypotheses"
+  ],
+  "reproduction_requirements": [
+    "reproduce one paper figure or table from the exact admitted data and scripts",
+    "report each isotope and compartment separately",
+    "run a control completeness audit before causal transfer attribution",
+    "preserve per-replicate data and uncertainty; do not only transcribe treatment means",
+    "state where the experiment cannot identify direct hyphal-mediated transfer",
+    "do not infer universal transfer coefficients or field-scale rates"
+  ],
+  "claim_ceiling": "The paper is a controlled study involving the named host and non-mycorrhizal fungal isolates. Its isotope findings do not by themselves establish general endophyte network transfer, direct fungal causation, field ecosystem rates, or a universal parameter. No source bytes have been admitted by this manifest."
+}
