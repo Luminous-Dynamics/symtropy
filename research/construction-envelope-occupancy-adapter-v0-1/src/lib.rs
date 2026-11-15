@@ -286,7 +286,7 @@ fn validate_slice_bounds(slice: &EnvelopeSlice) -> Result<(), ProjectionError> {
             inner: "stopping_outer",
         });
     }
-    if slice.radius_mm == 0 {
+    if slice.radius_mm <= 0 {
         return Err(ProjectionError::EmptyField("positive primitive radius"));
     }
     Ok(())
@@ -370,17 +370,41 @@ mod tests {
             primitive_id: "tool".into(),
             start_ms: 10,
             end_ms: 40,
-            from_mm: Point3Mm { x: 100, y: 200, z: 300 },
-            to_mm: Point3Mm { x: 200, y: 200, z: 300 },
+            from_mm: Point3Mm {
+                x: 100,
+                y: 200,
+                z: 300,
+            },
+            to_mm: Point3Mm {
+                x: 200,
+                y: 200,
+                z: 300,
+            },
             radius_mm: 10,
             margins: MarginsMm {
                 path_deviation: AxisMm { x: 1, y: 2, z: 3 },
                 localization: AxisMm { x: 4, y: 5, z: 6 },
                 tracking: AxisMm { x: 7, y: 8, z: 9 },
-                model_uncertainty: AxisMm { x: 10, y: 11, z: 12 },
-                numerical_enclosure: AxisMm { x: 13, y: 14, z: 15 },
-                stopping_reachability: AxisMm { x: 16, y: 17, z: 18 },
-                policy_clearance: AxisMm { x: 19, y: 20, z: 21 },
+                model_uncertainty: AxisMm {
+                    x: 10,
+                    y: 11,
+                    z: 12,
+                },
+                numerical_enclosure: AxisMm {
+                    x: 13,
+                    y: 14,
+                    z: 15,
+                },
+                stopping_reachability: AxisMm {
+                    x: 16,
+                    y: 17,
+                    z: 18,
+                },
+                policy_clearance: AxisMm {
+                    x: 19,
+                    y: 20,
+                    z: 21,
+                },
             },
             evidence: EvidenceRefs {
                 path_deviation: "evidence://path-deviation".into(),
@@ -456,7 +480,10 @@ mod tests {
         assert_eq!(result.occupancy.uncertainty_margin_mm, [0, 0, 0]);
         assert_eq!(result.occupancy.clearance_margin_mm, [0, 0, 0]);
         assert_eq!(result.occupancy.reservation, result.lineage.reservation);
-        assert_eq!(result.lineage.source_report_canonical_bytes, source.canonical_bytes());
+        assert_eq!(
+            result.lineage.source_report_canonical_bytes,
+            source.canonical_bytes()
+        );
         assert_eq!(result.lineage.source_context, source.context);
         assert_eq!(result.lineage.source_slice, source.slices[0]);
         assert_eq!(result.lineage.site_binding, result.occupancy.binding);
@@ -466,8 +493,14 @@ mod tests {
     fn preserves_every_margin_channel_and_evidence_reference() {
         let source = report();
         let result = project(&source).unwrap();
-        assert_eq!(result.lineage.source_slice.margins, source.slices[0].margins);
-        assert_eq!(result.lineage.source_slice.evidence, source.slices[0].evidence);
+        assert_eq!(
+            result.lineage.source_slice.margins,
+            source.slices[0].margins
+        );
+        assert_eq!(
+            result.lineage.source_slice.evidence,
+            source.slices[0].evidence
+        );
     }
 
     #[test]
