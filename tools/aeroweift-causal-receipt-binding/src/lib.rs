@@ -532,8 +532,7 @@ pub fn verify(
         } else if receipt.traffic_class.is_some() {
             return Err(VerificationError::SurveillanceEvidenceMismatch);
         }
-        if receipt.stage != Stage::SourceObservation
-            && receipt.observation_traffic_class.is_some()
+        if receipt.stage != Stage::SourceObservation && receipt.observation_traffic_class.is_some()
         {
             return Err(VerificationError::SurveillanceEvidenceMismatch);
         }
