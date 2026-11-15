@@ -8,7 +8,21 @@
     "analysis_script_setup_doi": "10.5281/zenodo.14415142",
     "doi_discrepancy_status": "UNRESOLVED",
     "repository": "https://github.com/teatree1212/DBEN_Eckes_Shephard_et_al",
-    "repository_license": "Apache-2.0 for repository code only; not the separate Zenodo data archive"
+    "repository_license": "Apache-2.0 for repository code only; not the separate Zenodo data archive",
+    "code_archive": {
+      "doi": "10.5281/zenodo.15870478",
+      "record_url": "https://zenodo.org/records/15870478",
+      "version": "v1.0.0",
+      "published": "2025-07-12",
+      "archive_name": "teatree1212/DBEN_Eckes_Shephard_et_al-v1.0.0.zip",
+      "published_md5": "8a4d79b4a94dc58a67e36d7e7100cee1",
+      "archive_size_displayed": "89.9 kB",
+      "github_tag": "https://github.com/teatree1212/DBEN_Eckes_Shephard_et_al/tree/v1.0.0",
+      "license_record_field": "NOT_POPULATED; source repository LICENSE Apache-2.0"
+    },
+    "dataset_record_doi": "10.5281/zenodo.14415143",
+    "rmd_setup_doi": "10.5281/zenodo.14415142",
+    "rmd_setup_doi_status": "UNRESOLVED_REFERENCE_IN_PUBLISHED_V1_0_0_SCRIPT; not shown by targeted Zenodo lookup; do not treat as substitute for dataset record"
   },
   "source_files": [
     {
@@ -28,7 +42,11 @@
       "blob_sha": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64"
     }
   ],
-  "sites": ["FIN", "BIA", "BCI"],
+  "sites": [
+    "FIN",
+    "BIA",
+    "BCI"
+  ],
   "model_helpers": [
     "JULES-RED",
     "FATES",
@@ -41,15 +59,96 @@
     "EDv3"
   ],
   "protocol_run_mapping_p0_to_p7": {
-    "JULES-RED": ["1", "1", "2", "3", "4", "5", "6", "7"],
-    "FATES": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7"],
-    "ORCHIDEE": ["P0", "P0", "P0", "P0", "P0", "P0", "P0", "P0"],
-    "LPJ-GUESS": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7"],
-    "CABLE-POP": ["0", "1", "2", "3", "4", "5", "6", "7"],
-    "BiomeEP": ["P0", "P0", "PS1", "PS2", "PS3", "PS4", "PS5", "PS6"],
-    "BiomeE-Standalone": ["00", "00", "01", "02", "04", "08", "20", "40"],
-    "SEIB-DGVM": ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7"],
-    "EDv3": ["P0", "1", "2", "3", "4", "5", "6", "7"]
+    "JULES-RED": [
+      "1",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "FATES": [
+      "P0",
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7"
+    ],
+    "ORCHIDEE": [
+      "P0",
+      "P0",
+      "P0",
+      "P0",
+      "P0",
+      "P0",
+      "P0",
+      "P0"
+    ],
+    "LPJ-GUESS": [
+      "P0",
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7"
+    ],
+    "CABLE-POP": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7"
+    ],
+    "BiomeEP": [
+      "P0",
+      "P0",
+      "PS1",
+      "PS2",
+      "PS3",
+      "PS4",
+      "PS5",
+      "PS6"
+    ],
+    "BiomeE-Standalone": [
+      "00",
+      "00",
+      "01",
+      "02",
+      "04",
+      "08",
+      "20",
+      "40"
+    ],
+    "SEIB-DGVM": [
+      "P0",
+      "P1",
+      "P2",
+      "P3",
+      "P4",
+      "P5",
+      "P6",
+      "P7"
+    ],
+    "EDv3": [
+      "P0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7"
+    ]
   },
   "forcing_identifiers_observed_in_helpers": {
     "FATES": "cru_jra2.1",
@@ -64,112 +163,385 @@
     "warning": "Identifier strings are captured as source-code configuration. Verify the actual forcing files / checksums and temporal alignment; similar labels do not prove identical forcing."
   },
   "format_quantities": [
-    {"id":"cveg","meaning":"vegetation carbon mass by PFT","format_unit":"kgC m-2"},
-    {"id":"cwood","meaning":"wood carbon mass by PFT","format_unit":"kgC m-2"},
-    {"id":"AGcwood","meaning":"aboveground woody biomass","format_unit":"kgC m-2"},
-    {"id":"AGcwood_size","meaning":"aboveground woody carbon by size class","format_unit":"kgC m-2"},
-    {"id":"AGB","meaning":"aboveground total biomass","format_unit":"kgC m-2"},
-    {"id":"cwood_size","meaning":"wood carbon mass by size class","format_unit":"kgC m-2"},
-    {"id":"nstem_size","meaning":"stem number by size class","format_unit":"count ha-1"},
-    {"id":"stemmort_rate","meaning":"stem mortality rate by size class","format_unit":"% yr-1"},
-    {"id":"growth_rate","meaning":"woody biomass growth rate","format_unit":"% yr-1"},
-    {"id":"lai","meaning":"leaf area index","format_unit":"m2 m-2"},
-    {"id":"CA","meaning":"crown area","format_unit":"m2 ha-1"},
-    {"id":"BA","meaning":"basal area","format_unit":"m2 ha-1"},
-    {"id":"height","meaning":"mean PFT height in the 95th height percentile","format_unit":"m"},
-    {"id":"WBgrowth","meaning":"woody biomass growth","format_unit":"kgC m-2 yr-1"},
-    {"id":"BAgrowth","meaning":"basal area growth","format_unit":"m2 ha-1 yr-1"},
-    {"id":"cmort","meaning":"wood carbon mass lost by mortality or other turnover processes","format_unit":"kgC m-2 s-1"},
-    {"id":"cmort_size","meaning":"wood carbon mass lost by mortality or other turnover processes by size class","format_unit":"kgC m-2 s-1"},
-    {"id":"cdstb_size","meaning":"disturbance carbon loss by size class","format_unit":"kgC m-2 s-1"},
-    {"id":"cmort_rate","meaning":"wood carbon loss rate by size class","format_unit":"% yr-1"},
-    {"id":"stemmort","meaning":"stem-number loss by mortality or other turnover processes","format_unit":"count ha-1 yr-1"},
-    {"id":"stemmort_size","meaning":"stem-number loss by mortality or other turnover processes by size class","format_unit":"count ha-1 yr-1"},
-    {"id":"gpp","meaning":"gross primary production","format_unit":"kgC m-2 yr-1"},
-    {"id":"npp","meaning":"net primary production","format_unit":"kgC m-2 yr-1"},
-    {"id":"nbp","meaning":"net biospheric production","format_unit":"kgC m-2 yr-1"}
+    {
+      "id": "cveg",
+      "meaning": "vegetation carbon mass by PFT",
+      "format_unit": "kgC m-2"
+    },
+    {
+      "id": "cwood",
+      "meaning": "wood carbon mass by PFT",
+      "format_unit": "kgC m-2"
+    },
+    {
+      "id": "AGcwood",
+      "meaning": "aboveground woody biomass",
+      "format_unit": "kgC m-2"
+    },
+    {
+      "id": "AGcwood_size",
+      "meaning": "aboveground woody carbon by size class",
+      "format_unit": "kgC m-2"
+    },
+    {
+      "id": "AGB",
+      "meaning": "aboveground total biomass",
+      "format_unit": "kgC m-2"
+    },
+    {
+      "id": "cwood_size",
+      "meaning": "wood carbon mass by size class",
+      "format_unit": "kgC m-2"
+    },
+    {
+      "id": "nstem_size",
+      "meaning": "stem number by size class",
+      "format_unit": "count ha-1"
+    },
+    {
+      "id": "stemmort_rate",
+      "meaning": "stem mortality rate by size class",
+      "format_unit": "% yr-1"
+    },
+    {
+      "id": "growth_rate",
+      "meaning": "woody biomass growth rate",
+      "format_unit": "% yr-1"
+    },
+    {
+      "id": "lai",
+      "meaning": "leaf area index",
+      "format_unit": "m2 m-2"
+    },
+    {
+      "id": "CA",
+      "meaning": "crown area",
+      "format_unit": "m2 ha-1"
+    },
+    {
+      "id": "BA",
+      "meaning": "basal area",
+      "format_unit": "m2 ha-1"
+    },
+    {
+      "id": "height",
+      "meaning": "mean PFT height in the 95th height percentile",
+      "format_unit": "m"
+    },
+    {
+      "id": "WBgrowth",
+      "meaning": "woody biomass growth",
+      "format_unit": "kgC m-2 yr-1"
+    },
+    {
+      "id": "BAgrowth",
+      "meaning": "basal area growth",
+      "format_unit": "m2 ha-1 yr-1"
+    },
+    {
+      "id": "cmort",
+      "meaning": "wood carbon mass lost by mortality or other turnover processes",
+      "format_unit": "kgC m-2 s-1"
+    },
+    {
+      "id": "cmort_size",
+      "meaning": "wood carbon mass lost by mortality or other turnover processes by size class",
+      "format_unit": "kgC m-2 s-1"
+    },
+    {
+      "id": "cdstb_size",
+      "meaning": "disturbance carbon loss by size class",
+      "format_unit": "kgC m-2 s-1"
+    },
+    {
+      "id": "cmort_rate",
+      "meaning": "wood carbon loss rate by size class",
+      "format_unit": "% yr-1"
+    },
+    {
+      "id": "stemmort",
+      "meaning": "stem-number loss by mortality or other turnover processes",
+      "format_unit": "count ha-1 yr-1"
+    },
+    {
+      "id": "stemmort_size",
+      "meaning": "stem-number loss by mortality or other turnover processes by size class",
+      "format_unit": "count ha-1 yr-1"
+    },
+    {
+      "id": "gpp",
+      "meaning": "gross primary production",
+      "format_unit": "kgC m-2 yr-1"
+    },
+    {
+      "id": "npp",
+      "meaning": "net primary production",
+      "format_unit": "kgC m-2 yr-1"
+    },
+    {
+      "id": "nbp",
+      "meaning": "net biospheric production",
+      "format_unit": "kgC m-2 yr-1"
+    }
   ],
   "source_semantic_composites": [
     {
-      "model":"BiomeE-Standalone",
-      "source_variable":"WDgrowTot",
-      "mapped_variable":"WBgrowth",
-      "components":["WDgrow","WDrepr","WDmgrt"],
-      "meaning":"growth plus reproduction plus migration",
-      "pure_growth_claim":"NOT_SUPPORTED"
+      "model": "BiomeE-Standalone",
+      "source_variable": "WDgrowTot",
+      "mapped_variable": "WBgrowth",
+      "components": [
+        "WDgrow",
+        "WDrepr",
+        "WDmgrt"
+      ],
+      "meaning": "growth plus reproduction plus migration",
+      "pure_growth_claim": "NOT_SUPPORTED"
     },
     {
-      "model":"BiomeE-Standalone",
-      "source_variable":"WDmortTot",
-      "mapped_variable":"cmort",
-      "components":["WDmort","WDkill","WDdstb"],
-      "meaning":"wood mortality plus density-related killing plus disturbance removal",
-      "pure_mortality_claim":"NOT_SUPPORTED"
+      "model": "BiomeE-Standalone",
+      "source_variable": "WDmortTot",
+      "mapped_variable": "cmort",
+      "components": [
+        "WDmort",
+        "WDkill",
+        "WDdstb"
+      ],
+      "meaning": "wood mortality plus density-related killing plus disturbance removal",
+      "pure_mortality_claim": "NOT_SUPPORTED"
     },
     {
-      "model":"FATES",
-      "source_variable":"stemmort",
-      "assembly":"separate understory and overstory files are summed",
-      "size_class_handling":"helper comment records size-class caveat during sum; inspect exact output dimensions before use"
+      "model": "FATES",
+      "source_variable": "stemmort",
+      "assembly": "separate understory and overstory files are summed",
+      "size_class_handling": "helper comment records size-class caveat during sum; inspect exact output dimensions before use"
     },
     {
-      "model":"All",
-      "source_variable":"cmort",
-      "format_semantics":"mortality or other turnover processes",
-      "pure_mortality_claim":"NOT_SUPPORTED_WITHOUT_SUBTYPE_EVIDENCE"
+      "model": "All",
+      "source_variable": "cmort",
+      "format_semantics": "mortality or other turnover processes",
+      "pure_mortality_claim": "NOT_SUPPORTED_WITHOUT_SUBTYPE_EVIDENCE"
     }
   ],
   "unit_transformations_in_helpers": [
     {
-      "transformation":"change_unit_stoy",
-      "operation":"multiply data columns by 60*60*24*365",
-      "output_unit":"kgC m-2 yr-1",
-      "meaning":"convert per-second flux to annual flux using fixed 365-day year"
+      "transformation": "change_unit_stoy",
+      "operation": "multiply data columns by 60*60*24*365",
+      "output_unit": "kgC m-2 yr-1",
+      "meaning": "convert per-second flux to annual flux using fixed 365-day year"
     },
     {
-      "model":"LPJ-GUESS",
-      "variables":["cmort","cmort_age","cmort_other","cmort_greff","cmort_thin","nbp"],
-      "operation":"unit metadata relabelled to kgC m-2 yr-1 without multiplying",
-      "source_comment":"helper says output is already in annual units",
-      "double_conversion":"PROHIBITED"
+      "model": "LPJ-GUESS",
+      "variables": [
+        "cmort",
+        "cmort_age",
+        "cmort_other",
+        "cmort_greff",
+        "cmort_thin",
+        "nbp"
+      ],
+      "operation": "unit metadata relabelled to kgC m-2 yr-1 without multiplying",
+      "source_comment": "helper says output is already in annual units",
+      "double_conversion": "PROHIBITED"
     },
     {
-      "model":"FATES",
-      "variables":["nstem_size","stemmort"],
-      "operation":"multiply data columns by 10000 in noted paths",
-      "meaning":"per-square-metre to per-hectare scaling",
-      "condition":"helper also notes a separate 562ppm nstem_size path; exact run/version must be retained"
+      "model": "FATES",
+      "variables": [
+        "nstem_size",
+        "stemmort"
+      ],
+      "operation": "multiply data columns by 10000 in noted paths",
+      "meaning": "per-square-metre to per-hectare scaling",
+      "condition": "helper also notes a separate 562ppm nstem_size path; exact run/version must be retained"
     },
     {
-      "model":"BiomeEP",
-      "variables":["stemmort_size","stemmort"],
-      "operation":"multiply data columns by 10000 in helper",
-      "meaning":"per-square-metre to per-hectare scaling"
+      "model": "BiomeEP",
+      "variables": [
+        "stemmort_size",
+        "stemmort"
+      ],
+      "operation": "multiply data columns by 10000 in helper",
+      "meaning": "per-square-metre to per-hectare scaling"
     }
   ],
   "size_class_families": {
-    "shared_dben":["<1","<5","<10","<15","<20","<30","<40","<50","<60","<70","<80","<90","<100","<150","<200","<250","300+"],
-    "orchidee":["1","2","3"],
-    "fates":["<1","<5","<10","<20","<30","<40","<50","<60","<70","<80","<90","<100","<150","<200","<250","<300","300+"],
-    "paper1":["<1","<5","<10","<15","<20","<30","<40","<50","<60","<70","<80","<90","<100","<150","<200",">=200"],
-    "establishment":["sdlg<1","sdlg<5","saplg<10","saplg<15"],
-    "common_support_status":"NOT_ESTABLISHED; require exact raw bin edges and conservation-preserving redistribution before cross-model comparison"
+    "shared_dben": [
+      "<1",
+      "<5",
+      "<10",
+      "<15",
+      "<20",
+      "<30",
+      "<40",
+      "<50",
+      "<60",
+      "<70",
+      "<80",
+      "<90",
+      "<100",
+      "<150",
+      "<200",
+      "<250",
+      "300+"
+    ],
+    "orchidee": [
+      "1",
+      "2",
+      "3"
+    ],
+    "fates": [
+      "<1",
+      "<5",
+      "<10",
+      "<20",
+      "<30",
+      "<40",
+      "<50",
+      "<60",
+      "<70",
+      "<80",
+      "<90",
+      "<100",
+      "<150",
+      "<200",
+      "<250",
+      "<300",
+      "300+"
+    ],
+    "paper1": [
+      "<1",
+      "<5",
+      "<10",
+      "<15",
+      "<20",
+      "<30",
+      "<40",
+      "<50",
+      "<60",
+      "<70",
+      "<80",
+      "<90",
+      "<100",
+      "<150",
+      "<200",
+      ">=200"
+    ],
+    "establishment": [
+      "sdlg<1",
+      "sdlg<5",
+      "saplg<10",
+      "saplg<15"
+    ],
+    "common_support_status": "NOT_ESTABLISHED; require exact raw bin edges and conservation-preserving redistribution before cross-model comparison"
   },
   "equilibrium_windows_by_site_and_model_order": {
-    "model_order":["JULES-RED","FATES","ORCHIDEE","LPJ-GUESS","CABLE-POP","BiomeEP","BiomeE-Standalone","SEIB-DGVM","EDv3"],
+    "model_order": [
+      "JULES-RED",
+      "FATES",
+      "ORCHIDEE",
+      "LPJ-GUESS",
+      "CABLE-POP",
+      "BiomeEP",
+      "BiomeE-Standalone",
+      "SEIB-DGVM",
+      "EDv3"
+    ],
     "windows_are_visually_selected": true,
-    "FIN":{"lower":[200,300,150,320,320,600,715,300,500],"upper":[420,450,320,450,450,900,810,420,530]},
-    "BIA":{"lower":[200,300,150,320,320,600,700,240,500],"upper":[420,450,320,450,450,900,810,450,530]},
-    "BCI":{"lower":[150,250,150,320,320,600,500,100,500],"upper":[420,450,320,450,450,900,810,450,530]},
-    "claim":"These are script constants selected by visual inspection, not a validated general equilibrium detector."
+    "FIN": {
+      "lower": [
+        200,
+        300,
+        150,
+        320,
+        320,
+        600,
+        715,
+        300,
+        500
+      ],
+      "upper": [
+        420,
+        450,
+        320,
+        450,
+        450,
+        900,
+        810,
+        420,
+        530
+      ]
+    },
+    "BIA": {
+      "lower": [
+        200,
+        300,
+        150,
+        320,
+        320,
+        600,
+        700,
+        240,
+        500
+      ],
+      "upper": [
+        420,
+        450,
+        320,
+        450,
+        450,
+        900,
+        810,
+        450,
+        530
+      ]
+    },
+    "BCI": {
+      "lower": [
+        150,
+        250,
+        150,
+        320,
+        320,
+        600,
+        500,
+        100,
+        500
+      ],
+      "upper": [
+        420,
+        450,
+        320,
+        450,
+        450,
+        900,
+        810,
+        450,
+        530
+      ]
+    },
+    "claim": "These are script constants selected by visual inspection, not a validated general equilibrium detector."
   },
   "reproduction_controls": {
-    "rmd_simdate":"20250107",
-    "rmd_rng_seed":143,
-    "forcing_year_expression":"1990 + sample.int(30, 30)",
-    "r_packages_declared":["ncdf4","DGVMTools","dplyr","maps","sf","zoo","gridExtra","psych","here","ggpubr","plotrix","devtools","knitr","rmarkdown"],
-    "renv_lock_at_repository_root":"NOT_FOUND_DURING_AUDIT",
-    "observation_processing_script":"Process_observations.R described by Zenodo; not found at scripts/Process_observations.R or repository root on inspected main branch"
+    "rmd_simdate": "20250107",
+    "rmd_rng_seed": 143,
+    "forcing_year_expression": "1990 + sample.int(30, 30)",
+    "r_packages_declared": [
+      "ncdf4",
+      "DGVMTools",
+      "dplyr",
+      "maps",
+      "sf",
+      "zoo",
+      "gridExtra",
+      "psych",
+      "here",
+      "ggpubr",
+      "plotrix",
+      "devtools",
+      "knitr",
+      "rmarkdown"
+    ],
+    "renv_lock_at_repository_root": "NOT_FOUND_DURING_AUDIT",
+    "observation_processing_script": "Process_observations.R described by Zenodo; not found at scripts/Process_observations.R or repository root on inspected main branch"
   },
   "admission_gates": [
     "Do not treat D-BEN as an established universal data standard.",
@@ -181,5 +553,5 @@
     "Do not assume forcing labels are identical forcing files.",
     "Reproduce visually selected equilibrium windows as published first, then report a separate window-sensitivity analysis."
   ],
-  "claim_ceiling":"This crosswalk records inspected public source-code semantics and hand-coded analysis choices. It is not archive ingestion, dataset licence confirmation, model validation, a field flux observation, empirical reproduction or SOTA comparison."
+  "claim_ceiling": "This crosswalk records inspected public source-code semantics and hand-coded analysis choices. It is not archive ingestion, dataset licence confirmation, model validation, a field flux observation, empirical reproduction or SOTA comparison."
 }
