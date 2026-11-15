@@ -7,8 +7,10 @@ use std::fs;
 use std::process::ExitCode;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:laundry-service-benchmark:0.1.0";
-const SCHEMA_TEXT: &str = include_str!("../../../../schemas/laundry/laundry_service_benchmark_v0_1.schema.json");
-const PROFILE_TEXT: &str = include_str!("../../../../fixtures/laundry/laundry_service_benchmark_v0_1.json");
+const SCHEMA_TEXT: &str =
+    include_str!("../../../../schemas/laundry/laundry_service_benchmark_v0_1.schema.json");
+const PROFILE_TEXT: &str =
+    include_str!("../../../../fixtures/laundry/laundry_service_benchmark_v0_1.json");
 
 fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
@@ -40,11 +42,14 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         errors.push("profile must remain proposed_no_physical_measurements".to_owned());
     }
     if text_at(profile, "claim_ceiling") != Some("no_physical_performance_or_superiority_claim") {
-        errors.push("claim ceiling cannot be promoted without a new evidence-qualified contract".to_owned());
+        errors.push(
+            "claim ceiling cannot be promoted without a new evidence-qualified contract".to_owned(),
+        );
     }
 
     let functional_unit = profile.get("functional_unit");
-    if functional_unit.and_then(|v| text_at(v, "id")) != Some("kg_accepted_dry_equivalent_textile") {
+    if functional_unit.and_then(|v| text_at(v, "id")) != Some("kg_accepted_dry_equivalent_textile")
+    {
         errors.push("functional unit must be kg_accepted_dry_equivalent_textile".to_owned());
     }
     let separate_views = functional_unit
@@ -52,10 +57,12 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         .and_then(Value::as_array);
     let expected_views = ["washer_service", "dryer_service", "paired_laundry_service"];
     for expected in expected_views {
-        if !separate_views.is_some_and(|items| {
-            items.iter().any(|item| item.as_str() == Some(expected))
-        }) {
-            errors.push(format!("functional unit must keep {expected} separately reportable"));
+        if !separate_views
+            .is_some_and(|items| items.iter().any(|item| item.as_str() == Some(expected)))
+        {
+            errors.push(format!(
+                "functional unit must keep {expected} separately reportable"
+            ));
         }
     }
 
@@ -65,14 +72,17 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         .and_then(Value::as_u64)
         != Some(3)
     {
-        errors.push("control policy must retain a minimum of three model families per class".to_owned());
+        errors.push(
+            "control policy must retain a minimum of three model families per class".to_owned(),
+        );
     }
     if control_policy
         .and_then(|v| v.get("selected_controls"))
         .and_then(Value::as_array)
         .is_none_or(|items| !items.is_empty())
     {
-        errors.push("desk references must not be promoted to selected physical controls".to_owned());
+        errors
+            .push("desk references must not be promoted to selected physical controls".to_owned());
     }
 
     let metrics = profile.get("metrics").and_then(Value::as_array);
@@ -91,7 +101,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("metrics[{index}] is missing id"));
             }
             if text_at(metric, "status") != Some("proposal_not_result") {
-                errors.push(format!("metrics[{index}] target status must remain proposal_not_result"));
+                errors.push(format!(
+                    "metrics[{index}] target status must remain proposal_not_result"
+                ));
             }
             for field in ["unit", "denominator", "method", "target_hypothesis"] {
                 if text_at(metric, field).is_none_or(str::is_empty) {
@@ -103,7 +115,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 .and_then(Value::as_array)
                 .is_none_or(Vec::is_empty)
             {
-                errors.push(format!("metrics[{index}] must have at least one hard guardrail"));
+                errors.push(format!(
+                    "metrics[{index}] must have at least one hard guardrail"
+                ));
             }
         }
     }
@@ -119,11 +133,16 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
             .iter()
             .any(|item| text_at(item, "appliance_class") == Some("heat_pump_tumble_dryer"));
         if !washer || !dryer {
-            errors.push("desk baselines must include both a front-load washer and heat-pump dryer".to_owned());
+            errors.push(
+                "desk baselines must include both a front-load washer and heat-pump dryer"
+                    .to_owned(),
+            );
         }
         for (index, baseline) in baselines.iter().enumerate() {
             if text_at(baseline, "status") != Some("desk_reference_not_selected_control") {
-                errors.push(format!("baselines[{index}] cannot be promoted to a selected control"));
+                errors.push(format!(
+                    "baselines[{index}] cannot be promoted to a selected control"
+                ));
             }
             if text_at(baseline, "source_uri").is_none_or(|uri| !uri.starts_with("https://")) {
                 errors.push(format!("baselines[{index}] must retain an HTTPS source"));
@@ -158,7 +177,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         .and_then(Value::as_str)
         != Some("independent_deterministic_device_controls")
     {
-        errors.push("safety interlocks must remain independent deterministic device controls".to_owned());
+        errors.push(
+            "safety interlocks must remain independent deterministic device controls".to_owned(),
+        );
     }
     if governance
         .and_then(|v| v.get("offline_operation_required"))
@@ -234,7 +255,9 @@ fn argument_value(args: &[String], name: &str) -> Result<String, String> {
         .windows(2)
         .filter(|pair| pair[0] == name)
         .map(|pair| pair[1].clone());
-    let value = matches.next().ok_or_else(|| format!("missing required argument {name}"))?;
+    let value = matches
+        .next()
+        .ok_or_else(|| format!("missing required argument {name}"))?;
     if matches.next().is_some() {
         return Err(format!("argument {name} must appear exactly once"));
     }
@@ -257,7 +280,10 @@ fn run() -> Result<Value, Vec<String>> {
 fn main() -> ExitCode {
     match run() {
         Ok(receipt) => {
-            println!("{}", serde_json::to_string_pretty(&receipt).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&receipt).unwrap_or_default()
+            );
             ExitCode::SUCCESS
         }
         Err(errors) => {
@@ -291,8 +317,17 @@ mod tests {
     fn frozen_profile_passes_schema_and_semantic_contract() {
         let (schema, profile) = fixture();
         assert!(is_valid(&schema, &profile));
-        assert_eq!(profile["metrics"].as_array().expect("metrics array").len(), 24);
-        assert_eq!(profile["baselines"].as_array().expect("baselines array").len(), 2);
+        assert_eq!(
+            profile["metrics"].as_array().expect("metrics array").len(),
+            24
+        );
+        assert_eq!(
+            profile["baselines"]
+                .as_array()
+                .expect("baselines array")
+                .len(),
+            2
+        );
     }
 
     #[test]
