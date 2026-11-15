@@ -47,7 +47,7 @@ The receiver accepts a typed request equivalent to StructuralAnalysisRequestV1 w
 - optional exact manufacturing process/batch ID, generation and digest;
 - load/support case ID, generation and digest;
 - coordinate frame/sign convention reference;
-- model-profile ID, version and digest;
+- model-profile ID, version and digest, plus exact model source repository/commit and maturity;
 - backend ID, version and digest;
 - requested physics terms and observables;
 - intended use / claim tier;
@@ -63,7 +63,7 @@ The receiving side needs an independently supplied admission context containing:
 - the current mission, candidate, geometry, load and frame identities expected for the request;
 - the material reference and its evidence state;
 - the accepted process/batch reference when the declared material state requires one;
-- the exact selected model profile and backend identity;
+- the exact selected model profile and backend identity, including the model source repository, commit and maturity;
 - backend allowlist state;
 - profile maturity/qualification state;
 - supported physics terms, observables and intended-use ceiling;
@@ -91,6 +91,7 @@ Reason codes are stable machine-readable values. V0.1 uses:
 - LOAD_CASE_IDENTITY_MISMATCH
 - FRAME_IDENTITY_MISMATCH
 - MODEL_PROFILE_IDENTITY_MISMATCH
+- MODEL_SOURCE_IDENTITY_MISMATCH
 - BACKEND_IDENTITY_MISMATCH
 - BACKEND_NOT_ALLOWLISTED
 - MATERIAL_EVIDENCE_INSUFFICIENT
@@ -156,7 +157,7 @@ The machine-readable companion files are:
 The case set covers:
 - stale mission identity and manufacturing process/batch references;
 - valid restricted thin-ring and radial-spoke reference requests;
-- stale candidate/geometry/load/frame/profile/backend identities;
+- stale mission/candidate/geometry/load/frame/profile/backend/source-revision identities;
 - unallowlisted backend;
 - generic material reference or missing batch evidence;
 - missing required mesh or changed mesh identity;
