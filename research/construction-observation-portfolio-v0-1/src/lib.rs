@@ -1,14 +1,14 @@
 
- //! Bounded exact multi-observation campaign planning.
- //!
- //! A campaign is a set of declared observation actions whose claimed region coverage
- //! spans the requested work needs and whose resource reservations and spatial envelopes
- //! can be admitted together by the existing owners.
- //!
- //! The planner uses a bounded exhaustive search for small action catalogues. It never
- //! mutates the caller's production books: each include branch works on scratch clones.
- //! This is a planning result, not a permit, an observation receipt, a coverage proof or
- //! independent acceptance of construction output.
+//! Bounded exact multi-observation campaign planning.
+//!
+//! A campaign is a set of declared observation actions whose claimed region coverage
+//! spans the requested work needs and whose resource reservations and spatial envelopes
+//! can be admitted together by the existing owners.
+//!
+//! The planner uses a bounded exhaustive search for small action catalogues. It never
+//! mutates the caller's production books: each include branch works on scratch clones.
+//! This is a planning result, not a permit, an observation receipt, a coverage proof or
+//! independent acceptance of construction output.
 
 use std::cmp::Reverse;
 use std::collections::BTreeSet;
@@ -158,9 +158,7 @@ fn validate_inputs(
         validate_currency_code(&action.cost_currency_code)?;
 
         if !action_ids.insert(action.action_id.as_str()) {
-            return Err(PortfolioError::DuplicateActionId(
-                action.action_id.clone(),
-            ));
+            return Err(PortfolioError::DuplicateActionId(action.action_id.clone()));
         }
         if !occupancy_ids.insert(action.occupancy.occupancy_id.as_str()) {
             return Err(PortfolioError::DuplicateOccupancyId(
@@ -305,10 +303,19 @@ fn campaign_is_better(candidate: &ObservationCampaign, current: &ObservationCamp
     candidate
         .total_crew_minutes
         .cmp(&current.total_crew_minutes)
-        .then_with(|| candidate.total_cost_minor_units.cmp(&current.total_cost_minor_units))
+        .then_with(|| {
+            candidate
+                .total_cost_minor_units
+                .cmp(&current.total_cost_minor_units)
+        })
         .then_with(|| candidate.total_energy_wh.cmp(&current.total_energy_wh))
         .then_with(|| candidate.scheduled_span_ms.cmp(&current.scheduled_span_ms))
-        .then_with(|| candidate.selected_actions.len().cmp(&current.selected_actions.len()))
+        .then_with(|| {
+            candidate
+                .selected_actions
+                .len()
+                .cmp(&current.selected_actions.len())
+        })
         .then_with(|| {
             candidate
                 .selected_actions
@@ -525,9 +532,10 @@ pub fn plan_observation_campaign(
     let infeasibility_proven = search_complete && !best_campaign.complete;
 
     search.rejected_actions.sort_by(|left, right| {
-        left.action_id
-            .cmp(&right.action_id)
-            .then_with(|| left.selected_prefix_action_ids.cmp(&right.selected_prefix_action_ids))
+        left.action_id.cmp(&right.action_id).then_with(|| {
+            left.selected_prefix_action_ids
+                .cmp(&right.selected_prefix_action_ids)
+        })
     });
 
     Ok(CampaignSearchResult {
@@ -624,9 +632,7 @@ pub fn plan_greedy_observation_campaign(
                     action_id: action.action_id.clone(),
                     selected_prefix_action_ids: selected
                         .iter()
-                        .map(|selected_index| {
-                            ordered_actions[*selected_index].action_id.clone()
-                        })
+                        .map(|selected_index| ordered_actions[*selected_index].action_id.clone())
                         .collect(),
                     blocker,
                 }),
@@ -652,9 +658,10 @@ pub fn plan_greedy_observation_campaign(
         currency.as_deref(),
     )?;
     rejected_actions.sort_by(|left, right| {
-        left.action_id
-            .cmp(&right.action_id)
-            .then_with(|| left.selected_prefix_action_ids.cmp(&right.selected_prefix_action_ids))
+        left.action_id.cmp(&right.action_id).then_with(|| {
+            left.selected_prefix_action_ids
+                .cmp(&right.selected_prefix_action_ids)
+        })
     });
 
     Ok(GreedyCampaignResult {
@@ -667,8 +674,8 @@ pub fn plan_greedy_observation_campaign(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use construction_robot_interop_core::resources::{ReservationBook, ReservationRequest};
     use construction_observation_planning_core::{ObservationAction, WorkNeed};
+    use construction_robot_interop_core::resources::{ReservationBook, ReservationRequest};
     use construction_spacetime_occupancy_core::{
         Bounds3Mm, OccupancyKind, SiteBinding, SpatialOccupancy,
     };
@@ -826,10 +833,7 @@ mod tests {
                 action_count: selected.len(),
                 action_ids: action_ids.clone(),
             };
-            if best
-                .as_ref()
-                .is_none_or(|(current, _)| score < *current)
-            {
+            if best.as_ref().is_none_or(|(current, _)| score < *current) {
                 best = Some((score, action_ids));
             }
         }
@@ -866,9 +870,8 @@ mod tests {
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
         let (occupancy, reservations) = books(&actions, 1);
 
-        let result =
-            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 100)
-                .expect("campaign search");
+        let result = plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 100)
+            .expect("campaign search");
         assert!(result.search_complete);
         assert!(result.optimality_proven);
         assert!(!result.infeasibility_proven);
@@ -893,13 +896,24 @@ mod tests {
                 .sum::<usize>(),
             2
         );
-        assert_eq!(result.best_campaign.cost_currency_code.as_deref(), Some("USD"));
+        assert_eq!(
+            result.best_campaign.cost_currency_code.as_deref(),
+            Some("USD")
+        );
     }
 
     #[test]
     fn exact_search_beats_largest_coverage_greedy_counterexample() {
         let actions = vec![
-            action("large-expensive", &["a", "b", "c"], 0, "r-large", (0, 60_000), 10, 900),
+            action(
+                "large-expensive",
+                &["a", "b", "c"],
+                0,
+                "r-large",
+                (0, 60_000),
+                10,
+                900,
+            ),
             action("cheap-ab", &["a", "b"], 2_000, "r-ab", (0, 60_000), 4, 100),
             action("cheap-cd", &["c", "d"], 4_000, "r-cd", (0, 60_000), 4, 100),
         ];
@@ -957,24 +971,8 @@ mod tests {
                 10,
                 900,
             ),
-            action(
-                "cheap-ab",
-                &["a", "b"],
-                2_000,
-                "r-ab",
-                (0, 60_000),
-                4,
-                100,
-            ),
-            action(
-                "cheap-cd",
-                &["c", "d"],
-                4_000,
-                "r-cd",
-                (0, 60_000),
-                4,
-                100,
-            ),
+            action("cheap-ab", &["a", "b"], 2_000, "r-ab", (0, 60_000), 4, 100),
+            action("cheap-cd", &["c", "d"], 4_000, "r-cd", (0, 60_000), 4, 100),
         ];
         let needs = vec![
             need("unit-a", "a"),
@@ -985,15 +983,9 @@ mod tests {
         let expected = independent_subset_oracle(&actions, &needs, &[])
             .expect("independent oracle finds complete subset");
         let (occupancy, reservations) = books(&actions, 1);
-        let actual = plan_observation_campaign(
-            &actions,
-            &needs,
-            &occupancy,
-            &reservations,
-            0,
-            1_000,
-        )
-        .expect("production exact search");
+        let actual =
+            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 1_000)
+                .expect("production exact search");
 
         assert!(actual.optimality_proven);
         assert_eq!(
@@ -1014,21 +1006,11 @@ mod tests {
             action("scan-b", &["b"], 250, "r-b", (0, 60_000), 5, 100),
         ];
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
-        let expected = independent_subset_oracle(
-            &actions,
-            &needs,
-            &[("scan-a", "scan-b")],
-        );
+        let expected = independent_subset_oracle(&actions, &needs, &[("scan-a", "scan-b")]);
         let (occupancy, reservations) = books(&actions, 1);
-        let actual = plan_observation_campaign(
-            &actions,
-            &needs,
-            &occupancy,
-            &reservations,
-            0,
-            1_000,
-        )
-        .expect("production exact search");
+        let actual =
+            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 1_000)
+                .expect("production exact search");
 
         assert_eq!(expected, None);
         assert!(actual.infeasibility_proven);
@@ -1054,10 +1036,7 @@ mod tests {
             result
                 .rejected_actions
                 .iter()
-                .any(|rejected| matches!(
-                    &rejected.blocker,
-                    SpatialError::PotentialConflict(_)
-                ))
+                .any(|rejected| matches!(&rejected.blocker, SpatialError::PotentialConflict(_)))
         );
     }
 
@@ -1079,10 +1058,7 @@ mod tests {
             result
                 .rejected_actions
                 .iter()
-                .any(|rejected| matches!(
-                    &rejected.blocker,
-                    SpatialError::Reservation(_)
-                ))
+                .any(|rejected| matches!(&rejected.blocker, SpatialError::Reservation(_)))
         );
     }
 
@@ -1093,12 +1069,15 @@ mod tests {
             action("scan-b", &["b"], 2_000, "r-b", 0, 60_000, 5, 100),
             action("scan-c", &["c"], 4_000, "r-c", (0, 60_000), 5, 100),
         ];
-        let needs = vec![need("unit-a", "a"), need("unit-b", "b"), need("unit-c", "c")];
+        let needs = vec![
+            need("unit-a", "a"),
+            need("unit-b", "b"),
+            need("unit-c", "c"),
+        ];
         let (occupancy, reservations) = books(&actions, 1);
 
-        let result =
-            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 1)
-                .expect("bounded search result");
+        let result = plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 1)
+            .expect("bounded search result");
         assert!(!result.search_complete);
         assert!(!result.optimality_proven);
         assert!(!result.infeasibility_proven);
@@ -1113,9 +1092,8 @@ mod tests {
         let needs = vec![need("unit-a", "a"), need("unit-b", "b")];
         let (occupancy, reservations) = books(&actions, 1);
 
-        let result =
-            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 100)
-                .expect("campaign search");
+        let result = plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 100)
+            .expect("campaign search");
         assert!(result.best_campaign.complete);
         assert_eq!(occupancy.occupancy_count(), 0);
         assert_eq!(reservations.state("reservation-scan-a"), None);
@@ -1154,31 +1132,14 @@ mod tests {
         let (occupancy, reservations) = books(&actions, 1);
 
         assert_eq!(
-            plan_observation_campaign(
-                &actions,
-                &needs,
-                &occupancy,
-                &reservations,
-                0,
-                100
-            ),
-            Err(PortfolioError::DuplicateWorkUnitId(
-                "unit-a".to_owned()
-            ))
+            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 100),
+            Err(PortfolioError::DuplicateWorkUnitId("unit-a".to_owned()))
         );
     }
 
     #[test]
     fn non_iso_currency_shape_is_rejected() {
-        let mut actions = vec![action(
-            "scan-a",
-            &["a"],
-            0,
-            "r-a",
-            (0, 60_000),
-            5,
-            100,
-        )];
+        let mut actions = vec![action("scan-a", &["a"], 0, "r-a", (0, 60_000), 5, 100)];
         actions[0].cost_currency_code = "US".to_owned();
         let (occupancy, reservations) = books(&actions, 1);
 
@@ -1205,14 +1166,7 @@ mod tests {
         let (occupancy, reservations) = books(&actions, 1);
 
         assert_eq!(
-            plan_observation_campaign(
-                &actions,
-                &needs,
-                &occupancy,
-                &reservations,
-                0,
-                100
-            ),
+            plan_observation_campaign(&actions, &needs, &occupancy, &reservations, 0, 100),
             Err(PortfolioError::ArithmeticOverflow)
         );
     }
@@ -1231,10 +1185,7 @@ mod tests {
         .expect("empty catalogue search");
         assert!(result.search_complete);
         assert!(result.infeasibility_proven);
-        assert_eq!(
-            result.best_campaign.uncovered_work_unit_ids,
-            vec!["unit-a"]
-        );
+        assert_eq!(result.best_campaign.uncovered_work_unit_ids, vec!["unit-a"]);
     }
 
     #[test]
