@@ -1102,14 +1102,23 @@ impl PhysicalIdentityLedger {
                     };
                     push_diagnostic(runtime, global_diagnostics, event, code, false);
                 } else {
+                    let installed_location = event.location_id.as_deref().expect("shape validated");
                     add_assignment(
                         runtime,
                         active_owners,
                         slot_id,
                         instance_id,
-                        event.location_id.as_deref().expect("shape validated"),
+                        installed_location,
                         &instance.configuration_sha256,
                     );
+                    if installed_location != self.slots[slot_id].expected_location_id {
+                        push_note(
+                            runtime,
+                            global_diagnostics,
+                            event,
+                            PhysicalIdentityDiagnosticCode::InstallationLocationDiffersFromDesign,
+                        );
+                    }
                 }
             }
             PhysicalEventKind::UnitRemoved => {
@@ -1229,6 +1238,13 @@ impl PhysicalIdentityLedger {
                         event,
                         PhysicalIdentityDiagnosticCode::RelocationSourceDoesNotMatch,
                         unknown,
+                    );
+                } else if to != &self.slots[slot_id].expected_location_id {
+                    push_note(
+                        runtime,
+                        global_diagnostics,
+                        event,
+                        PhysicalIdentityDiagnosticCode::InstallationLocationDiffersFromDesign,
                     );
                 }
             }
@@ -1779,7 +1795,7 @@ mod tests {
             .with_review_attestation("attestation-1")
             .with_predecessors(vec!["install".to_owned()]),
         );
-        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Valid));
+        let projection = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
@@ -1820,7 +1836,7 @@ mod tests {
         );
 
         let valid = ledger(events.clone())
-            .project(100, &TestVerifier(ReviewVerification::Valid));
+            .project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(valid.slots["slot-1"].status, SlotStatus::Reconciled);
 
         let unknown = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Unknown));
@@ -1934,9 +1950,9 @@ mod tests {
                 .with_location("cabinet-east")
                 .with_predecessors(vec!["deliver".to_owned()]),
         );
-        let first = ledger(events.clone()).project(100, &TestVerifier(ReviewVerification::Unknown));
+        let first = ledger(events.clone()).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Unknown));
         events.reverse();
-        let second = ledger(events).project(100, &TestVerifier(ReviewVerification::Unknown));
+        let second = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Unknown));
         assert_eq!(first, second);
     }
 
@@ -1977,6 +1993,45 @@ mod tests {
         .with_predecessors(vec!["missing-event".to_owned()]);
         let result = ledger_result(vec![event], Vec::new());
         assert!(matches!(result, Err(PhysicalIdentityError::UnknownPredecessor { .. })));
+    }
+
+    #[test]
+    fn mismatched_serial_label_is_a_conflict_not_an_identity_match() {
+        let mut events = declared_and_delivered();
+        events.push(
+            event("label", PhysicalEventKind::IdentityObserved, "slot-1", 30, &["evidence-1"])
+                .with_instance("instance-1")
+                .with_observed_identity("manufacturer-a", "serial-from-another-unit")
+                .with_predecessors(vec!["deliver".to_owned()]),
+        );
+        let projection = ledger(events).project(
+            100,
+            &TestEvidenceVerifier,
+            &TestVerifier(ReviewVerification::Unknown),
+        );
+        assert_eq!(projection.slots["slot-1"].status, SlotStatus::Conflicted);
+        assert!(projection.slots["slot-1"].diagnostics.iter().any(|item| {
+            item.code == PhysicalIdentityDiagnosticCode::ObservedIdentityMismatch
+        }));
+    }
+
+    #[test]
+    fn evidence_admission_unknown_blocks_event_replay() {
+        struct UnknownEvidence;
+        impl EvidenceAdmissionVerifier for UnknownEvidence {
+            fn verify(&self, _evidence: &EvidenceRecord, _cutoff: i64) -> EvidenceAdmission {
+                EvidenceAdmission::Unknown
+            }
+        }
+        let projection = ledger(declared_and_delivered()).project(
+            100,
+            &UnknownEvidence,
+            &TestVerifier(ReviewVerification::Valid),
+        );
+        assert_eq!(projection.slots["slot-1"].status, SlotStatus::Unknown);
+        assert!(projection.slots["slot-1"].diagnostics.iter().any(|item| {
+            item.code == PhysicalIdentityDiagnosticCode::EvidenceAdmissionUnknown
+        }));
     }
 
     #[test]
