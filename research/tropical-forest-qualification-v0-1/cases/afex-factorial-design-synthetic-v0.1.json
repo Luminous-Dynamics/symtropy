@@ -422,5 +422,17 @@
       },
       "assignment_order_within_block": 8
     }
-  ]
+  ],
+  "measurement_contract": {
+    "inventory_dbh_lower_threshold_cm": 10,
+    "inventory_inclusion_operator": "strictly_greater_than",
+    "inventory_measurement_height_m": 1.3,
+    "measurement_height_exception": "measure_above_buttress_or_deformity_when_needed",
+    "recruitment_definition": "new_individual_reaches_10_cm_dbh",
+    "raw_dendrometer_quantity": "circumference_window_distance_mm",
+    "raw_dendrometer_instrument": "digital_caliper",
+    "dendrometer_time_support": "irregular_repeated_measurements",
+    "rainy_collection_policy": "NOT_COLLECTED_HUMIDITY_SENSITIVE_INSTRUMENT",
+    "rainy_missingness_numeric_zero": false
+  }
 }
