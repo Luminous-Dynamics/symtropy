@@ -486,9 +486,15 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
         }
         "HC-T0-021-final-test-model-selection-reject" => {
             if boolean(input, "model_selected_using_test_scores")? {
-                Ok(split_result("REJECT", "FINAL_TEST_USED_FOR_MODEL_SELECTION"))
+                Ok(split_result(
+                    "REJECT",
+                    "FINAL_TEST_USED_FOR_MODEL_SELECTION",
+                ))
             } else {
-                Ok(split_result("ADMITTED", "FINAL_TEST_NOT_USED_FOR_MODEL_SELECTION"))
+                Ok(split_result(
+                    "ADMITTED",
+                    "FINAL_TEST_NOT_USED_FOR_MODEL_SELECTION",
+                ))
             }
         }
         _ => Err(format!("unsupported split-control case: {case_id}")),
@@ -692,7 +698,8 @@ mod tests {
     }
     #[test]
     fn final_test_cannot_select_the_model() {
-        let out = compute_case(&fixture("inputs")["cases"][20]).expect("final-test selection control");
+        let out =
+            compute_case(&fixture("inputs")["cases"][20]).expect("final-test selection control");
         assert_eq!(out["split_disposition"], "REJECT");
         assert_eq!(out["reason"], "FINAL_TEST_USED_FOR_MODEL_SELECTION");
     }
