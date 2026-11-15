@@ -1,0 +1,155 @@
+{
+  "schema_version": "construction-motion-envelope/0.1",
+  "context": {
+    "project_id": "synthetic-highrise",
+    "work_package_id": "floor-03-panel-delivery",
+    "task_id": "deliver-panel-017",
+    "trajectory_id": "traj-017-revision-1",
+    "robot_id": "mobile-carrier-01",
+    "platform_config_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "tool_config_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "payload_config_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "collision_model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "calibration_ref": "synthetic://calibration/mobile-carrier-01",
+    "controller_profile_ref": "synthetic://controller-profile/mobile-carrier-01",
+    "frame_id": "synthetic-floor-03-frame",
+    "transform_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "design_revision_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "site_epoch": "synthetic-site-epoch-4",
+    "clock_domain_id": "synthetic-site-monotonic-clock",
+    "trajectory_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "primitive_set_ref": "synthetic://collision-model/primitive-manifest/v1",
+    "expected_primitive_ids": [
+      "base-link",
+      "tool-payload"
+    ]
+  },
+  "segments": [
+    {
+      "slice_index": 0,
+      "primitive_id": "base-link",
+      "start_ms": 0,
+      "end_ms": 100,
+      "from_mm": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "to_mm": {
+        "x": 100,
+        "y": 0,
+        "z": 0
+      },
+      "radius_mm": 300,
+      "margins_mm": {
+        "path_deviation": {
+          "x": 20,
+          "y": 20,
+          "z": 10
+        },
+        "localization": {
+          "x": 5,
+          "y": 5,
+          "z": 5
+        },
+        "tracking": {
+          "x": 10,
+          "y": 10,
+          "z": 10
+        },
+        "model_uncertainty": {
+          "x": 5,
+          "y": 5,
+          "z": 5
+        },
+        "numerical_enclosure": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "stopping_reachability": {
+          "x": 150,
+          "y": 50,
+          "z": 20
+        },
+        "policy_clearance": {
+          "x": 100,
+          "y": 100,
+          "z": 50
+        }
+      },
+      "evidence_refs": {
+        "path_deviation": "synthetic://path/0",
+        "localization": "synthetic://loc/0",
+        "tracking": "synthetic://track/0",
+        "model_uncertainty": "synthetic://model/0",
+        "numerical_enclosure": "synthetic://numeric/0",
+        "stopping_reachability": "synthetic://stop/0",
+        "policy_clearance": "synthetic://clearance/0"
+      }
+    },
+    {
+      "slice_index": 0,
+      "primitive_id": "tool-payload",
+      "start_ms": 0,
+      "end_ms": 100,
+      "from_mm": {
+        "x": 200,
+        "y": 0,
+        "z": 500
+      },
+      "to_mm": {
+        "x": 300,
+        "y": 0,
+        "z": 500
+      },
+      "radius_mm": 150,
+      "margins_mm": {
+        "path_deviation": {
+          "x": 15,
+          "y": 15,
+          "z": 15
+        },
+        "localization": {
+          "x": 5,
+          "y": 5,
+          "z": 5
+        },
+        "tracking": {
+          "x": 10,
+          "y": 10,
+          "z": 10
+        },
+        "model_uncertainty": {
+          "x": 5,
+          "y": 5,
+          "z": 5
+        },
+        "numerical_enclosure": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "stopping_reachability": {
+          "x": 150,
+          "y": 50,
+          "z": 20
+        },
+        "policy_clearance": {
+          "x": 100,
+          "y": 100,
+          "z": 50
+        }
+      },
+      "evidence_refs": {
+        "path_deviation": "synthetic://path/tool",
+        "localization": "synthetic://loc/tool",
+        "tracking": "synthetic://track/tool",
+        "model_uncertainty": "synthetic://model/tool",
+        "numerical_enclosure": "synthetic://numeric/tool",
+        "stopping_reachability": "synthetic://stop/tool",
+        "policy_clearance": "synthetic://clearance/tool"
+      }
+    }
+  ]
+}

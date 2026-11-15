@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-motion-envelope-v0.1.json",
+  "title": "Construction Motion Envelope Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "context",
+    "segments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-motion-envelope/0.1"
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id",
+        "work_package_id",
+        "task_id",
+        "trajectory_id",
+        "robot_id",
+        "platform_config_sha256",
+        "tool_config_sha256",
+        "payload_config_sha256",
+        "collision_model_sha256",
+        "calibration_ref",
+        "controller_profile_ref",
+        "frame_id",
+        "transform_sha256",
+        "design_revision_sha256",
+        "site_epoch",
+        "clock_domain_id",
+        "trajectory_profile_sha256",
+        "primitive_set_ref",
+        "expected_primitive_ids"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "work_package_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collision_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "controller_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "site_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trajectory_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "primitive_set_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_primitive_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "slice_index",
+          "primitive_id",
+          "start_ms",
+          "end_ms",
+          "from_mm",
+          "to_mm",
+          "radius_mm",
+          "margins_mm",
+          "evidence_refs"
+        ],
+        "properties": {
+          "slice_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "primitive_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "start_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end_ms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "from_mm": {
+            "$ref": "#/$defs/point3"
+          },
+          "to_mm": {
+            "$ref": "#/$defs/point3"
+          },
+          "radius_mm": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "margins_mm": {
+            "$ref": "#/$defs/margins"
+          },
+          "evidence_refs": {
+            "$ref": "#/$defs/evidence_refs"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "point3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "z": {
+          "type": "integer"
+        }
+      }
+    },
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "z": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "margins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_deviation",
+        "localization",
+        "tracking",
+        "model_uncertainty",
+        "numerical_enclosure",
+        "stopping_reachability",
+        "policy_clearance"
+      ],
+      "properties": {
+        "path_deviation": {
+          "$ref": "#/$defs/axis"
+        },
+        "localization": {
+          "$ref": "#/$defs/axis"
+        },
+        "tracking": {
+          "$ref": "#/$defs/axis"
+        },
+        "model_uncertainty": {
+          "$ref": "#/$defs/axis"
+        },
+        "numerical_enclosure": {
+          "$ref": "#/$defs/axis"
+        },
+        "stopping_reachability": {
+          "$ref": "#/$defs/axis"
+        },
+        "policy_clearance": {
+          "$ref": "#/$defs/axis"
+        }
+      }
+    },
+    "evidence_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_deviation",
+        "localization",
+        "tracking",
+        "model_uncertainty",
+        "numerical_enclosure",
+        "stopping_reachability",
+        "policy_clearance"
+      ],
+      "properties": {
+        "path_deviation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "localization": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tracking": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_uncertainty": {
+          "type": "string",
+          "minLength": 1
+        },
+        "numerical_enclosure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopping_reachability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_clearance": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

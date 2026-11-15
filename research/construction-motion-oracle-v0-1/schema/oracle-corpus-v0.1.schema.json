@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-motion-oracle-corpus-v0.1.json",
+  "title": "Construction Motion Analytic Oracle Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "units",
+    "frame",
+    "cases",
+    "mutations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-motion-oracle/0.1"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "transform_sha256",
+        "clock_domain_id"
+      ],
+      "properties": {
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "partition",
+          "path",
+          "moving_radius_mm",
+          "obstacle",
+          "margins_mm",
+          "expected_primitive_ids",
+          "present_primitive_ids",
+          "scoreable",
+          "purpose",
+          "expected"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "partition": {
+            "enum": [
+              "development",
+              "holdout"
+            ]
+          },
+          "path": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family",
+              "start_mm",
+              "end_mm",
+              "arc_radius_mm",
+              "arc_z_mm"
+            ],
+            "properties": {
+              "family": {
+                "enum": [
+                  "linear_segment",
+                  "upper_semicircle"
+                ]
+              },
+              "start_mm": {
+                "$ref": "#/$defs/point3"
+              },
+              "end_mm": {
+                "$ref": "#/$defs/point3"
+              },
+              "arc_radius_mm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "arc_z_mm": {
+                "type": "number"
+              }
+            }
+          },
+          "moving_radius_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "obstacle": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "center_mm",
+              "radius_mm"
+            ],
+            "properties": {
+              "center_mm": {
+                "$ref": "#/$defs/point3"
+              },
+              "radius_mm": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "margins_mm": {
+            "$ref": "#/$defs/margins"
+          },
+          "expected_primitive_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "present_primitive_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "scoreable": {
+            "type": "boolean"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "analytic_physical_collision",
+              "endpoints_only_collision",
+              "chord_collision",
+              "physical_envelope_candidate",
+              "stopping_envelope_candidate",
+              "coordination_envelope_candidate",
+              "validation_disposition"
+            ],
+            "properties": {
+              "analytic_physical_collision": {
+                "type": "boolean"
+              },
+              "endpoints_only_collision": {
+                "type": "boolean"
+              },
+              "chord_collision": {
+                "type": "boolean"
+              },
+              "physical_envelope_candidate": {
+                "type": "boolean"
+              },
+              "stopping_envelope_candidate": {
+                "type": "boolean"
+              },
+              "coordination_envelope_candidate": {
+                "type": "boolean"
+              },
+              "validation_disposition": {
+                "enum": [
+                  "ADMIT",
+                  "REJECT",
+                  "UNRESOLVED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "mutations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mutation_id",
+          "source_case_id",
+          "mutation",
+          "expected_disposition"
+        ],
+        "properties": {
+          "mutation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mutation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_disposition": {
+            "enum": [
+              "REJECT",
+              "UNRESOLVED",
+              "ACCEPT_SAME_IDENTITY"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "point3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    },
+    "axis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "z": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "margins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_deviation",
+        "localization",
+        "tracking",
+        "model_uncertainty",
+        "numerical_enclosure",
+        "stopping_reachability",
+        "policy_clearance"
+      ],
+      "properties": {
+        "path_deviation": {
+          "$ref": "#/$defs/axis"
+        },
+        "localization": {
+          "$ref": "#/$defs/axis"
+        },
+        "tracking": {
+          "$ref": "#/$defs/axis"
+        },
+        "model_uncertainty": {
+          "$ref": "#/$defs/axis"
+        },
+        "numerical_enclosure": {
+          "$ref": "#/$defs/axis"
+        },
+        "stopping_reachability": {
+          "$ref": "#/$defs/axis"
+        },
+        "policy_clearance": {
+          "$ref": "#/$defs/axis"
+        }
+      }
+    }
+  }
+}
