@@ -4,6 +4,8 @@
 //! This crate evaluates sequential, single-unit capability coverage. It is not a
 //! production scheduler, physical model, safety case, or production authorization.
 
+use std::collections::BTreeSet;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Capability {
     ReceiveIdentify, PrecisionMachining, Clean, Assembly, PressureFlowTest,
@@ -37,6 +39,7 @@ pub struct Module {
     pub cost_units: u64,
     pub energy_units: u64,
     pub process_qualification: GateStatus,
+    pub calibration_required: bool,
     pub calibration: Option<GateStatus>,
     pub workforce: GateStatus,
     pub utilities: GateStatus,
@@ -95,6 +98,7 @@ impl Scenario {
 pub enum ModuleFailure {
     CapabilityMissing,
     MaterialEnvelopeMismatch,
+    PartnerNodeMissing,
     UnavailableByScenario,
     GateNotCurrent { gate: Gate, status: Option<GateStatus> },
 }
@@ -134,8 +138,22 @@ impl RouteCandidate {
 pub enum Disposition { SyntheticAccepted, Blocked }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InputFailure {
+    EmptyArchitectureId,
+    EmptyModuleId,
+    DuplicateModuleId { module_id: &'static str },
+    EmptyProductId,
+    EmptyMaterialProfile,
+    EmptyScenarioId,
+    EmptyRoute,
+    EmptyOperationId,
+    DuplicateOperationId { operation_id: &'static str },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RouteEvaluation {
     pub disposition: Disposition,
+    pub input_failures: Vec<InputFailure>,
     pub feasible_assignment_count: usize,
     pub pareto_frontier: Vec<RouteCandidate>,
     pub blocked_operations: Vec<BlockedOperation>,
@@ -165,6 +183,11 @@ fn module_failures(module: &Module, route: &ProductRoute, operation: Operation, 
     if !module.material_profiles.contains(&route.material_profile) {
         failures.push(ModuleFailure::MaterialEnvelopeMismatch);
     }
+    if matches!(module.role, ModuleRole::PartnerMachining | ModuleRole::PartnerDisassembly | ModuleRole::PartnerReconditioning)
+        && module.partner_node.is_none_or(|node| node.trim().is_empty())
+    {
+        failures.push(ModuleFailure::PartnerNodeMissing);
+    }
     if scenario.disables(module) {
         failures.push(ModuleFailure::UnavailableByScenario);
     }
@@ -175,7 +198,7 @@ fn module_failures(module: &Module, route: &ProductRoute, operation: Operation, 
             failures.push(ModuleFailure::GateNotCurrent { gate, status });
         }
     }
-    if module.calibration.is_some() {
+    if module.calibration_required {
         let status = scenario.gate_status(module, Gate::Calibration);
         if status != Some(GateStatus::Current) {
             failures.push(ModuleFailure::GateNotCurrent { gate: Gate::Calibration, status });
@@ -219,12 +242,46 @@ fn pareto_frontier(mut candidates: Vec<RouteCandidate>) -> Vec<RouteCandidate> {
     candidates.into_iter().filter(|candidate| !snapshot.iter().any(|other| other.dominates(candidate))).collect()
 }
 
+fn validate_inputs(architecture: &Architecture, route: &ProductRoute, scenario: &Scenario) -> Vec<InputFailure> {
+    let mut failures = Vec::new();
+    if architecture.id.trim().is_empty() { failures.push(InputFailure::EmptyArchitectureId); }
+    if route.id.trim().is_empty() { failures.push(InputFailure::EmptyProductId); }
+    if route.material_profile.trim().is_empty() { failures.push(InputFailure::EmptyMaterialProfile); }
+    if scenario.id.trim().is_empty() { failures.push(InputFailure::EmptyScenarioId); }
+    if route.operations.is_empty() { failures.push(InputFailure::EmptyRoute); }
+
+    let mut module_ids = BTreeSet::new();
+    for module in &architecture.modules {
+        if module.id.trim().is_empty() {
+            failures.push(InputFailure::EmptyModuleId);
+        } else if !module_ids.insert(module.id) {
+            failures.push(InputFailure::DuplicateModuleId { module_id: module.id });
+        }
+    }
+
+    let mut operation_ids = BTreeSet::new();
+    for operation in &route.operations {
+        if operation.id.trim().is_empty() {
+            failures.push(InputFailure::EmptyOperationId);
+        } else if !operation_ids.insert(operation.id) {
+            failures.push(InputFailure::DuplicateOperationId { operation_id: operation.id });
+        }
+    }
+    failures
+}
+
 /// Evaluate one sequential product route against one fixed architecture and scenario.
 /// Every required gate must be current; stale or unknown evidence fails closed.
 pub fn evaluate(architecture: &Architecture, route: &ProductRoute, scenario: &Scenario) -> RouteEvaluation {
-    if route.operations.is_empty() {
-        return RouteEvaluation { disposition: Disposition::Blocked, feasible_assignment_count: 0,
-            pareto_frontier: Vec::new(), blocked_operations: Vec::new() };
+    let input_failures = validate_inputs(architecture, route, scenario);
+    if !input_failures.is_empty() {
+        return RouteEvaluation {
+            disposition: Disposition::Blocked,
+            input_failures,
+            feasible_assignment_count: 0,
+            pareto_frontier: Vec::new(),
+            blocked_operations: Vec::new(),
+        };
     }
 
     let mut choices_by_operation = Vec::with_capacity(route.operations.len());
@@ -254,7 +311,7 @@ pub fn evaluate(architecture: &Architecture, route: &ProductRoute, scenario: &Sc
     }
 
     if !blocked_operations.is_empty() {
-        return RouteEvaluation { disposition: Disposition::Blocked, feasible_assignment_count: 0,
+        return RouteEvaluation { disposition: Disposition::Blocked, input_failures: Vec::new(), feasible_assignment_count: 0,
             pareto_frontier: Vec::new(), blocked_operations };
     }
 
@@ -265,6 +322,7 @@ pub fn evaluate(architecture: &Architecture, route: &ProductRoute, scenario: &Sc
     let frontier = pareto_frontier(candidates);
     RouteEvaluation {
         disposition: if frontier.is_empty() { Disposition::Blocked } else { Disposition::SyntheticAccepted },
+        input_failures: Vec::new(),
         feasible_assignment_count,
         pareto_frontier: frontier,
         blocked_operations: Vec::new(),
@@ -284,6 +342,7 @@ fn module(
         material_profiles: vec!["SYNTHETIC-FERROUS-A", "SYNTHETIC-RETURNED-FERROUS-A"],
         processing_ticks, setup_ticks, transfer_ticks, cost_units, energy_units,
         process_qualification: GateStatus::Current,
+        calibration_required: requires_calibration,
         calibration: requires_calibration.then_some(GateStatus::Current),
         workforce: GateStatus::Current, utilities: GateStatus::Current,
         segregation: GateStatus::Current, quality_evidence: GateStatus::Current,
@@ -540,6 +599,67 @@ mod tests {
             eval("FUNCTIONAL_JOB_SHOP", "RETURNED_PUMP_REPAIR", "BASELINE"),
             eval("FUNCTIONAL_JOB_SHOP", "RETURNED_PUMP_REPAIR", "BASELINE")
         );
+    }
+
+
+    #[test]
+    fn missing_required_calibration_declaration_fails_closed() {
+        let mut architecture = reference_architectures().remove(0);
+        let route = reference_routes().remove(0);
+        let scenario = reference_scenarios().remove(0);
+        let cmm = architecture.modules.iter_mut().find(|module| module.id == "DL-CMM").unwrap();
+        cmm.calibration = None;
+        let result = evaluate(&architecture, &route, &scenario);
+        assert_eq!(result.disposition, Disposition::Blocked);
+        let blocked = result.blocked_operations.iter().find(|operation| operation.operation_id == "DIMENSIONAL_METROLOGY").unwrap();
+        assert!(blocked.rejected_modules.iter().any(|module| module.module_id == "DL-CMM"
+            && module.failures.contains(&ModuleFailure::GateNotCurrent { gate: Gate::Calibration, status: None })));
+    }
+
+    #[test]
+    fn partner_module_without_node_identity_is_rejected() {
+        let mut architecture = reference_architectures().into_iter().find(|a| a.id == "HYBRID_LOCAL_PARTNER").unwrap();
+        let route = reference_routes().into_iter().find(|r| r.id == "PUMP_VALVE_SUBASSEMBLY").unwrap();
+        let scenario = reference_scenarios().remove(0);
+        architecture.modules.iter_mut().find(|module| module.id == "HY-PARTNER-CNC").unwrap().partner_node = None;
+        let result = evaluate(&architecture, &route, &scenario);
+        assert_eq!(result.disposition, Disposition::Blocked);
+        let blocked = result.blocked_operations.iter().find(|operation| operation.operation_id == "PRECISION_MACHINING").unwrap();
+        assert!(blocked.rejected_modules.iter().any(|module| module.module_id == "HY-PARTNER-CNC"
+            && module.failures.contains(&ModuleFailure::PartnerNodeMissing)));
+    }
+
+    #[test]
+    fn duplicate_module_identity_blocks_ambiguous_lineage() {
+        let mut architecture = reference_architectures().remove(0);
+        architecture.modules.push(architecture.modules[0].clone());
+        let route = reference_routes().remove(0);
+        let scenario = reference_scenarios().remove(0);
+        let result = evaluate(&architecture, &route, &scenario);
+        assert_eq!(result.disposition, Disposition::Blocked);
+        assert!(result.input_failures.contains(&InputFailure::DuplicateModuleId { module_id: "DL-RECEIVE" }));
+    }
+
+    #[test]
+    fn duplicate_operation_identity_blocks_ambiguous_lineage() {
+        let architecture = reference_architectures().remove(0);
+        let mut route = reference_routes().remove(0);
+        route.operations[1].id = route.operations[0].id;
+        let scenario = reference_scenarios().remove(0);
+        let result = evaluate(&architecture, &route, &scenario);
+        assert_eq!(result.disposition, Disposition::Blocked);
+        assert!(result.input_failures.contains(&InputFailure::DuplicateOperationId { operation_id: "RECEIVE_IDENTIFY" }));
+    }
+
+    #[test]
+    fn empty_route_is_rejected_with_explicit_input_failure() {
+        let architecture = reference_architectures().remove(0);
+        let mut route = reference_routes().remove(0);
+        route.operations.clear();
+        let scenario = reference_scenarios().remove(0);
+        let result = evaluate(&architecture, &route, &scenario);
+        assert_eq!(result.disposition, Disposition::Blocked);
+        assert!(result.input_failures.contains(&InputFailure::EmptyRoute));
     }
 
     #[test]
