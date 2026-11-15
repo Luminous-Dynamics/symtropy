@@ -1872,7 +1872,7 @@ mod tests {
             .with_predecessors(vec!["inspect".to_owned()]),
         );
 
-        let mut ledger = ledger(events);
+        let ledger = ledger(events);
         assert_eq!(ledger.evidence["evidence-2"].received_at_ms, 60);
         let verifier = TestVerifier(ReviewVerification::Valid);
         let before = ledger.project(55, &TestEvidenceVerifier, &verifier);
