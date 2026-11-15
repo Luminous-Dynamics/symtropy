@@ -1,4 +1,3 @@
-
 //! Bounded exact multi-observation campaign planning.
 //!
 //! A campaign is a set of declared observation actions whose claimed region coverage
