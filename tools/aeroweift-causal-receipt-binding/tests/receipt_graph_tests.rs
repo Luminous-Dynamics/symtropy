@@ -740,3 +740,26 @@ fn conflict_screen_cannot_add_an_unrequired_traffic_class() {
         Err(VerificationError::ProfileClassMismatch)
     );
 }
+
+
+#[test]
+fn receipt_must_be_valid_at_its_own_evaluation_time() {
+    let mut receipts = graph();
+    receipt_mut(&mut receipts, root_id()).time.valid_until = 8;
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::ReceiptOutsideOwnValidity)
+    );
+}
+
+#[test]
+fn observation_must_arrive_before_its_evaluation() {
+    let mut receipts = graph();
+    let observation = receipt_mut(&mut receipts, "observation-position");
+    observation.time.received_at = Some(3);
+    observation.time.produced_at = 4;
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::ObservationReceivedAfterEvaluation)
+    );
+}
