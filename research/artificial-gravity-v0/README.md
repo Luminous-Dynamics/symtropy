@@ -171,6 +171,11 @@ Follow-on: https://github.com/Luminous-Dynamics/symtropy/issues/5291.
 - Domain run-manifest JSON Schema: AG_RUN_MANIFEST.schema.json
 - Example analytic fixture: fixtures/analytic_1g_2rpm_manifest.example.json
 
+## Instrumented inert-payload demonstrator
+
+The next physical-validation stage is defined in [ROTOR_DEMONSTRATOR_PROTOCOL.md](ROTOR_DEMONSTRATOR_PROTOCOL.md) and [ARTGRAV-ROTOR-001 #5292](https://github.com/Luminous-Dynamics/symtropy/issues/5292). It is a planning/assurance package only. It requires professional engineering review, rated containment, an energy-bounded operating envelope, remote operation, independent protective systems, calibrated instruments and inert payloads only. It contains no rotor construction recipe and does not authorize operation or human occupancy.
+
+
 ## Sources
 
 - Briard & Baatout (2026), *Artificial gravity for long-duration human spaceflight: physiological rationale, evidence gaps, risks, and research priorities*. https://doi.org/10.3389/frspt.2026.1967384
