@@ -50,6 +50,8 @@ pub struct ForecastCase {
 pub struct ForecastCaseScore {
     pub model_crps: Option<f64>,
     pub baseline_crps: f64,
+    pub model_wis: Option<f64>,
+    pub baseline_wis: f64,
     pub model_mean: Option<f64>,
     pub absolute_error: Option<f64>,
     pub median: Option<f64>,
@@ -70,6 +72,11 @@ pub struct ForecastSummary {
     pub mean_model_crps: Option<f64>,
     pub mean_baseline_crps_paired: Option<f64>,
     pub mean_baseline_crps_all: f64,
+    pub mean_model_wis: Option<f64>,
+    pub mean_baseline_wis_paired: Option<f64>,
+    pub mean_baseline_wis_all: f64,
+    /// Positive means lower WIS than the paired baseline.
+    pub wis_skill_score: Option<f64>,
     /// Positive means lower CRPS than the paired baseline; undefined for a zero-score baseline.
     pub crps_skill_score: Option<f64>,
     pub mean_absolute_error: Option<f64>,
@@ -119,6 +126,63 @@ pub fn empirical_crps(samples: &[f64], observed: f64) -> Result<f64, ForecastErr
         return Err(ForecastError::NumericOverflow);
     }
     Ok(score.max(0.0))
+}
+
+
+fn interval_score(
+    lower: f64,
+    upper: f64,
+    observed: f64,
+    alpha: f64,
+) -> Result<f64, ForecastError> {
+    if !lower.is_finite()
+        || !upper.is_finite()
+        || !observed.is_finite()
+        || !alpha.is_finite()
+        || alpha <= 0.0
+        || alpha >= 1.0
+        || lower > upper
+    {
+        return Err(ForecastError::NonFiniteValue);
+    }
+    let lower_penalty = if observed < lower { lower - observed } else { 0.0 };
+    let upper_penalty = if observed > upper { observed - upper } else { 0.0 };
+    let score = (upper - lower) + (2.0 / alpha) * (lower_penalty + upper_penalty);
+    if score.is_finite() {
+        Ok(score)
+    } else {
+        Err(ForecastError::NumericOverflow)
+    }
+}
+
+/// Weighted interval score from central 50%, 80% and 95% empirical intervals.
+///
+/// WIS combines median absolute error with weighted interval scores. It rewards
+/// calibrated, sharp intervals and penalizes observations outside them. The quantiles
+/// use the same documented nearest-rank rule as the forecast receipt.
+pub fn weighted_interval_score(samples: &[f64], observed: f64) -> Result<f64, ForecastError> {
+    if samples.is_empty() || samples.len() > 1_000_000 {
+        return Err(ForecastError::InvalidEnsembleSize);
+    }
+    if !observed.is_finite() || samples.iter().any(|value| !value.is_finite()) {
+        return Err(ForecastError::NonFiniteValue);
+    }
+
+    let median = empirical_quantile(samples, 0.5)?;
+    let interval_levels = [(0.5, 0.25, 0.75), (0.2, 0.1, 0.9), (0.05, 0.025, 0.975)];
+    let mut weighted_sum = 0.5 * (observed - median).abs();
+    for (alpha, lower_probability, upper_probability) in interval_levels {
+        let lower = empirical_quantile(samples, lower_probability)?;
+        let upper = empirical_quantile(samples, upper_probability)?;
+        let score = interval_score(lower, upper, observed, alpha)?;
+        weighted_sum += (alpha / 2.0) * score;
+    }
+    let result = weighted_sum / 3.5;
+    if result.is_finite() {
+        Ok(result)
+    } else {
+        Err(ForecastError::NumericOverflow)
+    }
 }
 
 /// Empirical nearest-rank quantile. For small ensembles this is intentionally discrete;
@@ -182,10 +246,13 @@ pub fn score_forecast_case(case: &ForecastCase) -> Result<ForecastCaseScore, For
     }
 
     let baseline_crps = empirical_crps(&case.baseline_samples, case.observed)?;
+    let baseline_wis = weighted_interval_score(&case.baseline_samples, case.observed)?;
     if case.model_samples.is_empty() {
         return Ok(ForecastCaseScore {
             model_crps: None,
             baseline_crps,
+            model_wis: None,
+            baseline_wis,
             model_mean: None,
             absolute_error: None,
             median: None,
@@ -199,10 +266,13 @@ pub fn score_forecast_case(case: &ForecastCase) -> Result<ForecastCaseScore, For
     }
 
     let model_crps = empirical_crps(&case.model_samples, case.observed)?;
+    let model_wis = weighted_interval_score(&case.model_samples, case.observed)?;
     let model_mean = ensemble_mean(&case.model_samples)?;
     Ok(ForecastCaseScore {
         model_crps: Some(model_crps),
         baseline_crps,
+        model_wis: Some(model_wis),
+        baseline_wis,
         model_mean: Some(model_mean),
         absolute_error: Some((model_mean - case.observed).abs()),
         median: Some(empirical_quantile(&case.model_samples, 0.5)?),
@@ -232,6 +302,9 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
     let mut model_crps_total = 0.0;
     let mut paired_baseline_crps_total = 0.0;
     let mut all_baseline_crps_total = 0.0;
+    let mut model_wis_total = 0.0;
+    let mut paired_baseline_wis_total = 0.0;
+    let mut all_baseline_wis_total = 0.0;
     let mut absolute_error_total = 0.0;
     let mut coverage_50_count = 0usize;
     let mut coverage_80_count = 0usize;
@@ -251,10 +324,13 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
         }
         let score = score_forecast_case(case)?;
         all_baseline_crps_total += score.baseline_crps;
+        all_baseline_wis_total += score.baseline_wis;
         if let Some(model_crps) = score.model_crps {
             forecast_case_count += 1;
             model_crps_total += model_crps;
             paired_baseline_crps_total += score.baseline_crps;
+            model_wis_total += score.model_wis.ok_or(ForecastError::NumericOverflow)?;
+            paired_baseline_wis_total += score.baseline_wis;
             absolute_error_total += score.absolute_error.ok_or(ForecastError::NumericOverflow)?;
             let lower_50 = score.lower_50.ok_or(ForecastError::NumericOverflow)?;
             let upper_50 = score.upper_50.ok_or(ForecastError::NumericOverflow)?;
@@ -281,6 +357,7 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
     let forecast_coverage_fraction =
         count_as_f64(forecast_case_count)? / count_as_f64(eligible_case_count)?;
     let mean_baseline_crps_all = all_baseline_crps_total / count_as_f64(eligible_case_count)?;
+    let mean_baseline_wis_all = all_baseline_wis_total / count_as_f64(eligible_case_count)?;
 
     if forecast_case_count == 0 {
         return Ok(ForecastSummary {
@@ -291,6 +368,10 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
             mean_model_crps: None,
             mean_baseline_crps_paired: None,
             mean_baseline_crps_all,
+            mean_model_wis: None,
+            mean_baseline_wis_paired: None,
+            mean_baseline_wis_all,
+            wis_skill_score: None,
             crps_skill_score: None,
             mean_absolute_error: None,
             interval_coverage_50: None,
@@ -310,6 +391,13 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
     } else {
         None
     };
+    let model_wis_mean = model_wis_total / paired_count;
+    let baseline_wis_mean = paired_baseline_wis_total / paired_count;
+    let wis_skill_score = if baseline_wis_mean > 0.0 {
+        Some(1.0 - model_wis_mean / baseline_wis_mean)
+    } else {
+        None
+    };
 
     Ok(ForecastSummary {
         eligible_case_count,
@@ -319,6 +407,10 @@ pub fn summarize_forecasts(cases: &[ForecastCase]) -> Result<ForecastSummary, Fo
         mean_model_crps: Some(model_mean),
         mean_baseline_crps_paired: Some(baseline_mean),
         mean_baseline_crps_all,
+        mean_model_wis: Some(model_wis_mean),
+        mean_baseline_wis_paired: Some(baseline_wis_mean),
+        mean_baseline_wis_all,
+        wis_skill_score,
         crps_skill_score,
         mean_absolute_error: Some(absolute_error_total / paired_count),
         interval_coverage_50: Some(count_as_f64(coverage_50_count)? / paired_count),
@@ -688,6 +780,18 @@ mod tests {
         duplicate.forecast_id = "other".to_string();
         duplicate.horizon_days = 90;
         assert_eq!(summarize_binary_event_forecasts(&[first, duplicate]), Err(ForecastError::MixedEventSlice));
+    }
+
+
+    #[test]
+    fn weighted_interval_score_matches_two_member_hand_calculation() {
+        let score = weighted_interval_score(&[0.0, 2.0], 1.0).expect("WIS");
+        assert!((score - (1.25 / 3.5)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn weighted_interval_score_reduces_to_absolute_error_for_point_mass() {
+        assert_eq!(weighted_interval_score(&[2.0], 5.0), Ok(3.0));
     }
 
     #[test]
