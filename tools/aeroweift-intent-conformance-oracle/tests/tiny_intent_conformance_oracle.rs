@@ -381,6 +381,23 @@ fn dynamic_restriction_effective_interval_must_intersect_authorized_time() {
     assert_status(&result, ConformanceStatus::Conforming, None);
 }
 
+
+#[test]
+fn deviation_expansion_cannot_extend_before_authorization_activation() {
+    let mut request = input(vec![observation("pre-activation", 5, 6, (1, 2))]);
+    request.authorization.activated_at_tick = 10;
+    request.policy.deviation_expansion.time = 5;
+
+    let result = evaluate(&request);
+    assert_status(
+        &result,
+        ConformanceStatus::PotentiallyNonconforming,
+        Some(ConformanceReason::DefiniteDeviationBelowConfirmationThreshold),
+    );
+    assert_eq!(result.definite_outside_ticks, 1);
+    assert_eq!(result.definite_inside_ticks, 0);
+}
+
 #[test]
 fn half_open_authorization_end_is_exclusive() {
     let mut request = input(vec![observation("at-end", 100, 101, (1, 2))]);
