@@ -40,6 +40,7 @@ fn coverage(
         source_id: source.into(),
         effective_from: 0,
         effective_through: 100,
+        recorded_at: 0,
         knowledge_from: 0,
         knowledge_through: 100,
         first_sequence: 1,
