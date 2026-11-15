@@ -27,6 +27,9 @@ const FIXED_DT: f64 = 1.0 / 120.0;
 const TICK_COUNT: usize = 480;
 const RELEASE_IMPULSE_NS: f64 = 0.015;
 const SETTLED_SPEED_M_S: f64 = 0.08;
+const SETTLED_ANGULAR_SPEED_RAD_S: f64 = 0.08;
+const MAX_CONTACT_PENETRATION_M: f64 = 0.04;
+const ROTATION_HEALTH_TOLERANCE: f64 = 1e-8;
 const PLACEMENT_CLEARANCE_M: f64 = 0.005;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -41,6 +44,13 @@ pub struct SimulationResult {
     pub fixed_dt_seconds: f64,
     pub package_center_m: [f64; 3],
     pub package_linear_speed_m_s: f64,
+    pub package_angular_speed_rad_s: f64,
+    pub package_world_aabb_half_extents_m: [f64; 3],
+    pub max_contact_penetration_m: f64,
+    pub max_rotation_orthogonality_error: f64,
+    pub max_rotation_determinant_error: f64,
+    pub non_finite_body_count: usize,
+    pub physics_numerically_healthy: bool,
     pub safe_inside_tote: bool,
     pub settled: bool,
     pub replay_bitwise_equal: bool,
@@ -54,6 +64,12 @@ pub struct SimulationResult {
 struct EpisodeTrace {
     final_position_m: [f64; 3],
     final_speed_m_s: f64,
+    final_angular_speed_rad_s: f64,
+    final_world_aabb_half_extents_m: [f64; 3],
+    max_contact_penetration_m: f64,
+    max_rotation_orthogonality_error: f64,
+    max_rotation_determinant_error: f64,
+    non_finite_body_count: usize,
     digest: String,
     ticks: usize,
 }
@@ -265,12 +281,25 @@ fn run_episode(scenario: &ScenarioManifest) -> Result<EpisodeTrace, String> {
     hasher.update((TICK_COUNT as u64).to_le_bytes());
     hasher.update(FIXED_DT.to_bits().to_le_bytes());
 
+    let mut max_contact_penetration_m = 0.0_f64;
+    let mut max_rotation_orthogonality_error = 0.0_f64;
+    let mut max_rotation_determinant_error = 0.0_f64;
+    let mut non_finite_body_count = 0_usize;
     for (tick, frame) in tape.frames.iter().enumerate() {
         apply_commands(&mut world, &frame.commands)
             .map_err(|error| format!("replay command failed at tick {tick}: {error:?}"))?;
         world.step(frame.dt);
         let snapshot = WorldSnapshot::capture(&world);
         hash_snapshot(&mut hasher, tick, &snapshot);
+
+        let invariants = world.invariant_snapshot();
+        max_contact_penetration_m =
+            max_contact_penetration_m.max(invariants.max_penetration_depth);
+        max_rotation_orthogonality_error = max_rotation_orthogonality_error
+            .max(invariants.max_rotation_orthogonality_error);
+        max_rotation_determinant_error =
+            max_rotation_determinant_error.max(invariants.max_rotation_determinant_error);
+        non_finite_body_count = non_finite_body_count.max(invariants.non_finite_body_count);
     }
 
     let package_body = world
@@ -279,10 +308,25 @@ fn run_episode(scenario: &ScenarioManifest) -> Result<EpisodeTrace, String> {
     let position = package_body.position();
     let final_position_m = [position[0], position[1], position[2]];
     let final_speed_m_s = package_body.linear_velocity.norm();
+    let final_angular_speed_rad_s = package_body.angular_velocity.norm();
+    let rotation = package_body.transform.rotation.to_matrix();
+    let final_world_aabb_half_extents_m = std::array::from_fn(|world_axis| {
+        (0..3)
+            .map(|local_axis| {
+                rotation[(world_axis, local_axis)].abs() * _package_half[local_axis]
+            })
+            .sum()
+    });
 
     Ok(EpisodeTrace {
         final_position_m,
         final_speed_m_s,
+        final_angular_speed_rad_s,
+        final_world_aabb_half_extents_m,
+        max_contact_penetration_m,
+        max_rotation_orthogonality_error,
+        max_rotation_determinant_error,
+        non_finite_body_count,
         digest: format!("sha256:{:x}", hasher.finalize()),
         ticks: tape.frames.len(),
     })
@@ -424,14 +468,24 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
     ];
     let [x, y, z] = first.final_position_m;
     let [ix, iy, iz] = geometry.inner_half_m;
-    let [hx, hy, hz] = package_half_m;
-    let safe_inside_tote = x.abs() + hx <= ix + PLACEMENT_CLEARANCE_M
-        && z.abs() + hz <= iz + PLACEMENT_CLEARANCE_M
-        && y - hy >= -PLACEMENT_CLEARANCE_M
-        && y + hy <= 2.0 * iy + PLACEMENT_CLEARANCE_M;
-    let settled = first.final_speed_m_s <= SETTLED_SPEED_M_S;
+    let [aabb_x, aabb_y, aabb_z] = first.final_world_aabb_half_extents_m;
+    let safe_inside_tote = x.abs() + aabb_x <= ix + PLACEMENT_CLEARANCE_M
+        && z.abs() + aabb_z <= iz + PLACEMENT_CLEARANCE_M
+        && y - aabb_y >= -PLACEMENT_CLEARANCE_M
+        && y + aabb_y <= 2.0 * iy + PLACEMENT_CLEARANCE_M;
+    let settled = first.final_speed_m_s <= SETTLED_SPEED_M_S
+        && first.final_angular_speed_rad_s <= SETTLED_ANGULAR_SPEED_RAD_S;
+    let physics_numerically_healthy = first.non_finite_body_count == 0
+        && first.max_rotation_orthogonality_error <= ROTATION_HEALTH_TOLERANCE
+        && first.max_rotation_determinant_error <= ROTATION_HEALTH_TOLERANCE;
+    let penetration_within_limit =
+        first.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M;
 
-    let physical_result_valid = replay_bitwise_equal && safe_inside_tote && settled;
+    let physical_result_valid = replay_bitwise_equal
+        && safe_inside_tote
+        && settled
+        && physics_numerically_healthy
+        && penetration_within_limit;
     let transaction_state = custody_transaction(scenario, &first.digest, physical_result_valid)?;
     let accepted =
         physical_result_valid && transaction_state == PhysicalTransactionState::Completed;
@@ -447,6 +501,13 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
         fixed_dt_seconds: FIXED_DT,
         package_center_m: first.final_position_m,
         package_linear_speed_m_s: first.final_speed_m_s,
+        package_angular_speed_rad_s: first.final_angular_speed_rad_s,
+        package_world_aabb_half_extents_m: first.final_world_aabb_half_extents_m,
+        max_contact_penetration_m: first.max_contact_penetration_m,
+        max_rotation_orthogonality_error: first.max_rotation_orthogonality_error,
+        max_rotation_determinant_error: first.max_rotation_determinant_error,
+        non_finite_body_count: first.non_finite_body_count,
+        physics_numerically_healthy,
         safe_inside_tote,
         settled,
         replay_bitwise_equal,
@@ -459,6 +520,7 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
             "No sensor noise, calibration model, metrology or perception pipeline".into(),
             "No actuator, robot, door, latch, guarding or emergency-stop hardware".into(),
             "Same-host deterministic replay only; cross-platform bitwise equality is not claimed".into(),
+            "Asymmetric-body inertia is currently approximate in symtropy-physics; this centered drop is not a tumbling-body qualification".into(),
             "Custody state machine validates declared event structure, not signature authenticity or evidence-source independence".into(),
         ],
     })
