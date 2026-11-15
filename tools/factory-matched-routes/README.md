@@ -12,7 +12,7 @@ The routes are a pump/valve subassembly and a returned-pump repair/refurbishment
 
 ## Evaluation semantics
 
-The evaluator performs a deterministic, sequential, single-unit route feasibility analysis. Each operation may use any module whose capability, material profile, process qualification, required calibration, workforce, utilities, segregation and quality evidence are current. A stale or unknown required gate is rejected. Partner-node and module-role outages are applied before assignment.
+The evaluator performs a deterministic, sequential, single-unit route feasibility analysis. The `route-matrix` binary emits the complete architecture × product × scenario matrix as tab-separated rows, including disposition, feasible-assignment count, Pareto objective triples and blocked operations. Each operation may use any module whose capability, material profile, process qualification, required calibration, workforce, utilities, segregation and quality evidence are current. A stale or unknown required gate is rejected. Partner-node and module-role outages are applied before assignment.
 
 All admissible assignments are enumerated. Their elapsed ticks, cost units and energy units are compared using a non-dominated Pareto frontier. No weighted sum or hidden preference is used. The frontier is lexicographically ordered for deterministic serialization; this ordering is not a preference ranking.
 
@@ -44,5 +44,6 @@ Run from this directory:
 
     cargo clippy --all-targets -- -D warnings
     cargo test --all-targets
+    cargo run --bin route-matrix
 
 The repository authoring environment used for this change did not have Rust installed. No local Rust compile, formatter or test pass is claimed; the focused workflow is the exact-head verification path.
