@@ -43,6 +43,7 @@ fn parse_tensor(v:&Value,key:&str,nout:usize,nin:usize)->Result<Tensor3,String>{
     }
     Ok(result)
 }
+#[allow(clippy::needless_range_loop)]
 fn conv(input:&Matrix,kernel:&Tensor3)->Result<Matrix,String>{
     let nt=input.first().map(Vec::len).unwrap_or(0);let nin=input.len();let nout=kernel.len();
     if nt==0||nin==0||nout==0||kernel.iter().any(|r|r.len()!=nin){return Err("convolution dimensions invalid".into());}
@@ -51,7 +52,6 @@ fn conv(input:&Matrix,kernel:&Tensor3)->Result<Matrix,String>{
     if out.iter().flatten().any(|x|!x.is_finite()){return Err("convolution overflow".into());}
     Ok(out)
 }
-fn close(a:f64,b:f64,tol:f64)->bool{(a-b).abs()<=tol*a.abs().max(b.abs()).max(1.0)}
 fn base(state:&str,reason:&str)->Value{
     json!({
         "invariant_disposition":state,"reason":reason,
@@ -64,6 +64,7 @@ fn base(state:&str,reason:&str)->Value{
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     })
 }
+#[allow(clippy::needless_range_loop)]
 fn check_state_space(case:&Value,tol:f64)->Result<String,String>{
     let Some(ss)=case.get("state_space") else{return Ok("NOT_SUPPLIED".into());};
     let a_raw=array(ss,"A")?;
@@ -107,6 +108,7 @@ fn grid_refinement(case:&Value,tol:f64)->Result<(Option<f64>,Option<f64>,bool),S
     let max_time=number(grid,"maximum_centroid_difference_seconds")?;
     Ok((Some(area_error),Some(time_error),area_error<=tol&&time_error<=max_time))
 }
+#[allow(clippy::needless_range_loop)]
 fn compute(case:&Value)->Result<Value,String>{
     let input_rows=array(case,"input_a")?;
     if input_rows.is_empty(){return Ok(base("INVALID_INPUT","NO_INLET_INPUTS"));}
