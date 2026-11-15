@@ -199,6 +199,17 @@ Report Amazon, Congo and New Guinea as separate strata. Use leave-site-out, leav
 
 Before the next census or reference observation is revealed, bind the prediction, model, data manifest, horizon and forecast distribution to an immutable receipt. Score after independently governed observations arrive.
 
+### T5 — uncertainty calibration and transfer
+
+Uncertainty is qualified at the true dependence unit, not at the raw pixel/stem count. The first block-aware conformal slice is documented in [FOREST_BLOCK_CONFORMAL_BENCHMARK_V0_1.md](FOREST_BLOCK_CONFORMAL_BENCHMARK_V0_1.md) and tracked in [#5285](https://github.com/Luminous-Dynamics/symtropy/issues/5285). It compares pooled observation residuals with equal-sized spatial/campaign block-maximum residuals, keeps point coverage distinct from whole-block coverage, and exposes a known-shift negative control.
+
+- Freeze spatial/campaign/time block definitions before fitting; preserve independent training, calibration and test groups.
+- Declare the exchangeability unit and its rationale. Group disjointness is necessary but does not prove exchangeability.
+- Report finite-sample calibration-block rank, interval width/WIS, point coverage, all-observations-in-block coverage and realized coverage uncertainty separately.
+- Evaluate leave-site, leave-campaign and leave-region transfer; report worst-stratum and rolling-window undercoverage, not only pooled long-run averages.
+- Unknown shift or exchangeability means no distribution-free guarantee is claimed. A shifted negative control must remain visible.
+- For a target 90% split-conformal level, at least 9 exchangeable calibration blocks are needed for a finite radius; for 95%, at least 19. These are mathematical minima, not enough by themselves for precise empirical coverage confidence intervals.
+
 ## Metrics (no single composite score)
 
 | Task | Primary metrics |
@@ -210,6 +221,7 @@ Before the next census or reference observation is revealed, bind the prediction
 | Recovery | Recovery trajectory error, time-to-recovery distribution and uncertainty |
 | Water / carbon / nutrients | Budget closure residuals and flux/state errors in physical units |
 | Transfer | Per-region and worst-region score, calibration degradation and abstention |
+| Uncertainty | 50/80/90/95% point coverage, whole-block coverage, interval width/WIS at matched coverage, calibration block count and block-bootstrap coverage intervals |
 | Runtime | Wall time, peak memory, energy / hardware only when measured (reuse #3787) |
 | Evidence integrity | Provenance completeness, split leakage, rights violations and invalid absence promotions |
 
@@ -217,7 +229,7 @@ For probabilistic ecological forecasts, report proper scoring rules (CRPS / log 
 
 ### Proposed stretch target
 
-Once baseline variance, sample size and cluster structure are known, preregister a matched tournament aiming for at least 10% lower CRPS or normalized error than the strongest admissible baseline on at least two independent region/task strata, under equal data and compute budgets. Require nominal 90% predictive intervals to meet predeclared coverage tolerance, no degradation of mandatory conservation/evidence gates, and site/plot-block uncertainty analysis. This is a target, not an achieved result.
+Once baseline variance, sample size and cluster structure are known, preregister a matched tournament aiming for at least 10% lower CRPS or normalized error than the strongest admissible baseline on at least two independent region/task strata, under equal data and compute budgets. Require nominal 90% and 95% predictive intervals to meet predeclared coverage tolerance on independent block units, no degradation of mandatory conservation/evidence gates, and block-bootstrap coverage intervals. Treat 10% CRPSS improvement and ±5 percentage-point block-coverage tolerance as future targets, not achieved results. This is a target, not an achieved result.
 
 ## First concrete sequence
 
