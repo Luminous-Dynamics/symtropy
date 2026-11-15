@@ -129,6 +129,20 @@
       "reported_p_value": 0.079,
       "direction": "NO_SIGNIFICANT_DIFFERENCE",
       "interpretation": "NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT"
+    },
+    {
+      "effect_id": "N_CATIONS_YEAR2_SOURCE_GROUPING",
+      "description": "Year-two source-reported N/cation interaction grouping",
+      "contrast": "Paper-reported -N-CAT versus +N-CAT grouping; preserve source notation and do not reinterpret as a pure N main effect",
+      "year": "year2",
+      "minus_mean": 1.15,
+      "minus_se": 0.09,
+      "plus_mean": 0.79,
+      "plus_se": 0.08,
+      "reported_change_percent": -31,
+      "p_value": 0.016,
+      "direction": "DECREASE",
+      "interpretation": "REPORTED_INTERACTION_WITH_SOURCE_GROUPING"
     }
   ],
   "cases": [
@@ -317,5 +331,26 @@
       "expected_disposition": "SUPPORT_MISMATCH_REFUSED"
     }
   ],
-  "expected_case_count": 4
+  "expected_case_count": 4,
+  "published_stock_conclusion": {
+    "status": "NO_SIGNIFICANT_NUTRIENT_TREATMENT_EFFECT_REPORTED",
+    "interpretation": "NON_SIGNIFICANCE_IS_NOT_EVIDENCE_OF_IDENTICAL_STOCKS_OR_ZERO_EFFECT",
+    "note": "The paper reports no significant treatment-related change in fine-root standing stock over the two-year observation period."
+  },
+  "published_lifespan_summaries": [
+    {
+      "summary_id": "P_TWO_YEAR_AVERAGE",
+      "description": "Average fine-root lifespan after two years of phosphorus addition",
+      "without_phosphorus_days": 401,
+      "with_phosphorus_days": 304,
+      "reported_change": "decrease"
+    },
+    {
+      "summary_id": "P_WITHOUT_VS_WITH_CATIONS_YEAR2",
+      "description": "Year-two lifespan with P without versus with base cations",
+      "without_cations_days": 296,
+      "with_cations_days": 445,
+      "reported_change": "increase"
+    }
+  ]
 }
