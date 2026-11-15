@@ -1,0 +1,302 @@
+{
+  "schema_version": "protective-systems-fixtures/0.1",
+  "frozen_at": "2026-11-15",
+  "evidence_class": "synthetic",
+  "intended_use": "body-armour-specific B0 record conformance and evidence-boundary tests only; no physical-performance evidence",
+  "decisions": [
+    "ACCEPT_RECORD_ONLY",
+    "REJECT_STALE_OR_REVOKED",
+    "ABSTAIN_UNKNOWN",
+    "REQUIRE_INDEPENDENT_REVIEW"
+  ],
+  "cases": [
+    {
+      "case_id": "BODY-ARMOR-TORSO-RECORD-POSITIVE-001",
+      "domain": "human_worn",
+      "fixture_class": "positive_control",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-001",
+        "configuration_revision": "R3",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "torso_test_record_is_complete_for_declared_scope",
+        "performance_claim_permitted": false
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "Addendum 1",
+          "Addendum 2",
+          "Addendum 3"
+        ],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-001",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-001",
+        "conditioning_record": "SYNTHETIC-BA-COND-001",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R3"
+      },
+      "expected_decision": "ACCEPT_RECORD_ONLY",
+      "rationale": "The synthetic record contains the fields required for its declared torso scope; it proves no physical result."
+    },
+    {
+      "case_id": "BODY-ARMOR-NIJ-0123-THREAT-SPEC-AS-PRODUCT-TEST-002",
+      "domain": "human_worn",
+      "fixture_class": "standard-scope-negative",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-002",
+        "configuration_revision": "R1",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "NIJ_0123_00_alone_proves_product_ballistic_performance",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "NIJ-0123.00",
+        "addenda": [
+          "Addendum 1",
+          "Addendum 2"
+        ],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "ballistic_protection_levels_and_test_threats_only"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-002",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-002",
+        "conditioning_record": "SYNTHETIC-BA-COND-002",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R1"
+      },
+      "expected_decision": "ABSTAIN_UNKNOWN",
+      "rationale": "NIJ 0123.00 defines protection levels and test threats; it does not by itself supply a product performance test method or certification."
+    },
+    {
+      "case_id": "BODY-ARMOR-SANS-1658-ADVERTISEMENT-UNVERIFIED-003",
+      "domain": "human_worn",
+      "fixture_class": "currentness-negative",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-003",
+        "configuration_revision": "R2",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "current_SANS_1658_product_conformance",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "SANS-1658-2025",
+        "addenda": [],
+        "currentness": "VERIFY_LOCALLY",
+        "scope": "advertised_edition_not_yet_verified_against_current_SABS_catalogue"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-003",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-003",
+        "conditioning_record": "SYNTHETIC-BA-COND-003",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R2"
+      },
+      "expected_decision": "ABSTAIN_UNKNOWN",
+      "rationale": "A provider advertisement is not official SABS confirmation of the current published edition, addenda and applicability."
+    },
+    {
+      "case_id": "BODY-ARMOR-PANEL-OR-LOT-CHANGED-AFTER-TEST-004",
+      "domain": "human_worn",
+      "fixture_class": "configuration-invalidation-negative",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-004",
+        "configuration_revision": "R4",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "prior_test_claim_remains_valid_after_panel_or_lot_change",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "Addendum 1",
+          "Addendum 2",
+          "Addendum 3"
+        ],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-004",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-004",
+        "conditioning_record": "SYNTHETIC-BA-COND-004",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R3",
+        "material_lot_changed": true
+      },
+      "expected_decision": "REQUIRE_INDEPENDENT_REVIEW",
+      "rationale": "A panel, material-lot or configuration change must not inherit prior test evidence automatically."
+    },
+    {
+      "case_id": "BODY-ARMOR-WEARER-USABILITY-CLAIM-WITHOUT-MEASURES-005",
+      "domain": "human_worn",
+      "fixture_class": "wearer-evidence-negative",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-005",
+        "configuration_revision": "R1",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "wearer_fit_mobility_and_thermal_usability_claim",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "Addendum 1",
+          "Addendum 2",
+          "Addendum 3"
+        ],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-005",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-005",
+        "conditioning_record": "SYNTHETIC-BA-COND-005",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R1"
+      },
+      "expected_decision": "ABSTAIN_UNKNOWN",
+      "rationale": "A ballistic test record does not establish fit, mobility, task performance or thermal/moisture usability without separate wearer-assessment evidence."
+    },
+    {
+      "case_id": "BODY-ARMOR-WEARER-USABILITY-RECORD-COMPLETE-006",
+      "domain": "human_worn",
+      "fixture_class": "positive-control",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-006",
+        "configuration_revision": "R2",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "wearer_fit_mobility_and_thermal_usability_record_is_complete",
+        "performance_claim_permitted": false
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "Addendum 1",
+          "Addendum 2",
+          "Addendum 3"
+        ],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-006",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-006",
+        "conditioning_record": "SYNTHETIC-BA-COND-006",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R2",
+        "wearer_assessment_ref": "SYNTHETIC-WEARER-ASSESSMENT-006",
+        "anthropometry_profile_ref": "SYNTHETIC-ANTHROPOMETRY-006",
+        "movement_task_protocol_ref": "SYNTHETIC-MOVEMENT-PROTOCOL-006",
+        "mobility_outcomes_ref": "SYNTHETIC-MOBILITY-OUTCOMES-006",
+        "thermal_moisture_outcomes_ref": "SYNTHETIC-THERMAL-MOISTURE-006"
+      },
+      "expected_decision": "ACCEPT_RECORD_ONLY",
+      "rationale": "Required wearer-assessment references are present in the synthetic record; this is not a positive ergonomic or physical-performance result."
+    },
+    {
+      "case_id": "BODY-ARMOR-MODEL-ONLY-INJURY-REDUCTION-CLAIM-007",
+      "domain": "human_worn",
+      "fixture_class": "claim-authority-negative",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-007",
+        "configuration_revision": "R1",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "model_predicts_reduced_injury_risk",
+        "performance_claim_permitted": true
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [
+          "Addendum 1",
+          "Addendum 2",
+          "Addendum 3"
+        ],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "model_predicted",
+        "model_id": "SYNTHETIC-IMPACT-MODEL-007",
+        "tested_configuration_revision": "R1",
+        "configuration_bound": true
+      },
+      "expected_decision": "ABSTAIN_UNKNOWN",
+      "rationale": "A model prediction is not a physical test result or clinically validated injury-reduction outcome."
+    },
+    {
+      "case_id": "BODY-ARMOR-NIJ-0101-ADDENDA-OMITTED-008",
+      "domain": "human_worn",
+      "fixture_class": "standards-version-negative",
+      "subject": {
+        "id": "SYNTHETIC-TORSO-ARTICLE-008",
+        "configuration_revision": "R1",
+        "form_factor": "human_torso"
+      },
+      "claim": {
+        "proposition": "current_NIJ_0101_07_torso_record",
+        "performance_claim_permitted": false
+      },
+      "standard": {
+        "id": "NIJ-0101.07",
+        "addenda": [],
+        "currentness": "CURRENT_WITH_AMENDMENTS",
+        "scope": "human_torso_body_armor"
+      },
+      "evidence": {
+        "class": "synthetic_test_report",
+        "report_id": "SYNTHETIC-BA-REPORT-008",
+        "lab_scope": "synthetic_fixture_only",
+        "calibration_ref": "SYNTHETIC-BA-CAL-008",
+        "conditioning_record": "SYNTHETIC-BA-COND-008",
+        "units_present": true,
+        "uncertainty_present": true,
+        "configuration_bound": true,
+        "tested_configuration_revision": "R1"
+      },
+      "expected_decision": "REJECT_STALE_OR_REVOKED",
+      "rationale": "A current-with-addenda NIJ reference that omits the three applicable addenda is incomplete."
+    }
+  ]
+}
