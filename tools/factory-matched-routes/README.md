@@ -42,8 +42,7 @@ This first version is intentionally a transparent route-feasibility and resource
 
 Run from this directory:
 
-    cargo fmt --check
     cargo clippy --all-targets -- -D warnings
     cargo test --all-targets
 
-The repository authoring environment used for this change did not have Rust installed. No local Rust compile or test pass is claimed; the workflow is the exact-head verification path.
+The repository authoring environment used for this change did not have Rust installed. No local Rust compile, formatter or test pass is claimed; the focused workflow is the exact-head verification path.
