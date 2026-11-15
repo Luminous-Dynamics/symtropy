@@ -178,14 +178,31 @@ For mobile-manipulation comparisons, use RoboCasa365 and BEHAVIOR protocols wher
 | Reference | Use | Important limitation |
 |---|---|---|
 | RoboCasa365 | Standardized multi-task kitchen manipulation and compositional generalization | Not a logistics, custody, aviation or full-home delivery benchmark |
-| BEHAVIOR-1K / 2026 BEHAVIOR Challenge | Long-horizon household mobile manipulation and activity completion | Simulation outcomes do not establish real-world reliability |
+| BEHAVIOR-1K / 2026 BEHAVIOR Challenge | Long-horizon household mobile manipulation and activity completion | Simulation outcomes do not establish real-world reliability; use its official observation restrictions and hidden-instance protocol |
 | HomeRobot OVMM | Real-world open-vocabulary mobile manipulation reference | Its task definition and original real-world baseline must be matched before comparing |
 | VDA 5050 v3.0 | Task/status and mixed-fleet mobile-robot interface, including zone/path-sharing concepts | Interoperability interface, not safety certification or aircraft protocol |
 | GS1 EPCIS 2.0.1 | Business event visibility and cross-organization custody semantics | Does not itself provide household privacy or authorization |
-| ISO 3691-4 | Relevant safety requirements for driverless industrial trucks and systems | Applicability and current revision status must be checked for the actual platform |
-| ISO 13482 | Relevant service-robot human-contact hazards | Edition 2 is in publication as of this specification; check its published status and precise scope before relying on it |
+| ISO 3691-4:2023 | Published industrial-truck / AMR safety requirements edition | Edition 3, ISO/DIS 3691-4, is under development at enquiry voting; it is not yet the published replacement |
+| ISO 13482:2014 / Edition 2 | Service-robot human-contact hazards | Edition 2 reached publication stage 60.00 on 2026-11-11; until its publication is complete, verify which edition is contractually applicable |
 
 External protocol versions and baselines must be frozen in each benchmark release. Do not claim conformance from simply using a message schema.
+
+### 7.1 Snapshot of published benchmark status (2026-11-15)
+
+- **RoboCasa365:** the public leaderboard lists 85.6 overall for its leading listed agentic submission, with 91.1 Atomic-Seen, 85.0 Composite-Seen and 80.0 Composite-Unseen across its 50-task multi-task evaluation. The benchmark documentation says evaluation is performed in the pretraining kitchens; Composite-Unseen is an unseen task-composition split, not a wholly unseen-home split. Treat the score as a task-specific reference point, not a delivery success rate.
+- **BEHAVIOR 2026:** the challenge defines 100 full-length tasks across seven scenes, uses RGB + depth + proprioception for the evaluation track, and lists π0.5 and GR00T N1.7 as starter baselines. During evaluation, policies may not consume ground-truth segmentation, object state, target poses, full-scene point clouds or simulator global pose. The published protocol uses BEHAVIOR-1K v3.9.3; indices 0–9 are the public reporting instances, 10–19 are additional public development instances, and 20–39 are hidden final-evaluation instances. The public pages retrieved for this specification confirm the winners-announcement date (2026-11-04) but do not provide a current numeric final ranking table. Do not invent or infer winner scores.
+- **VDA 5050:** VDA announced version 3.0 on 2026-04-20. It adds a zone concept for freely navigating mobile robots and supports robot-side path planning plus path sharing with master control. Use it as an adapter/conformance target, not as a safety case.
+- **GS1 EPCIS:** version 2.0.1, published 2025-07-01, is the latest version listed in the official GS1 archive as of this snapshot.
+- **ISO 3691-4:** ISO 3691-4:2023 Edition 2 remains the published edition. ISO/DIS 3691-4 Edition 3 is under development; its enquiry ballot closed 2026-09-10 and the current ISO record shows it has not yet reached publication.
+- **ISO 13482:** Edition 2 is at publication stage 60.00 dated 2026-11-11; it is replacing the published 2014 edition. Check the current catalogue before freezing a compliance matrix.
+
+### 7.2 South African UAS operating gate
+
+For a South African deployment, the aircraft track must carry a regulatory applicability decision as an explicit evidence artifact.
+
+SACAA's published UAS guidance states that private operations are restricted to R-VLOS and Class 1A/1B aircraft and says private operators must not release, dispense, drop, deliver or deploy objects. Its approval matrix lists UASOC, RPAS Letter of Approval, RPL and registration for corporate/non-profit operations, and an Air Service Licence additionally for commercial operations. SACAA also lists autonomous unmanned aircraft as excluded from Part 101's stated scope. That exclusion is **not** evidence that autonomous delivery is unregulated or approved; the responsible authority must confirm the applicable legal pathway before any autonomous or delivery operation.
+
+MFB must therefore distinguish remote-piloted Part 101 use, private use, commercial operation and autonomous aircraft as separate regulatory cases. Do not infer flight permission from property ownership, a Sol-Atlas site score, a Mycelix mission grant or a Symtropy simulation.
 
 ## 8. Metrics and score reporting
 
@@ -267,6 +284,26 @@ A score is not valid if it omits failed tasks, excludes interventions, ignores e
 
 No level automatically implies the next. A digital twin is not a certified aircraft model, building structural model, refrigeration validation, safety case or regulatory approval.
 
+## 12.1 Executable contract tool — source added, qualification pending
+
+The benchmark branch now includes a standalone Rust tool at `tools/material-flow-benchmark/`:
+
+- Strict Serde scenario types with unknown-field rejection.
+- Schema-version, identifier and digest-shape checks.
+- Package/tote axis-aligned fit and gross-mass checks.
+- Handling/seal class to storage-class checks.
+- Household principal, service-provider audience and receiver-device role checks.
+- Purpose/time/endpoint-bound grant checks, including explicit receive and tote-transfer actions.
+- Transfer-chain continuity and asset/mode compatibility checks.
+- Required safety and unauthorized-mutation gates.
+- Fault-injection reference checks.
+- A CLI (`mfb-validate`) and synthetic stationary-carrier JSON fixture.
+- A dedicated GitHub Actions workflow for formatting, Clippy, tests and fixture validation.
+
+The first implementation intentionally does not authenticate signatures, query Hearth or Commons, model 3D packing, simulate physics, or prove real-world safety. It validates internal consistency of the declared scenario contract only.
+
+**Verification status:** source files and fixture have been created and read back from the branch. This environment has no Rust/Cargo toolchain, so the Rust tests and CLI have not been executed locally. The dedicated workflow was added to run those checks; until its exact-head result is completed successfully, compilation and test status remain unverified.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
@@ -347,11 +384,12 @@ The actual schema must use typed, validated identifiers, explicit units, a real 
 ## 15. References
 
 - [RoboCasa365 leaderboard](https://robocasa.ai/leaderboard) and [evaluation methodology](https://robocasa.ai/leaderboard.html).
-- [BEHAVIOR-1K](https://behavior.stanford.edu/) and [2026 BEHAVIOR Challenge](https://behavior.stanford.edu/challenge/index.html).
+- [BEHAVIOR-1K](https://behavior.stanford.edu/), [2026 challenge](https://behavior.stanford.edu/challenge/index.html), [evaluation rules](https://behavior.stanford.edu/challenge/evaluation.html) and [baseline methods](https://behavior.stanford.edu/challenge/baselines).
 - [HomeRobot OVMM](https://ovmm.github.io/).
 - [VDA 5050 v3.0 release](https://www.vda.de/en/press/press-releases/2026/260421_PM_VDA_5050_EN).
-- [GS1 EPCIS standard](https://ref.gs1.org/standards/epcis/).
-- [ISO 3691-4](https://www.iso.org/standard/83545.html) and [ISO 13482](https://www.iso.org/standard/83498.html).
+- [GS1 EPCIS 2.0.1 archive](https://ref.gs1.org/standards/epcis/archive).
+- [ISO 3691-4:2023](https://www.iso.org/standard/83545.html), [ISO/DIS 3691-4 Edition 3](https://www.iso.org/standard/88615.html) and [ISO 13482 Edition 2](https://www.iso.org/standard/83498.html).
+- [SACAA UAS guidance](https://www.caa.co.za/industry-information/uas/).
 - [2026 truck–drone collaborative delivery study](https://www.mdpi.com/2504-446X/10/7/476).
 
 ## 16. Completion criteria
