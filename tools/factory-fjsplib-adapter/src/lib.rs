@@ -106,7 +106,11 @@ pub struct ParseError {
 
 impl ParseError {
     fn new(line: Option<usize>, kind: ParseErrorKind, detail: impl Into<String>) -> Self {
-        Self { line, kind, detail: detail.into() }
+        Self {
+            line,
+            kind,
+            detail: detail.into(),
+        }
     }
 }
 
@@ -128,40 +132,68 @@ struct DataLine<'a> {
 }
 
 fn data_lines(input: &str) -> Vec<DataLine<'_>> {
-    input.lines().enumerate().filter_map(|(index, line)| {
-        let content = line.split('#').next().unwrap_or("").trim();
-        (!content.is_empty()).then_some(DataLine {
-            number: index + 1,
-            content,
+    input
+        .lines()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let content = line.split('#').next().unwrap_or("").trim();
+            (!content.is_empty()).then_some(DataLine {
+                number: index + 1,
+                content,
+            })
         })
-    }).collect()
+        .collect()
 }
 
 fn parse_usize(token: Option<&&str>, line: usize, field: &str) -> Result<usize, ParseError> {
-    let value = token.ok_or_else(|| ParseError::new(
-        Some(line), ParseErrorKind::MissingToken, format!("missing {field}")
-    ))?;
-    value.parse::<usize>().map_err(|_| ParseError::new(
-        Some(line), ParseErrorKind::InvalidInteger, format!("invalid {field}: {value}")
-    ))
+    let value = token.ok_or_else(|| {
+        ParseError::new(
+            Some(line),
+            ParseErrorKind::MissingToken,
+            format!("missing {field}"),
+        )
+    })?;
+    value.parse::<usize>().map_err(|_| {
+        ParseError::new(
+            Some(line),
+            ParseErrorKind::InvalidInteger,
+            format!("invalid {field}: {value}"),
+        )
+    })
 }
 
 fn parse_u64(token: Option<&&str>, line: usize, field: &str) -> Result<u64, ParseError> {
-    let value = token.ok_or_else(|| ParseError::new(
-        Some(line), ParseErrorKind::MissingToken, format!("missing {field}")
-    ))?;
-    value.parse::<u64>().map_err(|_| ParseError::new(
-        Some(line), ParseErrorKind::InvalidInteger, format!("invalid {field}: {value}")
-    ))
+    let value = token.ok_or_else(|| {
+        ParseError::new(
+            Some(line),
+            ParseErrorKind::MissingToken,
+            format!("missing {field}"),
+        )
+    })?;
+    value.parse::<u64>().map_err(|_| {
+        ParseError::new(
+            Some(line),
+            ParseErrorKind::InvalidInteger,
+            format!("invalid {field}: {value}"),
+        )
+    })
 }
 
 fn parse_f64(token: Option<&&str>, line: usize, field: &str) -> Result<f64, ParseError> {
-    let value = token.ok_or_else(|| ParseError::new(
-        Some(line), ParseErrorKind::MissingToken, format!("missing {field}")
-    ))?;
-    value.parse::<f64>().map_err(|_| ParseError::new(
-        Some(line), ParseErrorKind::InvalidFloat, format!("invalid {field}: {value}")
-    ))
+    let value = token.ok_or_else(|| {
+        ParseError::new(
+            Some(line),
+            ParseErrorKind::MissingToken,
+            format!("missing {field}"),
+        )
+    })?;
+    value.parse::<f64>().map_err(|_| {
+        ParseError::new(
+            Some(line),
+            ParseErrorKind::InvalidFloat,
+            format!("invalid {field}: {value}"),
+        )
+    })
 }
 
 fn parse_options(
@@ -174,17 +206,38 @@ fn parse_options(
     let option_count = parse_usize(tokens.get(cursor), line, "alternative-machine count")?;
     cursor += 1;
     if option_count > MAX_OPTIONS_PER_OPERATION {
-        return Err(ParseError::new(Some(line), ParseErrorKind::ResourceLimitExceeded,
-            format!("alternative count {option_count} exceeds configured limit {MAX_OPTIONS_PER_OPERATION}")));
+        return Err(ParseError::new(
+            Some(line),
+            ParseErrorKind::ResourceLimitExceeded,
+            format!(
+                "alternative count {option_count} exceeds configured limit {MAX_OPTIONS_PER_OPERATION}"
+            ),
+        ));
     }
     if option_count == 0 {
-        return Err(ParseError::new(Some(line), ParseErrorKind::ZeroOptions, "an operation must have at least one eligible machine"));
+        return Err(ParseError::new(
+            Some(line),
+            ParseErrorKind::ZeroOptions,
+            "an operation must have at least one eligible machine",
+        ));
     }
 
-    let required = option_count.checked_mul(2).and_then(|count| cursor.checked_add(count))
-        .ok_or_else(|| ParseError::new(Some(line), ParseErrorKind::RecordTokenCountMismatch, "alternative count overflow"))?;
+    let required = option_count
+        .checked_mul(2)
+        .and_then(|count| cursor.checked_add(count))
+        .ok_or_else(|| {
+            ParseError::new(
+                Some(line),
+                ParseErrorKind::RecordTokenCountMismatch,
+                "alternative count overflow",
+            )
+        })?;
     if required > tokens.len() {
-        return Err(ParseError::new(Some(line), ParseErrorKind::MissingToken, "machine/duration pair is incomplete"));
+        return Err(ParseError::new(
+            Some(line),
+            ParseErrorKind::MissingToken,
+            "machine/duration pair is incomplete",
+        ));
     }
 
     let mut alternatives = Vec::with_capacity(option_count);
@@ -195,9 +248,13 @@ fn parse_options(
         cursor += 2;
 
         let machine_id = if one_based_machine_ids {
-            raw_machine.checked_sub(1).ok_or_else(|| ParseError::new(
-                Some(line), ParseErrorKind::MachineOutOfRange, "FJSP machine identifiers start at 1"
-            ))?
+            raw_machine.checked_sub(1).ok_or_else(|| {
+                ParseError::new(
+                    Some(line),
+                    ParseErrorKind::MachineOutOfRange,
+                    "FJSP machine identifiers start at 1",
+                )
+            })?
         } else {
             raw_machine
         };
@@ -209,7 +266,11 @@ fn parse_options(
             ));
         }
         if processing_ticks == 0 {
-            return Err(ParseError::new(Some(line), ParseErrorKind::ZeroProcessingTime, "processing duration must be positive"));
+            return Err(ParseError::new(
+                Some(line),
+                ParseErrorKind::ZeroProcessingTime,
+                "processing duration must be positive",
+            ));
         }
         if !seen_machines.insert(machine_id) {
             return Err(ParseError::new(
@@ -218,7 +279,10 @@ fn parse_options(
                 format!("machine {machine_id} appears more than once for an operation"),
             ));
         }
-        alternatives.push(MachineAlternative { machine_id, processing_ticks });
+        alternatives.push(MachineAlternative {
+            machine_id,
+            processing_ticks,
+        });
     }
     Ok((alternatives, cursor))
 }
@@ -236,17 +300,27 @@ fn validate_precedence_graph(
             return Err(ParseError::new(
                 None,
                 ParseErrorKind::PrecedenceEndpointOutOfRange,
-                format!("edge {} -> {} references an absent operation", edge.before, edge.after),
+                format!(
+                    "edge {} -> {} references an absent operation",
+                    edge.before, edge.after
+                ),
             ));
         }
         if edge.before == edge.after {
-            return Err(ParseError::new(None, ParseErrorKind::SelfPrecedence, format!("operation {} precedes itself", edge.before)));
+            return Err(ParseError::new(
+                None,
+                ParseErrorKind::SelfPrecedence,
+                format!("operation {} precedes itself", edge.before),
+            ));
         }
         if !seen.insert((edge.before, edge.after)) {
             return Err(ParseError::new(
                 None,
                 ParseErrorKind::DuplicatePrecedence,
-                format!("duplicate precedence edge {} -> {}", edge.before, edge.after),
+                format!(
+                    "duplicate precedence edge {} -> {}",
+                    edge.before, edge.after
+                ),
             ));
         }
         outgoing[edge.before].push(edge.after);
@@ -270,7 +344,11 @@ fn validate_precedence_graph(
         }
     }
     if visited != operation_count {
-        return Err(ParseError::new(None, ParseErrorKind::PrecedenceCycle, "precedence graph contains a directed cycle"));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::PrecedenceCycle,
+            "precedence graph contains a directed cycle",
+        ));
     }
     Ok(())
 }
@@ -298,11 +376,18 @@ fn canonical_fingerprint(
         canonical.push_str(&format!(
             "O{}:{}:{}|",
             operation.id,
-            operation.job_id.map_or_else(|| "-".to_owned(), |value| value.to_string()),
-            operation.position_in_job.map_or_else(|| "-".to_owned(), |value| value.to_string())
+            operation
+                .job_id
+                .map_or_else(|| "-".to_owned(), |value| value.to_string()),
+            operation
+                .position_in_job
+                .map_or_else(|| "-".to_owned(), |value| value.to_string())
         ));
         for alternative in &operation.alternatives {
-            canonical.push_str(&format!("{}:{};", alternative.machine_id, alternative.processing_ticks));
+            canonical.push_str(&format!(
+                "{}:{};",
+                alternative.machine_id, alternative.processing_ticks
+            ));
         }
         canonical.push('|');
     }
@@ -311,7 +396,8 @@ fn canonical_fingerprint(
             "P{}:{}:{}|",
             edge.before,
             edge.after,
-            edge.job_id.map_or_else(|| "-".to_owned(), |value| value.to_string())
+            edge.job_id
+                .map_or_else(|| "-".to_owned(), |value| value.to_string())
         ));
     }
 
@@ -335,13 +421,25 @@ fn build_instance(
     precedences: Vec<Precedence>,
 ) -> Result<FlexibleInstance, ParseError> {
     if instance_id.trim().is_empty() {
-        return Err(ParseError::new(None, ParseErrorKind::EmptyInstanceId, "instance identifier is empty"));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::EmptyInstanceId,
+            "instance identifier is empty",
+        ));
     }
     if machine_count == 0 {
-        return Err(ParseError::new(None, ParseErrorKind::ZeroMachines, "machine count must be positive"));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::ZeroMachines,
+            "machine count must be positive",
+        ));
     }
     if operations.is_empty() {
-        return Err(ParseError::new(None, ParseErrorKind::ZeroOperations, "operation count must be positive"));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::ZeroOperations,
+            "operation count must be positive",
+        ));
     }
     validate_precedence_graph(operations.len(), &precedences)?;
     let fingerprint = canonical_fingerprint(
@@ -377,37 +475,76 @@ pub fn parse_fjsp(
     input: &str,
 ) -> Result<FlexibleInstance, ParseError> {
     if input.len() > MAX_INPUT_BYTES {
-        return Err(ParseError::new(None, ParseErrorKind::ResourceLimitExceeded,
-            format!("input size {} exceeds configured limit {MAX_INPUT_BYTES}", input.len())));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::ResourceLimitExceeded,
+            format!(
+                "input size {} exceeds configured limit {MAX_INPUT_BYTES}",
+                input.len()
+            ),
+        ));
     }
     let lines = data_lines(input);
-    let header = lines.first().ok_or_else(|| ParseError::new(None, ParseErrorKind::EmptyInput, "no data lines"))?;
+    let header = lines
+        .first()
+        .ok_or_else(|| ParseError::new(None, ParseErrorKind::EmptyInput, "no data lines"))?;
     let header_tokens: Vec<&str> = header.content.split_whitespace().collect();
     if header_tokens.len() != 3 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::InvalidHeader, "FJSP header must contain jobs, machines, average flexibility"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::InvalidHeader,
+            "FJSP header must contain jobs, machines, average flexibility",
+        ));
     }
 
     let job_count = parse_usize(header_tokens.get(0), header.number, "job count")?;
     let machine_count = parse_usize(header_tokens.get(1), header.number, "machine count")?;
-    let average_flexibility = parse_f64(header_tokens.get(2), header.number, "average flexibility")?;
+    let average_flexibility =
+        parse_f64(header_tokens.get(2), header.number, "average flexibility")?;
     if job_count == 0 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::ZeroJobs, "job count must be positive"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::ZeroJobs,
+            "job count must be positive",
+        ));
     }
     if machine_count == 0 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::ZeroMachines, "machine count must be positive"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::ZeroMachines,
+            "machine count must be positive",
+        ));
     }
     if job_count > MAX_JOBS || machine_count > MAX_MACHINES {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::ResourceLimitExceeded, "declared job or machine count exceeds configured parser limit"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::ResourceLimitExceeded,
+            "declared job or machine count exceeds configured parser limit",
+        ));
     }
     if !average_flexibility.is_finite() {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::NonFiniteAverageFlexibility, "average flexibility must be finite"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::NonFiniteAverageFlexibility,
+            "average flexibility must be finite",
+        ));
     }
     if average_flexibility < 0.0 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::NegativeAverageFlexibility, "average flexibility must be non-negative"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::NegativeAverageFlexibility,
+            "average flexibility must be non-negative",
+        ));
     }
     if lines.len() != job_count + 1 {
-        return Err(ParseError::new(None, ParseErrorKind::RecordTokenCountMismatch,
-            format!("header declares {job_count} jobs but {} job records were supplied", lines.len().saturating_sub(1))));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::RecordTokenCountMismatch,
+            format!(
+                "header declares {job_count} jobs but {} job records were supplied",
+                lines.len().saturating_sub(1)
+            ),
+        ));
     }
 
     let mut operations = Vec::new();
@@ -416,16 +553,30 @@ pub fn parse_fjsp(
         let tokens: Vec<&str> = line.content.split_whitespace().collect();
         let operation_count = parse_usize(tokens.get(0), line.number, "operation count")?;
         if operation_count == 0 {
-            return Err(ParseError::new(Some(line.number), ParseErrorKind::ZeroOperations, "job must contain at least one operation"));
+            return Err(ParseError::new(
+                Some(line.number),
+                ParseErrorKind::ZeroOperations,
+                "job must contain at least one operation",
+            ));
         }
-        if operation_count > MAX_OPERATIONS || operations.len().checked_add(operation_count).is_none_or(|count| count > MAX_OPERATIONS) {
-            return Err(ParseError::new(Some(line.number), ParseErrorKind::ResourceLimitExceeded, "operation count exceeds configured parser limit"));
+        if operation_count > MAX_OPERATIONS
+            || operations
+                .len()
+                .checked_add(operation_count)
+                .is_none_or(|count| count > MAX_OPERATIONS)
+        {
+            return Err(ParseError::new(
+                Some(line.number),
+                ParseErrorKind::ResourceLimitExceeded,
+                "operation count exceeds configured parser limit",
+            ));
         }
         let mut cursor = 1usize;
         let mut job_operation_ids = Vec::with_capacity(operation_count);
         for position in 0..operation_count {
             let operation_id = operations.len();
-            let (alternatives, next) = parse_options(&tokens, cursor, line.number, machine_count, true)?;
+            let (alternatives, next) =
+                parse_options(&tokens, cursor, line.number, machine_count, true)?;
             cursor = next;
             operations.push(FlexibleOperation {
                 id: operation_id,
@@ -436,7 +587,11 @@ pub fn parse_fjsp(
             job_operation_ids.push(operation_id);
         }
         if cursor != tokens.len() {
-            return Err(ParseError::new(Some(line.number), ParseErrorKind::TrailingToken, "unexpected token after job route"));
+            return Err(ParseError::new(
+                Some(line.number),
+                ParseErrorKind::TrailingToken,
+                "unexpected token after job route",
+            ));
         }
         for pair in job_operation_ids.windows(2) {
             precedences.push(Precedence {
@@ -467,31 +622,64 @@ pub fn parse_fajsp(
     input: &str,
 ) -> Result<FlexibleInstance, ParseError> {
     if input.len() > MAX_INPUT_BYTES {
-        return Err(ParseError::new(None, ParseErrorKind::ResourceLimitExceeded,
-            format!("input size {} exceeds configured limit {MAX_INPUT_BYTES}", input.len())));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::ResourceLimitExceeded,
+            format!(
+                "input size {} exceeds configured limit {MAX_INPUT_BYTES}",
+                input.len()
+            ),
+        ));
     }
     let lines = data_lines(input);
-    let header = lines.first().ok_or_else(|| ParseError::new(None, ParseErrorKind::EmptyInput, "no data lines"))?;
+    let header = lines
+        .first()
+        .ok_or_else(|| ParseError::new(None, ParseErrorKind::EmptyInput, "no data lines"))?;
     let header_tokens: Vec<&str> = header.content.split_whitespace().collect();
     if header_tokens.len() != 3 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::InvalidHeader, "FAJSP header must contain operations, precedence edges, machines"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::InvalidHeader,
+            "FAJSP header must contain operations, precedence edges, machines",
+        ));
     }
 
     let operation_count = parse_usize(header_tokens.get(0), header.number, "operation count")?;
     let precedence_count = parse_usize(header_tokens.get(1), header.number, "precedence count")?;
     let machine_count = parse_usize(header_tokens.get(2), header.number, "machine count")?;
     if operation_count == 0 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::ZeroOperations, "operation count must be positive"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::ZeroOperations,
+            "operation count must be positive",
+        ));
     }
     if machine_count == 0 {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::ZeroMachines, "machine count must be positive"));
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::ZeroMachines,
+            "machine count must be positive",
+        ));
     }
-    if machine_count > MAX_MACHINES || operation_count > MAX_OPERATIONS || precedence_count > MAX_PRECEDENCES {
-        return Err(ParseError::new(Some(header.number), ParseErrorKind::ResourceLimitExceeded, "declared machine, operation or precedence count exceeds configured parser limit"));
+    if machine_count > MAX_MACHINES
+        || operation_count > MAX_OPERATIONS
+        || precedence_count > MAX_PRECEDENCES
+    {
+        return Err(ParseError::new(
+            Some(header.number),
+            ParseErrorKind::ResourceLimitExceeded,
+            "declared machine, operation or precedence count exceeds configured parser limit",
+        ));
     }
     if lines.len() != 1 + precedence_count + operation_count {
-        return Err(ParseError::new(None, ParseErrorKind::RecordTokenCountMismatch,
-            format!("header declares {precedence_count} precedence and {operation_count} operation records but {} records were supplied", lines.len().saturating_sub(1))));
+        return Err(ParseError::new(
+            None,
+            ParseErrorKind::RecordTokenCountMismatch,
+            format!(
+                "header declares {precedence_count} precedence and {operation_count} operation records but {} records were supplied",
+                lines.len().saturating_sub(1)
+            ),
+        ));
     }
 
     let mut precedences = Vec::with_capacity(precedence_count);
@@ -499,13 +687,21 @@ pub fn parse_fajsp(
     for line in lines.iter().skip(1).take(precedence_count) {
         let tokens: Vec<&str> = line.content.split_whitespace().collect();
         if tokens.len() != 3 {
-            return Err(ParseError::new(Some(line.number), ParseErrorKind::RecordTokenCountMismatch, "FAJSP precedence record must contain before, after, job"));
+            return Err(ParseError::new(
+                Some(line.number),
+                ParseErrorKind::RecordTokenCountMismatch,
+                "FAJSP precedence record must contain before, after, job",
+            ));
         }
         let before = parse_usize(tokens.get(0), line.number, "precedence before-operation")?;
         let after = parse_usize(tokens.get(1), line.number, "precedence after-operation")?;
         let job_id = parse_usize(tokens.get(2), line.number, "precedence job identifier")?;
         job_ids.insert(job_id);
-        precedences.push(Precedence { before, after, job_id: Some(job_id) });
+        precedences.push(Precedence {
+            before,
+            after,
+            job_id: Some(job_id),
+        });
     }
 
     let mut operations = Vec::with_capacity(operation_count);
@@ -513,7 +709,11 @@ pub fn parse_fajsp(
         let tokens: Vec<&str> = line.content.split_whitespace().collect();
         let (alternatives, cursor) = parse_options(&tokens, 0, line.number, machine_count, false)?;
         if cursor != tokens.len() {
-            return Err(ParseError::new(Some(line.number), ParseErrorKind::TrailingToken, "unexpected token after operation alternatives"));
+            return Err(ParseError::new(
+                Some(line.number),
+                ParseErrorKind::TrailingToken,
+                "unexpected token after operation alternatives",
+            ));
         }
         operations.push(FlexibleOperation {
             id: operations.len(),
@@ -561,11 +761,27 @@ mod tests {
         assert_eq!(instance.machine_count, 2);
         assert_eq!(instance.operations.len(), 4);
         assert_eq!(instance.precedences.len(), 2);
-        assert_eq!(instance.operations[0].alternatives, vec![
-            MachineAlternative { machine_id: 0, processing_ticks: 25 },
-            MachineAlternative { machine_id: 1, processing_ticks: 37 },
-        ]);
-        assert_eq!(instance.precedences[0], Precedence { before: 0, after: 1, job_id: Some(0) });
+        assert_eq!(
+            instance.operations[0].alternatives,
+            vec![
+                MachineAlternative {
+                    machine_id: 0,
+                    processing_ticks: 25
+                },
+                MachineAlternative {
+                    machine_id: 1,
+                    processing_ticks: 37
+                },
+            ]
+        );
+        assert_eq!(
+            instance.precedences[0],
+            Precedence {
+                before: 0,
+                after: 1,
+                job_id: Some(0)
+            }
+        );
     }
 
     #[test]
@@ -575,24 +791,51 @@ mod tests {
         assert_eq!(instance.declared_job_count, Some(2));
         assert_eq!(instance.machine_count, 2);
         assert_eq!(instance.operations.len(), 4);
-        assert_eq!(instance.precedences, vec![
-            Precedence { before: 0, after: 1, job_id: Some(0) },
-            Precedence { before: 2, after: 3, job_id: Some(1) },
-        ]);
-        assert_eq!(instance.operations[0].alternatives[0], MachineAlternative { machine_id: 0, processing_ticks: 25 });
+        assert_eq!(
+            instance.precedences,
+            vec![
+                Precedence {
+                    before: 0,
+                    after: 1,
+                    job_id: Some(0)
+                },
+                Precedence {
+                    before: 2,
+                    after: 3,
+                    job_id: Some(1)
+                },
+            ]
+        );
+        assert_eq!(
+            instance.operations[0].alternatives[0],
+            MachineAlternative {
+                machine_id: 0,
+                processing_ticks: 25
+            }
+        );
     }
 
     #[test]
     fn same_semantics_import_to_deterministic_normalized_records() {
         let fjsp = parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1).unwrap();
         let fajsp = parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1).unwrap();
-        assert_eq!(fjsp.operations, fajsp.operations.iter().map(|operation| FlexibleOperation {
-            id: operation.id,
-            job_id: Some(if operation.id < 2 { 0 } else { 1 }),
-            position_in_job: Some(operation.id % 2),
-            alternatives: operation.alternatives.clone(),
-        }).collect::<Vec<_>>());
-        assert_ne!(fjsp.canonical_fingerprint_fnv1a64, fajsp.canonical_fingerprint_fnv1a64);
+        assert_eq!(
+            fjsp.operations,
+            fajsp
+                .operations
+                .iter()
+                .map(|operation| FlexibleOperation {
+                    id: operation.id,
+                    job_id: Some(if operation.id < 2 { 0 } else { 1 }),
+                    position_in_job: Some(operation.id % 2),
+                    alternatives: operation.alternatives.clone(),
+                })
+                .collect::<Vec<_>>()
+        );
+        assert_ne!(
+            fjsp.canonical_fingerprint_fnv1a64,
+            fajsp.canonical_fingerprint_fnv1a64
+        );
     }
 
     #[test]
@@ -654,7 +897,6 @@ mod tests {
         assert_eq!(error.kind, ParseErrorKind::PrecedenceEndpointOutOfRange);
     }
 
-
     #[test]
     fn fajsp_assembly_join_graph_is_preserved_without_linearizing() {
         let input = "3 2 2
@@ -666,10 +908,21 @@ mod tests {
 ";
         let instance = parse_fajsp("assembly-join", Some("yfjs"), input).unwrap();
         assert_eq!(instance.declared_job_count, Some(2));
-        assert_eq!(instance.precedences, vec![
-            Precedence { before: 0, after: 2, job_id: Some(0) },
-            Precedence { before: 1, after: 2, job_id: Some(1) },
-        ]);
+        assert_eq!(
+            instance.precedences,
+            vec![
+                Precedence {
+                    before: 0,
+                    after: 2,
+                    job_id: Some(0)
+                },
+                Precedence {
+                    before: 1,
+                    after: 2,
+                    job_id: Some(1)
+                },
+            ]
+        );
     }
 
     #[test]
@@ -720,21 +973,32 @@ mod tests {
         let neg = "1 1 -1
 1 1 1 5
 ";
-        assert_eq!(parse_fjsp("nan", None, nan).unwrap_err().kind, ParseErrorKind::NonFiniteAverageFlexibility);
-        assert_eq!(parse_fjsp("negative", None, neg).unwrap_err().kind, ParseErrorKind::NegativeAverageFlexibility);
+        assert_eq!(
+            parse_fjsp("nan", None, nan).unwrap_err().kind,
+            ParseErrorKind::NonFiniteAverageFlexibility
+        );
+        assert_eq!(
+            parse_fjsp("negative", None, neg).unwrap_err().kind,
+            ParseErrorKind::NegativeAverageFlexibility
+        );
     }
-
 
     #[test]
     fn resource_limits_reject_pathological_declared_counts() {
         let input = format!("1 {} 1\n1 1 1 5\n", MAX_MACHINES + 1);
-        assert_eq!(parse_fjsp("large", None, &input).unwrap_err().kind, ParseErrorKind::ResourceLimitExceeded);
+        assert_eq!(
+            parse_fjsp("large", None, &input).unwrap_err().kind,
+            ParseErrorKind::ResourceLimitExceeded
+        );
     }
 
     #[test]
     fn fingerprint_is_reproducible_for_same_source_and_metadata() {
         let a = parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1).unwrap();
         let b = parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1).unwrap();
-        assert_eq!(a.canonical_fingerprint_fnv1a64, b.canonical_fingerprint_fnv1a64);
+        assert_eq!(
+            a.canonical_fingerprint_fnv1a64,
+            b.canonical_fingerprint_fnv1a64
+        );
     }
 }
