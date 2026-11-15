@@ -596,6 +596,34 @@ mod tests {
         assert_eq!(result.gate_findings.len(), 2);
     }
 
+
+    #[test]
+    fn deferred_review_without_a_record_is_incomplete() {
+        let mut envelope = deferred_review();
+        envelope.deferment = None;
+        let result = evaluate(&envelope);
+        assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
+        assert!(result.reason_codes.contains(&ReasonCode::MissingDeferment));
+    }
+
+    #[test]
+    fn deferred_review_without_a_reason_is_incomplete() {
+        let mut envelope = deferred_review();
+        envelope.deferment.as_mut().expect("deferment").reason.clear();
+        let result = evaluate(&envelope);
+        assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
+        assert!(result.reason_codes.contains(&ReasonCode::MissingDefermentReason));
+    }
+
+    #[test]
+    fn self_labelled_incomplete_review_cannot_pass_complete_fields() {
+        let mut envelope = complete_review();
+        envelope.review_status = ReviewStatus::Incomplete;
+        let result = evaluate(&envelope);
+        assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
+        assert!(result.reason_codes.contains(&ReasonCode::ReviewStateIncomplete));
+    }
+
     #[test]
     fn invalid_dates_and_nonfinite_deltas_fail_closed() {
         let mut date = complete_review();
