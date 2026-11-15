@@ -320,7 +320,13 @@ pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
         let energy_residual =
             mechanical_energy(&state, scenario) + state[4] - state[5] - initial_energy;
 
-        if !finite(&[separation, relative_velocity, momentum, momentum_residual, energy_residual]) {
+        if !finite(&[
+            separation,
+            relative_velocity,
+            momentum,
+            momentum_residual,
+            energy_residual,
+        ]) {
             return Err(ModelError::NonFiniteResult);
         }
 
@@ -495,8 +501,8 @@ mod tests {
                 "case {}",
                 case.scenario.case_id
             );
-            let synchronized = case.scenario.release_stream_time_s
-                == case.scenario.release_support_time_s;
+            let synchronized =
+                case.scenario.release_stream_time_s == case.scenario.release_support_time_s;
             let elapsed = case.scenario.duration_s - case.scenario.release_stream_time_s;
             if synchronized && case.scenario.preload_n > 0.0 && elapsed > 0.0 {
                 let (expected_y, expected_v) = exact_underdamped(
