@@ -245,7 +245,28 @@
         "closure_evidence_ref": {
           "$ref": "#/$defs/id"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "terminal_boundary_required": {
+                "const": true
+              }
+            },
+            "required": [
+              "terminal_boundary_required"
+            ]
+          },
+          "then": {
+            "properties": {
+              "terminal_boundary_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      ]
     },
     "page": {
       "type": "object",
@@ -260,7 +281,8 @@
         "page_payload_sha256",
         "received_at",
         "evidence_ref",
-        "record_identity_digests"
+        "record_identity_digests",
+        "snapshot_token_sha256"
       ],
       "properties": {
         "page_id": {
@@ -305,6 +327,9 @@
           "items": {
             "$ref": "#/$defs/sha256"
           }
+        },
+        "snapshot_token_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
@@ -567,6 +592,23 @@
           "items": {
             "$ref": "#/$defs/sha256"
           }
+        },
+        "snapshot_consistency_model_override": {
+          "enum": [
+            "immutable_export",
+            "point_in_time_snapshot",
+            "snapshot_paginated_api",
+            "best_effort_mutable"
+          ]
+        },
+        "traversal_kind_override": {
+          "enum": [
+            "immutable_manifest",
+            "cursor_paginated_api",
+            "offset_paginated_api",
+            "continuation_link",
+            "best_effort"
+          ]
         }
       }
     }
