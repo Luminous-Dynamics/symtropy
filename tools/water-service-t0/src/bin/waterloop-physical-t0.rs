@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CASE_COUNT: usize = 15;
+const CASE_COUNT: usize = 25;
 const SCHEMA_VERSION: &str = "waterloop-physical-t0-v0.1";
 const CLAIM_CEILING: &str = "synthetic_water_service_arithmetic_and_contract_semantics_only";
 
@@ -65,6 +65,201 @@ fn nearly_equal(left: f64, right: f64) -> bool {
 
 fn case_id(case: &Value) -> Result<String, String> {
     text(case, "case_id")
+}
+
+
+fn compute_service_continuity(input: &Value) -> Result<Value, String> {
+    let initial = nonnegative(number(input, "initial_storage_l")?, "initial_storage_l")?;
+    let maximum = positive(number(input, "maximum_storage_l")?, "maximum_storage_l")?;
+    let reserve = nonnegative(number(input, "protected_discretionary_reserve_l")?, "protected_discretionary_reserve_l")?;
+    if initial > maximum || reserve > maximum {
+        return Err("initial storage or protected reserve exceeds maximum storage".to_owned());
+    }
+
+    let intended_profile = text(input, "intended_use_profile_id")?;
+    let stored_profile = text(input, "stored_quality_profile_id")?;
+    let stored_quality_admitted = boolean(input, "stored_use_quality_admitted")?;
+    let steps = field(input, "steps")?
+        .as_array()
+        .ok_or_else(|| "steps: expected array".to_owned())?;
+    if steps.is_empty() {
+        return Err("steps: must not be empty".to_owned());
+    }
+
+    let mut total_duration = 0.0;
+    for (index, step) in steps.iter().enumerate() {
+        let duration = positive(number(step, "duration_hours")?, "duration_hours")?;
+        total_duration += duration;
+        for key in [
+            "source_inflow_l",
+            "essential_demand_l",
+            "discretionary_demand_l",
+            "measured_service_capacity_l",
+        ] {
+            nonnegative(number(step, key)?, key)?;
+        }
+        boolean(step, "source_inflow_use_quality_admitted")?;
+        boolean(step, "service_measurement_admitted")?;
+        boolean(step, "service_floor_met")?;
+        if index > 0 && !total_duration.is_finite() {
+            return Err("total scenario duration overflowed".to_owned());
+        }
+    }
+
+    let mut abstention_reason = if !stored_quality_admitted {
+        Some("STORED_WATER_QUALITY_NOT_ADMITTED")
+    } else if intended_profile != stored_profile {
+        Some("STORED_WATER_USE_PROFILE_MISMATCH")
+    } else {
+        None
+    };
+    let mut abstention_step = None;
+    for (index, step) in steps.iter().enumerate() {
+        if !boolean(step, "service_measurement_admitted")? {
+            abstention_reason = Some("SERVICE_MEASUREMENT_NOT_ADMITTED");
+            abstention_step = Some(index + 1);
+            break;
+        }
+    }
+    if let Some(reason) = abstention_reason {
+        return Ok(json!({
+            "service_disposition": "INDETERMINATE",
+            "reason": reason,
+            "credit_eligible": false,
+            "abstention_step": abstention_step,
+            "intended_use_profile_id": intended_profile,
+            "total_duration_hours": total_duration,
+            "total_essential_demand_l": null,
+            "essential_delivered_l": null,
+            "essential_unmet_l": null,
+            "essential_volume_coverage": null,
+            "critical_interval_availability": null,
+            "critical_intervals_met": null,
+            "critical_intervals_total": null,
+            "first_essential_shortfall_step": null,
+            "hours_to_first_essential_shortfall": null,
+            "total_discretionary_demand_l": null,
+            "discretionary_delivered_l": null,
+            "discretionary_unmet_l": null,
+            "admitted_source_inflow_l": null,
+            "rejected_source_inflow_l": null,
+            "overflow_l": null,
+            "end_storage_l": null
+        }));
+    }
+
+    let mut storage = initial;
+    let mut essential_demand = 0.0;
+    let mut essential_delivered = 0.0;
+    let mut discretionary_demand = 0.0;
+    let mut discretionary_delivered = 0.0;
+    let mut admitted_inflow = 0.0;
+    let mut rejected_inflow = 0.0;
+    let mut overflow_total = 0.0;
+    let mut critical_intervals = 0_u64;
+    let mut critical_intervals_met = 0_u64;
+    let mut first_shortfall = None;
+    let mut elapsed_hours = 0.0;
+
+    for (index, step) in steps.iter().enumerate() {
+        let duration = number(step, "duration_hours")?;
+        let inflow = number(step, "source_inflow_l")?;
+        let inflow_admitted = boolean(step, "source_inflow_use_quality_admitted")?;
+        let critical = number(step, "essential_demand_l")?;
+        let discretionary = number(step, "discretionary_demand_l")?;
+        let measured_capacity = number(step, "measured_service_capacity_l")?;
+        let service_floor_met = boolean(step, "service_floor_met")?;
+
+        essential_demand += critical;
+        discretionary_demand += discretionary;
+
+        if inflow_admitted {
+            storage += inflow;
+            admitted_inflow += inflow;
+        } else {
+            rejected_inflow += inflow;
+        }
+
+        let overflow = (storage - maximum).max(0.0);
+        storage -= overflow;
+        overflow_total += overflow;
+
+        // This capacity is a fixture-boundary service measurement, not a pump
+        // curve or hydraulic model. Below-floor delivery earns no declared
+        // service credit in this benchmark profile.
+        let mut service_capacity = if service_floor_met {
+            measured_capacity
+        } else {
+            0.0
+        };
+
+        // Critical demand is always allocated before discretionary demand.
+        let delivered_critical = critical.min(service_capacity).min(storage);
+        storage -= delivered_critical;
+        service_capacity -= delivered_critical;
+        essential_delivered += delivered_critical;
+
+        // Discretionary demand cannot consume the protected reserve. Essential
+        // demand may consume it when necessary; the shortfall remains visible.
+        let discretionary_available = (storage - reserve).max(0.0);
+        let delivered_discretionary = discretionary
+            .min(service_capacity)
+            .min(discretionary_available);
+        storage -= delivered_discretionary;
+        discretionary_delivered += delivered_discretionary;
+
+        if critical > 0.0 {
+            critical_intervals += 1;
+            if delivered_critical + 1.0e-9 >= critical {
+                critical_intervals_met += 1;
+            } else if first_shortfall.is_none() {
+                first_shortfall = Some(index + 1);
+            }
+        }
+        elapsed_hours += duration;
+    }
+
+    let coverage = if essential_demand > 0.0 {
+        Some(essential_delivered / essential_demand)
+    } else {
+        None
+    };
+    let interval_availability = if critical_intervals > 0 {
+        Some(critical_intervals_met as f64 / critical_intervals as f64)
+    } else {
+        None
+    };
+    let hours_to_shortfall = first_shortfall.map(|step| {
+        steps
+            .iter()
+            .take(step - 1)
+            .map(|row| number(row, "duration_hours").unwrap_or(0.0))
+            .sum::<f64>()
+    });
+
+    Ok(json!({
+        "service_disposition": "EVIDENCE_ADMITTED",
+        "reason": "ALL_REQUIRED_MEASUREMENT_AND_USE_EVIDENCE_ADMITTED",
+        "credit_eligible": true,
+        "intended_use_profile_id": intended_profile,
+        "total_duration_hours": elapsed_hours,
+        "total_essential_demand_l": essential_demand,
+        "essential_delivered_l": essential_delivered,
+        "essential_unmet_l": essential_demand - essential_delivered,
+        "essential_volume_coverage": coverage,
+        "critical_interval_availability": interval_availability,
+        "critical_intervals_met": critical_intervals_met,
+        "critical_intervals_total": critical_intervals,
+        "first_essential_shortfall_step": first_shortfall,
+        "hours_to_first_essential_shortfall": hours_to_shortfall,
+        "total_discretionary_demand_l": discretionary_demand,
+        "discretionary_delivered_l": discretionary_delivered,
+        "discretionary_unmet_l": discretionary_demand - discretionary_delivered,
+        "admitted_source_inflow_l": admitted_inflow,
+        "rejected_source_inflow_l": rejected_inflow,
+        "overflow_l": overflow_total,
+        "end_storage_l": storage
+    }))
 }
 
 fn compute(case: &Value) -> Result<Value, String> {
@@ -404,6 +599,19 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "wire_to_water_efficiency": efficiency,
                 "electrical_specific_energy_kwh_m3": electrical_energy / delivered_volume
             }))
+        }
+
+        "WL-T0-016-continuity-normal-service"
+        | "WL-T0-017-sa-reg4-72h-alternative-drinking-supply"
+        | "WL-T0-018-critical-reserve-insufficient"
+        | "WL-T0-019-pump-outage-gravity-fallback"
+        | "WL-T0-020-compound-demand-surge-critical-priority"
+        | "WL-T0-021-source-restoration-after-outage"
+        | "WL-T0-022-outlet-service-floor-failure"
+        | "WL-T0-023-unadmitted-service-measurement-abstains"
+        | "WL-T0-024-stored-water-use-quality-unqualified"
+        | "WL-T0-025-unqualified-source-inflow-not-credited" => {
+            compute_service_continuity(input)
         }
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
