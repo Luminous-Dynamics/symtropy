@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
@@ -67,12 +67,7 @@ fn parse_vector(value: &Value, key: &str) -> Result<Vector, String> {
         .collect()
 }
 
-fn parse_matrix(
-    value: &Value,
-    key: &str,
-    rows: usize,
-    cols: usize,
-) -> Result<Matrix, String> {
+fn parse_matrix(value: &Value, key: &str, rows: usize, cols: usize) -> Result<Matrix, String> {
     let raw = field(value, key)?
         .as_array()
         .ok_or_else(|| format!("{key} must be a matrix"))?;
@@ -139,9 +134,7 @@ fn parse_tensor_value(
                     .map(|v| {
                         v.as_f64()
                             .filter(|x| x.is_finite())
-                            .ok_or_else(|| {
-                                format!("{key} contains a non-finite coefficient")
-                            })
+                            .ok_or_else(|| format!("{key} contains a non-finite coefficient"))
                     })
                     .collect::<Result<Vector, _>>()?,
             );
@@ -151,12 +144,7 @@ fn parse_tensor_value(
     Ok(result)
 }
 
-fn parse_tensor(
-    value: &Value,
-    key: &str,
-    nout: usize,
-    nin: usize,
-) -> Result<Tensor3, String> {
+fn parse_tensor(value: &Value, key: &str, nout: usize, nin: usize) -> Result<Tensor3, String> {
     parse_tensor_value(field(value, key)?, key, nout, nin)
 }
 
@@ -268,9 +256,9 @@ fn convolve_kernel(input: &Matrix, kernel: &Tensor3) -> Result<Matrix, String> {
     let nlag = kernel[0][0].len();
     if ntime == 0
         || input.iter().any(|row| row.len() != ntime)
-        || kernel.iter().any(|out| {
-            out.len() != input.len() || out.iter().any(|entry| entry.len() != nlag)
-        })
+        || kernel
+            .iter()
+            .any(|out| out.len() != input.len() || out.iter().any(|entry| entry.len() != nlag))
     {
         return Err("kernel convolution dimensions are inconsistent".into());
     }
@@ -291,7 +279,10 @@ fn convolve_kernel(input: &Matrix, kernel: &Tensor3) -> Result<Matrix, String> {
 }
 
 fn flatten(channels: &Matrix) -> Vector {
-    channels.iter().flat_map(|row| row.iter().copied()).collect()
+    channels
+        .iter()
+        .flat_map(|row| row.iter().copied())
+        .collect()
 }
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {
@@ -299,10 +290,7 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 }
 
 #[allow(clippy::needless_range_loop)]
-fn fisher_information(
-    jacobian: &Matrix,
-    covariance_lower: &Matrix,
-) -> Result<Matrix, String> {
+fn fisher_information(jacobian: &Matrix, covariance_lower: &Matrix) -> Result<Matrix, String> {
     let observations = jacobian.len();
     if observations == 0
         || jacobian.iter().any(|row| row.len() != jacobian[0].len())
@@ -416,10 +404,7 @@ fn symmetric_eigenvalues(mut matrix: Matrix) -> Result<Vector, String> {
     Ok(values)
 }
 
-fn information_metrics(
-    information: &Matrix,
-    rank_tolerance: f64,
-) -> Result<Value, String> {
+fn information_metrics(information: &Matrix, rank_tolerance: f64) -> Result<Value, String> {
     let eigenvalues = symmetric_eigenvalues(information.clone())?;
     let singular = eigenvalues.iter().map(|v| v.sqrt()).collect::<Vector>();
     let maximum = singular.first().copied().unwrap_or(0.0);
@@ -464,10 +449,7 @@ fn submatrix(
 }
 
 #[allow(clippy::needless_range_loop)]
-fn nuisance_adjusted(
-    information: &Matrix,
-    target_count: usize,
-) -> Result<Option<Matrix>, String> {
+fn nuisance_adjusted(information: &Matrix, target_count: usize) -> Result<Option<Matrix>, String> {
     let parameters = information.len();
     if target_count == parameters {
         return Ok(Some(information.clone()));
@@ -484,13 +466,7 @@ fn nuisance_adjusted(
         target_count,
         parameters,
     );
-    let fnt = submatrix(
-        information,
-        target_count,
-        parameters,
-        0,
-        target_count,
-    );
+    let fnt = submatrix(information, target_count, parameters, 0, target_count);
     let lower = match cholesky(&fnn) {
         Ok(value) => value,
         Err(_) => return Ok(None),
@@ -616,19 +592,25 @@ fn compute_candidate(
 
     let command_rows = array(candidate, "commanded_inlet_mass_flux")?;
     if command_rows.is_empty() {
-        return Ok(base_candidate("INVALID_INPUT", "NO_COMMANDED_INLET_CHANNELS"));
+        return Ok(base_candidate(
+            "INVALID_INPUT",
+            "NO_COMMANDED_INLET_CHANNELS",
+        ));
     }
     let nin = command_rows.len();
-    let ntime = command_rows[0]
-        .as_array()
-        .map(Vec::len)
-        .unwrap_or(0);
+    let ntime = command_rows[0].as_array().map(Vec::len).unwrap_or(0);
     if ntime == 0 {
-        return Ok(base_candidate("INVALID_INPUT", "EMPTY_COMMANDED_INLET_SERIES"));
+        return Ok(base_candidate(
+            "INVALID_INPUT",
+            "EMPTY_COMMANDED_INLET_SERIES",
+        ));
     }
     let command = parse_matrix(candidate, "commanded_inlet_mass_flux", nin, ntime)?;
     if command.iter().flatten().any(|v| *v < 0.0) {
-        return Ok(base_candidate("INVALID_INPUT", "NEGATIVE_COMMANDED_MASS_FLUX"));
+        return Ok(base_candidate(
+            "INVALID_INPUT",
+            "NEGATIVE_COMMANDED_MASS_FLUX",
+        ));
     }
     let actuator_response = parse_matrix(
         actuators,
@@ -641,7 +623,10 @@ fn compute_candidate(
             .unwrap_or(0),
     )?;
     if actuator_response.iter().flatten().any(|v| *v < 0.0) {
-        return Ok(base_candidate("INVALID_INPUT", "NEGATIVE_ACTUATOR_RESPONSE"));
+        return Ok(base_candidate(
+            "INVALID_INPUT",
+            "NEGATIVE_ACTUATOR_RESPONSE",
+        ));
     }
     for row in &actuator_response {
         let area = row.iter().sum::<f64>();
@@ -730,11 +715,8 @@ fn compute_candidate(
     let maximum_rate_limit = number(limits, "maximum_inlet_mass_flux")?;
     let maximum_slew_limit = number(limits, "maximum_inlet_slew_kg_s2")?;
     let maximum_duration = number(limits, "maximum_duration_seconds")?;
-    let duration = (actual_input[0].len()
-        + kernel[0][0].len()
-        + sensor_response[0].len()
-        - 2) as f64
-        * dt;
+    let duration =
+        (actual_input[0].len() + kernel[0][0].len() + sensor_response[0].len() - 2) as f64 * dt;
     if injected_mass > maximum_dose
         || maximum_rate > maximum_rate_limit
         || maximum_slew > maximum_slew_limit
@@ -763,8 +745,7 @@ fn compute_candidate(
         let direction =
             parse_tensor_value(parameter, "parameter_kernel_direction", output_count, nin)?;
         let physical_sensitivity = convolve_kernel(&actual_input, &direction)?;
-        let measured_sensitivity =
-            convolve_channels(&physical_sensitivity, &sensor_response)?;
+        let measured_sensitivity = convolve_channels(&physical_sensitivity, &sensor_response)?;
         jacobian_columns.push(
             flatten(&measured_sensitivity)
                 .into_iter()
@@ -1051,7 +1032,9 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
             minimum_delay,
             field(config, "limits")?,
         )?);
-        let last = results.last_mut().ok_or_else(|| "missing candidate result".to_owned())?;
+        let last = results
+            .last_mut()
+            .ok_or_else(|| "missing candidate result".to_owned())?;
         last["design_id"] = json!(text(candidate, "design_id")?);
     }
     for i in 0..results.len() {
@@ -1069,8 +1052,7 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
         .iter()
         .enumerate()
         .filter(|(_, row)| {
-            row["candidate_state"] == "ELIGIBLE_DESIGN_CANDIDATE"
-                && row["pareto_optimal"] == true
+            row["candidate_state"] == "ELIGIBLE_DESIGN_CANDIDATE" && row["pareto_optimal"] == true
         })
         .max_by(|(_, left), (_, right)| {
             let left_min = left["minimum_singular_value"].as_f64().unwrap_or(0.0);
@@ -1081,21 +1063,13 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
                     left["minimum_model_separation"]
                         .as_f64()
                         .unwrap_or(0.0)
-                        .total_cmp(
-                            &right["minimum_model_separation"]
-                                .as_f64()
-                                .unwrap_or(0.0),
-                        )
+                        .total_cmp(&right["minimum_model_separation"].as_f64().unwrap_or(0.0))
                 })
                 .then_with(|| {
                     right["injected_mass_kg"]
                         .as_f64()
                         .unwrap_or(f64::INFINITY)
-                        .total_cmp(
-                            &left["injected_mass_kg"]
-                                .as_f64()
-                                .unwrap_or(f64::INFINITY),
-                        )
+                        .total_cmp(&left["injected_mass_kg"].as_f64().unwrap_or(f64::INFINITY))
                 })
         })
         .map(|(index, _)| index);
@@ -1159,8 +1133,8 @@ fn digest(bytes: &[u8]) -> String {
 
 fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
     let bytes = fs::read(path).map_err(|e| format!("read {}: {e}", path.display()))?;
-    let value = serde_json::from_slice(&bytes)
-        .map_err(|e| format!("parse {}: {e}", path.display()))?;
+    let value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("parse {}: {e}", path.display()))?;
     Ok((bytes, value))
 }
 
@@ -1186,11 +1160,10 @@ fn run() -> Result<i32, String> {
             .map(String::as_str)
             .unwrap_or("research/water-intrusion-coupling/active-excitation-t0-oracle-v0.1.json"),
     );
-    let manifest_path = PathBuf::from(
-        args.get(2)
-            .map(String::as_str)
-            .unwrap_or("research/water-intrusion-coupling/active-excitation-t0-manifest-v0.1.json"),
-    );
+    let manifest_path =
+        PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
+            "research/water-intrusion-coupling/active-excitation-t0-manifest-v0.1.json",
+        ));
     let receipt_path = PathBuf::from(
         args.get(3)
             .map(String::as_str)
@@ -1206,8 +1179,8 @@ fn run() -> Result<i32, String> {
         .ok()
         .filter(|value| valid_revision(value));
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|e| format!("read {}: {e}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|e| format!("read {}: {e}", lock_path.display()))?;
     let receipt = json!({
         "schema_version": "active-excitation-t0-run-v0.1",
         "verification_state": if !success { "OracleMismatch" } else if revision.is_some() { "PassedExactRevision" } else { "PassedLocalUnpinned" },
@@ -1231,8 +1204,7 @@ fn run() -> Result<i32, String> {
     if let Some(parent) = receipt_path.parent()
         && !parent.as_os_str().is_empty()
     {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("create {}: {e}", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
     }
     let bytes = serde_json::to_string_pretty(&receipt)
         .map_err(|e| format!("serialize receipt: {e}"))?
@@ -1356,7 +1328,13 @@ mod tests {
         let actual = candidate["actual_inlet_mass_flux"].as_array().unwrap();
         let mass: f64 = actual
             .iter()
-            .map(|row| row.as_array().unwrap().iter().map(|v| v.as_f64().unwrap()).sum::<f64>())
+            .map(|row| {
+                row.as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.as_f64().unwrap())
+                    .sum::<f64>()
+            })
             .sum();
         assert!((mass - 1.6).abs() < 1.0e-10);
     }
@@ -1364,9 +1342,20 @@ mod tests {
     #[test]
     fn selection_is_pareto_qualified_and_not_a_single_metric_only() {
         let evaluation = result();
-        assert_eq!(evaluation["selected_design_id"], "AE-T0-001-orthogonal-pulses");
-        assert!(row("AE-T0-001-orthogonal-pulses")["pareto_optimal"].as_bool().unwrap());
-        assert!(row("AE-T0-001-orthogonal-pulses")["selected"].as_bool().unwrap());
+        assert_eq!(
+            evaluation["selected_design_id"],
+            "AE-T0-001-orthogonal-pulses"
+        );
+        assert!(
+            row("AE-T0-001-orthogonal-pulses")["pareto_optimal"]
+                .as_bool()
+                .unwrap()
+        );
+        assert!(
+            row("AE-T0-001-orthogonal-pulses")["selected"]
+                .as_bool()
+                .unwrap()
+        );
     }
 
     #[test]
