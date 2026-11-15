@@ -899,7 +899,12 @@ mod tests {
     fn all_eight_identification_cases_match_oracle() {
         let x = result();
         assert_eq!(x["case_count"], CASE_COUNT);
-        assert_eq!(x["matched_case_count"], CASE_COUNT);
+        assert_eq!(
+            x["matched_case_count"],
+            CASE_COUNT,
+            "oracle mismatches: {}",
+            x["mismatches"]
+        );
         assert_eq!(x["verification_state"], "MatchedFrozenOracle");
     }
 
