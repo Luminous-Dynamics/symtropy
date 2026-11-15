@@ -18,6 +18,8 @@ fixtures/aeroweift-conformance/tiny-intent-conformance-v0.json
 - Detects superseded, expired or withdrawn authorization and intersecting dynamic restrictions.
 - Produces CONTINGENT after the configured contact timeout; no arbitrary global timeout is embedded.
 - Preserves authorization, policy, source observation, timestamp and position lineage in the result.
+- Requires exact PNT/time and surveillance qualification receipt references for every admitted observation.
+- Requires dynamic restriction issuer, revision, digest and matching time-scale identity.
 
 ## Deliberate limitations
 
