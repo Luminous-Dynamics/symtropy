@@ -585,7 +585,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twelve_cases_match_the_separate_oracle() {
+    fn all_fifteen_cases_match_the_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluation completes");
         assert_eq!(result["result_count"], CASE_COUNT);
