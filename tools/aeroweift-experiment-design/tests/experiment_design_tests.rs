@@ -1,7 +1,7 @@
 use aeroweift_experiment_design::{
     AuthorizationState, DesignDisposition, ExperimentCandidate, ExperimentDesignPolicy,
-    ExperimentModality, ExperimentObjective, HypothesisGroup, RejectionReason,
-    SemanticEquivalence, SelectionEvidenceRole, select_experiments,
+    ExperimentModality, ExperimentObjective, HypothesisGroup, RejectionReason, ResourceBudget,
+    ResourceCost, SemanticEquivalence, SelectionEvidenceRole, select_experiments,
 };
 
 fn digest(ch: char) -> String {
@@ -10,6 +10,9 @@ fn digest(ch: char) -> String {
 
 fn policy() -> ExperimentDesignPolicy {
     ExperimentDesignPolicy {
+        campaign_sha256: digest('b'),
+        model_scope_sha256: digest('c'),
+        intended_use_profile_sha256: digest('d'),
         decision_question_id: "occupancy-boundary-q1".into(),
         objective: ExperimentObjective::ModelDiscrimination,
         policy_sha256: digest('a'),
@@ -18,21 +21,43 @@ fn policy() -> ExperimentDesignPolicy {
         minimum_worst_case_robust_reduction: 0.20,
         minimum_model_discrimination: 0.30,
         maximum_probability_uninformative: 0.80,
+        minimum_estimate_confidence_level: 0.95,
+        required_estimator_build_sha256: digest('e'),
+        required_estimate_method_sha256: digest('f'),
+        resource_budget: ResourceBudget {
+            setup_minutes: 100,
+            facility_minutes: 100,
+            cpu_seconds: 10_000,
+            accelerator_seconds: 10_000,
+            energy_joules: 100_000,
+            adjudication_person_minutes: 100,
+        },
     }
 }
 
 fn candidate(id: &str) -> ExperimentCandidate {
     ExperimentCandidate {
         candidate_id: id.into(),
+        campaign_sha256: digest('b'),
+        model_scope_sha256: digest('c'),
+        intended_use_profile_sha256: digest('d'),
+        design_sha256: digest('1'),
+        scenario_manifest_sha256: digest('2'),
+        measurement_plan_sha256: digest('3'),
         decision_question_id: "occupancy-boundary-q1".into(),
         objective: ExperimentObjective::ModelDiscrimination,
         modality: ExperimentModality::Simulation,
         requires_external_authorization: false,
         authorization: AuthorizationState::NotRequired,
+        authorization_receipt_sha256: None,
         safety_constraints_clear: true,
+        safety_gate_receipt_sha256: Some(digest('4')),
         within_declared_envelope: true,
+        envelope_receipt_sha256: Some(digest('5')),
         independent_reference_available: true,
+        independent_reference_receipt_sha256: Some(digest('6')),
         semantic_equivalence: SemanticEquivalence::Established,
+        semantic_equivalence_receipt_sha256: Some(digest('7')),
         selection_evidence_role: SelectionEvidenceRole::AdaptiveDevelopment,
         hypothesis_groups: vec![
             HypothesisGroup { group_id: "model-family-a".into() },
@@ -43,7 +68,18 @@ fn candidate(id: &str) -> ExperimentCandidate {
         worst_case_robust_reduction: 0.50,
         decision_relevance: 0.90,
         probability_uninformative: 0.10,
+        estimate_confidence_level: 0.95,
+        estimate_method_sha256: digest('f'),
+        estimator_build_sha256: digest('e'),
         cost_units: 20,
+        resource_cost: ResourceCost {
+            setup_minutes: 10,
+            facility_minutes: 10,
+            cpu_seconds: 500,
+            accelerator_seconds: 100,
+            energy_joules: 1_000,
+            adjudication_person_minutes: 5,
+        },
     }
 }
 
@@ -371,4 +407,85 @@ fn empty_hypothesis_correlation_group_is_rejected() {
     malformed.hypothesis_groups[0].group_id.clear();
     let result = select_experiments(&[malformed], &policy()).unwrap();
     assert!(reason(&result, "empty-group").contains(&RejectionReason::InvalidUtilityVector));
+}
+
+
+#[test]
+fn controlled_flight_always_requires_authorization_even_if_candidate_says_not_required() {
+    let mut flight = candidate("flight-no-flag-bypass");
+    flight.modality = ExperimentModality::ControlledFlight;
+    flight.requires_external_authorization = false;
+    flight.authorization = AuthorizationState::NotRequired;
+    flight.authorization_receipt_sha256 = None;
+    let result = select_experiments(&[flight], &policy()).unwrap();
+    assert!(reason(&result, "flight-no-flag-bypass").contains(&RejectionReason::AuthorizationNotGranted));
+}
+
+#[test]
+fn affirmative_safety_gate_without_owner_receipt_is_rejected() {
+    let mut candidate = candidate("no-safety-receipt");
+    candidate.safety_gate_receipt_sha256 = None;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "no-safety-receipt").contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+#[test]
+fn affirmative_reference_gate_without_owner_receipt_is_rejected() {
+    let mut candidate = candidate("no-reference-receipt");
+    candidate.independent_reference_receipt_sha256 = None;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "no-reference-receipt").contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+#[test]
+fn candidate_from_another_model_scope_cannot_borrow_this_campaigns_credit() {
+    let mut candidate = candidate("other-model");
+    candidate.model_scope_sha256 = digest('8');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "other-model").contains(&RejectionReason::QuestionOrObjectiveMismatch));
+}
+
+#[test]
+fn estimator_build_and_confidence_method_are_pinned() {
+    let mut candidate = candidate("other-estimator");
+    candidate.estimator_build_sha256 = digest('9');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "other-estimator").contains(&RejectionReason::ConfidenceContractMismatch));
+}
+
+#[test]
+fn resource_dimensions_are_hard_non_substitutable_budgets() {
+    let mut candidate = candidate("facility-over-budget");
+    candidate.resource_cost.facility_minutes = 101;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "facility-over-budget").contains(&RejectionReason::OverBudget));
+}
+
+#[test]
+fn pareto_front_preserves_tradeoffs_across_resource_dimensions() {
+    let mut low_energy = candidate("low-energy");
+    low_energy.resource_cost.energy_joules = 100;
+    low_energy.resource_cost.facility_minutes = 80;
+    low_energy.expected_uncertainty_reduction = 0.60;
+
+    let mut low_facility = candidate("low-facility");
+    low_facility.resource_cost.energy_joules = 5_000;
+    low_facility.resource_cost.facility_minutes = 5;
+    low_facility.expected_uncertainty_reduction = 0.75;
+
+    let result = select_experiments(&[low_energy, low_facility], &policy()).unwrap();
+    assert_eq!(result.pareto_front.len(), 2);
+}
+
+#[test]
+fn confirmatory_and_challenge_partitions_remain_sealed() {
+    for (id, role) in [
+        ("confirmatory-sealed", SelectionEvidenceRole::ConfirmatorySealed),
+        ("challenge-sealed", SelectionEvidenceRole::ChallengeSealed),
+    ] {
+        let mut candidate = candidate(id);
+        candidate.selection_evidence_role = role;
+        let result = select_experiments(&[candidate], &policy()).unwrap();
+        assert!(reason(&result, id).contains(&RejectionReason::SealedEvidenceUsedForSelection));
+    }
 }
