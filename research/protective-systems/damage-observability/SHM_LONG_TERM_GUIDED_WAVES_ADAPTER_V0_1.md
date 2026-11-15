@@ -3,7 +3,7 @@
 **Programme owner:** PROTECT-DAMAGE-OBSERVABILITY-001 (#5267)  
 **Parent:** PROTECTIVE-SYSTEMS-001 (#5246)  
 **Status:** adapter/reproduction protocol proposal; no data downloaded, no models trained, no physical qualification  
-**Frozen research date:** 2026-11-14
+**Research update:** 2026-11-15
 
 ## 1. Why this dataset matters
 
@@ -21,24 +21,29 @@ Licence/version references:
 - Figshare versioning rules: https://info.figshare.com/user-guide/how-versioning-works/
 - Version-aware citation targets: https://doi.org/10.6084/m9.figshare.28112504 and https://doi.org/10.6084/m9.figshare.28112504.v1
 
-## 2. Source-integrity audit: the public descriptions disagree
+## 2. Source-integrity audit: cadence, data units and distribution provenance
 
-Before treating the dataset as an immutable benchmark, reconcile its official DOI record, paper, loading code, and the SmartDATA Lab landing page. They do not currently agree on several operational details.
+The paper's own cadence is reconcilable: its Methods describe original acquisition about every 8.6 seconds, while the published benchmark retains one in twenty acquisitions, giving about 176 seconds between retained records. The apparent internal contradiction is explained by downsampling. A separate conflict remains between the paper/repository (56 monthly pickle files, eight guided-wave paths) and the SmartDATA Lab landing page (HDF5, 14 PZT sensors, 30-second cadence). In addition, the repository README now says the original Figshare link is unavailable and points to a Dropbox distribution. Treat these as separate provenance/version claims; do not combine schemas or cadence assumptions.
 
 | Source | Description | Benchmark treatment |
 |---|---|---|
 | Yang et al. *Scientific Data* (2025), Data Records | 56 monthly `.pickle` files; 8 guided-wave paths per acquisition; example monthly matrix 14,997 × 8 × 2,000 | Primary published data-layout claim; verify each file and timestamp range |
-| Same paper, abstract/summary | ~6.4 million guided waves over ~4.5 years; summary says acquisitions about every 170 seconds | Use as paper-reported count only; disambiguate acquisition rows vs per-path waveforms |
-| Same paper, Methods | says measurements were taken about every 8.6 seconds | Conflicts with the summary and monthly example; do not hard-code either interval |
-| SmartDATA Lab landing page (updated 7 April 2026) | says >7.6 million signals, 30-second cadence, 14 PZT sensors and HDF5 | Conflicts with the paper's 56-pickle/eight-path layout; treat as a separate/unreconciled description until DOI files prove otherwise |
-| OpenAIRE/DataCite metadata aggregator | lists DOI `10.6084/m9.figshare.28112504`, version `.v1`, and CC BY | Useful metadata lead, not a substitute for reading the current Figshare version/terms directly |
+| Yang et al. *Scientific Data* (2025), Methods | Original acquisition about every 8.6 seconds at 1 MHz sampling; 10,000 original samples (10 ms) per waveform | Original collection cadence and signal capture; not the cadence of the downsampled public benchmark |
+| Same paper, Data Records | Public benchmark selects every twentieth original measurement (~176 seconds), trims each guided wave to 2,000 samples (2 ms), and stores 56 monthly `.pickle` files | Use the retained public timestamps and payload, not the original acquisition rate |
+| Same paper, Data Records example | `measurements 2018_04.pickle`: 14,997 acquisition rows × 8 paths × 2,000 samples; eight paths 5-1 through 5-4 and 6-1 through 6-4 | One timestamp row is one acquisition; it contains eight path waveforms. Never call all 8 waveforms one acquisition row |
+| Same paper, abstract/summary | ~6.4 million guided-wave records over ~4.5 years | The headline count is ambiguous between acquisition rows and path-wave records; independently count rows, path records and waveform samples from the payload |
+| SmartDATA Lab landing page (updated 7 April 2026) | says >7.6 million signals, 30-second cadence, 14 PZT sensors and HDF5 | Conflicts with the paper/repository's eight guided-wave paths and monthly pickle layout; do not merge unless the maintainer identifies this as a new version |
+| SmartDATA Lab GitHub README (retrieved 15 Nov 2026) | Says the original dataset link is no longer available and supplies a Dropbox folder as the current download link | Treat the Dropbox folder as a distribution transition. Pin its exact contents/version/rights before retrieval |
+| OpenAIRE/DataCite metadata aggregator | lists DOI `10.6084/m9.figshare.28112504`, version `.v1`, and CC BY | Useful metadata lead, not a substitute for primary dataset terms or confirmation that the Dropbox payload is byte-identical to that version |
 
 Primary sources:
 - Paper and data-layout description: https://pmc.ncbi.nlm.nih.gov/articles/PMC12162875/
 - DOI: https://doi.org/10.6084/m9.figshare.28112504
 - Versioned DOI reported by OpenAIRE: https://doi.org/10.6084/m9.figshare.28112504.v1
 - SmartDATA Lab landing page: https://smartdata.ece.ufl.edu/index.php/2025/07/23/long-term-guided-wave-dataset-under-real-world-conditions-dataset/
-- Data loader: https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves
+- Repository README (current distribution notice): https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves
+- Repository loader: https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves/blob/main/load_dataset.py
+- Dropbox folder linked from the README (do not ingest until version/rights/hash are confirmed): https://www.dropbox.com/scl/fo/cigpra8cde187g7321etz/ANJMc309bWNDdNDe9NdJCQ8?rlkey=bdv8xwkgxybo4umz4mbyc1mnr&dl=0
 - OpenAIRE metadata view: https://oamonitor.ireland.openaire.eu/national/search/dataset?pid=10.6084%2Fm9.figshare.28112504
 
 ### Canonical count vocabulary
@@ -49,20 +54,22 @@ Never use a single unqualified "number of measurements". The manifest must indep
 3. samples per waveform;
 4. monthly source-file counts and byte sizes.
 
-The paper's example month has 14,997 acquisition rows and eight paths per row, which is about 119,976 path waveforms before missingness. The monthly example is compatible with the paper's 170-second summary cadence more closely than its 8.6-second Methods statement, but the corpus timestamps—not arithmetic from one example—must decide the actual interval distribution. The SmartDATA Lab page's 30-second / HDF5 / 14-sensor description must not be blended into the paper's eight-path pickle schema.
+The example month has 14,997 acquisition rows and eight paths per row, or up to 119,976 path waveforms before missingness. The paper's original cadence (~8.6 s) and retained public benchmark cadence (~176 s) are different by design: the benchmark selects one record in twenty. The README's Dropbox relocation is a distribution change, not by itself a dataset-version identity. The SmartDATA Lab page's 30-second / HDF5 / 14-sensor description must not be blended into the paper's eight-path pickle schema without a maintainer-confirmed version mapping.
 
-### Rights gate refinement
+### Rights and distribution gate refinement
 
-OpenAIRE's DataCite-linked record reports CC BY for two dataset versions, including DOI `.v1`. This is a useful indication that the dataset may be reusable with attribution. However, the current Figshare landing record returned HTTP 403 during this audit, so the exact version-level licence, version date, file manifest, and any file-specific terms remain **not directly verified**. Do not redistribute, mirror, or adapt files until the authoritative Figshare record has been checked. The paper's CC BY-NC-ND article licence is separate from the dataset licence.
+OpenAIRE's DataCite-linked record reports CC BY for two dataset versions, including DOI `.v1`. That is a useful indication, not primary proof of the licence for the current distribution. The GitHub README retrieved on 15 November 2026 states that the original Figshare download link is no longer available and redirects users to a Dropbox folder. The primary Figshare record/API returned HTTP 403 in this audit, and the README does not establish that Dropbox contents are byte-identical to a particular DOI version. Therefore the following remain **not directly verified**: current distribution version, exact version-level licence/terms, payload file inventory, per-file hashes, and equivalence to the cited Figshare version. Do not download, mirror, redistribute or adapt the Dropbox payload until the data owners or authoritative metadata confirm those items. The GitHub loader's GPLv2-or-later code licence and the paper's CC BY-NC-ND article licence are separate from the dataset licence.
 
 ### D0 acceptance additions
 
-- Pin the versioned dataset DOI, current Figshare record, licence statement and file manifest.
-- Record the discrepancy table above as resolved / unresolved with source and reviewer.
-- Assert the expected container format from actual downloaded file signatures, not a landing-page paragraph.
-- Reconcile counts using the actual number of timestamp rows, path matrices and waveform dimensions.
-- Compute timestamp-difference distributions and report min/median/p95/max; never encode 8.6 s, 30 s or 170 s as a constant until measured.
-- Treat unexplained format/count/schema differences as a new dataset version or a failed source-integrity gate, not as a silent preprocessing choice.
+- Pin the dataset DOI/version, the current README-linked distribution location, the data owner, direct licence/terms evidence, retrieval date and exact payload manifest. Confirm whether the Dropbox payload is byte-identical to the cited Figshare version or a new version.
+- Record the cadence chain explicitly: original 8.6 s collection → every-20th-record public sampling (~176 s). Verify actual deltas from the timestamps.
+- Record the discrepancy between the SmartDATA landing page (HDF5/14 sensors/30 s) and paper/repository schema (monthly pickle/eight paths) as unresolved unless the data owner supplies a mapping.
+- Count separately: source files, acquisition rows/timestamps, path waveforms per path, valid/missing paths per row, samples per waveform, and total scalar waveform samples.
+- Assert container format and shape from actual file signatures and decoded metadata; never infer them from landing-page prose.
+- Compute timestamp-difference distributions (min/median/p95/max) and report gaps/duplicates; do not hard-code cadence assumptions.
+- Treat unexplained format/count/schema differences as a new dataset version or failed source-integrity gate, not a silent preprocessing choice.
+- Inspect payload provenance and hashes before any untrusted pickle decoding. Use a no-network, least-privilege, resource-limited conversion process; preserve raw bytes and convert into a typed, content-addressed interchange format.
 
 ## 3. A recent published baseline—and why its number is not SOTA
 
@@ -106,7 +113,7 @@ The adapter must not require a 100-GB-class eager load or duplicate the owner da
 
 Read data lazily by file / time range / propagation path. Preserve raw waveforms and raw metadata as immutable source records. Derived windows, normalized signals, features, augmentations and labels get separate derived identities and digests. Never overwrite the raw source or infer a sample rate/unit that is not documented.
 
-The source description reports measurements about every 170 seconds and eight channels / propagation paths. The loading-code repository describes monthly `.pickle` files and example waveform arrays with 2,000 samples per channel; treat these as discovery metadata and verify the exact item version/file inventory before ingest. Do not assume that the entire corpus must be loaded in memory. Use bounded, file/time/path streaming. Pickle is executable serialization: do not load untrusted pickle files in a privileged or network-connected process. Use an isolated, least-privilege conversion step only after inspecting the source, with resource limits and no outbound network; persist a safer, typed interchange format with provenance and hashes.
+The public benchmark is downsampled to approximately 176-second spacing (one in twenty original acquisitions), with eight paths and 2,000 retained samples per path waveform. The 8.6-second original measurement cadence and the 1 MHz/10,000-sample original waveform description apply to the pre-downsampled collection, not the public benchmark payload. Verify this against the timestamp and file metadata before ingest. Do not assume that the entire corpus must be loaded in memory. Use bounded, file/time/path streaming. Pickle is executable serialization: do not load untrusted pickle files in a privileged or network-connected process. Use an isolated, least-privilege conversion step only after inspecting the source, with resource limits and no outbound network; persist a safer, typed interchange format with provenance and hashes.
 
 ## 5. Evaluation tracks—keep them separate
 
