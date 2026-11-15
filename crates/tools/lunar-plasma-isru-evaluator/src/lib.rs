@@ -1096,7 +1096,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn invalid_calendar_date_in_calibration_receipt_is_blocked() {
         let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
