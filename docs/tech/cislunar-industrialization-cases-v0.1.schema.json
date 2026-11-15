@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/cislunar-industrialization-cases-v0.1.schema.json",
+  "title": "Cislunar Industrialization Gate v0.1 synthetic case set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_set_id",
+    "claim_ceiling",
+    "currency_unit",
+    "warning",
+    "comparison_rule",
+    "gate_order",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "cislunar-industrialization-cases/0.1"
+    },
+    "case_set_id": {
+      "const": "CISLUNAR-INDUSTRIALIZATION-GATE-v0.1"
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_CONTRACT_ONLY"
+    },
+    "currency_unit": {
+      "const": "SCU"
+    },
+    "warning": {
+      "type": "string",
+      "minLength": 20
+    },
+    "comparison_rule": {
+      "type": "string",
+      "minLength": 20
+    },
+    "gate_order": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {
+          "const": "off_earth_product_gate"
+        },
+        {
+          "const": "supply_gate"
+        },
+        {
+          "const": "economic_gate"
+        }
+      ],
+      "items": false
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "nonnegativeOrNull": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "market",
+        "architecture",
+        "functional_unit",
+        "baseline",
+        "candidate",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 5
+        },
+        "market": {
+          "enum": [
+            "CISLUNAR",
+            "MARS_LOCAL"
+          ]
+        },
+        "architecture": {
+          "enum": [
+            "E0_EARTH_SUPPLIED",
+            "L1_LUNAR_BULK",
+            "L2_LUNAR_CONSTRUCTION_PRODUCTS",
+            "L3_CISLUNAR_INDUSTRIAL_NETWORK",
+            "HABITAT_HYBRID",
+            "A1_ASTEROID_EXTENSION",
+            "M1_MARS_LOCAL"
+          ]
+        },
+        "functional_unit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "quantity",
+            "unit",
+            "product_spec_id",
+            "destination_node",
+            "service_horizon_months"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "ACCEPTED_PRODUCT_MASS",
+                "ACCEPTED_STRUCTURAL_THROUGHPUT",
+                "HABITABLE_VOLUME_SERVICE"
+              ]
+            },
+            "quantity": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "unit": {
+              "enum": [
+                "kg",
+                "kg_per_year",
+                "m3_year"
+              ]
+            },
+            "product_spec_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "destination_node": {
+              "type": "string",
+              "minLength": 1
+            },
+            "service_horizon_months": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lifecycle_cost_scu",
+            "earth_import_mass_kg",
+            "service_months"
+          ],
+          "properties": {
+            "lifecycle_cost_scu": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "earth_import_mass_kg": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "service_months": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            }
+          }
+        },
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "off_earth_accepted_mass_kg",
+            "earth_import_mass_kg",
+            "rejected_mass_kg",
+            "lifecycle_cost_scu",
+            "process_energy_kwh",
+            "firm_energy_available_kwh",
+            "service_months",
+            "service_floor_months",
+            "product_status",
+            "evidence",
+            "dependencies",
+            "stressors"
+          ],
+          "properties": {
+            "off_earth_accepted_mass_kg": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "earth_import_mass_kg": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "rejected_mass_kg": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "lifecycle_cost_scu": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "process_energy_kwh": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "firm_energy_available_kwh": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "service_months": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "service_floor_months": {
+              "$ref": "#/$defs/nonnegativeOrNull"
+            },
+            "product_status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "resource_evidence",
+                "process_evidence",
+                "product_evidence",
+                "source"
+              ],
+              "properties": {
+                "resource_evidence": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "process_evidence": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "product_evidence": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "dependencies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "origin",
+                  "evidence_status",
+                  "critical",
+                  "recurring",
+                  "inventory_months"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "origin": {
+                    "enum": [
+                      "EARTH",
+                      "OFF_EARTH",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "evidence_status": {
+                    "enum": [
+                      "VERIFIED",
+                      "UNVERIFIED",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "critical": {
+                    "type": "boolean"
+                  },
+                  "recurring": {
+                    "type": "boolean"
+                  },
+                  "inventory_months": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "stressors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "off_earth_product_gate",
+            "supply_gate",
+            "economic_gate",
+            "disposition"
+          ],
+          "properties": {
+            "off_earth_product_gate": {
+              "enum": [
+                "NOT_APPLICABLE",
+                "PASS",
+                "FAIL",
+                "PASS_CONDITIONAL",
+                "UNKNOWN",
+                "PARTIAL_PASS",
+                "NOT_COMPARABLE"
+              ]
+            },
+            "supply_gate": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "NOT_EVALUATED",
+                "UNKNOWN",
+                "PASS_FOR_MATERIAL_SCOPE_ONLY",
+                "NOT_COMPARABLE"
+              ]
+            },
+            "economic_gate": {
+              "enum": [
+                "BASELINE",
+                "PASS_SYNTHETIC_ONLY",
+                "FAIL_SYNTHETIC_ONLY",
+                "NOT_EVALUATED",
+                "INDETERMINATE_HUMAN_QUALIFICATION_OUT_OF_SCOPE",
+                "NOT_COMPARABLE"
+              ]
+            },
+            "disposition": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
