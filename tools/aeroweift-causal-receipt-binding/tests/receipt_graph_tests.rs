@@ -137,11 +137,7 @@ fn receipt(
     }
 }
 
-fn source_observation_for_traffic(
-    id: &str,
-    sequence: u64,
-    traffic_class: TrafficClass,
-) -> Receipt {
+fn source_observation_for_traffic(id: &str, sequence: u64, traffic_class: TrafficClass) -> Receipt {
     let mut result = receipt(
         id,
         Stage::SourceObservation,
@@ -226,11 +222,8 @@ fn graph() -> Vec<Receipt> {
         vec![edge(&pnt, R::PntInitialPosition)],
         None,
     );
-    let cooperative_observation = source_observation_for_traffic(
-        "observation-cooperative-track",
-        8,
-        Coop,
-    );
+    let cooperative_observation =
+        source_observation_for_traffic("observation-cooperative-track", 8, Coop);
     let cooperative = surveillance_receipt(
         "surveillance-cooperative",
         9,
@@ -862,7 +855,6 @@ fn revoked_authorization_cannot_underwrite_intent_conformance() {
         Err(VerificationError::ParentNotQualified)
     );
 }
-
 
 #[test]
 fn surveillance_observation_must_be_bound_to_the_same_traffic_class() {
