@@ -1,0 +1,569 @@
+{
+  "schema_version": "epanet-junction-hook-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-ENGINE-INTEROP-001",
+  "cases": [
+    {
+      "case_id": "EJH-T0-001-baseline-complete-mix",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "baseline_complete_mix",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.5,
+            "available_segment_volume_m3": 0.7,
+            "concentration_kg_per_m3": 0.002
+          },
+          {
+            "link_id": "P-IN-2",
+            "segment_id": "S-2",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.5,
+            "available_segment_volume_m3": 0.7,
+            "concentration_kg_per_m3": 0.004
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "P-OUT-2"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.6,
+            "operator_mass_kg": 0.0018
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.4,
+            "operator_mass_kg": 0.0012
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-002-multiple-leading-segments",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.2,
+            "available_segment_volume_m3": 0.4,
+            "concentration_kg_per_m3": 0.01
+          },
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-2",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.1,
+            "available_segment_volume_m3": 0.30000000000000004,
+            "concentration_kg_per_m3": 0.02
+          },
+          {
+            "link_id": "P-IN-2",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.4,
+            "available_segment_volume_m3": 0.6000000000000001,
+            "concentration_kg_per_m3": 0.005
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "P-OUT-2"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.4,
+            "operator_mass_kg": 0.003
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.3,
+            "operator_mass_kg": 0.003
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-003-mass-booster",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [
+          {
+            "source_id": "SRC-MASS-1",
+            "source_type": "MASS",
+            "source_mass_kg": 0.001
+          }
+        ],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.5,
+            "available_segment_volume_m3": 0.7,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "DEMAND-1"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.3,
+            "operator_mass_kg": 0.0012
+          },
+          {
+            "port_id": "DEMAND-1",
+            "port_kind": "demand",
+            "volume_m3": 0.2,
+            "operator_mass_kg": 0.0008
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-004-concentration-source",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [
+          {
+            "source_id": "SRC-CONC-1",
+            "source_type": "CONCEN",
+            "source_volume_m3": 0.1,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 0.9,
+            "available_segment_volume_m3": 1.1,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "DEMAND-1"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          },
+          {
+            "port_id": "DEMAND-1",
+            "port_kind": "demand",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-005-flow-paced-source-unsupported",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [
+          {
+            "source_id": "SRC-FP-1",
+            "source_type": "FLOWPACED",
+            "source_value": 0.1
+          }
+        ],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 1,
+            "available_segment_volume_m3": 1.2,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 1,
+            "operator_mass_kg": 0.002
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-006-duplicate-outlet-id",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 1,
+            "available_segment_volume_m3": 1.2,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "P-OUT-2"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          },
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-007-partial-outlet-port-set",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": false,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 1,
+            "available_segment_volume_m3": 1.2,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "P-OUT-2"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-008-open-mass-residual",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 1,
+            "available_segment_volume_m3": 1.2,
+            "concentration_kg_per_m3": 0.004
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "P-OUT-2"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-009-open-volume-residual",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 1,
+        "time_to_hydraulic_event_seconds": 30,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 1,
+            "available_segment_volume_m3": 1.2,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1",
+          "P-OUT-2"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.45,
+            "operator_mass_kg": 0.001
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.45,
+            "operator_mass_kg": 0.001
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "EJH-T0-010-step-over-event",
+      "snapshot": {
+        "engine_name": "EPANET-2.2-fork-hook",
+        "engine_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "operator_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "snapshot_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "node_id": "J-001",
+        "quality_time_seconds": 0,
+        "quality_step_seconds": 10,
+        "time_to_hydraulic_event_seconds": 5,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "all_port_directions_observed": true,
+        "external_sources": [],
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "mass_balance_standard_uncertainty_kg": 0.0001,
+        "volume_balance_standard_uncertainty_m3": 0.001,
+        "closure_sigma_limit": 3,
+        "operator_mode": "outlet_resolved",
+        "baseline_parity_tolerance_kg": 1e-12,
+        "all_outlet_ports_observed": true,
+        "consumed_segments": [
+          {
+            "link_id": "P-IN-1",
+            "segment_id": "S-1",
+            "direction": "into_node",
+            "consumed_volume_m3": 1,
+            "available_segment_volume_m3": 1.2,
+            "concentration_kg_per_m3": 0.002
+          }
+        ],
+        "expected_outlet_port_ids": [
+          "P-OUT-1"
+        ],
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 1,
+            "operator_mass_kg": 0.002
+          }
+        ]
+      }
+    }
+  ]
+}
