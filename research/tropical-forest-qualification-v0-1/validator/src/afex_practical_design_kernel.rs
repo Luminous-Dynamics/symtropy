@@ -17,14 +17,12 @@ struct Measurement {
     row: Option<Vec<i128>>,
     noise_sd: f64,
     cost: u64,
-    role: String,
 }
 
 #[derive(Clone, Debug)]
 struct Metrics {
     data_rank: usize,
     fisher: Vec<Vec<f64>>,
-    posterior: Vec<Vec<f64>>,
     posterior_sd: Vec<f64>,
     weighted_variance: f64,
     information_gain_nats: f64,
@@ -76,6 +74,9 @@ fn parse_measurement(value: &Value, allow_covariate_only: bool) -> Result<Measur
         }
         None
     } else {
+        if role == "COVARIATE_ONLY_NO_PATHWAY_FLUX_SENSITIVITY" {
+            return Err(format!("measurement {id} is covariate-only and cannot declare a pathway flux row"));
+        }
         let values = row_value.as_array()
             .ok_or_else(|| format!("measurement {id} sensitivity_row must be an array or null"))?;
         if values.len() != N {
@@ -89,7 +90,7 @@ fn parse_measurement(value: &Value, allow_covariate_only: bool) -> Result<Measur
         }
         Some(parsed)
     };
-    Ok(Measurement { id, row, noise_sd, cost, role })
+    Ok(Measurement { id, row, noise_sd, cost })
 }
 
 fn parse_measurements(value: &Value, allow_covariate_only: bool) -> Result<Vec<Measurement>, String> {
@@ -104,10 +105,6 @@ fn parse_measurements(value: &Value, allow_covariate_only: bool) -> Result<Vec<M
         result.push(measurement);
     }
     Ok(result)
-}
-
-fn identity() -> Vec<Vec<f64>> {
-    (0..N).map(|i| (0..N).map(|j| if i == j { 1.0 } else { 0.0 }).collect()).collect()
 }
 
 fn matrix_from_json(value: &Value, key: &str) -> Result<Vec<Vec<f64>>, String> {
@@ -262,7 +259,6 @@ fn calculate_metrics(
     Ok(Metrics {
         data_rank: exact_data_rank(measurements)?,
         fisher,
-        posterior,
         posterior_sd,
         weighted_variance,
         information_gain_nats,
@@ -390,14 +386,23 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             .ok_or_else(|| format!("scenario {scenario_id} include_candidate_ids must be array"))?;
         let mut measurements = base.clone();
         let mut added_ids = Vec::new();
+        let mut included_ids = BTreeSet::new();
         for item in include {
             let id = item.as_str().ok_or_else(|| "candidate measurement ID must be a string".to_string())?;
+            if !included_ids.insert(id.to_string()) {
+                return Err(format!("scenario {scenario_id} repeats candidate measurement {id}"));
+            }
             let candidate = candidate_map.get(id).ok_or_else(|| format!("unknown candidate measurement {id}"))?;
             measurements.push(candidate.clone());
             added_ids.push(id.to_string());
         }
         let noise_override = scenario.get("noise_override").and_then(Value::as_object);
         if let Some(overrides) = noise_override {
+            for key in overrides.keys() {
+                if !measurements.iter().any(|measurement| &measurement.id == key) {
+                    return Err(format!("scenario {scenario_id} noise override references unknown measurement {key}"));
+                }
+            }
             for measurement in measurements.iter_mut() {
                 if let Some(value) = overrides.get(&measurement.id) {
                     let noise = value.as_f64().ok_or_else(|| "noise override must be numeric".to_string())?;
