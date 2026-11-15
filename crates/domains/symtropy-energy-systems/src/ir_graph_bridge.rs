@@ -896,11 +896,17 @@ mod tests {
             b"resident output",
         ).unwrap();
         let artifact = receipt.to_change_impact_artifact().unwrap();
-        let graph = crate::DependencyGraph::new(
-            receipt.pinned_dependency_fingerprints().unwrap(),
-            vec![artifact],
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter",
+            "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let report = graph.assess(
+            Vec::new(),
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
         ).unwrap();
-        let report = graph.assess(Vec::new(), "0.1.0", "0.1").unwrap();
         assert!(report.invalidated()["artifact:resident-view"]
             .contains(&crate::InvalidationReason::DependencyInventoryIncomplete));
     }
