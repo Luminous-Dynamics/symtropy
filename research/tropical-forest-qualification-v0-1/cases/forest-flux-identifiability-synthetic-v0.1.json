@@ -13,49 +13,133 @@
     "deadwood_export"
   ],
   "base_observation_operator": [
-    [1, 1, -1, -1, 0, 0],
-    [0, 0, 1, 0, -1, -1]
+    [
+      1,
+      1,
+      -1,
+      -1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0,
+      -1,
+      -1
+    ]
   ],
   "base_observations": [
     "live_pool_stock_increment",
     "deadwood_pool_stock_increment"
   ],
   "nullspace_witnesses": [
-    [-1, 1, 0, 0, 0, 0],
-    [1, 0, 1, 0, 1, 0],
-    [1, 0, 0, 1, 0, 0],
-    [0, 0, 0, 0, -1, 1]
+    [
+      -1,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      1,
+      0,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      -1,
+      1
+    ]
   ],
   "measurement_options": [
     {
       "measurement_id": "growth",
       "synthetic_effort_cost": 2,
-      "row": [1, 0, 0, 0, 0, 0]
+      "row": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "measurement_id": "recruitment",
       "synthetic_effort_cost": 4,
-      "row": [0, 1, 0, 0, 0, 0]
+      "row": [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "measurement_id": "mortality",
       "synthetic_effort_cost": 3,
-      "row": [0, 0, 1, 0, 0, 0]
+      "row": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ]
     },
     {
       "measurement_id": "live_export",
       "synthetic_effort_cost": 6,
-      "row": [0, 0, 0, 1, 0, 0]
+      "row": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ]
     },
     {
       "measurement_id": "decomposition",
       "synthetic_effort_cost": 5,
-      "row": [0, 0, 0, 0, 1, 0]
+      "row": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ]
     },
     {
       "measurement_id": "deadwood_export",
       "synthetic_effort_cost": 5,
-      "row": [0, 0, 0, 0, 0, 1]
+      "row": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
     }
   ],
   "cost_semantics": "Synthetic effort units only; not dollars, labour hours, ecological priority, or a real survey budget.",
@@ -92,6 +176,15 @@
         "rank": 6,
         "nullity": 0
       }
+    ],
+    "baseline_identifiable_estimands": [
+      "net_live_pool_increment",
+      "net_deadwood_pool_increment",
+      "net_total_pool_increment"
+    ],
+    "baseline_unidentifiable_estimands": [
+      "mortality_transfer",
+      "gross_live_inputs"
     ]
   },
   "execution": {
@@ -100,5 +193,67 @@
     "measurement_noise": "NOT_MODELLED",
     "external_data_ingested": false,
     "field_design_recommendation": "NOT_ESTABLISHED"
-  }
+  },
+  "target_estimands": [
+    {
+      "estimand_id": "net_live_pool_increment",
+      "meaning": "growth + recruitment - mortality transfer - live export",
+      "coefficients": [
+        1,
+        1,
+        -1,
+        -1,
+        0,
+        0
+      ]
+    },
+    {
+      "estimand_id": "net_deadwood_pool_increment",
+      "meaning": "mortality transfer - decomposition - deadwood export",
+      "coefficients": [
+        0,
+        0,
+        1,
+        0,
+        -1,
+        -1
+      ]
+    },
+    {
+      "estimand_id": "net_total_pool_increment",
+      "meaning": "growth + recruitment - live export - decomposition - deadwood export",
+      "coefficients": [
+        1,
+        1,
+        0,
+        -1,
+        -1,
+        -1
+      ]
+    },
+    {
+      "estimand_id": "mortality_transfer",
+      "meaning": "gross mortality transfer from live biomass to deadwood",
+      "coefficients": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "estimand_id": "gross_live_inputs",
+      "meaning": "growth plus recruitment before mortality and exports",
+      "coefficients": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
 }
