@@ -1,0 +1,21 @@
+# scenario|mutation|expected
+hardware-bounded-positive|none|BOUNDED_FUSION_TIME_ELIGIBLE
+shared-clock-bounded-positive|shared-clock-profile|BOUNDED_FUSION_TIME_ELIGIBLE
+software-cycle-only|no-capture-windows|PER_CYCLE_ASSOCIATION_ONLY
+order-only|file-sequence-only|MODALITY_SPECIFIC_ONLY
+file-order-changed|change-sequence-index|SAME_TEMPORAL_RESULT
+hardware-reference-mismatch|reference-digest|INDETERMINATE
+time-scale-mismatch|time-scale-id|INDETERMINATE
+capture-window-missing|drop-window|INDETERMINATE
+pairwise-skew-over-policy|skew|INDETERMINATE
+shared-clock-mismatch|clock-domain|INDETERMINATE
+shared-clock-drift-over-policy|drift|INDETERMINATE
+calibration-profile-missing|drop-calibration|TIME_VALID_WITH_DATA_GAP
+processed-preprocessing-missing|drop-pipeline-digest|STRUCTURAL_ERROR
+raw-with-preprocessing-digest|representation-mismatch|STRUCTURAL_ERROR
+malformed-window|invert-window|INDETERMINATE
+acquisition-cycle-mismatch|cycle-id|INDETERMINATE
+duplicate-sensor-id|duplicate-id|STRUCTURAL_ERROR
+invalid-policy|policy-digest|STRUCTURAL_ERROR
+single-sensor-only|one-modality|MODALITY_SPECIFIC_ONLY
+input-permutation|reverse-sensors|SAME_RESULT
