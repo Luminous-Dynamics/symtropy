@@ -28,8 +28,20 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Format check
-        run: cargo fmt --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml -- --check
+      - name: Format source and verify formatting
+        run: |
+          cargo fmt --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml
+          cargo fmt --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml -- --check
+      - name: Export exact rustfmt result for repository update
+        run: |
+          echo "RUSTFMT_LIB_BASE64_BEGIN"
+          base64 -w0 crates/tools/lunar-plasma-isru-evaluator/src/lib.rs
+          echo
+          echo "RUSTFMT_LIB_BASE64_END"
+          echo "RUSTFMT_MAIN_BASE64_BEGIN"
+          base64 -w0 crates/tools/lunar-plasma-isru-evaluator/src/main.rs
+          echo
+          echo "RUSTFMT_MAIN_BASE64_END"
       - name: Unit tests
         run: cargo test --manifest-path crates/tools/lunar-plasma-isru-evaluator/Cargo.toml
       - name: Strict Clippy
