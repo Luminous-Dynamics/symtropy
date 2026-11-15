@@ -395,7 +395,9 @@ fn parent_stage_must_match_the_semantic_role() {
 fn repeated_parent_role_edge_is_rejected() {
     let mut receipts = graph();
     let duplicate_edge = receipt_mut(&mut receipts, root_id()).parents[0].clone();
-    receipt_mut(&mut receipts, root_id()).parents.push(duplicate_edge);
+    receipt_mut(&mut receipts, root_id())
+        .parents
+        .push(duplicate_edge);
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::DuplicateParentEdge)
@@ -535,9 +537,11 @@ fn profile_traffic_class_obligations_cannot_be_weakened() {
 #[test]
 fn conflict_must_consume_each_profile_required_class() {
     let mut receipts = graph();
-    receipt_mut(&mut receipts, root_id()).parents.retain(|edge| {
-        edge.role != ParentRole::TrafficOccupancy(TrafficClass::NonCooperativeCrewed)
-    });
+    receipt_mut(&mut receipts, root_id())
+        .parents
+        .retain(|edge| {
+            edge.role != ParentRole::TrafficOccupancy(TrafficClass::NonCooperativeCrewed)
+        });
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::MissingRequiredParent)
