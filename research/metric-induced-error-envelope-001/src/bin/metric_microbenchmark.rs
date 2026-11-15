@@ -11,8 +11,9 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use metric_induced_error_envelope_reference::{
-    CartesianQ, ConstraintSpace, Cotangent, DelassusMetricV1, DenseY, Matrix, Metric,
-    MetricProfileV1, Rebasis, Tangent, pairing, vector_euclidean, vector_inf,
+    CartesianQ, ConstraintMultiplierV1, ConstraintResidualV1, ConstraintSpace, Cotangent,
+    DelassusMetricV1, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent,
+    evaluate_constrained_kkt_residual, pairing, vector_euclidean, vector_inf,
 };
 
 const N: usize = 6;
@@ -381,6 +382,30 @@ fn main() {
                 )
                 .unwrap()
         }),
+        measure(
+            "fixed_linear_kkt_residual_certificate",
+            ITERATIONS / 10,
+            SAMPLES,
+            || {
+                let constraint_rhs = ConstraintResidualV1::<ConstraintSpace, CONSTRAINTS>::new(
+                    [0.1, -0.2, 0.15],
+                )
+                .unwrap();
+                let multiplier = ConstraintMultiplierV1::<ConstraintSpace, CONSTRAINTS>::new(
+                    [0.5, -1.0, 0.75],
+                )
+                .unwrap();
+                let receipt = evaluate_constrained_kkt_residual(
+                    black_box(&delassus),
+                    black_box(&covector_q),
+                    black_box(&constraint_rhs),
+                    black_box(&vector_q),
+                    black_box(&multiplier),
+                )
+                .unwrap();
+                receipt.paired_residual_norm + receipt.combined_state_error_bound
+            },
+        ),
     ];
 
     let report = render_report(&measurements, start_all.elapsed());

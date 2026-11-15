@@ -19,6 +19,14 @@ use core::marker::PhantomData;
 use std::fmt;
 
 pub mod constraint_metric;
+pub mod kkt_residual;
+
+pub use kkt_residual::{
+    ConstrainedKktResidualReceiptV1,
+    KktResidualClaimScopeV1,
+    KktResidualEvidenceStatusV1,
+    evaluate_constrained_kkt_residual,
+};
 
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
