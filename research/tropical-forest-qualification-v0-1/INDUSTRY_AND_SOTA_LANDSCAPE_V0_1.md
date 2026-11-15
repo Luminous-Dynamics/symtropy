@@ -403,3 +403,10 @@ An August 2026 ecosystem multi-model ensemble review argues that model intercomp
 The AFEX programme can test these recommendations by evaluating model response to all factorial perturbations, preserving time-dependent root turnover, exposing common omissions in candidate models, and selecting new root/soil/canopy measurements by their ability to discriminate competing process explanations. The February 2026 causal-ecology perspective emphasizes that causal assumptions remain partly untestable and must be stated and stress-tested; predictive fit alone does not validate a causal claim: https://doi.org/10.1038/s41467-026-69878-z.
 
 The matched AFEX competition should therefore include an **as-published reproduction lane** and a separate preregistered robustness lane. For the 2026 root paper, reproduce the published mixed-effects formulas and term simplification only when the denominator stock data are available; do not label the synthetic summary check a raw-data reproduction.
+
+
+### AFEX nonlinear uncertainty qualification
+
+The AFEX forest branch now adds a synthetic analytic ratio-of-correlated-lognormal oracle for fine-root turnover and inverse lifespan. It consumes the first-order covariance lane (#4652 / PR #4654) and is prepared to compare with the nonlinear Monte Carlo owner (#3973); it does not create a duplicate uncertainty engine. The exact analytic fixture spans positive, zero and negative numerator/denominator dependence, with identical marginal distributions. The forest Rust validator computes the analytic means, standard deviations and 95% intervals and binds the fixture digest; it explicitly records that no Monte Carlo engine was invoked and no empirical AFEX marginals/covariance have been admitted.
+
+See [#5436](https://github.com/Luminous-Dynamics/symtropy/issues/5436), [protocol](AFEX_ROOT_DISTRIBUTION_UQ_V0_1.md), [analytic fixture](cases/afex-root-ratio-distribution-analytic-v0.1.json) and [analytic oracle kernel](validator/src/afex_root_distribution_kernel.rs). This is a synthetic methods comparison, not an AFEX uncertainty estimate or a raw-data reproduction.
