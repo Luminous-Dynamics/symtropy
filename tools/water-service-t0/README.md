@@ -66,4 +66,4 @@ The scenarios include normal service, a 72-hour South African Regulation 4 refer
 The regulatory profile is a reference scenario only. It does not establish WaterLoop compliance or potable water. Each scenario is deterministic inventory/service arithmetic, not hydraulic simulation or controller qualification.
 
 
-The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
+The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](../../research/water-service-engineering/SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
