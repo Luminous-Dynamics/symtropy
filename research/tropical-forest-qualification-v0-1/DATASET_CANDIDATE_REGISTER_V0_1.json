@@ -404,7 +404,33 @@
         ],
         "dendrometer_window": "2018-04 through 2020-01",
         "resolution": "irregular repeated circumference-window readings; preserve actual measurement timestamps and interval duration",
-        "note": "The dendrometer series is not an annual equally spaced time series"
+        "note": "The dendrometer series is not an annual equally spaced time series",
+        "inventory_campaign_details": {
+          "2017": "June-November (extended first census for botanical identification)",
+          "2018": "May",
+          "2019": "May"
+        },
+        "dendrometer_measurement_dates": {
+          "2018": [
+            "April",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November"
+          ],
+          "2019": [
+            "January",
+            "February",
+            "April",
+            "July",
+            "October"
+          ],
+          "2020": [
+            "January"
+          ]
+        }
       },
       "sample": {
         "dendrometer_tree_count_in_record": 1299,
@@ -417,15 +443,17 @@
           "mortality",
           "repeated dendrometer-band circumference-window measurements"
         ],
-        "inventory_threshold_note": "EIDC record describes inventory trees above the stated DBH threshold; confirm exact threshold and exceptions in the protocol files",
-        "recruitment_note": "Retain source-defined recruit threshold and date of first threshold crossing; do not substitute a generic seedling count",
+        "inventory_threshold_note": "Trees with DBH >10 cm; diameter measured at 1.3 m above ground, with measurement height changed where buttresses or deformities prevented measurement at that point.",
+        "recruitment_note": "New individuals reaching 10 cm DBH; retain the source census date of first qualifying inclusion.",
         "experimental_design_candidate": {
           "design": "randomized complete-block fully factorial N/P/cation manipulation",
           "treatment_combinations": 8,
           "block_replicates": 4,
           "expected_plot_assignment_units": 32,
           "verification_status": "DESIGN_METADATA_CANDIDATE_NOT_RECONCILED_TO_RELEASED_PLOT_FILES"
-        }
+        },
+        "dendrometer_measurement_operator": "Circumference-window distance in millimetres measured with a digital caliper; the window distance changes as the trunk grows. Reconstruct the actual instrument reading convention before deriving circumference or DBH increment.",
+        "dendrometer_missingness_note": "Measurements were not collected during rain because the band is humidity-sensitive; uncollected rainy observations must remain missing with reason, never converted to zero."
       },
       "measurement_units": {
         "treatment_assignment_unit": "plot",
@@ -443,7 +471,7 @@
       "admission_status": "RIGHTS_CLEARED_CANDIDATE_METADATA_ONLY_ARCHIVE_NOT_DOWNLOADED",
       "downloaded": false,
       "data_ingested": false,
-      "next_gate": "Retrieve the official EIDC ZIP in a network-enabled environment; verify provider checksum if supplied and compute SHA-256; inspect archive content, plot/block/treatment IDs, repeated tree IDs, census dates, dendrometer dates, units, missingness, fertilization dates/doses, treatment compliance and all file-level licence/attribution metadata.",
+      "next_gate": "Retrieve the official EIDC archive in a network-enabled environment; verify provider checksum if supplied and compute SHA-256; inspect archive content, plot/block/treatment IDs, repeated tree IDs, census dates, all irregular dendrometer dates, units, rainy-season missingness, fertilization dates/doses, treatment compliance and all file-level licence/attribution metadata.",
       "download": {
         "download_page_url": "https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3",
         "direct_zip_url": "https://data-package.ceh.ac.uk/data/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3.zip",
@@ -455,6 +483,10 @@
         "synthetic_fixture": "cases/afex-factorial-design-synthetic-v0.1.json",
         "validator": "validator/src/afex_design_kernel.rs",
         "issue": 5408
+      },
+      "source_record_last_updated": "2026-11-05",
+      "spatial": {
+        "catalogue_resolution": "50 metres as listed in EIDC record; this does not substitute for verified plot polygons or field coordinate support."
       }
     }
   ],
