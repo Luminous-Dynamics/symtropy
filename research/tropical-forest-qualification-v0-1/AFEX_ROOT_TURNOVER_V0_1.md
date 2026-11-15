@@ -46,6 +46,22 @@ Do not let a stock-only score stand in for process fidelity. Report stock error,
 
 The EIDC data record describes fine-root (<2 mm) mass at two depths and repeated ingrowth-core campaigns, with five cores bulked into one composite per plot and depth. Do not count those cores as independent treatment replicates.
 
+## 3.1 Published design and analysis to reproduce later
+
+The 2026 article describes 32 50 m × 50 m plots in four blocks, with eight treatments per block, at least 50 m between plots and at least 200 m between blocks. Nutrient applications were split into three equal wet-season applications per year, beginning May–June 2017. Its reported rates are preserved source-verbatim in the dataset candidate register; the original field protocol must resolve nutrient-element versus fertilizer-product mass before any dose normalization.
+
+The published mixed-effects analysis used:
+- a across-year full-factorial model with P × cations × N × Year and random terms for Year and Block/Plot;
+- within-year factorial models with P × cations × N and Block random effect;
+- backward elimination for fixed terms while retaining random effects;
+- post-hoc pairwise estimated marginal means with Tukey adjustment where interactions remained.
+
+A future empirical reproduction must have two tracks:
+1. **As-published reproduction:** reconstruct the article's exact observation pairing, response definitions, model formula, term simplification and post-hoc contrasts.
+2. **Preregistered robustness analysis:** keep the full factorial terms, report all seven nutrient contrasts, assess block-level/randomization-based sensitivity and document missingness/interference assumptions.
+
+Do not substitute the second analysis for the first and call it a reproduction. The stock data used in the 2026 turnover denominator are request-only according to the article, so the public EIDC productivity record by itself cannot currently reproduce the full root-turnover analysis.
+
 ## 4. Executable v0.1
 
 The synthetic reference uses four cases:
