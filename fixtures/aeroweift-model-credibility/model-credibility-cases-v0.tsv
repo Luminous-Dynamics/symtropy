@@ -27,3 +27,9 @@ pooled-average-hides-tail|pooled-mean|METRIC_OUTSIDE_GATE
 same-aircraft-config-different-payload|payload-shift|NOT_COVERED
 corridor-only-dynamics-failure|corridor-stratum|METRIC_OUTSIDE_GATE
 out-of-domain-case-not-detected|ood-recall|METRIC_OUTSIDE_GATE
+error-point-estimate-passes-upper-bound-fails|upper-confidence-bound|METRIC_OUTSIDE_GATE
+coverage-point-estimate-passes-lower-bound-fails|lower-confidence-bound|METRIC_OUTSIDE_GATE
+interval-method-substitution|interval-method|CONFIDENCE_CONTRACT_MISMATCH
+confidence-level-substitution|confidence-level|CONFIDENCE_CONTRACT_MISMATCH
+inverted-confidence-interval|inverted-interval|INVALID_PACKAGE
+point-estimate-outside-reported-interval|interval-excludes-point|INVALID_PACKAGE
