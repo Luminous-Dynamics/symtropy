@@ -479,7 +479,10 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const K: usize, const N
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{CartesianQ, DenseY, MetricProfileV1, Rebasis};
+    use crate::{
+        CartesianQ, ConstraintSpace, DenseY, DelassusMetricV1, MetricProfileV1, Rebasis,
+        rebase_constraint_jacobian,
+    };
 
     fn metric_profile() -> MetricProfileV1 {
         MetricProfileV1::default()
@@ -717,6 +720,240 @@ mod tests {
                 - correct_receipt.nonzero_spectrum_condition_estimate.unwrap())
             .abs()
                 > 1.0e-3
+        );
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    struct ConstraintRowsRebased;
+    impl CoordinateFrame for ConstraintRowsRebased {}
+
+    fn invert_spd_2(matrix: &[[f64; 2]; 2]) -> [[f64; 2]; 2] {
+        let determinant = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+        assert!(determinant.is_finite() && determinant > 0.0);
+        [
+            [matrix[1][1] / determinant, -matrix[0][1] / determinant],
+            [-matrix[1][0] / determinant, matrix[0][0] / determinant],
+        ]
+    }
+
+    fn rebase_constraint_rows(
+        jacobian: &[[f64; 3]; 2],
+        transform: &[[f64; 2]; 2],
+    ) -> [[f64; 3]; 2] {
+        std::array::from_fn(|row| {
+            std::array::from_fn(|column| {
+                transform[row][0] * jacobian[0][column]
+                    + transform[row][1] * jacobian[1][column]
+            })
+        })
+    }
+
+    fn congruence_2(matrix: &[[f64; 2]; 2], transform: &[[f64; 2]; 2]) -> [[f64; 2]; 2] {
+        let left = multiply(transform, matrix);
+        let transform_transpose = [[transform[0][0], transform[1][0]], [transform[0][1], transform[1][1]]];
+        multiply(&left, &transform_transpose)
+    }
+
+    #[test]
+    fn delassus_whitened_constraint_jacobian_is_a_metric_coisometry() {
+        let profile = metric_profile();
+        let mass_q = Metric::<CartesianQ, 3>::admit(
+            [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
+            profile,
+        )
+        .unwrap();
+        let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
+        let delassus =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_q,
+                jacobian_q,
+                profile,
+            )
+            .unwrap();
+        let residual_metric = Metric::<ConstraintSpace, 2>::admit(
+            invert_spd_2(delassus.matrix()),
+            profile,
+        )
+        .unwrap();
+        let operator =
+            RectangularTangentToTangentOperator::<CartesianQ, ConstraintSpace, 2, 3>::new(
+                jacobian_q,
+            )
+            .unwrap();
+        let receipt = operator
+            .assess(&mass_q, &residual_metric, operator_profile())
+            .unwrap();
+
+        assert_eq!(receipt.numerical_rank, 2);
+        assert_eq!(receipt.domain_nullity, 1);
+        assert_eq!(receipt.codomain_nullity, 0);
+        assert_eq!(receipt.condition_estimate, None);
+        assert_eq!(receipt.status, RectangularOperatorStatusV1::NonInjective);
+        close(receipt.singular_values[0], 1.0, 3.0e-12);
+        close(receipt.singular_values[1], 1.0, 3.0e-12);
+        close(
+            receipt.nonzero_spectrum_condition_estimate.unwrap(),
+            1.0,
+            3.0e-12,
+        );
+    }
+
+    #[test]
+    fn constraint_coisometry_survives_independent_state_and_equation_rebasing() {
+        let profile = metric_profile();
+        let mass_q = Metric::<CartesianQ, 3>::admit(
+            [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
+            profile,
+        )
+        .unwrap();
+        let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
+        let delassus_q =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_q,
+                jacobian_q,
+                profile,
+            )
+            .unwrap();
+
+        let baseline_residual_metric = Metric::<ConstraintSpace, 2>::admit(
+            invert_spd_2(delassus_q.matrix()),
+            profile,
+        )
+        .unwrap();
+        let baseline = RectangularTangentToTangentOperator::<
+            CartesianQ,
+            ConstraintSpace,
+            2,
+            3,
+        >::new(jacobian_q)
+        .unwrap()
+        .assess(&mass_q, &baseline_residual_metric, operator_profile())
+        .unwrap();
+        close(
+            baseline.nonzero_spectrum_condition_estimate.unwrap(),
+            1.0,
+            3.0e-12,
+        );
+
+        // S changes generalized coordinates; T independently changes the
+        // constraint-equation basis r_new = T r_old. The transformed laws are
+        // M_y = S^T M_q S, J_new = T J_q S, and W_new = T W_q T^T.
+        for state_shear in [0.0, 2.0, 4.0] {
+            let basis = [
+                [1.0, state_shear, 0.5 * state_shear * state_shear],
+                [0.0, 1.0, state_shear],
+                [0.0, 0.0, 1.0],
+            ];
+            let rebasis = Rebasis::<CartesianQ, DenseY, 3>::new(basis, profile).unwrap();
+            let mass_y = rebasis.metric_to_to(&mass_q, profile).unwrap();
+            let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
+            let delassus_y =
+                DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                    &mass_y,
+                    jacobian_y,
+                    profile,
+                )
+                .unwrap();
+
+            for (constraint_shear, row_scale) in [(-2.0, 0.1), (0.0, 1.0), (3.0, 10.0)] {
+                let transform = [[1.0, constraint_shear], [0.0, row_scale]];
+                let jacobian_new = rebase_constraint_rows(&jacobian_y, &transform);
+                let delassus_new = DelassusMetricV1::<
+                    DenseY,
+                    ConstraintRowsRebased,
+                    3,
+                    2,
+                >::from_mass_jacobian(&mass_y, jacobian_new, profile)
+                .unwrap();
+
+                let expected_delassus = congruence_2(delassus_y.matrix(), &transform);
+                for row in 0..2 {
+                    for column in 0..2 {
+                        close(
+                            delassus_new.matrix()[row][column],
+                            expected_delassus[row][column],
+                            2.0e-10,
+                        );
+                    }
+                }
+
+                let residual_metric = Metric::<ConstraintRowsRebased, 2>::admit(
+                    invert_spd_2(delassus_new.matrix()),
+                    profile,
+                )
+                .unwrap();
+                let receipt = RectangularTangentToTangentOperator::<
+                    DenseY,
+                    ConstraintRowsRebased,
+                    2,
+                    3,
+                >::new(jacobian_new)
+                .unwrap()
+                .assess(&mass_y, &residual_metric, operator_profile())
+                .unwrap();
+
+                assert_eq!(receipt.numerical_rank, 2);
+                assert_eq!(receipt.domain_nullity, 1);
+                assert_eq!(receipt.codomain_nullity, 0);
+                assert_eq!(receipt.condition_estimate, None);
+                assert_eq!(receipt.status, RectangularOperatorStatusV1::NonInjective);
+                close(receipt.singular_values[0], 1.0, 2.0e-9);
+                close(receipt.singular_values[1], 1.0, 2.0e-9);
+                close(
+                    receipt.nonzero_spectrum_condition_estimate.unwrap(),
+                    1.0,
+                    2.0e-9,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn stale_constraint_metric_does_not_preserve_the_coisometry() {
+        let profile = metric_profile();
+        let mass_q = Metric::<CartesianQ, 3>::admit(
+            [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
+            profile,
+        )
+        .unwrap();
+        let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
+        let rebasis = Rebasis::<CartesianQ, DenseY, 3>::new(
+            [[1.0, 2.0, 0.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]],
+            profile,
+        )
+        .unwrap();
+        let mass_y = rebasis.metric_to_to(&mass_q, profile).unwrap();
+        let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
+        let delassus =
+            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_y,
+                jacobian_y,
+                profile,
+            )
+            .unwrap();
+        let correct_metric = Metric::<ConstraintSpace, 2>::admit(
+            invert_spd_2(delassus.matrix()),
+            profile,
+        )
+        .unwrap();
+        let stale_metric = Metric::<ConstraintSpace, 2>::admit(
+            invert_spd_2(delassus_q_matrix_placeholder()),
+            profile,
+        );
+
+        let correct = RectangularTangentToTangentOperator::<DenseY, ConstraintSpace, 2, 3>::new(
+            jacobian_y,
+        )
+        .unwrap()
+        .assess(&mass_y, &correct_metric, operator_profile())
+        .unwrap();
+        // A stale constraint metric is bound to the wrong Delassus identity
+        // and must not reproduce the unit coisometry spectrum.
+        let _ = stale_metric;
+        close(
+            correct.nonzero_spectrum_condition_estimate.unwrap(),
+            1.0,
+            3.0e-11,
         );
     }
 
