@@ -766,8 +766,7 @@ mod tests {
             NonlinearMixingChartV1::new(0.0).unwrap(),
         )
         .unwrap();
-        let transformed =
-            constraint_kinematics(q_value, velocity, acceleration, mapping).unwrap();
+        let transformed = constraint_kinematics(q_value, velocity, acceleration, mapping).unwrap();
         let g = base_constraint_jet(q_value).unwrap().residual;
         let naive = mat_vec2(mapping.jacobian(g).unwrap(), base.acceleration_residual).unwrap();
         assert!((transformed.acceleration_residual[1] - naive[1]).abs() > 1.0e-3);
@@ -836,16 +835,12 @@ mod tests {
         let mass = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
         let linear_chart = NonlinearMixingChartV1::new(0.0).unwrap();
         let nonlinear_chart = chart();
-        let base_jet = compose_constraint_jet(
-            circle_plane_projection_jet(start).unwrap(),
-            linear_chart,
-        )
-        .unwrap();
-        let nonlinear_jet = compose_constraint_jet(
-            circle_plane_projection_jet(start).unwrap(),
-            nonlinear_chart,
-        )
-        .unwrap();
+        let base_jet =
+            compose_constraint_jet(circle_plane_projection_jet(start).unwrap(), linear_chart)
+                .unwrap();
+        let nonlinear_jet =
+            compose_constraint_jet(circle_plane_projection_jet(start).unwrap(), nonlinear_chart)
+                .unwrap();
         let first_linear = metric_normal_projection_step(mass, base_jet).unwrap();
         let first_nonlinear = metric_normal_projection_step(mass, nonlinear_jet).unwrap();
         assert!(
