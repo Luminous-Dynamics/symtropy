@@ -396,7 +396,13 @@ mod tests{
     fn row(id:&str)->Value{result()["results"].as_array().unwrap().iter().find(|x|x["case_id"]==id).unwrap()["result"].clone()}
     #[test]fn all_eight_identification_cases_match_oracle(){let x=result();assert_eq!(x["case_count"],CASE_COUNT);assert_eq!(x["matched_case_count"],CASE_COUNT);assert_eq!(x["verification_state"],"MatchedFrozenOracle");}
     #[test]fn constrained_estimator_beats_posthoc_clip_on_blind_fixture(){let x=row("CKI-T0-001-noisy-negative-fit");assert_eq!(x["identification_disposition"],"IDENTIFIED_SYNTHETIC");assert_eq!(x["blind_holdout_improvement_vs_clip"],true);assert!(x["clipped_gain_by_group"][0].as_f64().unwrap()>1.0);assert!((x["constrained_gain_by_group"][0].as_f64().unwrap()-0.8).abs()<1e-8);}
-    #[test]fn true_substochastic_kernel_is_not_forced_to_unit_gain(){let x=row("CKI-T0-002-substochastic-preserved");assert!((x["constrained_gain_by_group"][0].as_f64().unwrap()-0.8).abs()<1e-8);}
+    #[test]fn true_substochastic_kernel_is_not_forced_to_unit_gain(){
+        let x=row("CKI-T0-002-substochastic-preserved");
+        assert!((x["constrained_gain_by_group"][0].as_f64().unwrap()-0.8).abs()<1e-8);
+        assert_eq!(x["total_training_weight"],2.25);
+        assert_eq!(x["total_holdout_weight"],1.25);
+        assert!(x["constraint_satisfied"].as_bool().unwrap());
+    }
     #[test]fn rank_deficient_excitation_refuses_unique_identification(){assert_eq!(row("CKI-T0-003-rank-deficient")["identification_disposition"],"UNIDENTIFIABLE");}
     #[test]fn ill_conditioned_full_rank_design_is_not_reported_as_robust(){assert_eq!(row("CKI-T0-004-ill-conditioned")["identification_disposition"],"ILL_CONDITIONED");}
     #[test]fn static_zero_lag_kernel_is_recovered(){let x=row("CKI-T0-005-static-zero-lag");assert_eq!(x["identification_disposition"],"IDENTIFIED_SYNTHETIC");assert!(x["constrained_coefficients"].as_array().unwrap().iter().all(|v|v.as_f64().unwrap()>=0.0));}
