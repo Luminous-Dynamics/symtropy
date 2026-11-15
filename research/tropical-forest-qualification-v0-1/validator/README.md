@@ -57,13 +57,17 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-model-set-adequacy-development-v0.1.json
 
+# Process-resolved two-pool forest trajectory and compensating-flux diagnostic
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-process-trajectory-synthetic-v0.1.json
+
 # Public forest decision-value development corpus (uses synthetic arithmetic only)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-decision-value-development-v0.1.json
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL`, `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`, `PASS_SYNTHETIC_SPATIAL_LOCALIZATION` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL`, `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`, `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`, `PASS_SYNTHETIC_PROCESS_TRAJECTORY` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -237,3 +241,12 @@ The `forest_corpus_receipts` module adds mutation tests for interval-oracle corr
 The spatial-localization corpus now includes an optional `nearest_neighbor_count`. When present, the validator limits the Gaussian diagnostic to the nearest k calibration records and records the selected physical neighbourhood radius. This is a diagnostic control; it must not be described as implementing the statistical guarantees of spconform. The new frozen fixture demonstrates a pooled radius of 50 versus a k=12 local diagnostic radius of 0.5 over an 11 m neighbourhood.
 
 The package now has 173 authored Rust test functions: 144 original core tests, 7 block-coverage kernel tests, 15 spatial localization/Moran/k-neighbour tests, and 7 CLI receipt-adapter tests. They remain authored but unexecuted until exact-head Rust verification.
+
+
+## Process-resolved forest trajectory kernel
+
+The exported `trajectory_budget_kernel` module evaluates a bounded two-pool reference (live biomass and deadwood) with distinct growth, recruitment, mortality transfer, live export, decomposition and deadwood export. It checks increasing period identities, within-trace stock continuity, non-negative declared fluxes, live/deadwood/total budget residuals, every census-boundary stock, and each primitive flux independently.
+
+The four-case synthetic corpus returns `PASS_SYNTHETIC_PROCESS_TRAJECTORY` when the kernel detects: a full process match; identical stock trajectories with compensating growth/mortality/decomposition errors; a valid budget with a wrong stock trajectory; and a pool budget that does not close. In the compensating case, stock error is exactly zero while the largest primitive-flow error is 20 synthetic biomass units. Nine Rust unit tests are authored for this kernel, including mutation, negative-flux, reordered-period, discontinuity and initial-census mismatch controls. They remain unexecuted until exact-head Rust verification.
+
+Run the CLI command shown above. The receipt binds the exact fixture SHA-256 and reports `ecological_validation: NOT_ESTABLISHED`. This is an arithmetic benchmark oracle, not a process model or real-forest validation. See [FOREST_PROCESS_TRAJECTORY_V0_1.md](../FOREST_PROCESS_TRAJECTORY_V0_1.md) and [#5340](https://github.com/Luminous-Dynamics/symtropy/issues/5340).
