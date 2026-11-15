@@ -172,6 +172,25 @@
         "leaf mass area (LMA)"
       ],
       "meaning": "catalogue summary describes leaf traits; direct herbivory rate not established without archive schema"
+    },
+    {
+      "id": "LITTERFALL_ANTS",
+      "doi": "10.5285/60e77fd4-7a24-4545-8d90-08e9dfcbd16a",
+      "campaigns": [
+        "2018-10",
+        "2019-09"
+      ],
+      "sample_support": "five 1×1 m subplots per plot; 20 subplots per treatment and 160 total",
+      "unit": "taxon identity and abundance",
+      "meaning": "biotic community response; not a nutrient flux"
+    },
+    {
+      "id": "SEEDLING_LEAF_HERBIVORY",
+      "doi": "10.5285/2b8029ff-ddf5-47b2-9231-5fa0cbb6cd41",
+      "campaign": "bimonthly; catalogue extent 2019-04 to 2020-01",
+      "sample_support": "ten marked leaves per eligible seedling; repeated within subplot/plot",
+      "unit": "leaf loss percent and qualitative gall/pathogen/trail indicators",
+      "meaning": "seedling biotic stress response; not growth or recruitment"
     }
   ],
   "hypotheses": [
@@ -309,14 +328,18 @@
         "species-level/root community composition",
         "soil microbial potential BG/NAG/PHOS enzyme activities by 0-5 and 5-10 cm",
         "fine-litterfall production, nutrient composition and trap-level repeated collections",
-        "leaf area/LMA on August litterfall samples"
+        "leaf area/LMA on August litterfall samples",
+        "litterfall ant genus/abundance in 1 m² subplots across 2018-10 and 2019-09",
+        "repeated seedling leaf damage, gall, pathogen, trail-herbivory and mortality measurements"
       ],
       "alternatives": [
         "mis-specified observation operators",
         "treatment non-compliance",
         "shared data processing or allometry",
         "microbial C/N/P acquisition and organic matter processing",
-        "litter production/composition feedback to soil nutrient return"
+        "litter production/composition feedback to soil nutrient return",
+        "biotic community shifts affecting litter processing",
+        "seedling herbivory and pathogen stress as alternative drivers of regeneration outcomes"
       ],
       "causal_status": "MODEL_SET_ADEQUACY_CHALLENGE_NOT_A_SINGLE_PRESELECTED_MECHANISM"
     }
@@ -331,6 +354,8 @@
     "The 2018 traits are post-treatment observations and may precede year-two turnover; treatment randomization does not randomize mediator levels.",
     "A treatment effect on a mediator and a later mediator-outcome association do not establish causal mediation.",
     "A 0-10 cm trait and a 0-30 cm turnover target are different estimands; request depth-resolved stock data before testing a depth-matched response.",
-    "The fine-root standing-stock data used in the 2026 turnover paper are available from the corresponding author on reasonable request; public EIDC productivity files alone do not reproduce turnover."
+    "The fine-root standing-stock data used in the 2026 turnover paper are available from the corresponding author on reasonable request; public EIDC productivity files alone do not reproduce turnover.",
+    "Ant and seedling-leaf observations are nested within plot; keep 1 m² ant subplots, individual seedlings, marked leaves and repeated campaigns separate from plot treatment replication.",
+    "Reconcile AFEX child-record site descriptions (approximately 80 km versus 100 km north of Manaus) and plot identity before cross-stream spatial joins."
   ]
 }
