@@ -152,6 +152,7 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     let physical_mass=mass(&physical,dt,n_time);
     let physical_tail=(mass(&physical,dt,physical[0].len())-physical_mass).max(0.0);
     if !physical_mass.is_finite()||!physical_tail.is_finite(){return Ok(base("INVALID_INPUT","PHYSICAL_MASS_INTEGRAL_NONFINITE"));}
+    let all_outlets=bool_value(case,"all_outlets_observed")?;
     let sensor_state=text(case,"sensor_response_state")?;
     let mut sensor:Option<Matrix>=None;
     let mut calibrated_response:Option<Matrix>=None;
@@ -173,18 +174,19 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     }else if sensor_state!="uncalibrated"{
         return Ok(base("REJECTED_CONTRACT","UNKNOWN_SENSOR_RESPONSE_STATE"));
     }
-    let sensor_mass=sensor.as_ref().map(|x|mass(x,dt,n_time));
-    let sensor_tail=sensor.as_ref().map(|x|(mass(x,dt,x[0].len())-mass(x,dt,n_time)).max(0.0));
+    let sensor_mass=sensor.as_ref().filter(|_|all_outlets).map(|x|mass(x,dt,n_time));
+    let sensor_tail=sensor.as_ref().filter(|_|all_outlets).map(|x|(mass(x,dt,x[0].len())-mass(x,dt,n_time)).max(0.0));
     if sensor_mass.is_some_and(|x|!x.is_finite())||sensor_tail.is_some_and(|x|!x.is_finite()){
         return Ok(base("INVALID_INPUT","SENSOR_MASS_INTEGRAL_NONFINITE"));
     }
     let sigma=number(case,"mass_residual_standard_uncertainty")?;
     let k=number(case,"closure_sigma_limit")?;
     if sigma<=0.0||k<=0.0{return Ok(base("INVALID_INPUT","MASS_UNCERTAINTY_OR_SIGMA_LIMIT_NOT_POSITIVE"));}
-    let residual=sensor_mass.map(|observed_mass|input_mass-observed_mass-inventory_mass);
+    let residual=if all_outlets&&inventory_issue.is_none(){
+        sensor_mass.map(|measured_mass|input_mass-measured_mass-inventory_mass)
+    }else{None};
     if residual.is_some_and(|value|!value.is_finite()){return Ok(base("INVALID_INPUT","MASS_RESIDUAL_NONFINITE"));}
     let tail_tolerance=1.0e-9*input_mass.abs().max(f64::MIN_POSITIVE);
-    let all_outlets=bool_value(case,"all_outlets_observed")?;
     let temporal=text(case,"temporal_boundary_state")?;
     let kernel_tail=text(case,"kernel_support_state")?;
     let domain=text(case,"domain_state")?;
@@ -391,7 +393,12 @@ mod tests{
     #[test]fn negative_kernel_coefficients_are_refused(){assert_eq!(row("DK-T0-010-negative-kernel-coefficient")["operator_disposition"],"INVALID_KERNEL");}
     #[test]fn same_integrated_gain_can_have_distinguishable_transient_responses(){let x=row("DK-T0-011-same_steady_gain_different_delay");assert_eq!(x["model_discrimination_state"],"SEPARATED");assert!(x["competing_model_separation"].as_f64().unwrap()>1.0);}
     #[test]fn inadequate_sampling_resolution_is_explicit(){assert_eq!(row("DK-T0-012-temporal-resolution-inadequate")["operator_disposition"],"TEMPORAL_RESOLUTION_INADEQUATE");}
-    #[test]fn incomplete_outlet_observation_is_not_a_complete_operator(){assert_eq!(row("DK-T0-013-partial-outlet-boundary")["operator_disposition"],"PARTIAL_OUTLET_BOUNDARY");}
+    #[test]fn incomplete_outlet_observation_is_not_a_complete_operator(){
+        let x=row("DK-T0-013-partial-outlet-boundary");
+        assert_eq!(x["operator_disposition"],"PARTIAL_OUTLET_BOUNDARY");
+        assert!(x["sensor_observed_outlet_mass"].is_null());
+        assert!(x["signed_mass_residual"].is_null());
+    }
     #[test]fn kernel_area_above_one_is_rejected(){let mut x=load("input");x["cases"][0]["inputs"]["kernel"][0][0][0]=json!(1.2);assert_eq!(compute(&x["cases"][0]["inputs"],0.1).unwrap()["operator_disposition"],"INVALID_KERNEL");}
     #[test]fn positive_mass_rescaling_preserves_kernel_disposition(){
         let base=row("DK-T0-001-static-zero-delay-limit");
