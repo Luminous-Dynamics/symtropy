@@ -620,10 +620,10 @@ pub fn verify(
 
         if receipt.stage == Stage::ConflictScreening {
             for edge in &receipt.parents {
-                if let ParentRole::TrafficOccupancy(class) = edge.role {
-                    if !required.contains(&class) {
-                        return Err(VerificationError::ProfileClassMismatch);
-                    }
+                if let ParentRole::TrafficOccupancy(class) = edge.role
+                    && !required.contains(&class)
+                {
+                    return Err(VerificationError::ProfileClassMismatch);
                 }
             }
             for class in &required {
