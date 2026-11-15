@@ -1,0 +1,46 @@
+name: lunar-seed-dispatch-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/lunar-seed-dispatch-reference.yml"
+      - "tools/lunar-seed-dispatch-reference/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/lunar-seed-dispatch-reference.yml"
+      - "tools/lunar-seed-dispatch-reference/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: reserve-aware lunar seed-base dispatch reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/lunar-seed-dispatch-reference/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/lunar-seed-dispatch-reference/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/lunar-seed-dispatch-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen dispatch case
+        run: |
+          cargo run --manifest-path tools/lunar-seed-dispatch-reference/Cargo.toml --release -- \
+            --input tools/lunar-seed-dispatch-reference/fixtures/synthetic-lunar-seed-base-reserve-v0-1.input \
+            | tee lunar-seed-dispatch-report.json
+          grep -q '"evidence_class": "synthetic"' lunar-seed-dispatch-report.json
