@@ -314,9 +314,7 @@ impl FaultCampaignManifest {
         }
         check_identifier(&mut errors, "campaign.campaign_id", &self.campaign_id);
         if self.base_scenario_id != scenario.scenario_id {
-            errors.push(
-                "campaign.base_scenario_id: does not match the supplied scenario".into(),
-            );
+            errors.push("campaign.base_scenario_id: does not match the supplied scenario".into());
         }
         if self.base_scenario_schema_version != scenario.schema_version {
             errors.push(
@@ -326,8 +324,7 @@ impl FaultCampaignManifest {
         }
         if self.base_scenario_source_commit != scenario.digests.source_commit {
             errors.push(
-                "campaign.base_scenario_source_commit: does not match the supplied scenario"
-                    .into(),
+                "campaign.base_scenario_source_commit: does not match the supplied scenario".into(),
             );
         }
         check_hex(
@@ -361,7 +358,9 @@ impl FaultCampaignManifest {
         check_unique(
             &mut errors,
             "campaign.episodes.episode_id",
-            self.episodes.iter().map(|episode| episode.episode_id.as_str()),
+            self.episodes
+                .iter()
+                .map(|episode| episode.episode_id.as_str()),
         );
         check_unique(
             &mut errors,
@@ -385,9 +384,7 @@ impl FaultCampaignManifest {
                 &episode.injection.fault_id,
             );
             if !seen_kinds.insert(episode.injection.kind) {
-                errors.push(format!(
-                    "{prefix}.injection.kind: duplicate fault family"
-                ));
+                errors.push(format!("{prefix}.injection.kind: duplicate fault family"));
             }
             if let Some(segment_id) = &episode.injection.at_segment_id
                 && !scenario
@@ -432,9 +429,9 @@ fn expected_terminal_state(kind: FaultKind) -> ExpectedTerminalState {
         FaultKind::WrongTote | FaultKind::OverMass | FaultKind::ExpiredGrant => {
             ExpectedTerminalState::Rejected
         }
-        FaultKind::StaleTemperature
-        | FaultKind::BlockedTransferGate
-        | FaultKind::DamagedSeal => ExpectedTerminalState::SafeHold,
+        FaultKind::StaleTemperature | FaultKind::BlockedTransferGate | FaultKind::DamagedSeal => {
+            ExpectedTerminalState::SafeHold
+        }
         FaultKind::DuplicateHandoff
         | FaultKind::MissingReceiverAcknowledgement
         | FaultKind::PowerInterruption
@@ -1200,17 +1197,13 @@ mod tests {
         );
     }
 
-    const CAMPAIGN_FIXTURE: &str =
-        include_str!("../fixtures/ten-fault-campaign.json");
+    const CAMPAIGN_FIXTURE: &str = include_str!("../fixtures/ten-fault-campaign.json");
 
     fn valid_campaign() -> FaultCampaignManifest {
         serde_json::from_str(CAMPAIGN_FIXTURE).expect("campaign fixture must deserialize")
     }
 
-    fn assert_campaign_error(
-        result: Result<(), Vec<String>>,
-        expected: &str,
-    ) {
+    fn assert_campaign_error(result: Result<(), Vec<String>>, expected: &str) {
         let errors = result.expect_err("expected campaign validation to fail");
         assert!(
             errors.iter().any(|error| error.contains(expected)),
@@ -1254,10 +1247,7 @@ mod tests {
         let mut campaign = valid_campaign();
         campaign.episodes[0].expected_terminal_state =
             ExpectedTerminalState::ReconciliationRequired;
-        assert_campaign_error(
-            campaign.validate_against(&scenario),
-            "is required for",
-        );
+        assert_campaign_error(campaign.validate_against(&scenario), "is required for");
     }
 
     #[test]
@@ -1276,10 +1266,7 @@ mod tests {
         let scenario = valid_manifest();
         let mut campaign = valid_campaign();
         campaign.episodes[0].injection.at_segment_id = Some("missing-segment".into());
-        assert_campaign_error(
-            campaign.validate_against(&scenario),
-            "undeclared segment",
-        );
+        assert_campaign_error(campaign.validate_against(&scenario), "undeclared segment");
     }
 
     #[test]
