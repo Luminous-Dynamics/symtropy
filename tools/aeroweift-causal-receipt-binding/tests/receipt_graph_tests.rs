@@ -606,7 +606,6 @@ fn cycle_is_detected_even_when_causal_timestamps_tie() {
     assert_eq!(verify_graph(&receipts), Err(VerificationError::Cycle));
 }
 
-
 #[test]
 fn surveillance_receipt_cannot_be_relabelled_as_another_traffic_class() {
     let mut receipts = graph();
