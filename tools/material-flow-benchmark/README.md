@@ -57,7 +57,7 @@ Observed nominal outputs: package centre `[-0.0024414, 0.0455627, -0.0003204] m`
 
 ### Contact-depth refinement record
 
-The first 120 Hz L1 baseline measured 10.26 mm maximum contact penetration. Refining the same four-second episode to 240 Hz reduced it to 5.023 mm (approximately 51% lower) while preserving replay and placement acceptance. That narrowly missed the stricter 5 mm engineering target, so the current source advances to 480 Hz / 1,920 ticks and changes the hard L1 acceptance gate to 5 mm. Its exact-head result remains pending until the dedicated workflow completes. Do not substitute the earlier 40 mm permissive demonstrator threshold for this tighter gate.
+The first 120 Hz L1 baseline measured 10.26 mm maximum contact penetration. Refining the same four-second episode to 240 Hz reduced it to 5.023 mm; the 480 Hz / 1,920-tick episode then reduced it to **2.307 mm** and passed the hard 5 mm L1 gate. The 480 Hz exact-head result passed [workflow 43769459756](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43769459756), source `2643fc9df9c22dfa760179c1deab0cf2e7f16a0e`, with the same-host replay, placement and custody gates intact. Do not substitute the earlier 40 mm permissive demonstrator threshold for the current 5 mm gate.
 
 ## Tier-B free-fall convergence check
 
