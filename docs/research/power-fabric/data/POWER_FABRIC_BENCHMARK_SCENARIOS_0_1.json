@@ -1,7 +1,7 @@
 {
   "corpus_id": "power-fabric-benchmark-corpus",
   "corpus_version": "0.1.0",
-  "snapshot_date": "2026-11-14",
+  "snapshot_date": "2026-11-15",
   "source_policy": "Synthetic contract fixtures only in this initial registry. Concrete standards source artifacts must be rights-cleared and independently hashed before adapter scoring.",
   "cases": [
     {
@@ -171,6 +171,90 @@
       "input": "all role projections",
       "expected": "no_safe_to_touch_and_not_approval_notices",
       "oracle": "RoleSafetyNoticeCoverage"
+    },
+    {
+      "id": "BUILD-001",
+      "family": "build_receipt",
+      "input": "identical validated IR, mapping profile, standard pins, toolchain, compiler source, build configuration and dependency lock",
+      "expected": "identical build-lock digest",
+      "oracle": "RepeatBuildLockDigestEquality"
+    },
+    {
+      "id": "BUILD-002",
+      "family": "build_receipt",
+      "input": "change compiler source-tree digest only",
+      "expected": "build-lock digest changes",
+      "oracle": "CompilerSourceDigestMutation"
+    },
+    {
+      "id": "BUILD-003",
+      "family": "build_receipt",
+      "input": "change build-configuration digest only",
+      "expected": "build-lock digest changes",
+      "oracle": "BuildConfigurationDigestMutation"
+    },
+    {
+      "id": "BUILD-004",
+      "family": "build_receipt",
+      "input": "change Cargo.lock digest only",
+      "expected": "build-lock digest changes",
+      "oracle": "DependencyLockDigestMutation"
+    },
+    {
+      "id": "BUILD-005",
+      "family": "build_receipt",
+      "input": "change standard correction label but retain edition/amendment",
+      "expected": "build-lock digest changes without standard edition mutation",
+      "oracle": "StandardCorrectionPinMutation"
+    },
+    {
+      "id": "BUILD-006",
+      "family": "build_receipt",
+      "input": "change one module hardware/configuration identity only",
+      "expected": "mapping profile, ServiceGraph payload and build-lock digests change; source IR digest remains equal",
+      "oracle": "ModuleConfigurationDigestMutation"
+    },
+    {
+      "id": "BUILD-007",
+      "family": "build_receipt",
+      "input": "verify canonical receipt bytes then append whitespace or mutate a field",
+      "expected": "canonical bytes pass; modified/noncanonical bytes rejected",
+      "oracle": "CanonicalBuildReceiptByteVerification"
+    },
+    {
+      "id": "DERIVED-001",
+      "family": "derived_artifact",
+      "input": "verify exact rendered artifact bytes against DerivedArtifactReceipt",
+      "expected": "output digest matches",
+      "oracle": "DerivedArtifactOutputDigestMatch"
+    },
+    {
+      "id": "DERIVED-002",
+      "family": "derived_artifact",
+      "input": "change one rendered output byte",
+      "expected": "verification rejects output",
+      "oracle": "DerivedArtifactOutputDigestMismatch"
+    },
+    {
+      "id": "DERIVED-003",
+      "family": "derived_artifact",
+      "input": "change source build-lock digest while output bytes remain the same",
+      "expected": "derived-artifact receipt digest changes",
+      "oracle": "DerivedArtifactBuildLockBinding"
+    },
+    {
+      "id": "DERIVED-004",
+      "family": "derived_artifact",
+      "input": "change renderer identity/version while output bytes remain the same",
+      "expected": "derived-artifact receipt metadata and digest change",
+      "oracle": "DerivedArtifactGeneratorVersionBinding"
+    },
+    {
+      "id": "DERIVED-005",
+      "family": "derived_artifact",
+      "input": "change upstream graph/module/standard dependency after artifact generation",
+      "expected": "dependent artifact becomes stale pending regeneration",
+      "oracle": "DerivedArtifactDependencyInvalidation"
     }
   ],
   "performance_sizes": [
@@ -187,7 +271,10 @@
     "incremental_vs_full_semantic_equivalence_rate": 1,
     "human_non_hazardous_task_accuracy_target": 0.95,
     "critical_false_safe_interpretations_target": 0,
-    "comparative_integration_effort_reduction_hypothesis": 0.3
+    "comparative_integration_effort_reduction_hypothesis": 0.3,
+    "build_lock_reproducibility_rate": 1,
+    "derived_output_digest_match_rate": 1,
+    "derived_artifact_invalidation_recall": 1
   },
   "measurement_status": "scenario_registry_authored_not_executed"
 }

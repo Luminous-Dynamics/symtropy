@@ -1,7 +1,7 @@
 # Power Fabric reproducible benchmark protocol v0.1
 
 **Status:** benchmark contract and frozen scenario registry; no comparative performance or human-subject outcome claimed  
-**Date:** 2026-11-14  
+**Date:** 2026-11-15  
 **Owner issue:** https://github.com/Luminous-Dynamics/symtropy/issues/5241  
 **Parent:** standards adapter PR #5229
 
@@ -12,17 +12,26 @@ The benchmark must start from current products and standards, not an invented st
 | Ecosystem | Existing capability to acknowledge | Power Fabric comparison hypothesis |
 |---|---|---|
 | ETAP 2026 | Physics-based digital twin for design/operation, real-time feeder visualization, switching optimization, equipment library at industrial scale, protection/arc-flash and power-system studies | Do not replace ETAP solvers. Measure provenance and lifecycle integration of its outputs, identity preservation, revision-impact coverage, and portable human projections |
-| SPAN | Circuit-level monitoring/control, backup prioritization, local authenticated on-premise management without cloud dependence | Do not claim local control or backup priorities as novel. Test independent as-built graph, cross-vendor composition, evidence maturity, and configuration drift outside one panel ecosystem |
+| SPAN | Circuit-level monitoring/control, backup prioritization, and an authenticated local-only web app for live power, circuit relay toggles, priority changes and a grid-status override | Do not claim local control or backup priorities as novel. Test independent as-built graph, cross-vendor composition, evidence maturity, and configuration drift beyond one panel ecosystem |
+| EPLAN Electric P8 2026 | Electrical engineering, enclosure design, ERP/PLM/PDM links, bidirectional neutral exchange and downstream lifecycle data | Do not claim lifecycle engineering or PLM integration as novel. Test evidence lineage and change impact across heterogenous products and systems |
+| Schneider EcoStruxure Power | Digital power-distribution architectures and connected building-power solutions | Treat open data/connectivity and digital building architecture as incumbents; compete on evidence quality and lifecycle replay, not dashboards |
 | OpenFMB | Peer-to-peer interoperability reference architecture using CIM and IEC 61850-derived semantic models | Do not claim to invent semantic peer-to-peer interoperability. Measure loss-aware mapping receipts, lifecycle revision provenance, cross-profile evidence, and human comprehension |
 | NIST test-programme model | Standards-based interoperability profiles, test programmes, certification and stakeholder processes | Build reproducible, narrowly scoped profiles and public negative controls; seek independent test-authority review |
 
-Sources checked 2026-11-14:
-- ETAP 2026: https://etap.com/software/whats-new
-- SPAN Home On-Premise: https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
+Sources checked 2026-11-15:
+- ETAP 2026 product features and 23,000+ model library: https://etap.com/product-releases/etap-2026-release
+- ETAP release list showing 2026.0.1N on 2026-11-11: https://etap.com/products/whats-new
+- SPAN Home On-Premise (official page updated 2026-11-13): https://support.span.io/hc/en-us/articles/38584072525207-SPAN-Home-On-Premise
+- EPLAN Electric P8 2026 performance description (status 08/2025): https://www.eplan.com/content/dam/eplan/corporate/performance-descriptions/2026/en/performance-description-eplan-electric-p8.pdf
 - OpenFMB: https://openfmb.openenergysolutions.com/docs/openfmb/intro/
-- NIST Smart Grid Testing and Certification: https://www.nist.gov/programs-projects/smart-grid-testing-and-certification
+- Schneider EcoStruxure Power: https://www.se.com/za/en/work/campaign/innovation/power-distribution/
+- NIST Smart Grid Testing and Certification project (status Completed, updated 2025-03-26): https://www.nist.gov/programs-projects/smart-grid-testing-and-certification
 
-The likely differentiation is not a better panel, another digital twin, or another universal electrical ontology. It is a **verifiable lifecycle compilation layer** joining existing domain models, equipment identities, evidence, configuration changes and role-specific views.
+The likely differentiation is not a better panel, another digital twin, 3D electrical design, PLM integration, a monitoring dashboard or another universal electrical ontology. It is a **verifiable lifecycle compilation layer** joining existing domain models, exact module identities, evidence/authority boundaries, configuration changes and role-specific outputs.
+
+NIST's Smart Grid Testing and Certification project page reports Project Status Completed (updated 2025-03-26). Its published approach remains a useful method reference for interoperability profiles, test programmes, procurement language and certification authorities, but this benchmark must not describe that particular NIST project as currently active. The IEC Webstore labels IEC 60364-8-82:2022+AMD1:2026 CSV CORRECTED VERSION 2026-11 while retaining publication edition 1.1 and publication date 2026-04-16; correction metadata is a separate build-lock input. South Africa's ECA(SA) announces SANS 10142-1:2026 Ed 3.03 availability.
+
+Sources: https://webstore.iec.ch/en/publication/113148 ; https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/.
 
 ## 2. Benchmark families and acceptance
 
@@ -86,6 +95,27 @@ Do not claim byte-identical canonical output until canonical serialization and c
 Compare matched tasks with manual/vendor-specific integration workflows. Measure engineer hours, adapter creation/maintenance, unresolved semantics, manual reconciliation, stale drawing discovery, rework, and change propagation time.
 
 Candidate hypothesis: reduce measured integration/reconciliation effort by 30% without increasing critical error rate. Preregister before observing results; this is a target to test, not an achieved outcome.
+
+
+
+### G. Reproducible build receipts
+For each frozen IR/graph fixture:
+- Pin compiler source digest, compiler version, toolchain, build configuration digest, Cargo.lock digest, mapping profile, module hardware/configuration identities, standard profile editions/amendments/correction labels and upstream inputs.
+- Rebuild the same graph twice under identical inputs and compare source/profile/graph/build-lock digests.
+- Mutate exactly one input at a time (compiler source, build configuration, dependency lock, standard correction, module identity) and assert the affected digest changes while unrelated digests remain stable.
+- Verify the exact serialized receipt bytes and reject altered fields, truncation, appended data or noncanonical serialization.
+
+Targets: 100% reproducibility on frozen inputs; 100% detection of each declared single-input mutation; zero silently missing locked inputs. These targets establish software build reproducibility, not equipment authenticity or safety.
+
+### H. Derived artifact integrity
+For every view, drawing, circuit directory, emergency map, dossier and interchange export:
+- Bind artifact identity/revision/kind/format, generator ID/version, source build-lock digest, source graph revision/payload digest and output byte digest.
+- Verify exact output bytes; altered bytes must be rejected.
+- Change build lock, graph revision, module identity, standard edition/correction or generator version independently and check that the derived receipt changes.
+- Connect receipt dependencies to the change-impact DAG; a mutation marks all dependent outputs stale until regenerated.
+
+Targets: 100% derived-output digest match for unmodified bytes; 100% stale marking recall across the frozen dependency oracle; zero stale output retained as current.
+
 
 ## 3. Frozen corpus discipline
 
