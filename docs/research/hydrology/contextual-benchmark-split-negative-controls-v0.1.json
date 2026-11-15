@@ -1,0 +1,91 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "HYDRO-CONTEXTUAL-SPLIT-NEGATIVE-CONTROLS-001",
+  "claim_ceiling": "Specification-only adversarial vectors; not yet executed by a validator.",
+  "cases": [
+    {
+      "case_id": "HCB-NC-01",
+      "attack": "future_test_climatology",
+      "mutation": "The interannual daily mean/median baseline is fitted using observations from the final test period.",
+      "expected_disposition": "REJECT",
+      "reason": "B0 must be fitted using training data only; test targets are not available to baseline construction."
+    },
+    {
+      "case_id": "HCB-NC-02",
+      "attack": "future_data_normalization",
+      "mutation": "A normalization or imputation transform is fitted using the combined train, validation and test records.",
+      "expected_disposition": "REJECT",
+      "reason": "Preprocessing parameters leak future distribution information into model fitting."
+    },
+    {
+      "case_id": "HCB-NC-03",
+      "attack": "event_window_split",
+      "mutation": "Different windows from the same named storm/flood event are assigned to both training and test.",
+      "expected_disposition": "REJECT",
+      "reason": "Event-level dependence makes the test non-independent."
+    },
+    {
+      "case_id": "HCB-NC-04",
+      "attack": "nested_catchment_leakage",
+      "mutation": "An upstream catchment is in training and its routed downstream nested catchment is in test without an explicit transfer design.",
+      "expected_disposition": "REJECT_OR_DOWNGRADE",
+      "reason": "Shared forcing and routed signals can leak information across nominally distinct spatial units."
+    },
+    {
+      "case_id": "HCB-NC-05",
+      "attack": "heldout_peak_calibration",
+      "mutation": "Calibration parameters or objective weights are selected after inspecting held-out flood peaks.",
+      "expected_disposition": "REJECT",
+      "reason": "The final evaluation target has influenced model selection."
+    },
+    {
+      "case_id": "HCB-NC-06",
+      "attack": "final_test_model_selection",
+      "mutation": "The best model among a tournament is chosen using the final test score and that same score is reported as an unbiased test result.",
+      "expected_disposition": "REJECT",
+      "reason": "Repeated selection on the final test set invalidates its role as an independent evaluation."
+    },
+    {
+      "case_id": "HCB-NC-07",
+      "attack": "missing_flow_as_zero",
+      "mutation": "A missing gauge period is silently filled with zero discharge without a source-backed missingness rule.",
+      "expected_disposition": "REJECT",
+      "reason": "Unknown observation is not zero water flow."
+    },
+    {
+      "case_id": "HCB-NC-08",
+      "attack": "unobserved_operation_assumed_natural",
+      "mutation": "An unknown dam release, abstraction or diversion is silently treated as natural catchment runoff.",
+      "expected_disposition": "ABSTAIN_OR_DOWNGRADE",
+      "reason": "Unobserved anthropogenic boundary conditions undermine causal and physical interpretation."
+    },
+    {
+      "case_id": "HCB-NC-09",
+      "attack": "clock_calendar_mismatch",
+      "mutation": "Forcing and observed flow with incompatible time zones, calendar conventions or aggregation boundaries are compared after implicit resampling.",
+      "expected_disposition": "REJECT",
+      "reason": "Temporal misalignment can create apparent skill or incorrect event timing."
+    },
+    {
+      "case_id": "HCB-NC-10",
+      "attack": "score_gain_with_mass_creation",
+      "mutation": "A candidate scores better after its numerical configuration violates the water-balance invariant.",
+      "expected_disposition": "REJECT_PHYSICAL_GATE",
+      "reason": "Predictive performance cannot override physical invalidity."
+    },
+    {
+      "case_id": "HCB-NC-11",
+      "attack": "invalid_ensemble_members_hidden",
+      "mutation": "Numerically unstable or non-conservative ensemble members are silently omitted from the reported prior distribution.",
+      "expected_disposition": "REJECT_OR_REPORT_INVALID",
+      "reason": "Invalid members and exclusion reasons must remain visible; selection cannot manufacture a favorable benchmark."
+    },
+    {
+      "case_id": "HCB-NC-12",
+      "attack": "synthetic_to_field_claim_promotion",
+      "mutation": "A synthetic-only benchmark score is presented as measured utility or field performance.",
+      "expected_disposition": "REJECT_CLAIM_PROMOTION",
+      "reason": "Synthetic evidence cannot silently promote to physical test or field observation."
+    }
+  ]
+}
