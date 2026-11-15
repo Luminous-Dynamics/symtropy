@@ -246,7 +246,10 @@ fn validate_problem_binding(binding: &ProblemBindingV1) -> Result<(), Compositio
     for (name, value) in [
         ("problem_id", binding.problem_id.as_str()),
         ("units_profile_id", binding.units_profile_id.as_str()),
-        ("integration_method_id", binding.integration_method_id.as_str()),
+        (
+            "integration_method_id",
+            binding.integration_method_id.as_str(),
+        ),
         ("solver_profile_id", binding.solver_profile_id.as_str()),
     ] {
         if !valid_identifier(value) {
@@ -254,11 +257,23 @@ fn validate_problem_binding(binding: &ProblemBindingV1) -> Result<(), Compositio
         }
     }
     for (name, value) in [
-        ("model_revision_sha256", binding.model_revision_sha256.as_str()),
+        (
+            "model_revision_sha256",
+            binding.model_revision_sha256.as_str(),
+        ),
         ("fixture_sha256", binding.fixture_sha256.as_str()),
-        ("initial_state_sha256", binding.initial_state_sha256.as_str()),
-        ("constraint_model_sha256", binding.constraint_model_sha256.as_str()),
-        ("observable_map_sha256", binding.observable_map_sha256.as_str()),
+        (
+            "initial_state_sha256",
+            binding.initial_state_sha256.as_str(),
+        ),
+        (
+            "constraint_model_sha256",
+            binding.constraint_model_sha256.as_str(),
+        ),
+        (
+            "observable_map_sha256",
+            binding.observable_map_sha256.as_str(),
+        ),
     ] {
         if !valid_sha256(value) {
             return Err(CompositionErrorV1::InvalidSha256(name));
@@ -274,12 +289,13 @@ fn validate_problem_binding(binding: &ProblemBindingV1) -> Result<(), Compositio
 
 fn validate_frame(frame: &FrameBindingV1) -> Result<(), CompositionErrorV1> {
     if !valid_identifier(&frame.coordinate_frame_id) {
-        return Err(CompositionErrorV1::InvalidIdentifier(
-            "coordinate_frame_id",
-        ));
+        return Err(CompositionErrorV1::InvalidIdentifier("coordinate_frame_id"));
     }
     for (name, value) in [
-        ("coordinate_frame_sha256", frame.coordinate_frame_sha256.as_str()),
+        (
+            "coordinate_frame_sha256",
+            frame.coordinate_frame_sha256.as_str(),
+        ),
         ("metric_sha256", frame.metric_sha256.as_str()),
     ] {
         if !valid_sha256(value) {
@@ -325,14 +341,10 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
         return Err(CompositionErrorV1::InvalidIdentifier("verifier_id"));
     }
     if !valid_identifier(&receipt.verifier_version) {
-        return Err(CompositionErrorV1::InvalidIdentifier(
-            "verifier_version",
-        ));
+        return Err(CompositionErrorV1::InvalidIdentifier("verifier_version"));
     }
     if !valid_git_sha(&receipt.verifier_commit_sha) {
-        return Err(CompositionErrorV1::InvalidGitSha(
-            "verifier_commit_sha",
-        ));
+        return Err(CompositionErrorV1::InvalidGitSha("verifier_commit_sha"));
     }
     if !valid_identifier(&receipt.claim_scope_id) {
         return Err(CompositionErrorV1::InvalidIdentifier("claim_scope_id"));
@@ -348,18 +360,12 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
     match (receipt.kind, &receipt.coordinate_relation) {
         (EvidenceKindV1::CoordinateCovariance, Some(relation)) => {
             for (name, value) in [
-                (
-                    "source_frame_sha256",
-                    relation.source_frame_sha256.as_str(),
-                ),
+                ("source_frame_sha256", relation.source_frame_sha256.as_str()),
                 (
                     "source_metric_sha256",
                     relation.source_metric_sha256.as_str(),
                 ),
-                (
-                    "target_frame_sha256",
-                    relation.target_frame_sha256.as_str(),
-                ),
+                ("target_frame_sha256", relation.target_frame_sha256.as_str()),
                 (
                     "target_metric_sha256",
                     relation.target_metric_sha256.as_str(),
@@ -429,9 +435,7 @@ pub fn compose_evidence(
     validate_frame(&request.source_frame)?;
     validate_frame(&request.target_frame)?;
     if !valid_sha256(&request.basis_transform_sha256) {
-        return Err(CompositionErrorV1::InvalidSha256(
-            "basis_transform_sha256",
-        ));
+        return Err(CompositionErrorV1::InvalidSha256("basis_transform_sha256"));
     }
     if !valid_identifier(&request.accepted_claim_scope_id) {
         return Err(CompositionErrorV1::InvalidIdentifier(
@@ -452,13 +456,19 @@ pub fn compose_evidence(
     let mut expected_by_kind = BTreeMap::new();
     for expected in &request.expected_verifiers {
         if !valid_identifier(&expected.verifier_id) {
-            return Err(CompositionErrorV1::InvalidIdentifier("expected_verifier_id"));
+            return Err(CompositionErrorV1::InvalidIdentifier(
+                "expected_verifier_id",
+            ));
         }
         if !valid_identifier(&expected.verifier_version) {
-            return Err(CompositionErrorV1::InvalidIdentifier("expected_verifier_version"));
+            return Err(CompositionErrorV1::InvalidIdentifier(
+                "expected_verifier_version",
+            ));
         }
         if !valid_git_sha(&expected.verifier_commit_sha) {
-            return Err(CompositionErrorV1::InvalidGitSha("expected_verifier_commit_sha"));
+            return Err(CompositionErrorV1::InvalidGitSha(
+                "expected_verifier_commit_sha",
+            ));
         }
         if expected_by_kind.insert(expected.kind, expected).is_some() {
             return Err(CompositionErrorV1::DuplicateExpectedVerifier(expected.kind));
@@ -511,16 +521,19 @@ pub fn compose_evidence(
 
         let frame_is_valid = match kind {
             EvidenceKindV1::MathematicalSymmetry => {
-                receipt.frame_applicability == FrameApplicabilityV1::Source(request.source_frame.clone())
+                receipt.frame_applicability
+                    == FrameApplicabilityV1::Source(request.source_frame.clone())
             }
             EvidenceKindV1::CoordinateCovariance => {
-                receipt.frame_applicability == FrameApplicabilityV1::Target(request.target_frame.clone())
+                receipt.frame_applicability
+                    == FrameApplicabilityV1::Target(request.target_frame.clone())
             }
             EvidenceKindV1::TaskSemantics => {
                 receipt.frame_applicability == FrameApplicabilityV1::RepresentationInvariant
             }
             _ => {
-                receipt.frame_applicability == FrameApplicabilityV1::Target(request.target_frame.clone())
+                receipt.frame_applicability
+                    == FrameApplicabilityV1::Target(request.target_frame.clone())
             }
         };
         if !frame_is_valid {
@@ -694,16 +707,15 @@ mod tests {
     }
 
     fn receipt(kind: EvidenceKindV1) -> EvidenceReceiptV1 {
-        let coordinate_relation = (kind == EvidenceKindV1::CoordinateCovariance).then(|| {
-            CoordinateRelationV1 {
+        let coordinate_relation =
+            (kind == EvidenceKindV1::CoordinateCovariance).then(|| CoordinateRelationV1 {
                 source_frame_sha256: source_frame().coordinate_frame_sha256,
                 source_metric_sha256: source_frame().metric_sha256,
                 target_frame_sha256: target_frame().coordinate_frame_sha256,
                 target_metric_sha256: target_frame().metric_sha256,
                 basis_transform_sha256: digest('b'),
                 covariance_receipt_sha256: digest('c'),
-            }
-        });
+            });
         let artifact_sha256 = if kind == EvidenceKindV1::CoordinateCovariance {
             digest('c')
         } else {
@@ -735,9 +747,7 @@ mod tests {
                 _ => FrameApplicabilityV1::Target(target_frame()),
             },
             coordinate_relation,
-            valid_perturbation_radius_nanometers: if kind
-                == EvidenceKindV1::NonlinearSensitivity
-            {
+            valid_perturbation_radius_nanometers: if kind == EvidenceKindV1::NonlinearSensitivity {
                 Some(100_000)
             } else {
                 None
@@ -775,7 +785,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(output.physical_step_status, CompositionStatusV1::Pass);
-        assert_eq!(output.task_equivalence_status, CompositionStatusV1::Inconclusive);
+        assert_eq!(
+            output.task_equivalence_status,
+            CompositionStatusV1::Inconclusive
+        );
         assert_eq!(
             output.physical_authority,
             ClaimAuthorityV1::BoundedPhysicalStepOnly
@@ -812,11 +825,7 @@ mod tests {
         let mut semantics = receipt(EvidenceKindV1::TaskSemantics);
         semantics.binding = task_binding();
         evidence.push(semantics);
-        let output = compose_evidence(
-            &task_request,
-            &evidence,
-        )
-        .unwrap();
+        let output = compose_evidence(&task_request, &evidence).unwrap();
         assert_eq!(output.physical_step_status, CompositionStatusV1::Pass);
         assert_eq!(output.task_equivalence_status, CompositionStatusV1::Pass);
         assert_eq!(output.task_authority, ClaimAuthorityV1::FullTaskEquivalence);
@@ -847,7 +856,9 @@ mod tests {
                 &request(CompositionClaimV1::PhysicalStepEquivalence),
                 &evidence
             ),
-            Err(CompositionErrorV1::BindingMismatch(EvidenceKindV1::KktResidual))
+            Err(CompositionErrorV1::BindingMismatch(
+                EvidenceKindV1::KktResidual
+            ))
         );
 
         let mut evidence = physical_receipts();
@@ -914,7 +925,9 @@ mod tests {
                 &request(CompositionClaimV1::PhysicalStepEquivalence),
                 &evidence
             ),
-            Err(CompositionErrorV1::ReceiptFailed(EvidenceKindV1::DiscreteStep))
+            Err(CompositionErrorV1::ReceiptFailed(
+                EvidenceKindV1::DiscreteStep
+            ))
         );
 
         let mut evidence = physical_receipts();
@@ -924,7 +937,9 @@ mod tests {
                 &request(CompositionClaimV1::PhysicalStepEquivalence),
                 &evidence
             ),
-            Err(CompositionErrorV1::DuplicateEvidenceKind(EvidenceKindV1::DiscreteStep))
+            Err(CompositionErrorV1::DuplicateEvidenceKind(
+                EvidenceKindV1::DiscreteStep
+            ))
         );
     }
 
@@ -953,8 +968,7 @@ mod tests {
     #[test]
     fn numeric_lie_receipt_cannot_satisfy_an_exact_group_requirement() {
         let mut request = request(CompositionClaimV1::PhysicalStepEquivalence);
-        request.minimum_mathematical_evidence_class =
-            MathematicalEvidenceClassV1::ExactFiniteGroup;
+        request.minimum_mathematical_evidence_class = MathematicalEvidenceClassV1::ExactFiniteGroup;
         assert_eq!(
             compose_evidence(&request, &physical_receipts()),
             Err(CompositionErrorV1::MathematicalEvidenceTooWeak)
@@ -1134,7 +1148,9 @@ mod tests {
                 &request(CompositionClaimV1::PhysicalStepEquivalence),
                 &evidence
             ),
-            Err(CompositionErrorV1::MissingEvidence(EvidenceKindV1::DiscreteStep))
+            Err(CompositionErrorV1::MissingEvidence(
+                EvidenceKindV1::DiscreteStep
+            ))
         );
     }
 }
