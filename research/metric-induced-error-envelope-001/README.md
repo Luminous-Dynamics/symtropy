@@ -91,11 +91,50 @@ A one-sided Jacobi SVD estimates the singular spectrum without forming (B^T B). 
 
 The operator module now supports square and rectangular dense maps in both tangent-to-tangent and tangent-to-cotangent variance classes. The one-sided Jacobi spectrum is a numerical estimate, not a formal interval enclosure, and the current reference does not qualify nonlinear residual-to-state maps.
 
+## Rectangular operators and rank semantics
+
+The stacked rectangular extension in [PR #4866](https://github.com/Luminous-Dynamics/symtropy/pull/4866) adds frame-typed K-by-N tangent-to-tangent and tangent-to-cotangent maps using the same metric-aware whitening laws as the square operators.
+
+A rectangular receipt keeps distinct:
+- numerical rank and maximum possible rank;
+- domain nullity and codomain nullity;
+- the ordinary whole-map condition estimate, defined only for injective/full-column-rank maps;
+- the nonzero-spectrum condition estimate, explicitly a condition estimate on the resolved range rather than the whole non-injective map;
+- admitted, outside-envelope, rank-deficient and non-injective statuses.
+
+For example, a full-row-rank 2-by-3 constraint map is surjective but not injective: its domain nullity is one, the ordinary whole-map condition is unavailable, and the nonzero-spectrum condition can still be finite. It must not be reported as a finite condition of the full map.
+
+The exact-head test suite covers 2-by-3 full-row-rank and rank-deficient maps, a 3-by-2 full-column-rank map, dense domain/codomain rebasing for both tensor variances, wrong-variance controls, and non-finite/zero-dimensional rejection. These are small dense f64 numerical estimates, not interval enclosures.
+
+The next stronger physical regression is the Delassus coisometry: for a full-row-rank constraint Jacobian J, mass metric M and constraint metric G_C=(J M^-1 J^T)^-1, the whitened Jacobian should satisfy B B^T=I. This tests the physical constraint metric, not merely a generic rectangular SVD.
+
+
+## Delassus-whitened constraint Jacobian: a metric coisometry
+
+For a full-row-rank constraint Jacobian J: T_q -> C and SPD mass metric M, the Delassus cometric is W = J M^-1 J^T. Treat the constraint residual as a vector with metric G_C = W^-1. If M=L_M L_M^T and G_C=L_C L_C^T, the correctly whitened Jacobian is:
+
+`B = L_C^T J L_M^-T`.
+
+Then:
+
+`B B^T = L_C^T J M^-1 J^T L_C = L_C^T W L_C = I_K`.
+
+Thus a full-row-rank K-by-N constraint Jacobian is a metric coisometry. Its K nonzero singular values are one (condition one on the resolved range), its domain nullity is N-K, and its codomain nullity is zero. The ordinary whole-domain condition estimate remains absent for this non-injective map; do not confuse the range-restricted condition with the full-map condition.
+
+The new tests use the real `DelassusMetricV1` implementation and verify:
+- a 2-by-3 full-row-rank Jacobian has singular values (1,1);
+- the same coisometry survives dense generalized-coordinate rebasing S;
+- it also survives an independent constraint-equation transformation T, with J_new=T J_old and W_new=T W_old T^T;
+- a 3-by-3 grid of state shears and constraint shears/row scales retains the unit nonzero spectrum;
+- reusing the old W^-1 after changing the constraint-equation basis is a negative control and does not preserve the unit spectrum.
+
+This is an algebraic identity in exact arithmetic. The Rust tests numerically estimate the singular spectrum under the pinned f64/Jacobi profile; they do not provide a formal interval proof, qualify rank-deficient/redundant constraints, or establish equivalence for unilateral/contact/friction constraints.
+
 ## Scope and next step
 
 v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
 
-The next step is to connect these frame-typed, operator-condition and constraint-space receipts to the physical one-step dumbbell fixture in Symtropy #4730 and the matched industry comparison in #4805. Every residual must identify its domain/codomain, metric and tensor variance; raw coordinate norms remain diagnostic only.
+The next step is integration with the physical one-step dumbbell fixture #4730 and matched industry comparison #4805, including calibrated numerical error envelopes for the mass and Delassus solves. Every residual must identify its domain/codomain, metric and tensor variance; raw coordinate norms remain diagnostic only.
 
 ## Reproducible microbenchmark v0.1
 
