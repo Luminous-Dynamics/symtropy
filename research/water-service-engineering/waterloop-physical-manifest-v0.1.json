@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
   "benchmark_id": "WATERLOOP-PHYSICAL-T0",
-  "case_count": 15,
+  "case_count": 25,
   "required_case_ids": [
     "WL-T0-001-balanced-volume-closure",
     "WL-T0-002-unbalanced-volume-closure",
@@ -19,7 +19,17 @@
     "WL-T0-012-missed-leak-volume",
     "WL-T0-013-source-quality-without-evidence-no-credit",
     "WL-T0-014-service-floor-missing-pressure-evidence",
-    "WL-T0-015-energy-boundary-mismatch-abstains"
+    "WL-T0-015-energy-boundary-mismatch-abstains",
+    "WL-T0-016-continuity-normal-service",
+    "WL-T0-017-sa-reg4-72h-alternative-drinking-supply",
+    "WL-T0-018-critical-reserve-insufficient",
+    "WL-T0-019-pump-outage-gravity-fallback",
+    "WL-T0-020-compound-demand-surge-critical-priority",
+    "WL-T0-021-source-restoration-after-outage",
+    "WL-T0-022-outlet-service-floor-failure",
+    "WL-T0-023-unadmitted-service-measurement-abstains",
+    "WL-T0-024-stored-water-use-quality-unqualified",
+    "WL-T0-025-unqualified-source-inflow-not-credited"
   ],
   "families": [
     "volume_closure",
@@ -27,7 +37,8 @@
     "source_substitution",
     "pump_energy",
     "service_floor",
-    "leak_metrics"
+    "leak_metrics",
+    "service_continuity"
   ],
   "rules": [
     "All values are synthetic known-answer vectors; this manifest grants no physical qualification.",
@@ -35,6 +46,12 @@
     "Source substitution credit is capped by both metered recovered outlet delivery and matched end-use demand.",
     "No source substitution is credited without source identity, current meter calibration, matched use/window and qualified declared-use evidence.",
     "Service floors are hard constraints; no energy or cost benefit compensates for a pressure/flow failure.",
-    "Leak metrics are event-level arithmetic and do not establish detector field performance."
+    "Leak metrics are event-level arithmetic and do not establish detector field performance.",
+    "Continuity cases are single-use-class inventory/service accounting, not hydraulic, behavioural or optimal-control simulations.",
+    "Critical demand is allocated before discretionary demand; discretionary delivery cannot draw below the protected reserve.",
+    "Essential service credit requires the stored-water use profile to match the intended-use profile and quality to be admitted.",
+    "Source inflow lacking use-specific quality admission is excluded from storage and recorded as rejected inflow.",
+    "Outlet capacity is credited only when the service measurement is admitted and the declared pressure/flow floor is met.",
+    "South African GN 6292 Regulation 4(1) is represented only as a context-specific >48-hour alternative drinking-water scenario, not as proof of product compliance."
   ]
 }
