@@ -25,9 +25,14 @@ pub struct OperationScope {
     pub operation_id: &'static str,
     pub flight_instance_id: &'static str,
     pub aircraft_instance_id: &'static str,
+    pub operator_id: &'static str,
+    pub issuing_ussp_id: &'static str,
     pub intent_id: &'static str,
+    pub intent_revision: u64,
     pub authorization_id: &'static str,
     pub authorization_revision: u64,
+    /// Digest of the exact authorization artifact; authentication is external.
+    pub authorization_digest: &'static str,
 }
 
 /// Coordinate, time and profile identity shared by qualified evidence.
@@ -195,9 +200,13 @@ fn operation_scope_is_complete(scope: OperationScope) -> bool {
         && !scope.operation_id.trim().is_empty()
         && !scope.flight_instance_id.trim().is_empty()
         && !scope.aircraft_instance_id.trim().is_empty()
+        && !scope.operator_id.trim().is_empty()
+        && !scope.issuing_ussp_id.trim().is_empty()
         && !scope.intent_id.trim().is_empty()
+        && scope.intent_revision > 0
         && !scope.authorization_id.trim().is_empty()
         && scope.authorization_revision > 0
+        && !scope.authorization_digest.trim().is_empty()
 }
 
 fn identity_is_complete(identity: EvidenceIdentity) -> bool {
