@@ -278,5 +278,205 @@
       ],
       "next_action": "Use Mycelix #5431/#6112 event-graph admission; acquire exact notice bytes only under permitted use and preserve original source assertion."
     }
+  ],
+  "candidate_station_records": [
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H023",
+      "name": "Jukskei River @ Nietgedacht",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 686,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)",
+        "230.70 Level (m) SOMMER - Flow"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1965-10-23 to 2025-09-15",
+        "108.00 Downst Level (Metres)": "1971-04-15 to 2025-09-15",
+        "230.70 Level (m) SOMMER - Flow": "2008-09-18 to 2009-02-12"
+      },
+      "missingness": "1% is shown adjacent to the downstream-level series; do not assign to every variable without raw export.",
+      "role": "long-period Jukskei historical candidate",
+      "cautions": [
+        "Principal channels are stage/level; discharge requires a date-valid rating curve.",
+        "The catalogue-listed SOMMER flow period is short.",
+        "Do not assume rating-curve stability across the full historical record."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H040",
+      "name": "Jukskei River @ Waterval",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 199,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-02 to 1993-03-15",
+        "108.00 Downst Level (Metres)": "1979-10-31 to 1992-10-12"
+      },
+      "missingness": "2% missing reported for main level series.",
+      "role": "historical intermediate Jukskei reach",
+      "cautions": [
+        "Main level record ends 1993 in this catalogue; not contemporary validation.",
+        "Both listed variables are level, not discharge."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H042",
+      "name": "Jukskei River @ Lone Hill",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 409,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-01 to 1995-11-20",
+        "108.00 Downst Level (Metres)": "1971-07-13 to 1996-05-20"
+      },
+      "missingness": "11% missing reported for main level series.",
+      "role": "historical mid-catchment Jukskei comparison",
+      "cautions": [
+        "Main level record ends 1995 in this catalogue.",
+        "Listed channels are levels; a rating table and its validity period are needed for discharge."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H044",
+      "name": "Jukskei River @ Vlakfontein",
+      "drainage_region": "A21H",
+      "catchment_area_km2": 798,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)",
+        "230.09 Level (m) Cello primary hg"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-18 to 2025-09-16",
+        "108.00 Downst Level (Metres)": "1980-09-24 to 2025-09-16",
+        "230.09 Level (m) Cello primary hg": "2014-01-01 to 2016-03-31"
+      },
+      "missingness": "8% missing on primary level; 14% on Cello primary high-resolution series.",
+      "role": "long-duration larger Jukskei outlet candidate",
+      "cautions": [
+        "Stage-to-discharge conversion must bind the exact rating-table revision and uncertainty.",
+        "Cello high-resolution series is short and has 14% listed missingness.",
+        "Urban return flows, abstractions and transfers may confound natural runoff interpretation."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H045",
+      "name": "Krokodil River @ Vlakfontein",
+      "drainage_region": "A21H",
+      "catchment_area_km2": 653,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)",
+        "230.09 Level (m) Cello primary hg"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1972-05-25 to 2025-09-16",
+        "108.00 Downst Level (Metres)": "1980-09-24 to 2025-09-16",
+        "230.09 Level (m) Cello primary hg": "2014-01-01 to 2016-04-20"
+      },
+      "missingness": "5% missing on primary level; 42% on Cello primary high-resolution series.",
+      "role": "separate Crocodile comparator, not Jukskei",
+      "cautions": [
+        "Different river/catchment; do not splice with Jukskei series.",
+        "Cello series has 42% missingness.",
+        "Stage-to-discharge conversion requires a pinned rating table."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H047",
+      "name": "Little Jukskei River @ Klipfontein",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 65,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-21 to 2025-09-15",
+        "108.00 Downst Level (Metres)": "1980-09-24 to 2025-07-15"
+      },
+      "missingness": "Not shown in the catalogue excerpt for these channels; unknown pending series-level export.",
+      "live_station_url": "https://www.dws.gov.za/hydrology/Verified/HyDataSets.aspx?Station=A2H047",
+      "role": "small urban catchment challenge candidate",
+      "live_page_features": [
+        "DWS page exposes gaps-report and rating-table entry points.",
+        "DWS page says primary data queries are limited to 7,000 records or one year; daily data queries to 20 years; multiple queries may be needed."
+      ],
+      "cautions": [
+        "Listed channels are levels, not discharge.",
+        "No raw series, gaps report or rating table has been acquired.",
+        "Small urban catchment is not automatically representative of all Highveld urban basins."
+      ]
+    }
+  ],
+  "station_catalogue_method_notes": [
+    "Catalogue vintage is 16 November 2025; it is a metadata snapshot, not proof that every series is currently available.",
+    "A2H023, A2H040, A2H042, A2H044 and A2H047 are Jukskei/Little Jukskei stations; A2H045 is Crocodile River and must remain a separate comparator.",
+    "Catalogue channels 100.00 and 108.00 are level series. A flow estimate must bind the correct rating-table revision, effective dates, datum, extrapolation limits and uncertainty. Never label water level as discharge.",
+    "All candidate station records remain not acquired; no usage rights, quality flag, calibration, rating curve, gap report or raw data is admitted by this register.",
+    "Missingness values are catalogue summaries and should be associated only with the named series when the catalogue identifies the relation; verify from the raw gap report before benchmark inclusion.",
+    "A2H040 and A2H042 have older end dates in the current catalogue; they are historical-only candidates unless supplementary contemporary data are found.",
+    "No preferred catchment or station is selected by this matrix."
   ]
 }
