@@ -605,6 +605,13 @@ mod tests {
     }
 
     #[test]
+    fn ninety_nine_percent_target_needs_at_least_ninety_nine_calibration_blocks() {
+        let scores: Vec<f64> = (1..=99).map(f64::from).collect();
+        assert_eq!(split_conformal_radius(&scores, 0.01), Ok(Some(99.0)));
+        assert_eq!(split_conformal_radius(&scores[..98], 0.01), Ok(None));
+    }
+
+    #[test]
     fn calibration_blocks_must_have_equal_size() {
         let mut value = scenario();
         value.calibration_blocks[0].absolute_residuals.pop();
