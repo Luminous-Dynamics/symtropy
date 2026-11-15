@@ -181,6 +181,45 @@ Report:
 
 These are hard correctness gates, not weighted metrics.
 
+### T9 — Evidence continuity and selective revalidation
+
+Measure whether the system knows which qualification claims remain usable as source code, software/firmware, configuration, environment, policy, sensors and evaluators change.
+
+Each consequential claim should carry a typed support closure to the evidence it depends on. Candidate dependencies include:
+- exact source commit/tree, build and dependency lock;
+- robot/aircraft/controller firmware and configuration digests;
+- sensor identity, calibration, freshness and metrology procedure;
+- facility, site, route and environmental data revisions;
+- package/container/asset capability versions;
+- grant, signer, trust-root and authorization-policy versions;
+- task, workload, oracle, metric and grader versions;
+- simulation model, solver and HIL fixture versions.
+
+For every change event, the system must classify each affected claim as **retain**, **revalidate**, **invalidate**, **supersede** or **unresolved**, with a reason and the minimum sufficient next action. Do not assume that later timestamps invalidate all evidence; do not assume that absence of a discovered dependency proves non-impact.
+
+Separate three outcomes:
+- **rerun:** the product, workload, configuration, environment or execution context changed and fresh execution evidence is needed;
+- **regrade:** the product artifact is unchanged but the oracle/grader or evaluation rule changed;
+- **reuse:** the change is metadata-only or is proven irrelevant within the claim's declared scope.
+
+The system should revalidate only affected claims while keeping unaffected evidence usable. However, when dependency closure is incomplete or the change's impact is unknown, it must choose revalidate/unresolved rather than falsely retaining a consequential safety, authority or performance claim.
+
+This track adapts the public Symthaea CEB evidence-continuity and claim-support-closure protocols. It is a benchmark integration target, not a claim that a complete CEB engine is already connected to MFB.
+
+Inject source/API changes, toolchain/dependency changes, firmware/configuration changes, sensor recalibration, new route/site/climate data, grant expiry/revocation, trust-root rotation, safety-policy changes, benchmark task changes and grader corrections.
+
+Report:
+- false-retain rate (stale evidence used for a consequential decision);
+- false-invalidation rate (valid evidence discarded without reason);
+- correct rerun/regrade/reuse classification;
+- claim-support closure completeness and open-world remainder;
+- affected-claim precision/recall;
+- unnecessary full-suite reruns avoided;
+- time/cost to restore current decision-use validity;
+- age of unresolved evidence and blocked actions.
+
+Hard gate: zero false-retain decisions for safety, authority, custody or other explicitly consequential claims in the frozen challenge suite.
+
 ## 5. Reference architecture under test
 
 | Plane | Responsible system | Benchmark contract |
@@ -198,6 +237,7 @@ These are hard correctness gates, not weighted metrics.
 | Shared equipment lending | Mycelix Tool Library | Candidate equipment lending/return interface; currently in Cargo workspace but absent from Commons DNA manifest, pending #6269 |
 | Custody/event vocabulary | SupplyChain adapter + EPCIS mapping | Authorized, minimal chain-of-custody event projection after source security qualification |
 | Operational signals | Mycelix Pulse | Bounded status summaries only; not safety control or raw home telemetry |
+| Evidence continuity | Symthaea CEB protocols / repository-twin and decision-use validity work | Claim-support closure, dependency-aware retain/revalidate/invalidate/supersede/unresolved, and minimum-sufficient requalification; integration remains a research target until executable adapter evidence exists |
 
 No distributed ledger or remote planner may be required for collision avoidance, emergency stop, guarding, flight stabilization, thermal control or other local protective functions.
 
@@ -255,6 +295,7 @@ Publish each metric by track, scenario family, environment split, severity and e
 - unauthorized physical mutations: **0**;
 - false-delivery assertions: **0**;
 - forbidden privacy disclosures: **0** in the test suite;
+- false-retain of stale safety/authority/custody evidence: **0** in the frozen change-challenge suite;
 - safety-stop, interlock and manual-recovery behaviour: demonstrated independently of remote services.
 
 Zero observed events is not proof of zero risk. Report exposure counts, hazard analysis, fault-injection coverage, confidence bounds and the independent review scope.
@@ -283,7 +324,9 @@ Zero observed events is not proof of zero risk. Report exposure counts, hazard a
 - tote reuse cycles, loss, damage, cleaning and repair;
 - human interventions per 100 deliveries, intervention time and recovery time;
 - degraded-mode performance under service, power and network loss;
-- event convergence and time to safe reconciliation after distributed partitions.
+- event convergence and time to safe reconciliation after distributed partitions;
+- false-retain and false-invalidation rates for evidence after change events;
+- rerun/regrade/reuse classification accuracy, closure completeness and requalification cost.
 
 ## 9. Initial targets — research goals, not achieved results
 
@@ -427,6 +470,7 @@ The actual schema must use typed, validated identifiers, explicit units, a real 
 
 ## 15. References
 
+- [Symthaea CEB Evidence Continuity Protocol](https://github.com/Luminous-Dynamics/symthaea/blob/main/docs/research/CEB_EVIDENCE_CONTINUITY_PROTOCOL_V0_2026-11-05.md) and [CEB Claim-Support Closure / Selective Invalidation Protocol](https://github.com/Luminous-Dynamics/symthaea/blob/main/docs/research/CEB_REVIEW_CLAIM_SUPPORT_CLOSURE_AND_SELECTIVE_INVALIDATION_PROTOCOL_V0_2026-11-08.md).
 - [RoboCasa365 leaderboard](https://robocasa.ai/leaderboard) and [evaluation methodology](https://robocasa.ai/leaderboard.html).
 - [BEHAVIOR-1K](https://behavior.stanford.edu/), [2026 challenge](https://behavior.stanford.edu/challenge/index.html), [evaluation rules](https://behavior.stanford.edu/challenge/evaluation.html) and [baseline methods](https://behavior.stanford.edu/challenge/baselines).
 - [HomeRobot OVMM](https://ovmm.github.io/).
