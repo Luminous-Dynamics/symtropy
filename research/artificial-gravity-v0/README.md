@@ -145,13 +145,16 @@ The CLI emits CSV design points for Moon-, Mars-, and Earth-equivalent gravity a
 ## Sources
 
 - Briard & Baatout (2026), *Artificial gravity for long-duration human spaceflight: physiological rationale, evidence gaps, risks, and research priorities*. https://doi.org/10.3389/frspt.2026.1967384
+- Artificial Gravity Requirements Evaluation (accessed 15 Nov 2026; public requirements proposal, not a tolerance standard). https://aegisstation.com/artificial-gravity-requirements-evaluation.html
 - Clément (2017), *International roadmap for artificial gravity research*. https://doi.org/10.1038/s41526-017-0034-8
 - Vascular study (2025). https://doi.org/10.1152/japplphysiol.00667.2025
 - Bone study (2025). https://doi.org/10.1093/jbmr/zjaf119
 - BRACE study (2025). https://doi.org/10.1152/japplphysiol.00224.2025
 - Texas A&M Engineering (20 Apr 2026). https://stories.tamu.edu/news/2026/04/20/human-space-research-gets-a-boost-from-retired-nasa-centrifuge/
 - Vast roadmap (accessed 14 Nov 2026). https://www.vastspace.com/roadmap
-- Aegis Station, Gradient One Rev B (Sep 2026; accessed 14 Nov 2026). https://aegisstation.com/gradientone.html
+- Aegis Station, Gradient One Rev C (Nov 2026; author-reported proposal; not independently validated). https://aegisstation.com/gradientone.html
+- Aegis Station, Artificial Gravity Requirements Evaluation (public requirements proposal). https://aegisstation.com/artificial-gravity-requirements-evaluation.html
+- NASA (1988), Rotating Advanced-Technology Space Station configuration. https://ntrs.nasa.gov/api/citations/19880017013/downloads/19880017013.pdf
 - Jones (2020), ICES-2020-216, NASA NTRS. https://ntrs.nasa.gov/citations/20205005156
 - Tensentric habitat architecture (2026), Acta Astronautica. https://doi.org/10.1016/j.actaastro.2026.04.071
 
@@ -160,6 +163,8 @@ The CLI emits CSV design points for Moon-, Mars-, and Earth-equivalent gravity a
 
 - [Rotating-frame reference implementation](src/lib.rs) and [CSV design-point executable](src/main.rs): analytic kinematics, radial gravity gradient, centrifugal/Coriolis/Euler terms, and unit tests.
 - [Matched architecture comparison protocol](ARCHITECTURE_COMPARISON.md): monolithic/segmented rings, counter-rotating rings, tethered and tension-dominated topologies under one mission envelope.
+- [Occupied-field and movement benchmark](MOTION_AND_FIELD_BENCHMARK.md): multi-rate/multi-gravity grid, field gradients, Coriolis/Euler disturbances, human-factor evidence gates, and proposed benchmarks.
+- [Coriolis reference fixture](fixtures/coriolis_1mps.csv): independently evaluated 1 m/s motion comparison across six RPM values.
 - [Sol-Atlas habitat layout handoff](SOL_ATLAS_HABITAT_HANDOFF.md): spatial interface, coordinate conventions, mass/geometry exchange, occupancy and lifecycle constraints.
 - [ARTGRAV-KIN-001 draft PR](https://github.com/Luminous-Dynamics/symtropy/pull/5279).
 - [ARTGRAV-STRUCT-001 follow-on](https://github.com/Luminous-Dynamics/symtropy/issues/5280).
