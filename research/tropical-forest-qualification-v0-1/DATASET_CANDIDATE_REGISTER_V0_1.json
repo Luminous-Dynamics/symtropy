@@ -547,6 +547,176 @@
         "Identify shared plot and campaign dependencies before any evidence fusion",
         "Do not treat all 15 streams as independent observations or as interchangeable process fluxes"
       ]
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-STEM-SOIL-RESPIRATION-2017-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Stem and soil respiration in fertilised plots in the Central Amazon, 2017-2019",
+      "doi": "10.5285/591e3708-7ff1-483b-9156-15c721c00daf",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/591e3708-7ff1-483b-9156-15c721c00daf",
+      "temporal_support": {
+        "soil_respiration": "2017-06 through 2019-10",
+        "stem_respiration": "2019-10 only"
+      },
+      "measurement_support": {
+        "stem_respiration": "320 trees, reported as 10 trees per plot, DBH >25 cm; EGM-4 infrared gas analyser; record describes ppm; do not assume directly equivalent to stem carbon flux without chamber/area conversion.",
+        "soil_respiration": "Soil CO2 efflux in µmol CO2 m-2 s-1 using LI-8100A system, multiple collar types; includes autotrophic and heterotrophic components.",
+        "quality": "Leak tests before measurements; different temporal support for stem and soil measurements."
+      },
+      "treatment_assignment_unit": "plot",
+      "spatial_metadata_resolution": "50 metres in EIDC record; does not prove exact plot coordinates",
+      "rights_status": "Open Government Licence stated by EIDC; dataset citation required",
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "Independent respiration outcomes for testing whether process-qualified models predict above/belowground carbon response to nutrient assignment",
+      "admission_gates": [
+        "Inspect collar type, flux units, chamber geometry, timestamps and plot IDs",
+        "Keep stem and soil series as separate variables and temporal tasks",
+        "Verify the 320-tree sample maps to randomized plot/block assignment",
+        "Do not multiply/aggregate ppm into carbon flux without a traceable measurement operator"
+      ]
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-LAI-2017-2018",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Leaf area index (LAI) in fertilised plots in the Central Amazon, 2017-2018",
+      "doi": "10.5285/6e70665f-b558-4949-b42a-49fbaec7e7cc",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/6e70665f-b558-4949-b42a-49fbaec7e7cc",
+      "temporal_support": [
+        "2017-10",
+        "2018-03",
+        "2018-08",
+        "2018-10"
+      ],
+      "measurement_support": {
+        "variable": "LAI (m2 one-sided foliage area per m2 ground area)",
+        "instrument": "LAI-2200C plant canopy analyser; FV2200-derived values using 3, 4 or 5 rings",
+        "spatial_sampling": "36 points inside each plot, with x/y coordinates and time of collection",
+        "protocol": "Above-canopy reference reading from a clearing; avoid direct sun from 12:00-14:00; sensor orientation differs morning/afternoon."
+      },
+      "treatment_assignment_unit": "plot",
+      "nested_observation_unit": "within-plot LAI point and campaign",
+      "spatial_metadata_resolution": "50 metres in EIDC record; preserve actual x/y points",
+      "rights_status": "Open Government Licence stated by EIDC; dataset citation required",
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "Canopy response to nutrient treatment and mediation of stem/seedling growth",
+      "admission_gates": [
+        "Verify plot, point and campaign keys",
+        "Retain above-canopy reference and ring configuration",
+        "Do not treat 36 points within a plot as 36 independent treatment replicates",
+        "Align only with compatible treatment and time support"
+      ]
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-FINE-ROOT-BIOMASS-2017-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Fine root biomass in fertilised plots in the Central Amazon, 2017-2019",
+      "doi": "10.5285/b3a55011-bf46-40f5-8850-86dc8bc4c85d",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/b3a55011-bf46-40f5-8850-86dc8bc4c85d",
+      "temporal_support": "2017-08 through 2019-12; campaign dates in Aug/Nov 2017, Feb/Jun/Sep/Dec 2018, Mar/Jun/Sep/Dec 2019",
+      "measurement_support": {
+        "variable": "fine-root biomass mass (g), fine roots defined as <2 mm",
+        "depths_cm": [
+          "0-10",
+          "10-30"
+        ],
+        "method": "in-growth core method, 12 cm diameter × 30 cm depth cores",
+        "spatial_sampling": "five cores in the central 30×30 m of each plot, bulked into one composite sample per plot and depth",
+        "quality": "roots cleaned, dried at 60 C to constant mass and weighed; first installation treated as root stock"
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × campaign × depth composite",
+      "rights_status": "Open Government Licence stated by EIDC; dataset citation required",
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "Belowground biomass response and delayed nutrient effects",
+      "admission_gates": [
+        "Preserve the one-composite-per-plot-per-depth structure",
+        "Do not treat five cores as five independent plot treatment replicates",
+        "Distinguish initial stock from later production/turnover interpretation",
+        "Verify plot keys and campaigns against block/treatment assignment"
+      ]
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-SEEDLING-GROWTH-2019-2020",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Seedlings growth in a fertilized forest in Central Amazonia (2019-2020)",
+      "doi": "10.5285/2da56eb1-ff01-48de-ba2a-d3afceefc85f",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/2da56eb1-ff01-48de-ba2a-d3afceefc85f",
+      "temporal_support": "Bimonthly Feb 2019-Jan 2020; six repetitions in each sub-plot",
+      "measurement_support": {
+        "variables": [
+          "seedling height",
+          "diameter at ground height",
+          "total leaf count",
+          "leaves with herbivory damage",
+          "leaf mortality"
+        ],
+        "inclusion": "tagged individuals >20 cm height and diameter at ground height >1 cm",
+        "method": "height by tape measure; diameter by digital calipers; leaf damage/mortality by visual observation",
+        "spatial_sampling": "individuals nested within sub-plots; verify subplot-to-plot treatment linkage",
+        "site_note": "record identifies Biological Dynamics of Forest Fragments Project about 100 km north of Manaus; do not assume exact spatial equivalence with the 80 km north tree-census site without plot reconciliation"
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "tagged seedling",
+      "repeated_measurement_unit": "seedling × campaign",
+      "rights_status": "Open Government Licence stated by EIDC; dataset citation required",
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_SPATIAL_CROSSWALK_PENDING_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "Seedling growth and early recruitment response under nutrient treatments",
+      "admission_gates": [
+        "Confirm exact experiment plot/subplot assignment",
+        "Keep seedling inclusion criteria distinct from 10 cm DBH tree-census recruitment",
+        "Keep repeated seedling visits in the same plot-level split",
+        "Verify site and spatial alignment with the tree census"
+      ]
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-LITTERFALL-NUTRIENT-CONTENT-2017-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Litterfall nutrient content in fertilised plots in the Central Amazon, 2017-2019",
+      "doi": "10.5285/c2eaade3-5395-4c62-9733-d9dbed1546af",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/c2eaade3-5395-4c62-9733-d9dbed1546af",
+      "temporal_support": [
+        "2017-08",
+        "2018-08",
+        "2019-08"
+      ],
+      "measurement_support": {
+        "variables": [
+          "carbon",
+          "nitrogen",
+          "phosphorus",
+          "potassium",
+          "magnesium",
+          "calcium",
+          "manganese",
+          "zinc",
+          "hemicellulose",
+          "cellulose",
+          "lignin"
+        ],
+        "units": "g for C/N/P/K/Mg/Ca; mg for Mn/Zn; percentage for hemicellulose/cellulose/lignin",
+        "design": "full-factorial nutrient-addition experiment",
+        "spatial_metadata_resolution": "1000 metres listed in EIDC record; actual plot support requires file-level verification"
+      },
+      "treatment_assignment_unit": "plot",
+      "rights_status": "Open Government Licence stated by EIDC; dataset citation required",
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "Nutrient return via litterfall and chemical composition response",
+      "admission_gates": [
+        "Verify whether samples are plot-specific or pooled",
+        "Preserve analyte-specific units and sample basis",
+        "Do not assume concentration equals areal nutrient flux without litterfall mass/area",
+        "Verify plot/treatment mapping and source collection protocol"
+      ]
     }
   ],
   "cross_source_admission_gates": [
