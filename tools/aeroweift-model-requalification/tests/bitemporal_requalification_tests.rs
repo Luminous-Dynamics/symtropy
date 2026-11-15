@@ -978,3 +978,65 @@ fn wrong_source_for_claim_dependency_is_rejected() {
         Err(EvaluationError::ChangeSourceMismatch)
     );
 }
+
+
+#[test]
+fn future_recorded_source_sequence_fork_does_not_poison_earlier_knowledge_snapshot() {
+    let first = event!(
+        "sequence-event-a",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '7',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let mut late_fork = event!(
+        "sequence-event-b",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '8',
+        41,
+        60,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+
+    let earlier = assess(
+        &claim(),
+        &[first.clone(), late_fork.clone()],
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
+    assert_eq!(earlier.status, ClaimStatus::RequalificationRequired);
+
+    late_fork.recorded_at = 60;
+    let later = assess(
+        &claim(),
+        &[first, late_fork],
+        &complete_coverage(),
+        cutoff(50, 70),
+    );
+    assert_eq!(later, Err(EvaluationError::ForkedSourceSequence));
+}
+
+#[test]
+fn future_recorded_coverage_duplicate_does_not_poison_earlier_knowledge_snapshot() {
+    let mut feeds = complete_coverage();
+    let mut late_duplicate = feeds[1].clone();
+    late_duplicate.recorded_at = 60;
+    late_duplicate.manifest_sha256 = digest('7');
+    feeds.push(late_duplicate);
+
+    let earlier = assess(&claim(), &[], &feeds, cutoff(50, 50)).unwrap();
+    assert_eq!(earlier.status, ClaimStatus::StillApplicable);
+
+    let later = assess(&claim(), &[], &feeds, cutoff(50, 70));
+    assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
+}
