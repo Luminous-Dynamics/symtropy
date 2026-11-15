@@ -717,6 +717,7 @@ mod tests {
             0.05,
             &CurvatureEvidenceV1::IntervalUpperBound {
                 second_derivative_norm_upper: 0.75,
+                valid_radius: 0.05,
                 evidence_id: "composite-observable-interval-v1".to_owned(),
             },
             operator_profile,
