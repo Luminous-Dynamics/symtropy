@@ -816,7 +816,6 @@ fn profile_class_order_permutation_preserves_semantic_result() {
     assert_eq!(verify_graph(&receipts).unwrap(), expected);
 }
 
-
 #[test]
 fn conflict_screening_requires_operational_intent_conformance() {
     let mut receipts = graph();
@@ -832,8 +831,7 @@ fn conflict_screening_requires_operational_intent_conformance() {
 #[test]
 fn nonconforming_intent_receipt_cannot_underwrite_conflict_screening() {
     let mut receipts = graph();
-    receipt_mut(&mut receipts, "intent-conformance").disposition =
-        ClaimDisposition::Nonconforming;
+    receipt_mut(&mut receipts, "intent-conformance").disposition = ClaimDisposition::Nonconforming;
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::ParentNotQualified)
