@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Luminous-Dynamics/symtropy/main/research/construction-accepted-output-v0-1/schema/accepted-output-report-v0.1.schema.json",
+  "title": "Construction Accepted Output Derived Report V0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source_record_digest",
+    "profile_id",
+    "unit_class",
+    "derived_counts",
+    "metrics",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-accepted-output-report-v0.1"
+    },
+    "source_record_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "derived_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planned_units",
+        "attempted_units",
+        "first_pass_inspected_units",
+        "first_pass_accepted_units",
+        "finally_accepted_units",
+        "finally_rejected_units",
+        "uninspected_units",
+        "rework_attempts",
+        "critical_planned_units",
+        "critical_first_pass_inspected_units",
+        "first_pass_critical_defects",
+        "first_pass_major_defects",
+        "first_pass_minor_defects",
+        "first_pass_unknown_severity_defects",
+        "critical_inspected_units",
+        "not_attempted_units",
+        "cancelled_units",
+        "superseded_units",
+        "unresolved_units",
+        "active_units"
+      ],
+      "properties": {
+        "planned_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attempted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_inspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_accepted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finally_accepted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finally_rejected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uninspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rework_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_planned_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_first_pass_inspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_critical_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_major_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_minor_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pass_unknown_severity_defects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_inspected_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_attempted_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cancelled_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "superseded_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "numerator",
+          "denominator",
+          "unit",
+          "status",
+          "value"
+        ],
+        "properties": {
+          "metric_id": {
+            "enum": [
+              "first_pass_yield",
+              "final_acceptance_fraction",
+              "accepted_units_per_robot_hour",
+              "accepted_units_per_direct_crew_hour",
+              "accepted_units_per_total_workflow_crew_hour",
+              "elapsed_seconds_per_finally_accepted_unit",
+              "rework_human_hours_per_finally_accepted_unit",
+              "critical_feature_inspection_coverage",
+              "first_pass_critical_defects_per_first_pass_inspected_unit",
+              "first_pass_major_defects_per_first_pass_inspected_unit",
+              "first_pass_minor_defects_per_first_pass_inspected_unit",
+              "critical_first_pass_inspection_coverage"
+            ]
+          },
+          "numerator": {
+            "type": "number"
+          },
+          "denominator": {
+            "type": "number",
+            "minimum": 0
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "estimable",
+              "not_estimable",
+              "provisional"
+            ]
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
