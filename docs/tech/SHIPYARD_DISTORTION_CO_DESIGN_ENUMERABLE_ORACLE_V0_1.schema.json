@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enumerable shipyard distortion co-design oracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "objective_policy",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-DISTORTION-CO-DESIGN-ENUMERABLE-ORACLE-001"
+    },
+    "objective_policy": {
+      "type": "string",
+      "minLength": 20
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "duration_units",
+        "geometry_units",
+        "risk_units"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "duration_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "geometry_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "risk_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "edge": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "before",
+        "after",
+        "geometry_penalty_units",
+        "time_penalty_units",
+        "risk_penalty_units"
+      ],
+      "properties": {
+        "before": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "geometry_penalty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_penalty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "risk_penalty_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fixture_id",
+        "reaction_units",
+        "reaction_limit_units",
+        "approved",
+        "geometry_bias_units",
+        "setup_time_units",
+        "lifecycle_cost_units",
+        "risk_units"
+      ],
+      "properties": {
+        "fixture_id": {
+          "type": "string"
+        },
+        "reaction_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reaction_limit_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "geometry_bias_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "setup_time_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lifecycle_cost_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "risk_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_id",
+        "cooling_complete",
+        "all_restraints_removed",
+        "geometry_penalty_units",
+        "time_units",
+        "risk_units"
+      ],
+      "properties": {
+        "release_id": {
+          "type": "string"
+        },
+        "cooling_complete": {
+          "type": "boolean"
+        },
+        "all_restraints_removed": {
+          "type": "boolean"
+        },
+        "geometry_penalty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "risk_units": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "tasks",
+        "precedence",
+        "transitions",
+        "fixtures",
+        "releases",
+        "feasible_plan_count",
+        "pareto_plan_ids"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^ENUM-[234]-[0-9]{3}$"
+        },
+        "tasks": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/task"
+          }
+        },
+        "precedence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/transition"
+          }
+        },
+        "fixtures": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fixture"
+          }
+        },
+        "releases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/release"
+          }
+        },
+        "feasible_plan_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pareto_plan_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
