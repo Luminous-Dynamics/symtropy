@@ -25,6 +25,15 @@ fn bool_at(value: &Value, key: &str) -> Result<bool, String> {
         .ok_or_else(|| format!("{key} must be a boolean"))
 }
 
+fn number_at(value: &Value, key: &str) -> Result<f64, String> {
+    let number = value.get(key).and_then(Value::as_f64)
+        .ok_or_else(|| format!("{key} must be a number"))?;
+    if !number.is_finite() {
+        return Err(format!("{key} must be finite"));
+    }
+    Ok(number)
+}
+
 fn sha256_hex(raw: &[u8]) -> String {
     let digest = Sha256::digest(raw);
     let mut output = String::with_capacity(64);
@@ -198,6 +207,28 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     push_check(&mut checks, "AFEX-NO-INGESTION-CLAIM-001", source_identity,
         "archive is a candidate source; fixture does not claim data bytes or checksum verification");
 
+    let measurement = manifest.get("measurement_contract")
+        .ok_or_else(|| "measurement_contract is required".to_string())?;
+    let measurement_contract_valid =
+        (number_at(measurement, "inventory_dbh_lower_threshold_cm")? - 10.0).abs() < 1e-12
+        && string_at(measurement, "inventory_inclusion_operator")? == "strictly_greater_than"
+        && (number_at(measurement, "inventory_measurement_height_m")? - 1.3).abs() < 1e-12
+        && string_at(measurement, "measurement_height_exception")?
+            == "measure_above_buttress_or_deformity_when_needed"
+        && string_at(measurement, "recruitment_definition")?
+            == "new_individual_reaches_10_cm_dbh"
+        && string_at(measurement, "raw_dendrometer_quantity")?
+            == "circumference_window_distance_mm"
+        && string_at(measurement, "raw_dendrometer_instrument")? == "digital_caliper"
+        && string_at(measurement, "dendrometer_time_support")?
+            == "irregular_repeated_measurements"
+        && string_at(measurement, "rainy_collection_policy")?
+            == "NOT_COLLECTED_HUMIDITY_SENSITIVE_INSTRUMENT"
+        && !bool_at(measurement, "rainy_missingness_numeric_zero")?;
+    push_check(&mut checks, "AFEX-MEASUREMENT-OPERATOR-001",
+        measurement_contract_valid,
+        "preserve DBH threshold/height, source recruit definition, raw dendrometer quantity, irregular cadence, and rain-related missingness");
+
     let passed = checks.iter().all(|check| check["passed"].as_bool() == Some(true));
     let check_count = checks.len();
     let passed_count = checks.iter().filter(|check| check["passed"].as_bool() == Some(true)).count();
@@ -273,6 +304,24 @@ mod tests {
     fn tree_level_pseudoreplication_claim_fails() {
         let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
         manifest["nested_measurements"]["tree_rows_are_independent_treatment_replicates"] = json!(true);
+        let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
+        let receipt = validate_corpus(&raw, &manifest).expect("semantic failure receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn raw_dendrometer_distance_cannot_be_relabelled_as_dbh_growth() {
+        let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        manifest["measurement_contract"]["raw_dendrometer_quantity"] = json!("dbh_increment");
+        let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
+        let receipt = validate_corpus(&raw, &manifest).expect("semantic failure receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn rain_related_missingness_cannot_be_converted_to_zero() {
+        let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        manifest["measurement_contract"]["rainy_missingness_numeric_zero"] = json!(true);
         let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
         let receipt = validate_corpus(&raw, &manifest).expect("semantic failure receipt");
         assert_eq!(receipt["result"], "FAIL");
