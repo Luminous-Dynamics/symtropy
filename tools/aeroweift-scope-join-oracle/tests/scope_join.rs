@@ -1,7 +1,7 @@
 use aeroweift_scope_join_oracle::{
     CoverageRequirement, EvidenceIdentity, EvidenceOwner, JoinInput, OperationClaim,
-    OperationScope, Reason, ScopeJoinDisposition, ScopeRequest, SurveillanceClaim,
-    TimeWindow, TrafficClass, join_scope,
+    OperationScope, Reason, ScopeJoinDisposition, ScopeRequest, SurveillanceClaim, TimeWindow,
+    TrafficClass, join_scope,
 };
 
 const OPERATION: OperationScope = OperationScope {
@@ -70,7 +70,10 @@ fn operation_claim(owner: EvidenceOwner) -> OperationClaim {
     }
 }
 
-fn surveillance_claim(requirement: CoverageRequirement, with_observation: bool) -> SurveillanceClaim {
+fn surveillance_claim(
+    requirement: CoverageRequirement,
+    with_observation: bool,
+) -> SurveillanceClaim {
     SurveillanceClaim {
         evaluation_id: OPERATION.evaluation_id,
         query_id: requirement.query_id,
@@ -144,30 +147,21 @@ fn exact_operation_authority_and_query_scope_matches() {
 fn pnt_from_another_flight_instance_cannot_join() {
     let mut input = valid_input();
     input.operation_claims[0].scope.flight_instance_id = "FLIGHT-OTHER";
-    assert_rejected(
-        input,
-        Reason::OperationScopeMismatch(EvidenceOwner::Pnt),
-    );
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Pnt));
 }
 
 #[test]
 fn same_aircraft_with_a_different_flight_instance_is_not_the_same_subject() {
     let mut input = valid_input();
     input.operation_claims[1].scope.flight_instance_id = "FLIGHT-OTHER";
-    assert_rejected(
-        input,
-        Reason::OperationScopeMismatch(EvidenceOwner::Reachability),
-    );
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Reachability));
 }
 
 #[test]
 fn same_flight_with_a_different_intent_cannot_join() {
     let mut input = valid_input();
     input.operation_claims[2].scope.intent_id = "INTENT-OTHER";
-    assert_rejected(
-        input,
-        Reason::OperationScopeMismatch(EvidenceOwner::Intent),
-    );
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
 }
 
 #[test]
@@ -215,10 +209,7 @@ fn owner_claim_evaluated_after_decision_cutoff_is_rejected() {
     let mut input = valid_input();
     input.operation_claims[0].evaluated_at = 101;
     input.operation_claims[0].received_at = 101;
-    assert_rejected(
-        input,
-        Reason::OwnerEvaluatedAfterCutoff(EvidenceOwner::Pnt),
-    );
+    assert_rejected(input, Reason::OwnerEvaluatedAfterCutoff(EvidenceOwner::Pnt));
 }
 
 #[test]
@@ -226,10 +217,7 @@ fn late_receipt_cannot_leak_into_historical_cutoff() {
     let mut input = valid_input();
     input.operation_claims[0].observed_at = Some(95);
     input.operation_claims[0].received_at = 101;
-    assert_rejected(
-        input,
-        Reason::OwnerReceiptAfterCutoff(EvidenceOwner::Pnt),
-    );
+    assert_rejected(input, Reason::OwnerReceiptAfterCutoff(EvidenceOwner::Pnt));
 }
 
 #[test]
@@ -237,10 +225,7 @@ fn future_observation_cannot_be_used_before_it_occurs() {
     let mut input = valid_input();
     input.operation_claims[0].observed_at = Some(101);
     input.operation_claims[0].received_at = 100;
-    assert_rejected(
-        input,
-        Reason::OwnerEventAfterCutoff(EvidenceOwner::Pnt),
-    );
+    assert_rejected(input, Reason::OwnerEventAfterCutoff(EvidenceOwner::Pnt));
 }
 
 #[test]
@@ -249,10 +234,7 @@ fn event_time_after_first_receipt_is_rejected() {
     input.operation_claims[0].observed_at = Some(99);
     input.operation_claims[0].evaluated_at = 98;
     input.operation_claims[0].received_at = 98;
-    assert_rejected(
-        input,
-        Reason::OwnerEventAfterReceipt(EvidenceOwner::Pnt),
-    );
+    assert_rejected(input, Reason::OwnerEventAfterReceipt(EvidenceOwner::Pnt));
 }
 
 #[test]
@@ -325,10 +307,7 @@ fn duplicate_owner_claim_is_not_silently_selected() {
     input
         .operation_claims
         .push(operation_claim(EvidenceOwner::Pnt));
-    assert_rejected(
-        input,
-        Reason::DuplicateOperationClaim(EvidenceOwner::Pnt),
-    );
+    assert_rejected(input, Reason::DuplicateOperationClaim(EvidenceOwner::Pnt));
 }
 
 #[test]
@@ -380,10 +359,7 @@ fn missing_dependency_snapshot_blocks_the_query() {
 fn surveillance_receipt_after_cutoff_is_rejected() {
     let mut input = valid_input();
     input.surveillance_claims[0].received_at = 101;
-    assert_rejected(
-        input,
-        Reason::SurveillanceReceiptAfterCutoff("Q-COOP-A"),
-    );
+    assert_rejected(input, Reason::SurveillanceReceiptAfterCutoff("Q-COOP-A"));
 }
 
 #[test]
@@ -415,10 +391,7 @@ fn qualified_no_report_keeps_its_query_scope_without_inventing_an_observation() 
 fn observation_reference_and_event_time_must_be_present_together() {
     let mut input = valid_input();
     input.surveillance_claims[0].observed_at = None;
-    assert_rejected(
-        input,
-        Reason::ObservationTimeReferenceMismatch("Q-COOP-A"),
-    );
+    assert_rejected(input, Reason::ObservationTimeReferenceMismatch("Q-COOP-A"));
 }
 
 #[test]
@@ -560,10 +533,7 @@ fn surveillance_observation_after_first_receipt_is_rejected() {
 fn surveillance_identity_must_match_profile_time_frame_and_datum() {
     let mut input = valid_input();
     input.surveillance_claims[1].identity.vertical_datum_id = "DATUM-OTHER";
-    assert_rejected(
-        input,
-        Reason::SurveillanceIdentityMismatch("Q-NONCOOP-A"),
-    );
+    assert_rejected(input, Reason::SurveillanceIdentityMismatch("Q-NONCOOP-A"));
 }
 
 #[test]
@@ -578,18 +548,12 @@ fn duplicate_surveillance_claim_is_not_silently_selected() {
     let mut input = valid_input();
     let duplicate = input.surveillance_claims[0];
     input.surveillance_claims.push(duplicate);
-    assert_rejected(
-        input,
-        Reason::DuplicateSurveillanceClaim("Q-COOP-A"),
-    );
+    assert_rejected(input, Reason::DuplicateSurveillanceClaim("Q-COOP-A"));
 }
 
 #[test]
 fn blank_dependency_snapshot_reference_is_not_accepted() {
     let mut input = valid_input();
     input.surveillance_claims[1].dependency_snapshot_ref = Some("  ");
-    assert_rejected(
-        input,
-        Reason::MissingDependencySnapshot("Q-NONCOOP-A"),
-    );
+    assert_rejected(input, Reason::MissingDependencySnapshot("Q-NONCOOP-A"));
 }
