@@ -1167,7 +1167,7 @@ fn valid_revision(value: &str) -> bool {
 
 fn run() -> Result<i32, String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    if args.len() > 3 {
+    if args.len() > 4 {
         return Err("usage: active-excitation-t0 [INPUT] [ORACLE] [MANIFEST] [RECEIPT]".into());
     }
     let input_path = PathBuf::from(
@@ -1285,7 +1285,7 @@ mod tests {
     #[test]
     fn all_candidates_match_the_frozen_oracle() {
         let evaluation = result();
-        assert_eq!(evaluation["candidate_count"], 7);
+        assert_eq!(evaluation["candidate_count"], 9);
         assert_eq!(evaluation["verification_state"], "MatchedFrozenOracle");
     }
 
@@ -1361,5 +1361,21 @@ mod tests {
         assert_eq!(evaluation["selected_design_id"], "AE-T0-001-orthogonal-pulses");
         assert!(row("AE-T0-001-orthogonal-pulses")["pareto_optimal"].as_bool().unwrap());
         assert!(row("AE-T0-001-orthogonal-pulses")["selected"].as_bool().unwrap());
+    }
+
+    #[test]
+    fn command_only_waveforms_are_not_used_as_delivered_mass_flux() {
+        assert_eq!(
+            row("AE-T0-008-command-only")["candidate_state"],
+            "INJECTOR_RESPONSE_UNRESOLVED"
+        );
+    }
+
+    #[test]
+    fn truncated_physical_or_sensor_tail_is_refused() {
+        assert_eq!(
+            row("AE-T0-009-truncated-temporal-window")["candidate_state"],
+            "PARTIAL_TEMPORAL_WINDOW"
+        );
     }
 }
