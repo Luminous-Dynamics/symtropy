@@ -440,16 +440,8 @@ mod tests {
         };
 
         for _ in 0..20 {
-            let moving = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.5,
-            );
-            let obstacle = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.5,
-            );
+            let moving = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.5);
+            let obstacle = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.5);
             let moving_delta = p(next(), next(), next());
             let obstacle_delta = p(next(), next(), next());
             let exact = co_translating_capsule_vs_capsule(
