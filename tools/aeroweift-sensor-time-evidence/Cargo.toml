@@ -1,0 +1,12 @@
+[package]
+name = "aeroweift-sensor-time-evidence"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+description = "Aviation-specific heterogeneous sensor temporal evidence admission oracle"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
