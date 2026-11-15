@@ -806,7 +806,7 @@ mod tests {
         let mass_y = pullback_mass_metric(mass_q(), s).unwrap();
 
         let jet_q = reparameterized_constraint_jet(q_value, mapping).unwrap();
-        let q_from_y = dense_coordinate_map(s, y).unwrap();
+        let q_from_y = mat_vec3(s, y).unwrap();
         let jet_y_at_same_q = reparameterized_constraint_jet(q_from_y, mapping).unwrap();
         let jet_y = pullback_constraint_jet_coordinates(jet_y_at_same_q, s).unwrap();
         let expected_j_y = transform_jacobian_coordinates(jet_q.jacobian, s).unwrap();
@@ -894,6 +894,7 @@ mod tests {
     }
 }
 
+#[cfg(test)]
 fn dot2(left: Vector2, right: Vector2) -> Result<f64, MixingErrorV1> {
     finite(left[0] * right[0] + left[1] * right[1])
 }
