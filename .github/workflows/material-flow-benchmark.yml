@@ -40,3 +40,5 @@ jobs:
         run: cargo test --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets
       - name: Validate nominal scenario fixture
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
+      - name: Validate ten-fault campaign fixture
+        run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
