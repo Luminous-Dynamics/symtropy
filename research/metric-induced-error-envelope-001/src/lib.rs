@@ -697,7 +697,9 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         });
         Metric::admit(transformed, profile)
     }
-}/// An SPD cometric W: T* -> T, with a checked Cholesky factor.
+}
+
+/// An SPD cometric W: T* -> T, with a checked Cholesky factor.
 ///
 /// Unlike a metric, a cometric measures covectors with W and vectors with
 /// W^-1. This distinction is important for constraint multipliers/residuals.
