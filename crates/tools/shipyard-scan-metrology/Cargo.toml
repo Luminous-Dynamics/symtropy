@@ -1,0 +1,17 @@
+[package]
+name = "shipyard-scan-metrology"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Fail-closed scan-pair metrology contract and synthetic surface-envelope oracle"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"

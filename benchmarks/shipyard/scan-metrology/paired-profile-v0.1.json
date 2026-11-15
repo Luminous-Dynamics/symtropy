@@ -1,0 +1,302 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-SCAN-METROLOGY-001",
+  "profile_pair": {
+    "schema_version": "0.1.0",
+    "benchmark_id": "SHIPYARD-SCAN-METROLOGY-001",
+    "evidence_class": "synthetic_contract_only",
+    "pair_id": "PAIR-SYNTH-001",
+    "before_scan": {
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "workpiece_id": "WID-SYNTH-01",
+      "joint_revision": "JOINT-R1",
+      "layer_id": "LAYER-02",
+      "profile_station_id": "STATION-001",
+      "coordinate_frame": "WELDING-FRAME-R1",
+      "instrument_id": "SCANNER-SYNTH-01",
+      "calibration_revision": "CAL-R1",
+      "captured_at_ms": 1000
+    },
+    "after_scan": {
+      "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "workpiece_id": "WID-SYNTH-01",
+      "joint_revision": "JOINT-R1",
+      "layer_id": "LAYER-02",
+      "profile_station_id": "STATION-001",
+      "coordinate_frame": "SCANNER-NATIVE-AFTER-R1",
+      "instrument_id": "SCANNER-SYNTH-01",
+      "calibration_revision": "CAL-R1",
+      "captured_at_ms": 2000
+    },
+    "calibration_receipt": {
+      "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "instrument_id": "SCANNER-SYNTH-01",
+      "calibration_revision": "CAL-R1",
+      "verified": true,
+      "valid_from_ms": 0,
+      "valid_until_ms": 10000,
+      "reference_artifact_error_um": 2,
+      "maximum_reference_artifact_error_um": 5
+    },
+    "registration_receipt": {
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "before_scan_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "after_scan_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "transform_type": "rigid_2d",
+      "fit_region": "stable_datum",
+      "stable_datum_verified": true,
+      "handedness": "proper",
+      "check_point_count": 6,
+      "independent_check_point_error_um": 3,
+      "maximum_check_point_error_um": 10,
+      "scale_deviation_ppm": 2,
+      "maximum_scale_deviation_ppm": 10,
+      "source_frame": "SCANNER-NATIVE-AFTER-R1",
+      "target_frame": "WELDING-FRAME-R1"
+    },
+    "surface_compatibility": {
+      "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "within_qualified_surface_range": true,
+      "surface_condition": "synthetic_matte_reference"
+    },
+    "uncertainty": {
+      "instrument_um": 5,
+      "calibration_um": 5,
+      "registration_um": 5,
+      "repeatability_um": 5,
+      "datum_um": 5,
+      "interpolation_um": 5
+    },
+    "maximum_accepted_uncertainty_um": 50,
+    "minimum_coverage_permille": 800,
+    "maximum_missing_run_samples": 1,
+    "profile_samples": [
+      {
+        "x_um": 0,
+        "before_z_um": 0,
+        "after_z_um": 100
+      },
+      {
+        "x_um": 1000,
+        "before_z_um": 0,
+        "after_z_um": 100
+      },
+      {
+        "x_um": 2000,
+        "before_z_um": 0,
+        "after_z_um": 100
+      },
+      {
+        "x_um": 3000,
+        "before_z_um": 0,
+        "after_z_um": 100
+      }
+    ],
+    "claim_ceiling": "SURFACE_ENVELOPE_CHANGE_ONLY",
+    "comparison_frame": "WELDING-FRAME-R1",
+    "reference_health_receipt": {
+      "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "producer": "SHIPYARD-REFERENCE-DRIFT-001",
+      "sequence_id": "HEALTH-SEQ-SYNTH-001",
+      "decision": "continue_within_declared_check_limits",
+      "instrument_id": "SCANNER-SYNTH-01",
+      "calibration_revision": "CAL-R1",
+      "reference_artifact_id": "ARTIFACT-SYNTH-01",
+      "characteristic_id": "LENGTH-X-100MM",
+      "policy_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "certificate_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "first_observation_at_ms": 500,
+      "last_observation_at_ms": 2500,
+      "claim_ceiling": "SYNTHETIC_REFERENCE_ARTIFACT_DRIFT_ONLY"
+    }
+  },
+  "expected_report": {
+    "pair_id": "PAIR-SYNTH-001",
+    "claim_ceiling": "SURFACE_ENVELOPE_CHANGE_ONLY",
+    "paired_sample_count": 4,
+    "expected_sample_count": 4,
+    "coverage_permille": 1000,
+    "missing_sample_count": 0,
+    "maximum_missing_run_samples": 0,
+    "valid_span_count": 1,
+    "valid_span_length_um": 3000,
+    "signed_area_change_um2": 300000,
+    "absolute_area_change_um2": 300000,
+    "mean_signed_displacement_um": 100,
+    "rmse_displacement_um": 100,
+    "maximum_absolute_displacement_um": 100,
+    "percentile_95_absolute_displacement_um": 100,
+    "combined_uncertainty_um": 30,
+    "mean_displacement_interval_um": [
+      70,
+      130
+    ],
+    "signed_area_interval_um2": [
+      210000,
+      390000
+    ],
+    "reference_health_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "negative_controls": [
+    {
+      "control_id": "SMET-001",
+      "expected_disposition": "BLOCK_CALIBRATION",
+      "mutation": "No instrument calibration or reverification receipt is provided."
+    },
+    {
+      "control_id": "SMET-002",
+      "expected_disposition": "BLOCK_REFERENCE_ARTIFACT",
+      "mutation": "Reference artefact error exceeds the calibrated length tolerance."
+    },
+    {
+      "control_id": "SMET-003",
+      "expected_disposition": "BLOCK_SURFACE_COOPERATION",
+      "mutation": "Reflectance, gloss or colour lies outside the scanner's qualified surface range."
+    },
+    {
+      "control_id": "SMET-004",
+      "expected_disposition": "BLOCK_WORKING_ENVELOPE",
+      "mutation": "Scan working distance or angle is outside the verified sensor envelope."
+    },
+    {
+      "control_id": "SMET-005",
+      "expected_disposition": "BLOCK_CAPTURE_STATE",
+      "mutation": "Thermal drift or instrument warm-up state is not documented."
+    },
+    {
+      "control_id": "SMET-006",
+      "expected_disposition": "BLOCK_INSTRUMENT_IDENTITY",
+      "mutation": "Before and after scans use different instrument IDs without cross-calibration."
+    },
+    {
+      "control_id": "SMET-007",
+      "expected_disposition": "BLOCK_REGISTRATION_DATUM",
+      "mutation": "Registration is fitted on the changing weld bead rather than a stable datum."
+    },
+    {
+      "control_id": "SMET-008",
+      "expected_disposition": "BLOCK_CHECK_POINT",
+      "mutation": "Fit residual is low but independent check-point error exceeds tolerance."
+    },
+    {
+      "control_id": "SMET-009",
+      "expected_disposition": "BLOCK_WORKPIECE_BINDING",
+      "mutation": "A transform receipt from another workpiece or joint revision is replayed."
+    },
+    {
+      "control_id": "SMET-010",
+      "expected_disposition": "BLOCK_TRANSFORM_TYPE",
+      "mutation": "Transform is affine, scaled, singular or otherwise not a qualified rigid transform."
+    },
+    {
+      "control_id": "SMET-011",
+      "expected_disposition": "BLOCK_REGISTRATION_UNCERTAINTY",
+      "mutation": "Registration uncertainty is absent or silently set to zero."
+    },
+    {
+      "control_id": "SMET-012",
+      "expected_disposition": "BLOCK_UNCERTAINTY_SCOPE",
+      "mutation": "Single-scan instrument uncertainty is substituted for paired-scan uncertainty."
+    },
+    {
+      "control_id": "SMET-013",
+      "expected_disposition": "BLOCK_COVARIANCE_ASSUMPTION",
+      "mutation": "Uncertainty terms are combined by RSS without covariance evidence."
+    },
+    {
+      "control_id": "SMET-014",
+      "expected_disposition": "BLOCK_UNCERTAINTY_COMPONENT",
+      "mutation": "Calibration, datum or interpolation uncertainty is omitted."
+    },
+    {
+      "control_id": "SMET-015",
+      "expected_disposition": "BLOCK_FRAME_BINDING",
+      "mutation": "A shared coordinate-frame label is reused without a transform receipt."
+    },
+    {
+      "control_id": "SMET-016",
+      "expected_disposition": "BLOCK_STALE_SCAN",
+      "mutation": "A stale scan is bound to a later pass."
+    },
+    {
+      "control_id": "SMET-017",
+      "expected_disposition": "BLOCK_STATION_IDENTITY",
+      "mutation": "Before and after profile stations do not match."
+    },
+    {
+      "control_id": "SMET-018",
+      "expected_disposition": "BLOCK_MISSINGNESS",
+      "mutation": "A missing profile point is converted to zero height."
+    },
+    {
+      "control_id": "SMET-019",
+      "expected_disposition": "BLOCK_INTERPOLATION",
+      "mutation": "Unobserved gaps are interpolated without a bounded interpolation contract."
+    },
+    {
+      "control_id": "SMET-020",
+      "expected_disposition": "BLOCK_EDGE_EXTRAPOLATION",
+      "mutation": "Occluded or unobserved edges are extrapolated as measured."
+    },
+    {
+      "control_id": "SMET-021",
+      "expected_disposition": "BLOCK_COVERAGE",
+      "mutation": "Coverage is below the declared minimum."
+    },
+    {
+      "control_id": "SMET-022",
+      "expected_disposition": "BLOCK_OCCLUSION",
+      "mutation": "Occlusion or missing-run length exceeds the declared limit."
+    },
+    {
+      "control_id": "SMET-023",
+      "expected_disposition": "BLOCK_CLAIM_PROMOTION",
+      "mutation": "Surface-envelope displacement is promoted to deposited-metal volume without a validated base-surface segmentation."
+    },
+    {
+      "control_id": "SMET-024",
+      "expected_disposition": "BLOCK_TEXTURE_FORM_MIX",
+      "mutation": "Surface roughness/texture is mixed with macro-form displacement without a declared scale/filter."
+    },
+    {
+      "control_id": "SMET-025",
+      "expected_disposition": "BLOCK_SURFACE_CONTAMINATION",
+      "mutation": "Slag or cleaning changes are interpreted as deposited metal or metal loss."
+    },
+    {
+      "control_id": "SMET-026",
+      "expected_disposition": "BLOCK_QUALITY_PROMOTION",
+      "mutation": "Bead-top geometry is promoted to proof of fusion, penetration or NDT acceptance."
+    },
+    {
+      "control_id": "SMET-027",
+      "expected_disposition": "BLOCK_FREE_STATE_PROMOTION",
+      "mutation": "A scan inside fixture restraint is labelled final free-state geometry."
+    },
+    {
+      "control_id": "SMET-028",
+      "expected_disposition": "BLOCK_FRAME_MISMATCH",
+      "mutation": "Profiles from different coordinate frames are directly subtracted."
+    },
+    {
+      "control_id": "SMET-029",
+      "expected_disposition": "BLOCK_SPLIT_LEAKAGE",
+      "mutation": "The same scan/calibration source is used across training and held-out evaluation."
+    },
+    {
+      "control_id": "SMET-030",
+      "expected_disposition": "BLOCK_EVIDENCE_CLASS",
+      "mutation": "Synthetic profiles are labelled as measured BAM observations."
+    },
+    {
+      "control_id": "SMET-031",
+      "expected_disposition": "BLOCK_RAW_RIGHTS",
+      "mutation": "Rights-pending BAM raw bytes are downloaded, copied or redistributed."
+    },
+    {
+      "control_id": "SMET-032",
+      "expected_disposition": "BLOCK_PROVENANCE",
+      "mutation": "A result omits source, calibration, transform or calculation revision digests."
+    }
+  ]
+}
