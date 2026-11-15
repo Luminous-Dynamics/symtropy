@@ -62,3 +62,17 @@ See docs/differential-adapter-contract.md.
 ## Claim ceiling
 
 Passing tests establish only the implemented mathematics for the declared line and planar semicircle families and the adapter's tested structural behavior. They do not establish arbitrary continuous collision detection, physical robot model accuracy, localization/tracking/stopping truth, safe separation, construction productivity, standards conformity or vendor interoperability.
+
+## Co-translating capsule CCD
+
+The co-translation extension handles two rigid fixed-orientation capsules that each translate linearly over one shared normalized time interval. It reduces the pair to relative translation `moving_delta - obstacle_delta` and reuses the three-variable convex active-set oracle. The closest points are reconstructed in world coordinates.
+
+The extension separates:
+- synchronized continuous narrow-phase distance/contact;
+- endpoint-only synchronized baseline;
+- union-of-swept-AABBs broad-phase candidate (which may overlap even when the capsules are separated at every common time).
+
+Tests cover head-on mid-interval contact with clear endpoints, equal-velocity co-motion, unequal same-direction velocities, tangency, swept-AABB false positive, skew 3D axes, swapping symmetry, rigid transforms, scaling, invalid inputs and deterministic dense-sampling sanity checks.
+
+This is not arbitrary continuous-to-continuous collision checking: the two bodies must have fixed orientations and share the same time parameter. It does not cover rotation, joint-space interpolation, articulated robots, deformable geometry, asynchronous clocks or physical safety.
+See [#5453](https://github.com/Luminous-Dynamics/symtropy/issues/5453).
