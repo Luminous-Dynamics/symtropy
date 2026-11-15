@@ -207,3 +207,12 @@ Before normalizing or scoring any output:
 ### Claim ceiling
 
 This crosswalk is based on inspected public scripts and format metadata. It does not establish archive retrieval, data rights, exact file schemas, model-output correctness, reproduced figures, a forest hindcast, practical flux identifiability or SOTA performance. The Zenodo archive remains NOT_DOWNLOADED / NOT_INGESTED in the current runtime.
+
+
+## 12. Distinguish the dataset record from the archived code release
+
+The Zenodo dataset record is **14415143**. It contains the `model_outputs.zip` and `observations.zip` archives, with published MD5 values recorded above. Its landing-page “Get started” instructions link to a separate archived code release **15870478**, version v1.0.0. That software record contains `teatree1212/DBEN_Eckes_Shephard_et_al-v1.0.0.zip` (89.9 kB, published MD5 `8a4d79b4a94dc58a67e36d7e7100cee1`) and links the GitHub tag `v1.0.0`.
+
+The current R Markdown in that GitHub tag still tells the user to download the benchmark data from **14415142**. A direct targeted Zenodo lookup did not resolve that ID to the ForestPaths data archive. Preserve this as an unresolved/stale source-code reference; do not substitute it for 14415143 without evidence. The **14415142 / 14415143 / 15870478** roles should remain distinct in the source register: unexplained Rmd reference, data archive, and code release respectively.
+
+I inspected the GitHub `v1.0.0` tag. Its helper, format and R Markdown blob SHAs match those inspected on main. `Process_observations.R` is still not found at `scripts/Process_observations.R` or repository root in the tag, despite being described as a source script in Zenodo metadata. The code archive and data archive are separate provenance objects and require separate checksums and rights review.
