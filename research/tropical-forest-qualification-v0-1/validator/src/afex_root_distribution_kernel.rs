@@ -168,9 +168,18 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let s_median = number_at(denominator, "median_normalized")?;
     let p_log_sd = number_at(numerator, "log_standard_deviation")?;
     let s_log_sd = number_at(denominator, "log_standard_deviation")?;
+    let normalization_note = string_at(model, "normalized_coordinate_note")?;
+    if !close(p_median, 1.2) || !close(s_median, 1.0)
+        || !close(p_log_sd, 0.15) || !close(s_log_sd, 0.10)
+        || !normalization_note.contains("physical turnover scale is restored separately") {
+        return Err("AFEX synthetic lognormal parameterization or unit normalization changed".to_string());
+    }
     let z = manifest.get("z_quantiles").ok_or_else(|| "z_quantiles required".to_string())?;
     let z_lower = number_at(z, "central_95_lower")?;
     let z_upper = number_at(z, "central_95_upper")?;
+    if !close(z_lower, -1.959963984540054) || !close(z_upper, 1.959963984540054) {
+        return Err("AFEX central 95% quantiles must use the frozen standard-normal critical values".to_string());
+    }
 
     let cases = manifest.get("cases").and_then(Value::as_array)
         .ok_or_else(|| "cases must be an array".to_string())?;
@@ -300,6 +309,13 @@ mod tests {
     fn monte_carlo_cannot_be_claimed_to_have_run() {
         let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
         manifest["execution"]["monte_carlo_engine_invoked"] = json!(true);
+        let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
+        assert!(validate_corpus(&raw, &manifest).is_err());
+    }
+    #[test]
+    fn central_95_quantile_definition_cannot_be_mutated() {
+        let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        manifest["z_quantiles"]["central_95_lower"] = json!(-1.8);
         let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
         assert!(validate_corpus(&raw, &manifest).is_err());
     }
