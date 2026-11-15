@@ -43,3 +43,5 @@ The CVaR implementation uses the exact upper tail mass (1 - alpha), including a 
 ## What this does not prove
 
 This is not an empirical hazard distribution, climate model, vehicle crash model, human protection model or building-physics simulation. It verifies only exact arithmetic and finite decision semantics. Later versions must compare nominal optimization, min-max robustness, stochastic optimization, CVaR, distributionally robust optimization, variance-constrained robust BO, NSGA-II and expert baselines under matched information and compute budgets.
+
+The Rust report also carries a SHA-256 digest of the canonical serialized problem input, so the selected disposition can be tied to the exact finite scenario set, ambiguity distributions, design losses and hard-floor declarations that were evaluated.
