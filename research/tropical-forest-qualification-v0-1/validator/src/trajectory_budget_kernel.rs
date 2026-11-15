@@ -273,10 +273,27 @@ fn evaluate_case(
     let expected_stock_error = number_at(expected, "max_stock_absolute_error")?;
     let expected_flow_error = number_at(expected, "max_flow_absolute_error")?;
     let expected_budget_error = number_at(expected, "candidate_max_budget_absolute_residual")?;
+    let expected_flow_totals = expected.get("cumulative_flow_absolute_errors")
+        .ok_or_else(|| format!("{case_id}.expected.cumulative_flow_absolute_errors is required"))?;
+    let flow_names = [
+        "growth",
+        "recruitment",
+        "mortality_to_deadwood",
+        "live_export",
+        "decomposition",
+        "deadwood_export",
+    ];
+    let flow_oracles_match = flow_names.iter().enumerate().all(|(index, name)| {
+        number_at(expected_flow_totals, name)
+            .is_ok_and(|expected_value| {
+                (cumulative_flow_absolute_errors[index] - expected_value).abs() <= 1e-12
+            })
+    });
     let expected_checks = disposition == expected_disposition
         && (maximum_stock_absolute_error - expected_stock_error).abs() <= 1e-12
         && (maximum_flow_absolute_error - expected_flow_error).abs() <= 1e-12
-        && (candidate.maximum_absolute_balance_residual - expected_budget_error).abs() <= 1e-12;
+        && (candidate.maximum_absolute_balance_residual - expected_budget_error).abs() <= 1e-12
+        && flow_oracles_match;
 
     Ok(json!({
         "case_id": case_id,
@@ -443,6 +460,26 @@ mod tests {
             .unwrap();
         assert_eq!(row["disposition"], "TRAJECTORY_STATE_MISMATCH");
         assert_eq!(row["maximum_stock_absolute_error"], 10.0);
+    }
+
+    #[test]
+    fn cumulative_primitive_flow_oracle_mutation_is_rejected() {
+        let mut value = manifest();
+        value["cases"][1]["expected"]["cumulative_flow_absolute_errors"]["growth"] = json!(0.0);
+        let bytes = serde_json::to_vec(&value).expect("serialize per-flow oracle mutation");
+        let receipt = validate_corpus(&bytes, &value).expect("valid structure returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn missing_flux_is_rejected_instead_of_imputed_as_zero() {
+        let mut value = manifest();
+        value["cases"][0]["candidate_intervals"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("decomposition");
+        let bytes = serde_json::to_vec(&value).expect("serialize missing flux");
+        assert!(validate_corpus(&bytes, &value).is_err());
     }
 
     #[test]
