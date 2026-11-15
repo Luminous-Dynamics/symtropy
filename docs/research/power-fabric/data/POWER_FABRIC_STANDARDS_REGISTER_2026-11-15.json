@@ -1,0 +1,163 @@
+{
+  "snapshot_date": "2026-11-15",
+  "status_note": "Public-source inventory for research adapter planning. Not a complete normative or jurisdictional applicability determination. Correction notices are tracked separately from editions and amendments.",
+  "records": [
+    {
+      "record_id": "IEC-81346-1-2022",
+      "kind": "standard",
+      "standard_id": "IEC 81346-1",
+      "edition": "2022",
+      "publication_status": "published",
+      "scope": "Structuring principles and reference designation rules.",
+      "power_fabric_role": "Object identity and designation mapping; preserve owner/site namespaces.",
+      "source_url": "https://webstore.iec.ch/en/publication/64021"
+    },
+    {
+      "record_id": "ISO-81346-10-2022",
+      "kind": "standard",
+      "standard_id": "ISO 81346-10",
+      "edition": "2022",
+      "publication_status": "published",
+      "scope": "Reference designation and structuring for power supply systems.",
+      "power_fabric_role": "Power-supply object designation profile; preserve original designations.",
+      "source_url": "https://www.iso.org/standard/75471.html"
+    },
+    {
+      "record_id": "ISO-WD-81346-10-ED2",
+      "kind": "working_draft",
+      "standard_id": "ISO/WD 81346-10",
+      "edition": "2",
+      "publication_status": "working_draft",
+      "scope": "Second edition under development; ISO lifecycle says it will replace ISO 81346-10:2022.",
+      "power_fabric_role": "Track separately; never silently substitute for published 2022 edition.",
+      "source_url": "https://www.iso.org/standard/93711.html"
+    },
+    {
+      "record_id": "IEC-61970-301-2020-AMD1-2022",
+      "kind": "standard",
+      "standard_id": "IEC 61970-301",
+      "edition": "2020",
+      "amendments": [
+        "AMD1:2022"
+      ],
+      "publication_status": "published",
+      "scope": "CIM base information model for power-system network objects.",
+      "power_fabric_role": "Utility/network object and relationship adapter profile.",
+      "source_url": "https://webstore.iec.ch/en/publication/62698"
+    },
+    {
+      "record_id": "IEC-61968-11-2013",
+      "kind": "standard",
+      "standard_id": "IEC 61968-11",
+      "edition": "2013",
+      "publication_status": "published",
+      "scope": "CIM extensions for distribution network information.",
+      "power_fabric_role": "Narrow distribution information profile; do not force building installation semantics into CIM.",
+      "source_url": "https://webstore.iec.ch/en/publication/6199"
+    },
+    {
+      "record_id": "IEC-61850-6-2009-AMD1-2018-AMD2-2024",
+      "kind": "standard",
+      "standard_id": "IEC 61850-6",
+      "edition": "2009",
+      "amendments": [
+        "AMD1:2018",
+        "AMD2:2024"
+      ],
+      "publication_status": "published",
+      "scope": "SCL file format for IED configuration, communications systems, substation structures and relations.",
+      "power_fabric_role": "IED/substation configuration adapter, not a general building wiring ontology.",
+      "source_url": "https://webstore.iec.ch/en/publication/103863"
+    },
+    {
+      "record_id": "IEC-62351-7-2025",
+      "kind": "standard",
+      "standard_id": "IEC 62351-7",
+      "edition": "2025",
+      "publication_status": "published",
+      "scope": "Network and system management data-object models for power-system operations.",
+      "power_fabric_role": "Communication infrastructure health/monitoring semantics; security claims remain part-specific.",
+      "source_url": "https://webstore.iec.ch/en/publication/76108"
+    },
+    {
+      "record_id": "IEC-60364-1-2025",
+      "kind": "standard",
+      "standard_id": "IEC 60364-1",
+      "edition": "2025",
+      "publication_status": "published",
+      "scope": "Low-voltage installation fundamental principles, assessment of general characteristics and definitions.",
+      "power_fabric_role": "Safety and jurisdictional rule-profile reference; not an interchange format.",
+      "source_url": "https://webstore.iec.ch/en/publication/63699"
+    },
+    {
+      "record_id": "IEC-62933-3-1-2025",
+      "kind": "standard",
+      "standard_id": "IEC 62933-3-1",
+      "edition": "2025",
+      "publication_status": "published",
+      "scope": "Planning and performance assessment for grid-connected electrical energy storage systems.",
+      "power_fabric_role": "Storage planning/performance profile scope.",
+      "source_url": "https://webstore.iec.ch/en/publication/75427"
+    },
+    {
+      "record_id": "IEC-62933-5-1-2024",
+      "kind": "standard",
+      "standard_id": "IEC 62933-5-1",
+      "edition": "2024",
+      "publication_status": "published",
+      "scope": "Safety considerations for grid-integrated electrical energy storage systems.",
+      "power_fabric_role": "Storage hazard/risk profile reference; not an automatic safety assessor.",
+      "source_url": "https://webstore.iec.ch/en/publication/72239"
+    },
+    {
+      "record_id": "SANS-10142-1-2026-ED3-03",
+      "kind": "national_standard",
+      "standard_id": "SANS 10142-1",
+      "edition": "2026 Ed 3.03",
+      "publication_status": "national_adoption",
+      "jurisdiction": "South Africa",
+      "scope": "The wiring of premises — Part 1: Low-voltage installations. ECA(SA) announced availability on 2026-06-26; supersedes SANS 10142-1:2024 Ed 3.2.",
+      "power_fabric_role": "Primary South African low-voltage installation jurisdiction profile. Confirm the current authoritative SABS text, amendments, regulations and applicability with competent registered practitioners.",
+      "source_url": "https://ecasa.co.za/technical/notification-of-the-availability-of-sans-10142-12026-ed-3-03/"
+    },
+    {
+      "record_id": "OPENFMB-REFERENCE-ARCHITECTURE",
+      "kind": "reference_architecture",
+      "standard_id": "OpenFMB",
+      "edition": "public documentation snapshot 2026-11-14",
+      "publication_status": "reference_architecture",
+      "scope": "Peer-to-peer interoperability reference architecture using data models derived from IEC 61968/61970 CIM and IEC 61850.",
+      "power_fabric_role": "Existing interoperability ecosystem to integrate with, not a Power Fabric invention.",
+      "source_url": "https://openfmb.openenergysolutions.com/docs/openfmb/intro/"
+    },
+    {
+      "record_id": "NIST-SG-TEST-CERT",
+      "kind": "test_programme",
+      "standard_id": "NIST Smart Grid Testing and Certification",
+      "edition": "public programme snapshot 2026-11-14",
+      "publication_status": "programme",
+      "scope": "Standards-based smart-grid interoperability test-programme development and certification coordination.",
+      "power_fabric_role": "Benchmark/test-programme design reference.",
+      "source_url": "https://www.nist.gov/programs-projects/smart-grid-testing-and-certification"
+    },
+    {
+      "record_id": "IEC-60364-8-82-2022-AMD1-2026",
+      "kind": "standard",
+      "standard_id": "IEC 60364-8-82",
+      "edition": "2022",
+      "amendments": [
+        "AMD1:2026"
+      ],
+      "publication_status": "published",
+      "scope": "Prosumer low-voltage electrical installations connected or not to a distribution network, with local generation and/or storage; includes grid interaction and islanded/stand-alone operational aspects. The IEC Webstore labels the consolidated version CORRECTED VERSION 2026-11; publication edition remains 1.1.",
+      "power_fabric_role": "High-priority prosumer installation jurisdiction/rule profile for grid/PV/storage/mode transitions. Map applicable requirements only through qualified installation rules, not generic CIM semantics.",
+      "source_url": "https://webstore.iec.ch/en/publication/113148",
+      "corrections": [
+        "CORRECTED VERSION 2026-11"
+      ],
+      "correction_status": "corrected_version",
+      "correction_date": "2026-11",
+      "publication_edition": "1.1"
+    }
+  ]
+}
