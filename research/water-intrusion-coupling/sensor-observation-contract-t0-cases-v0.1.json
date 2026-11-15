@@ -60,7 +60,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -121,7 +123,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -169,7 +173,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -230,7 +236,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -291,7 +299,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -352,7 +362,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -413,7 +425,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -474,7 +488,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -535,7 +551,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -596,7 +614,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     },
     {
@@ -657,7 +677,9 @@
             "calibration_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "clock_map_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
           }
-        ]
+        ],
+        "expected_inlet_count": 2,
+        "expected_outlet_count": 2
       }
     }
   ]
