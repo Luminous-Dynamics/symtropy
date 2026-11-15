@@ -387,7 +387,8 @@ fn parent_stage_must_match_the_semantic_role() {
 #[test]
 fn repeated_parent_role_edge_is_rejected() {
     let mut receipts = graph();
-    receipts[9].parents.push(receipts[9].parents[0].clone());
+    let duplicate_edge = receipts[9].parents[0].clone();
+    receipts[9].parents.push(duplicate_edge);
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::DuplicateParentEdge)
