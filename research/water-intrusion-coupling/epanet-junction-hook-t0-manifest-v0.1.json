@@ -1,0 +1,17 @@
+{
+  "schema_version": "epanet-junction-hook-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-ENGINE-INTEROP-001",
+  "case_count": 10,
+  "case_ids": [
+    "EJH-T0-001-baseline-complete-mix",
+    "EJH-T0-002-multiple-leading-segments",
+    "EJH-T0-003-mass-booster",
+    "EJH-T0-004-concentration-source",
+    "EJH-T0-005-flow-paced-source-unsupported",
+    "EJH-T0-006-duplicate-outlet-id",
+    "EJH-T0-007-partial-outlet-port-set",
+    "EJH-T0-008-open-mass-residual",
+    "EJH-T0-009-open-volume-residual",
+    "EJH-T0-010-step-over-event"
+  ]
+}
