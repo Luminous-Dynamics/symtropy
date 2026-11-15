@@ -26,6 +26,28 @@ A standalone, dependency-light Rust contract parser and validator for MFB scenar
 
 Reconciliation closes the *record*, not the physical transaction atomically. It does not re-arm the old command: a new attempt requires a new transaction and a fresh grant. The state machine does not authenticate Holochain signatures, establish that two evidence sources are truly independent, or drive actuators.
 
+## L1 stationary-receiver physics episode
+
+The `mfb-simulate` binary runs a reduced-order package drop into an open-top tote using the existing `symtropy-physics` engine:
+- 3D rigid-box proxy for the package;
+- static rigid-box tote base and walls derived from internal/external dimensions;
+- fixed 120 Hz timestep with the physics crate's `deterministic-net` Q16.16 quantization feature;
+- command tape and per-tick bitwise world snapshots;
+- independent same-host replay comparison;
+- final package envelope, containment and settling checks;
+- custody state-machine completion only after the simulated placement and replay checks pass.
+
+Run it from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
+```
+
+The result prints an L1 JSON record containing the final package position, speed, trace SHA-256, replay equality, containment/settling results and transaction state. The CLI exits non-zero if the episode is not accepted.
+
+This is an actual headless rigid-body simulation, but it is a **reduced-order stationary receiving scene**, not a complete logistics simulation. It does not model package deformation, a robot/gripper, carrier dynamics, aircraft, routes, sensor noise, actuator control, human exposure, or physical metrology. Bitwise replay is asserted only for two runs on the same host/build; cross-platform determinism is not claimed.
+
 ## What it does not prove
 
 This validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve 3D packing, run a physical simulator, prove safety, or qualify HIL / field performance. A valid manifest means only that its declared contracts are internally consistent.
@@ -52,6 +74,8 @@ Validate the ten-fault campaign against the nominal scenario:
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
   tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
 ```
 
 Campaign validity proves only that the ten test episodes and their expected terminal states form a consistent test plan. It does not prove that any simulated or physical fault has been injected or recovered.
