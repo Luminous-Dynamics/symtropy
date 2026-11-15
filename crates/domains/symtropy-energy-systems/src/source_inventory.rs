@@ -557,6 +557,8 @@ pub enum InventoryDiagnosticCode {
     EvidenceAdmissionUnknown,
     EvidenceAdmissionRejected,
     PageUnavailableAtCutoff,
+    PageArtifactDigestMismatch,
+    PageReceiptTimeMismatch,
     MissingPage,
     PageCountMismatch,
     RecordCountMismatch,
@@ -598,6 +600,8 @@ pub struct InventoryClosureReport {
     pub manifest_sha256: String,
     pub closure_state: InventoryClosureState,
     pub semantic_state: InventorySemanticState,
+    pub scope_limited: bool,
+    pub declared_exclusion_ids: Vec<String>,
     pub enumerated_record_count: usize,
     pub accounted_record_count: usize,
     pub page_count: usize,
@@ -717,6 +721,7 @@ impl SourceInventoryManifest {
         let mut diagnostics = BTreeSet::new();
         let mut closure = InventoryClosureState::CompleteWithinDeclaredScope;
         let mut semantic = InventorySemanticState::Complete;
+        let mut scope_limited = !self.scope.explicit_exclusion_ids.is_empty();
 
         let mut push = |code: InventoryDiagnosticCode, entity_ref: String, state: InventoryClosureState| {
             diagnostics.insert(InventoryDiagnostic { code, entity_ref });
@@ -795,7 +800,10 @@ impl SourceInventoryManifest {
         }
 
         match source_verifier.verify_scope(&self.scope, &self.exclusions, as_known_at_ms) {
-            ScopeVerification::Verified | ScopeVerification::VerifiedWithDeclaredLimitations => {}
+            ScopeVerification::Verified => {}
+            ScopeVerification::VerifiedWithDeclaredLimitations => {
+                scope_limited = true;
+            }
             ScopeVerification::Unknown => push(
                 InventoryDiagnosticCode::ScopeVerificationUnknown,
                 self.scope.source_system_id.clone(),
@@ -835,6 +843,20 @@ impl SourceInventoryManifest {
 
         let mut seen_cursors = BTreeSet::new();
         for (position, page) in available_pages.iter().enumerate() {
+            if page.evidence.digest_sha256() != page.page_payload_sha256 {
+                push(
+                    InventoryDiagnosticCode::PageArtifactDigestMismatch,
+                    page.page_id.clone(),
+                    InventoryClosureState::Conflicted,
+                );
+            }
+            if page.evidence.received_at_ms() != page.received_at_ms {
+                push(
+                    InventoryDiagnosticCode::PageReceiptTimeMismatch,
+                    page.page_id.clone(),
+                    InventoryClosureState::Conflicted,
+                );
+            }
             if page.source_revision != self.snapshot.source_revision {
                 push(
                     InventoryDiagnosticCode::SourceRevisionChanged,
@@ -1075,6 +1097,8 @@ impl SourceInventoryManifest {
             manifest_sha256,
             closure_state: closure,
             semantic_state: semantic,
+            scope_limited,
+            declared_exclusion_ids: self.scope.explicit_exclusion_ids.iter().cloned().collect(),
             enumerated_record_count: record_map.len(),
             accounted_record_count: accounted,
             page_count: available_pages.len(),
@@ -1462,6 +1486,45 @@ mod tests {
         assert_eq!(report.closure_state, InventoryClosureState::Conflicted);
         assert!(report.diagnostics.iter().any(|item| {
             item.code == InventoryDiagnosticCode::SnapshotChanged
+        }));
+    }
+
+    #[test]
+    fn unknown_permission_or_scope_verification_never_closes() {
+        let report = complete_manifest().project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(SnapshotVerification::Stable, ScopeVerification::Unknown),
+        );
+        assert_eq!(report.closure_state, InventoryClosureState::Unknown);
+    }
+
+    #[test]
+    fn explicit_scope_limitations_are_disclosed_in_report() {
+        let report = complete_manifest().project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(
+                SnapshotVerification::Stable,
+                ScopeVerification::VerifiedWithDeclaredLimitations,
+            ),
+        );
+        assert!(report.scope_limited);
+        assert_eq!(report.declared_exclusion_ids, vec!["archive-exclusion".to_owned()]);
+    }
+
+    #[test]
+    fn page_payload_digest_must_match_admitted_page_evidence() {
+        let mut manifest = complete_manifest();
+        manifest.pages[0].evidence = evidence("p0", D4, 10, 11);
+        let report = manifest.project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(SnapshotVerification::Stable, ScopeVerification::Verified),
+        );
+        assert_eq!(report.closure_state, InventoryClosureState::Conflicted);
+        assert!(report.diagnostics.iter().any(|item| {
+            item.code == InventoryDiagnosticCode::PageArtifactDigestMismatch
         }));
     }
 
