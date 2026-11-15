@@ -1,0 +1,683 @@
+{
+  "schema_version": "space-struct-admission/0.1",
+  "case_set_id": "SPACE-STRUCT-ADMISSION-v0.1",
+  "claim_ceiling": "SYNTHETIC_REQUEST_ADMISSION_ONLY",
+  "warning": "All identities, generations, digests, evidence classes and model profiles are synthetic conformance fixtures. Digest strings are test identities only; this corpus does not authenticate remote artifacts or authorize solver execution.",
+  "authority_partition": {
+    "proposal_owner": "SYTHAEA_DESIGN_PROPOSAL",
+    "admission_owner": "SYMTROPY_RECEIVING_ADAPTER",
+    "execution_owner": "SEPARATE_ALLOWLISTED_EXECUTOR",
+    "verification_owner": "INDEPENDENT_VERIFIER",
+    "physical_validation": "INDEPENDENT_MEASUREMENT_REQUIRED",
+    "release_authority": "COMPETENT_HUMAN_AUTHORITY"
+  },
+  "dispositions": [
+    "ADMISSIBLE_RESTRICTED",
+    "NEEDS_EVIDENCE",
+    "OUT_OF_DOMAIN",
+    "REJECT",
+    "NOT_COMPARABLE"
+  ],
+  "evidence_states": [
+    "ANALYTICAL_FIXTURE_ONLY",
+    "BATCH_QUALIFIED_FOR_PROFILE",
+    "REFERENCE_ONLY",
+    "UNRESOLVED",
+    "REJECTED"
+  ],
+  "intended_uses": [
+    "SYNTHETIC_REFERENCE_CHECK",
+    "BOUNDED_ENGINEERING_SCREEN",
+    "PHYSICAL_QUALIFICATION"
+  ],
+  "model_profiles": [
+    {
+      "profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+      "profile_version": "0.1.0",
+      "family": "THIN_UNIFORM_ROTATING_RING",
+      "source_repository": "Luminous-Dynamics/symtropy",
+      "source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+      "source_status": "DRAFT_PULL_REQUEST",
+      "maturity": "DRAFT_ANALYTICAL_REFERENCE",
+      "max_intended_use": "SYNTHETIC_REFERENCE_CHECK",
+      "supported_physics": [
+        "STEADY_UNIFORM_ROTATION",
+        "THIN_RING_MEMBRANE"
+      ],
+      "supported_observables": [
+        "HOOP_STRESS",
+        "HOOP_STRAIN",
+        "RADIAL_EXTENSION"
+      ],
+      "requires_mesh": false,
+      "physical_validation": "UNRESOLVED"
+    },
+    {
+      "profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+      "profile_version": "0.1.0",
+      "family": "UNIFORM_RADIAL_SPOKE",
+      "source_repository": "Luminous-Dynamics/symtropy",
+      "source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+      "source_status": "DRAFT_PULL_REQUEST",
+      "maturity": "DRAFT_ANALYTICAL_REFERENCE",
+      "max_intended_use": "SYNTHETIC_REFERENCE_CHECK",
+      "supported_physics": [
+        "STEADY_UNIFORM_ROTATION",
+        "SELF_CENTRIFUGAL_LOAD",
+        "RADIAL_AXIAL_ELASTICITY"
+      ],
+      "supported_observables": [
+        "AXIAL_FORCE_DISTRIBUTION",
+        "AXIAL_STRESS_DISTRIBUTION",
+        "TIP_EXTENSION"
+      ],
+      "requires_mesh": false,
+      "physical_validation": "UNRESOLVED"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "POS-RING-SYNTHETIC-001",
+      "expected_disposition": "ADMISSIBLE_RESTRICTED",
+      "expected_reason_codes": [
+        "DRAFT_PROFILE_RESTRICTED"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS",
+          "HOOP_STRAIN",
+          "RADIAL_EXTENSION"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "POS-SPOKE-SYNTHETIC-001",
+      "expected_disposition": "ADMISSIBLE_RESTRICTED",
+      "expected_reason_codes": [
+        "DRAFT_PROFILE_RESTRICTED"
+      ],
+      "request": {
+        "candidate_id": "AG-SPOKE-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "geometry_id": "SPOKE-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-SELF",
+        "load_generation": "l1",
+        "load_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "frame_id": "FRAME-SPOKE-RADIAL",
+        "frame_generation": "f1",
+        "frame_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "model_profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "SELF_CENTRIFUGAL_LOAD",
+          "RADIAL_AXIAL_ELASTICITY"
+        ],
+        "requested_observables": [
+          "AXIAL_FORCE_DISTRIBUTION",
+          "AXIAL_STRESS_DISTRIBUTION",
+          "TIP_EXTENSION"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-STALE-GEOMETRY-001",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "GEOMETRY_IDENTITY_MISMATCH"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g2",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-MATERIAL-GENERIC-001",
+      "expected_disposition": "NEEDS_EVIDENCE",
+      "expected_reason_codes": [
+        "MATERIAL_EVIDENCE_INSUFFICIENT"
+      ],
+      "request": {
+        "candidate_id": "LUNAR-STRUCTURAL-PRODUCT-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "MEMBER-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "ALUMINUM-GENERIC",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-STATIC-A",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-LOCAL-A",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "SELF_CENTRIFUGAL_LOAD",
+          "RADIAL_AXIAL_ELASTICITY"
+        ],
+        "requested_observables": [
+          "TIP_EXTENSION"
+        ],
+        "intended_use": "BOUNDED_ENGINEERING_SCREEN",
+        "material_evidence_state": "REFERENCE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "SOFTWARE_QUALIFIED",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "ALUMINUM-GENERIC",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "REFERENCE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-UNALLOWLISTED-BACKEND-001",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "BACKEND_NOT_ALLOWLISTED"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "unknown-fem-backend",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": false,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "unknown-fem-backend",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-UNSUPPORTED-FLEXIBLE-MODES-001",
+      "expected_disposition": "OUT_OF_DOMAIN",
+      "expected_reason_codes": [
+        "PHYSICS_OUT_OF_DOMAIN",
+        "OBSERVABLE_OUT_OF_DOMAIN"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE",
+          "GYROSCOPIC_DYNAMICS"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS",
+          "NATURAL_FREQUENCY"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-DRAFT-PROFILE-ENGINEERING-USE-001",
+      "expected_disposition": "OUT_OF_DOMAIN",
+      "expected_reason_codes": [
+        "INTENDED_USE_EXCEEDS_CLAIM_CEILING"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS"
+        ],
+        "intended_use": "BOUNDED_ENGINEERING_SCREEN",
+        "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-MISSING-MESH-001",
+      "expected_disposition": "NEEDS_EVIDENCE",
+      "expected_reason_codes": [
+        "MESH_REQUIRED"
+      ],
+      "request": {
+        "candidate_id": "ORBITAL-TRUSS-3D-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "TRUSS-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "TRUSS-MAT-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "TRUSS-LOAD-A",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "TRUSS-FRAME-A",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "FUTURE-3D-FEM-PROFILE",
+        "backend_id": "calculix-pinned-profile",
+        "requested_physics": [
+          "LINEAR_ELASTIC_SOLID"
+        ],
+        "requested_observables": [
+          "DISPLACEMENT"
+        ],
+        "intended_use": "BOUNDED_ENGINEERING_SCREEN",
+        "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
+        "mesh_required": true,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "SOFTWARE_QUALIFIED",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "FUTURE-3D-FEM-PROFILE",
+        "expected_backend_id": "calculix-pinned-profile",
+        "accepted_material_id": "TRUSS-MAT-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "BATCH_QUALIFIED_FOR_PROFILE",
+        "requires_mesh": true,
+        "expected_mesh_id": "TRUSS-MESH-A",
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-COMPARISON-FRAME-001",
+      "expected_disposition": "NOT_COMPARABLE",
+      "expected_reason_codes": [
+        "REFERENCE_COMPARISON_NOT_COMPARABLE"
+      ],
+      "request": {
+        "candidate_id": "AG-SPOKE-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "geometry_id": "SPOKE-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-SELF",
+        "load_generation": "l1",
+        "load_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+        "frame_id": "FRAME-SPOKE-RADIAL",
+        "frame_generation": "f1",
+        "frame_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "model_profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "SELF_CENTRIFUGAL_LOAD",
+          "RADIAL_AXIAL_ELASTICITY"
+        ],
+        "requested_observables": [
+          "TIP_EXTENSION"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": "REFERENCE-OTHER-FRAME"
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-RADIAL-SPOKE-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": "REFERENCE-CURRENT-FRAME"
+      }
+    },
+    {
+      "case_id": "NEG-STALE-LOAD-001",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "LOAD_CASE_IDENTITY_MISMATCH"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l0",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    },
+    {
+      "case_id": "NEG-DIGEST-SYNTAX-001",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "REQUEST_IDENTITY_MALFORMED"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "not-a-digest",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null
+      }
+    }
+  ]
+}
