@@ -35,6 +35,11 @@ pub enum PhysicalIdentityError {
     InvalidEventShape { event_id: String, reason: &'static str },
     PredecessorAfterEvent { event_id: String, predecessor_id: String },
     EventDependencyCycle,
+    ConcurrentUnorderedEvents {
+        slot_id: String,
+        first_event_id: String,
+        second_event_id: String,
+    },
 }
 
 impl std::fmt::Display for PhysicalIdentityError {
@@ -787,6 +792,7 @@ impl PhysicalIdentityLedger {
         }
 
         let ordered_event_ids = topological_event_order(&event_map)?;
+        validate_concurrent_event_order(&event_map)?;
         Ok(Self {
             snapshot,
             products: product_map,
@@ -1572,6 +1578,88 @@ fn validate_event_shape(event: &PhysicalEvent) -> Result<(), PhysicalIdentityErr
     Ok(())
 }
 
+fn event_touches_instance(event: &PhysicalEvent, instance_id: &str) -> bool {
+    event.physical_instance_id.as_deref() == Some(instance_id)
+        || event.previous_physical_instance_id.as_deref() == Some(instance_id)
+}
+
+fn event_is_state_transition(event: &PhysicalEvent) -> bool {
+    matches!(
+        event.event_kind,
+        PhysicalEventKind::UnitInstalled
+            | PhysicalEventKind::UnitRemoved
+            | PhysicalEventKind::UnitReplaced
+            | PhysicalEventKind::UnitRelocated
+            | PhysicalEventKind::ConfigurationChanged
+            | PhysicalEventKind::IndependentReconciliationRecorded
+            | PhysicalEventKind::ConflictDeclared
+    )
+}
+
+fn is_causally_before(
+    events: &BTreeMap<String, PhysicalEvent>,
+    candidate_ancestor: &str,
+    descendant: &str,
+) -> bool {
+    let mut pending = vec![descendant.to_owned()];
+    let mut visited = BTreeSet::new();
+    while let Some(current_id) = pending.pop() {
+        if !visited.insert(current_id.clone()) {
+            continue;
+        }
+        let Some(current) = events.get(&current_id) else {
+            continue;
+        };
+        for predecessor_id in &current.predecessor_event_ids {
+            if predecessor_id == candidate_ancestor {
+                return true;
+            }
+            pending.push(predecessor_id.clone());
+        }
+    }
+    false
+}
+
+/// Reject simultaneous state transitions on the same unit unless the event log
+/// explicitly orders them through predecessor links. A deterministic sort key is
+/// not a substitute for causality.
+fn validate_concurrent_event_order(
+    events: &BTreeMap<String, PhysicalEvent>,
+) -> Result<(), PhysicalIdentityError> {
+    let values = events.values().collect::<Vec<_>>();
+    for (index, first) in values.iter().enumerate() {
+        if !event_is_state_transition(first) {
+            continue;
+        }
+        for second in values.iter().skip(index + 1) {
+            if !event_is_state_transition(second)
+                || first.slot_id != second.slot_id
+                || first.occurred_at_ms != second.occurred_at_ms
+            {
+                continue;
+            }
+            let Some(instance_id) = first.physical_instance_id.as_deref()
+                .or(first.previous_physical_instance_id.as_deref())
+            else {
+                continue;
+            };
+            if !event_touches_instance(second, instance_id) {
+                continue;
+            }
+            let causally_ordered = is_causally_before(events, &first.event_id, &second.event_id)
+                || is_causally_before(events, &second.event_id, &first.event_id);
+            if !causally_ordered {
+                return Err(PhysicalIdentityError::ConcurrentUnorderedEvents {
+                    slot_id: first.slot_id.clone(),
+                    first_event_id: first.event_id.clone(),
+                    second_event_id: second.event_id.clone(),
+                });
+            }
+        }
+    }
+    Ok(())
+}
+
 fn topological_event_order(
     events: &BTreeMap<String, PhysicalEvent>,
 ) -> Result<Vec<String>, PhysicalIdentityError> {
@@ -2103,6 +2191,51 @@ mod tests {
             projection.slots["slot-1"].active_assignments[0].configuration_sha256,
             D2
         );
+    }
+
+    #[test]
+    fn simultaneous_unordered_mutations_are_not_resolved_by_sort_order() {
+        let mut events = declared_and_delivered();
+        let install = event(
+            "install",
+            PhysicalEventKind::UnitInstalled,
+            "slot-1",
+            30,
+            &["evidence-1"],
+        )
+        .with_instance("instance-1")
+        .with_location("cabinet-east")
+        .with_predecessors(vec!["deliver".to_owned()]);
+        events.push(install);
+        events.push(
+            event(
+                "remove-a",
+                PhysicalEventKind::UnitRemoved,
+                "slot-1",
+                40,
+                &["evidence-1"],
+            )
+            .with_instance("instance-1")
+            .with_location("cabinet-east")
+            .with_predecessors(vec!["install".to_owned()]),
+        );
+        events.push(
+            event(
+                "remove-b",
+                PhysicalEventKind::UnitRemoved,
+                "slot-1",
+                40,
+                &["evidence-1"],
+            )
+            .with_instance("instance-1")
+            .with_location("cabinet-east")
+            .with_predecessors(vec!["install".to_owned()]),
+        );
+        let result = ledger_result(events, Vec::new());
+        assert!(matches!(
+            result,
+            Err(PhysicalIdentityError::ConcurrentUnorderedEvents { .. })
+        ));
     }
 
     #[test]
