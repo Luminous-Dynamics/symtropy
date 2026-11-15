@@ -7,7 +7,8 @@
     "PILOT_VALIDATE",
     "MONITOR_PREPARE",
     "DEFER_NO_DEDICATED_INVESTMENT",
-    "ABSTAIN_INSUFFICIENT_CONTEXT"
+    "ABSTAIN_INSUFFICIENT_CONTEXT",
+    "REJECT_INFEASIBLE"
   ],
   "cases": [
     {
@@ -138,7 +139,7 @@
       "multi_hazard_cobenefit": "HIGH",
       "probability_may_be_numeric": true,
       "safety_floor_status": "VIOLATED",
-      "expected_disposition": "DEFER_NO_DEDICATED_INVESTMENT",
+      "expected_disposition": "REJECT_INFEASIBLE",
       "rationale": "A design violating a mandatory safety floor cannot be accepted because of lower cost or other benefits; select a different feasible option or abstain."
     }
   ]
