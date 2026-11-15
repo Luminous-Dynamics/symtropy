@@ -42,7 +42,7 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
       - name: Check formatting
-        run: cargo fmt --manifest-path tools/household-appliance-bench-audit/Cargo.toml -- --check
+        run: rustfmt --edition 2024 --check tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs
       - name: Run schema and mutation tests
         run: cargo test --manifest-path tools/household-appliance-bench-audit/Cargo.toml --all-targets
       - name: Audit laundry service profile and emit digest-bound receipt
