@@ -1,0 +1,719 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "MARITIME-CYBER-PHYSICAL-ASSURANCE-SYNTHETIC-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "asset": {
+    "asset_id": "synthetic-shipboard-microgrid-01",
+    "configuration_revision": "microgrid-cfg-r1",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "timebase": {
+    "timebase_id": "synthetic-shipboard-common-clock-v1",
+    "qualification_state": "QUALIFIED",
+    "qualification_id": "synthetic-ptp-qualification-v1",
+    "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "maximum_timestamp_uncertainty_ms": 5,
+  "taxonomy": [
+    {
+      "class_id": "S0_NORMAL_REFERENCE",
+      "event_kind": "NORMAL_BASELINE",
+      "expected_physical_fault_ids": [],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S1_PROPULSION_LOAD_STEP",
+      "event_kind": "OPERATING_DISTURBANCE",
+      "expected_physical_fault_ids": [],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S2_G2_GENERATOR_TRIP",
+      "event_kind": "PHYSICAL_FAULT",
+      "expected_physical_fault_ids": [
+        "G2_GENERATOR_TRIP"
+      ],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S3_G1_GENERATOR_DERATING",
+      "event_kind": "PHYSICAL_DEGRADATION",
+      "expected_physical_fault_ids": [
+        "G1_GENERATOR_DERATING"
+      ],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S4_BESS_CAPACITY_DEGRADATION",
+      "event_kind": "PHYSICAL_DEGRADATION",
+      "expected_physical_fault_ids": [
+        "BESS_CAPACITY_DEGRADATION"
+      ],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S5_BESS_THERMAL_LIMITATION",
+      "event_kind": "PHYSICAL_LIMITATION",
+      "expected_physical_fault_ids": [
+        "BESS_THERMAL_LIMITATION"
+      ],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S6_CONVERTER_EFFICIENCY_DEGRADATION",
+      "event_kind": "PHYSICAL_DEGRADATION",
+      "expected_physical_fault_ids": [
+        "CONVERTER_EFFICIENCY_DEGRADATION"
+      ],
+      "expected_information_fault_ids": []
+    },
+    {
+      "class_id": "S7_DC_LINK_VOLTAGE_SENSOR_BIAS",
+      "event_kind": "INFORMATION_FAULT",
+      "expected_physical_fault_ids": [],
+      "expected_information_fault_ids": [
+        "DC_LINK_VOLTAGE_SENSOR_BIAS"
+      ]
+    },
+    {
+      "class_id": "S8_CURRENT_SENSOR_DRIFT",
+      "event_kind": "INFORMATION_FAULT",
+      "expected_physical_fault_ids": [],
+      "expected_information_fault_ids": [
+        "CURRENT_SENSOR_DRIFT"
+      ]
+    },
+    {
+      "class_id": "S9_PACKET_LOSS_DELAY",
+      "event_kind": "INFORMATION_FAULT",
+      "expected_physical_fault_ids": [],
+      "expected_information_fault_ids": [
+        "PACKET_LOSS_WITH_DELAY"
+      ]
+    },
+    {
+      "class_id": "S10_COMBINED_G1_DERATING_VOLTAGE_BIAS",
+      "event_kind": "COMPOUND_FAULT",
+      "expected_physical_fault_ids": [
+        "G1_GENERATOR_DERATING"
+      ],
+      "expected_information_fault_ids": [
+        "DC_LINK_VOLTAGE_SENSOR_BIAS"
+      ]
+    },
+    {
+      "class_id": "S11_EMERGENCY_ISLANDED_OPERATION",
+      "event_kind": "OPERATING_MODE",
+      "expected_physical_fault_ids": [],
+      "expected_information_fault_ids": []
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "synthetic-s0_normal_reference",
+      "class_id": "S0_NORMAL_REFERENCE",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S0_NORMAL_REFERENCE",
+        "reported_physical_fault_ids": [],
+        "reported_information_fault_ids": [],
+        "disposition": "MODE_OR_DISTURBANCE_CLASS"
+      },
+      "timing": {
+        "event_onset_ms": null,
+        "event_onset_uncertainty_ms": null,
+        "diagnostic_emitted_ms": null,
+        "diagnostic_timestamp_uncertainty_ms": null,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "MONITOR",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0,
+        "critical_load_availability_percent": 100,
+        "recovery_time_s": 0,
+        "reserve_margin_kw": 180
+      }
+    },
+    {
+      "case_id": "synthetic-s1_propulsion_load_step",
+      "class_id": "S1_PROPULSION_LOAD_STEP",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S1_PROPULSION_LOAD_STEP",
+        "reported_physical_fault_ids": [],
+        "reported_information_fault_ids": [],
+        "disposition": "MODE_OR_DISTURBANCE_CLASS"
+      },
+      "timing": {
+        "event_onset_ms": 110000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 112500,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "MONITOR",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.15,
+        "critical_load_availability_percent": 100,
+        "recovery_time_s": 2.5,
+        "reserve_margin_kw": 160
+      }
+    },
+    {
+      "case_id": "synthetic-s2_g2_generator_trip",
+      "class_id": "S2_G2_GENERATOR_TRIP",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [
+          "G2_GENERATOR_TRIP"
+        ],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S2_G2_GENERATOR_TRIP",
+        "reported_physical_fault_ids": [
+          "G2_GENERATOR_TRIP"
+        ],
+        "reported_information_fault_ids": [],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 210000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 232900,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 1.1,
+        "critical_load_availability_percent": 99.997,
+        "recovery_time_s": 42,
+        "reserve_margin_kw": 22
+      }
+    },
+    {
+      "case_id": "synthetic-s3_g1_generator_derating",
+      "class_id": "S3_G1_GENERATOR_DERATING",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [
+          "G1_GENERATOR_DERATING"
+        ],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S3_G1_GENERATOR_DERATING",
+        "reported_physical_fault_ids": [
+          "G1_GENERATOR_DERATING"
+        ],
+        "reported_information_fault_ids": [],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 310000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 325000,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.82,
+        "critical_load_availability_percent": 99.998,
+        "recovery_time_s": 36,
+        "reserve_margin_kw": 74
+      }
+    },
+    {
+      "case_id": "synthetic-s4_bess_capacity_degradation",
+      "class_id": "S4_BESS_CAPACITY_DEGRADATION",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [
+          "BESS_CAPACITY_DEGRADATION"
+        ],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S4_BESS_CAPACITY_DEGRADATION",
+        "reported_physical_fault_ids": [
+          "BESS_CAPACITY_DEGRADATION"
+        ],
+        "reported_information_fault_ids": [],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 410000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 969400,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.95,
+        "critical_load_availability_percent": 99.998,
+        "recovery_time_s": 520,
+        "reserve_margin_kw": 66
+      }
+    },
+    {
+      "case_id": "synthetic-s5_bess_thermal_limitation",
+      "class_id": "S5_BESS_THERMAL_LIMITATION",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [
+          "BESS_THERMAL_LIMITATION"
+        ],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S5_BESS_THERMAL_LIMITATION",
+        "reported_physical_fault_ids": [
+          "BESS_THERMAL_LIMITATION"
+        ],
+        "reported_information_fault_ids": [],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 510000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 555000,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.63,
+        "critical_load_availability_percent": 99.999,
+        "recovery_time_s": 48,
+        "reserve_margin_kw": 80
+      }
+    },
+    {
+      "case_id": "synthetic-s6_converter_efficiency_degradation",
+      "class_id": "S6_CONVERTER_EFFICIENCY_DEGRADATION",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [
+          "CONVERTER_EFFICIENCY_DEGRADATION"
+        ],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S6_CONVERTER_EFFICIENCY_DEGRADATION",
+        "reported_physical_fault_ids": [
+          "CONVERTER_EFFICIENCY_DEGRADATION"
+        ],
+        "reported_information_fault_ids": [],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 610000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 642000,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.58,
+        "critical_load_availability_percent": 99.999,
+        "recovery_time_s": 28,
+        "reserve_margin_kw": 88
+      }
+    },
+    {
+      "case_id": "synthetic-s7_dc_link_voltage_sensor_bias",
+      "class_id": "S7_DC_LINK_VOLTAGE_SENSOR_BIAS",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [],
+        "information_fault_ids": [
+          "DC_LINK_VOLTAGE_SENSOR_BIAS"
+        ]
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S7_DC_LINK_VOLTAGE_SENSOR_BIAS",
+        "reported_physical_fault_ids": [],
+        "reported_information_fault_ids": [
+          "DC_LINK_VOLTAGE_SENSOR_BIAS"
+        ],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 710000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 731700,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.12,
+        "critical_load_availability_percent": 100,
+        "recovery_time_s": 8,
+        "reserve_margin_kw": 155
+      }
+    },
+    {
+      "case_id": "synthetic-s8_current_sensor_drift",
+      "class_id": "S8_CURRENT_SENSOR_DRIFT",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [],
+        "information_fault_ids": [
+          "CURRENT_SENSOR_DRIFT"
+        ]
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S8_CURRENT_SENSOR_DRIFT",
+        "reported_physical_fault_ids": [],
+        "reported_information_fault_ids": [
+          "CURRENT_SENSOR_DRIFT"
+        ],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 810000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 834000,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.18,
+        "critical_load_availability_percent": 100,
+        "recovery_time_s": 10,
+        "reserve_margin_kw": 150
+      }
+    },
+    {
+      "case_id": "synthetic-s9_packet_loss_delay",
+      "class_id": "S9_PACKET_LOSS_DELAY",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [],
+        "information_fault_ids": [
+          "PACKET_LOSS_WITH_DELAY"
+        ]
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S9_PACKET_LOSS_DELAY",
+        "reported_physical_fault_ids": [],
+        "reported_information_fault_ids": [
+          "PACKET_LOSS_WITH_DELAY"
+        ],
+        "disposition": "SINGLE_FAULT"
+      },
+      "timing": {
+        "event_onset_ms": 910000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 941200,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.33,
+        "critical_load_availability_percent": 99.999,
+        "recovery_time_s": 18,
+        "reserve_margin_kw": 148
+      }
+    },
+    {
+      "case_id": "synthetic-s10_combined_g1_derating_voltage_bias",
+      "class_id": "S10_COMBINED_G1_DERATING_VOLTAGE_BIAS",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [
+          "G1_GENERATOR_DERATING"
+        ],
+        "information_fault_ids": [
+          "DC_LINK_VOLTAGE_SENSOR_BIAS"
+        ]
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S10_COMBINED_G1_DERATING_VOLTAGE_BIAS",
+        "reported_physical_fault_ids": [
+          "G1_GENERATOR_DERATING"
+        ],
+        "reported_information_fault_ids": [
+          "DC_LINK_VOLTAGE_SENSOR_BIAS"
+        ],
+        "disposition": "COMPOUND_FAULT_SET"
+      },
+      "timing": {
+        "event_onset_ms": 1010000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 1309700,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "HUMAN_REVIEW",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 1.65,
+        "critical_load_availability_percent": 99.996,
+        "recovery_time_s": 310,
+        "reserve_margin_kw": 18
+      }
+    },
+    {
+      "case_id": "synthetic-s11_emergency_islanded_operation",
+      "class_id": "S11_EMERGENCY_ISLANDED_OPERATION",
+      "evidence_role": "SYNTHETIC_KNOWN_TRUTH",
+      "measurement_window": {
+        "asset_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "timebase_id": "synthetic-shipboard-common-clock-v1",
+        "timebase_qualification_state": "QUALIFIED",
+        "timebase_qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "quality_state": "CURRENT",
+        "sample_interval_ms": 4000,
+        "sample_count": 450,
+        "independent_episode_count": 1,
+        "episode_definition_id": "synthetic-recording-is-one-episode-v1",
+        "episode_definition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "truth": {
+        "physical_fault_ids": [],
+        "information_fault_ids": []
+      },
+      "diagnosis": {
+        "reported_event_class_id": "S11_EMERGENCY_ISLANDED_OPERATION",
+        "reported_physical_fault_ids": [],
+        "reported_information_fault_ids": [],
+        "disposition": "MODE_OR_DISTURBANCE_CLASS"
+      },
+      "timing": {
+        "event_onset_ms": 1110000,
+        "event_onset_uncertainty_ms": 2,
+        "diagnostic_emitted_ms": 1122000,
+        "diagnostic_timestamp_uncertainty_ms": 2,
+        "algorithm_compute_time_ms": 2,
+        "command_path_instrumented": false,
+        "sensor_to_command_latency_ms": null
+      },
+      "recommendation": {
+        "advisory_code": "MONITOR",
+        "authority_scope": "ADVISORY_ONLY"
+      },
+      "consequences": {
+        "energy_not_supplied_kwh": 0.72,
+        "critical_load_availability_percent": 99.998,
+        "recovery_time_s": 55,
+        "reserve_margin_kw": 32
+      }
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "measurement_initiated": false,
+    "controller_write": false,
+    "generator_command": false,
+    "bess_command": false,
+    "load_shedding": false,
+    "topology_switching": false,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition_authorization": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic contract evaluation only. It does not reproduce the published shipboard microgrid field results, validate a trained estimator or diagnostic model, verify a vessel clock network, establish physical fault identifiability, measure end-to-end sensor-to-command latency, authorize supervisory reconfiguration, establish shipboard safety, class approval, maintenance authority or permission to operate."
+}
