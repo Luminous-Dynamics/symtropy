@@ -61,7 +61,7 @@ Track X does not create a clock service, sensor driver, detector, tracking engin
 3. **SOFTWARE_CYCLE_ASSOCIATED** — files belong to one software acquisition cycle, but no independent per-sensor timestamp/uncertainty is available. Supports per-cycle association only.
 4. **ORDER_ONLY_OR_UNKNOWN** — file ordering or sequence exists without defensible temporal relation. Modality-specific analysis only.
 
-The Rust oracle's positive time disposition means only that the supplied capture-window intervals, clock/reference identities and declared skew/drift policy satisfy a structural bound. It does not authenticate the reference, prove calibration, or establish physical simultaneity.
+The Rust oracle's positive time disposition means only that the supplied capture-window intervals, clock/reference identities and declared skew/drift policy satisfy a structural bound. It separately reports whether calibration/configuration metadata is syntactically complete. A bounded clock relation does not imply a calibrated sensor measurement. It does not authenticate the reference or establish physical simultaneity.
 
 ## Benchmark implementation
 
@@ -81,7 +81,7 @@ Calibration and preprocessing gaps are returned as explicit evidence gaps. They 
 
 ## Frozen synthetic benchmark
 
-The Rust suite currently contains 21 tests:
+The Rust suite currently contains 25 tests:
 - independently hardware-bounded positive control;
 - shared-clock positive control with bounded drift;
 - software-cycle-only result remains association-only;
@@ -98,6 +98,8 @@ The Rust suite currently contains 21 tests:
 - duplicate sensor ID;
 - invalid policy;
 - one-sensor input cannot claim cross-modal fusion;
+- capture-window start/end uncertainty intervals must be strictly ordered, not merely have ordered midpoints;
+- calibration metadata completeness is exposed separately from temporal alignment qualification;
 - input permutation invariance.
 
 The fixtures are fictional. The crate does not ingest TSMS-Drone files or recalculate dataset metrics.
