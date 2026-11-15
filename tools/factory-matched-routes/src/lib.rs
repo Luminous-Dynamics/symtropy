@@ -182,6 +182,8 @@ fn module_failures(module: &Module, route: &ProductRoute, operation: Operation, 
     failures
 }
 
+// This fixture enumerator carries the complete additive objective and assignment state.
+#[allow(clippy::too_many_arguments)]
 fn enumerate_assignments(
     choices: &[Vec<ModuleChoice>],
     index: usize,
@@ -267,6 +269,8 @@ pub fn evaluate(architecture: &Architecture, route: &ProductRoute, scenario: &Sc
     }
 }
 
+// Positional arguments keep the small, frozen reference fixtures compact and reviewable.
+#[allow(clippy::too_many_arguments)]
 fn module(
     id: &'static str, role: ModuleRole, capabilities: &[Capability],
     processing_ticks: u64, setup_ticks: u64, transfer_ticks: u64,
