@@ -32,7 +32,7 @@ fn push_check(checks: &mut Vec<Check>, id: &'static str, passed: bool, detail: i
     });
 }
 
-fn at(root: &Value, path: &[&str]) -> Result<&Value, String> {
+fn at<'a>(root: &'a Value, path: &[&str]) -> Result<&'a Value, String> {
     let mut current = root;
     for key in path {
         let next = if let Ok(index) = key.parse::<usize>() {
@@ -70,7 +70,10 @@ fn usize_at(root: &Value, path: &[&str]) -> Result<usize, String> {
         .map_err(|_| format!("integer at {} exceeds platform usize", path.join(".")))
 }
 
-fn object_at(root: &Value, path: &[&str]) -> Result<&serde_json::Map<String, Value>, String> {
+fn object_at<'a>(
+    root: &'a Value,
+    path: &[&str],
+) -> Result<&'a serde_json::Map<String, Value>, String> {
     at(root, path)?
         .as_object()
         .ok_or_else(|| format!("expected object at {}", path.join(".")))
@@ -206,7 +209,6 @@ fn causally_reachable_cells(
 ///
 /// Structurally malformed JSON returns Err. A well-formed manifest with failed semantic
 /// invariants returns a receipt whose result is FAIL.
-
 fn parse_coordinates(
     value: &Value,
     label: &str,
@@ -1705,51 +1707,6 @@ fn validate_binary_event_brier_corpus(raw: &[u8], manifest: &Value) -> Result<Va
         ),
     );
 
-    let risk_values = at(manifest, &["risk_coverage_cases"])?
-        .as_array()
-        .ok_or_else(|| "risk_coverage_cases must be an array".to_string())?;
-    let mut risk_cases = Vec::with_capacity(risk_values.len());
-    for case in risk_values {
-        risk_cases.push(forecast_kernel::SelectiveRiskCase {
-            forecast_id: string_at(case, &["forecast_id"])?,
-            confidence_score: number_at(case, &["confidence_score"])?,
-            forecast_samples: finite_array_at(case, &["forecast_samples"])?,
-            observed: number_at(case, &["observed"])?,
-        });
-    }
-    let risk_curve = forecast_kernel::selective_risk_coverage_curve(&risk_cases)
-        .map_err(|error| format!("risk-coverage curve failed: {error}"))?;
-    let expected_curve = at(manifest, &["expected_risk_coverage_curve"])?
-        .as_array()
-        .ok_or_else(|| "expected_risk_coverage_curve must be an array".to_string())?;
-    let mut risk_curve_matches =
-        risk_curve.len() == expected_curve.len() && risk_curve.len() == risk_cases.len();
-    for (index, (actual, expected)) in risk_curve.iter().zip(expected_curve).enumerate() {
-        risk_curve_matches &= actual.selected_count == usize_at(expected, &["selected_count"])?;
-        risk_curve_matches &= close_enough(
-            actual.coverage_fraction,
-            number_at(expected, &["coverage_fraction"])?,
-            1e-12,
-        );
-        risk_curve_matches &= close_enough(
-            actual.mean_crps_risk,
-            number_at(expected, &["mean_crps_risk"])?,
-            1e-9,
-        );
-        if index >= risk_cases.len() {
-            risk_curve_matches = false;
-        }
-    }
-    push_check(
-        &mut checks,
-        "FORECAST-RISK-COVERAGE-CURVE-001",
-        risk_curve_matches,
-        format!(
-            "{} curve points; full confidence-ranked CRPS risk–coverage curve matches={risk_curve_matches}",
-            risk_curve.len()
-        ),
-    );
-
     let execution = at(manifest, &["execution"])?;
     let runner = string_at(execution, &["runner"])?;
     let external = at(execution, &["external_data_ingested"])?
@@ -2112,6 +2069,51 @@ fn validate_probabilistic_forecast_corpus(raw: &[u8], manifest: &Value) -> Resul
             summary.mean_model_crps,
             summary.mean_baseline_crps_paired,
             summary.crps_skill_score
+        ),
+    );
+
+    let risk_values = at(manifest, &["risk_coverage_cases"])?
+        .as_array()
+        .ok_or_else(|| "risk_coverage_cases must be an array".to_string())?;
+    let mut risk_cases = Vec::with_capacity(risk_values.len());
+    for case in risk_values {
+        risk_cases.push(forecast_kernel::SelectiveRiskCase {
+            forecast_id: string_at(case, &["forecast_id"])?,
+            confidence_score: number_at(case, &["confidence_score"])?,
+            forecast_samples: finite_array_at(case, &["forecast_samples"])?,
+            observed: number_at(case, &["observed"])?,
+        });
+    }
+    let risk_curve = forecast_kernel::selective_risk_coverage_curve(&risk_cases)
+        .map_err(|error| format!("risk-coverage curve failed: {error}"))?;
+    let expected_curve = at(manifest, &["expected_risk_coverage_curve"])?
+        .as_array()
+        .ok_or_else(|| "expected_risk_coverage_curve must be an array".to_string())?;
+    let mut risk_curve_matches =
+        risk_curve.len() == expected_curve.len() && risk_curve.len() == risk_cases.len();
+    for (index, (actual, expected)) in risk_curve.iter().zip(expected_curve).enumerate() {
+        risk_curve_matches &= actual.selected_count == usize_at(expected, &["selected_count"])?;
+        risk_curve_matches &= close_enough(
+            actual.coverage_fraction,
+            number_at(expected, &["coverage_fraction"])?,
+            1e-12,
+        );
+        risk_curve_matches &= close_enough(
+            actual.mean_crps_risk,
+            number_at(expected, &["mean_crps_risk"])?,
+            1e-9,
+        );
+        if index >= risk_cases.len() {
+            risk_curve_matches = false;
+        }
+    }
+    push_check(
+        &mut checks,
+        "FORECAST-RISK-COVERAGE-CURVE-001",
+        risk_curve_matches,
+        format!(
+            "{} curve points; full confidence-ranked CRPS risk–coverage curve matches={risk_curve_matches}",
+            risk_curve.len()
         ),
     );
 
@@ -3240,7 +3242,7 @@ fn validate_variable_aggregation_corpus(raw: &[u8], manifest: &Value) -> Result<
                     &target_crs,
                     target,
                     &samples,
-                    expected_unit,
+                    &expected_unit,
                 )
                 .map(|result| {
                     json!({
