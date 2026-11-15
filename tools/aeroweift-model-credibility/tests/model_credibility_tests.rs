@@ -424,15 +424,14 @@ fn metric_gate_cannot_claim_a_stratum_outside_required_domain() {
         comparator: Comparator::AtMost,
         threshold: 1.0,
         minimum_independent_units: 1,
-                confidence_level: 0.95,
-                confidence_method_sha256: digest('9'),
+        confidence_level: 0.95,
+        confidence_method_sha256: digest('9'),
     });
     assert_eq!(
         evaluate(&package(), &invalid_policy),
         Err(ValidationError::InvalidPolicy)
     );
 }
-
 
 #[test]
 fn error_gate_uses_upper_confidence_bound_not_point_estimate() {
