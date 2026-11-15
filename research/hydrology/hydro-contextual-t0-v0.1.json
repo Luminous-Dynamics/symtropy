@@ -429,6 +429,29 @@
         "low_flow_threshold": 0.3,
         "log_transform": "log10"
       }
+    },
+    {
+      "case_id": "HC-T0-027-event-peak-ties-earliest-index",
+      "family": "event_metrics",
+      "inputs": {
+        "event_id": "synthetic-storm-tie-01",
+        "observed": [
+          1,
+          6,
+          6,
+          3
+        ],
+        "predicted": [
+          1,
+          5,
+          5,
+          2
+        ],
+        "event_start_index": 0,
+        "event_end_index": 4,
+        "step_hours": 12,
+        "denominator_tolerance": 1e-12
+      }
     }
   ]
 }
