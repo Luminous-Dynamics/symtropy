@@ -30,9 +30,7 @@ use crate::rectangular_operator::{
     RectangularOperatorConditionReceiptV1, RectangularOperatorStatusV1,
     RectangularTangentToTangentOperator,
 };
-use crate::{
-    CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent,
-};
+use crate::{CoordinateFrame, Cotangent, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ConstraintSpaceProfileV1 {
