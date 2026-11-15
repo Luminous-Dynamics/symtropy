@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_storage_sizing_and_pump_power_arithmetic_only_no_site_or_equipment_qualification",
   "benchmark_id": "WATERLOOP-SIZING-T0",
-  "case_count": 14,
+  "case_count": 16,
   "required_case_ids": [
     "WLS-T0-001-balanced-demand-inflow",
     "WLS-T0-002-time-shifted-inflow",
@@ -18,7 +18,9 @@
     "WLS-T0-011-timebase-mismatch-reject",
     "WLS-T0-012-pump-hydraulic-power-lower-bound",
     "WLS-T0-013-pump-efficiency-invalid-reject",
-    "WLS-T0-014-unadmitted-demand-measurement"
+    "WLS-T0-014-unadmitted-demand-measurement",
+    "WLS-T0-015-negative-inflow-reject",
+    "WLS-T0-016-pump-efficiency-unadmitted"
   ],
   "families": [
     "storage_sizing",
@@ -38,7 +40,9 @@
     "Tank dead volume, freeboard, uncertainty and contingency are not usable reserve and are reported separately.",
     "Storage sizing assumes the usable inventory is full at the beginning of the declared design horizon; any other initial condition requires its own explicit input and benchmark.",
     "Source inflow is added at the beginning of each declared time step before that step's demand; the convention is frozen in the manifest.",
-    "Pump power is a lower-bound arithmetic calculation, not pump selection or duty qualification."
+    "Pump power is a lower-bound arithmetic calculation, not pump selection or duty qualification.",
+    "Negative source inflow is a hard reject and is never clamped to zero.",
+    "Hydraulic power may be reported from an admitted flow/head/density boundary while electrical input remains null unless pump-efficiency evidence is admitted."
   ],
   "time_step_convention": "For every step: add admitted source inflow, cap at usable capacity and record overflow, then serve that step's demand from remaining storage. Initial usable inventory equals the tested capacity."
 }
