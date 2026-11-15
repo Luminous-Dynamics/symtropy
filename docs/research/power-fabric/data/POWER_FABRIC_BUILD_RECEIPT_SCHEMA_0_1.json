@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-build-receipt-0.1.schema.json",
+  "title": "Power Fabric Build Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_version",
+    "canonicalization_profile",
+    "digest_algorithm",
+    "compiler_id",
+    "compiler_version",
+    "toolchain_fingerprint",
+    "compiler_source_digest",
+    "build_configuration_digest",
+    "dependency_lock_digest",
+    "source_document_id",
+    "source_document_revision_id",
+    "source_schema_version",
+    "mapping_profile_id",
+    "mapping_profile_version",
+    "graph_id",
+    "graph_revision_id",
+    "graph_maturity",
+    "declared_graph_content_digest",
+    "source_document_digest",
+    "mapping_profile_digest",
+    "service_graph_payload_digest",
+    "standard_profiles",
+    "upstream_artifacts",
+    "build_lock_digest"
+  ],
+  "properties": {
+    "receipt_version": {
+      "const": 1
+    },
+    "canonicalization_profile": {
+      "const": "serde-json-struct-order-btree-map-values-sorted-arrays-v1"
+    },
+    "digest_algorithm": {
+      "const": "sha256"
+    },
+    "compiler_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compiler_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "toolchain_fingerprint": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dependency_lock_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "source_document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document_revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_schema_version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "properties": {
+        "major": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minor": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "patch": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "mapping_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mapping_profile_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "graph_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "graph_revision_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "graph_maturity": {
+      "enum": [
+        "DesignOnly",
+        "FieldReconciled",
+        "IndependentlyReviewed"
+      ]
+    },
+    "declared_graph_content_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_document_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "mapping_profile_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "service_graph_payload_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "standard_profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/standard_profile_pin"
+      }
+    },
+    "upstream_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/upstream_artifact_pin"
+      }
+    },
+    "build_lock_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "compiler_source_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "build_configuration_digest": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "standard_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard_id",
+        "part",
+        "edition",
+        "amendments",
+        "publication_status",
+        "jurisdiction",
+        "corrections"
+      ],
+      "properties": {
+        "standard_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "part": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "edition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "amendments": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "publication_status": {
+          "enum": [
+            "published",
+            "working_draft",
+            "technical_report",
+            "national_adoption",
+            "withdrawn"
+          ]
+        },
+        "jurisdiction": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "corrections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "standard_profile_pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_version",
+        "standard",
+        "registry_record_digest",
+        "applicability_rules_digest"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard": {
+          "$ref": "#/$defs/standard_reference"
+        },
+        "registry_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "applicability_rules_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "upstream_artifact_pin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "revision_id",
+        "role",
+        "digest"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  }
+}

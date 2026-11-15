@@ -14,6 +14,7 @@ use core::fmt;
 use serde::Serialize;
 
 mod batch_evaluation;
+mod build_receipt;
 mod change_impact;
 mod duty_cycle;
 mod diagnostics;
@@ -28,6 +29,13 @@ mod standards_adapter;
 pub use change_impact::{
     ChangeImpactError, DependencyGraph, DerivedArtifact, InputChange, InputChangeReceipt,
     InputFingerprint, InvalidationReason, InvalidationReport,
+};
+pub use build_receipt::{
+    compile_ir_to_service_graph_reproducibly, BuildMetadata, BuildReceiptError,
+    PowerFabricBuildReceipt, ReproducibleCompilation, ReproducibleCompilationError,
+    BuildReceiptVerificationError, DerivedArtifactKind, DerivedArtifactReceipt,
+    DerivedArtifactReceiptError,
+    Sha256Digest, StandardProfilePin, UpstreamArtifactPin,
 };
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use diagnostics::{

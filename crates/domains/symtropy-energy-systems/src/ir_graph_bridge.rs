@@ -10,7 +10,7 @@ use crate::{
     RelationshipDirection, ServiceEdge, ServiceEdgeKind, ServiceGraph,
     ModuleIdentity, ServiceGraphError, ServiceNode, ServiceNodeKind,
 };
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -60,8 +60,11 @@ impl GraphCompileContext {
 pub struct IrGraphMappingProfile {
     profile_id: String,
     profile_version: String,
+    #[serde(serialize_with = "serialize_object_kind_map")]
     object_kind_map: BTreeMap<NamespacedType, ServiceNodeKind>,
+    #[serde(serialize_with = "serialize_relationship_kind_map")]
     relationship_kind_map: BTreeMap<NamespacedType, ServiceEdgeKind>,
+    #[serde(serialize_with = "serialize_domain_evidence_map")]
     domain_evidence_map: BTreeMap<ClaimDomain, GraphEvidenceState>,
     object_evidence_claim_ids: BTreeMap<String, String>,
     object_module_identities: BTreeMap<String, ModuleIdentity>,
@@ -87,6 +90,12 @@ impl IrGraphMappingProfile {
             if *state == GraphEvidenceState::Unknown {
                 return Err(GraphBridgeError::UnknownEvidenceStateMapping { domain: *domain });
             }
+            if !domain_evidence_mapping_allowed(*domain, *state) {
+                return Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                    domain: *domain,
+                    requested_state: *state,
+                });
+            }
         }
         for (object_id, claim_id) in &object_evidence_claim_ids {
             require_non_empty("evidence_selection_object_id", object_id)?;
@@ -103,6 +112,64 @@ impl IrGraphMappingProfile {
 
     pub fn profile_id(&self) -> &str { &self.profile_id }
     pub fn profile_version(&self) -> &str { &self.profile_version }
+}
+
+
+#[derive(Serialize)]
+struct ObjectKindMapEntry<'a> {
+    source: &'a NamespacedType,
+    target: ServiceNodeKind,
+}
+
+fn serialize_object_kind_map<S>(
+    value: &BTreeMap<NamespacedType, ServiceNodeKind>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| ObjectKindMapEntry { source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
+}
+
+#[derive(Serialize)]
+struct RelationshipKindMapEntry<'a> {
+    source: &'a NamespacedType,
+    target: ServiceEdgeKind,
+}
+
+fn serialize_relationship_kind_map<S>(
+    value: &BTreeMap<NamespacedType, ServiceEdgeKind>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| RelationshipKindMapEntry { source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
+}
+
+#[derive(Serialize)]
+struct DomainEvidenceMapEntry {
+    source: ClaimDomain,
+    target: GraphEvidenceState,
+}
+
+fn serialize_domain_evidence_map<S>(
+    value: &BTreeMap<ClaimDomain, GraphEvidenceState>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    value.iter()
+        .map(|(source, target)| DomainEvidenceMapEntry { source: *source, target: *target })
+        .collect::<Vec<_>>()
+        .serialize(serializer)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -391,6 +458,23 @@ fn require_graph_maturity(
     Ok(())
 }
 
+
+/// v0.1 maps evidence domains only to their conservative matching graph
+/// evidence class. Verified is deliberately not mapped: a Verified claim is
+/// not, by itself, an independent-review attestation. A later profile can add
+/// a separate, typed review attestation rather than promoting this enum.
+fn domain_evidence_mapping_allowed(
+    domain: ClaimDomain,
+    state: GraphEvidenceState,
+) -> bool {
+    matches!(
+        (domain, state),
+        (ClaimDomain::DesignIntent, GraphEvidenceState::DesignDeclared)
+            | (ClaimDomain::Declared, GraphEvidenceState::DesignDeclared)
+            | (ClaimDomain::Observed, GraphEvidenceState::FieldObserved)
+    )
+}
+
 fn require_non_empty(field: &'static str, value: &str) -> Result<(), GraphBridgeError> {
     if value.trim().is_empty() { Err(GraphBridgeError::EmptyField { field }) } else { Ok(()) }
 }
@@ -401,6 +485,7 @@ pub enum GraphBridgeError {
     EmptyObjectKindMap,
     EmptyRelationshipKindMap,
     UnknownEvidenceStateMapping { domain: ClaimDomain },
+    EvidenceDomainPromotionForbidden { domain: ClaimDomain, requested_state: GraphEvidenceState },
     EvidenceSelectionObjectUnknown { object_id: String },
     EvidenceSelectionClaimUnknown { object_id: String, claim_id: String },
     ModuleBindingObjectUnknown { object_id: String },
@@ -419,7 +504,12 @@ impl std::error::Error for GraphBridgeError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ClaimProvenance, IrObject, IrRelationship, IrSchemaVersion, ObjectIdentity, PropertyClaim, PropertyValue};
+    use crate::{
+        BuildMetadata, ClaimProvenance, IrObject, IrRelationship, IrSchemaVersion,
+        ObjectIdentity, PropertyClaim, PropertyValue, Sha256Digest,
+        StandardProfilePin, StandardPublicationStatus, StandardReference,
+        UpstreamArtifactPin, compile_ir_to_service_graph_reproducibly,
+    };
     use std::collections::BTreeMap;
 
     fn ns(value: &str) -> NamespacedType { NamespacedType::new("urn:pf:test", value).unwrap() }
@@ -451,6 +541,692 @@ mod tests {
     fn ctx(maturity: GraphMaturity, state: GraphEvidenceState) -> GraphCompileContext {
         GraphCompileContext::new("graph:home","revision:1","sha256:declared","synthetic scope",
             maturity,state,Some("evidence:revision".into()),true).unwrap()
+    }
+
+
+    fn build_metadata(include_amd1: bool) -> BuildMetadata {
+        build_metadata_with_provenance(
+            include_amd1, true,
+            b"synthetic compiler source tree",
+            b"release;default-features;target=x86_64-unknown-linux-gnu",
+            b"synthetic Cargo.lock",
+        )
+    }
+
+    fn build_metadata_with_lock(include_amd1: bool, lock_contents: &[u8]) -> BuildMetadata {
+        build_metadata_with_provenance(
+            include_amd1, true,
+            b"synthetic compiler source tree",
+            b"release;default-features;target=x86_64-unknown-linux-gnu",
+            lock_contents,
+        )
+    }
+
+    fn build_metadata_with_correction(
+        include_amd1: bool,
+        include_correction: bool,
+        lock_contents: &[u8],
+    ) -> BuildMetadata {
+        build_metadata_with_provenance(
+            include_amd1, include_correction,
+            b"synthetic compiler source tree",
+            b"release;default-features;target=x86_64-unknown-linux-gnu",
+            lock_contents,
+        )
+    }
+
+    fn build_metadata_with_provenance(
+        include_amd1: bool,
+        include_correction: bool,
+        compiler_source: &[u8],
+        build_configuration: &[u8],
+        lock_contents: &[u8],
+    ) -> BuildMetadata {
+        let standard = StandardReference::new(
+            "IEC 60364-8-82", Some("8-82".into()), "2022",
+            if include_amd1 { vec!["AMD1:2026".into()] } else { Vec::new() },
+            StandardPublicationStatus::Published, None,
+        ).unwrap();
+        let standard = if include_correction {
+            standard.with_corrections(vec!["CORRECTED VERSION 2026-11".into()]).unwrap()
+        } else {
+            standard
+        };
+        let standard_pin = StandardProfilePin::new(
+            "profile:prosumer-pei", "0.1", standard,
+            Sha256Digest::from_bytes(b"synthetic registry record"),
+            Sha256Digest::from_bytes(b"synthetic applicability rules"),
+        ).unwrap();
+        let upstream = UpstreamArtifactPin::new(
+            "artifact:module-catalogue", "revision:catalogue:1",
+            "module identity catalogue", Sha256Digest::from_bytes(b"synthetic module catalogue"),
+        ).unwrap();
+        BuildMetadata::new(
+            "symtropy-energy-systems", "0.1.0",
+            "rustc:1.96.0;target:x86_64-unknown-linux-gnu",
+            Sha256Digest::from_bytes(compiler_source),
+            Sha256Digest::from_bytes(build_configuration),
+            Sha256Digest::from_bytes(lock_contents),
+            vec![standard_pin], vec![upstream],
+        ).unwrap()
+    }
+
+
+    #[test]
+    fn exact_serialized_receipt_bytes_verify() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let bytes = serde_json::to_vec(built.receipt()).unwrap();
+        assert_eq!(built.receipt().verify_serialized_bytes(&bytes), Ok(()));
+    }
+
+    #[test]
+    fn modified_or_noncanonical_receipt_bytes_are_rejected() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let mut bytes = serde_json::to_vec(built.receipt()).unwrap();
+        bytes.push(b' ');
+        assert_eq!(
+            built.receipt().verify_serialized_bytes(&bytes),
+            Err(crate::BuildReceiptVerificationError::ReceiptBytesMismatch)
+        );
+    }
+
+
+
+    #[test]
+    fn derived_artifact_receipt_binds_output_to_exact_build_and_graph() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let output = b"synthetic resident view bytes";
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            output,
+        ).unwrap();
+
+        assert_eq!(receipt.source_build_lock_digest(), built.receipt().build_lock_digest());
+        assert_eq!(receipt.source_compiler_version(), built.receipt().compiler_version());
+        assert!(receipt.dependency_ids().iter().any(|id| id == "input:generator-version:power-fabric-view-compiler"));
+        assert_eq!(receipt.source_graph_id(), built.receipt().graph_id());
+        assert_eq!(receipt.source_graph_revision_id(), built.receipt().graph_revision_id());
+        assert_eq!(receipt.source_graph_payload_digest(), built.receipt().service_graph_payload_digest());
+        assert_eq!(receipt.output_digest(), &Sha256Digest::from_bytes(output));
+        assert_eq!(receipt.verify_output_bytes(output), Ok(()));
+    }
+
+    #[test]
+    fn derived_artifact_verifier_rejects_changed_output_bytes() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:single-line",
+            "revision:single-line:1",
+            crate::DerivedArtifactKind::SingleLineDiagram,
+            "image/svg+xml",
+            "diagram-generator",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"diagram generator source"),
+            Sha256Digest::from_bytes(b"diagram generator configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"<svg/>",
+        ).unwrap();
+        assert_eq!(
+            receipt.verify_output_bytes(b"<svg changed/>"),
+            Err(crate::DerivedArtifactReceiptError::OutputDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn derived_artifact_receipt_changes_when_source_build_lock_changes() {
+        let document = doc(RelationshipDirection::Directed);
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source changed", b"release;default-features;target=x86_64-unknown-linux-gnu", b"synthetic Cargo.lock",
+            ),
+        ).unwrap();
+        let first_artifact = crate::DerivedArtifactReceipt::new(
+            first.receipt(), "artifact:resident", "revision:1",
+            crate::DerivedArtifactKind::ResidentView, "application/json",
+            "view-compiler", "0.1",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()], true,
+            b"same rendered bytes",
+        ).unwrap();
+        let second_artifact = crate::DerivedArtifactReceipt::new(
+            second.receipt(), "artifact:resident", "revision:1",
+            crate::DerivedArtifactKind::ResidentView, "application/json",
+            "view-compiler", "0.1",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()], true,
+            b"same rendered bytes",
+        ).unwrap();
+        assert_ne!(first_artifact.source_build_lock_digest(), second_artifact.source_build_lock_digest());
+        assert_ne!(first_artifact.receipt_digest().unwrap(), second_artifact.receipt_digest().unwrap());
+    }
+
+
+
+
+    #[test]
+    fn renderer_version_change_invalidates_derived_artifact_via_stable_dependency_id() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter",
+            "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let renderer_change = crate::InputChange::new(
+            "input:generator-version:power-fabric-view-compiler",
+            "0.1.0",
+            Some("0.2.0".into()),
+        ).unwrap();
+        let report = graph.assess(
+            vec![renderer_change],
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+    #[test]
+    fn build_lock_change_invalidates_derived_artifact_using_stable_dependency_id() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter",
+            "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let build_lock_id = format!("input:build-lock:{}", receipt.source_graph_id());
+        let build_change = crate::InputChange::new(
+            build_lock_id,
+            receipt.source_build_lock_digest().as_str(),
+            Some("sha256:replacement-build-lock".into()),
+        ).unwrap();
+        let report = graph.assess(
+            vec![build_change],
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+
+    #[test]
+    fn derived_artifact_receipt_maps_into_existing_dependency_invalidation_graph() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter", "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let change = crate::InputChange::new(
+            "input:module:inverter", "sha256:module:old", Some("sha256:module:new".into()),
+        ).unwrap();
+        let report = graph.assess(vec![change], "0.1.0", "0.1").unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+
+    #[test]
+    fn renderer_configuration_change_invalidates_derived_artifact_via_stable_dependency_id() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration A"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter", "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let change = crate::InputChange::new(
+            "input:generator-configuration:power-fabric-view-compiler",
+            Sha256Digest::from_bytes(b"view compiler configuration A").as_str(),
+            Some(Sha256Digest::from_bytes(b"view compiler configuration B").as_str().into()),
+        ).unwrap();
+        let report = graph.assess(
+            vec![change],
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+    #[test]
+    fn duplicate_derived_dependency_ids_are_rejected() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert!(matches!(
+            crate::DerivedArtifactReceipt::new(
+                built.receipt(),
+                "artifact:resident-view",
+                "revision:resident-view:1",
+                crate::DerivedArtifactKind::ResidentView,
+                "application/json",
+                "power-fabric-view-compiler",
+                "0.1.0",
+                Sha256Digest::from_bytes(b"view compiler source"),
+                Sha256Digest::from_bytes(b"view compiler configuration"),
+                vec!["input:generator-version:power-fabric-view-compiler".into()],
+                true,
+                b"resident output",
+            ),
+            Err(crate::DerivedArtifactReceiptError::DuplicateDependencyId { .. })
+        ));
+    }
+
+
+    #[test]
+    fn incomplete_derived_artifact_dependencies_fail_closed_in_change_impact() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            false,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter",
+            "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let report = graph.assess(
+            Vec::new(),
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated()["artifact:resident-view"]
+            .contains(&crate::InvalidationReason::DependencyInventoryIncomplete));
+    }
+
+
+    #[test]
+    fn mapping_profile_serializes_complex_maps_as_ordered_structured_arrays() {
+        let value = serde_json::to_value(profile()).unwrap();
+        assert!(value["object_kind_map"].is_array());
+        assert!(value["relationship_kind_map"].is_array());
+        assert!(value["domain_evidence_map"].is_array());
+        assert_eq!(value["object_kind_map"][0]["source"]["namespace"], "urn:pf:test");
+    }
+
+    #[test]
+    fn reproducible_compilation_emits_stable_digest_bound_build_receipt() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = first.receipt();
+        assert_eq!(receipt.receipt_version(), 1);
+        assert_eq!(receipt.digest_algorithm(), "sha256");
+        assert_eq!(receipt.source_document_revision_id(), "revision:ir:1");
+        assert_eq!(receipt.mapping_profile_id(), "profile:home");
+        assert_eq!(receipt.graph_revision_id(), "revision:1");
+        assert_eq!(receipt.graph_maturity(), GraphMaturity::DesignOnly);
+        assert!(receipt.source_document_digest().as_str().starts_with("sha256:"));
+        assert!(receipt.mapping_profile_digest().as_str().starts_with("sha256:"));
+        assert!(receipt.service_graph_payload_digest().as_str().starts_with("sha256:"));
+        assert!(receipt.build_lock_digest().as_str().starts_with("sha256:"));
+        assert_eq!(receipt.build_lock_digest(), second.receipt().build_lock_digest());
+        assert_eq!(receipt.compiler_source_digest(), &Sha256Digest::from_bytes(b"synthetic compiler source tree"));
+        assert_eq!(receipt.build_configuration_digest(), &Sha256Digest::from_bytes(b"release;default-features;target=x86_64-unknown-linux-gnu"));
+        assert_eq!(receipt.dependency_lock_digest(), &Sha256Digest::from_bytes(b"synthetic Cargo.lock"));
+        assert_eq!(receipt.standard_profiles().len(), 1);
+        assert_eq!(receipt.upstream_artifacts().len(), 1);
+    }
+
+
+    #[test]
+    fn changed_standard_correction_notice_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let corrected = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_correction(true, true, b"synthetic Cargo.lock"),
+        ).unwrap();
+        let uncorrected = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_correction(true, false, b"synthetic Cargo.lock"),
+        ).unwrap();
+        assert_ne!(
+            corrected.receipt().build_lock_digest(),
+            uncorrected.receipt().build_lock_digest()
+        );
+        assert_eq!(
+            corrected.receipt().standard_profiles()[0].standard().corrections(),
+            &["CORRECTED VERSION 2026-11".to_owned()]
+        );
+        assert!(uncorrected.receipt().standard_profiles()[0].standard().corrections().is_empty());
+    }
+
+
+    #[test]
+    fn changed_standard_profile_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let a = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let b = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(false),
+        ).unwrap();
+        assert_ne!(a.receipt().build_lock_digest(), b.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_mapping_profile_changes_profile_and_build_lock_digests() {
+        let document = doc(RelationshipDirection::Directed);
+        let original_profile = profile();
+        let mut changed_profile = profile();
+        changed_profile.domain_evidence_map.insert(
+            ClaimDomain::Declared, GraphEvidenceState::FieldObserved,
+        );
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &original_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &changed_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert_ne!(original.receipt().mapping_profile_digest(), changed.receipt().mapping_profile_digest());
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
+
+    #[test]
+    fn changed_module_configuration_changes_mapping_graph_and_build_lock_digests() {
+        let document = doc(RelationshipDirection::Directed);
+        let original_profile = profile();
+        let mut changed_profile = profile();
+        changed_profile.object_module_identities.insert(
+            "source:grid".into(),
+            crate::ModuleIdentity::new(
+                "module:grid-inverter",
+                "hardware:R2",
+                "sha256:replacement-configuration",
+                true,
+            ).unwrap(),
+        );
+
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &original_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &changed_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+
+        assert_eq!(
+            original.receipt().source_document_digest(),
+            changed.receipt().source_document_digest()
+        );
+        assert_ne!(
+            original.receipt().mapping_profile_digest(),
+            changed.receipt().mapping_profile_digest()
+        );
+        assert_ne!(
+            original.receipt().service_graph_payload_digest(),
+            changed.receipt().service_graph_payload_digest()
+        );
+        assert_ne!(
+            original.receipt().build_lock_digest(),
+            changed.receipt().build_lock_digest()
+        );
+        assert_eq!(
+            changed.compilation().graph().node("source:grid").unwrap()
+                .module_identity().unwrap().configuration_digest(),
+            "sha256:replacement-configuration"
+        );
+    }
+
+
+    #[test]
+    fn changed_compiler_source_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source A", b"release features", b"lock",
+            ),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source B", b"release features", b"lock",
+            ),
+        ).unwrap();
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_build_configuration_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source", b"release features", b"lock",
+            ),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source", b"debug features", b"lock",
+            ),
+        ).unwrap();
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
+
+    #[test]
+    fn changed_dependency_lock_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_lock(true, b"Cargo.lock revision A"),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_lock(true, b"Cargo.lock revision B"),
+        ).unwrap();
+        assert_ne!(first.receipt().build_lock_digest(), second.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_source_revision_changes_source_digest_and_build_lock() {
+        let first_document = doc(RelationshipDirection::Directed);
+        let source = first_document.objects()["source:grid"].clone();
+        let load = first_document.objects()["load:lighting"].clone();
+        let edge = first_document.relationships()["edge:grid-lighting"].clone();
+        let second_document = PowerFabricDocument::new(
+            IrSchemaVersion::current(), "document:1", "revision:ir:changed",
+            vec![source, load], vec![edge], Vec::new(),
+        ).unwrap();
+        let first = compile_ir_to_service_graph_reproducibly(
+            &first_document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &second_document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert_ne!(first.receipt().source_document_digest(), second.receipt().source_document_digest());
+        assert_ne!(first.receipt().build_lock_digest(), second.receipt().build_lock_digest());
     }
 
     #[test]
@@ -575,6 +1351,90 @@ mod tests {
             BTreeMap::from([(ns("association"),ServiceEdgeKind::PhysicalAssociation)]),
             BTreeMap::from([(ClaimDomain::Declared,GraphEvidenceState::Unknown)]),BTreeMap::new(),BTreeMap::new()),
             Err(GraphBridgeError::UnknownEvidenceStateMapping{..})));
+    }
+
+
+    #[test]
+    fn declared_claims_cannot_be_promoted_to_field_observed() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Declared, GraphEvidenceState::FieldObserved)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Declared,
+                requested_state: GraphEvidenceState::FieldObserved,
+            })
+        ));
+    }
+
+    #[test]
+    fn declared_claims_cannot_be_promoted_to_independently_reviewed() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Declared, GraphEvidenceState::IndependentlyReviewed)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Declared,
+                requested_state: GraphEvidenceState::IndependentlyReviewed,
+            })
+        ));
+    }
+
+    #[test]
+    fn observed_claims_cannot_be_promoted_to_independently_reviewed() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Observed, GraphEvidenceState::IndependentlyReviewed)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Observed,
+                requested_state: GraphEvidenceState::IndependentlyReviewed,
+            })
+        ));
+    }
+
+    #[test]
+    fn verified_claims_cannot_directly_claim_independent_review() {
+        assert!(matches!(
+            IrGraphMappingProfile::new(
+                "profile:unsafe", "0.1",
+                BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+                BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+                BTreeMap::from([(ClaimDomain::Verified, GraphEvidenceState::IndependentlyReviewed)]),
+                BTreeMap::new(), BTreeMap::new(),
+            ),
+            Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                domain: ClaimDomain::Verified,
+                requested_state: GraphEvidenceState::IndependentlyReviewed,
+            })
+        ));
+    }
+
+    #[test]
+    fn conservative_domain_mappings_are_accepted() {
+        assert!(IrGraphMappingProfile::new(
+            "profile:conservative", "0.1",
+            BTreeMap::from([(ns("load"), ServiceNodeKind::Load)]),
+            BTreeMap::from([(ns("association"), ServiceEdgeKind::PhysicalAssociation)]),
+            BTreeMap::from([
+                (ClaimDomain::DesignIntent, GraphEvidenceState::DesignDeclared),
+                (ClaimDomain::Declared, GraphEvidenceState::DesignDeclared),
+                (ClaimDomain::Observed, GraphEvidenceState::FieldObserved),
+            ]),
+            BTreeMap::new(), BTreeMap::new(),
+        ).is_ok());
     }
 
     #[test]
