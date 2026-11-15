@@ -114,3 +114,5 @@ The ladder reports:
 - the evidence-status label.
 
 This is a small exact synthetic diagnostic, not a simulator or industry comparison. The sample grid checks the implementation arithmetic on known maps; it does not prove a general curvature theorem. The analytic constants are known by construction and are labelled as such. The CI workflow runs this ladder on the exact triggering revision.
+
+Curvature evidence carries an explicit `valid_radius` measured in the input tangent metric. The requested perturbation radius must not exceed it; an extrapolation attempt fails with `CurvatureEvidenceRadiusExceeded`. Empirical estimates are likewise limited to their declared sampling radius and remain non-bounds.
