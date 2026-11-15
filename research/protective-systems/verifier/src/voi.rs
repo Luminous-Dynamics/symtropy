@@ -83,10 +83,14 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
         return Err(ProblemError("unsupported schema_version".into()));
     }
     if problem.evidence_class != "synthetic" {
-        return Err(ProblemError("only synthetic tasks are accepted by this microbenchmark".into()));
+        return Err(ProblemError(
+            "only synthetic tasks are accepted by this microbenchmark".into(),
+        ));
     }
     if problem.task_id.trim().is_empty() || problem.intended_use.trim().is_empty() {
-        return Err(ProblemError("task_id and intended_use must be non-empty".into()));
+        return Err(ProblemError(
+            "task_id and intended_use must be non-empty".into(),
+        ));
     }
     if !problem.prior.state_a.is_finite()
         || !problem.prior.state_b.is_finite()
@@ -94,19 +98,27 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
         || problem.prior.state_b < 0.0
         || (problem.prior.state_a + problem.prior.state_b - 1.0).abs() > 1e-12
     {
-        return Err(ProblemError("prior probabilities must be finite, non-negative, and sum to one".into()));
+        return Err(ProblemError(
+            "prior probabilities must be finite, non-negative, and sum to one".into(),
+        ));
     }
     if !problem.loss.correct_decision.is_finite()
         || !problem.loss.incorrect_decision.is_finite()
         || problem.loss.incorrect_decision <= problem.loss.correct_decision
     {
-        return Err(ProblemError("losses must be finite and incorrect loss must exceed correct loss".into()));
+        return Err(ProblemError(
+            "losses must be finite and incorrect loss must exceed correct loss".into(),
+        ));
     }
     if !problem.experiment_budget.is_finite() || problem.experiment_budget < 0.0 {
-        return Err(ProblemError("experiment_budget must be finite and non-negative".into()));
+        return Err(ProblemError(
+            "experiment_budget must be finite and non-negative".into(),
+        ));
     }
     if !problem.decision_cost_weight.is_finite() || problem.decision_cost_weight < 0.0 {
-        return Err(ProblemError("decision_cost_weight must be finite and non-negative".into()));
+        return Err(ProblemError(
+            "decision_cost_weight must be finite and non-negative".into(),
+        ));
     }
     if problem.experiments.is_empty() {
         return Err(ProblemError("at least one experiment is required".into()));
@@ -115,17 +127,25 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
     let mut ids = BTreeSet::new();
     for experiment in &problem.experiments {
         if experiment.id.trim().is_empty() || !ids.insert(experiment.id.as_str()) {
-            return Err(ProblemError("experiment IDs must be non-empty and unique".into()));
+            return Err(ProblemError(
+                "experiment IDs must be non-empty and unique".into(),
+            ));
         }
         if !experiment.cost.is_finite() || experiment.cost < 0.0 {
-            return Err(ProblemError(format!("{} has an invalid cost", experiment.id)));
+            return Err(ProblemError(format!(
+                "{} has an invalid cost",
+                experiment.id
+            )));
         }
         for p in [
             experiment.p_observation_a_given_state_a,
             experiment.p_observation_a_given_state_b,
         ] {
             if !p.is_finite() || !(0.0..=1.0).contains(&p) {
-                return Err(ProblemError(format!("{} has a likelihood outside [0,1]", experiment.id)));
+                return Err(ProblemError(format!(
+                    "{} has a likelihood outside [0,1]",
+                    experiment.id
+                )));
             }
         }
     }
@@ -190,26 +210,25 @@ pub fn run(problem: &Problem) -> Result<BenchmarkReport, ProblemError> {
         });
     }
 
-    let best_candidate = scores
-        .iter()
-        .filter(|s| s.affordable)
-        .min_by(|a, b| {
-            a.cost_adjusted_objective
-                .total_cmp(&b.cost_adjusted_objective)
-                .then_with(|| a.experiment_id.cmp(&b.experiment_id))
-        });
+    let best_candidate = scores.iter().filter(|s| s.affordable).min_by(|a, b| {
+        a.cost_adjusted_objective
+            .total_cmp(&b.cost_adjusted_objective)
+            .then_with(|| a.experiment_id.cmp(&b.experiment_id))
+    });
     // "Do nothing" is a first-class action. Never run a test whose expected
     // cost-adjusted objective is no better than the current decision.
     let best = best_candidate.filter(|s| s.cost_adjusted_objective < baseline);
     let cheapest = scores
         .iter()
-        .min_by(|a, b| a.cost.total_cmp(&b.cost).then_with(|| a.experiment_id.cmp(&b.experiment_id)))
+        .min_by(|a, b| {
+            a.cost
+                .total_cmp(&b.cost)
+                .then_with(|| a.experiment_id.cmp(&b.experiment_id))
+        })
         .expect("validated non-empty experiment set");
 
     let best_id = best.map(|s| s.experiment_id.clone());
-    let best_objective = best
-        .map(|s| s.cost_adjusted_objective)
-        .unwrap_or(baseline);
+    let best_objective = best.map(|s| s.cost_adjusted_objective).unwrap_or(baseline);
 
     Ok(BenchmarkReport {
         task_id: problem.task_id.clone(),
@@ -219,7 +238,8 @@ pub fn run(problem: &Problem) -> Result<BenchmarkReport, ProblemError> {
         best_experiment_id: best_id.clone(),
         best_cost_adjusted_objective: best_objective,
         expected_best_experiment_id: problem.expected_best_experiment_id.clone(),
-        oracle_matches_fixture: best_id.as_deref() == Some(problem.expected_best_experiment_id.as_str()),
+        oracle_matches_fixture: best_id.as_deref()
+            == Some(problem.expected_best_experiment_id.as_str()),
         cheapest_experiment_id: cheapest.experiment_id.clone(),
         cheapest_experiment_objective: cheapest.cost_adjusted_objective,
         scores,
@@ -243,7 +263,10 @@ mod tests {
     #[test]
     fn exact_oracle_selects_anti_correlated_proxy_after_inverting_it() {
         let report = run(&problem()).expect("valid problem");
-        assert_eq!(report.best_experiment_id.as_deref(), Some("ANTI_CORRELATED_PROXY"));
+        assert_eq!(
+            report.best_experiment_id.as_deref(),
+            Some("ANTI_CORRELATED_PROXY")
+        );
         assert!(report.oracle_matches_fixture);
     }
 
@@ -254,8 +277,13 @@ mod tests {
 
         let by_id = |id: &str| problem.experiments.iter().find(|e| e.id == id).unwrap();
         assert!((expected_bayes_loss(&problem, by_id("CHEAP_WEAK_PROXY")) - 0.34).abs() < 1e-12);
-        assert!((expected_bayes_loss(&problem, by_id("EXPENSIVE_HIGH_INFORMATION")) - 0.10).abs() < 1e-12);
-        assert!((expected_bayes_loss(&problem, by_id("ANTI_CORRELATED_PROXY")) - 0.05).abs() < 1e-12);
+        assert!(
+            (expected_bayes_loss(&problem, by_id("EXPENSIVE_HIGH_INFORMATION")) - 0.10).abs()
+                < 1e-12
+        );
+        assert!(
+            (expected_bayes_loss(&problem, by_id("ANTI_CORRELATED_PROXY")) - 0.05).abs() < 1e-12
+        );
         assert!((expected_bayes_loss(&problem, by_id("UNINFORMATIVE_PROXY")) - 0.40).abs() < 1e-12);
     }
 
@@ -269,8 +297,11 @@ mod tests {
     #[test]
     fn naive_signal_direction_fails_on_anti_correlated_proxy() {
         let problem = problem();
-        let experiment = problem.experiments.iter()
-            .find(|e| e.id == "ANTI_CORRELATED_PROXY").unwrap();
+        let experiment = problem
+            .experiments
+            .iter()
+            .find(|e| e.id == "ANTI_CORRELATED_PROXY")
+            .unwrap();
         assert!((naive_same_direction_loss(&problem, experiment) - 0.95).abs() < 1e-12);
         assert!(expected_bayes_loss(&problem, experiment) < 0.1);
     }
@@ -280,7 +311,10 @@ mod tests {
         let mut problem = problem();
         problem.experiment_budget = 0.7;
         let report = run(&problem).expect("valid problem");
-        assert_ne!(report.best_experiment_id.as_deref(), Some("ANTI_CORRELATED_PROXY"));
+        assert_ne!(
+            report.best_experiment_id.as_deref(),
+            Some("ANTI_CORRELATED_PROXY")
+        );
     }
 
     #[test]
