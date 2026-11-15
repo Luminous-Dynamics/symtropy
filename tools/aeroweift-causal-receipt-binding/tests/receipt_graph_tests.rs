@@ -135,7 +135,14 @@ fn surveillance_receipt(
     traffic_class: TrafficClass,
     parents: Vec<ParentEdge>,
 ) -> Receipt {
-    let mut result = receipt(id, Stage::SurveillanceAssessment, sequence, disposition, parents, None);
+    let mut result = receipt(
+        id,
+        Stage::SurveillanceAssessment,
+        sequence,
+        disposition,
+        parents,
+        None,
+    );
     result.traffic_class = Some(traffic_class);
     result
 }
