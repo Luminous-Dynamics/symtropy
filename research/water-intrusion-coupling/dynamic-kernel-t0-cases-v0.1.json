@@ -7,7 +7,7 @@
       "case_id": "DK-T0-001-static-zero-delay-limit",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -70,7 +70,7 @@
       "case_id": "DK-T0-002-delayed-outlet-specific-response",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -143,7 +143,7 @@
       "case_id": "DK-T0-003-substochastic-kernel-open-residual",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -206,7 +206,7 @@
       "case_id": "DK-T0-004-truncated-temporal-window",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "truncated",
         "kernel_support_state": "complete",
@@ -273,7 +273,7 @@
       "case_id": "DK-T0-005-measured-physical-inventory",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -336,7 +336,7 @@
       "case_id": "DK-T0-006-sensor-response-uncalibrated",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -399,7 +399,7 @@
       "case_id": "DK-T0-007-calibrated-sensor-lag",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -445,9 +445,11 @@
         "kernel": [
           [
             [
-              0.5
+              0.5,
+              0
             ],
             [
+              0,
               0
             ]
           ],
@@ -457,6 +459,7 @@
               0.5
             ],
             [
+              0,
               0
             ]
           ]
@@ -467,7 +470,7 @@
       "case_id": "DK-T0-008-flow-reversal-unobserved",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -530,7 +533,7 @@
       "case_id": "DK-T0-009-out-of-domain",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -593,7 +596,7 @@
       "case_id": "DK-T0-010-negative-kernel-coefficient",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -656,7 +659,7 @@
       "case_id": "DK-T0-011-same-steady-gain-different-delay",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -700,17 +703,25 @@
         "kernel": [
           [
             [
-              1
+              1,
+              0,
+              0
             ],
             [
+              0,
+              0,
               0
             ]
           ],
           [
             [
+              0,
+              0,
               0
             ],
             [
+              0,
+              0,
               0
             ]
           ]
@@ -730,9 +741,13 @@
           ],
           [
             [
+              0,
+              0,
               0
             ],
             [
+              0,
+              0,
               0
             ]
           ]
@@ -744,7 +759,7 @@
       "case_id": "DK-T0-012-temporal-resolution-inadequate",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": true,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
@@ -790,12 +805,78 @@
               1
             ],
             [
+              0,
               0
             ]
           ],
           [
             [
+              0,
               0
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "DK-T0-013-partial-outlet-boundary",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": false,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "mass_residual_standard_uncertainty": 0.01,
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "temporal_resolution_state": "sufficient",
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
             ],
             [
               0
@@ -808,7 +889,7 @@
       "case_id": "DK-T0-013-partial-outlet-boundary",
       "inputs": {
         "sample_interval_seconds": 1,
-        "mass_unit": "mg_per_s*s",
+        "mass_unit": "mg",
         "all_outlets_observed": false,
         "temporal_boundary_state": "complete",
         "kernel_support_state": "complete",
