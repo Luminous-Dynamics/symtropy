@@ -1,0 +1,297 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-SURVEY-HT-VARIANCE-001",
+  "status": "PUBLIC_SYNTHETIC_SURVEY_VARIANCE_NOT_DESIGN_AUTHENTICATION",
+  "claim_ceiling": "Eight synthetic survey cases exercise the Horvitz–Thompson total and its unbiased design variance from explicitly supplied first- and second-order inclusion probabilities. The cases include an independent Poisson pair, non-zero covariance, a negative realised variance estimate with no standard error, and pair/design metadata refusal controls. No real national forest inventory design or microdata are authenticated.",
+  "cases": [
+    {
+      "case_id": "SURVEY-HT-VAR-UNEQUAL-DESIGN-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.1
+        }
+      ],
+      "expected": {
+        "horvitz_thompson_total": 28,
+        "variance_estimate": 252,
+        "standard_error": 15.874507866387544,
+        "status": "HT_VARIANCE_ESTIMATE_NONNEGATIVE_STANDARD_ERROR_AVAILABLE",
+        "sample_pair_count": 1
+      }
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-INDEPENDENT-POISSON-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "poisson",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "poisson",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "poisson",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.125
+        }
+      ],
+      "expected": {
+        "horvitz_thompson_total": 28,
+        "variance_estimate": 332,
+        "standard_error": 18.2208671582886,
+        "status": "HT_VARIANCE_ESTIMATE_NONNEGATIVE_STANDARD_ERROR_AVAILABLE",
+        "sample_pair_count": 1
+      }
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-NEGATIVE-REALIZATION-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "rare-joint-design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "rare-joint-design",
+          "design_kind": "probability_sample",
+          "observed_count": 1000,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "rare-joint-design",
+          "design_kind": "probability_sample",
+          "observed_count": 1000,
+          "inclusion_probability": 0.5
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.01
+        }
+      ],
+      "expected": {
+        "horvitz_thompson_total": 4000,
+        "variance_estimate": -188000000,
+        "standard_error": null,
+        "status": "HT_VARIANCE_ESTIMATE_NEGATIVE_STANDARD_ERROR_UNAVAILABLE",
+        "sample_pair_count": 1
+      }
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-MISSING-PAIR-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ],
+      "pair_inclusions": [],
+      "expected_error": "MissingJointInclusionProbability"
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-DUPLICATE-PAIR-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.1
+        },
+        {
+          "left_sample_unit_id": "b",
+          "right_sample_unit_id": "a",
+          "joint_inclusion_probability": 0.1
+        }
+      ],
+      "expected_error": "DuplicateJointInclusionProbability"
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-UPPER-BOUND-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.3
+        }
+      ],
+      "expected_error": "InvalidJointInclusionProbability"
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-FRECHET-LOWER-BOUND-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.8
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.8
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.5
+        }
+      ],
+      "expected_error": "InvalidJointInclusionProbability"
+    },
+    {
+      "case_id": "SURVEY-HT-VAR-DESIGN-MISMATCH-001",
+      "kind": "ht_count_variance",
+      "sampling_frame_id": "frame",
+      "sampling_design_id": "design",
+      "population_unit_count": 10,
+      "samples": [
+        {
+          "sample_unit_id": "a",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "design",
+          "design_kind": "probability_sample",
+          "observed_count": 4,
+          "inclusion_probability": 0.5
+        },
+        {
+          "sample_unit_id": "b",
+          "sampling_frame_id": "frame",
+          "sampling_design_id": "other-design",
+          "design_kind": "probability_sample",
+          "observed_count": 5,
+          "inclusion_probability": 0.25
+        }
+      ],
+      "pair_inclusions": [
+        {
+          "left_sample_unit_id": "a",
+          "right_sample_unit_id": "b",
+          "joint_inclusion_probability": 0.1
+        }
+      ],
+      "expected_error": "InvalidSamplingFrame"
+    }
+  ],
+  "execution": {
+    "runner": "EXPLICIT_PAIR_INCLUSION_HT_VARIANCE",
+    "external_data_ingested": false,
+    "design_authentication": "NOT_ESTABLISHED",
+    "population_total_variance": "SYNTHETIC_ONLY",
+    "negative_variance_standard_error": "NOT_REPORTED"
+  }
+}
