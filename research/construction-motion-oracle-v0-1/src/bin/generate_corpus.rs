@@ -58,12 +58,13 @@ fn point_segment_distance(point: Point, start: Point, end: Point) -> f64 {
         (ap.iter().zip(ab).map(|(a, b)| a * b).sum::<f64>() / denominator)
             .clamp(0.0, 1.0)
     };
-    let closest = Point {
-        x: (start.x as f64 + ab[0] * parameter).round() as i64,
-        y: (start.y as f64 + ab[1] * parameter).round() as i64,
-        z: (start.z as f64 + ab[2] * parameter).round() as i64,
-    };
-    distance(point, closest)
+    let closest_x = start.x as f64 + ab[0] * parameter;
+    let closest_y = start.y as f64 + ab[1] * parameter;
+    let closest_z = start.z as f64 + ab[2] * parameter;
+    let dx = point.x as f64 - closest_x;
+    let dy = point.y as f64 - closest_y;
+    let dz = point.z as f64 - closest_z;
+    (dx * dx + dy * dy + dz * dz).sqrt()
 }
 
 fn semicircle_distance(point: Point, radius: i64) -> f64 {
@@ -308,7 +309,6 @@ fn generate() -> (String, usize, usize, usize, usize) {
     let mut collisions = 0;
     let mut endpoint_misses = 0;
     let mut chord_misses = 0;
-    let mut broad_phase_false_positives = 0;
 
     for family in [Family::Linear, Family::UpperSemicircle] {
         for partition in [Partition::Development, Partition::Holdout] {
@@ -328,10 +328,6 @@ fn generate() -> (String, usize, usize, usize, usize) {
                 }
                 if chord_miss {
                     chord_misses += 1;
-                }
-                if !contact {
-                    // The last three metrics are recomputed in the test from fixture
-                    // semantics; this count is not needed to generate the JSON.
                 }
                 cases.push(json);
             }
