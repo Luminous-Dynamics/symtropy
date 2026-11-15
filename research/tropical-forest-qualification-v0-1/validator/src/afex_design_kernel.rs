@@ -58,7 +58,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let factors = design.get("factors").and_then(Value::as_array)
         .ok_or_else(|| "design.factors must be an array".to_string())?;
     let factor_names: Vec<&str> = factors.iter().filter_map(Value::as_str).collect();
-    if factor_names != ["N", "P", "C"] {
+    if factor_names.len() != 3 || factor_names[0] != "N" || factor_names[1] != "P" || factor_names[2] != "C" {
         return Err("design.factors must be exactly [N, P, C]".to_string());
     }
     let expected_blocks = usize_at(design, "expected_block_count")?;
@@ -117,7 +117,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         }
         let factors = plot.get("factors").ok_or_else(|| format!("plots[{index}].factors required"))?;
         let mut values = [0_u64; 3];
-        for (slot, name) in ["N", "P", "C"].iter().enumerate() {
+        for (slot, name) in ["N", "P", "C"].into_iter().enumerate() {
             let value = factors.get(name).and_then(Value::as_u64);
             match value {
                 Some(v @ 0..=1) => values[slot] = v,
@@ -193,19 +193,20 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let source = manifest.get("source_metadata")
         .ok_or_else(|| "source_metadata is required".to_string())?;
     let source_identity = string_at(source, "doi")? == "10.5285/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3"
-        && bool_at(source, "external_data_ingested")? == false
-        && bool_at(source, "archive_checksum_verified")? == false;
+        && !bool_at(source, "external_data_ingested")?
+        && !bool_at(source, "archive_checksum_verified")?;
     push_check(&mut checks, "AFEX-NO-INGESTION-CLAIM-001", source_identity,
         "archive is a candidate source; fixture does not claim data bytes or checksum verification");
 
-    let passed = checks.iter().all(|check| check["passed"] == true);
+    let passed = checks.iter().all(|check| check["passed"].as_bool() == Some(true));
     let check_count = checks.len();
-    let passed_count = checks.iter().filter(|check| check["passed"] == true).count();
+    let passed_count = checks.iter().filter(|check| check["passed"].as_bool() == Some(true)).count();
+    let result = if passed { "PASS_SYNTHETIC_AFEX_DESIGN" } else { "FAIL" };
     let mut report = json!({
         "schema_version":"0.1.0",
         "benchmark_id":"LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
         "corpus_id":"AFEX-FACTORIAL-DESIGN-001",
-        "result":if passed {"PASS_SYNTHETIC_AFEX_DESIGN"} else {"FAIL"},
+        "result":result,
         "source_manifest_sha256":sha256_hex(raw),
         "case_count":1,
         "plot_row_count":plots.len(),
@@ -214,7 +215,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         "treatment_count":treatments.len(),
         "complete_block_treatment_cells":cell_counts.len(),
         "factorial_treatment_rank":if exact_factorial {8} else {0},
-        "block_contrast_rank":if all_cells_once {3} else {0},
+        "block_contrast_rank":if all_cells_once && factor_values_valid && exact_factorial {3} else {0},
         "full_design_rank":calculated_rank,
         "residual_degrees_of_freedom":if calculated_rank.is_some() {Some(plots.len().saturating_sub(expected_rank))} else {None::<usize>},
         "checks_total":check_count,
