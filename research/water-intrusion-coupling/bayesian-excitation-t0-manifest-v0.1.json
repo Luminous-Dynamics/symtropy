@@ -1,0 +1,8 @@
+{
+  "schema_version": "bayesian-excitation-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-BAYESIAN-EXPERIMENT-DESIGN-001",
+  "case_count": 1,
+  "case_ids": [
+    "BD-T0-CORPUS-001"
+  ]
+}
