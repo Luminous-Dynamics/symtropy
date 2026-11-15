@@ -283,6 +283,8 @@ jobs:
           cp tools/maritime-observability-evidence-validator/src/bin/maritime_validation_evidence_profile.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/observation_value.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/qualification_impact.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/main.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
           cp tools/maritime-observability-evidence-validator/src/lib.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
           tar -czf maritime-rustfmt-sources.tar.gz -C /tmp/maritime-rustfmt .
