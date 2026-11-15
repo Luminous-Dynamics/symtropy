@@ -96,3 +96,23 @@ cargo run --locked --package water-service-t0 --bin waterloop-architecture-t0 --
 ```
 
 The audit checks three-circuit identity, same-circuit graph edges, source-to-outlet reachability through quality gates, a reject route for each circuit and fail-safe controller transitions. It does not establish local plumbing compliance, potable or reuse quality, component suitability or physical operation.
+
+
+### WaterLoop storage sizing
+
+The `waterloop-sizing-t0` binary derives minimum usable storage from time-resolved demand and admitted inflow, then reports dead volume, freeboard, uncertainty and contingency separately. It also calculates an idealized hydraulic-power lower bound for a declared flow and total dynamic head; it does not select a pump.
+
+Run the synthetic 16-case evaluator:
+
+```sh
+cargo fmt --package water-service-t0 -- --check
+cargo test --locked --package water-service-t0
+cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
+cargo run --locked --package water-service-t0 --bin waterloop-sizing-t0 -- \
+  research/water-service-engineering/waterloop-sizing-t0-v0.1.json \
+  research/water-service-engineering/waterloop-sizing-manifest-v0.1.json \
+  research/water-service-engineering/waterloop-sizing-oracle-v0.1.json \
+  artifacts/waterloop-sizing-t0/receipt.json
+```
+
+Protocol: [WATERLOOP_STORAGE_SIZING_V0_1.md](../../research/water-service-engineering/WATERLOOP_STORAGE_SIZING_V0_1.md). Qualification remains NotRun; no tank or pump is selected.
