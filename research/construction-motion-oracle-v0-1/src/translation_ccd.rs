@@ -41,8 +41,7 @@ pub struct TranslatingCapsuleClosestApproach {
 
 impl TranslatingCapsuleClosestApproach {
     pub fn is_contact(self, moving_radius_mm: f64, obstacle_radius_mm: f64) -> bool {
-        self.distance_mm
-            <= moving_radius_mm + obstacle_radius_mm + CONTACT_EPSILON_MM
+        self.distance_mm <= moving_radius_mm + obstacle_radius_mm + CONTACT_EPSILON_MM
     }
 }
 
@@ -71,11 +70,7 @@ pub fn translating_capsule_vs_capsule(
     let moving_axis = moving.end.sub(moving.start);
     let obstacle_axis = obstacle.end.sub(obstacle.start);
     let origin = moving.start.sub(obstacle.start);
-    let columns = [
-        translation,
-        moving_axis,
-        obstacle_axis.scale(-1.0),
-    ];
+    let columns = [translation, moving_axis, obstacle_axis.scale(-1.0)];
 
     let parameters = minimize_box_quadratic(origin, columns)?;
     let time_parameter = parameters[0];
@@ -129,13 +124,9 @@ pub fn endpoints_only_translating_capsule_collision(
     }
 
     let limit = moving.radius_mm + obstacle.radius_mm + CONTACT_EPSILON_MM;
-    let start_distance = crate::closest_segment_approach(
-        moving.start,
-        moving.end,
-        obstacle.start,
-        obstacle.end,
-    )
-    .distance_mm;
+    let start_distance =
+        crate::closest_segment_approach(moving.start, moving.end, obstacle.start, obstacle.end)
+            .distance_mm;
     let translated_start = moving.start.add(translation);
     let translated_end = moving.end.add(translation);
     let end_distance = crate::closest_segment_approach(
@@ -259,9 +250,7 @@ fn minimize_box_quadratic(
             // Reject the entire face if any free parameter was infeasible.
             let feasible = (0..free_count).all(|index| {
                 let value = solution[index];
-                value.is_finite()
-                    && value >= -PARAMETER_EPSILON
-                    && value <= 1.0 + PARAMETER_EPSILON
+                value.is_finite() && value >= -PARAMETER_EPSILON && value <= 1.0 + PARAMETER_EPSILON
             });
             if !feasible {
                 continue;
@@ -393,7 +382,9 @@ mod tests {
         let obstacle = capsule(p(0.0, -2.0, 0.0), p(0.0, 2.0, 0.0), 0.5);
         let translation = p(20.0, 0.0, 0.0);
 
-        assert!(!endpoints_only_translating_capsule_collision(moving, translation, obstacle).unwrap());
+        assert!(
+            !endpoints_only_translating_capsule_collision(moving, translation, obstacle).unwrap()
+        );
         assert!(translating_capsule_capsule_collision(moving, translation, obstacle).unwrap());
         let closest = translating_capsule_vs_capsule(moving, translation, obstacle).unwrap();
         assert!((closest.time_parameter - 0.5).abs() < 1.0e-9);
@@ -428,13 +419,9 @@ mod tests {
     fn zero_translation_matches_static_segment_distance() {
         let moving = capsule(p(-3.0, 0.0, 0.0), p(4.0, 1.0, 0.0), 0.4);
         let obstacle = capsule(p(0.0, 4.0, 1.0), p(2.0, -1.0, 1.0), 0.3);
-        let expected = crate::closest_segment_approach(
-            moving.start,
-            moving.end,
-            obstacle.start,
-            obstacle.end,
-        )
-        .distance_mm;
+        let expected =
+            crate::closest_segment_approach(moving.start, moving.end, obstacle.start, obstacle.end)
+                .distance_mm;
         let actual = translating_capsule_vs_capsule(moving, p(0.0, 0.0, 0.0), obstacle).unwrap();
         assert!((actual.distance_mm - expected).abs() < 1.0e-9);
     }
@@ -475,9 +462,17 @@ mod tests {
 
         let transform = |v: Vec3| p(100.0 - v.y, -30.0 + v.x, 25.0 + v.z);
         let moved = translating_capsule_vs_capsule(
-            capsule(transform(moving.start), transform(moving.end), moving.radius_mm),
+            capsule(
+                transform(moving.start),
+                transform(moving.end),
+                moving.radius_mm,
+            ),
             p(-translation.y, translation.x, translation.z),
-            capsule(transform(obstacle.start), transform(obstacle.end), obstacle.radius_mm),
+            capsule(
+                transform(obstacle.start),
+                transform(obstacle.end),
+                obstacle.radius_mm,
+            ),
         )
         .unwrap();
         assert!((original.distance_mm - moved.distance_mm).abs() < 1.0e-9);
@@ -492,7 +487,11 @@ mod tests {
 
         let scale = 7.0;
         let scaled = translating_capsule_vs_capsule(
-            capsule(moving.start.scale(scale), moving.end.scale(scale), moving.radius_mm * scale),
+            capsule(
+                moving.start.scale(scale),
+                moving.end.scale(scale),
+                moving.radius_mm * scale,
+            ),
             translation.scale(scale),
             capsule(
                 obstacle.start.scale(scale),
@@ -504,10 +503,7 @@ mod tests {
         assert!((scaled.distance_mm - base.distance_mm * scale).abs() < 1.0e-8);
         assert_eq!(
             base.is_contact(moving.radius_mm, obstacle.radius_mm),
-            scaled.is_contact(
-                moving.radius_mm * scale,
-                obstacle.radius_mm * scale
-            )
+            scaled.is_contact(moving.radius_mm * scale, obstacle.radius_mm * scale)
         );
     }
 
