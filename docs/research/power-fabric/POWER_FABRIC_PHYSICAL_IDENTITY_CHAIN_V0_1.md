@@ -29,7 +29,7 @@ Power Fabric must keep these identities distinct:
 
 A product model is not a physical instance. A serial label is not proof of product authenticity. A device-authenticated identity is not proof of wiring or topology. An installation record is not an engineering review or statutory approval.
 
-The design slot is stable across replacement. Physical instances are not. An assignment is a time-bounded relationship between them and is never overwritten.
+The design slot is stable across replacement. Physical instances are not. An assignment is a time-bounded relationship between them and is never overwritten. The slot binds the exact source graph node and module-contract ID, not just a human-readable position.
 
 ## 3. Event-sourced lifecycle
 
@@ -58,7 +58,8 @@ Every event binds:
 - event/phenomenon time and record/ingestion time as distinct fields;
 - actor reference and typed actor role;
 - identity-resolution method;
-- exact evidence references, each resolving to a content commitment/source receipt;
+- exact evidence references, each resolving to a content commitment/source receipt; every reference must be admitted at the selected cutoff by the upstream evidence-integrity verifier (#5171); a digest-shaped field alone is not admission;
+- for label observations, the exact observed identity namespace and serial string, compared against the declared physical-instance identity;
 - predecessor event IDs or an explicit concurrency/conflict state;
 - source build/graph revision when the event is derived from a design snapshot;
 - review-attestation reference where independent reconciliation is claimed.
@@ -82,7 +83,7 @@ The identity ladder is not a universal numerical score. A higher method does not
 
 ## 5. State projection
 
-The installation projection returns one explicit state per design slot:
+The installation projection returns one explicit state per design slot. Each event is admitted only after the upstream evidence verifier accepts every referenced source receipt at the requested as-known-at cutoff. Unknown or rejected evidence prevents the event from changing the projected physical state.
 
 - declared_only: design slot exists; no delivered or installed physical instance is established;
 - delivered_unreconciled: delivery is evidenced, but the individual unit is not reconciled to the installed position;
@@ -100,7 +101,7 @@ The projection reports claim-level dispositions as well as the slot summary. A s
 1. A design slot may exist without a physical instance.
 2. A product catalogue match may satisfy a model-level requirement but cannot identify an individual unit.
 3. A delivery record cannot create an installed assignment.
-4. A label observation cannot by itself establish authenticity, installed position or configuration.
+4. A label observation must bind the observed namespace and serial exactly to a known physical-instance record; a mismatch is a conflict. Even an exact match cannot by itself establish authenticity, installed position or configuration.
 5. A device identity assertion cannot establish electrical connection or topology.
 6. An installed assignment without the required inspection/review remains installed_unreconciled.
 7. A physical instance may not have two simultaneously active assignments to incompatible slots.
@@ -114,7 +115,7 @@ The projection reports claim-level dispositions as well as the slot summary. A s
 
 ## 7. Change-impact composition
 
-The identity chain does not implement a new dependency engine. It emits stable semantic dependency IDs and current fingerprints for the existing Power Fabric change-impact graph (#5218).
+The identity chain does not implement a new dependency engine. It emits stable semantic dependency IDs and current fingerprints for the existing Power Fabric change-impact graph (#5218). The independent review verifier receives an exact scope containing installation/build revision, source graph node, module-contract ID, expected and observed locations, manufacturer, identity namespace, serial, model/catalogue revision, hardware revision and configuration digest.
 
 Example dependency classes:
 
@@ -206,7 +207,7 @@ Do not fork credential validation, evidence trust, bitemporal freshness, or gene
 
 **P0 — contract:** schema, event semantics, frozen fixture, dependency mutation oracle, threat model and independent review of the contract.
 
-**P1 — Rust projection kernel:** typed IDs, append-only event validation, deterministic as-known-at projection, transition constraints, conflict/unknown outcomes, stable dependency fingerprints, and property/adversarial tests. Integrate in the existing Power Fabric domain module.
+**P1 — Rust projection kernel:** authored in `crates/domains/symtropy-energy-systems/src/physical_identity.rs` and exported from the crate. It includes typed design slots/product models/physical instances, append-only event validation, deterministic as-known-at projection, upstream evidence-admission and independent-review verifier interfaces, exact serial-observation matching, replacement/relocation/configuration transitions, conflict/unknown outcomes, and 15 authored unit tests. Rust formatting, compilation and test execution remain unverified in this environment.
 
 **P2 — full/incremental reconstruction:** replay complete history, apply changes, regenerate affected artifacts, compare semantic outputs and preserve immutable receipts.
 
