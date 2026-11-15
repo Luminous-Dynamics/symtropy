@@ -266,7 +266,13 @@ fn expand_case(
     bandwidth_m: f64,
     alpha: f64,
     minimum_ess: f64,
-) -> Result<(spatial_localization_kernel::SpatialLocalizationScenario, Vec<(usize, usize)>), String> {
+) -> Result<
+    (
+        spatial_localization_kernel::SpatialLocalizationScenario,
+        Vec<(usize, usize)>,
+    ),
+    String,
+> {
     let calibration_groups = case.get("calibration").and_then(Value::as_array)
         .ok_or_else(|| "calibration must be an array".to_string())?;
     let test_groups = case.get("test").and_then(Value::as_array)
@@ -683,7 +689,8 @@ mod tests {
 
     #[test]
     fn spatial_localization_receipt_rejects_mutated_moran_reference() {
-        let mut manifest: Value = serde_json::from_str(SPATIAL_FIXTURE).expect("valid spatial fixture");
+        let mut manifest: Value =
+            serde_json::from_str(SPATIAL_FIXTURE).expect("valid spatial fixture");
         manifest["moran_i_reference_cases"][0]["expected_morans_i"] = json!(-1.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
         let receipt = validate_spatial_localization(&bytes, &manifest)
