@@ -83,6 +83,7 @@ fn load_graph(profile: &Value) -> Result<Graph, String> {
             "capability_graph",
             "authority_boundary",
             "claim_ceiling",
+            "change_scenarios",
         ],
         "$",
     )?;
