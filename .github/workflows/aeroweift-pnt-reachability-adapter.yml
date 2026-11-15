@@ -35,7 +35,16 @@ jobs:
         with:
           components: clippy, rustfmt
       - name: Formatting
-        run: cargo fmt --manifest-path tools/aeroweift-pnt-reachability-adapter/Cargo.toml -- --check
+        run: cargo fmt --manifest-path tools/aeroweift-pnt-reachability-adapter/Cargo.toml
+      - name: Export temporary rustfmt patch
+        if: always()
+        run: git diff --binary -- tools/aeroweift-pnt-reachability-adapter > /tmp/rustfmt.patch
+      - name: Upload temporary rustfmt patch
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeroweift-rustfmt-pnt
+          path: /tmp/rustfmt.patch
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/aeroweift-pnt-reachability-adapter/Cargo.toml --all-targets -- -D warnings
       - name: Tests
