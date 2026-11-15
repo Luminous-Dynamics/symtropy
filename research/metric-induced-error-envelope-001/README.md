@@ -51,6 +51,25 @@ A one-sided Jacobi SVD estimates the singular spectrum without forming (B^T B). 
 
 The initial extension covers square dense operators only. It is not a formal interval enclosure and does not yet qualify rectangular constraint maps or nonlinear residual-to-state error.
 
+## Rectangular operators and the constraint coisometry
+
+The operator module now also supports frame-typed rectangular maps. A rectangular receipt reports the nonzero-space singular spectrum, maximum possible rank, domain nullity, codomain cokernel dimension and a condition estimate only when the map reaches full possible rank. A full-row-rank map from an N-dimensional tangent space to a K-dimensional constraint space can therefore have a legitimate K-value singular spectrum and an N-K-dimensional kernel; that kernel is not misreported as rank deficiency.
+
+For a full-row-rank constraint Jacobian J and mass metric M, define the Delassus cometric W = J M^-1 J^T and the constraint residual metric G_C = W^-1. The correctly whitened Jacobian is:
+
+`B = L_C^T J L_M^-T`, with `G_C = L_C L_C^T`.
+
+Then `B B^T = L_C^T W L_C = I_K`. The Jacobian is a metric coisometry: it has K singular values equal to one, condition one on its nonzero singular subspace, domain nullity N-K, and zero codomain cokernel. This is a stronger algebraic regression than checking that a generic SVD returns plausible numbers.
+
+The new tests cover:
+- a 2-by-3 full-row-rank Delassus-whitened Jacobian with singular spectrum (1,1);
+- invariance of that coisometry under a dense generalized-coordinate re-basing;
+- a rank-deficient 2-by-3 map whose kernel and cokernel are separately reported and which receives no finite condition claim;
+- the transposed Jacobi path for a 3-by-2 map;
+- a rectangular tangent-to-cotangent map using the codomain dual metric.
+
+This remains a bounded small-dense f64 qualification. It does not prove all constraint systems are coisometries: full row rank, the exact Delassus metric, and the correct variance laws are required. It does not qualify redundant constraint elimination, contact/friction or sparse articulated solvers.
+
 ## Scope and next step
 
 v0.1 is a small dense linear-algebra reference. It does not yet implement a backward/forward error envelope for a general operator, the constrained Delassus solve, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, contact/friction, sparse articulated systems or production solver claims.
