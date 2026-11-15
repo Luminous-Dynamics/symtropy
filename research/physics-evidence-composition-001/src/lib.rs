@@ -795,7 +795,7 @@ mod tests {
         );
         assert_eq!(output.task_authority, ClaimAuthorityV1::None);
         assert!(!output.scientific_search_pruning_authorized);
-        assert_eq!(output.evidence.len(), 7);
+        assert_eq!(output.evidence.len(), 8);
     }
 
     #[test]
