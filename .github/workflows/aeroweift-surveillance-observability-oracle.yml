@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Check out exact revision
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -35,7 +37,7 @@ jobs:
       - name: Formatting
         run: cargo fmt --manifest-path tools/aeroweift-surveillance-observability-oracle/Cargo.toml
       - name: Commit rustfmt output to the PR branch
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'research/aeroweFt-surveillance-observability-001'
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
