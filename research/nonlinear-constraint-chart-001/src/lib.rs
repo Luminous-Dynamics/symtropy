@@ -47,6 +47,7 @@ pub enum ConstraintChartErrorV1 {
     NonFiniteInput,
     NonFiniteIntermediate,
     SingularMassMetric,
+    SingularCoordinateMap,
     SingularConstraintDirection,
     NonConvergentProjection,
     InvalidIterationBudget,
@@ -251,6 +252,7 @@ pub fn dense_coordinate_map(
     q_from_y: Matrix2,
     y: Vector2,
 ) -> Result<Vector2, ConstraintChartErrorV1> {
+    validate_coordinate_map(q_from_y)?;
     mat_vec(q_from_y, y)
 }
 
@@ -259,7 +261,7 @@ pub fn pullback_constraint_jet(
     q_jet: ConstraintJetV1,
     q_from_y: Matrix2,
 ) -> Result<ConstraintJetV1, ConstraintChartErrorV1> {
-    validate_matrix(q_from_y)?;
+    validate_coordinate_map(q_from_y)?;
     let jacobian_y = mat_vec(transpose(q_from_y), q_jet.jacobian)?;
     let hessian_y = mat_mul(&mat_mul(&transpose(q_from_y), &q_jet.hessian)?, &q_from_y)?;
     Ok(ConstraintJetV1 {
@@ -296,6 +298,33 @@ fn validate_matrix(matrix: Matrix2) -> Result<(), ConstraintChartErrorV1> {
         || matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0] <= 0.0
     {
         return Err(ConstraintChartErrorV1::SingularMassMetric);
+    }
+    Ok(())
+}
+
+/// Admit a finite nonsingular coordinate map. A coordinate map is not a metric:
+/// it need not be symmetric or positive definite.
+fn validate_coordinate_map(matrix: Matrix2) -> Result<(), ConstraintChartErrorV1> {
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(ConstraintChartErrorV1::NonFiniteInput);
+    }
+    let scale = matrix
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
+    if scale == 0.0 {
+        return Err(ConstraintChartErrorV1::SingularCoordinateMap);
+    }
+    let a = matrix[0][0] / scale;
+    let b = matrix[0][1] / scale;
+    let c = matrix[1][0] / scale;
+    let d = matrix[1][1] / scale;
+    let normalized_determinant = a * d - b * c;
+    if !normalized_determinant.is_finite()
+        || normalized_determinant.abs() <= 64.0 * f64::EPSILON
+    {
+        return Err(ConstraintChartErrorV1::SingularCoordinateMap);
     }
     Ok(())
 }
@@ -495,6 +524,21 @@ mod tests {
         for residual in [-10.0, -1.0, 0.0, 0.5, 10.0] {
             assert!(nonlinear_chart().first_derivative(residual).unwrap() > 0.0);
         }
+    }
+
+    #[test]
+    fn nonsymmetric_dense_coordinate_maps_are_admitted_but_singular_maps_fail_closed() {
+        let valid = [[1.0, 2.0], [0.0, 1.0]];
+        validate_coordinate_map(valid).unwrap();
+        let singular = [[1.0, 2.0], [2.0, 4.0]];
+        assert_eq!(
+            pullback_constraint_jet(circle_base_jet([1.0, 0.0]).unwrap(), singular),
+            Err(ConstraintChartErrorV1::SingularCoordinateMap)
+        );
+        assert_eq!(
+            dense_coordinate_map([[f64::NAN, 0.0], [0.0, 1.0]], [1.0, 0.0]),
+            Err(ConstraintChartErrorV1::NonFiniteInput)
+        );
     }
 
     #[test]
