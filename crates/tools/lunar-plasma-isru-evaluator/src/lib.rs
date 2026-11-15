@@ -895,10 +895,10 @@ mod tests {
     }
 
     #[test]
-    fn frozen_fixture_matches_all_fifteen_dispositions() {
+    fn frozen_fixture_matches_all_sixteen_dispositions() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(report.scenario_count, 15);
-        assert_eq!(report.matched_expectations, 15);
+        assert_eq!(report.scenario_count, 16);
+        assert_eq!(report.matched_expectations, 16);
         assert_eq!(report.mismatched_expectations, 0);
         assert_eq!(report.evidence_class, "synthetic");
         assert!(!report.physical_measurements);
