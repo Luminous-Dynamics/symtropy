@@ -182,11 +182,23 @@ fn compute_storage(input: &Value) -> Result<Value, String> {
             "gross_installed_volume_m3": null
         }));
     }
-    for (index, value) in demand.iter().enumerate() {
-        nonnegative(*value, &format!("demand_m3_per_step[{index}]"))?;
+    if let Some(index) = demand.iter().position(|value| *value < 0.0) {
+        return Ok(json!({
+            "sizing_disposition": "REJECT",
+            "reason": "NEGATIVE_DEMAND_VOLUME",
+            "invalid_time_step_index": index,
+            "minimum_required_usable_capacity_m3": null,
+            "gross_installed_volume_m3": null
+        }));
     }
-    for (index, value) in raw_inflow.iter().enumerate() {
-        nonnegative(*value, &format!("raw_source_inflow_m3_per_step[{index}]"))?;
+    if let Some(index) = raw_inflow.iter().position(|value| *value < 0.0) {
+        return Ok(json!({
+            "sizing_disposition": "REJECT",
+            "reason": "NEGATIVE_SOURCE_INFLOW_VOLUME",
+            "invalid_time_step_index": index,
+            "minimum_required_usable_capacity_m3": null,
+            "gross_installed_volume_m3": null
+        }));
     }
 
     let time_step_hours = positive(number(input, "time_step_hours")?, "time_step_hours")?;
