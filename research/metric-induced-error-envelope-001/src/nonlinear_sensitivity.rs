@@ -19,6 +19,7 @@ pub enum NonlinearSensitivityErrorV1 {
     InvalidPerturbationRadius,
     InvalidEvidenceIdentity,
     InvalidCurvatureBound,
+    CurvatureEvidenceRadiusExceeded,
     NonFiniteIntermediate,
     Metric(MetricErrorV1),
     Operator(OperatorConditionErrorV1),
@@ -51,15 +52,21 @@ impl std::error::Error for NonlinearSensitivityErrorV1 {}
 pub enum CurvatureEvidenceV1 {
     AnalyticUpperBound {
         second_derivative_norm_bound: f64,
+        /// Largest input tangent-metric radius on which the bound is valid.
+        valid_radius: f64,
         evidence_id: String,
     },
     IntervalUpperBound {
         second_derivative_norm_upper: f64,
+        /// Largest input tangent-metric radius covered by the interval enclosure.
+        valid_radius: f64,
         evidence_id: String,
     },
     /// Sampled or finite-difference curvature; diagnostic only.
     EmpiricalEstimate {
         second_derivative_norm_estimate: f64,
+        /// Largest radius covered by the empirical sampling design.
+        valid_radius: f64,
         evidence_id: String,
     },
     Missing,
@@ -93,6 +100,7 @@ pub struct NonlinearOutputErrorReceiptV1 {
     pub first_order_output_error_estimate: f64,
     pub curvature_evidence_class: CurvatureEvidenceClassV1,
     pub curvature_evidence_id: Option<String>,
+    pub curvature_evidence_valid_radius: Option<f64>,
     pub curvature_norm_value: Option<f64>,
     pub nonlinear_remainder_estimate: Option<f64>,
     /// Populated only for analytic/interval evidence declarations.
@@ -127,6 +135,7 @@ pub struct ObservableSensitivityReceiptV1<Domain: CoordinateFrame, const N: usiz
 struct CurvatureContributionV1 {
     class: CurvatureEvidenceClassV1,
     evidence_id: Option<String>,
+    valid_radius: Option<f64>,
     norm_value: Option<f64>,
     remainder_estimate: Option<f64>,
     remainder_upper_estimate: Option<f64>,
@@ -136,6 +145,19 @@ struct CurvatureContributionV1 {
 fn validate_radius(radius: f64) -> Result<(), NonlinearSensitivityErrorV1> {
     if !radius.is_finite() || radius < 0.0 {
         return Err(NonlinearSensitivityErrorV1::InvalidPerturbationRadius);
+    }
+    Ok(())
+}
+
+fn validate_evidence_radius(
+    requested_radius: f64,
+    valid_radius: f64,
+) -> Result<(), NonlinearSensitivityErrorV1> {
+    if !valid_radius.is_finite() || valid_radius < 0.0 {
+        return Err(NonlinearSensitivityErrorV1::InvalidCurvatureBound);
+    }
+    if requested_radius > valid_radius {
+        return Err(NonlinearSensitivityErrorV1::CurvatureEvidenceRadiusExceeded);
     }
     Ok(())
 }
@@ -165,8 +187,10 @@ fn curvature_contribution(
     match evidence {
         CurvatureEvidenceV1::AnalyticUpperBound {
             second_derivative_norm_bound,
+            valid_radius,
             evidence_id,
         } => {
+            validate_evidence_radius(radius, *valid_radius)?;
             if evidence_id.trim().is_empty() {
                 return Err(NonlinearSensitivityErrorV1::InvalidEvidenceIdentity);
             }
@@ -177,6 +201,7 @@ fn curvature_contribution(
             Ok(CurvatureContributionV1 {
                 class: CurvatureEvidenceClassV1::AnalyticUpperBound,
                 evidence_id: Some(evidence_id.clone()),
+                valid_radius: Some(*valid_radius),
                 norm_value: Some(*second_derivative_norm_bound),
                 remainder_estimate: Some(remainder),
                 remainder_upper_estimate: Some(remainder),
@@ -185,8 +210,10 @@ fn curvature_contribution(
         }
         CurvatureEvidenceV1::IntervalUpperBound {
             second_derivative_norm_upper,
+            valid_radius,
             evidence_id,
         } => {
+            validate_evidence_radius(radius, *valid_radius)?;
             if evidence_id.trim().is_empty() {
                 return Err(NonlinearSensitivityErrorV1::InvalidEvidenceIdentity);
             }
@@ -197,6 +224,7 @@ fn curvature_contribution(
             Ok(CurvatureContributionV1 {
                 class: CurvatureEvidenceClassV1::IntervalUpperBound,
                 evidence_id: Some(evidence_id.clone()),
+                valid_radius: Some(*valid_radius),
                 norm_value: Some(*second_derivative_norm_upper),
                 remainder_estimate: Some(remainder),
                 remainder_upper_estimate: Some(remainder),
@@ -205,8 +233,10 @@ fn curvature_contribution(
         }
         CurvatureEvidenceV1::EmpiricalEstimate {
             second_derivative_norm_estimate,
+            valid_radius,
             evidence_id,
         } => {
+            validate_evidence_radius(radius, *valid_radius)?;
             if evidence_id.trim().is_empty() {
                 return Err(NonlinearSensitivityErrorV1::InvalidEvidenceIdentity);
             }
@@ -217,6 +247,7 @@ fn curvature_contribution(
             Ok(CurvatureContributionV1 {
                 class: CurvatureEvidenceClassV1::EmpiricalEstimate,
                 evidence_id: Some(evidence_id.clone()),
+                valid_radius: Some(*valid_radius),
                 norm_value: Some(*second_derivative_norm_estimate),
                 remainder_estimate: Some(remainder),
                 remainder_upper_estimate: None,
@@ -226,6 +257,7 @@ fn curvature_contribution(
         CurvatureEvidenceV1::Missing => Ok(CurvatureContributionV1 {
             class: CurvatureEvidenceClassV1::Missing,
             evidence_id: None,
+            valid_radius: None,
             norm_value: None,
             remainder_estimate: None,
             remainder_upper_estimate: None,
@@ -302,6 +334,7 @@ pub fn propagate_output_error<
         first_order_output_error_estimate: first_order,
         curvature_evidence_class: contribution.class,
         curvature_evidence_id: contribution.evidence_id,
+        curvature_evidence_valid_radius: contribution.valid_radius,
         curvature_norm_value: contribution.norm_value,
         nonlinear_remainder_estimate: contribution.remainder_estimate,
         nonlinear_remainder_upper_estimate: contribution.remainder_upper_estimate,
@@ -373,6 +406,7 @@ pub fn observable_sensitivity<
         first_order_observable_change_estimate: first_order,
         curvature_evidence_class: contribution.class,
         curvature_evidence_id: contribution.evidence_id,
+        curvature_evidence_valid_radius: contribution.valid_radius,
         curvature_norm_value: contribution.norm_value,
         nonlinear_remainder_estimate: contribution.remainder_estimate,
         nonlinear_remainder_upper_estimate: contribution.remainder_upper_estimate,
@@ -459,6 +493,7 @@ mod tests {
             0.1,
             &CurvatureEvidenceV1::AnalyticUpperBound {
                 second_derivative_norm_bound: 2.0,
+                valid_radius: 0.1,
                 evidence_id: "quadratic-F-second-derivative-v1".to_owned(),
             },
             operator_profile(),
@@ -494,6 +529,7 @@ mod tests {
             0.02,
             &CurvatureEvidenceV1::IntervalUpperBound {
                 second_derivative_norm_upper: 4.0,
+                valid_radius: 0.02,
                 evidence_id: "interval-hessian-enclosure-004".to_owned(),
             },
             operator_profile(),
@@ -522,6 +558,7 @@ mod tests {
             0.1,
             &CurvatureEvidenceV1::EmpiricalEstimate {
                 second_derivative_norm_estimate: 5.0,
+                valid_radius: 0.1,
                 evidence_id: "sampled-curvature-20-points".to_owned(),
             },
             operator_profile(),
@@ -581,6 +618,7 @@ mod tests {
             0.1,
             &CurvatureEvidenceV1::AnalyticUpperBound {
                 second_derivative_norm_bound: 0.0,
+                valid_radius: 0.1,
                 evidence_id: "affine-observable-local-bound".to_owned(),
             },
             operator_profile(),
@@ -622,6 +660,7 @@ mod tests {
 
         let curvature = CurvatureEvidenceV1::AnalyticUpperBound {
             second_derivative_norm_bound: 1.25,
+            valid_radius: 0.05,
             evidence_id: "same-physical-ball-hessian-v1".to_owned(),
         };
         let output_q = propagate_output_error(
@@ -664,6 +703,7 @@ mod tests {
             0.05,
             &CurvatureEvidenceV1::IntervalUpperBound {
                 second_derivative_norm_upper: 0.75,
+                valid_radius: 0.05,
                 evidence_id: "composite-observable-interval-v1".to_owned(),
             },
             operator_profile,
@@ -712,6 +752,7 @@ mod tests {
             0.1,
             &CurvatureEvidenceV1::AnalyticUpperBound {
                 second_derivative_norm_bound: 0.0,
+                valid_radius: 0.1,
                 evidence_id: "linear-rank-two-map-v1".to_owned(),
             },
             operator_profile(),
@@ -751,6 +792,7 @@ mod tests {
                 0.1,
                 &CurvatureEvidenceV1::AnalyticUpperBound {
                     second_derivative_norm_bound: f64::INFINITY,
+                    valid_radius: 0.1,
                     evidence_id: "invalid".to_owned()
                 },
                 operator_profile()
@@ -765,11 +807,37 @@ mod tests {
                 0.1,
                 &CurvatureEvidenceV1::AnalyticUpperBound {
                     second_derivative_norm_bound: 1.0,
+                    valid_radius: 0.1,
                     evidence_id: " ".to_owned()
                 },
                 operator_profile()
             ),
             Err(NonlinearSensitivityErrorV1::InvalidEvidenceIdentity)
+        );
+    }
+
+    #[test]
+    fn curvature_evidence_cannot_be_reused_beyond_its_validity_radius() {
+        let input = identity_metric::<CartesianQ, 1>();
+        let output = identity_metric::<DenseY, 1>();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]])
+                .unwrap();
+
+        assert_eq!(
+            propagate_output_error(
+                &jacobian,
+                &input,
+                &output,
+                0.2,
+                &CurvatureEvidenceV1::AnalyticUpperBound {
+                    second_derivative_norm_bound: 2.0,
+                    valid_radius: 0.1,
+                    evidence_id: "bound-only-on-radius-0.1".to_owned(),
+                },
+                operator_profile()
+            ),
+            Err(NonlinearSensitivityErrorV1::CurvatureEvidenceRadiusExceeded)
         );
     }
 
@@ -789,6 +857,7 @@ mod tests {
             0.1,
             &CurvatureEvidenceV1::EmpiricalEstimate {
                 second_derivative_norm_estimate: 10.0,
+                valid_radius: 0.1,
                 evidence_id: "finite-difference-curvature-samples".to_owned(),
             },
             operator_profile(),
