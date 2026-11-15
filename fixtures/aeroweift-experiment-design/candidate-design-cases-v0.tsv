@@ -25,3 +25,6 @@ candidate-array-permutation|reverse-order|SAME_RESULT
 duplicate-candidate-id|duplicate-id|STRUCTURAL_ERROR
 invalid-policy-digest|policy-digest|STRUCTURAL_ERROR
 reject-all-control|all-ineligible|ABSTAIN
+model-discrimination-without-semantic-equivalence|semantic-not-required|REJECT
+uninformative-probability-over-policy-maximum|probability-uninformative|REJECT
+empty-hypothesis-correlation-group|empty-group|REJECT
