@@ -126,3 +126,21 @@ Sources:
 ## Claim ceiling
 
 This update reports literature review, protocol crosswalks and software benchmark design. It does not report Rust compilation, CI success, dataset ingestion, model training, simulation, laboratory testing, physical damage-detection capability, vehicle safety improvement, housing outcomes, certification or SOTA superiority.
+
+
+## 7. Risk-sensitive co-design under nonstationarity — 15 November 2026
+
+A further research gap is now tracked in [PROTECT-ROBUST-001 #5317](https://github.com/Luminous-Dynamics/symtropy/issues/5317): whether protective designs remain feasible when hazard distributions, material properties, operating contexts and infrastructure dependencies shift. This is distinct from simply optimizing an expected value on a fixed scenario distribution.
+
+The benchmark separates aleatory variability, epistemic parameter uncertainty, model-form uncertainty, distribution shift and genuinely unknown/unbounded conditions. Unknown is not a distribution and must not be encoded as zero variance. Risk metrics are reported separately: worst-case loss, CVaR, distributionally robust bounds, hard-floor violations and recovery trajectories. None is a universal safety score.
+
+The research register now includes a small executable exact-oracle prototype:
+- [Finite ambiguity-set fixture](https://github.com/Luminous-Dynamics/symtropy/blob/research/protective-systems-benchmark-v0-1/research/protective-systems/robust/fixtures/finite-ambiguity-v0.1.json)
+- [Oracle specification and hand-checkable results](https://github.com/Luminous-Dynamics/symtropy/blob/research/protective-systems-benchmark-v0-1/research/protective-systems/robust/FINITE_AMBIGUITY_ORACLE_V0_1.md)
+- [Rust implementation](https://github.com/Luminous-Dynamics/symtropy/blob/research/protective-systems-benchmark-v0-1/research/protective-systems/verifier/src/robust.rs)
+
+It compares a nominal optimum, robust design and cheap fragile design across nominal, compound-hazard and shifted regimes. The fragile design is excluded by a hard floor, the robust design wins the finite ambiguity-set objective, an incomplete uncertainty set returns ABSTAIN, and a case with no feasible candidate returns NO_ROBUST_FEASIBLE_DESIGN.
+
+Relevant published baselines include variance-constrained robust Bayesian optimization (Zhou et al., *Reliability Engineering & System Safety*, October 2026, DOI https://doi.org/10.1016/j.ress.2026.112359), multi-stage adaptive robust multi-objective decision-making under deep uncertainty (Shavazipour & Stewart, *Omega*, January 2026, DOI https://doi.org/10.1016/j.omega.2025.103405), and a 1 November 2026 study combining BIM, EnergyPlus, NSGA-II and AI for outage-resilient envelope optimization across 14 climate zones and four housing typologies, with 16,856 simulations (DOI https://doi.org/10.1016/j.scs.2026.107977). These are named comparators to reproduce, not results we claim to have surpassed.
+
+No robust-design physical result, model run, or superiority claim is made by this exact finite oracle.
