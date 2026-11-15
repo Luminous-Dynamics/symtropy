@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/factory-reconfig-replay-cases-v0.1.schema.json",
+  "title": "Factory Reconfiguration Replay v0.1 Synthetic Cases",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_set_id",
+    "claim_ceiling",
+    "warning",
+    "authority_partition",
+    "required_phases",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "factory-reconfiguration-cases/0.1"
+    },
+    "case_set_id": {
+      "const": "FACTORY-RECONFIG-REPLAY-v0.1"
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_TRANSITION_CONFORMANCE_ONLY"
+    },
+    "warning": {
+      "type": "string",
+      "minLength": 40
+    },
+    "authority_partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_proposal",
+        "deterministic_replay",
+        "first_article_physical_acceptance",
+        "production_release"
+      ],
+      "properties": {
+        "design_proposal": {
+          "const": "SYTHAEA_CANDIDATE_AND_PLAN_ONLY"
+        },
+        "deterministic_replay": {
+          "const": "SYMTROPY_PURE_REPLAY_ONLY"
+        },
+        "first_article_physical_acceptance": {
+          "const": "INDEPENDENT_METROLOGY_REQUIRED"
+        },
+        "production_release": {
+          "const": "COMPETENT_HUMAN_AUTHORITY"
+        }
+      }
+    },
+    "required_phases": {
+      "const": [
+        "DRAIN_WIP",
+        "SAFE_STOP",
+        "ISOLATE",
+        "CHANGE_MODULES",
+        "LOAD_CONFIGURATION",
+        "CALIBRATE_AND_STAFF",
+        "COMMISSION",
+        "FIRST_ARTICLE",
+        "STABLE_RESTART"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 28,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "mutation",
+        "expected_disposition",
+        "expected_reason_codes"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_disposition": {
+          "enum": [
+            "ACCEPTED_SYNTHETIC",
+            "BLOCKED",
+            "ABORTED",
+            "ROLLBACK_REQUIRED",
+            "COMMISSIONING_FAILED",
+            "FIRST_ARTICLE_REJECTED",
+            "TRACEABILITY_BROKEN",
+            "UNKNOWN_OUTCOME",
+            "REJECT"
+          ]
+        },
+        "expected_reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]+$"
+          }
+        },
+        "expected_first_article_accepted": {
+          "type": "boolean"
+        },
+        "expected_further_mutation_authorized": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
