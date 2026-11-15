@@ -1309,9 +1309,9 @@ mod tests {
     fn frozen_corpus_has_sixteen_named_cases_and_expected_dispositions() {
         const CORPUS: &str =
             include_str!("../fixtures/material-readiness-cases-v0.1.json");
-        assert_eq!(CORPUS.matches("\"id\":").count(), 16);
-        assert_eq!(CORPUS.matches("\"expected\":").count(), 16);
-        assert_eq!(CORPUS.matches("\"matching_test\":").count(), 16);
+        assert_eq!(CORPUS.matches("\"id\":").count(), 17);
+        assert_eq!(CORPUS.matches("\"expected\":").count(), 17);
+        assert_eq!(CORPUS.matches("\"matching_test\":").count(), 17);
 
         for case_id in [
             "exact-lot-current-reservation",
