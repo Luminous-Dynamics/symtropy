@@ -448,7 +448,11 @@ The machine-readable result reports final package centre/speed, trace digest, re
 
 **Evidence level:** L1 simulation of one stationary receiver episode only. The model is a rigid-box proxy; it is not deformable packaging, grasp planning, a robot, a full carrier, truck/aircraft, route or fleet model. It contains no sensor uncertainty, metrology, human/animal exposure, doors/latches, actuator limits, guarding or emergency-stop hardware. The Q16.16 feature and bitwise replay comparison make a same-build same-host replay assertion; cross-platform bitwise determinism is not claimed. None of these tests qualifies HIL or field operation.
 
-**Verification status:** pending the first exact-head dedicated workflow run for the physics-linked tool and `mfb-simulate` CLI. Do not count the existing 50-test contract-only pass as evidence that the new physics dependency or L1 episode compiles or runs.
+**Verification status (2026-11-15):** dedicated workflow run [`43768458267`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267), on exact source head `c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1`, completed successfully. Strict formatting, Clippy with `-D warnings`, **53 Rust tests**, nominal manifest validation, ten-fault campaign validation, the L1 simulation/replay CLI and evidence upload all passed. The standalone dependency graph is committed in `Cargo.lock`; every check uses `--locked`.
+
+The uploaded evidence artifact is `mfb-l1-evidence-c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1` (artifact ID `14183207787`), with raw result and environment metadata. The nominal episode reported centre `[-0.0024414, 0.0455627, -0.0003204] m`, zero final linear/angular speed, same-host replay equality, safe tote containment, completed transaction, zero non-finite bodies, rotation orthogonality error `3.33e-15`, and maximum contact penetration `10.26 mm`. The result passed the current demonstrator limit of 40 mm; that tolerance is intentionally called out as loose, not as a model-fidelity result. Tightening contact penetration and establishing four-timestep convergence / an independent-engine baseline are tracked in [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469).
+
+This establishes an executable same-host L1 integration result, not Tier-B analytical physical validation, Tier-C independent-engine agreement, HIL, guarded-rig, human/animal safety, or field qualification.
 
 ## 12. First executable slice
 
