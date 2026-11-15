@@ -134,6 +134,7 @@ pub enum StepError {
     InvalidVectorShape,
     InvalidStepSize,
     NonFiniteInput,
+    NonFiniteEnergyLedger,
     MatrixNotSymmetric { name: &'static str, residual: f64 },
     EffectiveMetricNotPositiveDefinite,
     ProblemTooLarge { dof: usize, contacts: usize },
@@ -149,6 +150,7 @@ impl fmt::Display for StepError {
             }
             Self::InvalidStepSize => write!(f, "step size must be finite and strictly positive"),
             Self::NonFiniteInput => write!(f, "input contains a non-finite value"),
+            Self::NonFiniteEnergyLedger => write!(f, "discrete energy/work ledger contains a non-finite value"),
             Self::MatrixNotSymmetric { name, residual } => {
                 write!(f, "{name} is not symmetric (maximum residual {residual:e})")
             }
@@ -193,6 +195,37 @@ pub struct DiscreteStepInput {
     pub dt: f64,
 }
 
+/// Discrete energy/work accounting for the implicit constrained step.
+///
+/// With Δv = v_next - v and Δq = h v_next, the exact algebraic balance is:
+///
+/// ΔT + ΔV + h v_nextᵀ D v_next
+///   + 1/2 Δvᵀ M Δv + 1/2 Δqᵀ K Δq
+///   = h fᵀ v_next + pᵀ J v_next.
+///
+/// The impulse-work term is split into the contact-target contribution
+/// pᵀ(-gap/h) and the complementarity product pᵀ slack. The latter should
+/// vanish for a complementary solution. The increment terms are properties
+/// of the implicit update; they are not physical damping.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DiscreteEnergyLedger {
+    pub kinetic_energy_before: f64,
+    pub kinetic_energy_after: f64,
+    pub potential_energy_before: f64,
+    pub potential_energy_after: f64,
+    pub external_force_work: f64,
+    pub damping_dissipation: f64,
+    pub mass_increment_dissipation: f64,
+    pub stiffness_increment_dissipation: f64,
+    pub contact_impulse_work: f64,
+    pub contact_target_work: f64,
+    pub contact_complementarity_work: f64,
+    pub energy_balance_residual: f64,
+    pub relative_energy_balance_residual: f64,
+    pub contact_work_decomposition_residual: f64,
+    pub relative_contact_work_decomposition_residual: f64,
+}
+
 /// One-step solution plus independently checkable residuals.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiscreteStepResult {
@@ -205,6 +238,8 @@ pub struct DiscreteStepResult {
     /// Positive slack means the linearized next-step gap is nonnegative.
     pub contact_slack: Vec<f64>,
     pub active_contacts: Vec<bool>,
+    /// Kinetic, potential, external-force, damping and contact impulse work ledger.
+    pub energy_ledger: DiscreteEnergyLedger,
     /// Absolute infinity-norm residual of the effective-metric equation.
     pub max_metric_equation_residual: f64,
     /// Dimensionless equation residual normalized per generalized coordinate.
@@ -431,6 +466,15 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         &contact_slack,
         &free_normal_velocity,
     );
+    let energy_ledger = discrete_energy_ledger(
+        input,
+        &next_velocity,
+        &next_position_error,
+        &contact_impulse,
+        &normal_velocity,
+        &target_velocity,
+        &contact_slack,
+    )?;
 
     Ok(DiscreteStepResult {
         effective_metric: metric,
@@ -441,6 +485,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         contact_impulse,
         contact_slack,
         active_contacts,
+        energy_ledger,
         max_metric_equation_residual: metric_residual,
         max_scaled_metric_equation_residual,
         max_negative_impulse,
@@ -449,6 +494,125 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         max_scaled_dual_feasibility_residual,
         max_scaled_primal_feasibility_residual,
         max_scaled_complementarity_residual,
+    })
+}
+
+fn quadratic_form(matrix: &Matrix, vector: &[f64]) -> f64 {
+    let mapped = mat_vec(matrix, vector);
+    vector.iter().zip(mapped.iter()).map(|(left, right)| left * right).sum()
+}
+
+fn dot(left: &[f64], right: &[f64]) -> f64 {
+    left.iter().zip(right.iter()).map(|(a, b)| a * b).sum()
+}
+
+fn discrete_energy_ledger(
+    input: &DiscreteStepInput,
+    next_velocity: &[f64],
+    next_position_error: &[f64],
+    contact_impulse: &[f64],
+    normal_velocity: &[f64],
+    target_velocity: &[f64],
+    contact_slack: &[f64],
+) -> Result<DiscreteEnergyLedger, StepError> {
+    let delta_velocity = next_velocity
+        .iter()
+        .zip(input.velocity.iter())
+        .map(|(next, current)| next - current)
+        .collect::<Vec<_>>();
+    let delta_position = next_position_error
+        .iter()
+        .zip(input.position_error.iter())
+        .map(|(next, current)| next - current)
+        .collect::<Vec<_>>();
+
+    let kinetic_energy_before = 0.5 * quadratic_form(&input.mass, &input.velocity);
+    let kinetic_energy_after = 0.5 * quadratic_form(&input.mass, next_velocity);
+    let potential_energy_before = 0.5 * quadratic_form(&input.stiffness, &input.position_error);
+    let potential_energy_after = 0.5 * quadratic_form(&input.stiffness, next_position_error);
+    let external_force_work = input.dt * dot(&input.external_force, next_velocity);
+    let damping_dissipation = input.dt * quadratic_form(&input.damping, next_velocity);
+    let mass_increment_dissipation = 0.5 * quadratic_form(&input.mass, &delta_velocity);
+    let stiffness_increment_dissipation = 0.5 * quadratic_form(&input.stiffness, &delta_position);
+
+    // The impulse is applied through J^T p in the discrete momentum equation.
+    let contact_impulse_work = dot(contact_impulse, normal_velocity);
+    let contact_target_work = dot(contact_impulse, target_velocity);
+    let contact_complementarity_work = dot(contact_impulse, contact_slack);
+
+    let energy_balance_residual = (kinetic_energy_after - kinetic_energy_before)
+        + (potential_energy_after - potential_energy_before)
+        + damping_dissipation
+        + mass_increment_dissipation
+        + stiffness_increment_dissipation
+        - external_force_work
+        - contact_impulse_work;
+    let energy_scale = (kinetic_energy_after - kinetic_energy_before).abs()
+        + (potential_energy_after - potential_energy_before).abs()
+        + damping_dissipation.abs()
+        + mass_increment_dissipation.abs()
+        + stiffness_increment_dissipation.abs()
+        + external_force_work.abs()
+        + contact_impulse_work.abs();
+    let relative_energy_balance_residual = if energy_balance_residual == 0.0 {
+        0.0
+    } else if energy_scale > 0.0 {
+        energy_balance_residual.abs() / energy_scale
+    } else {
+        f64::INFINITY
+    };
+
+    let contact_work_decomposition_residual =
+        contact_impulse_work - contact_target_work - contact_complementarity_work;
+    let contact_work_scale = contact_impulse_work.abs()
+        + contact_target_work.abs()
+        + contact_complementarity_work.abs();
+    let relative_contact_work_decomposition_residual =
+        if contact_work_decomposition_residual == 0.0 {
+            0.0
+        } else if contact_work_scale > 0.0 {
+            contact_work_decomposition_residual.abs() / contact_work_scale
+        } else {
+            f64::INFINITY
+        };
+
+    let values = [
+        kinetic_energy_before,
+        kinetic_energy_after,
+        potential_energy_before,
+        potential_energy_after,
+        external_force_work,
+        damping_dissipation,
+        mass_increment_dissipation,
+        stiffness_increment_dissipation,
+        contact_impulse_work,
+        contact_target_work,
+        contact_complementarity_work,
+        energy_balance_residual,
+        relative_energy_balance_residual,
+        contact_work_decomposition_residual,
+        relative_contact_work_decomposition_residual,
+    ];
+    if values.iter().any(|value| !value.is_finite()) {
+        return Err(StepError::NonFiniteEnergyLedger);
+    }
+
+    Ok(DiscreteEnergyLedger {
+        kinetic_energy_before,
+        kinetic_energy_after,
+        potential_energy_before,
+        potential_energy_after,
+        external_force_work,
+        damping_dissipation,
+        mass_increment_dissipation,
+        stiffness_increment_dissipation,
+        contact_impulse_work,
+        contact_target_work,
+        contact_complementarity_work,
+        energy_balance_residual,
+        relative_energy_balance_residual,
+        contact_work_decomposition_residual,
+        relative_contact_work_decomposition_residual,
     })
 }
 
@@ -964,6 +1128,153 @@ mod tests {
             })
         ));
     }
+    #[test]
+    fn unconstrained_contact_reference_closes_the_implicit_energy_identity() {
+        let input = DiscreteStepInput {
+            mass: Matrix::identity(2),
+            damping: Matrix::new(2, 2, vec![0.4, 0.1, 0.1, 0.3]).unwrap(),
+            stiffness: Matrix::new(2, 2, vec![4.0, -1.0, -1.0, 2.0]).unwrap(),
+            position_error: vec![0.3, -0.2],
+            velocity: vec![0.5, 0.1],
+            external_force: vec![1.0, -0.3],
+            contact_jacobian: no_contacts(2),
+            contact_gap: vec![],
+            dt: 0.2,
+        };
+        let result = solve_discrete_step(&input).unwrap();
+        let ledger = result.energy_ledger;
+
+        assert!(ledger.relative_energy_balance_residual < 2.0e-13);
+        assert!(ledger.energy_balance_residual.abs() < 2.0e-13);
+        assert_eq!(ledger.contact_impulse_work, 0.0);
+        assert_eq!(ledger.contact_target_work, 0.0);
+        assert_eq!(ledger.contact_complementarity_work, 0.0);
+        assert!(ledger.damping_dissipation >= 0.0);
+        assert!(ledger.mass_increment_dissipation >= 0.0);
+        assert!(ledger.stiffness_increment_dissipation >= 0.0);
+    }
+
+    #[test]
+    fn touching_contact_has_zero_impulse_work_and_closes_energy_ledger() {
+        let input = DiscreteStepInput {
+            mass: scalar(1.0),
+            damping: scalar(0.0),
+            stiffness: scalar(0.0),
+            position_error: vec![0.0],
+            velocity: vec![-1.0],
+            external_force: vec![0.0],
+            contact_jacobian: scalar(1.0),
+            contact_gap: vec![0.0],
+            dt: 0.01,
+        };
+        let result = solve_discrete_step(&input).unwrap();
+        let ledger = result.energy_ledger;
+        assert!((result.contact_impulse[0] - 1.0).abs() < 1.0e-12);
+        assert!(ledger.contact_impulse_work.abs() < 1.0e-12);
+        assert!(ledger.contact_complementarity_work.abs() < 1.0e-12);
+        assert!(ledger.relative_energy_balance_residual < 1.0e-12);
+        assert!(ledger.relative_contact_work_decomposition_residual < 1.0e-12);
+    }
+
+    #[test]
+    fn precontact_gap_impulse_work_is_included_in_energy_balance() {
+        let input = DiscreteStepInput {
+            mass: scalar(1.0),
+            damping: scalar(0.0),
+            stiffness: scalar(0.0),
+            position_error: vec![0.0],
+            velocity: vec![-1.0],
+            external_force: vec![0.0],
+            contact_jacobian: scalar(1.0),
+            contact_gap: vec![0.005],
+            dt: 0.01,
+        };
+        let result = solve_discrete_step(&input).unwrap();
+        let ledger = result.energy_ledger;
+        assert!((result.contact_impulse[0] - 0.5).abs() < 1.0e-12);
+        assert!((result.next_velocity[0] + 0.5).abs() < 1.0e-12);
+        assert!((ledger.contact_impulse_work + 0.25).abs() < 1.0e-12);
+        assert!((ledger.contact_target_work + 0.25).abs() < 1.0e-12);
+        assert!(ledger.contact_complementarity_work.abs() < 1.0e-12);
+        assert!(ledger.relative_energy_balance_residual < 1.0e-12);
+        assert!(ledger.relative_contact_work_decomposition_residual < 1.0e-12);
+    }
+
+    #[test]
+    fn contact_energy_ledger_is_invariant_under_dense_generalized_coordinate_rebasing() {
+        let physical = DiscreteStepInput {
+            mass: Matrix::new(2, 2, vec![2.0, 0.2, 0.2, 1.5]).unwrap(),
+            damping: Matrix::new(2, 2, vec![0.4, 0.1, 0.1, 0.3]).unwrap(),
+            stiffness: Matrix::new(2, 2, vec![4.0, -1.0, -1.0, 2.0]).unwrap(),
+            position_error: vec![0.1, -0.2],
+            velocity: vec![-1.0, -0.2],
+            external_force: vec![0.0, 0.0],
+            contact_jacobian: Matrix::new(1, 2, vec![1.0, 0.0]).unwrap(),
+            contact_gap: vec![0.005],
+            dt: 0.1,
+        };
+        let reference = solve_discrete_step(&physical).unwrap();
+        let basis = Matrix::new(2, 2, vec![1.0, 2.0, 0.0, 1.0]).unwrap();
+        let inverse = Matrix::new(2, 2, vec![1.0, -2.0, 0.0, 1.0]).unwrap();
+        let transpose_basis = Matrix::new(2, 2, vec![1.0, 0.0, 2.0, 1.0]).unwrap();
+
+        let rebase_matrix = |matrix: &Matrix| {
+            multiply(&multiply(&transpose_basis, matrix), &basis)
+        };
+        let transform_tangent = |vector: &[f64]| mat_vec(&inverse, vector);
+        let transform_covector = |vector: &[f64]| mat_vec(&transpose_basis, vector);
+        let mut rebased_jacobian = Matrix::zeros(1, 2);
+        for col in 0..2 {
+            rebased_jacobian[(0, col)] =
+                (0..2).map(|inner| physical.contact_jacobian[(0, inner)] * basis[(inner, col)]).sum();
+        }
+        let rebased = DiscreteStepInput {
+            mass: rebase_matrix(&physical.mass),
+            damping: rebase_matrix(&physical.damping),
+            stiffness: rebase_matrix(&physical.stiffness),
+            position_error: transform_tangent(&physical.position_error),
+            velocity: transform_tangent(&physical.velocity),
+            external_force: transform_covector(&physical.external_force),
+            contact_jacobian: rebased_jacobian,
+            contact_gap: physical.contact_gap.clone(),
+            dt: physical.dt,
+        };
+        let transformed = solve_discrete_step(&rebased).unwrap();
+        let lifted_velocity = mat_vec(&basis, &transformed.next_velocity);
+        let lifted_position = mat_vec(&basis, &transformed.next_position_error);
+
+        for index in 0..2 {
+            assert!((lifted_velocity[index] - reference.next_velocity[index]).abs() < 1.0e-10);
+            assert!((lifted_position[index] - reference.next_position_error[index]).abs() < 1.0e-10);
+        }
+        assert_eq!(transformed.active_contacts, reference.active_contacts);
+        assert!((transformed.contact_impulse[0] - reference.contact_impulse[0]).abs() < 1.0e-10);
+
+        let left = &reference.energy_ledger;
+        let right = &transformed.energy_ledger;
+        let pairs = [
+            (left.kinetic_energy_before, right.kinetic_energy_before),
+            (left.kinetic_energy_after, right.kinetic_energy_after),
+            (left.potential_energy_before, right.potential_energy_before),
+            (left.potential_energy_after, right.potential_energy_after),
+            (left.external_force_work, right.external_force_work),
+            (left.damping_dissipation, right.damping_dissipation),
+            (left.mass_increment_dissipation, right.mass_increment_dissipation),
+            (left.stiffness_increment_dissipation, right.stiffness_increment_dissipation),
+            (left.contact_impulse_work, right.contact_impulse_work),
+            (left.contact_target_work, right.contact_target_work),
+            (left.contact_complementarity_work, right.contact_complementarity_work),
+            (left.energy_balance_residual, right.energy_balance_residual),
+        ];
+        for (canonical, rebased_value) in pairs {
+            let tolerance = 2.0e-10 * canonical.abs().max(rebased_value.abs()).max(1.0);
+            assert!(
+                (canonical - rebased_value).abs() <= tolerance,
+                "canonical={canonical:e}, rebased={rebased_value:e}, tolerance={tolerance:e}"
+            );
+        }
+    }
+
     #[test]
     fn contact_step_is_covariant_under_uniform_mass_rescaling() {
         for mass in [1.0e-12, 1.0, 1.0e12] {
