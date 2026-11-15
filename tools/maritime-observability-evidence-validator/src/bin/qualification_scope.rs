@@ -184,8 +184,7 @@ fn valid_case_shape(case: &Value) -> bool {
                     "unknown_fault_rejection_passed", "calibration_retention_passed", "scope_unchanged",
                 ],
             )
-            .is_ok()
-                && text(receipt, "receipt_id").is_some()
+            && text(receipt, "receipt_id").is_some()
         })
         .unwrap_or(true);
     if !retention_receipt_shape_valid {
