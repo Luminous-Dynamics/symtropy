@@ -1,0 +1,2 @@
+scenario,target_g,body_length_m,max_gradient_fraction,max_rpm,max_coriolis_fraction,transverse_speed_m_s,gradient_min_radius_m,rpm_min_radius_m,coriolis_min_radius_m,minimum_radius_m,active_constraint,resulting_rpm,resulting_gradient_fraction,resulting_coriolis_fraction
+Zhang_2026_intersection,0.5,1.75,0.02,2.0,0.10,1.0,87.500000000,111.782405876,81.577297038,111.782405876,maximum_rpm,2.000000000,0.015655415,0.085427546
