@@ -625,7 +625,10 @@
         ],
         "method": "in-growth core method, 12 cm diameter × 30 cm depth cores",
         "spatial_sampling": "five cores in the central 30×30 m of each plot, bulked into one composite sample per plot and depth",
-        "quality": "roots cleaned, dried at 60 C to constant mass and weighed; first installation treated as root stock"
+        "quality": "roots cleaned, dried at 60 C to constant mass and weighed; first installation treated as root stock",
+        "published_dataset_semantics": "EIDC record describes fine-root mass recovered from repeated in-growth-core campaigns, with five cores per plot bulked by depth. The 2026 turnover paper cites this EIDC resource for annual productivity.",
+        "warning_2026": "Do not assume this public EIDC in-growth-core dataset contains the fine-root standing-stock observations used as denominators in Schmeisk-Rosa et al. (2026). That paper's data-availability statement says its fine-root stock dataset is available from the corresponding author on reasonable request.",
+        "aggregation": "Five cores are composited per plot and depth; preserve one plot×depth composite for each campaign and do not count five cores as five randomized treatment units."
       },
       "treatment_assignment_unit": "plot",
       "observation_unit": "plot × campaign × depth composite",
@@ -633,13 +636,24 @@
       "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
       "downloaded": false,
       "data_ingested": false,
-      "intended_use": "Belowground biomass response and delayed nutrient effects",
+      "intended_use": "Fine-root in-growth-core mass / productivity series and campaign-level response; a denominator stock series for the 2026 turnover analysis is not established as publicly available from this EIDC record.",
       "admission_gates": [
         "Preserve the one-composite-per-plot-per-depth structure",
         "Do not treat five cores as five independent plot treatment replicates",
         "Distinguish initial stock from later production/turnover interpretation",
         "Verify plot keys and campaigns against block/treatment assignment"
-      ]
+      ],
+      "publication_crosswalk": {
+        "article_title": "Phosphorus and base cations drive contrasting root dynamics in a central Amazon forest",
+        "article_doi": "10.1007/s11104-026-08303-2",
+        "article_url": "https://link.springer.com/article/10.1007/s11104-026-08303-2",
+        "publication_date": "2026-02-02",
+        "use_of_this_dataset_in_article": "Fine-root productivity input for two-year turnover calculations",
+        "stock_data_used_in_article": "AVAILABLE_FROM_CORRESPONDING_AUTHOR_ON_REASONABLE_REQUEST",
+        "turnover_definition": "annual fine-root productivity divided by fine-root standing stock",
+        "empirical_reproduction_status": "NOT_REPRODUCED_FROM_RAW_PLOT_LEVEL_STOCK_AND_PRODUCTIVITY_PAIRS"
+      },
+      "disallowed_inference": "Do not infer that the 2026 paper's fine-root standing-stock values can be reconstructed from this EIDC record alone; the paper states that stock data used for its turnover analysis are available from the corresponding author on reasonable request."
     },
     {
       "source_id": "CENTRAL-AMAZON-AFEX-SEEDLING-GROWTH-2019-2020",
@@ -717,6 +731,51 @@
         "Do not assume concentration equals areal nutrient flux without litterfall mass/area",
         "Verify plot/treatment mapping and source collection protocol"
       ]
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-ROOT-TURNOVER-PAPER-2026",
+      "source_class": "PUBLISHED_EMPIRICAL_RESULT_NOT_DATASET",
+      "provider": "Springer Nature / Plant and Soil",
+      "title": "Phosphorus and base cations drive contrasting root dynamics in a central Amazon forest",
+      "authors": "Schmeisk-Rosa et al.",
+      "doi": "10.1007/s11104-026-08303-2",
+      "record_url": "https://link.springer.com/article/10.1007/s11104-026-08303-2",
+      "publication_date": "2026-02-02",
+      "reported_findings": {
+        "root_stock": "No significant nutrient treatment effects reported for fine-root standing stock",
+        "phosphorus_turnover_change_percent": {
+          "year1": 23,
+          "year2": 48
+        },
+        "cation_turnover_change_percent": {
+          "year2": -24
+        },
+        "phosphorus_cation_interaction_year2_change_percent": -33,
+        "nitrogen": "No statistically significant main effect in the reported two-year period; non-significance is not evidence of a zero effect"
+      },
+      "method": {
+        "turnover": "annual fine-root productivity divided by fine-root stock",
+        "year1_productivity_interval": "2017-08 to 2018-09",
+        "year1_stock_date": "2017-08",
+        "year2_productivity_interval": "2018-09 to 2019-09",
+        "year2_stock_date": "2019-09",
+        "depth_cm": [
+          0,
+          30
+        ],
+        "root_diameter_mm": "<2",
+        "root_productivity_dataset_doi": "10.5285/b3a55011-bf46-40f5-8850-86dc8bc4c85d",
+        "root_stock_data_access": "AVAILABLE_FROM_CORRESPONDING_AUTHOR_ON_REASONABLE_REQUEST"
+      },
+      "data_status": "PUBLISHED_AGGREGATE_SUMMARIES_ONLY_IN_CURRENT_BENCHMARK; RAW_PLOT_LEVEL_STOCK_DATA_NOT_INGESTED",
+      "intended_use": "Published summary arithmetic crosscheck and a process-specific benchmark showing stock/turnover divergence",
+      "claim_ceiling": "The reported percentages and means are transcribed from the paper; no raw plot-level reanalysis, p-value reproduction or new ecological effect estimate is claimed.",
+      "benchmark_artifacts": {
+        "issue": 5431,
+        "protocol": "AFEX_ROOT_TURNOVER_V0_1.md",
+        "synthetic_fixture": "cases/afex-root-turnover-synthetic-v0.1.json",
+        "validator": "validator/src/afex_root_turnover_kernel.rs"
+      }
     }
   ],
   "cross_source_admission_gates": [
