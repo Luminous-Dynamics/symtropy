@@ -125,7 +125,7 @@ Sources:
 
 ## Claim ceiling
 
-This update reports literature review, protocol crosswalks and software benchmark design. It does not report Rust compilation, CI success, dataset ingestion, model training, simulation, laboratory testing, physical damage-detection capability, vehicle safety improvement, housing outcomes, certification or SOTA superiority.
+At initial drafting, the Rust implementation and CI qualification were still pending. Section 9 records the subsequent Linux execution and three-platform repository CI result. This update still does not report dataset ingestion, model training, simulation, laboratory testing, physical damage-detection capability, vehicle safety improvement, housing outcomes, certification or SOTA superiority.
 
 
 ## 7. Risk-sensitive co-design under nonstationarity — 15 November 2026
@@ -160,7 +160,7 @@ A 2026 batch-BO study also shows that performance depends strongly on noise leve
 
 ## 9. Executed software qualification and source corrections — 15 November 2026
 
-The latest exact-head CI run for the draft branch completed successfully on Ubuntu, Windows and macOS. The Linux-only isolated Protective Systems step passed:
+The latest CI run on the implementation/workflow head `4f6f0e485f49e968fccaec2aa6164b50a8e4dd7f` completed successfully on Ubuntu, Windows and macOS. Subsequent branch commits through `6e68e2f2cd31d40084317211534bd0e9faeedf59` changed research documentation only, not Rust or workflow code; those later documentation commits do not have a separately observed workflow run. On the CI-tested implementation head, the Linux-only isolated Protective Systems step passed:
 - Rust formatting check;
 - Clippy with warnings denied;
 - 40 unit tests across B0, damage/repair lifecycle, VOI and robust-design oracles;
