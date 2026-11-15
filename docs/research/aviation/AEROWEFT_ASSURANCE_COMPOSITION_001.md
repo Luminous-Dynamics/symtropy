@@ -52,6 +52,7 @@ This oracle must not independently convert clocks, count receiver independence, 
 
 A candidate is eligible for conflict screening only when:
 - the intent/conformance result has a present, identity-matched receipt;
+- the profile-owned required traffic-class set has a qualification receipt bound to the profile identity, and the request's class list exactly matches it (no self-reduction of surveillance obligations);
 - intent state is `CONFORMING`;
 - PNT state is an accepted deterministic hard bound or an accepted qualified fallback, with its receipt;
 - reachability is qualified and bounded, with its receipt;
@@ -69,7 +70,7 @@ The following intent states are terminal and must be propagated:
 
 `POTENTIALLY_NONCONFORMING` and `NOT_ASSESSABLE` cannot be promoted to conforming.
 
-The V0 traffic classes include cooperative crewed and non-cooperative crewed traffic. The required class list is profile-owned. Cooperative coverage cannot satisfy the non-cooperative obligation.
+The V0 traffic classes include cooperative crewed and non-cooperative crewed traffic. The required class list is profile-owned and separately receipted; the composition request cannot redefine it. Cooperative coverage cannot satisfy the non-cooperative obligation.
 
 A positive disposition preserves each class's coverage receipt, optional observation receipt, and dependency snapshot. A failed composition returns no partial occupancy list; downstream callers cannot mistake a partially validated result for a complete one.
 
@@ -125,7 +126,7 @@ These are targets for this declared benchmark, not achieved field results.
 | Evidence-degradation monotonicity violations | **0** | Worsening input cannot improve admissibility |
 | Accepted/rejected receipt traceability | **100%** | Every decision must be auditable |
 
-The Rust test suite now supplements the 28-case golden fixture with a generated fault campaign: 40 single-fault mutators, all 820 unordered mutator pairs (including repeated same-mutator pairs), and 10,000 deterministic seeded two-fault trials. Every mutated input must fail to reach `READY_FOR_CONFLICT_SCREEN` and must emit no partial occupancy list. The positive control remains a separate required test, so an implementation that rejects all inputs cannot pass the whole suite. This is a finite two-fault falsification campaign, not exhaustive coverage of all possible inputs or higher-order interactions.
+The Rust test suite now supplements the 32-case golden fixture with a generated fault campaign: 44 single-fault mutators, all 990 unordered mutator pairs (including repeated same-mutator pairs), and 10,000 deterministic seeded two-fault trials. Every mutated input must fail to reach `READY_FOR_CONFLICT_SCREEN` and must emit no partial occupancy list. The positive control remains a separate required test, so an implementation that rejects all inputs cannot pass the whole suite. This is a finite two-fault falsification campaign, not exhaustive coverage of all possible inputs or higher-order interactions.
 
 The next benchmark expansion is higher-order fault interaction, mutation testing of every admission predicate, adversarial time-boundary sweeps, cross-implementation differential testing, and declared-scale performance measurement. Report p50/p95/p99 latency and memory only after measuring them on declared hardware and fixture scale. Never trade away hard-gate correctness for throughput.
 
@@ -158,6 +159,6 @@ A benchmark result is invalidated if any of these can occur:
 
 ## 9. Implementation and evidence status
 
-The isolated Rust oracle is dependency-free. It checks only owner status, identity and receipt composition. The 28-case JSON fixture is a separately inspectable golden corpus. Rust tests add 860 exhaustive single/pair mutator inputs and 10,000 seeded two-fault inputs. The composition layer never claims to verify the truth of upstream claims; each upstream owner remains responsible for qualification.
+The isolated Rust oracle is dependency-free. It checks only owner status, identity and receipt composition. The 32-case JSON fixture is a separately inspectable golden corpus. Rust tests add 1,034 exhaustive single/pair mutator inputs (44 singles + 990 pairs) and 10,000 seeded two-fault inputs. The composition layer never claims to verify the truth of upstream claims; each upstream owner remains responsible for qualification.
 
 All checks must be reported by exact commit SHA. A queued workflow is not a pass; a format pass is not a Clippy or test pass; fixture evaluation is not physical validation.
