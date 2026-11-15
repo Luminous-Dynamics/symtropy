@@ -710,10 +710,7 @@ pub struct Cometric<F: CoordinateFrame, const N: usize> {
 }
 
 impl<F: CoordinateFrame, const N: usize> Cometric<F, N> {
-    pub fn admit(
-        matrix: Matrix<N>,
-        profile: MetricProfileV1,
-    ) -> Result<Self, MetricErrorV1> {
+    pub fn admit(matrix: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
         Ok(Self {
             factor: Metric::admit(matrix, profile)?,
         })
@@ -727,31 +724,19 @@ impl<F: CoordinateFrame, const N: usize> Cometric<F, N> {
         self.factor.admission_receipt()
     }
 
-    pub fn apply(
-        &self,
-        covector: &Cotangent<F, N>,
-    ) -> Result<Tangent<F, N>, MetricErrorV1> {
+    pub fn apply(&self, covector: &Cotangent<F, N>) -> Result<Tangent<F, N>, MetricErrorV1> {
         self.factor.apply_cometric(covector)
     }
 
-    pub fn solve(
-        &self,
-        vector: &Tangent<F, N>,
-    ) -> Result<Cotangent<F, N>, MetricErrorV1> {
+    pub fn solve(&self, vector: &Tangent<F, N>) -> Result<Cotangent<F, N>, MetricErrorV1> {
         self.factor.solve_cometric(vector)
     }
 
-    pub fn covector_norm(
-        &self,
-        covector: &Cotangent<F, N>,
-    ) -> Result<f64, MetricErrorV1> {
+    pub fn covector_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
         self.factor.cometric_covector_norm(covector)
     }
 
-    pub fn vector_norm(
-        &self,
-        vector: &Tangent<F, N>,
-    ) -> Result<f64, MetricErrorV1> {
+    pub fn vector_norm(&self, vector: &Tangent<F, N>) -> Result<f64, MetricErrorV1> {
         self.factor.inverse_cometric_vector_norm(vector)
     }
 }
