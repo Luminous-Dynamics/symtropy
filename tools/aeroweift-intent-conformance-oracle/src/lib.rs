@@ -341,45 +341,20 @@ pub enum ConformanceReason {
     ArithmeticOverflow,
 }
 
-/// One accepted observation's exact lineage.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AcceptedObservationLineage {
-    /// Observation identity.
-    pub observation_id: String,
-    /// Observation source identity.
-    pub source_id: String,
-    /// Support interval.
-    pub support_window: TimeInterval,
-    /// Measurement timestamp interval.
-    pub observed_at: ClosedInterval,
-    /// Receipt tick.
-    pub receipt_tick: i64,
-    /// Source position enclosure.
-    pub position: PositionBox,
-}
-
 /// Evidence and authority lineage preserved with each assessment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConformanceLineage {
-    /// Authorization identity.
-    pub authorization_id: String,
-    /// Authorization digest syntax.
-    pub authorization_sha256: String,
-    /// Operational-intent identity.
-    pub intent_id: String,
-    /// Authorized intent revision.
-    pub intent_revision: u64,
-    /// Policy identity.
-    pub policy_id: String,
-    /// Profile identity.
-    pub profile_id: String,
-    /// Time-scale identity.
-    pub time_scale_id: String,
-    /// Dynamic restriction identity, if one was evaluated.
-    pub dynamic_restriction_id: Option<String>,
-    /// Exact qualified observations contributing to the duration totals.
-    pub accepted_observations: Vec<AcceptedObservationLineage>,
-    /// Observation IDs rejected as unassessable.
+    /// Complete authorization input, including identity, revision and 4D volume.
+    pub authorization: Authorization,
+    /// Complete conformance policy, including evaluation window and thresholds.
+    pub policy: ConformancePolicy,
+    /// Exact dynamic restriction snapshot considered, if supplied.
+    pub dynamic_restriction: Option<DynamicRestriction>,
+    /// Complete observation inputs in canonical support-window order.
+    pub canonicalized_observations: Vec<ObservationWindow>,
+    /// IDs of observations admitted into duration accounting.
+    pub accepted_observation_ids: Vec<String>,
+    /// IDs of observations rejected as unassessable.
     pub rejected_observation_ids: Vec<String>,
 }
 
@@ -425,18 +400,11 @@ enum BoxRelation {
 /// owner. The evaluator never generates aircraft motion or an authorization.
 pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
     let mut lineage = ConformanceLineage {
-        authorization_id: input.authorization.authorization_id.clone(),
-        authorization_sha256: input.authorization.authorization_sha256.clone(),
-        intent_id: input.authorization.intent_id.clone(),
-        intent_revision: input.authorization.intent_revision,
-        policy_id: input.policy.policy_id.clone(),
-        profile_id: input.policy.profile_id.clone(),
-        time_scale_id: input.policy.time_scale_id.clone(),
-        dynamic_restriction_id: input
-            .dynamic_restriction
-            .as_ref()
-            .map(|restriction| restriction.restriction_id.clone()),
-        accepted_observations: Vec::new(),
+        authorization: input.authorization.clone(),
+        policy: input.policy.clone(),
+        dynamic_restriction: input.dynamic_restriction.clone(),
+        canonicalized_observations: Vec::new(),
+        accepted_observation_ids: Vec::new(),
         rejected_observation_ids: Vec::new(),
     };
 
@@ -575,6 +543,8 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             observation.observation_id.as_str(),
         )
     });
+    lineage.canonicalized_observations =
+        observations.iter().map(|observation| (*observation).clone()).collect();
 
     let mut definite_inside = 0_u64;
     let mut definite_outside = 0_u64;
@@ -735,15 +705,8 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         }
 
         lineage
-            .accepted_observations
-            .push(AcceptedObservationLineage {
-                observation_id: observation.observation_id.clone(),
-                source_id: observation.source_id.clone(),
-                support_window: observation.support_window,
-                observed_at: observation.observed_at,
-                receipt_tick: observation.receipt_tick,
-                position: observation.position,
-            });
+            .accepted_observation_ids
+            .push(observation.observation_id.clone());
         last_qualified_end = Some(
             last_qualified_end.map_or(support.end, |previous| previous.max(support.end)),
         );
