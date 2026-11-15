@@ -32,3 +32,5 @@ missing-intent-conformance|remove-intent-parent|MISSING_REQUIRED_PARENT
 nonconforming-intent-parent|intent-not-conforming|PARENT_NOT_QUALIFIED
 revoked-authorization-parent|authorization-revoked|PARENT_NOT_QUALIFIED
 profile-class-array-permutation|permute-class-set|CAUSALLY_BOUND_ONLY
+surveillance-observation-wrong-class|observation-class|SURVEILLANCE_EVIDENCE_MISMATCH
+surveillance-observation-class-missing|observation-class-missing|SURVEILLANCE_EVIDENCE_MISMATCH
