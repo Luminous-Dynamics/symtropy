@@ -1,0 +1,14 @@
+[package]
+name = "construction-production-optioneering-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+
+[workspace]
+
+[[bench]]
+name = "frontier_scale"
+path = "benches/frontier_scale.rs"
+harness = false
