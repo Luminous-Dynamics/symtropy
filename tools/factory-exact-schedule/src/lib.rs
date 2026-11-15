@@ -54,20 +54,50 @@ pub enum InputFailure {
     EmptyMachineSet,
     EmptyJobSet,
     EmptyMachineId,
-    DuplicateMachineId { machine_id: &'static str },
-    EmptyInitialFamily { machine_id: &'static str },
+    DuplicateMachineId {
+        machine_id: &'static str,
+    },
+    EmptyInitialFamily {
+        machine_id: &'static str,
+    },
     EmptyJobId,
-    DuplicateJobId { job_id: &'static str },
-    EmptyJobRoute { job_id: &'static str },
+    DuplicateJobId {
+        job_id: &'static str,
+    },
+    EmptyJobRoute {
+        job_id: &'static str,
+    },
     EmptyOperationId,
-    DuplicateOperationId { operation_id: &'static str },
-    EmptyOperationFamily { operation_id: &'static str },
-    ZeroProcessingTime { operation_id: &'static str },
-    UnknownMachine { operation_id: &'static str, machine_id: &'static str },
-    EmptySetupFamily { machine_id: &'static str },
-    DuplicateSetupRule { machine_id: &'static str, from_family: &'static str, to_family: &'static str },
-    MissingSetupRule { machine_id: &'static str, from_family: &'static str, to_family: &'static str },
-    TooManyOperations { count: usize, maximum: usize },
+    DuplicateOperationId {
+        operation_id: &'static str,
+    },
+    EmptyOperationFamily {
+        operation_id: &'static str,
+    },
+    ZeroProcessingTime {
+        operation_id: &'static str,
+    },
+    UnknownMachine {
+        operation_id: &'static str,
+        machine_id: &'static str,
+    },
+    EmptySetupFamily {
+        machine_id: &'static str,
+    },
+    DuplicateSetupRule {
+        machine_id: &'static str,
+        from_family: &'static str,
+        to_family: &'static str,
+    },
+    MissingSetupRule {
+        machine_id: &'static str,
+        from_family: &'static str,
+        to_family: &'static str,
+    },
+    TooManyOperations {
+        count: usize,
+        maximum: usize,
+    },
     DurationEnvelopeOverflow,
 }
 
@@ -141,7 +171,9 @@ struct EvaluatedCandidate {
 }
 
 fn setup_ticks(machine: &Machine, from: &str, to: &str) -> Option<u64> {
-    machine.setup_rules.iter()
+    machine
+        .setup_rules
+        .iter()
         .find(|rule| rule.from_family == from && rule.to_family == to)
         .map(|rule| rule.ticks)
 }
@@ -166,15 +198,21 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
         if machine.id.trim().is_empty() {
             failures.push(InputFailure::EmptyMachineId);
         } else if !machine_ids.insert(machine.id) {
-            failures.push(InputFailure::DuplicateMachineId { machine_id: machine.id });
+            failures.push(InputFailure::DuplicateMachineId {
+                machine_id: machine.id,
+            });
         }
         if machine.initial_family.trim().is_empty() {
-            failures.push(InputFailure::EmptyInitialFamily { machine_id: machine.id });
+            failures.push(InputFailure::EmptyInitialFamily {
+                machine_id: machine.id,
+            });
         }
         let mut rules = BTreeSet::new();
         for rule in &machine.setup_rules {
             if rule.from_family.trim().is_empty() || rule.to_family.trim().is_empty() {
-                failures.push(InputFailure::EmptySetupFamily { machine_id: machine.id });
+                failures.push(InputFailure::EmptySetupFamily {
+                    machine_id: machine.id,
+                });
             }
             if !rules.insert((rule.from_family, rule.to_family)) {
                 failures.push(InputFailure::DuplicateSetupRule {
@@ -203,15 +241,25 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
             if operation.id.trim().is_empty() {
                 failures.push(InputFailure::EmptyOperationId);
             } else if !operation_ids.insert(operation.id) {
-                failures.push(InputFailure::DuplicateOperationId { operation_id: operation.id });
+                failures.push(InputFailure::DuplicateOperationId {
+                    operation_id: operation.id,
+                });
             }
             if operation.family.trim().is_empty() {
-                failures.push(InputFailure::EmptyOperationFamily { operation_id: operation.id });
+                failures.push(InputFailure::EmptyOperationFamily {
+                    operation_id: operation.id,
+                });
             }
             if operation.processing_ticks == 0 {
-                failures.push(InputFailure::ZeroProcessingTime { operation_id: operation.id });
+                failures.push(InputFailure::ZeroProcessingTime {
+                    operation_id: operation.id,
+                });
             }
-            if !instance.machines.iter().any(|machine| machine.id == operation.machine_id) {
+            if !instance
+                .machines
+                .iter()
+                .any(|machine| machine.id == operation.machine_id)
+            {
                 failures.push(InputFailure::UnknownMachine {
                     operation_id: operation.id,
                     machine_id: operation.machine_id,
@@ -229,18 +277,31 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
     // A conservative upper bound keeps every serial SPT and exact schedule
     // timestamp representable; arithmetic overflow is an input error, not a
     // cyclic machine order or an unreported wraparound.
-    let total_processing = instance.jobs.iter().flat_map(|job| job.operations.iter())
-        .try_fold(0u64, |sum, operation| sum.checked_add(operation.processing_ticks));
+    let total_processing = instance
+        .jobs
+        .iter()
+        .flat_map(|job| job.operations.iter())
+        .try_fold(0u64, |sum, operation| {
+            sum.checked_add(operation.processing_ticks)
+        });
     let mut total_max_setup = Some(0u64);
     for job in &instance.jobs {
         for operation in &job.operations {
-            let maximum = instance.machines.iter().find(|machine| machine.id == operation.machine_id)
+            let maximum = instance
+                .machines
+                .iter()
+                .find(|machine| machine.id == operation.machine_id)
                 .and_then(|machine| machine.setup_rules.iter().map(|rule| rule.ticks).max())
                 .unwrap_or(0);
             total_max_setup = total_max_setup.and_then(|sum| sum.checked_add(maximum));
         }
     }
-    let maximum_release = instance.jobs.iter().map(|job| job.release_ticks).max().unwrap_or(0);
+    let maximum_release = instance
+        .jobs
+        .iter()
+        .map(|job| job.release_ticks)
+        .max()
+        .unwrap_or(0);
     if total_processing
         .and_then(|processing| total_max_setup.and_then(|setup| processing.checked_add(setup)))
         .and_then(|duration| maximum_release.checked_add(duration))
@@ -252,7 +313,9 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
     // Every permutation can place any operation family directly after any other
     // family on its machine; therefore all such transitions must be declared.
     for machine in &instance.machines {
-        let families: Vec<&'static str> = instance.jobs.iter()
+        let families: Vec<&'static str> = instance
+            .jobs
+            .iter()
             .flat_map(|job| job.operations.iter())
             .filter(|operation| operation.machine_id == machine.id)
             .map(|operation| operation.family)
@@ -290,8 +353,12 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
 }
 
 fn flatten(instance: &Instance) -> (Vec<FlatOperation>, Vec<Vec<usize>>, Vec<Vec<usize>>) {
-    let machine_indices: Vec<(&'static str, usize)> = instance.machines.iter()
-        .enumerate().map(|(index, machine)| (machine.id, index)).collect();
+    let machine_indices: Vec<(&'static str, usize)> = instance
+        .machines
+        .iter()
+        .enumerate()
+        .map(|(index, machine)| (machine.id, index))
+        .collect();
     let mut flat = Vec::new();
     let mut jobs = Vec::with_capacity(instance.jobs.len());
     let mut machines = vec![Vec::new(); instance.machines.len()];
@@ -299,7 +366,8 @@ fn flatten(instance: &Instance) -> (Vec<FlatOperation>, Vec<Vec<usize>>, Vec<Vec
     for (job_index, job) in instance.jobs.iter().enumerate() {
         let mut job_ops = Vec::with_capacity(job.operations.len());
         for (job_position, operation) in job.operations.iter().enumerate() {
-            let machine_index = machine_indices.iter()
+            let machine_index = machine_indices
+                .iter()
                 .find(|(id, _)| *id == operation.machine_id)
                 .map(|(_, index)| *index)
                 .unwrap_or(0);
@@ -322,7 +390,12 @@ fn flatten(instance: &Instance) -> (Vec<FlatOperation>, Vec<Vec<usize>>, Vec<Vec
 }
 
 fn enumerate_permutations(values: &[usize]) -> Vec<Vec<usize>> {
-    fn visit(values: &[usize], used: &mut [bool], current: &mut Vec<usize>, output: &mut Vec<Vec<usize>>) {
+    fn visit(
+        values: &[usize],
+        used: &mut [bool],
+        current: &mut Vec<usize>,
+        output: &mut Vec<Vec<usize>>,
+    ) {
         if current.len() == values.len() {
             output.push(current.clone());
             return;
@@ -338,7 +411,12 @@ fn enumerate_permutations(values: &[usize]) -> Vec<Vec<usize>> {
         }
     }
     let mut output = Vec::new();
-    visit(values, &mut vec![false; values.len()], &mut Vec::with_capacity(values.len()), &mut output);
+    visit(
+        values,
+        &mut vec![false; values.len()],
+        &mut Vec::with_capacity(values.len()),
+        &mut output,
+    );
     output
 }
 
@@ -362,7 +440,13 @@ fn evaluate_machine_orders(
         for pair in sequence.windows(2) {
             let from = pair[0];
             let to = pair[1];
-            add_edge(&mut outgoing, &mut indegree, from, to, operations[from].duration);
+            add_edge(
+                &mut outgoing,
+                &mut indegree,
+                from,
+                to,
+                operations[from].duration,
+            );
         }
     }
 
@@ -371,7 +455,10 @@ fn evaluate_machine_orders(
         let machine = &instance.machines[machine_index];
         let mut public_ids = Vec::with_capacity(sequence.len());
         let Some(first) = sequence.first() else {
-            machine_orders_public.push(MachineOrder { machine_id: machine.id, operation_ids: public_ids });
+            machine_orders_public.push(MachineOrder {
+                machine_id: machine.id,
+                operation_ids: public_ids,
+            });
             continue;
         };
 
@@ -385,14 +472,18 @@ fn evaluate_machine_orders(
         for (sequence_index, pair) in sequence.windows(2).enumerate() {
             let from = pair[0];
             let to = pair[1];
-            let transition_setup = setup_ticks(machine, operations[from].family, operations[to].family)?;
+            let transition_setup =
+                setup_ticks(machine, operations[from].family, operations[to].family)?;
             let edge_weight = operations[from].duration.checked_add(transition_setup)?;
             add_edge(&mut outgoing, &mut indegree, from, to, edge_weight);
             setup_for_operation[to] = transition_setup;
             sequence_for_operation[to] = sequence_index + 1;
             public_ids.push(operations[to].id);
         }
-        machine_orders_public.push(MachineOrder { machine_id: machine.id, operation_ids: public_ids });
+        machine_orders_public.push(MachineOrder {
+            machine_id: machine.id,
+            operation_ids: public_ids,
+        });
     }
 
     // Kahn topological traversal. A cycle means the chosen machine orders
@@ -485,10 +576,18 @@ fn enumerate_machine_order_products(
 ) {
     if machine_index == permutations.len() {
         stats.machine_order_combinations += 1;
-        if let Some(schedule) = evaluate_machine_orders(instance, operations, job_sequences, current) {
+        if let Some(schedule) =
+            evaluate_machine_orders(instance, operations, job_sequences, current)
+        {
             stats.feasible_combinations += 1;
-            let candidate = EvaluatedCandidate { schedule, machine_orders: current.clone() };
-            if best.as_ref().is_none_or(|incumbent| candidate_is_better(&candidate, incumbent)) {
+            let candidate = EvaluatedCandidate {
+                schedule,
+                machine_orders: current.clone(),
+            };
+            if best
+                .as_ref()
+                .is_none_or(|incumbent| candidate_is_better(&candidate, incumbent))
+            {
                 *best = Some(candidate);
             }
         } else {
@@ -500,8 +599,14 @@ fn enumerate_machine_order_products(
     for order in &permutations[machine_index] {
         current.push(order.clone());
         enumerate_machine_order_products(
-            instance, operations, job_sequences, permutations,
-            machine_index + 1, current, stats, best,
+            instance,
+            operations,
+            job_sequences,
+            permutations,
+            machine_index + 1,
+            current,
+            stats,
+            best,
         );
         current.pop();
     }
@@ -520,19 +625,34 @@ pub fn solve_exact(instance: &Instance) -> OracleResult {
             spt_schedule: None,
             gap_ticks: None,
             gap_parts_per_million: None,
-            stats: SearchStats { machine_order_combinations: 0, cyclic_combinations: 0, feasible_combinations: 0 },
+            stats: SearchStats {
+                machine_order_combinations: 0,
+                cyclic_combinations: 0,
+                feasible_combinations: 0,
+            },
         };
     }
 
     let (operations, job_sequences, machine_operations) = flatten(instance);
-    let permutations: Vec<Vec<Vec<usize>>> = machine_operations.iter()
+    let permutations: Vec<Vec<Vec<usize>>> = machine_operations
+        .iter()
         .map(|machine_ops| enumerate_permutations(machine_ops))
         .collect();
-    let mut stats = SearchStats { machine_order_combinations: 0, cyclic_combinations: 0, feasible_combinations: 0 };
+    let mut stats = SearchStats {
+        machine_order_combinations: 0,
+        cyclic_combinations: 0,
+        feasible_combinations: 0,
+    };
     let mut best = None;
     enumerate_machine_order_products(
-        instance, &operations, &job_sequences, &permutations,
-        0, &mut Vec::with_capacity(instance.machines.len()), &mut stats, &mut best,
+        instance,
+        &operations,
+        &job_sequences,
+        &permutations,
+        0,
+        &mut Vec::with_capacity(instance.machines.len()),
+        &mut stats,
+        &mut best,
     );
 
     let Some(optimal) = best.map(|candidate| candidate.schedule) else {
@@ -569,22 +689,33 @@ pub fn solve_exact(instance: &Instance) -> OracleResult {
 }
 
 /// Deterministic shortest-processing-time dispatch baseline.
-fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequences: &[Vec<usize>]) -> Schedule {
+fn solve_spt(
+    instance: &Instance,
+    operations: &[FlatOperation],
+    job_sequences: &[Vec<usize>],
+) -> Schedule {
     let mut next_position = vec![0usize; job_sequences.len()];
     let mut job_ready: Vec<u64> = instance.jobs.iter().map(|job| job.release_ticks).collect();
     let mut machine_ready = vec![0u64; instance.machines.len()];
-    let mut last_family: Vec<&'static str> = instance.machines.iter()
-        .map(|machine| machine.initial_family).collect();
+    let mut last_family: Vec<&'static str> = instance
+        .machines
+        .iter()
+        .map(|machine| machine.initial_family)
+        .collect();
     let mut machine_orders = vec![Vec::<usize>::new(); instance.machines.len()];
     let mut scheduled = Vec::with_capacity(operations.len());
     let mut total_setup_ticks = 0u64;
     let mut makespan = 0u64;
 
     while scheduled.len() < operations.len() {
-        let selected = job_sequences.iter().enumerate()
+        let selected = job_sequences
+            .iter()
+            .enumerate()
             .filter_map(|(job_index, sequence)| {
                 let position = next_position[job_index];
-                sequence.get(position).map(|operation_index| *operation_index)
+                sequence
+                    .get(position)
+                    .map(|operation_index| *operation_index)
             })
             .min_by_key(|operation_index| {
                 let operation = &operations[*operation_index];
@@ -594,8 +725,12 @@ fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequences: &
 
         let operation = &operations[selected];
         let machine = &instance.machines[operation.machine_index];
-        let setup = setup_ticks(machine, last_family[operation.machine_index], operation.family)
-            .expect("validated all machine family transitions");
+        let setup = setup_ticks(
+            machine,
+            last_family[operation.machine_index],
+            operation.family,
+        )
+        .expect("validated all machine family transitions");
         let operation_ready = job_ready[operation.job_index];
         let processing_start = operation_ready.max(machine_ready[operation.machine_index] + setup);
         let setup_start = processing_start - setup;
@@ -621,12 +756,24 @@ fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequences: &
     }
 
     scheduled.sort_by_key(|operation| (operation.job_id, operation.operation_id));
-    let machine_orders = machine_orders.into_iter().enumerate().map(|(index, sequence)| MachineOrder {
-        machine_id: instance.machines[index].id,
-        operation_ids: sequence.iter().map(|operation_index| operations[*operation_index].id).collect(),
-    }).collect();
+    let machine_orders = machine_orders
+        .into_iter()
+        .enumerate()
+        .map(|(index, sequence)| MachineOrder {
+            machine_id: instance.machines[index].id,
+            operation_ids: sequence
+                .iter()
+                .map(|operation_index| operations[*operation_index].id)
+                .collect(),
+        })
+        .collect();
 
-    Schedule { operations: scheduled, machine_orders, makespan, total_setup_ticks }
+    Schedule {
+        operations: scheduled,
+        machine_orders,
+        makespan,
+        total_setup_ticks,
+    }
 }
 
 pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
@@ -635,13 +782,23 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
         if by_id.insert(operation.operation_id, operation).is_some() {
             return false;
         }
-        let Some(source) = instance.jobs.iter().flat_map(|job| job.operations.iter())
-            .find(|source| source.id == operation.operation_id) else { return false; };
-        let Some(expected_end) = operation.processing_start.checked_add(source.processing_ticks) else {
+        let Some(source) = instance
+            .jobs
+            .iter()
+            .flat_map(|job| job.operations.iter())
+            .find(|source| source.id == operation.operation_id)
+        else {
+            return false;
+        };
+        let Some(expected_end) = operation
+            .processing_start
+            .checked_add(source.processing_ticks)
+        else {
             return false;
         };
         if operation.processing_end != expected_end
-            || operation.setup_start.checked_add(operation.setup_ticks) != Some(operation.processing_start)
+            || operation.setup_start.checked_add(operation.setup_ticks)
+                != Some(operation.processing_start)
             || operation.machine_id != source.machine_id
         {
             return false;
@@ -656,7 +813,9 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
     for job in &instance.jobs {
         let mut previous_end = job.release_ticks;
         for source in &job.operations {
-            let Some(scheduled) = by_id.get(source.id) else { return false; };
+            let Some(scheduled) = by_id.get(source.id) else {
+                return false;
+            };
             if scheduled.processing_start < previous_end {
                 return false;
             }
@@ -667,9 +826,13 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
     let mut ordered_ids = BTreeSet::new();
     let mut recomputed_setup = 0u64;
     for machine in &instance.machines {
-        let mut matching_orders = schedule.machine_orders.iter()
+        let mut matching_orders = schedule
+            .machine_orders
+            .iter()
             .filter(|order| order.machine_id == machine.id);
-        let Some(order) = matching_orders.next() else { return false; };
+        let Some(order) = matching_orders.next() else {
+            return false;
+        };
         if matching_orders.next().is_some() {
             return false;
         }
@@ -679,9 +842,17 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
             if !ordered_ids.insert(*operation_id) {
                 return false;
             }
-            let Some(scheduled) = by_id.get(operation_id) else { return false; };
-            let Some(source) = instance.jobs.iter().flat_map(|job| job.operations.iter())
-                .find(|source| source.id == *operation_id) else { return false; };
+            let Some(scheduled) = by_id.get(operation_id) else {
+                return false;
+            };
+            let Some(source) = instance
+                .jobs
+                .iter()
+                .flat_map(|job| job.operations.iter())
+                .find(|source| source.id == *operation_id)
+            else {
+                return false;
+            };
             if scheduled.machine_id != machine.id || scheduled.sequence_index != sequence_index {
                 return false;
             }
@@ -703,22 +874,40 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
     if ordered_ids.len() != expected_count || recomputed_setup != schedule.total_setup_ticks {
         return false;
     }
-    let recomputed_makespan = schedule.operations.iter()
-        .map(|operation| operation.processing_end).max().unwrap_or(0);
+    let recomputed_makespan = schedule
+        .operations
+        .iter()
+        .map(|operation| operation.processing_end)
+        .max()
+        .unwrap_or(0);
     recomputed_makespan == schedule.makespan
 }
 
 pub fn reference_instance() -> Instance {
-    let setup_rule = SetupRule { from_family: "F", to_family: "F", ticks: 0 };
-    let machines = ["M0", "M1", "M2"].into_iter().map(|id| Machine {
-        id,
-        initial_family: "F",
-        setup_rules: vec![setup_rule],
-    }).collect();
+    let setup_rule = SetupRule {
+        from_family: "F",
+        to_family: "F",
+        ticks: 0,
+    };
+    let machines = ["M0", "M1", "M2"]
+        .into_iter()
+        .map(|id| Machine {
+            id,
+            initial_family: "F",
+            setup_rules: vec![setup_rule],
+        })
+        .collect();
 
-    let job = |id, operations: Vec<Operation>| Job { id, release_ticks: 0, operations };
+    let job = |id, operations: Vec<Operation>| Job {
+        id,
+        release_ticks: 0,
+        operations,
+    };
     let op = |id, machine_id, processing_ticks| Operation {
-        id, machine_id, family: "F", processing_ticks,
+        id,
+        machine_id,
+        family: "F",
+        processing_ticks,
     };
 
     Instance {
@@ -726,9 +915,18 @@ pub fn reference_instance() -> Instance {
         instance_id: "JSSP-3X3-SPT-GAP-001",
         machines,
         jobs: vec![
-            job("JOB-A", vec![op("A-1", "M2", 9), op("A-2", "M0", 2), op("A-3", "M1", 10)]),
-            job("JOB-B", vec![op("B-1", "M2", 7), op("B-2", "M1", 1), op("B-3", "M0", 1)]),
-            job("JOB-C", vec![op("C-1", "M0", 2), op("C-2", "M2", 4), op("C-3", "M1", 4)]),
+            job(
+                "JOB-A",
+                vec![op("A-1", "M2", 9), op("A-2", "M0", 2), op("A-3", "M1", 10)],
+            ),
+            job(
+                "JOB-B",
+                vec![op("B-1", "M2", 7), op("B-2", "M1", 1), op("B-3", "M0", 1)],
+            ),
+            job(
+                "JOB-C",
+                vec![op("C-1", "M0", 2), op("C-2", "M2", 4), op("C-3", "M1", 4)],
+            ),
         ],
     }
 }
@@ -775,15 +973,35 @@ mod tests {
         for machine in &mut instance.machines {
             machine.initial_family = "A";
             machine.setup_rules = vec![
-                SetupRule { from_family: "A", to_family: "A", ticks: 0 },
-                SetupRule { from_family: "A", to_family: "B", ticks: 2 },
-                SetupRule { from_family: "B", to_family: "A", ticks: 3 },
-                SetupRule { from_family: "B", to_family: "B", ticks: 0 },
+                SetupRule {
+                    from_family: "A",
+                    to_family: "A",
+                    ticks: 0,
+                },
+                SetupRule {
+                    from_family: "A",
+                    to_family: "B",
+                    ticks: 2,
+                },
+                SetupRule {
+                    from_family: "B",
+                    to_family: "A",
+                    ticks: 3,
+                },
+                SetupRule {
+                    from_family: "B",
+                    to_family: "B",
+                    ticks: 0,
+                },
             ];
         }
         for job in &mut instance.jobs {
             for operation in &mut job.operations {
-                operation.family = if operation.id.ends_with('1') { "B" } else { "A" };
+                operation.family = if operation.id.ends_with('1') {
+                    "B"
+                } else {
+                    "A"
+                };
             }
         }
         let result = solve_exact(&instance);
@@ -797,7 +1015,11 @@ mod tests {
         instance.jobs[0].release_ticks = 50;
         let result = solve_exact(&instance);
         let schedule = result.optimal_schedule.unwrap();
-        let first = schedule.operations.iter().find(|operation| operation.operation_id == "A-1").unwrap();
+        let first = schedule
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id == "A-1")
+            .unwrap();
         assert!(first.processing_start >= 50);
         assert!(verify_schedule(&instance, &schedule));
     }
@@ -808,7 +1030,11 @@ mod tests {
         instance.jobs[0].release_ticks = u64::MAX;
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::InvalidInput);
-        assert!(result.input_failures.contains(&InputFailure::DurationEnvelopeOverflow));
+        assert!(
+            result
+                .input_failures
+                .contains(&InputFailure::DurationEnvelopeOverflow)
+        );
         assert!(!result.optimality_proven);
     }
 
@@ -816,13 +1042,25 @@ mod tests {
     fn unsupported_instance_size_is_not_claimed_exact() {
         let mut instance = reference_instance();
         instance.jobs[0].operations.push(Operation {
-            id: "A-4", machine_id: "M0", family: "F", processing_ticks: 1,
+            id: "A-4",
+            machine_id: "M0",
+            family: "F",
+            processing_ticks: 1,
         });
-        instance.machines[0].setup_rules.push(SetupRule { from_family: "F", to_family: "F", ticks: 0 });
+        instance.machines[0].setup_rules.push(SetupRule {
+            from_family: "F",
+            to_family: "F",
+            ticks: 0,
+        });
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::InvalidInput);
         assert!(!result.optimality_proven);
-        assert!(result.input_failures.iter().any(|failure| matches!(failure, InputFailure::TooManyOperations { .. })));
+        assert!(
+            result
+                .input_failures
+                .iter()
+                .any(|failure| matches!(failure, InputFailure::TooManyOperations { .. }))
+        );
     }
 
     #[test]
@@ -831,7 +1069,12 @@ mod tests {
         instance.jobs[0].operations[0].id = "A-2";
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::InvalidInput);
-        assert!(result.input_failures.iter().any(|failure| matches!(failure, InputFailure::DuplicateOperationId { .. })));
+        assert!(
+            result
+                .input_failures
+                .iter()
+                .any(|failure| matches!(failure, InputFailure::DuplicateOperationId { .. }))
+        );
     }
 
     #[test]
@@ -840,7 +1083,12 @@ mod tests {
         instance.jobs[0].operations[0].machine_id = "MISSING";
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::InvalidInput);
-        assert!(result.input_failures.iter().any(|failure| matches!(failure, InputFailure::UnknownMachine { .. })));
+        assert!(
+            result
+                .input_failures
+                .iter()
+                .any(|failure| matches!(failure, InputFailure::UnknownMachine { .. }))
+        );
     }
 
     #[test]
@@ -849,16 +1097,23 @@ mod tests {
         instance.machines[0].setup_rules.clear();
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::InvalidInput);
-        assert!(result.input_failures.iter().any(|failure| matches!(failure, InputFailure::MissingSetupRule { .. })));
+        assert!(
+            result
+                .input_failures
+                .iter()
+                .any(|failure| matches!(failure, InputFailure::MissingSetupRule { .. }))
+        );
     }
 
     #[test]
     fn setup_time_changes_dispatch_schedule() {
         let mut instance = reference_instance();
         for machine in &mut instance.machines {
-            machine.setup_rules = vec![
-                SetupRule { from_family: "F", to_family: "F", ticks: 2 },
-            ];
+            machine.setup_rules = vec![SetupRule {
+                from_family: "F",
+                to_family: "F",
+                ticks: 2,
+            }];
         }
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::Exact);
@@ -885,7 +1140,10 @@ mod tests {
 
     #[test]
     fn deterministic_exact_result_is_reproducible() {
-        assert_eq!(solve_exact(&reference_instance()), solve_exact(&reference_instance()));
+        assert_eq!(
+            solve_exact(&reference_instance()),
+            solve_exact(&reference_instance())
+        );
     }
 
     #[test]
@@ -903,7 +1161,12 @@ mod tests {
         instance.machines[1].id = "M0";
         let result = solve_exact(&instance);
         assert_eq!(result.status, OracleStatus::InvalidInput);
-        assert!(result.input_failures.iter().any(|failure| matches!(failure, InputFailure::DuplicateMachineId { .. })));
+        assert!(
+            result
+                .input_failures
+                .iter()
+                .any(|failure| matches!(failure, InputFailure::DuplicateMachineId { .. }))
+        );
     }
 
     #[test]
@@ -912,7 +1175,11 @@ mod tests {
         instance.jobs[1].release_ticks = 100;
         let result = solve_exact(&instance);
         let schedule = result.optimal_schedule.unwrap();
-        let b1 = schedule.operations.iter().find(|operation| operation.operation_id == "B-1").unwrap();
+        let b1 = schedule
+            .operations
+            .iter()
+            .find(|operation| operation.operation_id == "B-1")
+            .unwrap();
         assert!(b1.processing_start >= 100);
         assert!(verify_schedule(&instance, &schedule));
     }
@@ -925,6 +1192,10 @@ mod tests {
         // The conservative duration envelope rejects the input before search;
         // timestamps are never allowed to wrap or masquerade as a cycle.
         assert_eq!(result.status, OracleStatus::InvalidInput);
-        assert!(result.input_failures.contains(&InputFailure::DurationEnvelopeOverflow));
+        assert!(
+            result
+                .input_failures
+                .contains(&InputFailure::DurationEnvelopeOverflow)
+        );
     }
 }
