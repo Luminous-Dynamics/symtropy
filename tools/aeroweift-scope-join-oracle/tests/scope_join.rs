@@ -9,9 +9,13 @@ const OPERATION: OperationScope = OperationScope {
     operation_id: "OP-001",
     flight_instance_id: "FLIGHT-001",
     aircraft_instance_id: "AIRCRAFT-001",
+    operator_id: "OPERATOR-001",
+    issuing_ussp_id: "USSP-001",
     intent_id: "INTENT-001",
+    intent_revision: 4,
     authorization_id: "AUTH-001",
     authorization_revision: 8,
+    authorization_digest: "AUTH-SHA256-001",
 };
 
 const IDENTITY: EvidenceIdentity = EvidenceIdentity {
@@ -556,4 +560,46 @@ fn blank_dependency_snapshot_reference_is_not_accepted() {
     let mut input = valid_input();
     input.surveillance_claims[1].dependency_snapshot_ref = Some("  ");
     assert_rejected(input, Reason::MissingDependencySnapshot("Q-NONCOOP-A"));
+}
+
+#[test]
+fn different_operator_cannot_satisfy_authorization_scope() {
+    let mut input = valid_input();
+    input.operation_claims[2].scope.operator_id = "OPERATOR-OTHER";
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+}
+
+#[test]
+fn different_issuing_ussp_cannot_satisfy_authorization_scope() {
+    let mut input = valid_input();
+    input.operation_claims[2].scope.issuing_ussp_id = "USSP-OTHER";
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+}
+
+#[test]
+fn different_intent_revision_cannot_satisfy_authorization_scope() {
+    let mut input = valid_input();
+    input.operation_claims[2].scope.intent_revision = 3;
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+}
+
+#[test]
+fn different_authorization_artifact_digest_cannot_join() {
+    let mut input = valid_input();
+    input.operation_claims[2].scope.authorization_digest = "AUTH-SHA256-OTHER";
+    assert_rejected(input, Reason::OperationScopeMismatch(EvidenceOwner::Intent));
+}
+
+#[test]
+fn missing_issuing_provider_identity_is_not_admissible() {
+    let mut input = valid_input();
+    input.request.operation.issuing_ussp_id = "";
+    assert_rejected(input, Reason::IncompleteOperationScope);
+}
+
+#[test]
+fn missing_authorization_digest_is_not_admissible() {
+    let mut input = valid_input();
+    input.request.operation.authorization_digest = "";
+    assert_rejected(input, Reason::IncompleteOperationScope);
 }
