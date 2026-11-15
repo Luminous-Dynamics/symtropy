@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 27;
+pub const CASE_COUNT: usize = 32;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -681,6 +681,165 @@ fn interval_calibration_metrics(input: &Value) -> Result<Value, String> {
     }))
 }
 
+
+fn ensemble_crps(input: &Value) -> Result<Value, String> {
+    let observed = number(input, "observed")?;
+    let members = numeric_array(input, "ensemble_members")?;
+    if observed < 0.0 || members.iter().any(|value| *value < 0.0) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "NEGATIVE_STREAMFLOW_VALUE",
+            "member_count": members.len(),
+            "observed": observed,
+            "crps": null
+        }));
+    }
+    let member_count = members.len() as f64;
+    let first_term = members.iter().map(|value| (value - observed).abs()).sum::<f64>()
+        / member_count;
+    let pairwise_sum = members
+        .iter()
+        .flat_map(|left| members.iter().map(move |right| (left - right).abs()))
+        .sum::<f64>();
+    let crps = first_term - pairwise_sum / (2.0 * member_count * member_count);
+    let ensemble_mean = mean(&members);
+    let ensemble_variance = members
+        .iter()
+        .map(|value| (value - ensemble_mean).powi(2))
+        .sum::<f64>()
+        / member_count;
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "EMPIRICAL_ENSEMBLE_CRPS",
+        "member_count": members.len(),
+        "observed": observed,
+        "ensemble_mean": ensemble_mean,
+        "ensemble_population_stddev": ensemble_variance.sqrt(),
+        "crps": crps
+    }))
+}
+
+fn brier_score(input: &Value) -> Result<Value, String> {
+    let probability = number(input, "forecast_probability")?;
+    let observed_event = number(input, "observed_event")?;
+    let event_id = text(input, "event_definition_id")?;
+    if !(0.0..=1.0).contains(&probability) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "FORECAST_PROBABILITY_OUTSIDE_ZERO_ONE",
+            "event_definition_id": event_id,
+            "forecast_probability": probability,
+            "observed_event": observed_event,
+            "brier_score": null
+        }));
+    }
+    if observed_event != 0.0 && observed_event != 1.0 {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
+            "event_definition_id": event_id,
+            "forecast_probability": probability,
+            "observed_event": observed_event,
+            "brier_score": null
+        }));
+    }
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BINARY_EVENT_BRIER_SCORE",
+        "event_definition_id": event_id,
+        "forecast_probability": probability,
+        "observed_event": observed_event,
+        "brier_score": (probability - observed_event).powi(2)
+    }))
+}
+
+fn brier_reliability(input: &Value) -> Result<Value, String> {
+    let probabilities = numeric_array(input, "forecast_probabilities")?;
+    let outcomes = numeric_array(input, "observed_events")?;
+    let event_id = text(input, "event_definition_id")?;
+    if probabilities.len() != outcomes.len() {
+        return Err("forecast probability and event arrays must have equal length".to_owned());
+    }
+    if let Some(index) = probabilities
+        .iter()
+        .position(|probability| !(0.0..=1.0).contains(probability))
+    {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "FORECAST_PROBABILITY_OUTSIDE_ZERO_ONE",
+            "event_definition_id": event_id,
+            "sample_count": probabilities.len(),
+            "invalid_probability_index": index,
+            "brier_score": null,
+            "reliability_bins": null
+        }));
+    }
+    if let Some(index) = outcomes.iter().position(|outcome| *outcome != 0.0 && *outcome != 1.0) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
+            "event_definition_id": event_id,
+            "sample_count": outcomes.len(),
+            "invalid_outcome_index": index,
+            "brier_score": null,
+            "reliability_bins": null
+        }));
+    }
+    let brier = probabilities
+        .iter()
+        .zip(&outcomes)
+        .map(|(probability, outcome)| (probability - outcome).powi(2))
+        .sum::<f64>()
+        / probabilities.len() as f64;
+    let mut counts = [0_usize; 5];
+    let mut probability_sums = [0.0_f64; 5];
+    let mut event_sums = [0.0_f64; 5];
+    for (probability, outcome) in probabilities.iter().zip(&outcomes) {
+        let index = ((*probability * 5.0).floor() as usize).min(4);
+        counts[index] += 1;
+        probability_sums[index] += probability;
+        event_sums[index] += outcome;
+    }
+    let bins = (0..5)
+        .map(|index| {
+            let count = counts[index];
+            let mean_probability = if count == 0 {
+                None
+            } else {
+                Some(probability_sums[index] / count as f64)
+            };
+            let observed_frequency = if count == 0 {
+                None
+            } else {
+                Some(event_sums[index] / count as f64)
+            };
+            let calibration_error = match (mean_probability, observed_frequency) {
+                (Some(probability), Some(frequency)) => Some(frequency - probability),
+                _ => None,
+            };
+            json!({
+                "bin_index": index,
+                "lower_inclusive": index as f64 / 5.0,
+                "upper_exclusive": if index == 4 { Value::Null } else { json!((index + 1) as f64 / 5.0) },
+                "sample_count": count,
+                "mean_forecast_probability": mean_probability,
+                "observed_event_frequency": observed_frequency,
+                "observed_minus_forecast_frequency": calibration_error
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "MEAN_BRIER_AND_FIXED_FIVE_BIN_RELIABILITY_DIAGNOSTIC",
+        "event_definition_id": event_id,
+        "sample_count": probabilities.len(),
+        "event_count": outcomes.iter().filter(|outcome| **outcome == 1.0).count(),
+        "brier_score": brier,
+        "reliability_bins": bins,
+        "reliability_warning": "Five-bin reliability is descriptive only; assess sampling uncertainty and do not interpret sparse bins as calibrated."
+    }))
+}
+
 pub fn compute_case(case: &Value) -> Result<Value, String> {
     let id = text(case, "case_id")?;
     let input = field(case, "inputs")?;
@@ -702,6 +861,13 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         }
         "HC-T0-024-probabilistic-interval-coverage-width"
         | "HC-T0-025-invalid-probabilistic-interval-reject" => interval_calibration_metrics(input),
+
+        "HC-T0-028-ensemble-crps" | "HC-T0-032-ensemble-crps-negative-flow-reject" => {
+            ensemble_crps(input)
+        }
+        "HC-T0-029-threshold-event-brier" => brier_score(input),
+        "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
+        "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -844,7 +1010,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twenty_seven_cases_match_separate_oracle() {
+    fn all_thirty_two_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -934,6 +1100,46 @@ mod tests {
             out["reason"],
             "LOG10_TRANSFORM_REQUIRES_STRICTLY_POSITIVE_OBSERVED_AND_PREDICTED_FLOW"
         );
+    }
+
+
+    #[test]
+    fn ensemble_crps_uses_full_member_distribution() {
+        let out = compute_case(&fixture("inputs")["cases"][27]).expect("ensemble CRPS");
+        assert_eq!(out["member_count"], 3);
+        assert!((out["crps"].as_f64().expect("CRPS") - 2.0 / 3.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn threshold_event_brier_score_is_a_proper_probability_score() {
+        let out = compute_case(&fixture("inputs")["cases"][28]).expect("Brier score");
+        assert_eq!(out["probabilistic_disposition"], "ADMITTED");
+        assert_eq!(out["brier_score"], 0.09);
+    }
+
+    #[test]
+    fn brier_reliability_reports_empty_bins_as_null() {
+        let out = compute_case(&fixture("inputs")["cases"][29]).expect("Brier reliability");
+        assert_eq!(out["sample_count"], 5);
+        assert_eq!(out["brier_score"], 0.0575);
+        assert_eq!(out["reliability_bins"][0]["sample_count"], 1);
+        assert_eq!(out["reliability_bins"][4]["sample_count"], 1);
+        assert_eq!(out["reliability_bins"][2]["sample_count"], 1);
+    }
+
+    #[test]
+    fn invalid_event_probability_is_rejected_not_clipped() {
+        let out = compute_case(&fixture("inputs")["cases"][30]).expect("invalid probability");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "FORECAST_PROBABILITY_OUTSIDE_ZERO_ONE");
+        assert_eq!(out["brier_score"], Value::Null);
+    }
+
+    #[test]
+    fn negative_ensemble_streamflow_is_rejected() {
+        let out = compute_case(&fixture("inputs")["cases"][31]).expect("negative ensemble member");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
     }
 
     #[test]
