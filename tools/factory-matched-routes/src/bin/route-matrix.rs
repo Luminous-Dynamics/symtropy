@@ -48,7 +48,11 @@ fn main() {
             row.evaluation.feasible_assignment_count,
             if frontier.is_empty() { "-" } else { &frontier },
             if blocked.is_empty() { "-" } else { &blocked },
-            if input_failures.is_empty() { "-" } else { &input_failures },
+            if input_failures.is_empty() {
+                "-"
+            } else {
+                &input_failures
+            },
         );
     }
 }
