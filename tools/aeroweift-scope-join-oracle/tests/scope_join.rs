@@ -236,21 +236,34 @@ fn late_receipt_cannot_leak_into_historical_cutoff() {
 fn future_observation_cannot_be_used_before_it_occurs() {
     let mut input = valid_input();
     input.operation_claims[0].observed_at = Some(101);
-    input.operation_claims[0].received_at = 101;
+    input.operation_claims[0].received_at = 100;
     assert_rejected(
         input,
-        Reason::OwnerEvaluatedAfterCutoff(EvidenceOwner::Pnt),
+        Reason::OwnerEventAfterCutoff(EvidenceOwner::Pnt),
     );
 }
 
 #[test]
 fn event_time_after_first_receipt_is_rejected() {
     let mut input = valid_input();
-    input.operation_claims[0].observed_at = Some(101);
-    input.operation_claims[0].received_at = 100;
+    input.operation_claims[0].observed_at = Some(99);
+    input.operation_claims[0].evaluated_at = 98;
+    input.operation_claims[0].received_at = 98;
     assert_rejected(
         input,
-        Reason::OwnerEventAfterCutoff(EvidenceOwner::Pnt),
+        Reason::OwnerEventAfterReceipt(EvidenceOwner::Pnt),
+    );
+}
+
+#[test]
+fn owner_evaluation_after_receipt_is_rejected() {
+    let mut input = valid_input();
+    input.operation_claims[0].evaluated_at = 100;
+    input.operation_claims[0].received_at = 99;
+    input.operation_claims[0].observed_at = Some(99);
+    assert_rejected(
+        input,
+        Reason::OwnerEvaluationAfterReceipt(EvidenceOwner::Pnt),
     );
 }
 
@@ -377,10 +390,10 @@ fn surveillance_receipt_after_cutoff_is_rejected() {
 fn surveillance_event_after_cutoff_is_rejected() {
     let mut input = valid_input();
     input.surveillance_claims[0].observed_at = Some(101);
-    input.surveillance_claims[0].received_at = 101;
+    input.surveillance_claims[0].received_at = 100;
     assert_rejected(
         input,
-        Reason::SurveillanceReceiptAfterCutoff("Q-COOP-A"),
+        Reason::SurveillanceObservationAfterCutoff("Q-COOP-A"),
     );
 }
 
@@ -412,7 +425,7 @@ fn observation_reference_and_event_time_must_be_present_together() {
 fn missing_required_query_is_not_vacuously_accepted() {
     let mut input = valid_input();
     input.surveillance_claims.pop();
-    assert_rejected(input, Reason::MissingRequiredCoverage);
+    assert_rejected(input, Reason::MissingSurveillanceClaim("Q-NONCOOP-A"));
 }
 
 #[test]
@@ -433,7 +446,7 @@ fn extra_unrequested_surveillance_claim_is_rejected() {
         query_id: "Q-EXTRA",
         ..extra
     });
-    assert_rejected(input, Reason::MissingRequiredCoverage);
+    assert_rejected(input, Reason::UnexpectedSurveillanceClaim("Q-EXTRA"));
 }
 
 #[test]
