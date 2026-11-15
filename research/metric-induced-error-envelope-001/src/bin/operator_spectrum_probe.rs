@@ -16,11 +16,11 @@ fn identity_matrix<const N: usize>() -> Matrix<N> {
     std::array::from_fn(|row| std::array::from_fn(|column| if row == column { 1.0 } else { 0.0 }))
 }
 
-fn identity_metric<Frame: metric_induced_error_envelope_reference::CoordinateFrame, const N: usize>()
-    -> Metric<Frame, N>
-{
-    Metric::admit(identity_matrix(), MetricProfileV1::default())
-        .expect("identity metric is SPD")
+fn identity_metric<
+    Frame: metric_induced_error_envelope_reference::CoordinateFrame,
+    const N: usize,
+>() -> Metric<Frame, N> {
+    Metric::admit(identity_matrix(), MetricProfileV1::default()).expect("identity metric is SPD")
 }
 
 fn profile() -> OperatorConditionProfileV1 {
@@ -47,14 +47,15 @@ fn json_optional(value: Option<f64>) -> String {
 fn json_singular_values(values: &[f64]) -> String {
     format!(
         "[{}]",
-        values.iter().map(|value| json_number(*value)).collect::<Vec<_>>().join(",")
+        values
+            .iter()
+            .map(|value| json_number(*value))
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
-fn square_row<const N: usize>(
-    fixture_id: &str,
-    receipt: &OperatorConditionReceiptV1,
-) -> String {
+fn square_row<const N: usize>(fixture_id: &str, receipt: &OperatorConditionReceiptV1) -> String {
     let rank = receipt.numerical_rank;
     let nonzero_condition = if rank > 0 {
         Some(receipt.singular_values[0] / receipt.singular_values[rank - 1])
@@ -107,19 +108,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let d2 = identity_metric::<CartesianQ, 2>();
     let c2 = identity_metric::<DenseY, 2>();
-    let weighted = TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([
-        [3.0, 0.0],
-        [0.0, 4.0],
-    ])?;
+    let weighted =
+        TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([[3.0, 0.0], [0.0, 4.0]])?;
     rows.push(square_row::<2>(
         "weighted_diagonal_2x2",
         &weighted.assess(&d2, &c2, profile)?,
     ));
 
-    let dense = TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([
-        [1.0, 2.0],
-        [3.0, 4.0],
-    ])?;
+    let dense = TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [3.0, 4.0]])?;
     rows.push(square_row::<2>(
         "dense_exact_2x2",
         &dense.assess(&d2, &c2, profile)?,
@@ -137,10 +133,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         &repeated.assess(&d3, &c3, profile)?,
     ));
 
-    let rank_deficient = TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([
-        [1.0, 2.0],
-        [2.0, 4.0],
-    ])?;
+    let rank_deficient =
+        TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [2.0, 4.0]])?;
     rows.push(square_row::<2>(
         "rank_deficient_square_2x2",
         &rank_deficient.assess(&d2, &c2, profile)?,
