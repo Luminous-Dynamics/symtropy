@@ -1,0 +1,2952 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/liu-ice-run-manifest-v1.json",
+  "title": "LiU-ICE reproducible benchmark run manifest",
+  "description": "Evidence envelope for one frozen LiU-ICE comparator run. A score is not qualified merely because it is present.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "run_status",
+    "evidence_level",
+    "dataset",
+    "split",
+    "comparator",
+    "evaluator",
+    "protocol",
+    "metrics",
+    "uncertainty",
+    "claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "liu-ice-run-manifest-v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_status": {
+      "enum": [
+        "planned_not_executed",
+        "data_not_audited",
+        "protocol_reproduction_pending",
+        "executed_unqualified",
+        "qualified",
+        "rejected"
+      ]
+    },
+    "evidence_level": {
+      "enum": [
+        "P0_synthetic_contract",
+        "P1_public_benchmark_reproduction",
+        "P2_laboratory_shadow",
+        "P3_independent_testbed",
+        "P4_field_shadow",
+        "P5_human_in_loop_pilot"
+      ]
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "source_url",
+        "archive_sha256",
+        "recording_manifest_sha256",
+        "redistribution_permission_verified"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "const": "LIU-ICE-DX37"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "archive_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recording_manifest_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "redistribution_permission_verified": {
+          "type": "boolean"
+        },
+        "archive_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "manifest_sha256",
+        "training_recordings_sha256",
+        "calibration_recordings_sha256",
+        "test_recordings_sha256",
+        "recordings_disjoint",
+        "row_randomization_used"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "official",
+            "whole_recording",
+            "held_out_driving_cycle",
+            "leave_one_fault_recording_out"
+          ]
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "training_recordings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "calibration_recordings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "test_recordings_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "recordings_disjoint": {
+          "const": true
+        },
+        "row_randomization_used": {
+          "const": false
+        }
+      }
+    },
+    "comparator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comparator_id",
+        "family",
+        "configuration_sha256",
+        "model_artifact_sha256",
+        "channels",
+        "historical_reference_metric_semantics",
+        "faithful_reproduction_status"
+      ],
+      "properties": {
+        "comparator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "analytical_model_based",
+            "statistical_spc",
+            "state_only",
+            "command_only",
+            "early_fusion",
+            "command_conditioned_dynamic",
+            "regime_gated_fusion",
+            "selective_unknown_fault",
+            "physics_informed_inverse_twin",
+            "adaptive_residual_qda_lsvc",
+            "rls_open_set_residuals",
+            "distribution_kl_matching",
+            "residual_anfis",
+            "ccdnn_multiview",
+            "dual_vae_svm_ensemble"
+          ]
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "model_artifact_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "historical_reference_metric_semantics": {
+          "enum": [
+            "not_applicable",
+            "historical_tir_not_current_fia",
+            "current_dx2026_metrics"
+          ]
+        },
+        "faithful_reproduction_status": {
+          "enum": [
+            "not_started",
+            "faithful_reproduction",
+            "reimplementation",
+            "unavailable_source_artifacts"
+          ]
+        }
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_commit",
+        "source_tree_sha256",
+        "runtime",
+        "dependency_lock_sha256"
+      ],
+      "properties": {
+        "git_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "source_tree_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_lock_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_sha256",
+        "seed_manifest_sha256",
+        "tuning_frozen_before_test",
+        "official_interface_reproduced",
+        "event_evaluation",
+        "shift_matrix_sha256",
+        "shift_axis",
+        "shift_holdout_manifest_sha256",
+        "independent_test_recordings",
+        "active_evidence_selection",
+        "streaming_contract",
+        "external_dataset_track",
+        "deployability_matrix_sha256",
+        "deployability_assessment",
+        "behavioral_set_evaluation",
+        "sequential_evidence"
+      ],
+      "properties": {
+        "protocol_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "seed_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "tuning_frozen_before_test": {
+          "const": true
+        },
+        "official_interface_reproduced": {
+          "type": "boolean"
+        },
+        "event_evaluation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "event_manifest_sha256",
+            "event_source_sha256",
+            "config"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "liu-ice-event-metrics-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "public_benchmark_executed",
+                "qualified"
+              ]
+            },
+            "event_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "event_source_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "config": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minimum_positive_samples",
+                "alarm_merge_gap_seconds",
+                "maximum_detection_latency_seconds",
+                "maximum_observation_gap_seconds",
+                "probability_sum_tolerance"
+              ],
+              "properties": {
+                "minimum_positive_samples": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "alarm_merge_gap_seconds": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "maximum_detection_latency_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "maximum_observation_gap_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "probability_sum_tolerance": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 0.099999
+                }
+              }
+            }
+          }
+        },
+        "shift_matrix_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "shift_axis": {
+          "enum": [
+            "in_cycle_reference",
+            "C_SHIFT_DRIVING_CYCLE",
+            "C_SHIFT_AMBIENT_ENVELOPE",
+            "F_SHIFT_HELD_OUT_FAULT_FAMILY",
+            "C_PLUS_F_SHIFT",
+            "MAGNITUDE_SHIFT_WITHIN_FAMILY",
+            "SENSOR_CHAIN_SHIFT"
+          ]
+        },
+        "shift_holdout_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "independent_test_recordings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_evidence_selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "candidate_catalogue_sha256",
+            "hypothesis_manifest_sha256",
+            "policy_sha256",
+            "selection_result_sha256",
+            "upstream_authority_verification_sha256",
+            "selected_candidate_id",
+            "execution_performed",
+            "actuation_authorized",
+            "controlled_perturbations_recommended",
+            "likelihood_scenario_manifest_sha256",
+            "likelihood_scenario_count",
+            "expected_information_gain_nats",
+            "worst_case_information_gain_nats",
+            "risk_assessment_catalogue_sha256",
+            "risk_evidence_reviewed_by_authority_owner",
+            "observation_update",
+            "multi_scenario_assessed",
+            "likelihood_calibration_catalogue_sha256",
+            "likelihood_calibration_reviewed_by_independent_validator",
+            "upstream_likelihood_calibration_verification_sha256",
+            "prior_distribution_sha256",
+            "selected_baseline",
+            "sequential_update_status",
+            "joint_scenario_posterior_ledger_sha256",
+            "joint_scenario_observation_count",
+            "portfolio_replay_match"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "liu-ice-active-evidence-selection-v0.7"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "evaluated_decision_support"
+              ]
+            },
+            "candidate_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "hypothesis_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "policy_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selection_result_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "upstream_authority_verification_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selected_candidate_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "execution_performed": {
+              "const": false
+            },
+            "actuation_authorized": {
+              "const": false
+            },
+            "controlled_perturbations_recommended": {
+              "const": 0
+            },
+            "likelihood_scenario_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "likelihood_scenario_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_information_gain_nats": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "worst_case_information_gain_nats": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "risk_assessment_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "risk_evidence_reviewed_by_authority_owner": {
+              "type": "boolean"
+            },
+            "observation_update": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "candidate_manifest_sha256",
+                "observation_receipt_sha256",
+                "posterior_manifest_sha256",
+                "observed_outcome_id",
+                "realized_entropy_reduction_nats",
+                "realized_kl_divergence_nats",
+                "posterior_entropy_nats",
+                "possible_likelihood_scenario_count",
+                "impossible_likelihood_scenario_count"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "not_executed",
+                    "realized_update"
+                  ]
+                },
+                "candidate_manifest_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "observation_receipt_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "posterior_manifest_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "observed_outcome_id": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "realized_entropy_reduction_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "realized_kl_divergence_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "posterior_entropy_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "possible_likelihood_scenario_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "impossible_likelihood_scenario_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "scenario_posterior_entropy_min_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "scenario_posterior_entropy_max_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "const": "realized_update"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "candidate_manifest_sha256": {
+                        "type": "string"
+                      },
+                      "observation_receipt_sha256": {
+                        "type": "string"
+                      },
+                      "posterior_manifest_sha256": {
+                        "type": "string"
+                      },
+                      "observed_outcome_id": {
+                        "type": "string"
+                      },
+                      "realized_entropy_reduction_nats": {
+                        "type": "number"
+                      },
+                      "realized_kl_divergence_nats": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "posterior_entropy_nats": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "possible_likelihood_scenario_count": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "multi_scenario_assessed": {
+              "type": "boolean"
+            },
+            "likelihood_calibration_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "likelihood_calibration_reviewed_by_independent_validator": {
+              "type": "boolean"
+            },
+            "upstream_likelihood_calibration_verification_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "prior_distribution_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selected_baseline": {
+              "enum": [
+                "no_additional_evidence",
+                "cheapest_eligible",
+                "maximum_information_gain",
+                "information_gain_per_cost",
+                "seeded_random_eligible",
+                "risk_adjusted_worst_case_information_gain",
+                "maximum_worst_case_chernoff_information",
+                null
+              ]
+            },
+            "sequential_update_status": {
+              "enum": [
+                "not_executed",
+                "single_point_model_only",
+                "multi_scenario_blocked_joint_posterior_missing",
+                "joint_hypothesis_scenario_ledger_qualified",
+                "joint_scenario_ledger_synthetic_contract_only"
+              ]
+            },
+            "joint_scenario_posterior_ledger_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "joint_scenario_observation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "portfolio_replay_match": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "sequential_update_status": {
+                    "const": "joint_hypothesis_scenario_ledger_qualified"
+                  }
+                },
+                "required": [
+                  "sequential_update_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "joint_scenario_posterior_ledger_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "sequential_update_status": {
+                    "const": "multi_scenario_blocked_joint_posterior_missing"
+                  }
+                },
+                "required": [
+                  "sequential_update_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "joint_scenario_posterior_ledger_sha256": {
+                    "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "sequential_update_status": {
+                    "const": "joint_scenario_ledger_synthetic_contract_only"
+                  }
+                },
+                "required": [
+                  "sequential_update_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "joint_scenario_posterior_ledger_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "joint_scenario_observation_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "synthetic_contract_only",
+                      "evaluated_decision_support"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "portfolio_replay_match": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "streaming_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "stream_manifest_sha256",
+            "model_sha256",
+            "receipt_chain_sha256",
+            "input_sample_count",
+            "output_receipt_count",
+            "historical_output_mutation_count",
+            "sample_sequence_gap_count",
+            "competition_interface_compliance",
+            "adapter_source_sha256"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "liu-ice-streaming-contract-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "public_benchmark_executed",
+                "qualified"
+              ]
+            },
+            "stream_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "receipt_chain_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output_receipt_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "historical_output_mutation_count": {
+              "const": 0
+            },
+            "sample_sequence_gap_count": {
+              "const": 0
+            },
+            "input_output_cardinality_mismatch_count": {
+              "const": 0
+            },
+            "invalid_probability_output_count": {
+              "const": 0
+            },
+            "poisoned_session_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "competition_interface_compliance": {
+              "enum": [
+                "not_evaluated",
+                "python_compatible",
+                "matlab_compatible",
+                "incompatible"
+              ]
+            },
+            "adapter_source_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        },
+        "external_dataset_track": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "dataset_doi",
+            "dataset_license",
+            "license_verified",
+            "archive_sha256",
+            "file_manifest_sha256",
+            "dataset_index_sha256",
+            "variable_dictionary_sha256",
+            "normalization_script_sha256",
+            "signal_semantic_mapping_sha256",
+            "fault_ontology_mapping_sha256",
+            "split_manifest_sha256",
+            "recording_count",
+            "sample_count",
+            "signal_mapping_reviewed",
+            "label_mapping_reviewed",
+            "independent_engine_count",
+            "event_latency_eligible_recording_count",
+            "cross_engine_or_fleet_claim_allowed",
+            "archive_md5_publisher_reported",
+            "archive_size_bytes",
+            "archive_md5_independently_verified"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-marine-external-dataset-track-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "metadata_audited_archive_not_audited",
+                "archive_audited",
+                "evaluated_unqualified",
+                "qualified",
+                "not_evaluable"
+              ]
+            },
+            "dataset_doi": {
+              "const": "10.5281/zenodo.19857425"
+            },
+            "dataset_license": {
+              "const": "CC-BY-4.0"
+            },
+            "license_verified": {
+              "type": "boolean"
+            },
+            "archive_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "file_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dataset_index_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "variable_dictionary_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "normalization_script_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "signal_semantic_mapping_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fault_ontology_mapping_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "split_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recording_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "signal_mapping_reviewed": {
+              "type": "boolean"
+            },
+            "label_mapping_reviewed": {
+              "type": "boolean"
+            },
+            "independent_engine_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_latency_eligible_recording_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cross_engine_or_fleet_claim_allowed": {
+              "const": false
+            },
+            "archive_md5_publisher_reported": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{32}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "archive_size_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "archive_md5_independently_verified": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "metadata_audited_archive_not_audited"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "archive_sha256": {
+                    "type": "null"
+                  },
+                  "file_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "dataset_index_sha256": {
+                    "type": "null"
+                  },
+                  "variable_dictionary_sha256": {
+                    "type": "null"
+                  },
+                  "normalization_script_sha256": {
+                    "type": "null"
+                  },
+                  "signal_semantic_mapping_sha256": {
+                    "type": "null"
+                  },
+                  "fault_ontology_mapping_sha256": {
+                    "type": "null"
+                  },
+                  "split_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "recording_count": {
+                    "const": 0
+                  },
+                  "sample_count": {
+                    "const": 0
+                  },
+                  "signal_mapping_reviewed": {
+                    "const": false
+                  },
+                  "label_mapping_reviewed": {
+                    "const": false
+                  },
+                  "independent_engine_count": {
+                    "const": 0
+                  },
+                  "event_latency_eligible_recording_count": {
+                    "const": 0
+                  },
+                  "archive_md5_publisher_reported": {
+                    "const": "f4d246c1bb46e05b26e56221acc2606c"
+                  },
+                  "archive_size_bytes": {
+                    "const": 26538633
+                  },
+                  "archive_md5_independently_verified": {
+                    "const": false
+                  },
+                  "cross_engine_or_fleet_claim_allowed": {
+                    "const": false
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "archive_audited",
+                      "evaluated_unqualified",
+                      "qualified"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "license_verified": {
+                    "const": true
+                  },
+                  "archive_sha256": {
+                    "type": "string"
+                  },
+                  "archive_md5_publisher_reported": {
+                    "type": "string"
+                  },
+                  "archive_size_bytes": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "archive_md5_independently_verified": {
+                    "const": true
+                  },
+                  "file_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "dataset_index_sha256": {
+                    "type": "string"
+                  },
+                  "variable_dictionary_sha256": {
+                    "type": "string"
+                  },
+                  "normalization_script_sha256": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "qualified"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "signal_semantic_mapping_sha256": {
+                    "type": "string"
+                  },
+                  "fault_ontology_mapping_sha256": {
+                    "type": "string"
+                  },
+                  "split_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "recording_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "sample_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "signal_mapping_reviewed": {
+                    "const": true
+                  },
+                  "label_mapping_reviewed": {
+                    "const": true
+                  },
+                  "cross_engine_or_fleet_claim_allowed": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "deployability_matrix_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "deployability_assessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "dimension_count",
+            "evidence",
+            "overall_deployability_claim_allowed"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-industrial-diagnostic-deployability-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "dimension_evidence_partial"
+              ]
+            },
+            "dimension_count": {
+              "const": 9
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "criterion_id",
+                  "evidence_status",
+                  "evidence_manifest_sha256",
+                  "independent_review_receipt_sha256"
+                ],
+                "properties": {
+                  "criterion_id": {
+                    "enum": [
+                      "detection_accuracy",
+                      "operational_resilience",
+                      "adaptability",
+                      "real_time_responsiveness",
+                      "resource_efficiency",
+                      "adversarial_robustness",
+                      "data_confidentiality",
+                      "explainability",
+                      "verification_assurance"
+                    ]
+                  },
+                  "evidence_status": {
+                    "enum": [
+                      "not_implemented",
+                      "not_instrumented",
+                      "protocol_only_not_executed",
+                      "source_contract_implemented_unexecuted",
+                      "source_contract_implemented_not_benchmarked",
+                      "synthetic_contract_only",
+                      "partial_integrity_contract_only",
+                      "source_and_ci_contracts_authored_ci_pending",
+                      "evidence_partial",
+                      "independently_reviewed"
+                    ]
+                  },
+                  "evidence_manifest_sha256": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "independent_review_receipt_sha256": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "overall_deployability_claim_allowed": {
+              "const": false
+            }
+          }
+        },
+        "behavioral_set_evaluation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "envelope_catalogue_sha256",
+            "observation_manifest_sha256",
+            "evaluation_receipt_sha256",
+            "envelope_count",
+            "observation_count",
+            "admissible_hypothesis_set_size",
+            "ambiguous_status_count",
+            "unknown_out_of_support_count",
+            "not_evaluable_count",
+            "global_unique_physical_cause_claim_allowed"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-behavioral-set-diagnosis-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "public_benchmark_executed",
+                "qualified"
+              ]
+            },
+            "envelope_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observation_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evaluation_receipt_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "envelope_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "admissible_hypothesis_set_size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ambiguous_status_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown_out_of_support_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not_evaluable_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unique_within_declared_catalogue_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "calibration_review_verified_upstream": {
+              "type": "boolean"
+            },
+            "catalogue_completeness_reviewed": {
+              "type": "boolean"
+            },
+            "global_unique_physical_cause_claim_allowed": {
+              "const": false
+            }
+          }
+        },
+        "sequential_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "model_sha256",
+            "likelihood_table_sha256",
+            "calibration_sha256",
+            "calibration_review_receipt_sha256",
+            "receipt_chain_sha256",
+            "channel_id",
+            "null_hypothesis_id",
+            "alternative_hypothesis_id",
+            "familywise_alpha_ppm",
+            "alternative_count",
+            "per_alternative_alpha_ppm",
+            "observation_count",
+            "threshold_crossed",
+            "unsupported_outcome_count",
+            "validity_assumption_review_sha256",
+            "evidence_unit_kind",
+            "block_aggregation_protocol_sha256",
+            "dependence_review_receipt_sha256",
+            "minimum_block_separation_seconds",
+            "block_manifest_sha256",
+            "independent_evidence_block_count",
+            "duplicate_evidence_unit_rejection_count",
+            "overlap_rejection_count",
+            "insufficient_separation_rejection_count",
+            "raw_sample_pseudoreplication_attempt_rejection_count",
+            "dependence_review_verified_upstream"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-sequential-evidence-v0.2"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "evaluated_model_conditional"
+              ]
+            },
+            "model_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "likelihood_table_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "calibration_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "calibration_review_receipt_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "receipt_chain_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "channel_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "null_hypothesis_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "alternative_hypothesis_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "familywise_alpha_ppm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "alternative_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "per_alternative_alpha_ppm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "observation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "threshold_crossed": {
+              "type": "boolean"
+            },
+            "unsupported_outcome_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "validity_assumption_review_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evidence_unit_kind": {
+              "enum": [
+                "not_evaluated",
+                "non_overlapping_calibrated_block"
+              ]
+            },
+            "block_aggregation_protocol_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dependence_review_receipt_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "minimum_block_separation_seconds": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "block_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "independent_evidence_block_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "duplicate_evidence_unit_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "overlap_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "insufficient_separation_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "raw_sample_pseudoreplication_attempt_rejection_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "dependence_review_verified_upstream": {
+              "type": "boolean"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "evaluated_model_conditional"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "evidence_unit_kind": {
+                    "const": "non_overlapping_calibrated_block"
+                  },
+                  "block_aggregation_protocol_sha256": {
+                    "type": "string"
+                  },
+                  "dependence_review_receipt_sha256": {
+                    "type": "string"
+                  },
+                  "minimum_block_separation_seconds": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "block_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "independent_evidence_block_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "dependence_review_verified_upstream": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_count",
+        "recording_count",
+        "false_alarm_rate",
+        "true_detection_rate",
+        "fault_isolation_accuracy",
+        "official_total_score",
+        "event_recall",
+        "unknown_false_known_rate",
+        "false_alarms_per_observed_normal_hour",
+        "median_detection_latency_seconds",
+        "p95_detection_latency_seconds"
+      ],
+      "properties": {
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recording_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "false_alarm_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "true_detection_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fault_isolation_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "official_total_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "event_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unknown_false_known_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "median_detection_latency_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p95_detection_latency_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "false_alarms_per_observed_normal_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "duplicate_alarm_count_during_detected_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_alarm_count_during_missed_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transient_burst_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_normal_exposure_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "event_isolation_top1_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mean_true_class_probability": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "expected_information_gain_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "prior_entropy_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected_posterior_entropy_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "probe_cost_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "authority_gate_violations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsafe_probe_recommendations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "controlled_perturbations_recommended": {
+          "const": 0
+        },
+        "worst_case_expected_information_gain_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_receipt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historical_output_mutation_count": {
+          "const": 0
+        },
+        "sample_sequence_gap_count": {
+          "const": 0
+        },
+        "input_output_cardinality_mismatch_count": {
+          "const": 0
+        },
+        "receipt_chain_validation_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "p95_per_sample_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p99_per_sample_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "risk_evidence_unreviewed_candidate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_dataset_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_dataset_recording_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_dataset_event_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "external_dataset_false_known_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "external_dataset_false_alarms_per_observed_normal_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "external_dataset_held_out_load_macro_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "realized_entropy_reduction_nats": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "realized_kl_divergence_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "posterior_entropy_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_entropy_min_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_entropy_max_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "possible_likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "impossible_likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "multi_scenario_assessed": {
+          "type": "boolean"
+        },
+        "likelihood_calibration_reviewed_by_independent_validator": {
+          "type": "boolean"
+        },
+        "likelihood_review_rejection_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deployability_criteria_count": {
+          "const": 9
+        },
+        "deployability_criteria_with_evidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "deployability_criteria_independently_reviewed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "overall_deployability_claim_allowed": {
+          "const": false
+        },
+        "admissible_hypothesis_set_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ambiguous_hypothesis_set_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unknown_out_of_support_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "behavioral_not_evaluable_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unique_within_catalogue_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_unique_within_catalogue_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "behavioral_envelope_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "worst_regime_admissible_set_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "global_unique_physical_cause_claim_allowed": {
+          "const": false
+        },
+        "hypothesis_space_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prior_distribution_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimum_pairwise_chernoff_information_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "worst_case_pairwise_chernoff_information_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "chernoff_discretization_intervals": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "sequential_log_evalue": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sequential_log_threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sequential_per_alternative_alpha_ppm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "sequential_familywise_alpha_ppm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "sequential_observations_to_threshold": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sequential_time_to_threshold_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sequential_unsupported_outcome_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "joint_scenario_observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "joint_posterior_normalization_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "hypothesis_posterior_normalization_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_normalization_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_weight_change_per_observation": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ledger_replay_match_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "duplicate_observation_receipt_rejection_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "impossible_joint_outcome_rejection_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit",
+        "method",
+        "independent_units",
+        "confidence_level",
+        "intervals"
+      ],
+      "properties": {
+        "unit": {
+          "enum": [
+            "recording",
+            "engine_run",
+            "engine",
+            "vessel",
+            "fleet",
+            "not_available"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence_level": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "intervals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "metric",
+              "lower",
+              "upper"
+            ],
+            "properties": {
+              "metric": {
+                "type": "string"
+              },
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "score_claim_allowed",
+        "physical_transfer_claim_allowed",
+        "known_limitations"
+      ],
+      "properties": {
+        "score_claim_allowed": {
+          "type": "boolean"
+        },
+        "physical_transfer_claim_allowed": {
+          "const": false
+        },
+        "known_limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "run_status": {
+            "enum": [
+              "planned_not_executed",
+              "data_not_audited",
+              "protocol_reproduction_pending"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "metrics": {
+            "properties": {
+              "official_total_score": {
+                "type": "null"
+              },
+              "event_recall": {
+                "type": "null"
+              },
+              "false_alarms_per_observed_normal_hour": {
+                "type": "null"
+              },
+              "unknown_false_known_rate": {
+                "type": "null"
+              },
+              "per_fault_macro_recall": {
+                "type": "null"
+              }
+            }
+          },
+          "claims": {
+            "properties": {
+              "score_claim_allowed": {
+                "const": false
+              }
+            }
+          },
+          "protocol": {
+            "properties": {
+              "active_evidence_selection": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "execution_performed": {
+                    "const": false
+                  },
+                  "actuation_authorized": {
+                    "const": false
+                  },
+                  "controlled_perturbations_recommended": {
+                    "const": 0
+                  },
+                  "likelihood_scenario_count": {
+                    "const": 0
+                  },
+                  "expected_information_gain_nats": {
+                    "type": "null"
+                  },
+                  "worst_case_information_gain_nats": {
+                    "type": "null"
+                  },
+                  "risk_evidence_reviewed_by_authority_owner": {
+                    "const": false
+                  },
+                  "observation_update": {
+                    "properties": {
+                      "status": {
+                        "const": "not_executed"
+                      },
+                      "candidate_manifest_sha256": {
+                        "type": "null"
+                      },
+                      "observation_receipt_sha256": {
+                        "type": "null"
+                      },
+                      "posterior_manifest_sha256": {
+                        "type": "null"
+                      },
+                      "observed_outcome_id": {
+                        "type": "null"
+                      },
+                      "realized_entropy_reduction_nats": {
+                        "type": "null"
+                      },
+                      "realized_kl_divergence_nats": {
+                        "type": "null"
+                      },
+                      "posterior_entropy_nats": {
+                        "type": "null"
+                      },
+                      "possible_likelihood_scenario_count": {
+                        "const": 0
+                      },
+                      "impossible_likelihood_scenario_count": {
+                        "const": 0
+                      },
+                      "scenario_posterior_entropy_min_nats": {
+                        "type": "null"
+                      },
+                      "scenario_posterior_entropy_max_nats": {
+                        "type": "null"
+                      }
+                    }
+                  },
+                  "multi_scenario_assessed": {
+                    "const": false
+                  },
+                  "likelihood_calibration_reviewed_by_independent_validator": {
+                    "const": false
+                  },
+                  "likelihood_calibration_catalogue_sha256": {
+                    "type": "null"
+                  },
+                  "upstream_likelihood_calibration_verification_sha256": {
+                    "type": "null"
+                  },
+                  "sequential_update_status": {
+                    "const": "not_executed"
+                  },
+                  "portfolio_replay_match": {
+                    "const": false
+                  }
+                }
+              },
+              "streaming_contract": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "input_sample_count": {
+                    "const": 0
+                  },
+                  "output_receipt_count": {
+                    "const": 0
+                  },
+                  "historical_output_mutation_count": {
+                    "const": 0
+                  },
+                  "sample_sequence_gap_count": {
+                    "const": 0
+                  },
+                  "input_output_cardinality_mismatch_count": {
+                    "const": 0
+                  }
+                }
+              },
+              "external_dataset_track": {
+                "properties": {
+                  "status": {
+                    "const": "metadata_audited_archive_not_audited"
+                  },
+                  "license_verified": {
+                    "const": false
+                  },
+                  "archive_sha256": {
+                    "type": "null"
+                  },
+                  "file_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "dataset_index_sha256": {
+                    "type": "null"
+                  },
+                  "variable_dictionary_sha256": {
+                    "type": "null"
+                  },
+                  "normalization_script_sha256": {
+                    "type": "null"
+                  },
+                  "signal_semantic_mapping_sha256": {
+                    "type": "null"
+                  },
+                  "fault_ontology_mapping_sha256": {
+                    "type": "null"
+                  },
+                  "split_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "recording_count": {
+                    "const": 0
+                  },
+                  "sample_count": {
+                    "const": 0
+                  },
+                  "signal_mapping_reviewed": {
+                    "const": false
+                  },
+                  "label_mapping_reviewed": {
+                    "const": false
+                  },
+                  "independent_engine_count": {
+                    "const": 0
+                  },
+                  "event_latency_eligible_recording_count": {
+                    "const": 0
+                  },
+                  "cross_engine_or_fleet_claim_allowed": {
+                    "const": false
+                  },
+                  "archive_md5_publisher_reported": {
+                    "const": "f4d246c1bb46e05b26e56221acc2606c"
+                  },
+                  "archive_size_bytes": {
+                    "const": 26538633
+                  },
+                  "archive_md5_independently_verified": {
+                    "const": false
+                  }
+                }
+              },
+              "deployability_assessment": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "dimension_count": {
+                    "const": 9
+                  },
+                  "evidence": {
+                    "minItems": 9,
+                    "maxItems": 9
+                  },
+                  "overall_deployability_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "behavioral_set_evaluation": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "envelope_count": {
+                    "const": 0
+                  },
+                  "observation_count": {
+                    "const": 0
+                  },
+                  "admissible_hypothesis_set_size": {
+                    "const": 0
+                  },
+                  "ambiguous_status_count": {
+                    "const": 0
+                  },
+                  "unknown_out_of_support_count": {
+                    "const": 0
+                  },
+                  "not_evaluable_count": {
+                    "const": 0
+                  },
+                  "global_unique_physical_cause_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "sequential_evidence": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "observation_count": {
+                    "const": 0
+                  },
+                  "threshold_crossed": {
+                    "const": false
+                  },
+                  "unsupported_outcome_count": {
+                    "const": 0
+                  },
+                  "evidence_unit_kind": {
+                    "const": "not_evaluated"
+                  },
+                  "block_aggregation_protocol_sha256": {
+                    "type": "null"
+                  },
+                  "dependence_review_receipt_sha256": {
+                    "type": "null"
+                  },
+                  "minimum_block_separation_seconds": {
+                    "type": "null"
+                  },
+                  "block_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "independent_evidence_block_count": {
+                    "const": 0
+                  },
+                  "duplicate_evidence_unit_rejection_count": {
+                    "const": 0
+                  },
+                  "overlap_rejection_count": {
+                    "const": 0
+                  },
+                  "insufficient_separation_rejection_count": {
+                    "const": 0
+                  },
+                  "raw_sample_pseudoreplication_attempt_rejection_count": {
+                    "const": 0
+                  },
+                  "dependence_review_verified_upstream": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "run_status": {
+            "const": "qualified"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "dataset": {
+            "properties": {
+              "archive_sha256": {
+                "type": "string"
+              },
+              "recording_manifest_sha256": {
+                "type": "string"
+              }
+            }
+          },
+          "split": {
+            "properties": {
+              "recordings_disjoint": {
+                "const": true
+              },
+              "row_randomization_used": {
+                "const": false
+              }
+            }
+          },
+          "claims": {
+            "properties": {
+              "score_claim_allowed": {
+                "const": true
+              }
+            }
+          },
+          "protocol": {
+            "properties": {
+              "event_evaluation": {
+                "properties": {
+                  "status": {
+                    "const": "qualified"
+                  },
+                  "event_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "event_source_sha256": {
+                    "type": "string"
+                  }
+                }
+              },
+              "shift_matrix_sha256": {
+                "type": "string"
+              },
+              "shift_holdout_manifest_sha256": {
+                "type": "string"
+              },
+              "independent_test_recordings": {
+                "type": "integer",
+                "minimum": 5
+              },
+              "active_evidence_selection": {
+                "properties": {
+                  "status": {
+                    "const": "evaluated_decision_support"
+                  },
+                  "likelihood_scenario_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "likelihood_scenario_count": {
+                    "minimum": 2
+                  },
+                  "execution_performed": {
+                    "const": false
+                  },
+                  "actuation_authorized": {
+                    "const": false
+                  },
+                  "controlled_perturbations_recommended": {
+                    "const": 0
+                  },
+                  "risk_assessment_catalogue_sha256": {
+                    "type": "string"
+                  },
+                  "risk_evidence_reviewed_by_authority_owner": {
+                    "const": true
+                  },
+                  "multi_scenario_assessed": {
+                    "const": true
+                  },
+                  "likelihood_calibration_catalogue_sha256": {
+                    "type": "string"
+                  },
+                  "likelihood_calibration_reviewed_by_independent_validator": {
+                    "const": true
+                  },
+                  "upstream_likelihood_calibration_verification_sha256": {
+                    "type": "string"
+                  },
+                  "upstream_authority_verification_sha256": {
+                    "type": "string"
+                  },
+                  "prior_distribution_sha256": {
+                    "type": "string"
+                  },
+                  "sequential_update_status": {
+                    "enum": [
+                      "single_point_model_only",
+                      "joint_hypothesis_scenario_ledger_qualified"
+                    ]
+                  },
+                  "portfolio_replay_match": {
+                    "const": true
+                  }
+                }
+              },
+              "streaming_contract": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "public_benchmark_executed",
+                      "qualified"
+                    ]
+                  },
+                  "stream_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "model_sha256": {
+                    "type": "string"
+                  },
+                  "receipt_chain_sha256": {
+                    "type": "string"
+                  },
+                  "input_sample_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "output_receipt_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "historical_output_mutation_count": {
+                    "const": 0
+                  },
+                  "sample_sequence_gap_count": {
+                    "const": 0
+                  },
+                  "input_output_cardinality_mismatch_count": {
+                    "const": 0
+                  },
+                  "invalid_probability_output_count": {
+                    "const": 0
+                  }
+                }
+              },
+              "deployability_assessment": {
+                "properties": {
+                  "status": {
+                    "const": "dimension_evidence_partial"
+                  },
+                  "dimension_count": {
+                    "const": 9
+                  },
+                  "overall_deployability_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "behavioral_set_evaluation": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "public_benchmark_executed",
+                      "qualified"
+                    ]
+                  },
+                  "envelope_catalogue_sha256": {
+                    "type": "string"
+                  },
+                  "observation_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "evaluation_receipt_sha256": {
+                    "type": "string"
+                  },
+                  "envelope_count": {
+                    "type": "integer",
+                    "minimum": 2
+                  },
+                  "observation_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "calibration_review_verified_upstream": {
+                    "const": true
+                  },
+                  "catalogue_completeness_reviewed": {
+                    "const": true
+                  },
+                  "global_unique_physical_cause_claim_allowed": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          },
+          "metrics": {
+            "properties": {
+              "risk_evidence_unreviewed_candidate_count": {
+                "const": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

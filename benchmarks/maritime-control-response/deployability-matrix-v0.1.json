@@ -1,0 +1,252 @@
+{
+  "schema_version": "symtropy-industrial-diagnostic-deployability-v0.1",
+  "status": "evidence_matrix_defined_not_executed",
+  "benchmark_scope": "LiU-ICE current protocol and separate Marine Engine Fault metadata/audit track",
+  "source_basis": {
+    "survey_title": "Towards Deployable Anomaly Detection in industrial CPS/ICS: A Survey and Deployability Assessment",
+    "doi": "10.1007/s10207-026-01330-1",
+    "publication_date": "2026-09-26",
+    "corpus_size": 26,
+    "criteria_count": 9,
+    "survey_finding": "Detection accuracy was consistently reported; evidence for the other deployability criteria was often limited or absent."
+  },
+  "non_compensatory_rule": "No weighted average can turn a missing safety, security, timing, assurance, resource or privacy dimension into a pass. A dimension is qualified only on its own predeclared evidence and independent review. Aggregate readiness scores are prohibited.",
+  "dimensions": [
+    {
+      "id": "detection_accuracy",
+      "label": "Detection accuracy",
+      "definition": "Distinguish fault-free and faulty observations and rank the correct known/unknown diagnosis.",
+      "required_metrics": [
+        "official_far",
+        "official_tdr",
+        "official_fia",
+        "official_total_score",
+        "per_fault_macro_recall",
+        "unknown_fault_false_known_rate"
+      ],
+      "protocol": "Use exact official sample-level scorer, source-bound labels, identical channel availability and frozen splits. Report per-fault, magnitude and cycle strata.",
+      "current_status": "source_contract_implemented_unexecuted",
+      "evidence_artifacts": [
+        "src/lib.rs",
+        "tournament-v0.1.json",
+        "published-six-solution-baselines-v0.1.json"
+      ],
+      "qualification_gates": [
+        "official score reproduced from labels and predictions",
+        "same frozen recordings for every comparator",
+        "unknown/abstention performance reported with known-class recall",
+        "independent recording-level uncertainty"
+      ],
+      "research_target": "Improve the best faithful matched published baseline by at least +0.05 absolute official score with FAR no worse; aspiration only."
+    },
+    {
+      "id": "operational_resilience",
+      "label": "Operational resilience",
+      "definition": "Remain predictable under missing, stale, noisy, delayed, conflicted, degraded or unavailable measurements and model-side failures.",
+      "required_metrics": [
+        "event_recall_by_missingness",
+        "false_alarms_per_observed_normal_hour",
+        "degraded_input_abstention_rate",
+        "poisoned_session_count",
+        "recovery_time_after_model_error"
+      ],
+      "protocol": "Inject one fault at a time and common-cause groups into signals and model/stream state. Do not impute missing channels; count only observed time as exposure; poison stateful sessions after uncertain transitions.",
+      "current_status": "synthetic_contract_only",
+      "evidence_artifacts": [
+        "src/event_metrics.rs",
+        "src/streaming_contract.rs",
+        "shift-matrix-v0.1.json"
+      ],
+      "qualification_gates": [
+        "missing/stale/conflicted data never become normal by default",
+        "gaps do not inflate healthy exposure",
+        "invalid model output causes fail-closed recovery",
+        "grouped dependency outages tested independently"
+      ],
+      "research_target": "No silent nominal imputation and no increase in diagnostic confidence under missing evidence."
+    },
+    {
+      "id": "adaptability",
+      "label": "Adaptability",
+      "definition": "Retain known-fault capability under operating-condition shift while handling previously unseen fault semantics without false-known claims.",
+      "required_metrics": [
+        "known_fault_recall_by_cycle",
+        "unknown_fault_false_known_rate",
+        "worst_cycle_degradation_pp",
+        "post_update_forgetting_pp",
+        "calibration_coverage_by_regime"
+      ],
+      "protocol": "Run C-shift, F-shift and C+F as separate whole-recording tracks. Freeze support regions and thresholds before test; after each update re-test all earlier regimes.",
+      "current_status": "protocol_only_not_executed",
+      "evidence_artifacts": [
+        "shift-matrix-v0.1.json",
+        "benchmark-run-manifest.schema.json"
+      ],
+      "qualification_gates": [
+        "held-out axis absent from fitting/selection/calibration",
+        "C+F tested directly, not inferred from C-only and F-only",
+        "unsupported regimes abstain or report not_evaluable",
+        "independent test recordings per stratum disclosed"
+      ],
+      "research_target": "At most 2 percentage points worst-supported-cycle macro-recall loss while unknown false-known remains at or below 5%; aspiration only."
+    },
+    {
+      "id": "real_time_responsiveness",
+      "label": "Real-time responsiveness",
+      "definition": "Consume each new sample and emit one diagnosis within the sample deadline without backlog, future-data leakage or retrospective revision.",
+      "required_metrics": [
+        "p50_per_sample_latency_ms",
+        "p95_per_sample_latency_ms",
+        "p99_per_sample_latency_ms",
+        "maximum_queue_depth",
+        "input_output_cardinality_mismatches",
+        "sample_sequence_gaps",
+        "historical_output_mutations"
+      ],
+      "protocol": "Replay at 20 Hz and at declared burst rates on reference hardware; measure end-to-end inference plus receipt creation. Verify contiguous input, one output per accepted sample and append-only historical results.",
+      "current_status": "source_contract_implemented_not_benchmarked",
+      "evidence_artifacts": [
+        "src/streaming_contract.rs",
+        "streaming-contract-v0.1.json"
+      ],
+      "qualification_gates": [
+        "zero skipped or duplicate sample outputs",
+        "zero historical output mutation",
+        "p99 latency below declared deadline",
+        "bounded memory/queue under sustained replay"
+      ],
+      "research_target": "P95 end-to-end per-sample latency under 10 ms on declared reference hardware at 20 Hz, with no queue growth; aspiration only."
+    },
+    {
+      "id": "resource_efficiency",
+      "label": "Resource efficiency",
+      "definition": "Run within a declared edge-compute, memory, storage and power budget, including evidence receipt overhead.",
+      "required_metrics": [
+        "peak_rss_bytes",
+        "cpu_time_per_sample_us",
+        "energy_per_sample_mj",
+        "model_artifact_bytes",
+        "receipt_bytes_per_sample",
+        "sustained_samples_per_second"
+      ],
+      "protocol": "Benchmark release artifacts on pinned reference hardware with warm/cold starts, long-running replay and peak-load tests. Report both model-only and full evidence/receipt overhead.",
+      "current_status": "not_instrumented",
+      "evidence_artifacts": [
+        "benchmark-run-manifest.schema.json",
+        "streaming-contract-v0.1.json"
+      ],
+      "qualification_gates": [
+        "hardware, compiler flags and power measurement method disclosed",
+        "peak memory remains within predeclared budget",
+        "receipt overhead included",
+        "sustained throughput exceeds source rate without backlog"
+      ],
+      "research_target": "Demonstrate a declared resource budget on one reproducible edge platform; no numeric claim until a reference device is selected."
+    },
+    {
+      "id": "adversarial_robustness",
+      "label": "Adversarial robustness",
+      "definition": "Detect or safely reject maliciously manipulated telemetry, replayed receipts, poisoned calibration data and unauthorized evidence requests.",
+      "required_metrics": [
+        "replay_attack_acceptance_count",
+        "tampered_receipt_acceptance_count",
+        "poisoned_calibration_acceptance_count",
+        "unauthorized_probe_selection_count",
+        "false_known_under_attack_rate"
+      ],
+      "protocol": "Test replay, reordering, tampering, malicious values, stale/future timestamps, calibration contamination and authority revocation. Distinguish integrity digests from authenticated signatures and trusted acquisition.",
+      "current_status": "partial_integrity_contract_only",
+      "evidence_artifacts": [
+        "src/streaming_contract.rs",
+        "src/active_probe.rs",
+        "active-evidence-selection-v0.1.json"
+      ],
+      "qualification_gates": [
+        "receipt digest tampering rejected",
+        "source signature and identity checked by upstream trust service",
+        "calibration provenance separated from evaluation",
+        "replay and revocation tests executed"
+      ],
+      "research_target": "Zero accepted tampered/replayed receipts and zero unauthorized evidence selections in the frozen adversarial suite; aspiration only."
+    },
+    {
+      "id": "data_confidentiality",
+      "label": "Data confidentiality",
+      "definition": "Prevent unauthorized disclosure of engine telemetry, vessel operational state, identities, maintenance records and model artifacts.",
+      "required_metrics": [
+        "raw_signal_retention_days",
+        "unauthorized_data_access_count",
+        "cross_tenant_leakage_count",
+        "sensitive_fields_redacted_count",
+        "encrypted_transfer_coverage"
+      ],
+      "protocol": "Define data minimization, retention, encryption, access roles, tenant boundaries, model/log redaction and deletion procedures before any fleet integration.",
+      "current_status": "not_implemented",
+      "evidence_artifacts": [
+        "benchmark-run-manifest.schema.json"
+      ],
+      "qualification_gates": [
+        "data classification and lawful basis recorded",
+        "role/scope enforcement independently tested",
+        "sensitive raw data not embedded in public receipts",
+        "retention, export and deletion exercised"
+      ],
+      "research_target": "No unauthorized access or cross-tenant leakage under independent security tests; no production claim until deployed controls exist."
+    },
+    {
+      "id": "explainability",
+      "label": "Explainability",
+      "definition": "Give operators a traceable reason for alarms, uncertainty, rejected candidates and unresolved competing fault hypotheses.",
+      "required_metrics": [
+        "diagnosis_evidence_completeness",
+        "operator_cause_understanding_rate",
+        "false_unique_root_cause_rate",
+        "abstention_reason_completeness",
+        "evidence_replay_success_rate"
+      ],
+      "protocol": "For every alarm expose signal provenance, response residuals, regime support, calibrated thresholds, alternative causes, evidence gaps and why a unique cause was or was not identifiable.",
+      "current_status": "source_contract_implemented_unexecuted",
+      "evidence_artifacts": [
+        "src/lib.rs",
+        "src/event_metrics.rs",
+        "src/active_probe.rs"
+      ],
+      "qualification_gates": [
+        "no unique cause when multiple hypotheses remain admissible",
+        "rejected evidence candidates retain reasons",
+        "operator review understands ambiguity and limits",
+        "every displayed result links to replayable source evidence"
+      ],
+      "research_target": "Zero false-unique-root-cause claims and at least 90% correct operator interpretation in a preregistered user study; aspiration only."
+    },
+    {
+      "id": "verification_assurance",
+      "label": "Verification and assurance",
+      "definition": "Establish that the exact artifact behaves as intended under unit, contract, adversarial, external replay and independent review.",
+      "required_metrics": [
+        "exact_head_ci_pass_rate",
+        "independent_replay_success_rate",
+        "contract_falsification_coverage",
+        "reviewed_claims_fraction",
+        "unresolved_assurance_findings"
+      ],
+      "protocol": "Bind exact commit, dataset, model, split, evaluator, configuration and receipt digests. Separate source written, locally compiled, CI passed, external reproduced, testbed validated and field evaluated.",
+      "current_status": "source_and_ci_contracts_authored_ci_pending",
+      "evidence_artifacts": [
+        "benchmark-run-manifest.schema.json",
+        ".github/workflows/maritime-control-response-contract.yml",
+        "published-six-solution-baselines-v0.1.json"
+      ],
+      "qualification_gates": [
+        "no skipped or pending job treated as pass",
+        "independent replay on exact artifacts",
+        "failed negative controls fail the run",
+        "physical/field claims require independent testbed or field evidence"
+      ],
+      "research_target": "100% of qualified claims have an exact-head, independently replayable evidence bundle and reviewer sign-off; aspiration only."
+    }
+  ],
+  "overall_status": "not_deployable_claimed",
+  "prohibited_inference": "A source module, synthetic contract test, green CI job or literature score does not establish physical-engine, vessel, fleet, safety or OEM certification.",
+  "aggregate_readiness_score_allowed": false
+}

@@ -1,0 +1,294 @@
+{
+  "schema_version": "symtropy-marine-external-dataset-track-v0.1",
+  "status": "archive_payload_audited_no_model_evaluation",
+  "dataset": {
+    "name": "Marine Engine Fault",
+    "canonical_record": "https://zenodo.org/records/19857425",
+    "doi": "10.5281/zenodo.19857425",
+    "version": "v1",
+    "published_date": "2026-04-28",
+    "license": "CC-BY-4.0",
+    "engine": "Matsui Iron Works MU323DGSC",
+    "acquisition": "controlled marine-diesel test bench with physically induced fault/anomaly scenarios",
+    "files": {
+      "csv_count": 16,
+      "baseline_reference_files": 1,
+      "fault_scenario_files": 15,
+      "approximate_samples": 115000,
+      "approximate_channels": 70,
+      "baseline_schema_columns": 70,
+      "scenario_schema_columns": 73,
+      "header_rows": 3,
+      "encoding": "UTF-8",
+      "archive_csv_entry_count": 18,
+      "metadata_csv_artifact_count": 2,
+      "csv_count_semantics": "Confirmed by the successful exact-head Rust archive audit: 16 recording data CSVs (one baseline plus fifteen fault-scenario files) plus two separate metadata CSV exports (dataset_index and variable_dictionary). The archive contains 18 CSV entries total."
+    },
+    "labels": {
+      "state_column": "Anomaly State",
+      "values": {
+        "0": "pre-anomaly",
+        "1": "anomaly"
+      },
+      "limitation": "The two injection-nozzle scenario files contain anomalous operation only; they do not contain pre-anomaly samples and cannot support onset-latency evaluation without an independent injection-time source."
+    },
+    "missingness": {
+      "channels": [
+        "Compressor Filter Loss",
+        "Turbine Back Pressure"
+      ],
+      "absent_in_runs": 5,
+      "representation": "empty fields; retain missingness, never impute zero or nominal"
+    },
+    "metadata_files": [
+      "dataset_index",
+      "variable_dictionary",
+      "normalization_script"
+    ],
+    "zenodo_record": {
+      "canonical_record_url": "https://zenodo.org/records/19857425",
+      "canonical_doi": "10.5281/zenodo.19857425",
+      "version": "v1",
+      "displayed_published_date": "2026-04-28",
+      "issued_date": "2026-07-27",
+      "file": {
+        "name": "Marine_Engine_Fault_Data_v1.zip",
+        "publisher_reported_size_bytes": 26538633,
+        "publisher_reported_md5": "f4d246c1bb46e05b26e56221acc2606c",
+        "sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
+        "download_status": "downloaded_publisher_size_md5_verified_and_raw_csv_payload_audited",
+        "md5_independently_verified": true,
+        "sha256_computed_in_github_runner": true,
+        "sha256_receipt_status": "verified by successful exact-head raw CSV audit run 43377608370 (#168), with machine-readable artifact 14014574182",
+        "audit_receipt": {
+          "workflow_run_id": 43377608370,
+          "workflow_run_number": 168,
+          "head_sha": "153250ea314270f955c77dd1c8801ddf4af04615",
+          "job_id": 131727651115,
+          "artifact_id": 14014574182,
+          "artifact_name": "marine-engine-fault-audit-43377608370",
+          "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182",
+          "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
+          "recording_csv_files": 16,
+          "baseline_files": 1,
+          "scenario_files": 15,
+          "rust_tests_passed": 121,
+          "rust_tests_failed": 0
+        }
+      }
+    },
+    "aalto_catalogue": {
+      "record_url": "https://research.aalto.fi/en/datasets/marine-engine-fault-experimental-dataset/",
+      "catalogue_doi": "10.5281/zenodo.19857424",
+      "displayed_available_date": "2026-07-27",
+      "note": "Aalto's research portal cites 10.5281/zenodo.19857424, while the Zenodo landing record opened for this audit identifies 10.5281/zenodo.19857425. Keep both identifiers visible until their resolver/version relationship is confirmed; use the opened Zenodo record as the current file/source locator."
+    },
+    "publication": {
+      "arxiv_id": "2607.19444",
+      "doi": "10.48550/arXiv.2607.19444",
+      "title": "Marine Engine Fault Dataset: Open-Access Data under Controlled Reference and Fault Scenario Conditions",
+      "posted_date": "2026-07-21",
+      "evidence_review_status": "abstract reviewed; full manuscript and raw dataset archive not independently audited"
+    }
+  },
+  "fault_scenarios": [
+    {
+      "id": "compressor_air_filter_clogging",
+      "loads_percent": [
+        40,
+        60,
+        75,
+        85
+      ],
+      "family": "air_path_restriction"
+    },
+    {
+      "id": "air_cooler_fouling",
+      "loads_percent": [
+        40,
+        60,
+        75,
+        85
+      ],
+      "family": "charge_air_heat_transfer"
+    },
+    {
+      "id": "injection_valve_nozzle_clogging",
+      "loads_percent": [
+        40,
+        60,
+        85
+      ],
+      "severity_variants": [
+        "one_hole_restricted",
+        "two_hole_restricted_load_program"
+      ],
+      "family": "fuel_injection"
+    },
+    {
+      "id": "cooling_water_pump_cavitation",
+      "loads_percent": [
+        60,
+        85
+      ],
+      "family": "cooling_system"
+    },
+    {
+      "id": "turbine_degradation",
+      "loads_percent": [
+        40,
+        60,
+        85
+      ],
+      "family": "turbocharger_turbine"
+    }
+  ],
+  "non_interchangeability": {
+    "with_liu_ice": "Do not concatenate records, merge class IDs, or claim an apples-to-apples leaderboard. LiU-ICE has different fault semantics, channel identities, sample/interface contract and model; the Marine Engine Fault record has a separate three-row header and 70/73-column schemas.",
+    "engine_identity": "This dataset metadata identifies a MU323DGSC test-bench engine. It does not establish independent multi-engine or fleet validation. The physical engine identity/campaign identity must be audited from the README and file index.",
+    "signal_mapping": "Only map channels after inspecting the variable dictionary, units, measurement provenance, calibration and derived-variable parentage. Same shorthand or similar names alone are insufficient.",
+    "fault_mapping": "Map to a common component/function ontology only after engineering review. Similar subsystem labels do not prove identical fault mechanisms, magnitude or sensor observability."
+  },
+  "evaluation_tracks": [
+    {
+      "id": "archive_and_signal_semantics_audit",
+      "status": "completed_archive_and_csv_payload_audit",
+      "required": "Completed by exact-head GitHub Actions run 43377608370 (#168): publisher-reported size and MD5 verified, archive SHA-256 recorded, 16 recording CSVs separated from two metadata CSV exports, role-specific 70/73-column CSV layouts parsed, time fields verified in seconds and strictly increasing, and index/dictionary/normalization-script hashes recorded in the audit artifact.",
+      "qualification": "Archive bytes, extracted file inventory, CSV syntax and published time-column semantics are audited. Model evaluation, label-to-physical-cause validity, physical run identities, held-out splits, fault detection and external validation remain not executed."
+    },
+    {
+      "id": "within_dataset_held_out_load",
+      "status": "not_executed",
+      "split": "Whole-file recording holdout; reserve complete load-level recordings as test where each fault family has sufficient file-level support.",
+      "primary_metrics": [
+        "event_recall_when_onset_available",
+        "false_alarms_per_observed_normal_hour",
+        "per_fault_macro_recall",
+        "load_stratified_recall",
+        "unknown_abstention_rate"
+      ],
+      "controls": [
+        "no row/window randomization",
+        "no normalization statistics from held-out files",
+        "load labels used only if available at prediction time",
+        "report the count of distinct files per fault/load"
+      ]
+    },
+    {
+      "id": "leave_one_fault_family_out",
+      "status": "not_executed",
+      "split": "Exclude all files for one fault family from training, feature selection and calibration; treat that family as unknown at inference.",
+      "primary_metrics": [
+        "unknown_fault_false_known_rate",
+        "unknown_event_recall",
+        "known_fault_macro_recall",
+        "risk_coverage"
+      ],
+      "limitation": "With only a small number of files per class this is exploratory and does not establish general rejection of genuinely novel mechanisms."
+    },
+    {
+      "id": "missing_channel_and_sensor_chain",
+      "status": "not_executed",
+      "protocol": "Use the five runs with blank channel fields as naturally missing-channel cases; keep missing values explicit and audit whether missingness correlates with a scenario or file.",
+      "primary_metrics": [
+        "missingness_stratum_recall",
+        "false_alarm_rate_by_missingness",
+        "abstention_rate",
+        "calibration_coverage"
+      ],
+      "limitation": "Do not synthesize a physical sensor failure claim from blank export cells."
+    },
+    {
+      "id": "event_latency",
+      "status": "not_executed",
+      "eligible_records": "Only scenario files with documented pre-anomaly samples and independently auditable onset/offset timestamps.",
+      "excluded_records": "The two injection-nozzle files with anomaly-only operation cannot establish onset latency unless an independent injection log supplies onset.",
+      "primary_metrics": [
+        "event_recall",
+        "median_confirmation_latency_seconds",
+        "p95_confirmation_latency_seconds",
+        "false_alarms_per_observed_normal_hour"
+      ]
+    },
+    {
+      "id": "cross_benchmark_transfer",
+      "status": "not_evaluable_until_both_archives_audited",
+      "protocol": "Train/evaluate separately on LiU-ICE and Marine Engine Fault; add a common semantic signal map and component/function ontology only where the variable dictionaries support it. Report zero-shot transfer, frozen-model transfer and limited labelled adaptation as three distinct tracks.",
+      "limitation": "No direct class mapping or sample-level pooled score. A matching engine model name does not create independent engine transfer or label equivalence."
+    }
+  ],
+  "comparator_families": [
+    "healthy_reference_per_load_and_context",
+    "per_load_statistical_process_control",
+    "one_class_or_density_baseline",
+    "tree_based_engineered_feature_classifier",
+    "temporal_convolution_or_recurrent_baseline",
+    "physics_or_thermodynamic_residual_model_where_parameters_are_audited",
+    "selective_unknown_fault_model",
+    "Symtropy_command_response_and_event_evidence_stack_when_required_signals_exist"
+  ],
+  "required_evidence": [
+    "archive_sha256",
+    "file_manifest_sha256",
+    "dataset_index_sha256",
+    "variable_dictionary_sha256",
+    "normalization_script_sha256",
+    "signal_semantic_mapping_sha256",
+    "fault_ontology_mapping_sha256",
+    "whole_file_split_manifest_sha256",
+    "model_and_feature_pipeline_sha256",
+    "evaluator_sha256",
+    "dependency_lock_sha256",
+    "independent_file_counts_by_fault_and_load"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "held_out_load_generalization",
+      "target": "At matched false-alarm exposure, improve worst-held-out-load event recall by at least 5 percentage points over the best reproduced baseline, with recording-level uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "open_set_fault_rejection",
+      "target": "No more than 5% false-known assignments on held-out fault-family files, without collapsing known-fault macro recall.",
+      "status": "aspirational"
+    },
+    {
+      "id": "missingness_robustness",
+      "target": "No hidden imputation, and no more than 2 percentage points degradation in supported-stratum event recall under naturally missing channels, or explicit abstention.",
+      "status": "aspirational"
+    },
+    {
+      "id": "diagnosis_latency",
+      "target": "P95 confirmation latency at or below 5 seconds on records with authoritative onset timestamps, at no greater false-alarm rate than the matched baseline.",
+      "status": "aspirational"
+    },
+    {
+      "id": "cross_dataset_transfer",
+      "target": "Demonstrate positive transfer or quantify negative transfer across the separate LiU-ICE and Marine Engine Fault tracks using reviewed semantic mappings and no pooled-label shortcut.",
+      "status": "aspirational"
+    }
+  ],
+  "claim_ceiling": "A successful exact-head Rust archive audit verified publisher size and MD5, computed archive SHA-256, checked ZIP member safety, audited all 16 recording CSV payloads and their published role-specific schemas, monotonic time fields, missingness and metadata hashes. No model has been trained or scored; no physical root-cause, cross-engine or fleet validation claim is made.",
+  "source_interpretation": {
+    "reported_intervention_label": "The five class names describe the experimental anomaly scenarios reported by the dataset creators.",
+    "causal_limit": "A scenario label is not by itself proof that the intervention reproduces the full causal physics, degradation progression or failure envelope of an in-service fault.",
+    "audit_requirement": "Review the archive README, intervention procedures, channel dictionary and manuscript before interpreting a scenario label as a physical root cause or using it to claim field representativeness.",
+    "secondary_review_note": "A secondary review of the data descriptor flags potential proxy interventions and qualitative technical validation. Treat this as an audit lead, not an authoritative correction to the dataset creators' metadata."
+  },
+  "claimCeiling": "Archive and CSV payload integrity are verified by an exact-head Rust audit receipt. This does not validate physical root causes, publisher label validity, model performance or cross-engine/fleet generalization.",
+  "archive_audit_receipt": {
+    "workflow_run_id": 43377608370,
+    "workflow_run_number": 168,
+    "head_sha": "153250ea314270f955c77dd1c8801ddf4af04615",
+    "job_id": 131727651115,
+    "artifact_id": 14014574182,
+    "artifact_name": "marine-engine-fault-audit-43377608370",
+    "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43377608370/artifacts/14014574182",
+    "archive_sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
+    "recording_csv_files": 16,
+    "baseline_files": 1,
+    "scenario_files": 15,
+    "rust_tests_passed": 121,
+    "rust_tests_failed": 0
+  }
+}

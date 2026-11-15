@@ -1,0 +1,159 @@
+{
+  "schema_version": "symtropy-behavioral-set-diagnosis-v0.1",
+  "status": "protocol_only_not_executed",
+  "paradigm": {
+    "name": "set-valued diagnosis over calibrated behavioral envelopes",
+    "question": "Which declared physical fault hypotheses remain consistent with the observed multivariate response under measurement uncertainty and a supported operating regime?",
+    "distinction_from_classifier": "Return every admissible hypothesis, not only the highest-scoring class. Overlapping normal/fault envelopes remain ambiguous; no compatible envelope is unknown or out of support.",
+    "mathematical_rule": "A hypothesis h is admissible when, for every required channel j, the distance between the observation interval and the calibrated behavioral interval is no greater than the preregistered, dimensionless calibrated margin.",
+    "unique_claim": "A singleton is unique only within the complete, frozen, independently reviewed hypothesis catalogue. It is not proof of a globally unique physical cause."
+  },
+  "envelope_contract": {
+    "per_hypothesis": true,
+    "required_fields": [
+      "hypothesis_id",
+      "regime_id",
+      "model_sha256",
+      "training_recordings_manifest_sha256",
+      "calibration_recordings_manifest_sha256",
+      "target_coverage_ppm",
+      "independent_calibration_episodes",
+      "maximum_standardized_gap",
+      "calibration_review_receipt_sha256",
+      "channels",
+      "envelope_sha256"
+    ],
+    "common_catalogue_binding": [
+      "regime_id",
+      "model_sha256",
+      "training_recordings_manifest_sha256",
+      "calibration_recordings_manifest_sha256",
+      "target_coverage_ppm",
+      "identical_channel_set"
+    ],
+    "per_channel_fields": [
+      "signal_id",
+      "lower",
+      "upper",
+      "normalization_scale"
+    ],
+    "independent_calibration_minimums": {
+      "coverage_900000_ppm": 9,
+      "coverage_950000_ppm": 19,
+      "coverage_990000_ppm": 99
+    },
+    "review": "Independent calibration review receipt and upstream signer/issuer verification are mandatory; a boolean flag and digest do not authenticate reviewer identity.",
+    "missing_support": "Missing, stale, conflicted, unsupported or absent required signals return not_evaluable, never normal."
+  },
+  "output_statuses": [
+    "unique_within_declared_catalogue",
+    "ambiguous_hypothesis_set",
+    "unknown_or_out_of_support",
+    "not_evaluable_unsupported_regime",
+    "not_evaluable_missing_or_degraded_input"
+  ],
+  "required_metrics": [
+    "admissible_hypothesis_set_size",
+    "ambiguous_hypothesis_set_rate",
+    "unknown_out_of_support_rate",
+    "not_evaluable_rate",
+    "unique_within_catalogue_rate",
+    "false_unique_within_catalogue_rate",
+    "behavioral_envelope_coverage",
+    "worst_regime_admissible_set_size",
+    "catalogue_completeness_review_status",
+    "per_hypothesis_admissibility_recall"
+  ],
+  "hard_gates": [
+    "all hypotheses share the same regime, frozen model, training/calibration split, coverage target and exact signal set",
+    "each envelope digest is recomputed before diagnosis",
+    "training and calibration recording manifests are disjoint",
+    "calibration episode counts meet finite-sample requirements for the declared marginal coverage",
+    "every envelope carries an independently reviewed calibration receipt and upstream identity verification",
+    "observation channels have current signal-quality status and declared measurement uncertainty",
+    "unsupported regimes return not_evaluable rather than being compared with another regime's envelope",
+    "missing, stale or conflicted required signals return not_evaluable rather than normal",
+    "all compatible hypotheses are returned; the system may not force a top-one diagnosis",
+    "zero compatible hypotheses are reported as unknown/out-of-support",
+    "singleton uniqueness is explicitly scoped to the frozen declared catalogue",
+    "global unique physical cause claims remain prohibited without independent global-identifiability evidence",
+    "uncertainty and performance intervals are clustered by independent recording/engine run, not sample rows"
+  ],
+  "comparators": [
+    {
+      "id": "argmax_classifier",
+      "method": "Select the highest class score regardless of envelope overlap; report confidence and unsupported behavior."
+    },
+    {
+      "id": "selective_classifier",
+      "method": "Calibrated top-one classifier with abstention threshold."
+    },
+    {
+      "id": "residual_threshold_union",
+      "method": "Independent per-channel residual thresholds, union rule."
+    },
+    {
+      "id": "joint_mahalanobis_envelope",
+      "method": "Joint covariance residual ellipsoid with frozen covariance and calibrated threshold."
+    },
+    {
+      "id": "behavioral_set_intersection",
+      "method": "Proposed set-valued intersection of calibrated multivariate behavioral envelopes and observation intervals."
+    }
+  ],
+  "stress_cases": [
+    "two physically distinct faults produce overlapping response envelopes",
+    "normal operating regime overlaps a fault envelope under ambient shift",
+    "one missing or conflicted channel removes identifiability",
+    "an unseen condition lies outside every calibrated envelope",
+    "two hypotheses are admissible but a softmax classifier picks one",
+    "one model parameter set has a nontrivial observational equivalence class",
+    "the declared catalogue omits the true physical cause"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "ambiguity_honesty",
+      "target": "Zero forced top-one diagnoses when more than one calibrated envelope remains admissible.",
+      "status": "aspirational"
+    },
+    {
+      "id": "out_of_support_honesty",
+      "target": "At least 95% detection of held-out out-of-support episodes at no more than 1% false unknown alarms on supported normal episodes, with recording-clustered uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "coverage",
+      "target": "Empirical behavioral-envelope coverage within ±5 percentage points of the preregistered marginal target on independent test recordings.",
+      "status": "aspirational"
+    },
+    {
+      "id": "diagnostic_utility",
+      "target": "At least 5 percentage points better event-level fault recall than a matched selective classifier without increasing false alarms per observed normal hour, while maintaining ambiguity-set coverage.",
+      "status": "aspirational"
+    }
+  ],
+  "implementation": {
+    "rust_module": "src/behavioral_sets.rs",
+    "status": "source_authored_not_compiled",
+    "test_families": [
+      "overlapping_envelopes",
+      "singleton_within_catalogue",
+      "unknown_out_of_support",
+      "missing_and_stale_signal",
+      "unsupported_regime",
+      "finite_sample_calibration_minima",
+      "tampered_envelope",
+      "unreviewed_calibration",
+      "catalogue_order_invariance"
+    ],
+    "execution_performed": false,
+    "trained_model_present": false,
+    "physical_validation": false
+  },
+  "limitations": {
+    "catalogue_completeness": "A singleton is only as sound as the declared hypothesis catalogue. Omitted mechanisms can still explain the observation.",
+    "calibration": "Finite-sample marginal coverage assumes exchangeability of independent calibration episodes; this is not guaranteed under regime/fault shift.",
+    "global_identifiability": "Local envelope disjointness within one regime does not establish global physical uniqueness.",
+    "claim_ceiling": "Source contract and synthetic fixtures only; no trained model, public-dataset result, or physical diagnostic claim."
+  }
+}
