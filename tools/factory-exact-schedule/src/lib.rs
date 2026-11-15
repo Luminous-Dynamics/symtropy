@@ -132,8 +132,6 @@ struct FlatOperation {
     family: &'static str,
     duration: u64,
     job_index: usize,
-    job_position: usize,
-    job_release: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -242,7 +240,12 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
             total_max_setup = total_max_setup.and_then(|sum| sum.checked_add(maximum));
         }
     }
-    if total_processing.and_then(|processing| total_max_setup.and_then(|setup| processing.checked_add(setup))).is_none() {
+    let maximum_release = instance.jobs.iter().map(|job| job.release_ticks).max().unwrap_or(0);
+    if total_processing
+        .and_then(|processing| total_max_setup.and_then(|setup| processing.checked_add(setup)))
+        .and_then(|duration| maximum_release.checked_add(duration))
+        .is_none()
+    {
         failures.push(InputFailure::DurationEnvelopeOverflow);
     }
 
@@ -309,8 +312,6 @@ fn flatten(instance: &Instance) -> (Vec<FlatOperation>, Vec<Vec<usize>>, Vec<Vec
                 family: operation.family,
                 duration: operation.processing_ticks,
                 job_index,
-                job_position,
-                job_release: job.release_ticks,
             });
             job_ops.push(flat_index);
             machines[machine_index].push(flat_index);
@@ -799,6 +800,16 @@ mod tests {
         let first = schedule.operations.iter().find(|operation| operation.operation_id == "A-1").unwrap();
         assert!(first.processing_start >= 50);
         assert!(verify_schedule(&instance, &schedule));
+    }
+
+    #[test]
+    fn release_plus_work_overflow_is_rejected_before_search() {
+        let mut instance = reference_instance();
+        instance.jobs[0].release_ticks = u64::MAX;
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, OracleStatus::InvalidInput);
+        assert!(result.input_failures.contains(&InputFailure::DurationEnvelopeOverflow));
+        assert!(!result.optimality_proven);
     }
 
     #[test]
