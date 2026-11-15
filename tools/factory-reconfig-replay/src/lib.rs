@@ -311,7 +311,7 @@ pub fn replay(plan: &Plan, context: &Context) -> Receipt {
         first_article_accepted,
         physical_acceptance: PhysicalAcceptance::Unresolved,
         production_authorized: false,
-        further_mutation_authorized: disposition != Disposition::UnknownOutcome,
+        further_mutation_authorized: !plan.steps.iter().any(|step| step.outcome == StepOutcome::Unknown),
     }
 }
 
@@ -525,6 +525,7 @@ mod tests {
         let mut p = plan(); p.steps[4].outcome = StepOutcome::Unknown;
         let out = replay(&p, &context());
         assert_eq!(out.disposition, Disposition::Reject); has(&out, Reason::MutationAfterUnknown);
+        assert!(!out.further_mutation_authorized);
     }
 
     #[test]
