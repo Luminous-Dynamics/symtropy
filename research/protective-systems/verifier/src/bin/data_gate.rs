@@ -8,8 +8,7 @@ use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
-    env, fs,
-    fs::File,
+    env, fs::File,
     io::{self, Read},
     process,
 };
