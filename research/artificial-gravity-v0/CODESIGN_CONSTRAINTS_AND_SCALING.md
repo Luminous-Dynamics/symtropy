@@ -166,6 +166,8 @@ The executable reference functions return omega, tangential speed, angular momen
 
 Reference fixture: fixtures/ring_scaling_laws.csv.
 
+The example receipt at fixtures/codesign_intersection_manifest.example.json records the input bounds and the active RPM constraint. The versioned AG_RUN_MANIFEST.schema.json includes typed design_constraints and a structured design_decision so a result can be reconstructed from its assumptions rather than only from its output geometry.
+
 ## 5. Reproducible executables
 
 ~~~bash
