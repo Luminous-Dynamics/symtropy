@@ -23,12 +23,12 @@ use crate::transaction::{
 };
 use crate::{AuthorizationAction, EvidenceLevel, ScenarioManifest, UseLimit};
 
-const FIXED_DT: f64 = 1.0 / 240.0;
-const TICK_COUNT: usize = 960;
+const FIXED_DT: f64 = 1.0 / 480.0;
+const TICK_COUNT: usize = 1_920;
 const RELEASE_IMPULSE_NS: f64 = 0.015;
 const SETTLED_SPEED_M_S: f64 = 0.08;
 const SETTLED_ANGULAR_SPEED_RAD_S: f64 = 0.08;
-const MAX_CONTACT_PENETRATION_M: f64 = 0.04;
+const MAX_CONTACT_PENETRATION_M: f64 = 0.005;
 const ROTATION_HEALTH_TOLERANCE: f64 = 1e-8;
 const PLACEMENT_CLEARANCE_M: f64 = 0.005;
 
