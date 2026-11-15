@@ -314,7 +314,7 @@ fn validate_slice_bounds(slice: &EnvelopeSlice) -> Result<(), ProjectionError> {
             inner: "stopping_outer",
         });
     }
-    if slice.radius_mm <= 0 {
+    if slice.radius_mm == 0 {
         return Err(ProjectionError::EmptyField("positive primitive radius"));
     }
     Ok(())
