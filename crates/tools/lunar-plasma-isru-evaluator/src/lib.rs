@@ -258,6 +258,9 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
         }
     }
 
+    let total_grid_energy_wh = scenario.grid_energy.as_ref()
+        .and_then(|grid| complete_grid_energy(grid, &mut blocked, &mut rejected));
+
     let observations = scenario.observations.as_deref().unwrap_or(&[]);
     let mut observation_ids = HashSet::new();
     for observation in observations {
@@ -319,10 +322,8 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 }
 
                 if scenario.evidence_class == "synthetic" && mass.is_finite() && mass > 0.0 {
-                    if let Some(grid) = &scenario.grid_energy {
-                        if let Some(total_energy) = complete_grid_energy(grid, &mut blocked, &mut rejected) {
-                            synthetic_grid_energy_wh_per_kg_o2 = Some(total_energy / (mass / 1000.0));
-                        }
+                    if let Some(total_energy) = total_grid_energy_wh {
+                        synthetic_grid_energy_wh_per_kg_o2 = Some(total_energy / (mass / 1000.0));
                     }
                 }
             }
@@ -553,6 +554,7 @@ mod tests {
         let result = result_for(&report, "blocked-incomplete-grid-boundary");
         assert_eq!(result.disposition, "BLOCKED");
         assert_eq!(result.synthetic_grid_energy_wh_per_kg_o2, None);
+        assert!(result.reasons.iter().any(|reason| reason.contains("required subsystem role")));
     }
 
     #[test]
@@ -584,8 +586,8 @@ mod tests {
     #[test]
     fn duplicate_meter_identity_is_rejected() {
         let mut value = fixture_value();
-        value["scenarios"][0]["grid_energy"]["meters"][1]["meter_id"] =
-            value["scenarios"][0]["grid_energy"]["meters"][0]["meter_id"].clone();
+        let first_meter_id = value["scenarios"][0]["grid_energy"]["meters"][0]["meter_id"].clone();
+        value["scenarios"][0]["grid_energy"]["meters"][1]["meter_id"] = first_meter_id;
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
         assert_eq!(result_for(&report, "synthetic-balanced-accounting-positive").disposition, "REJECTED");
     }
@@ -625,7 +627,8 @@ mod tests {
     #[test]
     fn scenario_ids_must_be_unique() {
         let mut value = fixture_value();
-        value["scenarios"][1]["id"] = value["scenarios"][0]["id"].clone();
+        let first_scenario_id = value["scenarios"][0]["id"].clone();
+        value["scenarios"][1]["id"] = first_scenario_id;
         assert!(audit_manifest_json(&value.to_string()).is_err());
     }
 }
