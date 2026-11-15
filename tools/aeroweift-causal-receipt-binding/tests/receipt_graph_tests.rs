@@ -233,14 +233,7 @@ fn graph() -> Vec<Receipt> {
         NonCoop,
         vec![edge(&profile, R::CoverageProfile)],
     );
-    let authorization = receipt(
-        "authorization",
-        S::Authorization,
-        11,
-        Q,
-        vec![],
-        None,
-    );
+    let authorization = receipt("authorization", S::Authorization, 11, Q, vec![], None);
     let intent_conformance = receipt(
         "intent-conformance",
         S::IntentConformance,
