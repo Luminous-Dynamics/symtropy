@@ -1930,7 +1930,7 @@ mod tests {
         );
         let projection = ledger_result(events, vec![replacement])
             .unwrap()
-            .project(100, &TestVerifier(ReviewVerification::Valid));
+            .project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
