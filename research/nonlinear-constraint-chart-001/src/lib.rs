@@ -321,9 +321,7 @@ fn validate_coordinate_map(matrix: Matrix2) -> Result<(), ConstraintChartErrorV1
     let c = matrix[1][0] / scale;
     let d = matrix[1][1] / scale;
     let normalized_determinant = a * d - b * c;
-    if !normalized_determinant.is_finite()
-        || normalized_determinant.abs() <= 64.0 * f64::EPSILON
-    {
+    if !normalized_determinant.is_finite() || normalized_determinant.abs() <= 64.0 * f64::EPSILON {
         return Err(ConstraintChartErrorV1::SingularCoordinateMap);
     }
     Ok(())
