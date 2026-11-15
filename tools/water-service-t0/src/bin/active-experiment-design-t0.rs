@@ -747,6 +747,9 @@ mod tests {
     }
     #[test]
     fn invalid_measurement_variance_is_refused() {
-        assert_eq!(row("AED-T0-008-invalid-variance")["candidate_results"][0]["candidate_disposition"], "INVALID_COVARIANCE_OR_SENSITIVITY");
+        assert_eq!(
+            row("AED-T0-008-invalid-variance")["candidate_results"][0]["candidate_disposition"],
+            "INVALID_COVARIANCE_OR_SENSITIVITY"
+        );
     }
 }
