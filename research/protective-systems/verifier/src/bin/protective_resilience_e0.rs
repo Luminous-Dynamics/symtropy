@@ -352,8 +352,8 @@ fn service_totals_report(
         }
     }
 
-    if current.keys().ne(baseline.keys()) {
-        return Err("ABSTAIN_INCOMPARABLE_SCOPE: service IDs differ from baseline".to_owned());
+    if current.keys().ne(baseline.keys()) || limit_map.keys().ne(current.keys()) {
+        return Err("ABSTAIN_INCOMPARABLE_SCOPE: service IDs or service-limit scope differ".to_owned());
     }
 
     let mut reports = Vec::with_capacity(current.len());
@@ -419,19 +419,23 @@ fn metrics_to_json(metrics: &[OutcomeMetric]) -> Vec<Value> {
         .collect()
 }
 
-fn evaluate_portfolio(
-    portfolio: &Value,
-    baseline_contracts: &BTreeMap<(String, String), (String, u64, u64)>,
-    baseline_aggregates: &BTreeMap<String, ServiceAggregate>,
-    scope: &Value,
+struct EvaluationContext<'a> {
+    baseline_contracts: &'a BTreeMap<(String, String), (String, u64, u64)>,
+    baseline_aggregates: &'a BTreeMap<String, ServiceAggregate>,
+    scope: &'a Value,
     horizon: usize,
     interval_minutes: u64,
     sustained_intervals: usize,
-    limits: &[Value],
-    family_ids: &BTreeSet<String>,
+    limits: &'a [Value],
+    family_ids: &'a BTreeSet<String>,
+}
+
+fn evaluate_portfolio(
+    portfolio: &Value,
+    context: &EvaluationContext<'_>,
 ) -> Result<Value, String> {
     let portfolio_id = required_text(portfolio, "portfolio_id", "portfolio")?;
-    if portfolio.get("scope") != Some(scope) {
+    if portfolio.get("scope") != Some(context.scope) {
         return Err(format!(
             "ABSTAIN_INCOMPARABLE_SCOPE: {portfolio_id} differs from the frozen baseline context"
         ));
@@ -441,15 +445,15 @@ fn evaluate_portfolio(
         .get("service_outcomes")
         .and_then(Value::as_array)
         .ok_or_else(|| format!("{portfolio_id}.service_outcomes must be an array"))?;
-    let contracts = outcome_contracts(outcomes, horizon)?;
-    if &contracts != baseline_contracts {
+    let contracts = outcome_contracts(outcomes, context.horizon)?;
+    if &contracts != context.baseline_contracts {
         return Err(format!(
             "ABSTAIN_INCOMPARABLE_SCOPE: {portfolio_id} changed service demand or beneficiary strata"
         ));
     }
 
     let (metrics, aggregates) =
-        evaluate_outcomes(outcomes, horizon, interval_minutes, sustained_intervals)?;
+        evaluate_outcomes(outcomes, context.horizon, context.interval_minutes, context.sustained_intervals)?;
     let mut metric_by_service: BTreeMap<String, Vec<&OutcomeMetric>> = BTreeMap::new();
     for metric in &metrics {
         metric_by_service
@@ -463,7 +467,7 @@ fn evaluate_portfolio(
         .get("benefit_claims")
         .and_then(Value::as_array)
         .ok_or_else(|| format!("{portfolio_id}.benefit_claims must be an array"))?;
-    validate_benefit_claims(claims, outcomes, family_ids)?;
+    validate_benefit_claims(claims, outcomes, context.family_ids)?;
 
     let safety = portfolio
         .get("mandatory_safety")
@@ -476,7 +480,7 @@ fn evaluate_portfolio(
         validate_status(buffer, &format!("{portfolio_id}.buffer_recovery"))?;
 
     let (service_totals, service_pass) =
-        service_totals_report(&aggregates, baseline_aggregates, limits, &metric_by_service)?;
+        service_totals_report(&aggregates, context.baseline_aggregates, context.limits, &metric_by_service)?;
 
     let disposition = if safety_status == "VIOLATED" {
         "INFEASIBLE"
@@ -619,17 +623,17 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
         if !portfolio_ids.insert(portfolio_id.to_owned()) {
             return Err(format!("duplicate portfolio_id {portfolio_id}"));
         }
-        reports.push(evaluate_portfolio(
-            portfolio,
-            &baseline_contracts,
-            &baseline_aggregates,
+        let evaluation_context = EvaluationContext {
+            baseline_contracts: &baseline_contracts,
+            baseline_aggregates: &baseline_aggregates,
             scope,
             horizon,
             interval_minutes,
             sustained_intervals,
             limits,
-            &family_ids,
-        )?);
+            family_ids: &family_ids,
+        };
+        reports.push(evaluate_portfolio(portfolio, &evaluation_context)?);
     }
 
     let baseline_totals: Vec<Value> = baseline_aggregates
@@ -718,8 +722,8 @@ mod tests {
     #[test]
     fn duplicate_cost_identity_fails_closed() {
         let mut root = fixture_value();
-        root["portfolios"][0]["cost_items"][1]["cost_id"] =
-            root["portfolios"][0]["cost_items"][0]["cost_id"].clone();
+        let duplicate_id = root["portfolios"][0]["cost_items"][0]["cost_id"].clone();
+        root["portfolios"][0]["cost_items"][1]["cost_id"] = duplicate_id;
         let error = evaluate_fixture(&root.to_string(), REGISTRY).expect_err("duplicate cost ID");
         assert!(error.contains("duplicate cost_id"));
     }
@@ -727,8 +731,8 @@ mod tests {
     #[test]
     fn duplicate_benefit_claim_for_one_outcome_fails_closed() {
         let mut root = fixture_value();
-        root["portfolios"][0]["benefit_claims"][1]["outcome_id"] =
-            root["portfolios"][0]["benefit_claims"][0]["outcome_id"].clone();
+        let duplicate_outcome = root["portfolios"][0]["benefit_claims"][0]["outcome_id"].clone();
+        root["portfolios"][0]["benefit_claims"][1]["outcome_id"] = duplicate_outcome;
         let error = evaluate_fixture(&root.to_string(), REGISTRY).expect_err("duplicate benefit");
         assert!(error.contains("credited more than once"));
     }
