@@ -68,6 +68,7 @@ pub enum InputFailure {
     DuplicateSetupRule { machine_id: &'static str, from_family: &'static str, to_family: &'static str },
     MissingSetupRule { machine_id: &'static str, from_family: &'static str, to_family: &'static str },
     TooManyOperations { count: usize, maximum: usize },
+    DurationEnvelopeOverflow,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -225,6 +226,24 @@ fn validate(instance: &Instance) -> Vec<InputFailure> {
             count: operation_count,
             maximum: MAX_EXACT_OPERATIONS,
         });
+    }
+
+    // A conservative upper bound keeps every serial SPT and exact schedule
+    // timestamp representable; arithmetic overflow is an input error, not a
+    // cyclic machine order or an unreported wraparound.
+    let total_processing = instance.jobs.iter().flat_map(|job| job.operations.iter())
+        .try_fold(0u64, |sum, operation| sum.checked_add(operation.processing_ticks));
+    let mut total_max_setup = Some(0u64);
+    for job in &instance.jobs {
+        for operation in &job.operations {
+            let maximum = instance.machines.iter().find(|machine| machine.id == operation.machine_id)
+                .and_then(|machine| machine.setup_rules.iter().map(|rule| rule.ticks).max())
+                .unwrap_or(0);
+            total_max_setup = total_max_setup.and_then(|sum| sum.checked_add(maximum));
+        }
+    }
+    if total_processing.and_then(|processing| total_max_setup.and_then(|setup| processing.checked_add(setup))).is_none() {
+        failures.push(InputFailure::DurationEnvelopeOverflow);
     }
 
     // Every permutation can place any operation family directly after any other
@@ -549,7 +568,7 @@ pub fn solve_exact(instance: &Instance) -> OracleResult {
 }
 
 /// Deterministic shortest-processing-time dispatch baseline.
-pub fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequences: &[Vec<usize>]) -> Schedule {
+fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequences: &[Vec<usize>]) -> Schedule {
     let mut next_position = vec![0usize; job_sequences.len()];
     let mut job_ready: Vec<u64> = instance.jobs.iter().map(|job| job.release_ticks).collect();
     let mut machine_ready = vec![0u64; instance.machines.len()];
@@ -577,8 +596,7 @@ pub fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequence
         let setup = setup_ticks(machine, last_family[operation.machine_index], operation.family)
             .expect("validated all machine family transitions");
         let operation_ready = job_ready[operation.job_index];
-        let setup_end = machine_ready[operation.machine_index].max(operation_ready.saturating_sub(setup));
-        let processing_start = operation_ready.max(machine_ready[operation.machine_index].saturating_add(setup));
+        let processing_start = operation_ready.max(machine_ready[operation.machine_index] + setup);
         let setup_start = processing_start - setup;
         let processing_end = processing_start + operation.duration;
 
@@ -592,7 +610,6 @@ pub fn solve_spt(instance: &Instance, operations: &[FlatOperation], job_sequence
             processing_start,
             processing_end,
         });
-        let _ = setup_end; // Documents that setup is a machine-only activity.
         machine_orders[operation.machine_index].push(selected);
         machine_ready[operation.machine_index] = processing_end;
         last_family[operation.machine_index] = operation.family;
@@ -617,21 +634,21 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
         if by_id.insert(operation.operation_id, operation).is_some() {
             return false;
         }
-        if operation.processing_end != operation.processing_start + instance.jobs.iter()
-            .flat_map(|job| job.operations.iter())
-            .find(|source| source.id == operation.operation_id)
-            .map(|source| source.processing_ticks)
-            .unwrap_or(u64::MAX)
-        {
+        let Some(source) = instance.jobs.iter().flat_map(|job| job.operations.iter())
+            .find(|source| source.id == operation.operation_id) else { return false; };
+        let Some(expected_end) = operation.processing_start.checked_add(source.processing_ticks) else {
             return false;
-        }
-        if operation.setup_start + operation.setup_ticks != operation.processing_start {
+        };
+        if operation.processing_end != expected_end
+            || operation.setup_start.checked_add(operation.setup_ticks) != Some(operation.processing_start)
+            || operation.machine_id != source.machine_id
+        {
             return false;
         }
     }
 
     let expected_count: usize = instance.jobs.iter().map(|job| job.operations.len()).sum();
-    if by_id.len() != expected_count {
+    if by_id.len() != expected_count || schedule.machine_orders.len() != instance.machines.len() {
         return false;
     }
 
@@ -639,31 +656,54 @@ pub fn verify_schedule(instance: &Instance, schedule: &Schedule) -> bool {
         let mut previous_end = job.release_ticks;
         for source in &job.operations {
             let Some(scheduled) = by_id.get(source.id) else { return false; };
-            if scheduled.processing_start < previous_end || scheduled.machine_id != source.machine_id {
+            if scheduled.processing_start < previous_end {
                 return false;
             }
             previous_end = scheduled.processing_end;
         }
     }
 
+    let mut ordered_ids = BTreeSet::new();
+    let mut recomputed_setup = 0u64;
     for machine in &instance.machines {
-        let Some(order) = schedule.machine_orders.iter().find(|order| order.machine_id == machine.id) else { return false; };
+        let mut matching_orders = schedule.machine_orders.iter()
+            .filter(|order| order.machine_id == machine.id);
+        let Some(order) = matching_orders.next() else { return false; };
+        if matching_orders.next().is_some() {
+            return false;
+        }
         let mut previous_end = 0u64;
         let mut previous_family = machine.initial_family;
-        for operation_id in &order.operation_ids {
+        for (sequence_index, operation_id) in order.operation_ids.iter().enumerate() {
+            if !ordered_ids.insert(*operation_id) {
+                return false;
+            }
             let Some(scheduled) = by_id.get(operation_id) else { return false; };
             let Some(source) = instance.jobs.iter().flat_map(|job| job.operations.iter())
                 .find(|source| source.id == *operation_id) else { return false; };
-            let expected_setup = setup_ticks(machine, previous_family, source.family);
-            if expected_setup != Some(scheduled.setup_ticks) || scheduled.setup_start < previous_end {
+            if scheduled.machine_id != machine.id || scheduled.sequence_index != sequence_index {
                 return false;
             }
+            let Some(expected_setup) = setup_ticks(machine, previous_family, source.family) else {
+                return false;
+            };
+            if expected_setup != scheduled.setup_ticks || scheduled.setup_start < previous_end {
+                return false;
+            }
+            recomputed_setup = match recomputed_setup.checked_add(expected_setup) {
+                Some(value) => value,
+                None => return false,
+            };
             previous_end = scheduled.processing_end;
             previous_family = source.family;
         }
     }
 
-    let recomputed_makespan = schedule.operations.iter().map(|operation| operation.processing_end).max().unwrap_or(0);
+    if ordered_ids.len() != expected_count || recomputed_setup != schedule.total_setup_ticks {
+        return false;
+    }
+    let recomputed_makespan = schedule.operations.iter()
+        .map(|operation| operation.processing_end).max().unwrap_or(0);
     recomputed_makespan == schedule.makespan
 }
 
@@ -853,8 +893,9 @@ mod tests {
         let mut instance = reference_instance();
         instance.jobs[0].operations[0].processing_ticks = u64::MAX;
         let result = solve_exact(&instance);
-        // The model is still admitted, but checked schedule arithmetic produces
-        // no feasible machine-order certificate instead of wrapping timestamps.
-        assert_ne!(result.status, OracleStatus::Exact);
+        // The conservative duration envelope rejects the input before search;
+        // timestamps are never allowed to wrap or masquerade as a cycle.
+        assert_eq!(result.status, OracleStatus::InvalidInput);
+        assert!(result.input_failures.contains(&InputFailure::DurationEnvelopeOverflow));
     }
 }
