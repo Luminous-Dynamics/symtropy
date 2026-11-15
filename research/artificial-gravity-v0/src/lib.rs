@@ -214,7 +214,7 @@ pub fn radial_gravity_envelope(
     let inner_g = gravity_level_g(inner_radius_m, rpm)?;
     let outer_g = gravity_level_g(outer_radius_m, rpm)?;
     let spread_g = outer_g - inner_g;
-    let midpoint_g = (outer_g + inner_g) / 2.0;
+    let midpoint_g = outer_g / 2.0 + inner_g / 2.0;
     let relative_spread_fraction = spread_g / midpoint_g;
     require_finite_result(spread_g, "radial_gravity_envelope.spread_g")?;
     require_finite_result(
