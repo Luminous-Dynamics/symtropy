@@ -10,6 +10,8 @@
 use std::collections::{BTreeSet, VecDeque};
 use std::fmt;
 
+pub mod exact;
+
 pub const PARSER_VERSION: &str = "fjsplib-text-adapter/0.1";
 pub const FJSPLIB_SOURCE: &str = "https://scheduleopt.github.io/benchmarks/fjsplib";
 pub const MAX_INPUT_BYTES: usize = 64 * 1024 * 1024;
