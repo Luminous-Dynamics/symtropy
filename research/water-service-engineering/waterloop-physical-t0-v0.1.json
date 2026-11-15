@@ -72,7 +72,9 @@
         "same_comparison_window": true,
         "recovered_use_class": "toilet_flushing",
         "baseline_use_class": "toilet_flushing",
-        "quality_disposition": "QUALIFIED_FOR_DECLARED_USE"
+        "quality_disposition": "QUALIFIED_FOR_DECLARED_USE",
+        "quality_evidence_reference_present": true,
+        "quality_profile_revision_present": true
       }
     },
     {
@@ -86,7 +88,9 @@
         "same_comparison_window": true,
         "recovered_use_class": "toilet_flushing",
         "baseline_use_class": "toilet_flushing",
-        "quality_disposition": "UNKNOWN_EVIDENCE"
+        "quality_disposition": "UNKNOWN_EVIDENCE",
+        "quality_evidence_reference_present": true,
+        "quality_profile_revision_present": true
       }
     },
     {
@@ -105,7 +109,10 @@
       "inputs": {
         "hydraulic_output_energy_kwh": 0.0327,
         "electrical_input_energy_kwh": 0.04671428571428572,
-        "measured_delivered_volume_m3": 0.6
+        "measured_delivered_volume_m3": 0.6,
+        "hydraulic_and_electrical_windows_aligned": true,
+        "delivered_volume_boundary_matched": true,
+        "auxiliary_loads_included": true
       }
     },
     {
@@ -115,7 +122,9 @@
         "measured_outlet_pressure_pa": 160000,
         "minimum_service_pressure_pa": 150000,
         "measured_outlet_flow_m3_s": 0.0001,
-        "minimum_service_flow_m3_s": 0.00008333333333333333
+        "minimum_service_flow_m3_s": 0.00008333333333333333,
+        "pressure_measurement_admitted": true,
+        "flow_measurement_admitted": true
       }
     },
     {
@@ -125,7 +134,9 @@
         "measured_outlet_pressure_pa": 140000,
         "minimum_service_pressure_pa": 150000,
         "measured_outlet_flow_m3_s": 0.0001,
-        "minimum_service_flow_m3_s": 0.00008333333333333333
+        "minimum_service_flow_m3_s": 0.00008333333333333333,
+        "pressure_measurement_admitted": true,
+        "flow_measurement_admitted": true
       }
     },
     {
@@ -146,6 +157,46 @@
         "detection_latency_min": 15,
         "leak_rate_u95_l_min": 0.2,
         "latency_u95_min": 1
+      }
+    },
+    {
+      "case_id": "WL-T0-013-source-quality-without-evidence-no-credit",
+      "family": "source_substitution",
+      "inputs": {
+        "recovered_outlet_delivery_l": 100,
+        "matched_end_use_demand_l": 120,
+        "source_identity_confirmed": true,
+        "meter_calibration_current": true,
+        "same_comparison_window": true,
+        "quality_evidence_reference_present": false,
+        "quality_profile_revision_present": true,
+        "recovered_use_class": "toilet_flushing",
+        "baseline_use_class": "toilet_flushing",
+        "quality_disposition": "QUALIFIED_FOR_DECLARED_USE"
+      }
+    },
+    {
+      "case_id": "WL-T0-014-service-floor-missing-pressure-evidence",
+      "family": "service_floor",
+      "inputs": {
+        "measured_outlet_pressure_pa": 160000,
+        "minimum_service_pressure_pa": 150000,
+        "measured_outlet_flow_m3_s": 0.0001,
+        "minimum_service_flow_m3_s": 0.00008333333333333333,
+        "pressure_measurement_admitted": false,
+        "flow_measurement_admitted": true
+      }
+    },
+    {
+      "case_id": "WL-T0-015-energy-boundary-mismatch-abstains",
+      "family": "pump_energy",
+      "inputs": {
+        "hydraulic_output_energy_kwh": 0.0327,
+        "electrical_input_energy_kwh": 0.04671428571428572,
+        "measured_delivered_volume_m3": 0.6,
+        "hydraulic_and_electrical_windows_aligned": false,
+        "delivered_volume_boundary_matched": true,
+        "auxiliary_loads_included": true
       }
     }
   ]
