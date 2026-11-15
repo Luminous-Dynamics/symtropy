@@ -296,7 +296,11 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
     // engine propagates only the declared full covariance through its Jacobian.
     let afex_root_correlated = state(
         "input-afex-root-turnover-correlated",
-        &["root-productivity-normalized", "root-stock-normalized", "ratio-linearization-offset"],
+        &[
+            "root-productivity-normalized",
+            "root-stock-normalized",
+            "ratio-linearization-offset",
+        ],
         &[1.2, 1.0, 1.0],
         vec![
             vec![0.04, 0.005, 0.0],
@@ -339,7 +343,11 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
 
     let afex_root_independent = state(
         "input-afex-root-turnover-explicit-zero-covariance",
-        &["root-productivity-normalized", "root-stock-normalized", "ratio-linearization-offset"],
+        &[
+            "root-productivity-normalized",
+            "root-stock-normalized",
+            "ratio-linearization-offset",
+        ],
         &[1.2, 1.0, 1.0],
         vec![
             vec![0.04, 0.0, 0.0],
@@ -386,7 +394,10 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
         ("shared_common_cause", common_cause_result),
         ("explicit_crosswalk_uncertainty", crosswalk_result),
         ("afex_root_turnover_correlated", afex_root_correlated_result),
-        ("afex_root_turnover_zero_covariance_ablation", afex_root_independent_result),
+        (
+            "afex_root_turnover_zero_covariance_ablation",
+            afex_root_independent_result,
+        ),
     ])
 }
 
