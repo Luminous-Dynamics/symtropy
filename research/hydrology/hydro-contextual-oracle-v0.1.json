@@ -383,6 +383,25 @@
         "mean_absolute_log10_error": null,
         "mean_signed_log10_error": null
       }
+    },
+    {
+      "case_id": "HC-T0-027-event-peak-ties-earliest-index",
+      "family": "event_metrics",
+      "expected": {
+        "event_id": "synthetic-storm-tie-01",
+        "event_start_index": 0,
+        "event_end_index_exclusive": 4,
+        "sample_count": 4,
+        "observed_peak_flow": 6,
+        "predicted_peak_flow": 5,
+        "peak_magnitude_error_pct": -16.666666666666664,
+        "observed_peak_index": 1,
+        "predicted_peak_index": 1,
+        "signed_peak_timing_error_hours": 0,
+        "absolute_peak_timing_error_hours": 0,
+        "event_nse": 0.8333333333333334,
+        "event_volume_bias_pct": -18.75
+      }
     }
   ]
 }
