@@ -251,3 +251,8 @@ The machine-readable crosswalk now binds the `change_unit_stoy` helper to five e
 - LPJ-GUESS: selected `cmort` variants and `nbp` are relabelled annual without multiplication, according to the helper comment.
 
 The Rust crosswalk kernel now checks the model-application set for the seconds/year helper, requires the LPJ/JULES relabel-only annual path and the FATES per-hectare stem scaling marker, and rejects missing model-specific conversion metadata. This is a check of the published crosswalk declaration, not independent validation of raw NetCDF values.
+
+
+### Reproduction environment pin
+
+The Zenodo 14415143 dataset record declares a dependency on [DGVMTools v1.1.0](https://github.com/MagicForrest/DGVMTools/releases/tag/v1.1.0). The R Markdown uses R packages including `ncdf4`, `DGVMTools`, `dplyr`, `maps`, `sf`, `zoo`, `gridExtra`, `psych`, `here`, `ggpubr`, `plotrix`, `devtools`, `knitr` and `rmarkdown`. No root `renv.lock` was found in the inspected v1.0.0 GitHub tag. The reproduction must pin R, DGVMTools v1.1.0 and transitive R package versions; a mutable `install_github("MagicForrest/DGVMTools")` path is not a reproducible dependency lock.
