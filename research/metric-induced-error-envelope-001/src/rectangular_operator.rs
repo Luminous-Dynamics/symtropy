@@ -808,20 +808,16 @@ mod tests {
         )
         .unwrap();
 
-        let baseline_residual_metric = Metric::<ConstraintSpace, 2>::admit(
-            invert_spd_2(delassus_q.matrix()),
-            profile,
-        )
-        .unwrap();
-        let baseline = RectangularTangentToTangentOperator::<
-            CartesianQ,
-            ConstraintSpace,
-            2,
-            3,
-        >::new(jacobian_q)
-        .unwrap()
-        .assess(&mass_q, &baseline_residual_metric, operator_profile())
-        .unwrap();
+        let baseline_residual_metric =
+            Metric::<ConstraintSpace, 2>::admit(invert_spd_2(delassus_q.matrix()), profile)
+                .unwrap();
+        let baseline =
+            RectangularTangentToTangentOperator::<CartesianQ, ConstraintSpace, 2, 3>::new(
+                jacobian_q,
+            )
+            .unwrap()
+            .assess(&mass_q, &baseline_residual_metric, operator_profile())
+            .unwrap();
         close(
             baseline.nonzero_spectrum_condition_estimate.unwrap(),
             1.0,
@@ -914,10 +910,11 @@ mod tests {
         .unwrap();
         let mass_y = rebasis.metric_to_to(&mass_q, profile).unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
-        let old_basis_delassus = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-            &mass_y, jacobian_y, profile,
-        )
-        .unwrap();
+        let old_basis_delassus =
+            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_y, jacobian_y, profile,
+            )
+            .unwrap();
 
         let transform = [[1.0, 2.0], [0.0, 0.5]];
         let jacobian_new = rebase_constraint_rows(&jacobian_y, &transform);
