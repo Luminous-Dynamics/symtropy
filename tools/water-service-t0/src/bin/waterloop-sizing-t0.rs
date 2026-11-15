@@ -371,9 +371,11 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         | "WLS-T0-006-negative-demand-reject"
         | "WLS-T0-007-trace-length-mismatch-reject"
         | "WLS-T0-011-timebase-mismatch-reject"
-        | "WLS-T0-013-unadmitted-demand-measurement" => compute_storage(inputs),
+        | "WLS-T0-013-unadmitted-demand-measurement"
+        | "WLS-T0-015-negative-inflow-reject" => compute_storage(inputs),
         "WLS-T0-012-pump-hydraulic-power-lower-bound"
-        | "WLS-T0-014-pump-efficiency-invalid-reject" => compute_pump_power(inputs),
+        | "WLS-T0-014-pump-efficiency-invalid-reject"
+        | "WLS-T0-016-pump-efficiency-unadmitted" => compute_pump_power(inputs),
         _ => Err(format!("unsupported WaterLoop sizing case ID: {case_id}")),
     }
 }
@@ -584,7 +586,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirteen_sizing_cases_match_separate_oracle() {
+    fn all_sixteen_sizing_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle")).expect("evaluation completes");
         assert_eq!(result["result_count"], CASE_COUNT);
         assert_eq!(result["matched_case_count"], CASE_COUNT);
@@ -611,6 +613,35 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][9]).expect("zero demand");
         assert_eq!(out["minimum_required_usable_capacity_m3"], 0.0);
         assert_eq!(out["gross_installed_volume_m3"], 0.0);
+    }
+
+
+    #[test]
+    fn time_shifted_inflow_reduces_required_storage_and_reports_spill() {
+        let out = compute_case(&fixture("inputs")["cases"][1]).expect("time-shifted inflow");
+        assert!((out["minimum_required_usable_capacity_m3"].as_f64().unwrap() - 0.3).abs() < 1.0e-8);
+        assert!((out["total_overflow_m3"].as_f64().unwrap() - 0.1).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn maximum_declared_capacity_reports_unmet_demand() {
+        let out = compute_case(&fixture("inputs")["cases"][8]).expect("capacity limit");
+        assert_eq!(out["sizing_disposition"], "INFEASIBLE_DECLARED_CAPACITY_LIMIT");
+        assert!((out["declared_max_capacity_unmet_m3"].as_f64().unwrap() - 0.1).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn negative_inflow_is_rejected_not_clipped() {
+        let out = compute_case(&fixture("inputs")["cases"][14]).expect("negative inflow");
+        assert_eq!(out["sizing_disposition"], "REJECT");
+        assert_eq!(out["reason"], "NEGATIVE_SOURCE_INFLOW_VOLUME");
+    }
+
+    #[test]
+    fn unadmitted_pump_efficiency_does_not_create_electrical_power_claim() {
+        let out = compute_case(&fixture("inputs")["cases"][15]).expect("unadmitted efficiency");
+        assert_eq!(out["pump_power_disposition"], "HYDRAULIC_POWER_ONLY_EFFICIENCY_NOT_ADMITTED");
+        assert_eq!(out["electrical_input_lower_bound_kw"], Value::Null);
     }
 
     #[test]
