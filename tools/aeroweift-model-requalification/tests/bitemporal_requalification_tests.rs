@@ -774,3 +774,44 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
         vec![DependencyKind::SensorStack]
     );
 }
+
+
+#[test]
+fn source_sequence_not_effective_time_orders_causal_digest_succession() {
+    let events = vec![
+        event(
+            "sensor-change-seq-1",
+            "sensor-registry",
+            2,
+            DependencyKind::SensorStack,
+            'c',
+            'g',
+            30,
+            31,
+            ChangeClass::MaterialChange,
+            ChangeEvidenceState::OwnerQualified,
+        ),
+        event(
+            "sensor-correction-seq-2",
+            "sensor-registry",
+            3,
+            DependencyKind::SensorStack,
+            'g',
+            'h',
+            20,
+            32,
+            ChangeClass::CorrectiveChange,
+            ChangeEvidenceState::OwnerQualified,
+        ),
+    ];
+    let result = assess(&claim(), &events, &complete_coverage(), cutoff(40, 40)).unwrap();
+    assert_eq!(result.status, ClaimStatus::Contradicted);
+    assert_eq!(
+        result.event_ids,
+        vec![
+            "sensor-change-seq-1".to_string(),
+            "sensor-correction-seq-2".to_string()
+        ]
+    );
+    assert_eq!(result.evaluated_dependencies[1].digest, digest('h'));
+}
