@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Emit a deterministic exact-versus-SPT certificate as TSV.
 
-use factory_exact_schedule::{reference_instance, solve_exact, OracleStatus, Schedule};
+use factory_exact_schedule::{OracleStatus, Schedule, reference_instance, solve_exact};
 
 fn emit_schedule(policy: &str, instance_id: &str, schedule: &Schedule, makespan: u64) {
     for operation in &schedule.operations {
@@ -43,9 +43,20 @@ fn main() {
         OracleStatus::InvalidInput => "INVALID_INPUT",
         OracleStatus::NoFeasibleSchedule => "NO_FEASIBLE_SCHEDULE",
     };
-    let exact = result.optimal_schedule.as_ref().map(|schedule| schedule.makespan.to_string()).unwrap_or_else(|| "-".to_owned());
-    let spt = result.spt_schedule.as_ref().map(|schedule| schedule.makespan.to_string()).unwrap_or_else(|| "-".to_owned());
-    let gap = result.gap_ticks.map(|ticks| ticks.to_string()).unwrap_or_else(|| "-".to_owned());
+    let exact = result
+        .optimal_schedule
+        .as_ref()
+        .map(|schedule| schedule.makespan.to_string())
+        .unwrap_or_else(|| "-".to_owned());
+    let spt = result
+        .spt_schedule
+        .as_ref()
+        .map(|schedule| schedule.makespan.to_string())
+        .unwrap_or_else(|| "-".to_owned());
+    let gap = result
+        .gap_ticks
+        .map(|ticks| ticks.to_string())
+        .unwrap_or_else(|| "-".to_owned());
 
     println!(
         "SUMMARY\tEXACT_ORACLE\t{}\t-\t-\t-\t-\t-\t-\t-\t-\t{}\tstatus={};proven={};gap_ticks={};orders={};cyclic={};feasible={}",
@@ -60,15 +71,23 @@ fn main() {
     );
     println!(
         "SUMMARY\tSPT_BASELINE\t{}\t-\t-\t-\t-\t-\t-\t-\t-\t{}\tgap_ticks={}",
-        instance.instance_id,
-        spt,
-        gap
+        instance.instance_id, spt, gap
     );
 
     if let Some(schedule) = result.optimal_schedule.as_ref() {
-        emit_schedule("EXACT_ORACLE", instance.instance_id, schedule, schedule.makespan);
+        emit_schedule(
+            "EXACT_ORACLE",
+            instance.instance_id,
+            schedule,
+            schedule.makespan,
+        );
     }
     if let Some(schedule) = result.spt_schedule.as_ref() {
-        emit_schedule("SPT_BASELINE", instance.instance_id, schedule, schedule.makespan);
+        emit_schedule(
+            "SPT_BASELINE",
+            instance.instance_id,
+            schedule,
+            schedule.makespan,
+        );
     }
 }
