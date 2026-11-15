@@ -1,0 +1,231 @@
+{
+  "schema_version": "operator-invariants-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-PHYSICAL-OPERATOR-INVARIANTS-001",
+  "physical_operator_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "OI-T0-001-positive-fixed-regime",
+      "expected": {
+        "invariant_disposition": "PASS_SYNTHETIC_INVARIANTS",
+        "reason": null,
+        "kernel_area_by_inlet": [
+          1
+        ],
+        "steady_gain_max_abs_error": 0,
+        "superposition_max_abs_error": 0,
+        "time_shift_max_abs_error": 0,
+        "port_permutation_max_abs_error": 0,
+        "scale_max_abs_error": 0,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "POSITIVE_STABLE_WITH_WITNESS",
+        "positive_output_minimum": 0,
+        "predicted_total_output_mass": 2,
+        "input_mass_across_two_histories": 2,
+        "mass_not_in_outputs_or_declared_residual": 0,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-002-negative-coefficient",
+      "expected": {
+        "invariant_disposition": "INVALID_KERNEL_NEGATIVE_COEFFICIENT",
+        "reason": "PHYSICAL_KERNEL_NOT_NONNEGATIVE",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-003-negative-lag",
+      "expected": {
+        "invariant_disposition": "NONCAUSAL_NEGATIVE_LAG",
+        "reason": "NEGATIVE_LAG_COEFFICIENT_PRESENT",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-004-mass-gain-above-one",
+      "expected": {
+        "invariant_disposition": "INVALID_KERNEL_MASS_GAIN_ABOVE_ONE",
+        "reason": "PASSIVE_TRACER_KERNEL_CREATES_OR_DOES_NOT_ACCOUNT_FOR_MASS",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-005-static-gain-mismatch",
+      "expected": {
+        "invariant_disposition": "STATIC_GAIN_MISMATCH",
+        "reason": "STEADY_MATRIX_DIFFERS_FROM_INTEGRATED_KERNEL_GAIN",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-006-positive-stable-realization",
+      "expected": {
+        "invariant_disposition": "PASS_SYNTHETIC_INVARIANTS",
+        "reason": null,
+        "kernel_area_by_inlet": [
+          1
+        ],
+        "steady_gain_max_abs_error": 0,
+        "superposition_max_abs_error": 0,
+        "time_shift_max_abs_error": 0,
+        "port_permutation_max_abs_error": 0,
+        "scale_max_abs_error": 0,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "POSITIVE_STABLE_WITH_WITNESS",
+        "positive_output_minimum": 0,
+        "predicted_total_output_mass": 2,
+        "input_mass_across_two_histories": 2,
+        "mass_not_in_outputs_or_declared_residual": 0,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-007-non-metzler",
+      "expected": {
+        "invariant_disposition": "INVALID_STATE_SPACE_NOT_METZLER",
+        "reason": "STATE_SPACE_REALIZATION_FAILED_POSITIVE_STABILITY_CONTRACT",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-008-unstable-metzler",
+      "expected": {
+        "invariant_disposition": "UNSTABLE_OR_UNCERTIFIED_STATE_SPACE",
+        "reason": "STATE_SPACE_REALIZATION_FAILED_POSITIVE_STABILITY_CONTRACT",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-009-grid-refinement",
+      "expected": {
+        "invariant_disposition": "PASS_SYNTHETIC_INVARIANTS",
+        "reason": null,
+        "kernel_area_by_inlet": [
+          1
+        ],
+        "steady_gain_max_abs_error": 0,
+        "superposition_max_abs_error": 0,
+        "time_shift_max_abs_error": 0,
+        "port_permutation_max_abs_error": 0,
+        "scale_max_abs_error": 0,
+        "grid_area_max_abs_error": 0,
+        "grid_centroid_max_abs_error_seconds": 2.220446049250313e-16,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": 0,
+        "predicted_total_output_mass": 2,
+        "input_mass_across_two_histories": 2,
+        "mass_not_in_outputs_or_declared_residual": 0,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "OI-T0-010-grid-refinement-mismatch",
+      "expected": {
+        "invariant_disposition": "GRID_REFINEMENT_MISMATCH",
+        "reason": "COARSE_FINE_KERNEL_AREA_OR_CENTROID_DIFFERENCE_EXCEEDS_LIMIT",
+        "kernel_area_by_inlet": null,
+        "steady_gain_max_abs_error": null,
+        "superposition_max_abs_error": null,
+        "time_shift_max_abs_error": null,
+        "port_permutation_max_abs_error": null,
+        "scale_max_abs_error": null,
+        "grid_area_max_abs_error": null,
+        "grid_centroid_max_abs_error_seconds": null,
+        "state_space_disposition": "NOT_SUPPLIED",
+        "positive_output_minimum": null,
+        "predicted_total_output_mass": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}
