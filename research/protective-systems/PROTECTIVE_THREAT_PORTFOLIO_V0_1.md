@@ -217,3 +217,24 @@ The bridge contract and six synthetic conformance fixtures are now specified in:
 This is an adapter over CIVDYN-CASCADE (#3894), CIVDYN-RES (#3621/#3739), PROTECT-ROBUST (#5317), PROTECT-VOI (#5268) and CIVBENCH-MAD (#3731), not a duplicate simulator or optimizer. It keeps service, buffer, human-safety and ecological/physical outcomes separate; enforces no double-counting; and fails closed when owner evidence, comparable scope or probability support is absent.
 
 NIST anchors include SP 1339 (final, 17 June 2026), SP 1800-45 (final, 24 June 2026), and SP 800-82 Rev. 4 (initial public draft, 21 September 2026; comments due 30 November 2026). Draft status and standards applicability must remain explicit.
+
+
+## 11. Industry comparison and what we must prove
+
+IN-CORE is an important external comparator. It already provides research-backed community resilience modelling that links infrastructure inventories, hazards, physical damage and functionality, repair/recovery/restoration, and social/economic impacts. The NIST Community Resilience Planning Guide already supports stakeholder-defined recovery-time performance goals. We must not claim these underlying capabilities as novel or position our current synthetic gate as a replacement.
+
+Our research opportunity is narrower and potentially complementary: a common, fail-closed assurance layer that can consume outputs from specialist engineering/community models, preserve exact scenario and evidence lineage, enforce non-compensatory safety/service floors, keep service/buffer/ecological outcomes separate, reconcile shared benefits across a portfolio, and reproduce decisions across model owners.
+
+ISO 22301 / South African SANS 22301 are business-continuity management-system comparators, not physical hazard simulators. The existence of a BCMS or certificate does not by itself establish the physical effectiveness of a protective assembly or a measured service-recovery trajectory. The South African Disaster Management Act 57 of 2002 and National Disaster Management Framework review (Government Gazette 48874, 30 June 2023) add a local multi-level planning context. Each real deployment must resolve local law, municipal/provincial frameworks, sector rules and exact SANS editions through competent local review.
+
+External anchors:
+- IN-CORE: https://www.nist.gov/publications/interdependent-networked-community-resilience-modeling-environment-core
+- NIST Center of Excellence / service architecture: https://www.nist.gov/community-resilience/center-excellence
+- NIST recovery-time planning guide: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.1190GB-16.pdf
+- SABS SANS catalogue: https://www.sabs.co.za/sabs-standards
+- South African Disaster Management Act: https://www.gov.za/documents/disaster-management-act
+- National Disaster Management Framework review: https://www.gov.za/sites/default/files/gcis_document/202307/48874gon3635.pdf
+
+**Beating the state of the art requires a matched result, not a novel architecture label.** On a rights-cleared independent case, compare persistence, a competent domain rule/operator plan, available external-model results (including IN-CORE only when scope-compatible), domain-specific Symtropy solvers, and the full portfolio bridge. Freeze boundary, service demand, scenarios, evidence, uncertainty, safety floors, time horizon and lifecycle cost before comparison.
+
+Prospective materiality thresholds (not achieved): either at least 20% lower fully burdened lifecycle cost at unchanged mandatory safety/service floors, or at least 20% lower integrated critical-service deficit at equal lifecycle budget. The reviewer must first establish that the data and sample precision can resolve such effects. Otherwise publish confidence intervals and smallest detectable effects. Also require zero false-feasible decisions on the frozen negative-control set, full deterministic reproducibility, and disclosure of cases where the Luminous approach loses or abstains.
