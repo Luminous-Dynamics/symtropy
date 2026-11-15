@@ -180,6 +180,8 @@ pub enum ParentRole {
     ConflictAssessment,
     /// Execution conformance result consumed by scheduling.
     ExecutionConformance,
+    /// Prior conflict-screen receipt used as non-authoritative replay context.
+    PriorConflictAssessment,
 }
 
 /// Exact reference from a child receipt to one parent receipt.
@@ -342,7 +344,7 @@ fn stage_for_role(role: ParentRole) -> Stage {
         ParentRole::TrafficOccupancy(_) | ParentRole::SubjectTrack => Stage::SurveillanceAssessment,
         ParentRole::ActiveRestrictions => Stage::RestrictionSnapshot,
         ParentRole::CurrentAuthorization => Stage::Authorization,
-        ParentRole::ConflictAssessment => Stage::ConflictScreening,
+        ParentRole::ConflictAssessment | ParentRole::PriorConflictAssessment => Stage::ConflictScreening,
         ParentRole::ExecutionConformance => Stage::IntentConformance,
     }
 }
@@ -362,6 +364,7 @@ fn required_roles(stage: Stage) -> Vec<ParentRole> {
 fn optional_roles(stage: Stage) -> Vec<ParentRole> {
     match stage {
         Stage::SurveillanceAssessment => vec![ParentRole::SurveillanceObservation],
+        Stage::ConflictScreening => vec![ParentRole::PriorConflictAssessment],
         _ => Vec::new(),
     }
 }
