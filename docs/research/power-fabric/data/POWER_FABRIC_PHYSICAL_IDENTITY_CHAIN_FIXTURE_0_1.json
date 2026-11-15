@@ -312,7 +312,9 @@
       ],
       "predecessor_event_ids": [
         "event-delivered-001"
-      ]
+      ],
+      "observed_identity_namespace": "synthetic-manufacturer-a",
+      "observed_serial_identifier": "SYN-A-INV-0001"
     },
     {
       "event_id": "event-installed-001",
