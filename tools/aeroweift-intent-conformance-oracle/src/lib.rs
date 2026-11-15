@@ -544,7 +544,7 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         )
     });
     lineage.canonicalized_observations =
-        observations.iter().map(|observation| (*observation).clone()).collect();
+        observations.iter().map(|observation| (**observation).clone()).collect();
 
     let mut definite_inside = 0_u64;
     let mut definite_outside = 0_u64;
