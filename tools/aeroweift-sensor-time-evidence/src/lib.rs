@@ -82,8 +82,7 @@ impl CaptureWindow {
     fn is_valid(self) -> bool {
         self.start.is_valid()
             && self.end.is_valid()
-            && self.start.lower_ns <= self.end.lower_ns
-            && self.start.upper_ns <= self.end.upper_ns
+            && self.start.upper_ns <= self.end.lower_ns
     }
 }
 
@@ -188,6 +187,9 @@ pub struct TemporalAssessment {
     pub disposition: TemporalDisposition,
     /// Number of distinct sensor modalities represented.
     pub modality_count: usize,
+    /// Whether each sensor has a syntactically valid calibration/configuration profile.
+    /// This is metadata completeness only, not proof of physical calibration.
+    pub measurement_metadata_complete: bool,
     /// Conservative maximum pairwise start/end skew, if bounded timing was evaluated.
     pub maximum_pairwise_skew_ns: Option<u128>,
     /// Sorted unique sensor IDs in the assessment.
@@ -420,6 +422,9 @@ pub fn evaluate_cycle(
         acquisition_cycle_id: cycle_id,
         disposition,
         modality_count,
+        measurement_metadata_complete: sensors.iter().all(|sensor| {
+            sensor.calibration_profile_sha256.as_deref().is_some_and(is_sha256)
+        }),
         maximum_pairwise_skew_ns,
         sensor_ids,
         gaps: gaps.into_iter().collect(),
