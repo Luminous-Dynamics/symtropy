@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/forest-blind-candidate-submission-v0.1.schema.json",
+  "title": "Forest blind challenge candidate submission",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "challenge_round_id",
+    "protocol_sha256",
+    "candidate_bundle_sha256",
+    "data_manifest_sha256",
+    "model_registry_sha256",
+    "responses",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "challenge_round_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$"
+    },
+    "protocol_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "data_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "model_registry_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "submitted_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "responses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "opaque_case_token",
+          "target_id",
+          "support_id",
+          "adequacy_status",
+          "model_forecasts",
+          "abstention_reason",
+          "proposed_measurements"
+        ],
+        "properties": {
+          "opaque_case_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16,128}$"
+          },
+          "target_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "support_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "adequacy_status": {
+            "enum": [
+              "ADEQUATE_WITHIN_CHALLENGE",
+              "INADEQUATE",
+              "UNCERTAIN_ABSTAIN"
+            ]
+          },
+          "model_forecasts": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "model_id",
+                "point_prediction",
+                "quantiles"
+              ],
+              "properties": {
+                "model_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "point_prediction": {
+                  "type": "number"
+                },
+                "quantiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "probability",
+                      "value"
+                    ],
+                    "properties": {
+                      "probability": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "exclusiveMaximum": 1
+                      },
+                      "value": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "predictive_distribution_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "abstention_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "proposed_measurements": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "measurement_id",
+                "rationale",
+                "estimated_cost",
+                "authority_reference"
+              ],
+              "properties": {
+                "measurement_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "estimated_cost": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "authority_reference": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "key_id",
+        "canonical_payload_sha256",
+        "signature_base64"
+      ],
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "Ed25519"
+          ]
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonical_payload_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "signature_base64": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
