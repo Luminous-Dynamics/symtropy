@@ -5,14 +5,14 @@
 //! case. It does not estimate ecological parameters, validate a biological model, or
 //! turn a synthetic pass into field evidence.
 
-pub mod canopy_kernel;
-pub mod support_kernel;
 pub mod aggregation_kernel;
-pub mod model_set_kernel;
-pub mod forecast_kernel;
+pub mod canopy_kernel;
 pub mod conformal_kernel;
+pub mod forecast_kernel;
+pub mod model_set_kernel;
+pub mod support_kernel;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write as FmtWrite;
@@ -70,10 +70,7 @@ fn usize_at(root: &Value, path: &[&str]) -> Result<usize, String> {
         .map_err(|_| format!("integer at {} exceeds platform usize", path.join(".")))
 }
 
-fn object_at(
-    root: &Value,
-    path: &[&str],
-) -> Result<&serde_json::Map<String, Value>, String> {
+fn object_at(root: &Value, path: &[&str]) -> Result<&serde_json::Map<String, Value>, String> {
     at(root, path)?
         .as_object()
         .ok_or_else(|| format!("expected object at {}", path.join(".")))
@@ -144,10 +141,14 @@ fn check_cell_ids(manifest: &Value) -> Result<CellStateIndex, String> {
     let initial_ids: BTreeSet<String> = initial.keys().cloned().collect();
     let expected_ids: BTreeSet<String> = expected.keys().cloned().collect();
     if declared != initial_ids {
-        return Err("declared spatial cell ids do not exactly match initial_state keys".to_string());
+        return Err(
+            "declared spatial cell ids do not exactly match initial_state keys".to_string(),
+        );
     }
     if declared != expected_ids {
-        return Err("declared spatial cell ids do not exactly match expected_state keys".to_string());
+        return Err(
+            "declared spatial cell ids do not exactly match expected_state keys".to_string(),
+        );
     }
     Ok((declared, initial, expected))
 }
@@ -166,7 +167,9 @@ fn causally_reachable_cells(
         let from = link
             .get("from_cell_id")
             .and_then(Value::as_str)
-            .ok_or_else(|| format!("explicit_causal_links[{index}].from_cell_id must be a string"))?;
+            .ok_or_else(|| {
+                format!("explicit_causal_links[{index}].from_cell_id must be a string")
+            })?;
         let to = link
             .get("to_cell_id")
             .and_then(Value::as_str)
@@ -176,7 +179,10 @@ fn causally_reachable_cells(
                 "causal link {from} -> {to} references an undeclared spatial cell"
             ));
         }
-        graph.entry(from.to_string()).or_default().push(to.to_string());
+        graph
+            .entry(from.to_string())
+            .or_default()
+            .push(to.to_string());
     }
 
     let mut reachable = BTreeSet::new();
@@ -217,7 +223,9 @@ fn parse_coordinates(
             .as_array()
             .ok_or_else(|| format!("{label}[{index}] must be a two-item coordinate"))?;
         if pair.len() != 2 {
-            return Err(format!("{label}[{index}] must contain exactly two coordinates"));
+            return Err(format!(
+                "{label}[{index}] must contain exactly two coordinates"
+            ));
         }
         let x_raw = pair[0]
             .as_u64()
@@ -239,9 +247,7 @@ fn parse_coordinates(
     Ok((set, duplicates))
 }
 
-fn open_component_count(
-    open_cells: &BTreeSet<(usize, usize)>,
-) -> usize {
+fn open_component_count(open_cells: &BTreeSet<(usize, usize)>) -> usize {
     let mut remaining = open_cells.clone();
     let mut components = 0;
     while let Some(start) = remaining.pop_first() {
@@ -272,14 +278,18 @@ fn adjudicate_observation_case(case: &Value) -> Result<&'static str, String> {
             let left = string_at(case, &["input", "left_support"])?;
             let right = string_at(case, &["input", "right_support"])?;
             let overlap_applied = at(case, &["input", "overlap_operator_applied"])?
-                .as_bool().ok_or_else(|| "overlap_operator_applied must be boolean".to_string())?;
+                .as_bool()
+                .ok_or_else(|| "overlap_operator_applied must be boolean".to_string())?;
             let conversion_declared = at(case, &["input", "support_conversion_declared"])?
-                .as_bool().ok_or_else(|| "support_conversion_declared must be boolean".to_string())?;
-            Ok(if left != right && !overlap_applied && !conversion_declared {
-                "BLOCKED_SUPPORT_MISMATCH"
-            } else {
-                "SUPPORT_MISMATCH_CONTROL_NOT_TRIGGERED"
-            })
+                .as_bool()
+                .ok_or_else(|| "support_conversion_declared must be boolean".to_string())?;
+            Ok(
+                if left != right && !overlap_applied && !conversion_declared {
+                    "BLOCKED_SUPPORT_MISMATCH"
+                } else {
+                    "SUPPORT_MISMATCH_CONTROL_NOT_TRIGGERED"
+                },
+            )
         }
         "GEDI-ISS-STORAGE-GAP-001" => {
             let status = string_at(case, &["input", "acquisition_status"])?;
@@ -292,24 +302,32 @@ fn adjudicate_observation_case(case: &Value) -> Result<&'static str, String> {
         "TMF-DEGRADATION-NOT-MORTALITY-001" => {
             let source_class = string_at(case, &["input", "source_class"])?;
             let target = string_at(case, &["input", "target_variable"])?;
-            Ok(if source_class == "degraded_forest" && target == "tree_mortality" {
-                "REJECT_LABEL_SEMANTIC_MISMATCH"
-            } else {
-                "LABEL_SEMANTIC_MISMATCH_CONTROL_NOT_TRIGGERED"
-            })
+            Ok(
+                if source_class == "degraded_forest" && target == "tree_mortality" {
+                    "REJECT_LABEL_SEMANTIC_MISMATCH"
+                } else {
+                    "LABEL_SEMANTIC_MISMATCH_CONTROL_NOT_TRIGGERED"
+                },
+            )
         }
         "MAPBIOMAS-BRAZIL-TRANSFER-001" => {
             let source = string_at(case, &["input", "source_coverage_country"])?;
             let target = string_at(case, &["input", "target_country"])?;
-            Ok(if source != target { "OUT_OF_DOMAIN" } else { "TARGET_WITHIN_DECLARED_COUNTRY" })
+            Ok(if source != target {
+                "OUT_OF_DOMAIN"
+            } else {
+                "TARGET_WITHIN_DECLARED_COUNTRY"
+            })
         }
         "CLOUD-OR-NODATA-NO-CHANGE-001" => {
             let validity = string_at(case, &["input", "validity_state"])?;
-            Ok(if validity == "cloud_masked" || validity == "no_data" || validity == "qa_invalid" {
-                "UNOBSERVED_CLOUD_OR_QA_MASK"
-            } else {
-                "OBSERVATION_VALID_REQUIRES_SOURCE_OPERATOR"
-            })
+            Ok(
+                if validity == "cloud_masked" || validity == "no_data" || validity == "qa_invalid" {
+                    "UNOBSERVED_CLOUD_OR_QA_MASK"
+                } else {
+                    "OBSERVATION_VALID_REQUIRES_SOURCE_OPERATOR"
+                },
+            )
         }
         "PLOT-CAMPAIGN-LEAKAGE-001" => {
             let unit = string_at(case, &["input", "split_group_unit"])?;
@@ -317,33 +335,52 @@ fn adjudicate_observation_case(case: &Value) -> Result<&'static str, String> {
                 return Err("split_group_unit must not be empty".to_string());
             }
             let same_plot = at(case, &["input", "same_plot_across_splits"])?
-                .as_bool().ok_or_else(|| "same_plot_across_splits must be boolean".to_string())?;
-            Ok(if same_plot { "REJECT_LEAKAGE" } else { "NO_WITHIN_PLOT_SPLIT_CONFLICT_DETECTED" })
+                .as_bool()
+                .ok_or_else(|| "same_plot_across_splits must be boolean".to_string())?;
+            Ok(if same_plot {
+                "REJECT_LEAKAGE"
+            } else {
+                "NO_WITHIN_PLOT_SPLIT_CONFLICT_DETECTED"
+            })
         }
         "DRC-INACCESSIBLE-SAMPLE-UNITS-001" => {
             let status = string_at(case, &["input", "survey_status"])?;
             let reason = string_at(case, &["input", "unsurveyed_reason"])?;
-            Ok(if status == "not_surveyed" && (reason == "inaccessible" || reason == "conflict_affected" || reason == "inaccessible_conflict_affected") {
-                "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED"
-            } else {
-                "SURVEYED_OR_OTHER_MISSINGNESS_REQUIRES_REVIEW"
-            })
+            Ok(
+                if status == "not_surveyed"
+                    && (reason == "inaccessible"
+                        || reason == "conflict_affected"
+                        || reason == "inaccessible_conflict_affected")
+                {
+                    "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED"
+                } else {
+                    "SURVEYED_OR_OTHER_MISSINGNESS_REQUIRES_REVIEW"
+                },
+            )
         }
         "PNG-SECURITY-LOGISTICS-OMISSIONS-001" => {
             let status = string_at(case, &["input", "survey_status"])?;
             let reason = string_at(case, &["input", "unsurveyed_reason"])?;
-            Ok(if status == "not_surveyed" && (reason == "security" || reason == "logistics" || reason == "security_or_logistics") {
-                "UNOBSERVED_SECURITY_OR_LOGISTICS"
-            } else {
-                "SURVEYED_OR_OTHER_MISSINGNESS_REQUIRES_REVIEW"
-            })
+            Ok(
+                if status == "not_surveyed"
+                    && (reason == "security"
+                        || reason == "logistics"
+                        || reason == "security_or_logistics")
+                {
+                    "UNOBSERVED_SECURITY_OR_LOGISTICS"
+                } else {
+                    "SURVEYED_OR_OTHER_MISSINGNESS_REQUIRES_REVIEW"
+                },
+            )
         }
         "SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001" => {
             let count = usize_at(case, &["input", "census_count"])?;
             let repeats = at(case, &["input", "matched_repeat_measurements"])?
-                .as_bool().ok_or_else(|| "matched_repeat_measurements must be boolean".to_string())?;
+                .as_bool()
+                .ok_or_else(|| "matched_repeat_measurements must be boolean".to_string())?;
             let rate_claim = at(case, &["input", "longitudinal_rate_claim"])?
-                .as_bool().ok_or_else(|| "longitudinal_rate_claim must be boolean".to_string())?;
+                .as_bool()
+                .ok_or_else(|| "longitudinal_rate_claim must be boolean".to_string())?;
             Ok(if rate_claim && count < 2 && !repeats {
                 "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"
             } else {
@@ -358,13 +395,28 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
     let expected: BTreeMap<&'static str, &'static str> = [
         ("PLOT-GEDI-SUPPORT-MISMATCH-001", "BLOCKED_SUPPORT_MISMATCH"),
         ("GEDI-ISS-STORAGE-GAP-001", "UNOBSERVED_NO_ACQUISITION"),
-        ("TMF-DEGRADATION-NOT-MORTALITY-001", "REJECT_LABEL_SEMANTIC_MISMATCH"),
+        (
+            "TMF-DEGRADATION-NOT-MORTALITY-001",
+            "REJECT_LABEL_SEMANTIC_MISMATCH",
+        ),
         ("MAPBIOMAS-BRAZIL-TRANSFER-001", "OUT_OF_DOMAIN"),
-        ("CLOUD-OR-NODATA-NO-CHANGE-001", "UNOBSERVED_CLOUD_OR_QA_MASK"),
+        (
+            "CLOUD-OR-NODATA-NO-CHANGE-001",
+            "UNOBSERVED_CLOUD_OR_QA_MASK",
+        ),
         ("PLOT-CAMPAIGN-LEAKAGE-001", "REJECT_LEAKAGE"),
-        ("DRC-INACCESSIBLE-SAMPLE-UNITS-001", "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED"),
-        ("PNG-SECURITY-LOGISTICS-OMISSIONS-001", "UNOBSERVED_SECURITY_OR_LOGISTICS"),
-        ("SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001", "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"),
+        (
+            "DRC-INACCESSIBLE-SAMPLE-UNITS-001",
+            "UNOBSERVED_INACCESSIBLE_OR_CONFLICT_AFFECTED",
+        ),
+        (
+            "PNG-SECURITY-LOGISTICS-OMISSIONS-001",
+            "UNOBSERVED_SECURITY_OR_LOGISTICS",
+        ),
+        (
+            "SINGLE-CENSUS-AS-LONGITUDINAL-PANEL-001",
+            "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE",
+        ),
     ]
     .into_iter()
     .collect();
@@ -380,64 +432,101 @@ fn validate_observation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
 
     let mut seen = BTreeSet::new();
     let mut checks = Vec::new();
-    push_check(&mut checks, "OBS-CORPUS-VERSION-001", version == "0.1.0",
-        format!("schema_version={version}"));
-    push_check(&mut checks, "OBS-CORPUS-IDENTITY-001",
+    push_check(
+        &mut checks,
+        "OBS-CORPUS-VERSION-001",
+        version == "0.1.0",
+        format!("schema_version={version}"),
+    );
+    push_check(
+        &mut checks,
+        "OBS-CORPUS-IDENTITY-001",
         benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
             && corpus_id == "FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001",
-        format!("benchmark={benchmark}; corpus={corpus_id}"));
-    push_check(&mut checks, "OBS-CORPUS-CLAIM-CEILING-001",
+        format!("benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "OBS-CORPUS-CLAIM-CEILING-001",
         status == "SYNTHETIC_RULE_FIXTURES_NOT_REAL_OBSERVATIONS"
             && ceiling.contains("Only the deterministic rules")
             && ceiling.contains("No real source data ingested"),
-        "corpus must remain explicitly synthetic and non-production");
+        "corpus must remain explicitly synthetic and non-production",
+    );
 
     for (index, case) in cases.iter().enumerate() {
-        let id = case.get("case_id").and_then(Value::as_str)
+        let id = case
+            .get("case_id")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
-        let disposition = case.get("expected_disposition").and_then(Value::as_str)
+        let disposition = case
+            .get("expected_disposition")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
-        let condition = case.get("condition").and_then(Value::as_str)
+        let condition = case
+            .get("condition")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].condition must be a string"))?;
-        let invariant = case.get("invariant").and_then(Value::as_str)
+        let invariant = case
+            .get("invariant")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].invariant must be a string"))?;
         let unique = seen.insert(id.to_string());
         let expected_disposition = expected
             .iter()
             .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
         let derived_disposition = adjudicate_observation_case(case)?;
-        let exact_disposition = expected_disposition == Some(disposition)
-            && derived_disposition == disposition;
+        let exact_disposition =
+            expected_disposition == Some(disposition) && derived_disposition == disposition;
         push_check(
             &mut checks,
             "OBS-CASE-RULE-EXECUTION-001",
-            unique && exact_disposition && !condition.trim().is_empty() && !invariant.trim().is_empty(),
+            unique
+                && exact_disposition
+                && !condition.trim().is_empty()
+                && !invariant.trim().is_empty(),
             format!(
                 "case={id}; derived={derived_disposition}; expected={}; declared={disposition}; unique={unique}",
                 expected_disposition.unwrap_or("UNKNOWN_CASE")
             ),
         );
     }
-    push_check(&mut checks, "OBS-CASE-COVERAGE-001",
+    push_check(
+        &mut checks,
+        "OBS-CASE-COVERAGE-001",
         seen.len() == expected.len() && cases.len() == expected.len(),
-        format!("{} unique cases; {} required", seen.len(), expected.len()));
+        format!("{} unique cases; {} required", seen.len(), expected.len()),
+    );
 
     let runner = string_at(manifest, &["execution", "runner"])?;
     let adapter = string_at(manifest, &["execution", "production_observation_adapter"])?;
     let external = at(manifest, &["execution", "external_data_ingested"])?
-        .as_bool().ok_or_else(|| "external_data_ingested must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "external_data_ingested must be boolean".to_string())?;
     let synthetic_executed = at(manifest, &["execution", "synthetic_rule_cases_executed"])?
-        .as_bool().ok_or_else(|| "synthetic_rule_cases_executed must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "synthetic_rule_cases_executed must be boolean".to_string())?;
     let rights = string_at(manifest, &["execution", "rights_adjudication"])?;
-    push_check(&mut checks, "OBS-SYNTHETIC-EXECUTION-BOUNDARY-001",
-        runner == "SYNTHETIC_RULE_ENGINE" && adapter == "NOT_IMPLEMENTED"
-            && !external && synthetic_executed && rights == "NOT_RUN",
-        "the Rust rule engine executes synthetic descriptors only; production adapters, external data and rights decisions remain unexecuted");
+    push_check(
+        &mut checks,
+        "OBS-SYNTHETIC-EXECUTION-BOUNDARY-001",
+        runner == "SYNTHETIC_RULE_ENGINE"
+            && adapter == "NOT_IMPLEMENTED"
+            && !external
+            && synthetic_executed
+            && rights == "NOT_RUN",
+        "the Rust rule engine executes synthetic descriptors only; production adapters, external data and rights decisions remain unexecuted",
+    );
 
     let passed = checks.iter().all(|check| check.passed);
-    let check_values: Vec<Value> = checks.iter().map(|check| json!({
-        "id": check.id, "passed": check.passed, "detail": check.detail
-    })).collect();
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id, "passed": check.passed, "detail": check.detail
+            })
+        })
+        .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
         "validator": "symtropy-tropical-forest-qualifier",
@@ -468,28 +557,43 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
     }
 
     let law = string_at(manifest, &["synthetic_light_law", "equation"])?;
-    let k = number_at(manifest, &["synthetic_light_law", "extinction_coefficient_k"])?;
+    let k = number_at(
+        manifest,
+        &["synthetic_light_law", "extinction_coefficient_k"],
+    )?;
     let calibrated = at(manifest, &["synthetic_light_law", "calibrated"])?
-        .as_bool().ok_or_else(|| "synthetic_light_law.calibrated must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "synthetic_light_law.calibrated must be boolean".to_string())?;
     let arrangements = at(manifest, &["arrangements"])?
-        .as_array().ok_or_else(|| "arrangements must be an array".to_string())?;
+        .as_array()
+        .ok_or_else(|| "arrangements must be an array".to_string())?;
     if arrangements.len() != 2 {
         return Err("canopy v0.1 requires exactly two arrangements".to_string());
     }
 
     let mut checks = Vec::new();
-    push_check(&mut checks, "CANOPY-FIXTURE-IDENTITY-001",
-        version == "0.1.0" && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+    push_check(
+        &mut checks,
+        "CANOPY-FIXTURE-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
             && corpus_id == "CANOPY-GAP-REPRESENTATION-001",
-        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"));
-    push_check(&mut checks, "CANOPY-CLAIM-CEILING-001",
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "CANOPY-CLAIM-CEILING-001",
         status == "ANALYTICAL_SYNTHETIC_FIXTURES_NOT_YET_EXECUTED"
             && !calibrated
             && ceiling.contains("not calibrated"),
-        "light rule and fixture must remain synthetic and uncalibrated");
-    push_check(&mut checks, "CANOPY-LIGHT-LAW-001",
+        "light rule and fixture must remain synthetic and uncalibrated",
+    );
+    push_check(
+        &mut checks,
+        "CANOPY-LIGHT-LAW-001",
         law == "T(x,y) = exp(-k * LAI(x,y))" && k >= 0.0,
-        format!("law={law}; k={k}; calibrated={calibrated}"));
+        format!("law={law}; k={k}; calibrated={calibrated}"),
+    );
 
     let expected_cells = width * height;
     let mut outputs = Vec::new();
@@ -509,12 +613,14 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
         let (occupied, occupied_duplicates) = parse_coordinates(
             at(arrangement, &["occupied_coordinates"])?,
             &format!("arrangements[{index}].occupied_coordinates"),
-            width, height,
+            width,
+            height,
         )?;
         let (open, open_duplicates) = parse_coordinates(
             at(arrangement, &["open_coordinates"])?,
             &format!("arrangements[{index}].open_coordinates"),
-            width, height,
+            width,
+            height,
         )?;
         let disjoint = occupied.is_disjoint(&open);
         let full_coverage = occupied.len() + open.len() == expected_cells
@@ -523,8 +629,7 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
             && open.len() == open_expected
             && occupied_duplicates == 0
             && open_duplicates == 0;
-        let total_lai = occupied.len() as f64 * occupied_lai
-            + open.len() as f64 * open_lai;
+        let total_lai = occupied.len() as f64 * occupied_lai + open.len() as f64 * open_lai;
         let mean_lai = total_lai / expected_cells as f64;
         let components = open_component_count(&open);
         let occupied_transmittance = (-k * occupied_lai).exp();
@@ -535,10 +640,14 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
             number_at(arrangement, &["expected_spatial_transmittance", "open"])?;
         let expected_uniform_transmittance =
             number_at(arrangement, &["expected_uniform_patch_transmittance"])?;
-        let baseline_mean_lai =
-            number_at(manifest, &["uniform_patch_baseline", "mean_lai"])?;
-        let baseline_transmittance =
-            number_at(manifest, &["uniform_patch_baseline", "predicted_transmittance_every_cell"])?;
+        let baseline_mean_lai = number_at(manifest, &["uniform_patch_baseline", "mean_lai"])?;
+        let baseline_transmittance = number_at(
+            manifest,
+            &[
+                "uniform_patch_baseline",
+                "predicted_transmittance_every_cell",
+            ],
+        )?;
         let uniform_calculated = (-k * mean_lai).exp();
         let spatial_mean = (occupied_transmittance * occupied.len() as f64
             + open_transmittance * open.len() as f64)
@@ -552,27 +661,44 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
             && close_enough(total_lai, declared_total_lai, 1e-9)
             && close_enough(mean_lai, declared_mean_lai, 1e-9)
             && components == declared_components
-            && close_enough(occupied_transmittance, expected_occupied_transmittance, 1e-9)
+            && close_enough(
+                occupied_transmittance,
+                expected_occupied_transmittance,
+                1e-9,
+            )
             && close_enough(open_transmittance, expected_open_transmittance, 1e-9)
             && close_enough(uniform_calculated, expected_uniform_transmittance, 1e-9)
             && close_enough(uniform_calculated, baseline_transmittance, 1e-9)
             && close_enough(mean_lai, baseline_mean_lai, 1e-9);
 
-        push_check(&mut checks, "CANOPY-ARRANGEMENT-GEOMETRY-001", valid,
-            format!("arrangement={id}; cells={expected_cells}; occupied={}, open={}, disjoint={disjoint}, full_coverage={full_coverage}, components={components}/{declared_components}, total_lai={total_lai}, mean_lai={mean_lai}",
-                occupied.len(), open.len()));
+        push_check(
+            &mut checks,
+            "CANOPY-ARRANGEMENT-GEOMETRY-001",
+            valid,
+            format!(
+                "arrangement={id}; cells={expected_cells}; occupied={}, open={}, disjoint={disjoint}, full_coverage={full_coverage}, components={components}/{declared_components}, total_lai={total_lai}, mean_lai={mean_lai}",
+                occupied.len(),
+                open.len()
+            ),
+        );
 
         if let Some(reference) = total_lai_reference {
-            push_check(&mut checks, "CANOPY-AGGREGATE-EQUIVALENCE-001",
+            push_check(
+                &mut checks,
+                "CANOPY-AGGREGATE-EQUIVALENCE-001",
                 close_enough(reference, total_lai, 1e-9),
-                format!("arrangement={id}; total_lai={total_lai}; reference={reference}"));
+                format!("arrangement={id}; total_lai={total_lai}; reference={reference}"),
+            );
         } else {
             total_lai_reference = Some(total_lai);
         }
         if let Some(reference) = mean_lai_reference {
-            push_check(&mut checks, "CANOPY-MEAN-EQUIVALENCE-001",
+            push_check(
+                &mut checks,
+                "CANOPY-MEAN-EQUIVALENCE-001",
                 close_enough(reference, mean_lai, 1e-9),
-                format!("arrangement={id}; mean_lai={mean_lai}; reference={reference}"));
+                format!("arrangement={id}; mean_lai={mean_lai}; reference={reference}"),
+            );
         } else {
             mean_lai_reference = Some(mean_lai);
         }
@@ -592,16 +718,46 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
     }
 
     let expected_challenges: BTreeMap<&'static str, &'static str> = [
-        ("CANOPY-AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001", "SAME_AGGREGATES_DIFFERENT_SPATIAL_GAP_TOPOLOGY"),
-        ("CANOPY-MORTALITY-LOCAL-GAP-001", "LOCAL_CANOPY_SUPPORT_CHANGES_ONLY"),
-        ("CANOPY-CLUSTERED-VS-DISPERSED-MORTALITY-001", "EQUAL_LOSS_DIFFERENT_GAP_GEOMETRY"),
-        ("CANOPY-RECRUITMENT-LOCAL-LIGHT-001", "LOCAL_LIGHT_REQUIRED_FOR_RECRUITMENT_CLAIM"),
-        ("CANOPY-GAP-CLOSURE-CAUSAL-001", "GAP_CLOSURE_REQUIRES_EXPLICIT_GROWTH_SETTLEMENT"),
-        ("CANOPY-TRANSLATION-SYMMETRY-001", "TRANSLATED_CASE_OUTPUTS_EQUIVALENT"),
-        ("CANOPY-ROTATION-SYMMETRY-001", "ROTATED_CASE_OUTPUTS_EQUIVALENT"),
-        ("CANOPY-DISCONNECTED-CONTROL-001", "DISCONNECTED_PATCH_UNCHANGED"),
-        ("CANOPY-RENDERER-INDEPENDENCE-001", "CANONICAL_ECOLOGY_IDENTICAL"),
-        ("CANOPY-COARSE-FIDELITY-PROMOTION-001", "PROMOTE_SPATIAL_REPRESENTATION_OR_ABSTAIN"),
+        (
+            "CANOPY-AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001",
+            "SAME_AGGREGATES_DIFFERENT_SPATIAL_GAP_TOPOLOGY",
+        ),
+        (
+            "CANOPY-MORTALITY-LOCAL-GAP-001",
+            "LOCAL_CANOPY_SUPPORT_CHANGES_ONLY",
+        ),
+        (
+            "CANOPY-CLUSTERED-VS-DISPERSED-MORTALITY-001",
+            "EQUAL_LOSS_DIFFERENT_GAP_GEOMETRY",
+        ),
+        (
+            "CANOPY-RECRUITMENT-LOCAL-LIGHT-001",
+            "LOCAL_LIGHT_REQUIRED_FOR_RECRUITMENT_CLAIM",
+        ),
+        (
+            "CANOPY-GAP-CLOSURE-CAUSAL-001",
+            "GAP_CLOSURE_REQUIRES_EXPLICIT_GROWTH_SETTLEMENT",
+        ),
+        (
+            "CANOPY-TRANSLATION-SYMMETRY-001",
+            "TRANSLATED_CASE_OUTPUTS_EQUIVALENT",
+        ),
+        (
+            "CANOPY-ROTATION-SYMMETRY-001",
+            "ROTATED_CASE_OUTPUTS_EQUIVALENT",
+        ),
+        (
+            "CANOPY-DISCONNECTED-CONTROL-001",
+            "DISCONNECTED_PATCH_UNCHANGED",
+        ),
+        (
+            "CANOPY-RENDERER-INDEPENDENCE-001",
+            "CANONICAL_ECOLOGY_IDENTICAL",
+        ),
+        (
+            "CANOPY-COARSE-FIDELITY-PROMOTION-001",
+            "PROMOTE_SPATIAL_REPRESENTATION_OR_ABSTAIN",
+        ),
     ]
     .into_iter()
     .collect();
@@ -626,7 +782,9 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
         let disposition = case
             .get("expected_disposition")
             .and_then(Value::as_str)
-            .ok_or_else(|| format!("challenge_cases[{index}].expected_disposition must be a string"))?;
+            .ok_or_else(|| {
+                format!("challenge_cases[{index}].expected_disposition must be a string")
+            })?;
         let unique = seen_challenges.insert(id.to_string());
         let expected_disposition = expected_challenges
             .iter()
@@ -658,21 +816,39 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
         ),
     );
 
-    let components_differ = component_counts.len() == 2 && component_counts[0] != component_counts[1];
+    let components_differ =
+        component_counts.len() == 2 && component_counts[0] != component_counts[1];
     let spatial_vs_uniform_differs = outputs.iter().all(|result| {
-        let spatial = result["spatial_mean_transmittance"].as_f64().unwrap_or(f64::NAN);
-        let uniform = result["uniform_patch_transmittance"].as_f64().unwrap_or(f64::NAN);
+        let spatial = result["spatial_mean_transmittance"]
+            .as_f64()
+            .unwrap_or(f64::NAN);
+        let uniform = result["uniform_patch_transmittance"]
+            .as_f64()
+            .unwrap_or(f64::NAN);
         (spatial - uniform).abs() > 0.05
     });
-    push_check(&mut checks, "CANOPY-TOPOLOGY-DIFFERENCE-001", components_differ,
-        format!("open component counts={component_counts:?}"));
-    push_check(&mut checks, "CANOPY-UNIFORM-BASELINE-LOSS-001", spatial_vs_uniform_differs,
-        "spatially heterogeneous transmittance mean must differ from uniform transmission at the aggregate mean LAI");
+    push_check(
+        &mut checks,
+        "CANOPY-TOPOLOGY-DIFFERENCE-001",
+        components_differ,
+        format!("open component counts={component_counts:?}"),
+    );
+    push_check(
+        &mut checks,
+        "CANOPY-UNIFORM-BASELINE-LOSS-001",
+        spatial_vs_uniform_differs,
+        "spatially heterogeneous transmittance mean must differ from uniform transmission at the aggregate mean LAI",
+    );
 
     let passed = checks.iter().all(|check| check.passed);
-    let check_values: Vec<Value> = checks.iter().map(|check| json!({
-        "id": check.id, "passed": check.passed, "detail": check.detail
-    })).collect();
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id, "passed": check.passed, "detail": check.detail
+            })
+        })
+        .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
         "validator": "symtropy-tropical-forest-qualifier",
@@ -691,29 +867,79 @@ fn validate_canopy_fixture(raw: &[u8], manifest: &Value) -> Result<Value, String
     }))
 }
 
-
 fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected_cases: BTreeMap<&'static str, &'static str> = [
-        ("FOREST-DECISION-VALUE-001", "HIGH_INFORMATION_ZERO_DECISION_VALUE"),
+        (
+            "FOREST-DECISION-VALUE-001",
+            "HIGH_INFORMATION_ZERO_DECISION_VALUE",
+        ),
         ("FOREST-DECISION-VALUE-002", "POSITIVE_NET_DECISION_VALUE"),
-        ("FOREST-DECISION-VALUE-003", "RANK_BY_EXPECTED_REGRET_REDUCTION"),
-        ("FOREST-DECISION-VALUE-004", "SAMPLE_PROPAGULE_LIMITATION_IF_DECISION_RELEVANT"),
-        ("FOREST-DECISION-VALUE-005", "ZERO_DECISION_VALUE_DESPITE_VARIANCE"),
-        ("FOREST-DECISION-VALUE-006", "SELECT_FEASIBLE_LOWER_TOTAL_COST"),
+        (
+            "FOREST-DECISION-VALUE-003",
+            "RANK_BY_EXPECTED_REGRET_REDUCTION",
+        ),
+        (
+            "FOREST-DECISION-VALUE-004",
+            "SAMPLE_PROPAGULE_LIMITATION_IF_DECISION_RELEVANT",
+        ),
+        (
+            "FOREST-DECISION-VALUE-005",
+            "ZERO_DECISION_VALUE_DESPITE_VARIANCE",
+        ),
+        (
+            "FOREST-DECISION-VALUE-006",
+            "SELECT_FEASIBLE_LOWER_TOTAL_COST",
+        ),
         ("FOREST-DECISION-VALUE-007", "DECISION_FOCUSED_VERIFICATION"),
-        ("FOREST-DECISION-VALUE-008", "NO_EXTRA_SURVEY_FOR_ZERO_ACTION_VALUE"),
-        ("FOREST-DECISION-VALUE-009", "MISSINGNESS_IS_NOT_NEGATIVE_EVIDENCE"),
-        ("FOREST-DECISION-VALUE-010", "PRIORITIZE_DECISION_IMPACT_NOT_VARIANCE"),
+        (
+            "FOREST-DECISION-VALUE-008",
+            "NO_EXTRA_SURVEY_FOR_ZERO_ACTION_VALUE",
+        ),
+        (
+            "FOREST-DECISION-VALUE-009",
+            "MISSINGNESS_IS_NOT_NEGATIVE_EVIDENCE",
+        ),
+        (
+            "FOREST-DECISION-VALUE-010",
+            "PRIORITIZE_DECISION_IMPACT_NOT_VARIANCE",
+        ),
         ("FOREST-DECISION-VALUE-011", "ZERO_MARGINAL_DECISION_VALUE"),
-        ("FOREST-DECISION-VALUE-012", "FEASIBILITY_GATE_BEFORE_RANKING"),
-        ("FOREST-DECISION-VALUE-013", "SELECT_IF_EXPECTED_DECISION_REGRET_FALLS"),
-        ("FOREST-DECISION-VALUE-014", "DO_NOT_RANK_UNAUTHORIZED_OBSERVATION"),
-        ("FOREST-DECISION-VALUE-015", "PRESERVE_MODEL_IDENTITY_AND_DISCRIMINATION_VALUE"),
-        ("FOREST-DECISION-VALUE-016", "DECISION_VALUE_WITH_MODEL_SET_ADEQUACY"),
-        ("FOREST-DECISION-VALUE-017", "DO_NOT_OVER-SAMPLE_LOW_DECISION_VALUE"),
-        ("FOREST-DECISION-VALUE-018", "SAMPLE_TO_RESOLVE_OBSERVATION_PROCESS"),
-        ("FOREST-DECISION-VALUE-019", "EXCLUDE_UNAUTHORIZED_CANDIDATE"),
-        ("FOREST-DECISION-VALUE-020", "ACCOUNT_FOR_DEPENDENT_OBSERVATIONS"),
+        (
+            "FOREST-DECISION-VALUE-012",
+            "FEASIBILITY_GATE_BEFORE_RANKING",
+        ),
+        (
+            "FOREST-DECISION-VALUE-013",
+            "SELECT_IF_EXPECTED_DECISION_REGRET_FALLS",
+        ),
+        (
+            "FOREST-DECISION-VALUE-014",
+            "DO_NOT_RANK_UNAUTHORIZED_OBSERVATION",
+        ),
+        (
+            "FOREST-DECISION-VALUE-015",
+            "PRESERVE_MODEL_IDENTITY_AND_DISCRIMINATION_VALUE",
+        ),
+        (
+            "FOREST-DECISION-VALUE-016",
+            "DECISION_VALUE_WITH_MODEL_SET_ADEQUACY",
+        ),
+        (
+            "FOREST-DECISION-VALUE-017",
+            "DO_NOT_OVER-SAMPLE_LOW_DECISION_VALUE",
+        ),
+        (
+            "FOREST-DECISION-VALUE-018",
+            "SAMPLE_TO_RESOLVE_OBSERVATION_PROCESS",
+        ),
+        (
+            "FOREST-DECISION-VALUE-019",
+            "EXCLUDE_UNAUTHORIZED_CANDIDATE",
+        ),
+        (
+            "FOREST-DECISION-VALUE-020",
+            "ACCOUNT_FOR_DEPENDENT_OBSERVATIONS",
+        ),
     ]
     .into_iter()
     .collect();
@@ -724,52 +950,92 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
     let status = string_at(manifest, &["status"])?;
     let ceiling = string_at(manifest, &["claim_ceiling"])?;
     let hidden_outcomes = at(manifest, &["hidden_outcomes_published"])?
-        .as_bool().ok_or_else(|| "hidden_outcomes_published must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "hidden_outcomes_published must be boolean".to_string())?;
     let blind_status = string_at(manifest, &["independent_blind_corpus"])?;
     let cases = at(manifest, &["cases"])?
-        .as_array().ok_or_else(|| "cases must be an array".to_string())?;
+        .as_array()
+        .ok_or_else(|| "cases must be an array".to_string())?;
 
     let mut checks = Vec::new();
-    push_check(&mut checks, "DECISION-VALUE-CORPUS-VERSION-001",
-        version == "0.1.0", format!("schema_version={version}"));
-    push_check(&mut checks, "DECISION-VALUE-CORPUS-IDENTITY-001",
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-CORPUS-VERSION-001",
+        version == "0.1.0",
+        format!("schema_version={version}"),
+    );
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-CORPUS-IDENTITY-001",
         benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
             && corpus_id == "FOREST-DECISION-VALUE-001",
-        format!("benchmark={benchmark}; corpus={corpus_id}"));
-    push_check(&mut checks, "DECISION-VALUE-PUBLIC-NOT-BLIND-001",
+        format!("benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-PUBLIC-NOT-BLIND-001",
         status == "PUBLIC_SYNTHETIC_DEVELOPMENT_CASES_NOT_BLIND"
             && !hidden_outcomes
             && blind_status == "NOT_CREATED_REQUIRES_INDEPENDENT_CUSTODY"
             && ceiling.contains("No real site"),
-        "public decision-value fixtures must not claim a blind or field evaluation");
+        "public decision-value fixtures must not claim a blind or field evaluation",
+    );
 
     let mut seen = BTreeSet::new();
     for (index, case) in cases.iter().enumerate() {
-        let id = case.get("case_id").and_then(Value::as_str)
+        let id = case
+            .get("case_id")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].case_id must be a string"))?;
-        let family = case.get("family").and_then(Value::as_str)
+        let family = case
+            .get("family")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].family must be a string"))?;
-        let scenario = case.get("scenario_id").and_then(Value::as_str)
+        let scenario = case
+            .get("scenario_id")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].scenario_id must be a string"))?;
-        let condition = case.get("condition").and_then(Value::as_str)
+        let condition = case
+            .get("condition")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].condition must be a string"))?;
-        let disposition = case.get("expected_disposition").and_then(Value::as_str)
+        let disposition = case
+            .get("expected_disposition")
+            .and_then(Value::as_str)
             .ok_or_else(|| format!("cases[{index}].expected_disposition must be a string"))?;
         let unique = seen.insert(id.to_string());
-        let expected_disposition = expected_cases.iter()
+        let expected_disposition = expected_cases
+            .iter()
             .find_map(|(candidate_id, value)| (*candidate_id == id).then_some(*value));
-        push_check(&mut checks, "DECISION-VALUE-CASE-SEMANTICS-001",
-            unique && expected_disposition == Some(disposition)
-                && !family.trim().is_empty() && !scenario.trim().is_empty()
+        push_check(
+            &mut checks,
+            "DECISION-VALUE-CASE-SEMANTICS-001",
+            unique
+                && expected_disposition == Some(disposition)
+                && !family.trim().is_empty()
+                && !scenario.trim().is_empty()
                 && !condition.trim().is_empty(),
-            format!("case={id}; expected={}; declared={disposition}; unique={unique}",
-                expected_disposition.unwrap_or("UNKNOWN_CASE")));
+            format!(
+                "case={id}; expected={}; declared={disposition}; unique={unique}",
+                expected_disposition.unwrap_or("UNKNOWN_CASE")
+            ),
+        );
     }
-    push_check(&mut checks, "DECISION-VALUE-CASE-COVERAGE-001",
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-CASE-COVERAGE-001",
         seen.len() == expected_cases.len() && cases.len() == expected_cases.len(),
-        format!("{} unique cases; {} required", seen.len(), expected_cases.len()));
+        format!(
+            "{} unique cases; {} required",
+            seen.len(),
+            expected_cases.len()
+        ),
+    );
 
-    let zero = at(manifest, &["worked_examples", "high_information_zero_decision_value"])?;
+    let zero = at(
+        manifest,
+        &["worked_examples", "high_information_zero_decision_value"],
+    )?;
     let zero_prior = number_at(zero, &["prior_probability_high_turnover"])?;
     let zero_protect_high = number_at(zero, &["loss_matrix", "protect", "high_turnover"])?;
     let zero_protect_low = number_at(zero, &["loss_matrix", "protect", "low_turnover"])?;
@@ -778,17 +1044,27 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
     let zero_evsi = number_at(zero, &["expected_gross_evsi"])?;
     let zero_entropy_claim = string_at(zero, &["ideal_measurement_information_gain"])?;
     let zero_disposition = string_at(zero, &["expected_disposition"])?;
-    let action_losses_are_state_invariant = close_enough(zero_protect_high, zero_protect_low, 1e-12)
-        && close_enough(zero_none_high, zero_none_low, 1e-12);
-    push_check(&mut checks, "DECISION-VALUE-HIGH-UNCERTAINTY-ZERO-EVSI-001",
+    let action_losses_are_state_invariant =
+        close_enough(zero_protect_high, zero_protect_low, 1e-12)
+            && close_enough(zero_none_high, zero_none_low, 1e-12);
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-HIGH-UNCERTAINTY-ZERO-EVSI-001",
         (0.0..=1.0).contains(&zero_prior)
             && action_losses_are_state_invariant
             && close_enough(zero_evsi, 0.0, 1e-12)
             && zero_entropy_claim == "positive"
             && zero_disposition == "HIGH_INFORMATION_ZERO_DECISION_VALUE",
-        "state information cannot improve an action when the declared loss is invariant across states");
+        "state information cannot improve an action when the declared loss is invariant across states",
+    );
 
-    let positive = at(manifest, &["worked_examples", "moderate_uncertainty_positive_decision_value"])?;
+    let positive = at(
+        manifest,
+        &[
+            "worked_examples",
+            "moderate_uncertainty_positive_decision_value",
+        ],
+    )?;
     let prior = number_at(positive, &["prior_probability_degraded"])?;
     let protect_stable = number_at(positive, &["loss_matrix", "protect", "stable"])?;
     let protect_degraded = number_at(positive, &["loss_matrix", "protect", "degraded"])?;
@@ -809,8 +1085,16 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
 
     let p_positive = prior * sensitivity + (1.0 - prior) * (1.0 - specificity);
     let p_negative = 1.0 - p_positive;
-    let posterior_positive = if p_positive > 0.0 { prior * sensitivity / p_positive } else { f64::NAN };
-    let posterior_negative = if p_negative > 0.0 { prior * (1.0 - sensitivity) / p_negative } else { f64::NAN };
+    let posterior_positive = if p_positive > 0.0 {
+        prior * sensitivity / p_positive
+    } else {
+        f64::NAN
+    };
+    let posterior_negative = if p_negative > 0.0 {
+        prior * (1.0 - sensitivity) / p_negative
+    } else {
+        f64::NAN
+    };
     let baseline_protect_loss = protect_stable * (1.0 - prior) + protect_degraded * prior;
     let baseline_no_action_loss = no_action_stable * (1.0 - prior) + no_action_degraded * prior;
     let post_positive_protect_loss =
@@ -846,29 +1130,49 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
         && close_enough(gross_evsi, declared_gross, 1e-9)
         && close_enough(net_value, declared_net, 1e-9)
         && declared_positive_disposition == "POSITIVE_NET_DECISION_VALUE";
-    push_check(&mut checks, "DECISION-VALUE-EVSI-ARITHMETIC-001",
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-EVSI-ARITHMETIC-001",
         worked_example_matches,
-        format!("baseline={baseline_loss}; p+={p_positive}; p-={p_negative}; post+={posterior_positive}; post-={posterior_negative}; after={expected_after}; gross={gross_evsi}; net={net_value}; action_switches={action_switches}"));
+        format!(
+            "baseline={baseline_loss}; p+={p_positive}; p-={p_negative}; post+={posterior_positive}; post-={posterior_negative}; after={expected_after}; gross={gross_evsi}; net={net_value}; action_switches={action_switches}"
+        ),
+    );
 
     let execution = at(manifest, &["execution"])?;
     let evaluator = string_at(execution, &["evaluator"])?;
     let uses_existing = at(execution, &["uses_existing_evsi_kernel"])?
-        .as_bool().ok_or_else(|| "uses_existing_evsi_kernel must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "uses_existing_evsi_kernel must be boolean".to_string())?;
     let duplicate = at(execution, &["duplicate_evsi_kernel_created"])?
-        .as_bool().ok_or_else(|| "duplicate_evsi_kernel_created must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "duplicate_evsi_kernel_created must be boolean".to_string())?;
     let real_data = at(execution, &["real_field_data_ingested"])?
-        .as_bool().ok_or_else(|| "real_field_data_ingested must be boolean".to_string())?;
+        .as_bool()
+        .ok_or_else(|| "real_field_data_ingested must be boolean".to_string())?;
     let action_authorized = at(execution, &["real_management_action_authorized"])?
-        .as_bool().ok_or_else(|| "real_management_action_authorized must be boolean".to_string())?;
-    push_check(&mut checks, "DECISION-VALUE-NO-DUPLICATE-KERNEL-001",
-        evaluator == "NOT_IMPLEMENTED" && uses_existing && !duplicate
-            && !real_data && !action_authorized,
-        "public fixture must not claim a second EVSI engine, field data, or decision authority");
+        .as_bool()
+        .ok_or_else(|| "real_management_action_authorized must be boolean".to_string())?;
+    push_check(
+        &mut checks,
+        "DECISION-VALUE-NO-DUPLICATE-KERNEL-001",
+        evaluator == "NOT_IMPLEMENTED"
+            && uses_existing
+            && !duplicate
+            && !real_data
+            && !action_authorized,
+        "public fixture must not claim a second EVSI engine, field data, or decision authority",
+    );
 
     let passed = checks.iter().all(|check| check.passed);
-    let check_values: Vec<Value> = checks.iter().map(|check| json!({
-        "id": check.id, "passed": check.passed, "detail": check.detail
-    })).collect();
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| {
+            json!({
+                "id": check.id, "passed": check.passed, "detail": check.detail
+            })
+        })
+        .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
         "validator": "symtropy-tropical-forest-qualifier",
@@ -886,8 +1190,6 @@ fn validate_decision_value_corpus(raw: &[u8], manifest: &Value) -> Result<Value,
         "existing_evsi_kernel_execution": "NOT_RUN"
     }))
 }
-
-
 
 fn finite_array_at(root: &Value, path: &[&str]) -> Result<Vec<f64>, String> {
     let values = at(root, path)?
@@ -912,12 +1214,7 @@ fn optional_number_matches(actual: Option<f64>, expected: &Value, tolerance: f64
     }
 }
 
-
-
-fn validate_block_conformal_corpus(
-    raw: &[u8],
-    manifest: &Value,
-) -> Result<Value, String> {
+fn validate_block_conformal_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let version = string_at(manifest, &["schema_version"])?;
     let benchmark = string_at(manifest, &["benchmark_id"])?;
     let corpus_id = string_at(manifest, &["corpus_id"])?;
@@ -974,13 +1271,14 @@ fn validate_block_conformal_corpus(
     let expected = at(manifest, &["expected"])?;
     let mut matches = result.calibration_block_count
         == usize_at(expected, &["calibration_block_count"])?
-        && result.observations_per_block
-            == usize_at(expected, &["observations_per_block"])?
+        && result.observations_per_block == usize_at(expected, &["observations_per_block"])?
         && result.test_block_count == usize_at(expected, &["test_block_count"])?
         && result.test_observation_count == usize_at(expected, &["test_observation_count"])?
         && optional_number_matches(
             result.pooled_observation_radius,
-            expected.get("pooled_observation_radius").unwrap_or(&Value::Null),
+            expected
+                .get("pooled_observation_radius")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
@@ -990,7 +1288,9 @@ fn validate_block_conformal_corpus(
         )
         && optional_number_matches(
             result.pooled_interval_width,
-            expected.get("pooled_interval_width").unwrap_or(&Value::Null),
+            expected
+                .get("pooled_interval_width")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
@@ -1000,42 +1300,58 @@ fn validate_block_conformal_corpus(
         )
         && optional_number_matches(
             result.pooled_mean_interval_score,
-            expected.get("pooled_mean_interval_score").unwrap_or(&Value::Null),
+            expected
+                .get("pooled_mean_interval_score")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             result.block_mean_interval_score,
-            expected.get("block_mean_interval_score").unwrap_or(&Value::Null),
+            expected
+                .get("block_mean_interval_score")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             result.pooled_observation_coverage,
-            expected.get("pooled_observation_coverage").unwrap_or(&Value::Null),
+            expected
+                .get("pooled_observation_coverage")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             result.pooled_full_block_coverage,
-            expected.get("pooled_full_block_coverage").unwrap_or(&Value::Null),
+            expected
+                .get("pooled_full_block_coverage")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             result.block_observation_coverage,
-            expected.get("block_observation_coverage").unwrap_or(&Value::Null),
+            expected
+                .get("block_observation_coverage")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             result.block_full_block_coverage,
-            expected.get("block_full_block_coverage").unwrap_or(&Value::Null),
+            expected
+                .get("block_full_block_coverage")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             result.declared_in_domain_block_coverage,
-            expected.get("declared_in_domain_block_coverage").unwrap_or(&Value::Null),
+            expected
+                .get("declared_in_domain_block_coverage")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             result.declared_shift_block_coverage,
-            expected.get("declared_shift_block_coverage").unwrap_or(&Value::Null),
+            expected
+                .get("declared_shift_block_coverage")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && result.exchangeability_status
@@ -1048,8 +1364,8 @@ fn validate_block_conformal_corpus(
     for (actual, declared) in result.test_block_results.iter().zip(expected_blocks) {
         matches &= actual.block_id == string_at(declared, &["block_id"])?;
         matches &= actual.observation_count == usize_at(declared, &["observation_count"])?;
-        matches &= actual.covered_observation_count
-            == usize_at(declared, &["covered_observation_count"])?;
+        matches &=
+            actual.covered_observation_count == usize_at(declared, &["covered_observation_count"])?;
         matches &= close_enough(
             actual.observation_coverage_fraction,
             number_at(declared, &["observation_coverage_fraction"])?,
@@ -1065,12 +1381,16 @@ fn validate_block_conformal_corpus(
                 .ok_or_else(|| "regime_is_declared_shift must be boolean".to_string())?;
         matches &= optional_number_matches(
             actual.pooled_mean_interval_score,
-            declared.get("pooled_mean_interval_score").unwrap_or(&Value::Null),
+            declared
+                .get("pooled_mean_interval_score")
+                .unwrap_or(&Value::Null),
             1e-9,
         );
         matches &= optional_number_matches(
             actual.block_mean_interval_score,
-            declared.get("block_mean_interval_score").unwrap_or(&Value::Null),
+            declared
+                .get("block_mean_interval_score")
+                .unwrap_or(&Value::Null),
             1e-9,
         );
     }
@@ -1145,11 +1465,13 @@ fn validate_block_conformal_corpus(
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
-        .map(|check| json!({
-            "id": check.id,
-            "passed": check.passed,
-            "detail": check.detail
-        }))
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
         .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
@@ -1185,10 +1507,7 @@ fn validate_block_conformal_corpus(
     }))
 }
 
-fn validate_binary_event_brier_corpus(
-    raw: &[u8],
-    manifest: &Value,
-) -> Result<Value, String> {
+fn validate_binary_event_brier_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let version = string_at(manifest, &["schema_version"])?;
     let benchmark = string_at(manifest, &["benchmark_id"])?;
     let corpus_id = string_at(manifest, &["corpus_id"])?;
@@ -1213,7 +1532,9 @@ fn validate_binary_event_brier_corpus(
             && ceiling.contains("Six public synthetic binary-event forecasts")
             && ceiling.contains("No event prevalence")
             && baseline_kind == "FIXED_SYNTHETIC_BERNOULLI_REFERENCE",
-        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; event={event_name}; horizon={horizon}"),
+        format!(
+            "version={version}; benchmark={benchmark}; corpus={corpus_id}; event={event_name}; horizon={horizon}"
+        ),
     );
 
     let mut event_cases = Vec::with_capacity(cases.len());
@@ -1225,9 +1546,14 @@ fn validate_binary_event_brier_corpus(
         let event_probability = match at(case, &["event_probability"])? {
             value if value.is_null() => None,
             value => Some(
-                value.as_f64()
+                value
+                    .as_f64()
                     .filter(|number| number.is_finite())
-                    .ok_or_else(|| format!("forecast_id={forecast_id}; event_probability must be finite or null"))?,
+                    .ok_or_else(|| {
+                        format!(
+                            "forecast_id={forecast_id}; event_probability must be finite or null"
+                        )
+                    })?,
             ),
         };
         let event_case = forecast_kernel::BinaryEventForecast {
@@ -1261,8 +1587,7 @@ fn validate_binary_event_brier_corpus(
             case_matches,
             format!(
                 "forecast_id={forecast_id}; model_brier={:?}; baseline_brier={}; unique={unique}; expected_fields_match={case_matches}",
-                score.model_brier,
-                score.baseline_brier
+                score.model_brier, score.baseline_brier
             ),
         );
         case_rows.push(json!({
@@ -1280,8 +1605,8 @@ fn validate_binary_event_brier_corpus(
     let expected_bins = at(expected_summary, &["reliability_bins"])?
         .as_array()
         .ok_or_else(|| "expected_summary.reliability_bins must be an array".to_string())?;
-    let mut bins_match = expected_bins.len() == summary.reliability_bins.len()
-        && expected_bins.len() == 5;
+    let mut bins_match =
+        expected_bins.len() == summary.reliability_bins.len() && expected_bins.len() == 5;
     for (index, (actual, expected)) in summary
         .reliability_bins
         .iter()
@@ -1301,12 +1626,16 @@ fn validate_binary_event_brier_corpus(
         );
         bins_match &= optional_number_matches(
             actual.mean_forecast_probability,
-            expected.get("mean_forecast_probability").unwrap_or(&Value::Null),
+            expected
+                .get("mean_forecast_probability")
+                .unwrap_or(&Value::Null),
             1e-12,
         );
         bins_match &= optional_number_matches(
             actual.observed_event_frequency,
-            expected.get("observed_event_frequency").unwrap_or(&Value::Null),
+            expected
+                .get("observed_event_frequency")
+                .unwrap_or(&Value::Null),
             1e-12,
         );
         if index >= 5 {
@@ -1316,10 +1645,8 @@ fn validate_binary_event_brier_corpus(
 
     let summary_matches = summary.eligible_case_count
         == usize_at(expected_summary, &["eligible_case_count"])?
-        && summary.forecast_case_count
-            == usize_at(expected_summary, &["forecast_case_count"])?
-        && summary.abstained_case_count
-            == usize_at(expected_summary, &["abstained_case_count"])?
+        && summary.forecast_case_count == usize_at(expected_summary, &["forecast_case_count"])?
+        && summary.abstained_case_count == usize_at(expected_summary, &["abstained_case_count"])?
         && close_enough(
             summary.forecast_coverage_fraction,
             number_at(expected_summary, &["forecast_coverage_fraction"])?,
@@ -1327,12 +1654,16 @@ fn validate_binary_event_brier_corpus(
         )
         && optional_number_matches(
             summary.mean_model_brier,
-            expected_summary.get("mean_model_brier").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_model_brier")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             summary.mean_baseline_brier_paired,
-            expected_summary.get("mean_baseline_brier_paired").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_baseline_brier_paired")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && close_enough(
@@ -1342,7 +1673,9 @@ fn validate_binary_event_brier_corpus(
         )
         && optional_number_matches(
             summary.brier_skill_score,
-            expected_summary.get("brier_skill_score").unwrap_or(&Value::Null),
+            expected_summary
+                .get("brier_skill_score")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && summary.disposition == expected_disposition.as_str()
@@ -1354,7 +1687,11 @@ fn validate_binary_event_brier_corpus(
         summary_matches
             && summary.eligible_case_count == cases.len()
             && seen.len() == cases.len()
-            && event_name == event_cases.first().map(|case| case.event_name.as_str()).unwrap_or("")
+            && event_name
+                == event_cases
+                    .first()
+                    .map(|case| case.event_name.as_str())
+                    .unwrap_or("")
             && Some(horizon) == event_cases.first().map(|case| case.horizon_days),
         format!(
             "eligible={}; forecasts={}; abstained={}; coverage={}; model_brier={:?}; paired_baseline={:?}; skill={:?}; reliability_bins_match={bins_match}",
@@ -1385,8 +1722,8 @@ fn validate_binary_event_brier_corpus(
     let expected_curve = at(manifest, &["expected_risk_coverage_curve"])?
         .as_array()
         .ok_or_else(|| "expected_risk_coverage_curve must be an array".to_string())?;
-    let mut risk_curve_matches = risk_curve.len() == expected_curve.len()
-        && risk_curve.len() == risk_cases.len();
+    let mut risk_curve_matches =
+        risk_curve.len() == expected_curve.len() && risk_curve.len() == risk_cases.len();
     for (index, (actual, expected)) in risk_curve.iter().zip(expected_curve).enumerate() {
         risk_curve_matches &= actual.selected_count == usize_at(expected, &["selected_count"])?;
         risk_curve_matches &= close_enough(
@@ -1407,7 +1744,10 @@ fn validate_binary_event_brier_corpus(
         &mut checks,
         "FORECAST-RISK-COVERAGE-CURVE-001",
         risk_curve_matches,
-        format!("{} curve points; full confidence-ranked CRPS risk–coverage curve matches={risk_curve_matches}", risk_curve.len()),
+        format!(
+            "{} curve points; full confidence-ranked CRPS risk–coverage curve matches={risk_curve_matches}",
+            risk_curve.len()
+        ),
     );
 
     let execution = at(manifest, &["execution"])?;
@@ -1458,11 +1798,13 @@ fn validate_binary_event_brier_corpus(
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
-        .map(|check| json!({
-            "id": check.id,
-            "passed": check.passed,
-            "detail": check.detail
-        }))
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
         .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
@@ -1482,10 +1824,7 @@ fn validate_binary_event_brier_corpus(
     }))
 }
 
-fn validate_probabilistic_forecast_corpus(
-    raw: &[u8],
-    manifest: &Value,
-) -> Result<Value, String> {
+fn validate_probabilistic_forecast_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let version = string_at(manifest, &["schema_version"])?;
     let benchmark = string_at(manifest, &["benchmark_id"])?;
     let corpus_id = string_at(manifest, &["corpus_id"])?;
@@ -1511,7 +1850,9 @@ fn validate_probabilistic_forecast_corpus(
             && ceiling.contains("Six public synthetic forecast cases")
             && ceiling.contains("not a calibrated forecast")
             && baseline_kind == "SYNTHETIC_POINT_MASS_REFERENCE",
-        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; target={variable} [{unit}] horizon={horizon}"),
+        format!(
+            "version={version}; benchmark={benchmark}; corpus={corpus_id}; target={variable} [{unit}] horizon={horizon}"
+        ),
     );
 
     let mut forecast_cases = Vec::with_capacity(cases.len());
@@ -1544,7 +1885,11 @@ fn validate_probabilistic_forecast_corpus(
                 expected.get("model_crps").unwrap_or(&Value::Null),
                 1e-9,
             )
-            && close_enough(score.baseline_crps, number_at(expected, &["baseline_crps"])? , 1e-9)
+            && close_enough(
+                score.baseline_crps,
+                number_at(expected, &["baseline_crps"])?,
+                1e-9,
+            )
             && optional_number_matches(
                 score.model_wis,
                 expected.get("model_wis").unwrap_or(&Value::Null),
@@ -1606,9 +1951,7 @@ fn validate_probabilistic_forecast_corpus(
             case_matches,
             format!(
                 "forecast_id={forecast_id}; model_crps={:?}; baseline_crps={}; model_mean={:?}; unique={unique}; expected_fields_match={case_matches}",
-                score.model_crps,
-                score.baseline_crps,
-                score.model_mean
+                score.model_crps, score.baseline_crps, score.model_mean
             ),
         );
         forecast_rows.push(json!({
@@ -1632,15 +1975,17 @@ fn validate_probabilistic_forecast_corpus(
         &mut checks,
         "FORECAST-CASE-IDENTITY-001",
         seen_forecast_ids.len() == cases.len() && cases.len() == 6,
-        format!("{} unique forecast IDs; {} cases", seen_forecast_ids.len(), cases.len()),
+        format!(
+            "{} unique forecast IDs; {} cases",
+            seen_forecast_ids.len(),
+            cases.len()
+        ),
     );
     let expected_summary = at(manifest, &["expected_summary"])?;
     let summary_matches = summary.eligible_case_count
         == usize_at(expected_summary, &["eligible_case_count"])?
-        && summary.forecast_case_count
-            == usize_at(expected_summary, &["forecast_case_count"])?
-        && summary.abstained_case_count
-            == usize_at(expected_summary, &["abstained_case_count"])?
+        && summary.forecast_case_count == usize_at(expected_summary, &["forecast_case_count"])?
+        && summary.abstained_case_count == usize_at(expected_summary, &["abstained_case_count"])?
         && close_enough(
             summary.forecast_coverage_fraction,
             number_at(expected_summary, &["forecast_coverage_fraction"])?,
@@ -1648,22 +1993,30 @@ fn validate_probabilistic_forecast_corpus(
         )
         && optional_number_matches(
             summary.mean_model_crps,
-            expected_summary.get("mean_model_crps").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_model_crps")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             summary.mean_baseline_crps_paired,
-            expected_summary.get("mean_baseline_crps_paired").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_baseline_crps_paired")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             summary.mean_model_wis,
-            expected_summary.get("mean_model_wis").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_model_wis")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             summary.mean_baseline_wis_paired,
-            expected_summary.get("mean_baseline_wis_paired").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_baseline_wis_paired")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && close_enough(
@@ -1673,7 +2026,9 @@ fn validate_probabilistic_forecast_corpus(
         )
         && optional_number_matches(
             summary.wis_skill_score,
-            expected_summary.get("wis_skill_score").unwrap_or(&Value::Null),
+            expected_summary
+                .get("wis_skill_score")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && close_enough(
@@ -1683,37 +2038,51 @@ fn validate_probabilistic_forecast_corpus(
         )
         && optional_number_matches(
             summary.crps_skill_score,
-            expected_summary.get("crps_skill_score").unwrap_or(&Value::Null),
+            expected_summary
+                .get("crps_skill_score")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             summary.mean_absolute_error,
-            expected_summary.get("mean_absolute_error").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_absolute_error")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             summary.interval_coverage_50,
-            expected_summary.get("interval_coverage_50").unwrap_or(&Value::Null),
+            expected_summary
+                .get("interval_coverage_50")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             summary.interval_coverage_80,
-            expected_summary.get("interval_coverage_80").unwrap_or(&Value::Null),
+            expected_summary
+                .get("interval_coverage_80")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             summary.interval_coverage_95,
-            expected_summary.get("interval_coverage_95").unwrap_or(&Value::Null),
+            expected_summary
+                .get("interval_coverage_95")
+                .unwrap_or(&Value::Null),
             1e-12,
         )
         && optional_number_matches(
             summary.mean_interval_width_80,
-            expected_summary.get("mean_interval_width_80").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_interval_width_80")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && optional_number_matches(
             summary.mean_interval_width_95,
-            expected_summary.get("mean_interval_width_95").unwrap_or(&Value::Null),
+            expected_summary
+                .get("mean_interval_width_95")
+                .unwrap_or(&Value::Null),
             1e-9,
         )
         && summary.disposition == string_at(expected_summary, &["disposition"])?.as_str();
@@ -1723,8 +2092,16 @@ fn validate_probabilistic_forecast_corpus(
         "FORECAST-PAIRED-CRPS-AND-COVERAGE-001",
         summary_matches
             && summary.eligible_case_count == cases.len()
-            && variable == forecast_cases.first().map(|case| case.variable.as_str()).unwrap_or("")
-            && unit == forecast_cases.first().map(|case| case.unit.as_str()).unwrap_or("")
+            && variable
+                == forecast_cases
+                    .first()
+                    .map(|case| case.variable.as_str())
+                    .unwrap_or("")
+            && unit
+                == forecast_cases
+                    .first()
+                    .map(|case| case.unit.as_str())
+                    .unwrap_or("")
             && Some(horizon) == forecast_cases.first().map(|case| case.horizon_days),
         format!(
             "eligible={}; forecasts={}; abstained={}; coverage={}; mean_crps={:?}; paired_baseline={:?}; crps_skill={:?}",
@@ -1792,11 +2169,13 @@ fn validate_probabilistic_forecast_corpus(
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
-        .map(|check| json!({
-            "id": check.id,
-            "passed": check.passed,
-            "detail": check.detail
-        }))
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
         .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
@@ -1817,10 +2196,7 @@ fn validate_probabilistic_forecast_corpus(
     }))
 }
 
-fn validate_executable_model_set_corpus(
-    raw: &[u8],
-    manifest: &Value,
-) -> Result<Value, String> {
+fn validate_executable_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected_ids: BTreeSet<&'static str> = [
         "MODELSET-KNOWN-GROWTH-MORTALITY-001",
         "MODELSET-KNOWN-RECRUITMENT-GROWTH-001",
@@ -1857,7 +2233,9 @@ fn validate_executable_model_set_corpus(
             && blind_status == "NOT_BLIND_PUBLIC_KNOWN_TRUTH"
             && claim_ceiling.contains("Five public analytic known-truth scenarios")
             && claim_ceiling.contains("not a blind benchmark"),
-        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; blind_status={blind_status}"),
+        format!(
+            "version={version}; benchmark={benchmark}; corpus={corpus_id}; blind_status={blind_status}"
+        ),
     );
 
     let mut result_rows = Vec::new();
@@ -1875,18 +2253,12 @@ fn validate_executable_model_set_corpus(
                 &["observed_validation_state", "large_live_biomass"],
             )?,
         };
-        let historical_fit_tolerance = number_at(
-            case,
-            &["thresholds", "historical_fit_tolerance"],
-        )?;
-        let structural_disagreement_threshold = number_at(
-            case,
-            &["thresholds", "structural_disagreement_threshold"],
-        )?;
-        let common_omission_residual_threshold = number_at(
-            case,
-            &["thresholds", "common_omission_residual_threshold"],
-        )?;
+        let historical_fit_tolerance =
+            number_at(case, &["thresholds", "historical_fit_tolerance"])?;
+        let structural_disagreement_threshold =
+            number_at(case, &["thresholds", "structural_disagreement_threshold"])?;
+        let common_omission_residual_threshold =
+            number_at(case, &["thresholds", "common_omission_residual_threshold"])?;
         let candidate_values = at(case, &["candidates"])?
             .as_array()
             .ok_or_else(|| format!("cases[{index}].candidates must be an array"))?;
@@ -1894,10 +2266,7 @@ fn validate_executable_model_set_corpus(
         for candidate in candidate_values {
             candidates.push(model_set_kernel::CandidateForecast {
                 model_id: string_at(candidate, &["model_id"])?,
-                historical_total_biomass: number_at(
-                    candidate,
-                    &["historical_total_biomass"],
-                )?,
+                historical_total_biomass: number_at(candidate, &["historical_total_biomass"])?,
                 predicted_validation_state: model_set_kernel::CohortState {
                     small_live_biomass: number_at(
                         candidate,
@@ -1924,12 +2293,13 @@ fn validate_executable_model_set_corpus(
         let expected = at(case, &["expected"])?;
         let expected_disposition = string_at(expected, &["disposition"])?;
         let disposition_matches = result.disposition.as_str() == expected_disposition;
-        let metric_matches = result.candidate_count
-            == usize_at(expected, &["candidate_count"])?
+        let metric_matches = result.candidate_count == usize_at(expected, &["candidate_count"])?
             && result.all_candidates_fit_history
                 == at(expected, &["all_candidates_fit_history"])?
                     .as_bool()
-                    .ok_or_else(|| "expected.all_candidates_fit_history must be boolean".to_string())?
+                    .ok_or_else(|| {
+                        "expected.all_candidates_fit_history must be boolean".to_string()
+                    })?
             && close_enough(
                 result.maximum_pairwise_cohort_span,
                 number_at(expected, &["maximum_pairwise_cohort_span"])?,
@@ -1976,8 +2346,14 @@ fn validate_executable_model_set_corpus(
         "MODELSET-DIAGNOSTIC-CASE-COVERAGE-001",
         seen.len() == expected_ids.len()
             && cases.len() == expected_ids.len()
-            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
-        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+            && seen
+                .iter()
+                .all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!(
+            "{} unique cases; {} required",
+            seen.len(),
+            expected_ids.len()
+        ),
     );
 
     let execution = at(manifest, &["execution"])?;
@@ -2030,16 +2406,43 @@ fn validate_executable_model_set_corpus(
 
 fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected_families: BTreeMap<&'static str, &'static str> = [
-        ("growth_mortality_compensation", "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"),
-        ("recruitment_growth_aliasing", "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"),
+        (
+            "growth_mortality_compensation",
+            "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE",
+        ),
+        (
+            "recruitment_growth_aliasing",
+            "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY",
+        ),
         ("delayed_response", "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"),
-        ("size_dependent_mortality", "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"),
-        ("seed_or_propagule_limitation", "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"),
-        ("spatial_canopy_topology", "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"),
-        ("disturbance_climate_interaction", "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"),
-        ("observation_process_shift", "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"),
-        ("cross_region_parameter_transfer", "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"),
-        ("common_structural_omission", "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"),
+        (
+            "size_dependent_mortality",
+            "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN",
+        ),
+        (
+            "seed_or_propagule_limitation",
+            "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE",
+        ),
+        (
+            "spatial_canopy_topology",
+            "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED",
+        ),
+        (
+            "disturbance_climate_interaction",
+            "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM",
+        ),
+        (
+            "observation_process_shift",
+            "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE",
+        ),
+        (
+            "cross_region_parameter_transfer",
+            "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED",
+        ),
+        (
+            "common_structural_omission",
+            "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN",
+        ),
     ]
     .into_iter()
     .collect();
@@ -2098,19 +2501,16 @@ fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, Stri
         push_check(
             &mut checks,
             "MODEL-SET-CASE-SEMANTICS-001",
-            unique
-                && unique_variant
-                && known_case
-                && !condition.trim().is_empty(),
+            unique && unique_variant && known_case && !condition.trim().is_empty(),
             format!(
                 "case={id}; family={family}; expected={}; declared={disposition}; unique={unique}; unique_variant={unique_variant}",
                 expected_disposition.unwrap_or("UNKNOWN_FAMILY")
             ),
         );
     }
-    let three_per_family = expected_families.keys().all(|family| {
-        family_counts.get(*family).copied().unwrap_or_default() == 3
-    });
+    let three_per_family = expected_families
+        .keys()
+        .all(|family| family_counts.get(*family).copied().unwrap_or_default() == 3);
     push_check(
         &mut checks,
         "MODEL-SET-THIRTY-CASE-COVERAGE-001",
@@ -2174,20 +2574,40 @@ fn validate_model_set_corpus(raw: &[u8], manifest: &Value) -> Result<Value, Stri
     }))
 }
 
-
 fn validate_observation_admission_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected: BTreeMap<&'static str, &'static str> = [
         ("FOREST-OBS-ADMIT-VALID-001", "ADMIT_SYNTHETIC_ONLY"),
-        ("FOREST-OBS-CLOUD-AS-ZERO-001", "REJECT_MISSINGNESS_PROMOTED_TO_ZERO"),
-        ("FOREST-OBS-RIGHTS-UNCLEARED-001", "BLOCK_RIGHTS_NOT_CLEARED"),
-        ("FOREST-OBS-ABSENCE-UNQUALIFIED-001", "REJECT_UNQUALIFIED_ABSENCE"),
-        ("FOREST-OBS-ABSENCE-QUALIFIED-001", "ADMIT_NEGATIVE_WITHIN_QUALIFIED_ENVELOPE"),
-        ("FOREST-OBS-PROVENANCE-INCOMPLETE-001", "REJECT_INCOMPLETE_PROVENANCE"),
+        (
+            "FOREST-OBS-CLOUD-AS-ZERO-001",
+            "REJECT_MISSINGNESS_PROMOTED_TO_ZERO",
+        ),
+        (
+            "FOREST-OBS-RIGHTS-UNCLEARED-001",
+            "BLOCK_RIGHTS_NOT_CLEARED",
+        ),
+        (
+            "FOREST-OBS-ABSENCE-UNQUALIFIED-001",
+            "REJECT_UNQUALIFIED_ABSENCE",
+        ),
+        (
+            "FOREST-OBS-ABSENCE-QUALIFIED-001",
+            "ADMIT_NEGATIVE_WITHIN_QUALIFIED_ENVELOPE",
+        ),
+        (
+            "FOREST-OBS-PROVENANCE-INCOMPLETE-001",
+            "REJECT_INCOMPLETE_PROVENANCE",
+        ),
         ("FOREST-OBS-SPLIT-LEAKAGE-001", "REJECT_SPLIT_LEAKAGE"),
-        ("FOREST-OBS-LONGITUDINAL-OVERCLAIM-001", "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE"),
+        (
+            "FOREST-OBS-LONGITUDINAL-OVERCLAIM-001",
+            "REJECT_UNSUPPORTED_LONGITUDINAL_INFERENCE",
+        ),
         ("FOREST-OBS-OUT-OF-DOMAIN-001", "OUT_OF_DOMAIN"),
         ("FOREST-OBS-NO-ACQUISITION-001", "PRESERVE_UNOBSERVED"),
-        ("FOREST-OBS-TARGET-SEMANTIC-MISMATCH-001", "REJECT_TARGET_VARIABLE_SEMANTIC_MISMATCH"),
+        (
+            "FOREST-OBS-TARGET-SEMANTIC-MISMATCH-001",
+            "REJECT_TARGET_VARIABLE_SEMANTIC_MISMATCH",
+        ),
     ]
     .into_iter()
     .collect();
@@ -2254,33 +2674,21 @@ fn validate_observation_admission_corpus(raw: &[u8], manifest: &Value) -> Result
         let partition = string_at(observation, &["split", "partition"])?;
         let source_domain = string_at(observation, &["support", "source_domain"])?;
         let target_domain = string_at(observation, &["support", "target_domain"])?;
-        let domain_transfer_qualified = at(
-            observation,
-            &["support", "domain_transfer_qualified"],
-        )?
-        .as_bool()
-        .ok_or_else(|| "support.domain_transfer_qualified must be boolean".to_string())?;
-        let detection_qualified = at(
-            observation,
-            &["measurement", "detection_qualified"],
-        )?
-        .as_bool()
-        .ok_or_else(|| "measurement.detection_qualified must be boolean".to_string())?;
-        let coverage_qualified = at(
-            observation,
-            &["measurement", "coverage_qualified"],
-        )?
-        .as_bool()
-        .ok_or_else(|| "measurement.coverage_qualified must be boolean".to_string())?;
+        let domain_transfer_qualified = at(observation, &["support", "domain_transfer_qualified"])?
+            .as_bool()
+            .ok_or_else(|| "support.domain_transfer_qualified must be boolean".to_string())?;
+        let detection_qualified = at(observation, &["measurement", "detection_qualified"])?
+            .as_bool()
+            .ok_or_else(|| "measurement.detection_qualified must be boolean".to_string())?;
+        let coverage_qualified = at(observation, &["measurement", "coverage_qualified"])?
+            .as_bool()
+            .ok_or_else(|| "measurement.coverage_qualified must be boolean".to_string())?;
         let longitudinal_rate = at(observation, &["claim", "longitudinal_rate"])?
             .as_bool()
             .ok_or_else(|| "claim.longitudinal_rate must be boolean".to_string())?;
-        let matched_repeats = at(
-            observation,
-            &["support", "matched_repeat_measurements"],
-        )?
-        .as_bool()
-        .ok_or_else(|| "support.matched_repeat_measurements must be boolean".to_string())?;
+        let matched_repeats = at(observation, &["support", "matched_repeat_measurements"])?
+            .as_bool()
+            .ok_or_else(|| "support.matched_repeat_measurements must be boolean".to_string())?;
         let repeat_count = usize_at(observation, &["support", "repeat_measurement_count"])?;
         let measurement_value = at(observation, &["measurement", "value"])?;
         let has_value = !measurement_value.is_null();
@@ -2296,8 +2704,8 @@ fn validate_observation_admission_corpus(raw: &[u8], manifest: &Value) -> Result
             .iter()
             .any(|purpose| purpose.as_str() == Some(intended_purpose.as_str()));
 
-        let digest_valid = asset_digest.len() == 64
-            && asset_digest.bytes().all(|byte| byte.is_ascii_hexdigit());
+        let digest_valid =
+            asset_digest.len() == 64 && asset_digest.bytes().all(|byte| byte.is_ascii_hexdigit());
         let provenance_complete = !observation_id.trim().is_empty()
             && !subject_id.trim().is_empty()
             && !provider.trim().is_empty()
@@ -2424,7 +2832,6 @@ fn validate_observation_admission_corpus(raw: &[u8], manifest: &Value) -> Result
     }))
 }
 
-
 fn rect_from_json(value: &Value) -> Result<support_kernel::Rect, support_kernel::SupportError> {
     let coordinates = value
         .as_array()
@@ -2486,7 +2893,9 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
             && coordinate_model == "LOCAL_PLANAR_METRES_ALREADY_TRANSFORMED"
             && claim_ceiling.contains("axis-aligned rectangle intersections")
             && claim_ceiling.contains("No arbitrary geometry"),
-        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}; coordinate_model={coordinate_model}"),
+        format!(
+            "version={version}; benchmark={benchmark}; corpus={corpus_id}; coordinate_model={coordinate_model}"
+        ),
     );
 
     let mut result_rows = Vec::new();
@@ -2508,16 +2917,16 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
         for (sample_index, sample) in sample_values.iter().enumerate() {
             let sample_id = string_at(sample, &["sample_id"])?;
             let crs = string_at(sample, &["crs"])?;
-            let bounds = match rect_from_json(at(sample, &["bounds"])? ) {
+            let bounds = match rect_from_json(at(sample, &["bounds"])?) {
                 Ok(bounds) => bounds,
                 Err(error) => {
                     sample_geometry_error = Some(error);
                     break;
                 }
             };
-            let valid = at(sample, &["valid"])?
-                .as_bool()
-                .ok_or_else(|| format!("cases[{index}].samples[{sample_index}].valid must be boolean"))?;
+            let valid = at(sample, &["valid"])?.as_bool().ok_or_else(|| {
+                format!("cases[{index}].samples[{sample_index}].valid must be boolean")
+            })?;
             samples.push(support_kernel::SupportSample {
                 sample_id,
                 crs,
@@ -2528,28 +2937,29 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
 
         let actual = match sample_geometry_error {
             Some(error) => Err(error),
-            None => support_kernel::qualify_rectangular_support(
-                &target_crs,
-                target_rect,
-                &samples,
-            ),
+            None => support_kernel::qualify_rectangular_support(&target_crs, target_rect, &samples),
         };
         let expected_error = case.get("expected_error").and_then(Value::as_str);
         let (case_passed, detail, row) = if let Some(expected_error) = expected_error {
             match actual {
                 Err(error) => {
                     let actual_error = error.to_string();
-                    let passed = unique && actual_error == expected_error
-                        && expected_ids.contains(case_id);
+                    let passed =
+                        unique && actual_error == expected_error && expected_ids.contains(case_id);
                     (
                         passed,
-                        format!("case={case_id}; error={actual_error}; expected_error={expected_error}; unique={unique}"),
+                        format!(
+                            "case={case_id}; error={actual_error}; expected_error={expected_error}; unique={unique}"
+                        ),
                         json!({"case_id":case_id,"error":actual_error}),
                     )
                 }
                 Ok(report) => (
                     false,
-                    format!("case={case_id}; expected error={expected_error}; got {}", report.disposition.as_str()),
+                    format!(
+                        "case={case_id}; expected error={expected_error}; got {}",
+                        report.disposition.as_str()
+                    ),
                     json!({"case_id":case_id,"unexpected_disposition":report.disposition.as_str()}),
                 ),
             }
@@ -2559,11 +2969,9 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
                 format!("cases[{index}] unexpectedly returned support error: {error}")
             })?;
             let expected_overlap = number_at(expected, &["geometric_overlap_area"])?;
-            let expected_geometry_fraction =
-                number_at(expected, &["geometric_coverage_fraction"])?;
+            let expected_geometry_fraction = number_at(expected, &["geometric_coverage_fraction"])?;
             let expected_valid_area = number_at(expected, &["valid_data_area"])?;
-            let expected_valid_fraction =
-                number_at(expected, &["valid_data_coverage_fraction"])?;
+            let expected_valid_fraction = number_at(expected, &["valid_data_coverage_fraction"])?;
             let expected_disposition = string_at(expected, &["disposition"])?;
             let derived_disposition = report.disposition.as_str();
             let passed = unique
@@ -2583,7 +2991,10 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
                 && derived_disposition == expected_disposition;
             (
                 passed,
-                format!("case={case_id}; geometric_coverage={}; valid_coverage={}; disposition={derived_disposition}; unique={unique}", report.geometric_coverage_fraction, report.valid_data_coverage_fraction),
+                format!(
+                    "case={case_id}; geometric_coverage={}; valid_coverage={}; disposition={derived_disposition}; unique={unique}",
+                    report.geometric_coverage_fraction, report.valid_data_coverage_fraction
+                ),
                 json!({
                     "case_id":case_id,
                     "target_area":report.target_area,
@@ -2622,19 +3033,13 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
                 Ok(registration) => {
                     let minimum_area = number_at(expected_bounds, &["minimum_overlap_area_m2"])?;
                     let maximum_area = number_at(expected_bounds, &["maximum_overlap_area_m2"])?;
-                    let minimum_fraction = number_at(expected_bounds, &["minimum_coverage_fraction"])?;
-                    let maximum_fraction = number_at(expected_bounds, &["maximum_coverage_fraction"])?;
+                    let minimum_fraction =
+                        number_at(expected_bounds, &["minimum_coverage_fraction"])?;
+                    let maximum_fraction =
+                        number_at(expected_bounds, &["maximum_coverage_fraction"])?;
                     let registration_passed = unique
-                        && close_enough(
-                            registration.minimum_overlap_area_m2,
-                            minimum_area,
-                            1e-9,
-                        )
-                        && close_enough(
-                            registration.maximum_overlap_area_m2,
-                            maximum_area,
-                            1e-9,
-                        )
+                        && close_enough(registration.minimum_overlap_area_m2, minimum_area, 1e-9)
+                        && close_enough(registration.maximum_overlap_area_m2, maximum_area, 1e-9)
                         && close_enough(
                             registration.minimum_coverage_fraction,
                             minimum_fraction,
@@ -2683,8 +3088,14 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
         "SUPPORT-CASE-COVERAGE-001",
         seen.len() == expected_ids.len()
             && cases.len() == expected_ids.len()
-            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
-        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+            && seen
+                .iter()
+                .all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!(
+            "{} unique cases; {} required",
+            seen.len(),
+            expected_ids.len()
+        ),
     );
 
     let execution = at(manifest, &["execution"])?;
@@ -2738,8 +3149,10 @@ fn validate_support_intersection_corpus(raw: &[u8], manifest: &Value) -> Result<
     }))
 }
 
-
-fn parse_support_sample(value: &Value, label: &str) -> Result<support_kernel::SupportSample, String> {
+fn parse_support_sample(
+    value: &Value,
+    label: &str,
+) -> Result<support_kernel::SupportSample, String> {
     let sample_id = string_at(value, &["sample_id"])?;
     let crs = string_at(value, &["crs"])?;
     let bounds = rect_from_json(at(value, &["bounds"])?)
@@ -2755,10 +3168,7 @@ fn parse_support_sample(value: &Value, label: &str) -> Result<support_kernel::Su
     })
 }
 
-fn validate_variable_aggregation_corpus(
-    raw: &[u8],
-    manifest: &Value,
-) -> Result<Value, String> {
+fn validate_variable_aggregation_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected_ids: BTreeSet<&'static str> = [
         "AGG-INTENSIVE-WEIGHTED-MEAN-001",
         "AGG-INTENSIVE-PARTIAL-NO-EXTRAPOLATION-001",
@@ -2832,15 +3242,17 @@ fn validate_variable_aggregation_corpus(
                     &samples,
                     expected_unit,
                 )
-                .map(|result| json!({
-                    "observed_mean": result.observed_mean,
-                    "unit": result.unit,
-                    "target_area_m2": result.target_area_m2,
-                    "geometric_coverage_fraction": result.geometric_coverage_fraction,
-                    "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
-                    "valid_observed_area_m2": result.valid_observed_area_m2,
-                    "disposition": result.disposition.as_str()
-                }))
+                .map(|result| {
+                    json!({
+                        "observed_mean": result.observed_mean,
+                        "unit": result.unit,
+                        "target_area_m2": result.target_area_m2,
+                        "geometric_coverage_fraction": result.geometric_coverage_fraction,
+                        "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
+                        "valid_observed_area_m2": result.valid_observed_area_m2,
+                        "disposition": result.disposition.as_str()
+                    })
+                })
                 .map_err(|error| format!("{error:?}"))
             }
             "stock_integral" => {
@@ -2862,14 +3274,16 @@ fn validate_variable_aggregation_corpus(
                     target,
                     &samples,
                 )
-                .map(|result| json!({
-                    "observed_stock_mg": result.observed_stock_mg,
-                    "target_area_m2": result.target_area_m2,
-                    "geometric_coverage_fraction": result.geometric_coverage_fraction,
-                    "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
-                    "valid_observed_area_m2": result.valid_observed_area_m2,
-                    "disposition": result.disposition.as_str()
-                }))
+                .map(|result| {
+                    json!({
+                        "observed_stock_mg": result.observed_stock_mg,
+                        "target_area_m2": result.target_area_m2,
+                        "geometric_coverage_fraction": result.geometric_coverage_fraction,
+                        "valid_data_coverage_fraction": result.valid_data_coverage_fraction,
+                        "valid_observed_area_m2": result.valid_observed_area_m2,
+                        "disposition": result.disposition.as_str()
+                    })
+                })
                 .map_err(|error| format!("{error:?}"))
             }
             "count_total" => {
@@ -2880,9 +3294,9 @@ fn validate_variable_aggregation_corpus(
                         sampling_frame_id: string_at(sample, &["sampling_frame_id"])?,
                         sampling_design_id: string_at(sample, &["sampling_design_id"])?,
                         design_kind: string_at(sample, &["design_kind"])?,
-                        observed_count: at(sample, &["observed_count"])?
-                            .as_u64()
-                            .ok_or_else(|| "observed_count must be a non-negative integer".to_string())?,
+                        observed_count: at(sample, &["observed_count"])?.as_u64().ok_or_else(
+                            || "observed_count must be a non-negative integer".to_string(),
+                        )?,
                         inclusion_probability: number_at(sample, &["inclusion_probability"])?,
                     });
                 }
@@ -2895,14 +3309,16 @@ fn validate_variable_aggregation_corpus(
                     frame_count,
                     &samples,
                 )
-                .map(|result| json!({
-                    "horvitz_thompson_total": result.horvitz_thompson_total,
-                    "sampling_frame_id": result.sampling_frame_id,
-                    "sampling_design_id": result.sampling_design_id,
-                    "population_unit_count": result.population_unit_count,
-                    "sampled_unit_count": result.sampled_unit_count,
-                    "uncertainty_status": result.uncertainty_status
-                }))
+                .map(|result| {
+                    json!({
+                        "horvitz_thompson_total": result.horvitz_thompson_total,
+                        "sampling_frame_id": result.sampling_frame_id,
+                        "sampling_design_id": result.sampling_design_id,
+                        "population_unit_count": result.population_unit_count,
+                        "sampled_unit_count": result.sampled_unit_count,
+                        "uncertainty_status": result.uncertainty_status
+                    })
+                })
                 .map_err(|error| format!("{error:?}"))
             }
             "categorical_areas" => {
@@ -2954,7 +3370,9 @@ fn validate_variable_aggregation_corpus(
                         && actual_name == expected_error;
                     (
                         passed,
-                        format!("case={case_id}; actual_error={actual_name}; expected_error={expected_error}; unique={unique}"),
+                        format!(
+                            "case={case_id}; actual_error={actual_name}; expected_error={expected_error}; unique={unique}"
+                        ),
                         json!({"case_id":case_id,"error":actual_name}),
                     )
                 }
@@ -2971,19 +3389,28 @@ fn validate_variable_aggregation_corpus(
             let numeric_fields = match kind.as_str() {
                 "intensive_mean" => vec![
                     ("geometric_coverage_fraction", "geometric_coverage_fraction"),
-                    ("valid_data_coverage_fraction", "valid_data_coverage_fraction"),
+                    (
+                        "valid_data_coverage_fraction",
+                        "valid_data_coverage_fraction",
+                    ),
                     ("valid_observed_area_m2", "valid_observed_area_m2"),
                 ],
                 "stock_integral" => vec![
                     ("observed_stock_mg", "observed_stock_mg"),
                     ("geometric_coverage_fraction", "geometric_coverage_fraction"),
-                    ("valid_data_coverage_fraction", "valid_data_coverage_fraction"),
+                    (
+                        "valid_data_coverage_fraction",
+                        "valid_data_coverage_fraction",
+                    ),
                     ("valid_observed_area_m2", "valid_observed_area_m2"),
                 ],
                 "count_total" => vec![("horvitz_thompson_total", "horvitz_thompson_total")],
                 "categorical_areas" => vec![
                     ("geometric_coverage_fraction", "geometric_coverage_fraction"),
-                    ("valid_data_coverage_fraction", "valid_data_coverage_fraction"),
+                    (
+                        "valid_data_coverage_fraction",
+                        "valid_data_coverage_fraction",
+                    ),
                     ("valid_observed_area_m2", "valid_observed_area_m2"),
                 ],
                 _ => Vec::new(),
@@ -3018,9 +3445,10 @@ fn validate_variable_aggregation_corpus(
                     } else {
                         for expected_class in expected_classes {
                             let id = string_at(expected_class, &["class_id"])?;
-                            let actual_class = actual_classes
-                                .iter()
-                                .find(|candidate| candidate.get("class_id").and_then(Value::as_str) == Some(id.as_str()));
+                            let actual_class = actual_classes.iter().find(|candidate| {
+                                candidate.get("class_id").and_then(Value::as_str)
+                                    == Some(id.as_str())
+                            });
                             if let Some(actual_class) = actual_class {
                                 passed &= close_enough(
                                     number_at(actual_class, &["valid_area_m2"])?,
@@ -3029,7 +3457,10 @@ fn validate_variable_aggregation_corpus(
                                 );
                                 passed &= close_enough(
                                     number_at(actual_class, &["fraction_of_valid_observed_area"])?,
-                                    number_at(expected_class, &["fraction_of_valid_observed_area"])?,
+                                    number_at(
+                                        expected_class,
+                                        &["fraction_of_valid_observed_area"],
+                                    )?,
                                     1e-12,
                                 );
                             } else {
@@ -3042,17 +3473,14 @@ fn validate_variable_aggregation_corpus(
             }
             (
                 unique && expected_ids.contains(case_id.as_str()) && passed,
-                format!("case={case_id}; kind={kind}; expected_fields_match={passed}; unique={unique}"),
+                format!(
+                    "case={case_id}; kind={kind}; expected_fields_match={passed}; unique={unique}"
+                ),
                 json!({"case_id":case_id,"actual":actual}),
             )
         };
 
-        push_check(
-            &mut checks,
-            "AGG-CASE-ORACLE-AGREEMENT-001",
-            passed,
-            detail,
-        );
+        push_check(&mut checks, "AGG-CASE-ORACLE-AGREEMENT-001", passed, detail);
         result_rows.push(row);
     }
 
@@ -3061,8 +3489,14 @@ fn validate_variable_aggregation_corpus(
         "AGG-CASE-COVERAGE-001",
         seen.len() == expected_ids.len()
             && cases.len() == expected_ids.len()
-            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
-        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+            && seen
+                .iter()
+                .all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!(
+            "{} unique cases; {} required",
+            seen.len(),
+            expected_ids.len()
+        ),
     );
 
     let execution = at(manifest, &["execution"])?;
@@ -3087,11 +3521,13 @@ fn validate_variable_aggregation_corpus(
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
-        .map(|check| json!({
-            "id": check.id,
-            "passed": check.passed,
-            "detail": check.detail
-        }))
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
         .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
@@ -3108,7 +3544,6 @@ fn validate_variable_aggregation_corpus(
         "external_data_ingested": false
     }))
 }
-
 
 fn string_set_at(root: &Value, path: &[&str]) -> Result<BTreeSet<String>, String> {
     let values = at(root, path)?
@@ -3260,7 +3695,10 @@ fn validate_consilience_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         &mut checks,
         "CONSILIENCE-DEPENDENCY-DIMENSIONS-001",
         required_dimensions == expected_dimensions,
-        format!("{} required dependency dimensions declared", required_dimensions.len()),
+        format!(
+            "{} required dependency dimensions declared",
+            required_dimensions.len()
+        ),
     );
 
     for (index, case) in cases.iter().enumerate() {
@@ -3293,8 +3731,14 @@ fn validate_consilience_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
         "CONSILIENCE-DEPENDENCE-COVERAGE-001",
         seen.len() == expected_ids.len()
             && cases.len() == expected_ids.len()
-            && seen.iter().all(|case_id| expected_ids.contains(case_id.as_str())),
-        format!("{} unique cases; {} required", seen.len(), expected_ids.len()),
+            && seen
+                .iter()
+                .all(|case_id| expected_ids.contains(case_id.as_str())),
+        format!(
+            "{} unique cases; {} required",
+            seen.len(),
+            expected_ids.len()
+        ),
     );
 
     let execution = at(manifest, &["execution"])?;
@@ -3319,11 +3763,13 @@ fn validate_consilience_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
     let passed = checks.iter().all(|check| check.passed);
     let check_values: Vec<Value> = checks
         .iter()
-        .map(|check| json!({
-            "id": check.id,
-            "passed": check.passed,
-            "detail": check.detail
-        }))
+        .map(|check| {
+            json!({
+                "id": check.id,
+                "passed": check.passed,
+                "detail": check.detail
+            })
+        })
         .collect();
     Ok(json!({
         "receipt_version": "0.1.0",
@@ -3348,8 +3794,8 @@ fn validate_consilience_corpus(raw: &[u8], manifest: &Value) -> Result<Value, St
 /// This command verifies manifests and analytical/synthetic invariants only. It does not
 /// imply ecological calibration, observation-model validation, or field performance.
 pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
-    let manifest: Value = serde_json::from_slice(raw)
-        .map_err(|error| format!("invalid JSON manifest: {error}"))?;
+    let manifest: Value =
+        serde_json::from_slice(raw).map_err(|error| format!("invalid JSON manifest: {error}"))?;
     if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-OBSERVATION-OPERATOR-NEGATIVE-CONTROLS-001")
     {
@@ -3360,8 +3806,7 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return validate_observation_admission_corpus(raw, &manifest);
     }
-    if manifest.get("corpus_id").and_then(Value::as_str)
-        == Some("FOREST-SUPPORT-INTERSECTION-001")
+    if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-SUPPORT-INTERSECTION-001")
     {
         return validate_support_intersection_corpus(raw, &manifest);
     }
@@ -3375,14 +3820,10 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return validate_consilience_corpus(raw, &manifest);
     }
-    if manifest.get("corpus_id").and_then(Value::as_str)
-        == Some("FOREST-BLOCK-CONFORMAL-001")
-    {
+    if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
     }
-    if manifest.get("corpus_id").and_then(Value::as_str)
-        == Some("FOREST-BINARY-EVENT-BRIER-001")
-    {
+    if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BINARY-EVENT-BRIER-001") {
         return validate_binary_event_brier_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
@@ -3395,14 +3836,10 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return validate_executable_model_set_corpus(raw, &manifest);
     }
-    if manifest.get("corpus_id").and_then(Value::as_str)
-        == Some("FOREST-MODEL-SET-ADEQUACY-001")
-    {
+    if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-MODEL-SET-ADEQUACY-001") {
         return validate_model_set_corpus(raw, &manifest);
     }
-    if manifest.get("corpus_id").and_then(Value::as_str)
-        == Some("FOREST-DECISION-VALUE-001")
-    {
+    if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-DECISION-VALUE-001") {
         return validate_decision_value_corpus(raw, &manifest);
     }
     if manifest.get("case_corpus_id").is_some() {
@@ -3412,7 +3849,6 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
 }
 
 fn evaluate_biomass(raw: &[u8], manifest: Value) -> Result<Value, String> {
-
     let schema_version = string_at(&manifest, &["schema_version"])?;
     let benchmark_id = string_at(&manifest, &["benchmark_id"])?;
     let case_id = string_at(&manifest, &["case_id"])?;
@@ -3477,7 +3913,9 @@ fn evaluate_biomass(raw: &[u8], manifest: Value) -> Result<Value, String> {
         .and_then(Value::as_str)
         .ok_or_else(|| "interventions[0].target_cell_id must be a string".to_string())?;
     if !cell_ids.contains(target) {
-        return Err(format!("intervention target is not a declared cell: {target}"));
+        return Err(format!(
+            "intervention target is not a declared cell: {target}"
+        ));
     }
 
     let parameter_growth = number_at(&manifest, &["parameters", "growth_flux_per_step"])?;
@@ -3558,10 +3996,7 @@ fn evaluate_biomass(raw: &[u8], manifest: Value) -> Result<Value, String> {
         .and_then(Value::as_f64)
         .ok_or_else(|| "expected target total biomass must be numeric".to_string())?;
 
-    let tolerance = number_at(
-        &manifest,
-        &["invariants", "0", "tolerance_kg_dry_matter"],
-    )?;
+    let tolerance = number_at(&manifest, &["invariants", "0", "tolerance_kg_dry_matter"])?;
     let predicted_live = start_live + effect_growth - effect_transfer;
     let predicted_dead = start_dead + effect_transfer;
     let predicted_total = predicted_live + predicted_dead;
@@ -3595,11 +4030,11 @@ fn evaluate_biomass(raw: &[u8], manifest: Value) -> Result<Value, String> {
         let after_total = after
             .get("total_biomass_kg_dry_matter")
             .and_then(Value::as_f64)
-            .ok_or_else(|| format!("expected total biomass missing or non-numeric for {cell_id}"))?;
-        all_stocks_nonnegative &= before_live >= 0.0
-            && before_dead >= 0.0
-            && after_live >= 0.0
-            && after_dead >= 0.0;
+            .ok_or_else(|| {
+                format!("expected total biomass missing or non-numeric for {cell_id}")
+            })?;
+        all_stocks_nonnegative &=
+            before_live >= 0.0 && before_dead >= 0.0 && after_live >= 0.0 && after_dead >= 0.0;
         all_expected_totals_consistent &=
             close_enough(after_total, after_live + after_dead, tolerance);
     }
@@ -3670,7 +4105,9 @@ fn evaluate_biomass(raw: &[u8], manifest: Value) -> Result<Value, String> {
                 &mut checks,
                 "DISCONNECTED-CONTROL-001",
                 false,
-                format!("cell {cell_id} changed canonical biomass stocks despite no declared causal path"),
+                format!(
+                    "cell {cell_id} changed canonical biomass stocks despite no declared causal path"
+                ),
             );
         }
     }
@@ -3723,8 +4160,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    const FIXTURE: &str =
-        include_str!("../../cases/forest-patch-accounting-synthetic-001.json");
+    const FIXTURE: &str = include_str!("../../cases/forest-patch-accounting-synthetic-001.json");
 
     const OBSERVATION_FIXTURE: &str =
         include_str!("../../cases/forest-observation-operator-negative-controls-v0.1.json");
@@ -3751,26 +4187,24 @@ mod tests {
     const CONSILIENCE_FIXTURE: &str =
         include_str!("../../cases/forest-consilience-dependence-synthetic-v0.1.json");
 
-
-
-
-
     #[test]
     fn consilience_corpus_matches_twelve_synthetic_dependency_pairs() {
-        let receipt = evaluate(CONSILIENCE_FIXTURE.as_bytes())
-            .expect("consilience corpus parses");
+        let receipt = evaluate(CONSILIENCE_FIXTURE.as_bytes()).expect("consilience corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_CONSILIENCE");
         assert_eq!(receipt["case_count"], 12);
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
-        assert_eq!(receipt["lineage_registry_authentication"], "NOT_IMPLEMENTED");
+        assert_eq!(
+            receipt["lineage_registry_authentication"],
+            "NOT_IMPLEMENTED"
+        );
         assert_eq!(receipt["probabilistic_dependence_model"], "NOT_IMPLEMENTED");
         assert_eq!(receipt["evidence_fusion"], "NOT_IMPLEMENTED");
     }
 
     #[test]
     fn consilience_corpus_rejects_false_independence_after_upstream_mutation() {
-        let mut manifest: Value = serde_json::from_str(CONSILIENCE_FIXTURE)
-            .expect("valid consilience corpus");
+        let mut manifest: Value =
+            serde_json::from_str(CONSILIENCE_FIXTURE).expect("valid consilience corpus");
         manifest["cases"][8]["left"]["upstream_asset_ids"] = json!(["shared-raw-scene"]);
         manifest["cases"][8]["right"]["upstream_asset_ids"] = json!(["shared-raw-scene"]);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
@@ -3780,8 +4214,8 @@ mod tests {
 
     #[test]
     fn consilience_corpus_rejects_unassessed_dependency_dimension_as_independent() {
-        let mut manifest: Value = serde_json::from_str(CONSILIENCE_FIXTURE)
-            .expect("valid consilience corpus");
+        let mut manifest: Value =
+            serde_json::from_str(CONSILIENCE_FIXTURE).expect("valid consilience corpus");
         manifest["cases"][8]["left"]["dependency_dimensions_assessed"] = json!(["upstream_assets"]);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated corpus");
         let receipt = evaluate(&bytes).expect("well-formed corpus returns receipt");
@@ -3795,7 +4229,10 @@ mod tests {
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_AGGREGATION");
         assert_eq!(receipt["case_count"], 12);
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
-        assert_eq!(receipt["uncertainty_status"], "NO_UNSUPPORTED_VARIANCE_ESTIMATORS");
+        assert_eq!(
+            receipt["uncertainty_status"],
+            "NO_UNSUPPORTED_VARIANCE_ESTIMATORS"
+        );
         assert_eq!(receipt["external_data_ingested"], false);
     }
 
@@ -3829,8 +4266,14 @@ mod tests {
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
         assert_eq!(receipt["arbitrary_polygon_support"], "NOT_IMPLEMENTED");
         assert_eq!(receipt["crs_transform"], "NOT_IMPLEMENTED");
-        assert_eq!(receipt["positional_uncertainty"], "DETERMINISTIC_TRANSLATION_BOUNDS_ONLY");
-        assert_eq!(receipt["probabilistic_registration_model"], "NOT_IMPLEMENTED");
+        assert_eq!(
+            receipt["positional_uncertainty"],
+            "DETERMINISTIC_TRANSLATION_BOUNDS_ONLY"
+        );
+        assert_eq!(
+            receipt["probabilistic_registration_model"],
+            "NOT_IMPLEMENTED"
+        );
     }
 
     #[test]
@@ -3939,10 +4382,12 @@ mod tests {
             })
             .expect("GEDI storage-gap check is present");
         assert_eq!(check["passed"], true);
-        assert!(check["detail"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("derived=UNOBSERVED_NO_ACQUISITION"));
+        assert!(
+            check["detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("derived=UNOBSERVED_NO_ACQUISITION")
+        );
         assert_eq!(receipt["external_data_ingested"], false);
     }
 
@@ -3959,7 +4404,10 @@ mod tests {
             receipt["arrangements"][0]["open_components_four_neighbour"],
             receipt["arrangements"][1]["open_components_four_neighbour"]
         );
-        assert_eq!(receipt["ecological_light_model_calibration"], "NOT_ESTABLISHED");
+        assert_eq!(
+            receipt["ecological_light_model_calibration"],
+            "NOT_ESTABLISHED"
+        );
     }
 
     #[test]
@@ -3983,48 +4431,56 @@ mod tests {
 
     #[test]
     fn canopy_duplicate_coordinate_is_rejected() {
-        let mut manifest: Value = serde_json::from_str(CANOPY_FIXTURE).expect("valid canopy fixture");
+        let mut manifest: Value =
+            serde_json::from_str(CANOPY_FIXTURE).expect("valid canopy fixture");
         let duplicate = manifest["arrangements"][0]["occupied_coordinates"][0].clone();
         manifest["arrangements"][0]["occupied_coordinates"]
-            .as_array_mut().unwrap().push(duplicate);
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated canopy fixture");
         let receipt = evaluate(&bytes).expect("well-formed fixture returns a receipt");
         assert_eq!(receipt["result"], "FAIL");
     }
 
-
-
-
-
-
-
     #[test]
     fn block_conformal_corpus_matches_pooled_and_block_level_coverage() {
-        let receipt = evaluate(BLOCK_CONFORMAL_FIXTURE.as_bytes())
-            .expect("block conformal corpus parses");
+        let receipt =
+            evaluate(BLOCK_CONFORMAL_FIXTURE.as_bytes()).expect("block conformal corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_BLOCK_CONFORMAL");
         assert_eq!(receipt["calibration_block_count"], 9);
         assert_eq!(receipt["pooled_observation_radius"], 1.0);
         assert_eq!(receipt["block_maximum_radius"], 9.0);
         assert_eq!(receipt["block_full_block_coverage"], 1.0 / 3.0);
-        assert_eq!(receipt["exchangeability_status"], "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED");
+        assert_eq!(
+            receipt["exchangeability_status"],
+            "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED"
+        );
     }
-
 
     #[test]
     fn block_conformal_corpus_matches_pooled_and_block_winkler_scores() {
-        let receipt = evaluate(BLOCK_CONFORMAL_FIXTURE.as_bytes())
-            .expect("block conformal corpus parses");
+        let receipt =
+            evaluate(BLOCK_CONFORMAL_FIXTURE.as_bytes()).expect("block conformal corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_BLOCK_CONFORMAL");
-        assert!((receipt["pooled_mean_interval_score"].as_f64().unwrap() - (55.0 / 3.0)).abs() < 1e-9);
+        assert!(
+            (receipt["pooled_mean_interval_score"].as_f64().unwrap() - (55.0 / 3.0)).abs() < 1e-9
+        );
         assert!((receipt["block_mean_interval_score"].as_f64().unwrap() - 19.0).abs() < 1e-9);
-        assert!((receipt["test_block_results"][0]["block_mean_interval_score"].as_f64().unwrap() - 18.0).abs() < 1e-9);
+        assert!(
+            (receipt["test_block_results"][0]["block_mean_interval_score"]
+                .as_f64()
+                .unwrap()
+                - 18.0)
+                .abs()
+                < 1e-9
+        );
     }
 
     #[test]
     fn block_conformal_corpus_rejects_interval_score_oracle_mutation() {
-        let mut manifest: Value = serde_json::from_str(BLOCK_CONFORMAL_FIXTURE)
-            .expect("valid block conformal corpus");
+        let mut manifest: Value =
+            serde_json::from_str(BLOCK_CONFORMAL_FIXTURE).expect("valid block conformal corpus");
         manifest["expected"]["block_mean_interval_score"] = json!(1.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated Winkler corpus");
         let receipt = evaluate(&bytes).expect("well-formed conformal corpus returns receipt");
@@ -4033,8 +4489,8 @@ mod tests {
 
     #[test]
     fn block_conformal_corpus_rejects_radius_oracle_mutation() {
-        let mut manifest: Value = serde_json::from_str(BLOCK_CONFORMAL_FIXTURE)
-            .expect("valid block conformal corpus");
+        let mut manifest: Value =
+            serde_json::from_str(BLOCK_CONFORMAL_FIXTURE).expect("valid block conformal corpus");
         manifest["expected"]["block_maximum_radius"] = json!(1.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated conformal corpus");
         let receipt = evaluate(&bytes).expect("well-formed conformal corpus returns receipt");
@@ -4043,8 +4499,8 @@ mod tests {
 
     #[test]
     fn block_conformal_corpus_rejects_calibration_test_group_leakage() {
-        let mut manifest: Value = serde_json::from_str(BLOCK_CONFORMAL_FIXTURE)
-            .expect("valid block conformal corpus");
+        let mut manifest: Value =
+            serde_json::from_str(BLOCK_CONFORMAL_FIXTURE).expect("valid block conformal corpus");
         manifest["scenario"]["test_blocks"][0]["group_id"] =
             manifest["scenario"]["calibration_blocks"][0]["group_id"].clone();
         let bytes = serde_json::to_vec(&manifest).expect("serialize leaked conformal corpus");
@@ -4059,14 +4515,20 @@ mod tests {
         assert_eq!(receipt["summary"]["eligible_case_count"], 6);
         assert_eq!(receipt["summary"]["forecast_case_count"], 5);
         assert_eq!(receipt["summary"]["abstained_case_count"], 1);
-        assert_eq!(receipt["summary"]["reliability_bins"].as_array().unwrap().len(), 5);
+        assert_eq!(
+            receipt["summary"]["reliability_bins"]
+                .as_array()
+                .unwrap()
+                .len(),
+            5
+        );
         assert_eq!(receipt["event_calibration"], "NOT_ESTABLISHED");
     }
 
     #[test]
     fn binary_event_brier_corpus_rejects_skill_oracle_mutation() {
-        let mut manifest: Value = serde_json::from_str(BINARY_EVENT_BRIER_FIXTURE)
-            .expect("valid Brier corpus");
+        let mut manifest: Value =
+            serde_json::from_str(BINARY_EVENT_BRIER_FIXTURE).expect("valid Brier corpus");
         manifest["expected_summary"]["brier_skill_score"] = json!(0.99);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated Brier corpus");
         let receipt = evaluate(&bytes).expect("well-formed Brier corpus returns receipt");
@@ -4075,8 +4537,8 @@ mod tests {
 
     #[test]
     fn binary_event_brier_corpus_rejects_reliability_bin_mutation() {
-        let mut manifest: Value = serde_json::from_str(BINARY_EVENT_BRIER_FIXTURE)
-            .expect("valid Brier corpus");
+        let mut manifest: Value =
+            serde_json::from_str(BINARY_EVENT_BRIER_FIXTURE).expect("valid Brier corpus");
         manifest["expected_summary"]["reliability_bins"][4]["observed_event_frequency"] =
             json!(1.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated Brier corpus");
@@ -4086,34 +4548,49 @@ mod tests {
 
     #[test]
     fn forecast_scoring_corpus_matches_crps_skill_intervals_and_abstention() {
-        let receipt = evaluate(FORECAST_SCORING_FIXTURE.as_bytes())
-            .expect("forecast scoring corpus parses");
+        let receipt =
+            evaluate(FORECAST_SCORING_FIXTURE.as_bytes()).expect("forecast scoring corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORECAST_SCORING");
         assert_eq!(receipt["summary"]["eligible_case_count"], 6);
         assert_eq!(receipt["summary"]["forecast_case_count"], 5);
         assert_eq!(receipt["summary"]["abstained_case_count"], 1);
-        assert_eq!(receipt["summary"]["disposition"], "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE");
+        assert_eq!(
+            receipt["summary"]["disposition"],
+            "SCORED_WITH_EXPLICIT_FORECAST_COVERAGE"
+        );
         assert_eq!(receipt["probabilistic_calibration"], "NOT_ESTABLISHED");
         assert_eq!(receipt["ecological_forecast_skill"], "NOT_ESTABLISHED");
     }
 
-
-
     #[test]
     fn forecast_scoring_corpus_matches_paired_wis_and_interval_sharpness() {
-        let receipt = evaluate(FORECAST_SCORING_FIXTURE.as_bytes())
-            .expect("forecast scoring corpus parses");
+        let receipt =
+            evaluate(FORECAST_SCORING_FIXTURE.as_bytes()).expect("forecast scoring corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORECAST_SCORING");
-        assert!((receipt["summary"]["mean_model_wis"].as_f64().unwrap() - 2.3142857142857145).abs() < 1e-9);
-        assert!((receipt["summary"]["mean_baseline_wis_paired"].as_f64().unwrap() - 2.0).abs() < 1e-9);
-        assert!((receipt["summary"]["wis_skill_score"].as_f64().unwrap() - (-0.15714285714285725)).abs() < 1e-9);
+        assert!(
+            (receipt["summary"]["mean_model_wis"].as_f64().unwrap() - 2.3142857142857145).abs()
+                < 1e-9
+        );
+        assert!(
+            (receipt["summary"]["mean_baseline_wis_paired"]
+                .as_f64()
+                .unwrap()
+                - 2.0)
+                .abs()
+                < 1e-9
+        );
+        assert!(
+            (receipt["summary"]["wis_skill_score"].as_f64().unwrap() - (-0.15714285714285725))
+                .abs()
+                < 1e-9
+        );
         assert_eq!(receipt["forecast_scores"][4]["model_wis"], Value::Null);
     }
 
     #[test]
     fn forecast_scoring_corpus_rejects_per_case_wis_oracle_mutation() {
-        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
-            .expect("valid forecast scoring corpus");
+        let mut manifest: Value =
+            serde_json::from_str(FORECAST_SCORING_FIXTURE).expect("valid forecast scoring corpus");
         manifest["cases"][0]["expected"]["model_wis"] = json!(0.99);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated WIS corpus");
         let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
@@ -4122,17 +4599,24 @@ mod tests {
 
     #[test]
     fn forecast_scoring_corpus_checks_full_risk_coverage_curve() {
-        let receipt = evaluate(FORECAST_SCORING_FIXTURE.as_bytes())
-            .expect("forecast scoring corpus parses");
+        let receipt =
+            evaluate(FORECAST_SCORING_FIXTURE.as_bytes()).expect("forecast scoring corpus parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORECAST_SCORING");
         assert_eq!(receipt["risk_coverage_curve"].as_array().unwrap().len(), 6);
-        assert!((receipt["risk_coverage_curve"][5]["mean_crps_risk"].as_f64().unwrap() - (14.5 / 6.0)).abs() < 1e-9);
+        assert!(
+            (receipt["risk_coverage_curve"][5]["mean_crps_risk"]
+                .as_f64()
+                .unwrap()
+                - (14.5 / 6.0))
+                .abs()
+                < 1e-9
+        );
     }
 
     #[test]
     fn forecast_scoring_corpus_rejects_mutated_risk_coverage_curve() {
-        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
-            .expect("valid forecast scoring corpus");
+        let mut manifest: Value =
+            serde_json::from_str(FORECAST_SCORING_FIXTURE).expect("valid forecast scoring corpus");
         manifest["expected_risk_coverage_curve"][0]["mean_crps_risk"] = json!(9.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated risk-coverage corpus");
         let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
@@ -4141,8 +4625,8 @@ mod tests {
 
     #[test]
     fn forecast_scoring_corpus_rejects_case_level_crps_oracle_mutation() {
-        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
-            .expect("valid forecast scoring corpus");
+        let mut manifest: Value =
+            serde_json::from_str(FORECAST_SCORING_FIXTURE).expect("valid forecast scoring corpus");
         manifest["cases"][0]["expected"]["model_crps"] = json!(0.99);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated forecast case");
         let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
@@ -4151,8 +4635,8 @@ mod tests {
 
     #[test]
     fn forecast_scoring_corpus_rejects_skill_oracle_mutation() {
-        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
-            .expect("valid forecast scoring corpus");
+        let mut manifest: Value =
+            serde_json::from_str(FORECAST_SCORING_FIXTURE).expect("valid forecast scoring corpus");
         manifest["expected_summary"]["crps_skill_score"] = json!(0.99);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated forecast corpus");
         let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
@@ -4161,8 +4645,8 @@ mod tests {
 
     #[test]
     fn forecast_scoring_corpus_rejects_abstention_coverage_mutation() {
-        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
-            .expect("valid forecast scoring corpus");
+        let mut manifest: Value =
+            serde_json::from_str(FORECAST_SCORING_FIXTURE).expect("valid forecast scoring corpus");
         manifest["expected_summary"]["forecast_coverage_fraction"] = json!(1.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated forecast corpus");
         let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
@@ -4234,12 +4718,20 @@ mod tests {
 
     #[test]
     fn decision_value_manifest_validates_twenty_cases_and_worked_evsi() {
-        let receipt = evaluate(DECISION_VALUE_FIXTURE.as_bytes()).expect("decision-value corpus parses");
+        let receipt =
+            evaluate(DECISION_VALUE_FIXTURE.as_bytes()).expect("decision-value corpus parses");
         assert_eq!(receipt["result"], "MANIFEST_VALID");
         assert_eq!(receipt["public_case_count"], 20);
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
         assert!((receipt["expected_gross_evsi_example"].as_f64().unwrap() - 8.8).abs() < 1e-9);
-        assert!((receipt["expected_net_value_after_cost_example"].as_f64().unwrap() - 5.8).abs() < 1e-9);
+        assert!(
+            (receipt["expected_net_value_after_cost_example"]
+                .as_f64()
+                .unwrap()
+                - 5.8)
+                .abs()
+                < 1e-9
+        );
         assert_eq!(receipt["decision_policy_performance"], "NOT_ESTABLISHED");
         assert_eq!(receipt["existing_evsi_kernel_execution"], "NOT_RUN");
     }
@@ -4248,8 +4740,8 @@ mod tests {
     fn decision_value_evsi_arithmetic_mutation_is_rejected() {
         let mut manifest: Value =
             serde_json::from_str(DECISION_VALUE_FIXTURE).expect("valid decision-value corpus");
-        manifest["worked_examples"]["moderate_uncertainty_positive_decision_value"]
-            ["net_expected_value_after_cost"] = json!(9.0);
+        manifest["worked_examples"]["moderate_uncertainty_positive_decision_value"]["net_expected_value_after_cost"] =
+            json!(9.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated decision-value corpus");
         let receipt = evaluate(&bytes).expect("well-formed corpus returns a receipt");
         assert_eq!(receipt["result"], "FAIL");
@@ -4257,7 +4749,8 @@ mod tests {
 
     #[test]
     fn high_information_without_action_change_has_zero_decision_value() {
-        let receipt = evaluate(DECISION_VALUE_FIXTURE.as_bytes()).expect("decision-value corpus parses");
+        let receipt =
+            evaluate(DECISION_VALUE_FIXTURE.as_bytes()).expect("decision-value corpus parses");
         let check = receipt["checks"]
             .as_array()
             .unwrap()
@@ -4273,24 +4766,27 @@ mod tests {
         assert_eq!(receipt["result"], "PASS");
         assert_eq!(receipt["checks_passed"], receipt["checks_total"]);
         assert_eq!(receipt["regional_or_field_validation"], "NOT_ESTABLISHED");
-        assert_eq!(receipt["ecological_parameter_calibration"], "NOT_ESTABLISHED");
+        assert_eq!(
+            receipt["ecological_parameter_calibration"],
+            "NOT_ESTABLISHED"
+        );
     }
 
     #[test]
     fn disconnected_control_mutation_is_rejected() {
         let mut manifest: Value = serde_json::from_str(FIXTURE).expect("valid fixture");
-        manifest["expected_state"]["disconnected-control-cell"]
-            ["live_biomass_kg_dry_matter"] = json!(51.0);
+        manifest["expected_state"]["disconnected-control-cell"]["live_biomass_kg_dry_matter"] =
+            json!(51.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated fixture");
-        let receipt =
-            evaluate(&bytes).expect("mutated fixture should remain structurally valid");
+        let receipt = evaluate(&bytes).expect("mutated fixture should remain structurally valid");
         assert_eq!(receipt["result"], "FAIL");
-        assert!(receipt["checks"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|check| check["id"] == "DISCONNECTED-CONTROL-001"
-                && check["passed"] == false));
+        assert!(
+            receipt["checks"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|check| check["id"] == "DISCONNECTED-CONTROL-001" && check["passed"] == false)
+        );
     }
 
     #[test]
@@ -4298,15 +4794,16 @@ mod tests {
         let mut manifest: Value = serde_json::from_str(FIXTURE).expect("valid fixture");
         manifest["parameters"]["mortality_flux_per_step"] = json!(6.0);
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutated fixture");
-        let receipt =
-            evaluate(&bytes).expect("mutated fixture should remain structurally valid");
+        let receipt = evaluate(&bytes).expect("mutated fixture should remain structurally valid");
         assert_eq!(receipt["result"], "FAIL");
-        assert!(receipt["checks"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|check| check["id"] == "PARAMETER-EFFECT-CONSISTENCY-001"
-                && check["passed"] == false));
+        assert!(
+            receipt["checks"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|check| check["id"] == "PARAMETER-EFFECT-CONSISTENCY-001"
+                    && check["passed"] == false)
+        );
     }
 
     #[test]
