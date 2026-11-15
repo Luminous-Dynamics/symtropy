@@ -58,17 +58,16 @@ fn exact_relative_state(scenario: &Scenario) -> (f64, f64, f64) {
 
     // Between release events, exactly one external restraint remains.
     if skew_s > 0.0 && scenario.preload_n > 0.0 {
-        let equilibrium_separation_m = if scenario.release_stream_time_s
-            < scenario.release_support_time_s
-        {
-            // Stream restraint releases first; the support-side restraint is -F0.
-            reduced_mass_kg * scenario.preload_n
-                / (scenario.mass_support_kg * scenario.stiffness_n_m)
-        } else {
-            // Support restraint releases first; the stream-side restraint is +F0.
-            reduced_mass_kg * scenario.preload_n
-                / (scenario.mass_stream_kg * scenario.stiffness_n_m)
-        };
+        let equilibrium_separation_m =
+            if scenario.release_stream_time_s < scenario.release_support_time_s {
+                // Stream restraint releases first; the support-side restraint is -F0.
+                reduced_mass_kg * scenario.preload_n
+                    / (scenario.mass_support_kg * scenario.stiffness_n_m)
+            } else {
+                // Support restraint releases first; the stream-side restraint is +F0.
+                reduced_mass_kg * scenario.preload_n
+                    / (scenario.mass_stream_kg * scenario.stiffness_n_m)
+            };
         (separation_m, velocity_mps) = propagate_relative(
             separation_m,
             velocity_mps,
@@ -116,8 +115,7 @@ fn consumer_side_state_space_oracle_matches_all_frozen_cases() {
             exact_relative_state(&case.scenario);
 
         assert!(
-            (report.final_separation_m - expected_separation).abs()
-                <= case.absolute_tolerance,
+            (report.final_separation_m - expected_separation).abs() <= case.absolute_tolerance,
             "{} separation differs from independent piecewise oracle",
             case.scenario.case_id
         );
