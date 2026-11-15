@@ -374,6 +374,7 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
         "REMOTE_SITE_NO_LOCAL_CALIBRATION_MASS",
         "NARROW_BANDWIDTH_LOW_WEIGHTED_MASS",
         "BANDWIDTH_WIDENING_ADDS_LOCAL_WEIGHT",
+        "K_NEAREST_CAP_EXCLUDES_REMOTE_HIGH_RESIDUAL",
     ].into_iter().collect();
     let mut seen = BTreeSet::new();
     let mut rows = Vec::new();
@@ -692,7 +693,7 @@ mod tests {
         let receipt = crate::evaluate(SPATIAL_FIXTURE.as_bytes())
             .expect("spatial receipt");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_SPATIAL_LOCALIZATION");
-        assert_eq!(receipt["case_count"], 5);
+        assert_eq!(receipt["case_count"], 6);
         assert_eq!(receipt["moran_case_count"], 4);
         assert_eq!(receipt["spatial_coverage_guarantee"], "NOT_ESTABLISHED");
     }
@@ -705,6 +706,17 @@ mod tests {
         let bytes = serde_json::to_vec(&manifest).expect("serialize mutation");
         let receipt = crate::evaluate(&bytes)
             .expect("semantic mutation returns failure receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn spatial_receipt_checks_k_nearest_neighbour_cap_and_radius() {
+        let mut manifest: Value = serde_json::from_str(SPATIAL_FIXTURE)
+            .expect("valid spatial fixture");
+        manifest["cases"][5]["expected"]["selected_neighborhood_radius_m"] = json!(0.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize k-neighbour mutation");
+        let receipt = crate::evaluate(&bytes)
+            .expect("k-neighbour semantic mutation returns a receipt");
         assert_eq!(receipt["result"], "FAIL");
     }
 
