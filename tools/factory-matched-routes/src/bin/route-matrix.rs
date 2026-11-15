@@ -6,7 +6,7 @@ use factory_matched_routes::run_reference_benchmark;
 fn main() {
     let rows = run_reference_benchmark();
     println!(
-        "architecture_id\tproduct_id\tscenario_id\tdisposition\tfeasible_assignments\tpareto_frontier\tblocked_operations"
+        "architecture_id\tproduct_id\tscenario_id\tdisposition\tfeasible_assignments\tpareto_frontier\tblocked_operations\tinput_failures"
     );
 
     for row in rows {
@@ -31,8 +31,16 @@ fn main() {
             .collect::<Vec<_>>()
             .join(",");
 
+        let input_failures = row
+            .evaluation
+            .input_failures
+            .iter()
+            .map(|failure| format!("{failure:?}"))
+            .collect::<Vec<_>>()
+            .join(";");
+
         println!(
-            "{}\t{}\t{}\t{:?}\t{}\t{}\t{}",
+            "{}\t{}\t{}\t{:?}\t{}\t{}\t{}\t{}",
             row.architecture_id,
             row.product_id,
             row.scenario_id,
@@ -40,6 +48,7 @@ fn main() {
             row.evaluation.feasible_assignment_count,
             if frontier.is_empty() { "-" } else { &frontier },
             if blocked.is_empty() { "-" } else { &blocked },
+            if input_failures.is_empty() { "-" } else { &input_failures },
         );
     }
 }
