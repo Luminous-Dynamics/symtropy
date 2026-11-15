@@ -156,3 +156,16 @@ The contact reference now exposes `audit_discrete_energy_ledger`. This is a sepa
 - rejects non-finite intermediates, mismatched shapes, altered position/slack and any ledger-field mismatch.
 
 The audit receipt is a replay record, not a formal proof: it uses f64 arithmetic and a declared tolerance profile. It does not certify the solver's contact complementarity, KKT accuracy, physical-model fit, frictional dissipation or time-discretization error. Those remain separate evidence obligations.
+
+### Canonical replay artifact bytes
+
+`canonical_energy_audit_payload` emits a deterministic versioned byte payload only after the independent audit succeeds. It binds:
+
+- the exact input matrices, vectors, contact Jacobian/gaps and timestep;
+- the effective metric, free velocity, accepted next state, acceleration, impulses, slack and active set;
+- all 15 published energy/work fields;
+- the audit profile and the replayed receipt/check counts.
+
+Encoding is fixed by the `LUMINOUS-ENERGY-AUDIT-V0.1` magic/version prefix, little-endian u64 lengths, row-major matrices, and exact IEEE-754 f64 bit patterns. The returned bytes can be passed to an approved SHA-256 implementation and the digest placed in the EnergyWorkLedger evidence receipt. The payload deliberately does not replace the higher-level immutable binding for model revision, fixture identity, units, coordinate frames or task semantics; those remain independently bound by the evidence composer.
+
+New regressions require byte-identical replay for identical exact inputs, different bytes after an external-force mutation, and refusal to serialize a tampered published ledger.
