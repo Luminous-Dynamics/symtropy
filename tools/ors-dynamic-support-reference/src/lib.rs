@@ -667,6 +667,31 @@ mod tests {
     }
 
     #[test]
+    fn rejects_non_aligned_support_release_event() {
+        let mut input = scenario();
+        input.release_support_time_s = 0.00015;
+        expect_error(input, ModelError::NonIntegralTimeGrid);
+    }
+
+    #[test]
+    fn rejects_support_release_after_duration() {
+        let mut input = scenario();
+        input.release_support_time_s = input.duration_s + input.dt_s;
+        expect_error(input, ModelError::ReleaseOutsideDuration);
+    }
+
+    #[test]
+    fn asynchronous_release_accounts_for_external_impulse() {
+        let mut input = scenario();
+        input.release_stream_time_s = 0.0;
+        input.release_support_time_s = 0.05;
+        let report = evaluate(&input).expect("asynchronous release simulation");
+        assert!((report.final_external_impulse_n_s + 5_000.0).abs() < 1.0e-8);
+        assert!(report.max_abs_linear_momentum_residual_kg_mps < 1.0e-7);
+        assert!(report.max_abs_energy_balance_residual_j < 1.0e-5);
+    }
+
+    #[test]
     fn rejects_excessive_step_count() {
         let mut input = scenario();
         input.duration_s = 200.0;
