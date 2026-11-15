@@ -9,7 +9,7 @@
 //! guarantee exactly-once physical actuation.
 
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -104,7 +104,7 @@ pub struct PhysicalTransaction {
     pub release_observed: bool,
     pub receive_observed: bool,
     pub last_sequence: u64,
-    seen_event_ids: BTreeSet<String>,
+    seen_events: BTreeMap<String, TransactionEvent>,
 }
 
 impl PhysicalTransaction {
@@ -116,7 +116,7 @@ impl PhysicalTransaction {
             release_observed: false,
             receive_observed: false,
             last_sequence: 0,
-            seen_event_ids: BTreeSet::new(),
+            seen_events: BTreeMap::new(),
         }
     }
 
@@ -156,8 +156,12 @@ impl PhysicalTransaction {
         check_identifier("actor_id", &event.actor_id)?;
         check_identifier("transaction_id", &event.transaction_id)?;
 
-        if self.seen_event_ids.contains(&event.event_id) {
-            return Ok(EventDisposition::DuplicateIgnored);
+        if let Some(previous) = self.seen_events.get(&event.event_id) {
+            if previous == &event {
+                return Ok(EventDisposition::DuplicateIgnored);
+            }
+            self.state = PhysicalTransactionState::ReconciliationRequired;
+            return Ok(EventDisposition::ReconciliationRequired);
         }
         if event.transaction_id != self.context.transaction_id {
             self.state = PhysicalTransactionState::ReconciliationRequired;
@@ -169,7 +173,7 @@ impl PhysicalTransaction {
         }
 
         self.last_sequence = event.sequence;
-        self.seen_event_ids.insert(event.event_id);
+        self.seen_events.insert(event.event_id.clone(), event.clone());
 
         if matches!(
             self.state,
@@ -458,6 +462,89 @@ mod tests {
     }
 
     #[test]
+    fn same_event_id_with_conflicting_payload_requires_reconciliation() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        let original = event(2, "event-release", "carrier-01", release_event());
+        assert_eq!(tx.record_event(original.clone()).unwrap(), EventDisposition::Applied);
+        let conflicting = event(
+            2,
+            "event-release",
+            "attacker-01",
+            TransactionEventKind::SensorDisagreement,
+        );
+        assert_eq!(
+            tx.record_event(conflicting).unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn second_distinct_release_observation_requires_reconciliation() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(2, "event-release", "carrier-01", release_event()))
+            .unwrap();
+        assert_eq!(
+            tx.record_event(event(3, "event-release-duplicate", "carrier-01", release_event()))
+                .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+
+    #[test]
+    fn new_command_id_after_dispatch_is_never_permitted() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.request_release_command("cmd-02").unwrap(),
+            DispatchGate::BlockedForReconciliation
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn wrong_receiver_cannot_acknowledge_custody() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(2, "event-release", "carrier-01", release_event()))
+            .unwrap();
+        tx.record_event(event(3, "event-receive", "receiver-01", receive_event()))
+            .unwrap();
+        let ack = TransactionEventKind::CustodyAcknowledged {
+            command_id: "cmd-01".into(),
+            package_id: "pkg-01".into(),
+            evidence_digest: format!("sha256:{}", "a".repeat(64)),
+        };
+        assert_eq!(
+            tx.record_event(event(4, "event-ack", "attacker-01", ack))
+                .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+
+    #[test]
+    fn invalid_acknowledgement_digest_cannot_complete_transaction() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(2, "event-release", "carrier-01", release_event()))
+            .unwrap();
+        tx.record_event(event(3, "event-receive", "receiver-01", receive_event()))
+            .unwrap();
+        let ack = TransactionEventKind::CustodyAcknowledged {
+            command_id: "cmd-01".into(),
+            package_id: "pkg-01".into(),
+            evidence_digest: "not-a-digest".into(),
+        };
+        assert_eq!(
+            tx.record_event(event(4, "event-ack", "receiver-01", ack))
+                .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+
+    #[test]
     fn sequence_gap_enters_reconciliation_required() {
         let mut tx = transaction();
         issue_release(&mut tx);
@@ -492,39 +579,29 @@ mod tests {
     #[test]
     fn expired_or_out_of_scope_grant_is_rejected_before_dispatch() {
         let mut tx = transaction();
-        let mut grant = match valid_authorization() {
-            TransactionEventKind::AuthorizationGranted {
-                not_before_unix_ms,
-                expires_at_unix_ms,
-                checked_at_unix_ms,
-                audience_matches,
-                endpoint_matches,
-                scope_matches,
-                use_remaining,
-            } => TransactionEventKind::AuthorizationGranted {
-                not_before_unix_ms,
-                expires_at_unix_ms: checked_at_unix_ms,
-                checked_at_unix_ms,
-                audience_matches,
-                endpoint_matches,
-                scope_matches: false,
-                use_remaining,
-            },
-            _ => unreachable!(),
+        let invalid_grant = TransactionEventKind::AuthorizationGranted {
+            not_before_unix_ms: 1_000,
+            expires_at_unix_ms: 2_000,
+            checked_at_unix_ms: 2_000,
+            audience_matches: true,
+            endpoint_matches: true,
+            scope_matches: false,
+            use_remaining: true,
         };
         assert_eq!(
-            tx.record_event(event(1, "event-auth", "household-01", grant.clone()))
-                .unwrap(),
+            tx.record_event(event(
+                1,
+                "event-auth",
+                "household-01",
+                invalid_grant
+            ))
+            .unwrap(),
             EventDisposition::Rejected
         );
         assert_eq!(
             tx.request_release_command("cmd-01").unwrap(),
             DispatchGate::BlockedByState(PhysicalTransactionState::Rejected)
         );
-        // Keep the enum binding mutable in this test only to make accidental
-        // reuse of a rejected grant visible to future refactors.
-        grant = valid_authorization();
-        assert_ne!(grant, TransactionEventKind::AuthorizationDenied);
     }
 
     #[test]
