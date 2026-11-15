@@ -570,7 +570,8 @@
         "actual_fixed_charge_zar": 150,
         "monthly_disposable_income_zar": 18000,
         "verified_useful_delivered_m3": 9,
-        "critical_person_days_delivered": 120
+        "critical_person_days_delivered": 120,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -603,7 +604,8 @@
         "actual_fixed_charge_zar": 200,
         "monthly_disposable_income_zar": 15000,
         "verified_useful_delivered_m3": 6,
-        "critical_person_days_delivered": 90
+        "critical_person_days_delivered": 90,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -636,7 +638,8 @@
         "actual_fixed_charge_zar": null,
         "monthly_disposable_income_zar": 18000,
         "verified_useful_delivered_m3": 9,
-        "critical_person_days_delivered": 120
+        "critical_person_days_delivered": 120,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -669,7 +672,8 @@
         "actual_fixed_charge_zar": 150,
         "monthly_disposable_income_zar": 18000,
         "verified_useful_delivered_m3": 0,
-        "critical_person_days_delivered": 0
+        "critical_person_days_delivered": 0,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -702,7 +706,8 @@
         "actual_fixed_charge_zar": 150,
         "monthly_disposable_income_zar": 18000,
         "verified_useful_delivered_m3": 9,
-        "critical_person_days_delivered": 120
+        "critical_person_days_delivered": 120,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -735,7 +740,8 @@
         "actual_fixed_charge_zar": 150,
         "monthly_disposable_income_zar": null,
         "verified_useful_delivered_m3": 9,
-        "critical_person_days_delivered": 120
+        "critical_person_days_delivered": 120,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -768,7 +774,8 @@
         "actual_fixed_charge_zar": 150,
         "monthly_disposable_income_zar": 18000,
         "verified_useful_delivered_m3": 9,
-        "critical_person_days_delivered": 120
+        "critical_person_days_delivered": 120,
+        "tariff_billing_period_days": 30
       }
     },
     {
@@ -801,7 +808,42 @@
         "actual_fixed_charge_zar": 150,
         "monthly_disposable_income_zar": 18000,
         "verified_useful_delivered_m3": 9,
-        "critical_person_days_delivered": 60
+        "critical_person_days_delivered": 60,
+        "tariff_billing_period_days": 30
+      }
+    },
+    {
+      "case_id": "WL-T0-034-economics-tariff-billing-period-mismatch",
+      "family": "household_economics",
+      "inputs": {
+        "currency": "ZAR",
+        "price_date": "2026-11-15",
+        "region": "Johannesburg-GP",
+        "cost_period_days": 30,
+        "cost_use_profile_id": "nonpotable-toilet-v1",
+        "service_use_profile_id": "nonpotable-toilet-v1",
+        "cost_ledger_admitted": true,
+        "tariff_evidence_admitted": true,
+        "income_evidence_admitted": true,
+        "service_evidence_admitted": true,
+        "service_floors_met": true,
+        "tariff_schedule_revision": "municipal-rising-block-2026-07-v1",
+        "tariff_bill_method_id": "owner-admitted-bill-replay-v1",
+        "monthly_capex_equivalent_zar": 300,
+        "maintenance_repair_zar": 100,
+        "electricity_kwh": 40,
+        "electricity_tariff_zar_per_kwh": 3,
+        "consumables_replacement_zar": 50,
+        "external_water_delivery_zar": 80,
+        "residual_disposal_zar": 30,
+        "baseline_utility_bill_zar": 600,
+        "actual_utility_bill_zar": 400,
+        "baseline_fixed_charge_zar": 150,
+        "actual_fixed_charge_zar": 150,
+        "monthly_disposable_income_zar": 18000,
+        "verified_useful_delivered_m3": 9,
+        "critical_person_days_delivered": 120,
+        "tariff_billing_period_days": 28
       }
     }
   ]
