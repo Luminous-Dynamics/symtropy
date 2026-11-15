@@ -302,6 +302,13 @@
         ],
         "denominator_tolerance": 1e-12
       }
+    },
+    {
+      "case_id": "HC-T0-021-final-test-model-selection-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "model_selected_using_test_scores": true
+      }
     }
   ]
 }
