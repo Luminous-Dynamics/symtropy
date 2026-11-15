@@ -1,0 +1,672 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "case_corpus_id": "CANOPY-GAP-REPRESENTATION-001",
+  "status": "ANALYTICAL_SYNTHETIC_FIXTURES_NOT_YET_EXECUTED",
+  "claim_ceiling": "Checks aggregate-versus-spatial topology semantics only; the light-transmittance law and parameters are synthetic and are not calibrated plant physiology.",
+  "grid": {
+    "width": 8,
+    "height": 8,
+    "cell_area_m2": 1,
+    "adjacency": "four_neighbour"
+  },
+  "synthetic_light_law": {
+    "equation": "T(x,y) = exp(-k * LAI(x,y))",
+    "extinction_coefficient_k": 0.5,
+    "calibrated": false,
+    "claim": "analytical geometric fixture only"
+  },
+  "arrangements": [
+    {
+      "arrangement_id": "CHECKERBOARD-001",
+      "occupied_cell_count": 32,
+      "open_cell_count": 32,
+      "occupied_lai": 2,
+      "open_lai": 0,
+      "total_lai": 64,
+      "mean_lai": 1,
+      "open_component_count_four_neighbour": 32,
+      "expected_spatial_transmittance": {
+        "occupied": 0.36787944117144233,
+        "open": 1
+      },
+      "expected_uniform_patch_transmittance": 0.6065306597126334,
+      "occupied_coordinates": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "open_coordinates": [
+        [
+          1,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ]
+    },
+    {
+      "arrangement_id": "CLUSTERED-BLOCK-001",
+      "occupied_cell_count": 32,
+      "open_cell_count": 32,
+      "occupied_lai": 2,
+      "open_lai": 0,
+      "total_lai": 64,
+      "mean_lai": 1,
+      "open_component_count_four_neighbour": 1,
+      "expected_spatial_transmittance": {
+        "occupied": 0.36787944117144233,
+        "open": 1
+      },
+      "expected_uniform_patch_transmittance": 0.6065306597126334,
+      "occupied_coordinates": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          2,
+          0
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          7
+        ]
+      ],
+      "open_coordinates": [
+        [
+          4,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          6,
+          0
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          7
+        ]
+      ]
+    }
+  ],
+  "uniform_patch_baseline": {
+    "mean_lai": 1,
+    "predicted_transmittance_every_cell": 0.6065306597126334,
+    "expected_to_miss_spatial_gap_topology": true
+  },
+  "negative_controls": [
+    {
+      "case_id": "AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001",
+      "expected": "SAME_TOTAL_LAI_DIFFERENT_GAP_TOPOLOGY"
+    },
+    {
+      "case_id": "SINGLE-COHORT-MORTALITY-LOCAL-GAP-001",
+      "expected": "ONLY_SUPPORTED_CANOPY_CELLS_CHANGE"
+    },
+    {
+      "case_id": "DISCONNECTED-CONTROL-PATCH-001",
+      "expected": "EXACTLY_UNCHANGED"
+    },
+    {
+      "case_id": "RENDERER-INDEPENDENCE-001",
+      "expected": "CANONICAL_ECOLOGY_IDENTICAL_ACROSS_CAMERA_AND_LOD_SETTINGS"
+    },
+    {
+      "case_id": "GLOBAL-LAI-INSUFFICIENT-FOR-RECRUITMENT-001",
+      "expected": "REPRESENTATION_PROMOTION_OR_ABSTENTION"
+    },
+    {
+      "case_id": "TRANSLATION-SYMMETRY-001",
+      "expected": "EQUIVALENT_OUTPUT_UNDER_SYMMETRIC_BOUNDARIES"
+    }
+  ],
+  "execution": {
+    "runner": "NOT_IMPLEMENTED",
+    "external_data_used": false,
+    "field_calibration": "NOT_RUN",
+    "empirical_validation": "NOT_RUN",
+    "published_lpj_guess_sec_reproduction": "NOT_RUN",
+    "challenge_case_count": 10
+  },
+  "challenge_cases": [
+    {
+      "case_id": "CANOPY-AGGREGATE-EQUAL-TOPOLOGY-DIFFERENT-001",
+      "family": "aggregate_vs_spatial_representation",
+      "condition": "Two canopy arrangements have identical total/mean LAI but different open-gap connected-component structure.",
+      "expected_disposition": "SAME_AGGREGATES_DIFFERENT_SPATIAL_GAP_TOPOLOGY"
+    },
+    {
+      "case_id": "CANOPY-MORTALITY-LOCAL-GAP-001",
+      "family": "single_cohort_mortality",
+      "condition": "A declared cohort dies and its crown contribution is removed from only the cells in its support.",
+      "expected_disposition": "LOCAL_CANOPY_SUPPORT_CHANGES_ONLY"
+    },
+    {
+      "case_id": "CANOPY-CLUSTERED-VS-DISPERSED-MORTALITY-001",
+      "family": "disturbance_geometry",
+      "condition": "Equal biomass mortality is applied in clustered and dispersed spatial patterns.",
+      "expected_disposition": "EQUAL_LOSS_DIFFERENT_GAP_GEOMETRY"
+    },
+    {
+      "case_id": "CANOPY-RECRUITMENT-LOCAL-LIGHT-001",
+      "family": "understory_recruitment",
+      "condition": "Recruitment opportunity depends on local understory light rather than only global mean LAI.",
+      "expected_disposition": "LOCAL_LIGHT_REQUIRED_FOR_RECRUITMENT_CLAIM"
+    },
+    {
+      "case_id": "CANOPY-GAP-CLOSURE-CAUSAL-001",
+      "family": "gap_recovery",
+      "condition": "An existing gap closes only after explicit canopy growth/crown expansion and canonical settlement.",
+      "expected_disposition": "GAP_CLOSURE_REQUIRES_EXPLICIT_GROWTH_SETTLEMENT"
+    },
+    {
+      "case_id": "CANOPY-TRANSLATION-SYMMETRY-001",
+      "family": "spatial_symmetry",
+      "condition": "A canopy arrangement is translated within symmetric boundaries with identical forcing.",
+      "expected_disposition": "TRANSLATED_CASE_OUTPUTS_EQUIVALENT"
+    },
+    {
+      "case_id": "CANOPY-ROTATION-SYMMETRY-001",
+      "family": "spatial_symmetry",
+      "condition": "A canopy arrangement is rotated by 90 degrees within symmetric boundaries with identical forcing.",
+      "expected_disposition": "ROTATED_CASE_OUTPUTS_EQUIVALENT"
+    },
+    {
+      "case_id": "CANOPY-DISCONNECTED-CONTROL-001",
+      "family": "causal_negative_control",
+      "condition": "A disconnected control patch has no declared causal path from the canopy intervention.",
+      "expected_disposition": "DISCONNECTED_PATCH_UNCHANGED"
+    },
+    {
+      "case_id": "CANOPY-RENDERER-INDEPENDENCE-001",
+      "family": "presentation_independence",
+      "condition": "Camera, renderer LOD, animation and frame rate are varied without changing canonical ecological state.",
+      "expected_disposition": "CANONICAL_ECOLOGY_IDENTICAL"
+    },
+    {
+      "case_id": "CANOPY-COARSE-FIDELITY-PROMOTION-001",
+      "family": "process_driven_fidelity",
+      "condition": "A recruitment process requires local gap/light information but the selected coarse representation carries only global mean LAI.",
+      "expected_disposition": "PROMOTE_SPATIAL_REPRESENTATION_OR_ABSTAIN"
+    }
+  ]
+}

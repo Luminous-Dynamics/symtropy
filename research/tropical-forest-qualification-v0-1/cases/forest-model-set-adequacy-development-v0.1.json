@@ -1,0 +1,228 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-MODEL-SET-ADEQUACY-001",
+  "status": "PUBLIC_DEVELOPMENT_CASE_FAMILIES_NOT_BLIND",
+  "claim_ceiling": "Thirty public development descriptors (three variants for each of ten omitted-mechanism families) validate only the case-family contract. This is not a blind test; no hidden generator equations, parameters or future outcomes are present, and no model's detection performance is measured. No real site or data are ingested.",
+  "hidden_truth_published": false,
+  "blind_test_status": "NOT_CREATED_REQUIRES_INDEPENDENT_CUSTODY",
+  "cases": [
+    {
+      "case_id": "FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-001",
+      "family": "growth_mortality_compensation",
+      "variant_id": "growth_mortality_compensation-variant-01",
+      "condition": "Different growth and mortality processes yield similar net historical biomass but diverge in future stock and size structure.",
+      "expected_disposition": "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-002",
+      "family": "growth_mortality_compensation",
+      "variant_id": "growth_mortality_compensation-variant-02",
+      "condition": "Two candidate parameterizations match plot-mean biomass while implying different mortality hazards across diameter classes.",
+      "expected_disposition": "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-GROWTH-MORTALITY-COMPENSATION-003",
+      "family": "growth_mortality_compensation",
+      "variant_id": "growth_mortality_compensation-variant-03",
+      "condition": "A short calibration window hides growth–mortality compensation that separates after a synthetic drought pulse.",
+      "expected_disposition": "PRESERVE_STRUCTURAL_DISAGREEMENT_OR_REQUEST_SIZE_RESOLVED_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-RECRUITMENT-GROWTH-ALIASING-001",
+      "family": "recruitment_growth_aliasing",
+      "variant_id": "recruitment_growth_aliasing-variant-01",
+      "condition": "A recruitment pulse and faster growth of existing cohorts produce similar aggregate biomass but different cohort distributions.",
+      "expected_disposition": "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"
+    },
+    {
+      "case_id": "FOREST-MSA-RECRUITMENT-GROWTH-ALIASING-002",
+      "family": "recruitment_growth_aliasing",
+      "variant_id": "recruitment_growth_aliasing-variant-02",
+      "condition": "Stem counts and diameter distributions distinguish new recruits from accelerated growth despite similar total stock.",
+      "expected_disposition": "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"
+    },
+    {
+      "case_id": "FOREST-MSA-RECRUITMENT-GROWTH-ALIASING-003",
+      "family": "recruitment_growth_aliasing",
+      "variant_id": "recruitment_growth_aliasing-variant-03",
+      "condition": "Two models match canopy biomass but diverge in seedling/sapling abundance over a held-out interval.",
+      "expected_disposition": "DO_NOT_TREAT_AGGREGATE_BIOMASS_FIT_AS_DEMOGRAPHIC_ADEQUACY"
+    },
+    {
+      "case_id": "FOREST-MSA-DELAYED-RESPONSE-001",
+      "family": "delayed_response",
+      "variant_id": "delayed_response-variant-01",
+      "condition": "Historical response is fit by instantaneous models while the synthetic generator contains a delayed response.",
+      "expected_disposition": "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"
+    },
+    {
+      "case_id": "FOREST-MSA-DELAYED-RESPONSE-002",
+      "family": "delayed_response",
+      "variant_id": "delayed_response-variant-02",
+      "condition": "A drought pulse causes delayed mortality after the observed training window, which instantaneous candidates miss.",
+      "expected_disposition": "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"
+    },
+    {
+      "case_id": "FOREST-MSA-DELAYED-RESPONSE-003",
+      "family": "delayed_response",
+      "variant_id": "delayed_response-variant-03",
+      "condition": "Recovery lags differ across functional groups even though the aggregate first-year response is similar.",
+      "expected_disposition": "FLAG_MODEL_SET_ADEQUACY_UNRESOLVED"
+    },
+    {
+      "case_id": "FOREST-MSA-SIZE-DEPENDENT-MORTALITY-001",
+      "family": "size_dependent_mortality",
+      "variant_id": "size_dependent_mortality-variant-01",
+      "condition": "Aggregate mortality fit hides a size-stratified mortality mechanism absent from every registered competitor.",
+      "expected_disposition": "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"
+    },
+    {
+      "case_id": "FOREST-MSA-SIZE-DEPENDENT-MORTALITY-002",
+      "family": "size_dependent_mortality",
+      "variant_id": "size_dependent_mortality-variant-02",
+      "condition": "Large-stem mortality and small-stem mortality offset in total counts but produce different basal-area trajectories.",
+      "expected_disposition": "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"
+    },
+    {
+      "case_id": "FOREST-MSA-SIZE-DEPENDENT-MORTALITY-003",
+      "family": "size_dependent_mortality",
+      "variant_id": "size_dependent_mortality-variant-03",
+      "condition": "A single pooled hazard fits the training interval while held-out diameter-class mortality diverges.",
+      "expected_disposition": "REQUEST_SIZE_STRATIFIED_OBSERVATION_OR_ABSTAIN"
+    },
+    {
+      "case_id": "FOREST-MSA-SEED-LIMITATION-001",
+      "family": "seed_or_propagule_limitation",
+      "variant_id": "seed_or_propagule_limitation-variant-01",
+      "condition": "Candidate models attribute recruitment entirely to local gap light while the synthetic generator includes a separate propagule constraint.",
+      "expected_disposition": "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-SEED-LIMITATION-002",
+      "family": "seed_or_propagule_limitation",
+      "variant_id": "seed_or_propagule_limitation-variant-02",
+      "condition": "Equal understory light produces different regeneration because seed-source distance is omitted from the candidates.",
+      "expected_disposition": "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-SEED-LIMITATION-003",
+      "family": "seed_or_propagule_limitation",
+      "variant_id": "seed_or_propagule_limitation-variant-03",
+      "condition": "A gap-light model predicts recruitment where the synthetic propagule supply is zero.",
+      "expected_disposition": "PRESERVE_COMPETING_MECHANISM_AND_SEEK_DISCRIMINATING_EVIDENCE"
+    },
+    {
+      "case_id": "FOREST-MSA-SPATIAL-CANOPY-TOPOLOGY-001",
+      "family": "spatial_canopy_topology",
+      "variant_id": "spatial_canopy_topology-variant-01",
+      "condition": "Models with equal mean LAI cannot distinguish different spatial gap topology and local understory light.",
+      "expected_disposition": "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"
+    },
+    {
+      "case_id": "FOREST-MSA-SPATIAL-CANOPY-TOPOLOGY-002",
+      "family": "spatial_canopy_topology",
+      "variant_id": "spatial_canopy_topology-variant-02",
+      "condition": "Clustered versus dispersed mortality has equal removed biomass but different gap connectivity and light distribution.",
+      "expected_disposition": "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"
+    },
+    {
+      "case_id": "FOREST-MSA-SPATIAL-CANOPY-TOPOLOGY-003",
+      "family": "spatial_canopy_topology",
+      "variant_id": "spatial_canopy_topology-variant-03",
+      "condition": "Spatial translation preserves outcomes while replacing local crown support with a uniform canopy erases the causal gap signal.",
+      "expected_disposition": "PROMOTE_SPATIAL_REPRESENTATION_OR_MARK_PROCESS_UNSUPPORTED"
+    },
+    {
+      "case_id": "FOREST-MSA-DISTURBANCE-CLIMATE-INTERACTION-001",
+      "family": "disturbance_climate_interaction",
+      "variant_id": "disturbance_climate_interaction-variant-01",
+      "condition": "Separate disturbance and climate response models fit individual shocks but omit their joint interaction.",
+      "expected_disposition": "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"
+    },
+    {
+      "case_id": "FOREST-MSA-DISTURBANCE-CLIMATE-INTERACTION-002",
+      "family": "disturbance_climate_interaction",
+      "variant_id": "disturbance_climate_interaction-variant-02",
+      "condition": "A disturbance pulse under a heatwave creates nonlinear mortality absent from separate additive candidate responses.",
+      "expected_disposition": "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"
+    },
+    {
+      "case_id": "FOREST-MSA-DISTURBANCE-CLIMATE-INTERACTION-003",
+      "family": "disturbance_climate_interaction",
+      "variant_id": "disturbance_climate_interaction-variant-03",
+      "condition": "The joint drought-disturbance case falls outside the candidates' single-driver calibration envelope.",
+      "expected_disposition": "FLAG_UNTESTED_INTERACTION_AND_LIMIT_CLAIM"
+    },
+    {
+      "case_id": "FOREST-MSA-OBSERVATION-PROCESS-SHIFT-001",
+      "family": "observation_process_shift",
+      "variant_id": "observation_process_shift-variant-01",
+      "condition": "The latent forest state is unchanged while census threshold, sensor, sampling geometry or missingness mechanism changes.",
+      "expected_disposition": "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"
+    },
+    {
+      "case_id": "FOREST-MSA-OBSERVATION-PROCESS-SHIFT-002",
+      "family": "observation_process_shift",
+      "variant_id": "observation_process_shift-variant-02",
+      "condition": "A sensor algorithm revision shifts the biomass estimate while the simulated latent state is held fixed.",
+      "expected_disposition": "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"
+    },
+    {
+      "case_id": "FOREST-MSA-OBSERVATION-PROCESS-SHIFT-003",
+      "family": "observation_process_shift",
+      "variant_id": "observation_process_shift-variant-03",
+      "condition": "A changed diameter inclusion threshold alters apparent recruitment without any underlying demographic change.",
+      "expected_disposition": "CLASSIFY_OBSERVATION_SHIFT_NOT_ECOLOGICAL_CHANGE"
+    },
+    {
+      "case_id": "FOREST-MSA-CROSS-REGION-TRANSFER-001",
+      "family": "cross_region_parameter_transfer",
+      "variant_id": "cross_region_parameter_transfer-variant-01",
+      "condition": "A model fitted in a source region is applied to a target regime outside the declared parameter and observation domain.",
+      "expected_disposition": "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"
+    },
+    {
+      "case_id": "FOREST-MSA-CROSS-REGION-TRANSFER-002",
+      "family": "cross_region_parameter_transfer",
+      "variant_id": "cross_region_parameter_transfer-variant-02",
+      "condition": "A source-region trait/soil/climate combination is transferred to a target regime with unsupported functional composition.",
+      "expected_disposition": "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"
+    },
+    {
+      "case_id": "FOREST-MSA-CROSS-REGION-TRANSFER-003",
+      "family": "cross_region_parameter_transfer",
+      "variant_id": "cross_region_parameter_transfer-variant-03",
+      "condition": "A source-region sensor/plot observation operator is reused in another region without a qualified support conversion.",
+      "expected_disposition": "OUT_OF_DOMAIN_OR_RECALIBRATION_REQUIRED"
+    },
+    {
+      "case_id": "FOREST-MSA-COMMON-STRUCTURAL-OMISSION-001",
+      "family": "common_structural_omission",
+      "variant_id": "common_structural_omission-variant-01",
+      "condition": "All registered models agree and fit historical observations, but the independent evaluator's generator contains a process absent from every registered model.",
+      "expected_disposition": "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"
+    },
+    {
+      "case_id": "FOREST-MSA-COMMON-STRUCTURAL-OMISSION-002",
+      "family": "common_structural_omission",
+      "variant_id": "common_structural_omission-variant-02",
+      "condition": "All candidates omit a shared belowground or propagule mechanism, so ensemble agreement cannot resolve the hidden trajectory.",
+      "expected_disposition": "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"
+    },
+    {
+      "case_id": "FOREST-MSA-COMMON-STRUCTURAL-OMISSION-003",
+      "family": "common_structural_omission",
+      "variant_id": "common_structural_omission-variant-03",
+      "condition": "All registered canopy models omit a coupled delayed response; historical predictive intervals remain narrow despite the unrepresented mechanism.",
+      "expected_disposition": "DO_NOT_CERTIFY_MODEL_SET_ADEQUACY;REQUEST_DISCRIMINATING_EVIDENCE_OR_ABSTAIN"
+    }
+  ],
+  "execution": {
+    "validator": "NOT_IMPLEMENTED_FOR_THIS_CORPUS",
+    "external_data_ingested": false,
+    "blind_generator_identity": "NOT_PUBLISHED",
+    "independent_custodian": "NOT_APPOINTED",
+    "hidden_test": "NOT_CREATED"
+  }
+}

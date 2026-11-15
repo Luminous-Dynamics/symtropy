@@ -86,3 +86,16 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+    # The tropical-forest qualifier is intentionally a standalone Cargo
+    # workspace under research/, so root --workspace commands do not include it.
+    # Keep its formatting, lint and tests as explicit CI gates rather than
+    # allowing a green root-workspace run to skip the research verifier.
+    - name: Format Tropical Forest Qualifier
+      run: cargo fmt --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- --check
+
+    - name: Clippy Tropical Forest Qualifier
+      run: cargo clippy --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml --all-targets --all-features -- -D warnings
+
+    - name: Test Tropical Forest Qualifier
+      run: cargo test --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml --all-targets --all-features

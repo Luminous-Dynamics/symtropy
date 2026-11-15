@@ -1,0 +1,125 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "case_id": "FOREST-PATCH-ACCOUNTING-SYNTHETIC-001",
+  "title": "Synthetic cohort biomass accounting and disconnected control",
+  "status": "SPECIFICATION_FIXTURE_NOT_YET_EXECUTED",
+  "evidence_class": "synthetic_known_truth",
+  "claim_ceiling": "Checks deterministic state accounting and causal isolation only; does not calibrate biological parameters or represent a real forest.",
+  "region_profile": {
+    "kind": "synthetic",
+    "label": "no real geography",
+    "ecoregion_id": null,
+    "country": null
+  },
+  "spatial_support": {
+    "geometry_kind": "abstract_cells",
+    "cell_area_m2": 100,
+    "cells": [
+      {
+        "cell_id": "intervention-cell",
+        "area_m2": 100
+      },
+      {
+        "cell_id": "disconnected-control-cell",
+        "area_m2": 100
+      }
+    ],
+    "adjacency": [],
+    "explicit_causal_links": []
+  },
+  "temporal_support": {
+    "start_time": "t0",
+    "end_time": "t1",
+    "step_count": 1,
+    "step_duration": "1 synthetic model step",
+    "calendar_mapping": null
+  },
+  "units": {
+    "live_biomass": "kg_dry_matter",
+    "deadwood_biomass": "kg_dry_matter",
+    "growth_flux": "kg_dry_matter_per_step",
+    "mortality_flux": "kg_dry_matter_per_step"
+  },
+  "parameters": {
+    "parameter_origin": "chosen_for_exact_accounting_test_not_ecological_calibration",
+    "growth_flux_per_step": 12,
+    "mortality_flux_per_step": 5,
+    "decomposition_flux_per_step": 0
+  },
+  "initial_state": {
+    "intervention-cell": {
+      "live_biomass_kg_dry_matter": 100,
+      "deadwood_biomass_kg_dry_matter": 10
+    },
+    "disconnected-control-cell": {
+      "live_biomass_kg_dry_matter": 50,
+      "deadwood_biomass_kg_dry_matter": 4
+    }
+  },
+  "interventions": [
+    {
+      "intervention_id": "synthetic-growth-and-mortality",
+      "target_cell_id": "intervention-cell",
+      "declared_effects": {
+        "live_growth_kg_dry_matter": 12,
+        "live_to_deadwood_transfer_kg_dry_matter": 5
+      }
+    }
+  ],
+  "expected_state": {
+    "intervention-cell": {
+      "live_biomass_kg_dry_matter": 107,
+      "deadwood_biomass_kg_dry_matter": 15,
+      "total_biomass_kg_dry_matter": 122
+    },
+    "disconnected-control-cell": {
+      "live_biomass_kg_dry_matter": 50,
+      "deadwood_biomass_kg_dry_matter": 4,
+      "total_biomass_kg_dry_matter": 54
+    }
+  },
+  "invariants": [
+    {
+      "id": "BIOMASS-CONSERVATION-001",
+      "rule": "end_live + end_deadwood = start_live + start_deadwood + external_growth - external_losses",
+      "expected_residual_kg_dry_matter": 0,
+      "tolerance_kg_dry_matter": 1e-9
+    },
+    {
+      "id": "MORTALITY-TRANSFER-001",
+      "rule": "mortality reduces live biomass and increases deadwood by the same amount",
+      "expected_transfer_kg_dry_matter": 5,
+      "tolerance_kg_dry_matter": 1e-9
+    },
+    {
+      "id": "DISCONNECTED-CONTROL-001",
+      "rule": "a cell with no explicit causal path from the intervention remains unchanged",
+      "expected_max_absolute_state_delta": 0,
+      "tolerance": 0
+    },
+    {
+      "id": "DETERMINISTIC-REPLAY-001",
+      "rule": "identical case, model revision, input and seed produce identical canonical state digest",
+      "expected": "EXACT_MATCH"
+    }
+  ],
+  "holdout_policy": {
+    "case_role": "software_verification_only",
+    "never_use_as_training_or_parameter_calibration_data": true,
+    "synthetic_cases_do_not_count_as_region_or_field_validation": true
+  },
+  "provenance": {
+    "source_kind": "authored_synthetic_fixture",
+    "source_uri": null,
+    "source_revision": "research/tropical-forest-qualification-v0-1",
+    "external_data_used": false,
+    "data_rights_status": "not_applicable_synthetic",
+    "authoring_note": "All values are deliberately synthetic algebraic test values."
+  },
+  "evaluator": {
+    "runner": "NOT_IMPLEMENTED",
+    "output_receipt": "NOT_IMPLEMENTED",
+    "independent_oracle": "closed_form_expected_state_above"
+  }
+}
