@@ -18,6 +18,7 @@ pub enum ModelError {
     NonPositiveInput(&'static str),
     NegativeInput(&'static str),
     BodyCrossesRotationAxis,
+    OuterRadiusLessThanInner,
 }
 
 impl fmt::Display for ModelError {
@@ -30,6 +31,9 @@ impl fmt::Display for ModelError {
             Self::NegativeInput(name) => write!(f, "{name} must be non-negative"),
             Self::BodyCrossesRotationAxis => {
                 write!(f, "radial body extent may not cross the rotation axis")
+            }
+            Self::OuterRadiusLessThanInner => {
+                write!(f, "outer_radius_m must be greater than or equal to inner_radius_m")
             }
         }
     }
@@ -176,6 +180,58 @@ pub fn radial_gravity_profile(
     })
 }
 
+
+/// Radial acceleration envelope over an occupied annular region.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RadialGravityEnvelope {
+    pub inner_radius_m: f64,
+    pub outer_radius_m: f64,
+    pub inner_g: f64,
+    pub outer_g: f64,
+    pub spread_g: f64,
+    /// (outer_g - inner_g) / midpoint_g.
+    pub relative_spread_fraction: f64,
+}
+
+/// Evaluate ideal gravity variation over a radial habitat interval.
+///
+/// For fixed angular velocity, local rotation-generated acceleration is
+/// linear in radius. This returns the endpoint range; it does not model
+/// structural deformation or occupied-volume geometry away from the radial
+/// line.
+pub fn radial_gravity_envelope(
+    inner_radius_m: f64,
+    outer_radius_m: f64,
+    rpm: f64,
+) -> Result<RadialGravityEnvelope, ModelError> {
+    require_positive(inner_radius_m, "inner_radius_m")?;
+    require_positive(outer_radius_m, "outer_radius_m")?;
+    require_positive(rpm, "rpm")?;
+    if outer_radius_m < inner_radius_m {
+        return Err(ModelError::OuterRadiusLessThanInner);
+    }
+
+    let inner_g = gravity_level_g(inner_radius_m, rpm)?;
+    let outer_g = gravity_level_g(outer_radius_m, rpm)?;
+    let spread_g = outer_g - inner_g;
+    let midpoint_g = (outer_g + inner_g) / 2.0;
+    let relative_spread_fraction = spread_g / midpoint_g;
+    require_finite_result(spread_g, "radial_gravity_envelope.spread_g")?;
+    require_finite_result(
+        relative_spread_fraction,
+        "radial_gravity_envelope.relative_spread_fraction",
+    )?;
+
+    Ok(RadialGravityEnvelope {
+        inner_radius_m,
+        outer_radius_m,
+        inner_g,
+        outer_g,
+        spread_g,
+        relative_spread_fraction,
+    })
+}
+
 pub type Vec3 = [f64; 3];
 
 /// Apparent acceleration in a uniformly translating, accelerating frame.
@@ -235,6 +291,72 @@ pub fn coriolis_apparent_acceleration(
     let apparent = [-2.0 * value[0], -2.0 * value[1], -2.0 * value[2]];
     require_finite_result_vec3(apparent, "coriolis_apparent_acceleration")?;
     Ok(apparent)
+}
+
+
+/// Decomposed apparent acceleration at one point in a rotating reference frame.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RotatingFrameAcceleration {
+    pub centrifugal_m_s2: Vec3,
+    pub coriolis_m_s2: Vec3,
+    pub euler_m_s2: Vec3,
+    pub motion_disturbance_m_s2: Vec3,
+    pub apparent_total_m_s2: Vec3,
+    pub motion_disturbance_magnitude_m_s2: f64,
+    pub apparent_total_magnitude_m_s2: f64,
+}
+
+/// Combine centrifugal, Coriolis, and Euler apparent accelerations.
+///
+/// `position_m` and `velocity_relative_m_s` are measured in the rotating
+/// frame. Angular velocity and angular acceleration are expressed in the
+/// same right-handed frame. The result is local kinematics, not physiology.
+pub fn rotating_frame_apparent_acceleration(
+    omega_rad_s: Vec3,
+    alpha_rad_s2: Vec3,
+    position_m: Vec3,
+    velocity_relative_m_s: Vec3,
+) -> Result<RotatingFrameAcceleration, ModelError> {
+    let centrifugal = centrifugal_apparent_acceleration(omega_rad_s, position_m)?;
+    let coriolis = coriolis_apparent_acceleration(omega_rad_s, velocity_relative_m_s)?;
+    let euler = euler_apparent_acceleration(alpha_rad_s2, position_m)?;
+    let motion_disturbance = [
+        coriolis[0] + euler[0],
+        coriolis[1] + euler[1],
+        coriolis[2] + euler[2],
+    ];
+    let apparent_total = [
+        centrifugal[0] + motion_disturbance[0],
+        centrifugal[1] + motion_disturbance[1],
+        centrifugal[2] + motion_disturbance[2],
+    ];
+    require_finite_result_vec3(motion_disturbance, "motion_disturbance_m_s2")?;
+    require_finite_result_vec3(apparent_total, "apparent_total_m_s2")?;
+    let motion_disturbance_magnitude_m_s2 = vector_magnitude(motion_disturbance);
+    let apparent_total_magnitude_m_s2 = vector_magnitude(apparent_total);
+    require_finite_result(
+        motion_disturbance_magnitude_m_s2,
+        "motion_disturbance_magnitude_m_s2",
+    )?;
+    require_finite_result(
+        apparent_total_magnitude_m_s2,
+        "apparent_total_magnitude_m_s2",
+    )?;
+
+    Ok(RotatingFrameAcceleration {
+        centrifugal_m_s2: centrifugal,
+        coriolis_m_s2: coriolis,
+        euler_m_s2: euler,
+        motion_disturbance_m_s2: motion_disturbance,
+        apparent_total_m_s2: apparent_total,
+        motion_disturbance_magnitude_m_s2,
+        apparent_total_magnitude_m_s2,
+    })
+}
+
+/// Euclidean magnitude of a finite three-dimensional vector.
+pub fn vector_magnitude(value: Vec3) -> f64 {
+    value[0].hypot(value[1]).hypot(value[2])
 }
 
 /// Euler apparent acceleration during angular acceleration: `-α × r`.
@@ -299,6 +421,62 @@ mod tests {
             0.02 * profile.centre_of_mass_g,
             1e-12,
         );
+    }
+
+    #[test]
+    fn radial_envelope_reports_exact_endpoint_gradient() {
+        let envelope = radial_gravity_envelope(58.0, 350.0, 1.6).unwrap();
+        close(envelope.spread_g, envelope.outer_g - envelope.inner_g, 1e-12);
+        close(
+            envelope.relative_spread_fraction,
+            2.0 * (350.0 - 58.0) / (350.0 + 58.0),
+            1e-12,
+        );
+        assert!(radial_gravity_envelope(350.0, 58.0, 1.6).is_err());
+    }
+
+    #[test]
+    fn one_metre_per_second_coriolis_reference_points_match() {
+        let omega = angular_velocity_rad_s(1.6).unwrap();
+        let coriolis = coriolis_apparent_acceleration(
+            [0.0, 0.0, omega],
+            [1.0, 0.0, 0.0],
+        )
+        .unwrap();
+        close(vector_magnitude(coriolis), 0.33510321638291124, 1e-12);
+        close(
+            vector_magnitude(coriolis) / STANDARD_GRAVITY_M_S2,
+            0.03417101827667055,
+            1e-12,
+        );
+    }
+
+    #[test]
+    fn combined_rotating_frame_terms_are_decomposed_and_composed() {
+        let result = rotating_frame_apparent_acceleration(
+            [0.0, 0.0, 2.0],
+            [0.0, 0.0, 0.5],
+            [3.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+        )
+        .unwrap();
+        close(result.centrifugal_m_s2[0], 12.0, 1e-12);
+        close(result.coriolis_m_s2[1], -4.0, 1e-12);
+        close(result.euler_m_s2[1], -1.5, 1e-12);
+        close(result.apparent_total_m_s2[0], 12.0, 1e-12);
+        close(result.apparent_total_m_s2[1], -5.5, 1e-12);
+        close(result.motion_disturbance_magnitude_m_s2, 18.25_f64.sqrt(), 1e-12);
+    }
+
+    #[test]
+    fn rejects_non_finite_composed_motion_result() {
+        assert!(rotating_frame_apparent_acceleration(
+            [0.0, 0.0, 1e308],
+            [0.0; 3],
+            [1e308, 0.0, 0.0],
+            [1e308, 0.0, 0.0],
+        )
+        .is_err());
     }
 
     #[test]
