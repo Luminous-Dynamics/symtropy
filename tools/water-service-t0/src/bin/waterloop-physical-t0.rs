@@ -71,7 +71,10 @@ fn case_id(case: &Value) -> Result<String, String> {
 fn compute_service_continuity(input: &Value) -> Result<Value, String> {
     let initial = nonnegative(number(input, "initial_storage_l")?, "initial_storage_l")?;
     let maximum = positive(number(input, "maximum_storage_l")?, "maximum_storage_l")?;
-    let reserve = nonnegative(number(input, "protected_discretionary_reserve_l")?, "protected_discretionary_reserve_l")?;
+    let reserve = nonnegative(
+        number(input, "protected_discretionary_reserve_l")?,
+        "protected_discretionary_reserve_l",
+    )?;
     if initial > maximum || reserve > maximum {
         return Err("initial storage or protected reserve exceeds maximum storage".to_owned());
     }
@@ -610,9 +613,7 @@ fn compute(case: &Value) -> Result<Value, String> {
         | "WL-T0-022-outlet-service-floor-failure"
         | "WL-T0-023-unadmitted-service-measurement-abstains"
         | "WL-T0-024-stored-water-use-quality-unqualified"
-        | "WL-T0-025-unqualified-source-inflow-not-credited" => {
-            compute_service_continuity(input)
-        }
+        | "WL-T0-025-unqualified-source-inflow-not-credited" => compute_service_continuity(input),
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
 }
@@ -1017,7 +1018,6 @@ mod tests {
             1
         );
     }
-
 
     #[test]
     fn continuity_allocates_essential_demand_before_discretionary() {
