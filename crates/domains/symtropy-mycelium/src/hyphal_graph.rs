@@ -133,10 +133,27 @@ pub struct FusionEvent {
     pub second_segment: SegmentId,
 }
 
+/// Joins one active tip to an interior point of an existing active segment.
+/// The target segment is split into proximal/distal pieces and a connector is
+/// created. This matches the topology operation used by the published BMX
+/// reference; it does not decide whether biological fusion is admissible.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TipSegmentFusionEvent {
+    pub id: EventId,
+    pub tip: NodeId,
+    pub target_segment: SegmentId,
+    pub attachment_fraction: f64,
+    pub fusion_node: NodeId,
+    pub proximal_segment: SegmentId,
+    pub distal_segment: SegmentId,
+    pub connecting_segment: SegmentId,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum AppliedGraphEvent {
     Branch(BranchEvent),
     Fusion(FusionEvent),
+    TipSegmentFusion(TipSegmentFusionEvent),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -152,6 +169,7 @@ pub enum GraphError {
     MissingSegment(SegmentId),
     InvalidAttachmentFraction,
     NotActiveTip(NodeId),
+    InactiveTargetSegment(SegmentId),
     SameFusionTip,
     EventIdConflict(EventId),
 }
@@ -174,6 +192,9 @@ impl fmt::Display for GraphError {
                 write!(f, "branch attachment fraction must be inside (0, 1)")
             },
             Self::NotActiveTip(id) => write!(f, "node {:?} is not an active tip", id),
+            Self::InactiveTargetSegment(id) => {
+                write!(f, "target segment {:?} is inactive", id)
+            }
             Self::SameFusionTip => write!(f, "fusion requires two distinct tips"),
             Self::EventIdConflict(id) => {
                 write!(f, "event ID {:?} was reused with a different payload", id)
@@ -426,6 +447,106 @@ impl HyphalGraph {
         })?;
         next.applied_events
             .insert(event.id, AppliedGraphEvent::Fusion(event));
+        *self = next;
+        Ok(ApplyOutcome::Applied)
+    }
+
+    /// Fuse one active tip to an interior point of an active segment.
+    ///
+    /// This is a topology transaction only. The caller supplies the attachment
+    /// fraction after applying its own biological eligibility / stochastic
+    /// fusion rule. The existing segment length is conserved across its split.
+    pub fn apply_tip_segment_fusion(
+        &mut self,
+        event: TipSegmentFusionEvent,
+    ) -> Result<ApplyOutcome, GraphError> {
+        if let Some(applied) = self.applied_events.get(&event.id) {
+            return if *applied == AppliedGraphEvent::TipSegmentFusion(event) {
+                Ok(ApplyOutcome::AlreadyApplied)
+            } else {
+                Err(GraphError::EventIdConflict(event.id))
+            };
+        }
+        if !event.attachment_fraction.is_finite()
+            || event.attachment_fraction <= 0.0
+            || event.attachment_fraction >= 1.0
+        {
+            return Err(GraphError::InvalidAttachmentFraction);
+        }
+
+        let tip = self
+            .nodes
+            .get(&event.tip)
+            .cloned()
+            .ok_or(GraphError::MissingNode(event.tip))?;
+        if tip.kind != HyphalNodeKind::ActiveTip {
+            return Err(GraphError::NotActiveTip(event.tip));
+        }
+        let target = self
+            .segments
+            .get(&event.target_segment)
+            .cloned()
+            .ok_or(GraphError::MissingSegment(event.target_segment))?;
+        if target.state != HyphalSegmentState::Active {
+            return Err(GraphError::InactiveTargetSegment(event.target_segment));
+        }
+
+        let from = self
+            .nodes
+            .get(&target.from)
+            .ok_or(GraphError::MissingNode(target.from))?;
+        let to = self
+            .nodes
+            .get(&target.to)
+            .ok_or(GraphError::MissingNode(target.to))?;
+        let fusion_position = from
+            .position
+            .interpolate(to.position, event.attachment_fraction);
+        if !fusion_position.is_finite() {
+            return Err(GraphError::NonFinitePosition);
+        }
+        let connecting_length = tip.position.distance_to(fusion_position);
+        if !connecting_length.is_finite() || connecting_length <= 0.0 {
+            return Err(GraphError::ZeroLengthGeometry);
+        }
+
+        let mut next = self.clone();
+        next.segments.remove(&event.target_segment);
+        next.nodes
+            .get_mut(&event.tip)
+            .expect("validated active tip")
+            .kind = HyphalNodeKind::Junction;
+        next.add_node(HyphalNode {
+            id: event.fusion_node,
+            kind: HyphalNodeKind::Fusion,
+            position: fusion_position,
+        })?;
+        next.add_segment(HyphalSegment {
+            id: event.proximal_segment,
+            from: target.from,
+            to: event.fusion_node,
+            length_mm: target.length_mm * event.attachment_fraction,
+            diameter_mm: target.diameter_mm,
+            state: target.state,
+        })?;
+        next.add_segment(HyphalSegment {
+            id: event.distal_segment,
+            from: event.fusion_node,
+            to: target.to,
+            length_mm: target.length_mm * (1.0 - event.attachment_fraction),
+            diameter_mm: target.diameter_mm,
+            state: target.state,
+        })?;
+        next.add_segment(HyphalSegment {
+            id: event.connecting_segment,
+            from: event.tip,
+            to: event.fusion_node,
+            length_mm: connecting_length,
+            diameter_mm: None,
+            state: HyphalSegmentState::Active,
+        })?;
+        next.applied_events
+            .insert(event.id, AppliedGraphEvent::TipSegmentFusion(event));
         *self = next;
         Ok(ApplyOutcome::Applied)
     }
@@ -717,6 +838,136 @@ mod tests {
             second_segment: SegmentId(3),
         });
         assert_eq!(result, Err(GraphError::NotActiveTip(NodeId(1))));
+        assert_eq!(graph, snapshot);
+    }
+
+    #[test]
+    fn tip_fuses_to_interior_segment_and_splits_target() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::Anchor, 10.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(3, HyphalNodeKind::ActiveTip, 5.0, 3.0, 0.0))
+            .unwrap();
+        graph.add_segment(segment(1, 1, 2, 10.0)).unwrap();
+
+        let outcome = graph
+            .apply_tip_segment_fusion(TipSegmentFusionEvent {
+                id: EventId(30),
+                tip: NodeId(3),
+                target_segment: SegmentId(1),
+                attachment_fraction: 0.5,
+                fusion_node: NodeId(4),
+                proximal_segment: SegmentId(2),
+                distal_segment: SegmentId(3),
+                connecting_segment: SegmentId(4),
+            })
+            .unwrap();
+
+        assert_eq!(outcome, ApplyOutcome::Applied);
+        assert_eq!(graph.segment_count(), 3);
+        assert_eq!(graph.total_length_mm(), 13.0);
+        assert_eq!(graph.connected_components().len(), 1);
+        assert_eq!(
+            graph.node(NodeId(3)).unwrap().kind,
+            HyphalNodeKind::Junction
+        );
+        assert_eq!(
+            graph.node(NodeId(4)).unwrap().kind,
+            HyphalNodeKind::Fusion
+        );
+        assert_eq!(graph.segment(SegmentId(2)).unwrap().length_mm, 5.0);
+        assert_eq!(graph.segment(SegmentId(3)).unwrap().length_mm, 5.0);
+        assert_eq!(graph.segment(SegmentId(4)).unwrap().diameter_mm, None);
+    }
+
+    #[test]
+    fn tip_segment_fusion_replay_is_idempotent_and_conflicts_are_rejected() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::Anchor, 10.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(3, HyphalNodeKind::ActiveTip, 5.0, 3.0, 0.0))
+            .unwrap();
+        graph.add_segment(segment(1, 1, 2, 10.0)).unwrap();
+        let event = TipSegmentFusionEvent {
+            id: EventId(31),
+            tip: NodeId(3),
+            target_segment: SegmentId(1),
+            attachment_fraction: 0.5,
+            fusion_node: NodeId(4),
+            proximal_segment: SegmentId(2),
+            distal_segment: SegmentId(3),
+            connecting_segment: SegmentId(4),
+        };
+
+        assert_eq!(
+            graph.apply_tip_segment_fusion(event).unwrap(),
+            ApplyOutcome::Applied
+        );
+        let snapshot = graph.clone();
+        assert_eq!(
+            graph.apply_tip_segment_fusion(event).unwrap(),
+            ApplyOutcome::AlreadyApplied
+        );
+        assert_eq!(graph, snapshot);
+
+        let conflicting = TipSegmentFusionEvent {
+            attachment_fraction: 0.4,
+            ..event
+        };
+        assert_eq!(
+            graph.apply_tip_segment_fusion(conflicting),
+            Err(GraphError::EventIdConflict(EventId(31)))
+        );
+        assert_eq!(graph, snapshot);
+    }
+
+    #[test]
+    fn inactive_target_rejects_tip_segment_fusion_without_mutation() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::Anchor, 10.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(3, HyphalNodeKind::ActiveTip, 5.0, 3.0, 0.0))
+            .unwrap();
+        graph
+            .add_segment(HyphalSegment {
+                id: SegmentId(1),
+                from: NodeId(1),
+                to: NodeId(2),
+                length_mm: 10.0,
+                diameter_mm: Some(0.02),
+                state: HyphalSegmentState::Inactive,
+            })
+            .unwrap();
+        let snapshot = graph.clone();
+
+        assert_eq!(
+            graph.apply_tip_segment_fusion(TipSegmentFusionEvent {
+                id: EventId(32),
+                tip: NodeId(3),
+                target_segment: SegmentId(1),
+                attachment_fraction: 0.5,
+                fusion_node: NodeId(4),
+                proximal_segment: SegmentId(2),
+                distal_segment: SegmentId(3),
+                connecting_segment: SegmentId(4),
+            }),
+            Err(GraphError::InactiveTargetSegment(SegmentId(1)))
+        );
         assert_eq!(graph, snapshot);
     }
 
