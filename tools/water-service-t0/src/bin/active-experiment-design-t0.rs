@@ -407,6 +407,11 @@ fn compute_case(case: &Value) -> Result<Value, String> {
         } else {
             "NO_FEASIBLE_DESIGN"
         };
+        rows.sort_by(|a, b| {
+            a["candidate_id"]
+                .as_str()
+                .cmp(&b["candidate_id"].as_str())
+        });
         return Ok(base_case(
             state,
             "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
