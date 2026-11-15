@@ -321,3 +321,13 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
 The 21-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+
+
+### Executable process-specific metrics — 15 November 2026
+
+The contextual T0 suite has been extended from 21 to 26 cases to cover the metric gaps identified in the protocol:
+- **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
+- **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
+- **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
+
+The new known-answer cases are 022–026; input, manifest, oracle and schema all declare 26 cases. These are metric arithmetic and data-contract tests only. A small synthetic interval fixture does not prove calibration; report sample count, independent event count, event strata and time-horizon coverage before making probabilistic-skill claims.
