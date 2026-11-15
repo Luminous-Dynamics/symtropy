@@ -212,6 +212,12 @@ pub struct ClaimAssessment {
     pub event_ids: Vec<String>,
     /// Exact dimensions requiring owner-defined requalification.
     pub requalification_dimensions: Vec<DependencyKind>,
+    /// Dimensions with a known corrective event contradicting the historical claim.
+    pub contradicted_dimensions: Vec<DependencyKind>,
+    /// Dimensions retired/superseded for current reliance while historical evidence is retained.
+    pub historical_only_dimensions: Vec<DependencyKind>,
+    /// Dimensions affected by an unsupported change semantic.
+    pub unsupported_dimensions: Vec<DependencyKind>,
     /// Dependency dimensions whose feed coverage is incomplete/unknown.
     pub indeterminate_dimensions: Vec<DependencyKind>,
     /// Exact current dependency digest snapshot after eligible material changes.
@@ -337,12 +343,12 @@ pub fn evaluate_claim(
 
     let mut affected = BTreeSet::new();
     let mut requalification = BTreeSet::new();
+    let mut contradicted = BTreeSet::new();
+    let mut historical_only = BTreeSet::new();
+    let mut unsupported = BTreeSet::new();
     let mut indeterminate = BTreeSet::new();
     let mut event_ids = BTreeSet::new();
     let mut evaluated_dependencies = claim.dependencies.clone();
-    let mut saw_contradiction = false;
-    let mut saw_retirement = false;
-    let mut saw_unsupported = false;
 
     // Canonical event order makes input-array permutation semantically irrelevant.
     let mut ordered_events: Vec<&ChangeEvent> = events
@@ -416,13 +422,13 @@ pub fn evaluate_claim(
                     requalification.insert(dependency.kind);
                 }
                 ChangeClass::CorrectiveChange => {
-                    saw_contradiction = true;
+                    contradicted.insert(dependency.kind);
                 }
                 ChangeClass::Retirement => {
-                    saw_retirement = true;
+                    historical_only.insert(dependency.kind);
                 }
                 ChangeClass::Unsupported => {
-                    saw_unsupported = true;
+                    unsupported.insert(dependency.kind);
                 }
             }
         }
@@ -449,7 +455,7 @@ pub fn evaluate_claim(
             });
         if let Some(event) = latest_baseline {
             if event.successor_digest != dependency.digest {
-                saw_contradiction = true;
+                contradicted.insert(dependency.kind);
                 affected.insert(dependency.kind);
                 event_ids.insert(event.event_id.clone());
             }
@@ -463,13 +469,13 @@ pub fn evaluate_claim(
         }
     }
 
-    let status = if !indeterminate.is_empty() {
-        ClaimStatus::Indeterminate
-    } else if saw_contradiction {
+    let status = if !contradicted.is_empty() {
         ClaimStatus::Contradicted
-    } else if saw_unsupported {
+    } else if !indeterminate.is_empty() {
+        ClaimStatus::Indeterminate
+    } else if !unsupported.is_empty() {
         ClaimStatus::UnsupportedChangeType
-    } else if saw_retirement {
+    } else if !historical_only.is_empty() {
         ClaimStatus::HistoricalOnly
     } else if !requalification.is_empty() {
         ClaimStatus::RequalificationRequired
@@ -483,6 +489,9 @@ pub fn evaluate_claim(
         affected_dimensions: affected.into_iter().collect(),
         event_ids: event_ids.into_iter().collect(),
         requalification_dimensions: requalification.into_iter().collect(),
+        contradicted_dimensions: contradicted.into_iter().collect(),
+        historical_only_dimensions: historical_only.into_iter().collect(),
+        unsupported_dimensions: unsupported.into_iter().collect(),
         indeterminate_dimensions: indeterminate.into_iter().collect(),
         evaluated_dependencies,
     })
