@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-sizing-t0.schema.json",
+  "title": "WaterLoop Storage Sizing T0",
+  "description": "Synthetic time-resolved storage capacity and idealized pump-power arithmetic; no site/equipment qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "benchmark_id",
+    "profile",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-sizing-t0-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_storage_sizing_and_pump_power_arithmetic_only_no_site_or_equipment_qualification"
+    },
+    "benchmark_id": {
+      "const": "WATERLOOP-SIZING-T0"
+    },
+    "profile": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "profile_revision",
+        "all_values_are_synthetic"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string"
+        },
+        "profile_revision": {
+          "type": "string"
+        },
+        "all_values_are_synthetic": {
+          "const": true
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "family",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "family": {
+            "enum": [
+              "storage_sizing",
+              "pump_power"
+            ]
+          },
+          "inputs": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
