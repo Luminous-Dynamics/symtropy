@@ -654,7 +654,7 @@ mod tests {
         let case = fixture("inputs")["cases"][13].clone();
         let actual = compute(&case).expect("synthetic service-floor case");
         assert_eq!(actual["service_disposition"], "INDETERMINATE");
-        assert_eq!(actual["service_credit_eligible"], false);
+        assert!(!actual["service_credit_eligible"].as_bool().expect("service credit boolean"));
         assert_eq!(actual["pressure_floor_met"], Value::Null);
     }
 
