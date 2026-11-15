@@ -92,6 +92,26 @@
       "hardware_revision": "C",
       "configuration_digest": "5555555555555555555555555555555555555555555555555555555555555555",
       "fixture_identity_only": true
+    },
+    {
+      "physical_instance_id": "instance-inverter-duplicate-serial",
+      "identity_namespace": "synthetic-manufacturer-a",
+      "manufacturer": "Synthetic Manufacturer A",
+      "product_id": "product-inverter-a",
+      "serial_identifier": "SYN-A-INV-0001",
+      "hardware_revision": "A",
+      "configuration_digest": "1616161616161616161616161616161616161616161616161616161616161616",
+      "fixture_identity_only": true
+    },
+    {
+      "physical_instance_id": "instance-inverter-revision-b",
+      "identity_namespace": "synthetic-manufacturer-a",
+      "manufacturer": "Synthetic Manufacturer A",
+      "product_id": "product-inverter-a",
+      "serial_identifier": "SYN-A-INV-0003",
+      "hardware_revision": "B",
+      "configuration_digest": "1717171717171717171717171717171717171717171717171717171717171717",
+      "fixture_identity_only": true
     }
   ],
   "actors": [
@@ -206,6 +226,46 @@
       "received_at": "2026-11-14T16:05:00Z",
       "source_receipt_ref": "receipt-wrong-delivery",
       "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-removal-001",
+      "evidence_kind": "removal_record",
+      "digest_algorithm": "sha256",
+      "digest": "1212121212121212121212121212121212121212121212121212121212121212",
+      "captured_at": "2026-11-14T12:30:00Z",
+      "received_at": "2026-11-14T12:35:00Z",
+      "source_receipt_ref": "receipt-removal-001",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-relocation-002",
+      "evidence_kind": "relocation_record",
+      "digest_algorithm": "sha256",
+      "digest": "1313131313131313131313131313131313131313131313131313131313131313",
+      "captured_at": "2026-11-15T09:00:00Z",
+      "received_at": "2026-11-15T09:05:00Z",
+      "source_receipt_ref": "receipt-relocation-002",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-duplicate-serial",
+      "evidence_kind": "delivery_record",
+      "digest_algorithm": "sha256",
+      "digest": "1414141414141414141414141414141414141414141414141414141414141414",
+      "captured_at": "2026-11-14T20:00:00Z",
+      "received_at": "2026-11-14T20:05:00Z",
+      "source_receipt_ref": "receipt-duplicate-serial",
+      "fixture_digest_only": true
+    },
+    {
+      "evidence_ref": "evidence-rev-b-delivery",
+      "evidence_kind": "delivery_record",
+      "digest_algorithm": "sha256",
+      "digest": "1515151515151515151515151515151515151515151515151515151515151515",
+      "captured_at": "2026-11-14T21:00:00Z",
+      "received_at": "2026-11-14T21:05:00Z",
+      "source_receipt_ref": "receipt-rev-b-delivery",
+      "fixture_digest_only": true
     }
   ],
   "events": [
@@ -297,7 +357,7 @@
       "physical_instance_id": "instance-inverter-001",
       "identity_resolution_method": "qualified_physical_inspection",
       "evidence_refs": [
-        "evidence-install-001"
+        "evidence-removal-001"
       ],
       "predecessor_event_ids": [
         "event-reconciled-001"
@@ -397,7 +457,89 @@
         "evidence-install-001"
       ],
       "predecessor_event_ids": [
+        "event-design-slot-02",
+        "event-installed-001"
+      ]
+    },
+    {
+      "event_id": "event-design-slot-02",
+      "event_type": "design_slot_created",
+      "occurred_at": "2026-11-10T08:00:01Z",
+      "recorded_at": "2026-11-10T08:00:01Z",
+      "actor_ref": "actor-design-system",
+      "slot_id": "slot-inverter-02",
+      "identity_resolution_method": "design_document_binding",
+      "evidence_refs": [
+        "evidence-source-ir"
+      ],
+      "predecessor_event_ids": [
         "event-design-slot-01"
+      ]
+    },
+    {
+      "event_id": "event-relocated-002",
+      "event_type": "unit_relocated",
+      "occurred_at": "2026-11-15T09:00:00Z",
+      "recorded_at": "2026-11-15T09:05:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-002",
+      "from_location_ref": "location-cabinet-east",
+      "to_location_ref": "location-cabinet-west",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-relocation-002"
+      ],
+      "predecessor_event_ids": [
+        "event-reconciled-late"
+      ]
+    },
+    {
+      "event_id": "event-duplicate-serial-delivered",
+      "event_type": "unit_delivered",
+      "occurred_at": "2026-11-14T20:00:00Z",
+      "recorded_at": "2026-11-14T20:05:00Z",
+      "actor_ref": "actor-supplier",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-duplicate-serial",
+      "identity_resolution_method": "supplier_record",
+      "evidence_refs": [
+        "evidence-duplicate-serial"
+      ],
+      "predecessor_event_ids": [
+        "event-design-slot-01"
+      ]
+    },
+    {
+      "event_id": "event-rev-b-delivered",
+      "event_type": "unit_delivered",
+      "occurred_at": "2026-11-14T21:00:00Z",
+      "recorded_at": "2026-11-14T21:05:00Z",
+      "actor_ref": "actor-supplier",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-revision-b",
+      "identity_resolution_method": "supplier_record",
+      "evidence_refs": [
+        "evidence-rev-b-delivery"
+      ],
+      "predecessor_event_ids": [
+        "event-design-slot-01"
+      ]
+    },
+    {
+      "event_id": "event-rev-b-installed",
+      "event_type": "unit_installed",
+      "occurred_at": "2026-11-14T22:00:00Z",
+      "recorded_at": "2026-11-14T22:05:00Z",
+      "actor_ref": "actor-installer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-revision-b",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-002"
+      ],
+      "predecessor_event_ids": [
+        "event-rev-b-delivered"
       ]
     }
   ],
@@ -559,7 +701,8 @@
       "event_ids": [
         "event-design-slot-01",
         "event-delivered-002",
-        "event-installed-002"
+        "event-installed-002",
+        "event-reconciled-late"
       ],
       "expected_status": "installed_unreconciled",
       "expected_active_assignments": [
@@ -638,6 +781,8 @@
       "as_known_at": "2026-11-14T19:00:00Z",
       "event_ids": [
         "event-design-slot-01",
+        "event-design-slot-02",
+        "event-delivered-001",
         "event-installed-001",
         "event-duplicate-assignment"
       ],
@@ -654,6 +799,109 @@
       ],
       "expected_reason_codes": [
         "physical_instance_active_assignment_collision"
+      ]
+    },
+    {
+      "scenario_id": "scenario-reconciled-reordered",
+      "description": "The same causally ordered event set is supplied in reverse array order; the projection must remain identical.",
+      "as_known_at": "2026-11-14T11:00:00Z",
+      "event_ids": [
+        "event-reconciled-001",
+        "event-installed-001",
+        "event-delivered-001",
+        "event-design-slot-01"
+      ],
+      "expected_status": "reconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-001",
+          "location_ref": "location-cabinet-east"
+        }
+      ],
+      "expected_invalidated_output_ids": [],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": []
+    },
+    {
+      "scenario_id": "scenario-relocation",
+      "description": "A reconciled unit is moved to a new physical location; location-dependent outputs become stale while intrinsic product identity and slot compatibility remain.",
+      "as_known_at": "2026-11-15T10:00:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-002",
+        "event-installed-002",
+        "event-reconciled-late",
+        "event-relocated-002"
+      ],
+      "expected_status": "reconciled",
+      "expected_active_assignments": [
+        {
+          "slot_id": "slot-inverter-01",
+          "physical_instance_id": "instance-inverter-002",
+          "location_ref": "location-cabinet-west"
+        }
+      ],
+      "expected_invalidated_output_ids": [
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01",
+        "output-commissioning-dossier-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-compatibility-slot-01",
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "installation_location_changed"
+      ]
+    },
+    {
+      "scenario_id": "scenario-duplicate-serial-namespace",
+      "description": "Two physical-instance records reuse the same serial within the same issuer namespace.",
+      "as_known_at": "2026-11-14T20:30:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-delivered-001",
+        "event-duplicate-serial-delivered"
+      ],
+      "expected_status": "conflicted",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "physical_identity_namespace_collision"
+      ]
+    },
+    {
+      "scenario_id": "scenario-wrong-hardware-revision",
+      "description": "The product model is nominally accepted but the physical hardware revision is not permitted by the slot contract.",
+      "as_known_at": "2026-11-14T22:30:00Z",
+      "event_ids": [
+        "event-design-slot-01",
+        "event-rev-b-delivered",
+        "event-rev-b-installed"
+      ],
+      "expected_status": "conflicted",
+      "expected_active_assignments": [],
+      "expected_invalidated_output_ids": [
+        "output-compatibility-slot-01",
+        "output-source-map-01",
+        "output-resident-view-01",
+        "output-emergency-map-01"
+      ],
+      "expected_retained_output_ids": [
+        "output-carbon-report-unrelated"
+      ],
+      "expected_reason_codes": [
+        "hardware_revision_not_accepted_by_slot"
       ]
     }
   ],
