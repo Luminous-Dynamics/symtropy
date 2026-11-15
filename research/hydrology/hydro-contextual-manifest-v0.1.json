@@ -1,0 +1,56 @@
+{
+  "schema_version": "hydro-contextual-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
+  "benchmark_id": "HYDRO-CONTEXTUAL-T0",
+  "case_count": 20,
+  "required_case_ids": [
+    "HC-T0-001-b0-persistence-metrics",
+    "HC-T0-002-b0-seasonal-climatology-metrics",
+    "HC-T0-003-b1-prior-ensemble",
+    "HC-T0-004-b2-calibration-reference",
+    "HC-T0-005-b3-future-holdout-metrics",
+    "HC-T0-006-contextual-attainment",
+    "HC-T0-007-attainment-degenerate-bounds",
+    "HC-T0-008-event-overlap-reject",
+    "HC-T0-009-future-fit-scope-reject",
+    "HC-T0-010-nested-catchment-reject",
+    "HC-T0-011-heldout-target-calibration-reject",
+    "HC-T0-012-missing-flow-zero-reject",
+    "HC-T0-013-unknown-anthropogenic-abstain",
+    "HC-T0-014-timebase-mismatch-reject",
+    "HC-T0-015-physical-gate-reject",
+    "HC-T0-016-invalid-members-hidden-reject",
+    "HC-T0-017-synthetic-field-claim-reject",
+    "HC-T0-018-duplicate-time-reject",
+    "HC-T0-019-overlapping-event-windows-reject",
+    "HC-T0-020-degenerate-observations-undefined"
+  ],
+  "baseline_families": [
+    "B0_data_only",
+    "B1_prior_ensemble",
+    "B2_train_only_repeated_calibration",
+    "B3_temporal_holdout"
+  ],
+  "metric_definitions": {
+    "nse": "1 - sum((sim-obs)^2)/sum((obs-mean(obs))^2)",
+    "kge": "1 - sqrt((r-1)^2 + (alpha-1)^2 + (beta-1)^2); population standard deviation ratio and mean ratio",
+    "volume_bias_pct": "100*(sum(sim)-sum(obs))/sum(obs)",
+    "mae": "mean(abs(sim-obs))",
+    "attainment": "(model_score-lower_reference)/(upper_reference-lower_reference), not clipped"
+  },
+  "rules": [
+    "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
+    "B0 seasonal climatology and every normalization/imputation transform must be fitted on training data only.",
+    "B1 invalid or non-conservative ensemble members must remain visible with exclusion reasons; they may not be silently hidden.",
+    "B2 repeated calibration results are in-sample references only and must not access final test targets.",
+    "B3 temporal/event holdout predictions must be frozen before the evaluator reads test observations.",
+    "Event and nested-catchment leakage are split-integrity failures unless an explicit transfer design is separately declared.",
+    "Missing, censored or unknown values are not zero discharge.",
+    "Unknown dam release, abstraction or diversion conditions require abstention or downgrade.",
+    "Timebase, calendar, timezone and aggregation semantics must match exactly.",
+    "Predictive skill cannot override a failed physical water-balance gate.",
+    "Contextual attainment is metric/task/population scoped; it is not clipped to [0,1] and must be undefined/not-comparable when references cannot support it.",
+    "Synthetic evidence may not be promoted to field or operational qualification."
+  ]
+}
