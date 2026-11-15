@@ -143,3 +143,7 @@ All quantities in the positive control are invented solely to exercise arithmeti
 ## Claim ceiling
 
 The current artifact is an integration contract plus synthetic fixture. It establishes no fluorine recycling performance, oxygen yield, purity, energy intensity, lunar resource abundance, cost competitiveness, environmental acceptability, process safety, device qualification or flight readiness. No hazardous gas recipe, device actuation or process operation is specified or authorized.
+
+### Reference resolution limit
+
+The evaluator validates synthetic receipt fields and identity relationships, but it does not retrieve or authenticate the underlying calibration certificate, reference-standard certificate, cross-sensitivity study, sampling-recovery experiment or raw instrument trace. For a physical campaign those referenced artifacts must be resolved, rights-checked, content-hashed and independently reviewed through the existing measurement-system/evidence authorities. A non-empty artifact ID is not evidence that the artifact is valid.
