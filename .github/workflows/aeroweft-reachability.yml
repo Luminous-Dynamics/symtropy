@@ -4,14 +4,12 @@ on:
   pull_request:
     paths:
       - "tools/aeroweft-reachability/**"
-      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
       - ".github/workflows/aeroweft-reachability.yml"
   push:
     branches:
       - "feat/aeroweFt-kinematic-reachability-001"
     paths:
       - "tools/aeroweft-reachability/**"
-      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
       - ".github/workflows/aeroweft-reachability.yml"
   workflow_dispatch:
 
