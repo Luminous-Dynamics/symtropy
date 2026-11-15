@@ -102,7 +102,7 @@ The original claim and its historical evidence are never mutated or deleted.
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 28 tests including:
+The Rust suite currently exercises 29 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
@@ -118,7 +118,8 @@ The Rust suite currently exercises 28 tests including:
 - event-array permutation invariance;
 - evaluation before claim existence;
 - coverage deletion monotonicity;
-- known contradiction not hidden by an unrelated coverage gap.
+- known contradiction not hidden by an unrelated coverage gap;
+- broken pre-claim baseline digest chains even when the final digest matches.
 
 The fixtures are fictional and synthetic. The owner source state and coverage assertions are not authenticated by this crate.
 
