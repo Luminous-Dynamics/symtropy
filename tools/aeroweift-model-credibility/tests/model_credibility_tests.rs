@@ -50,6 +50,8 @@ fn manifest(
 
 fn policy() -> ValidationPolicy {
     ValidationPolicy {
+        policy_manifest_sha256: digest('a'),
+        required_evaluator_build_sha256: digest('b'),
         expected_scope: scope(),
         expected_reference_measurement_profile_sha256: digest('8'),
         required_strata: vec!["crosswind-high".into(), "corridor-edge".into()],
@@ -87,6 +89,8 @@ fn policy() -> ValidationPolicy {
 
 fn package() -> ValidationPackage {
     ValidationPackage {
+        evaluator_build_sha256: digest('b'),
+        policy_manifest_sha256: digest('a'),
         scope: scope(),
         calibration: manifest(
             '1',
@@ -363,5 +367,44 @@ fn confirmatory_time_basis_must_match_model_scope() {
     assert_eq!(
         evaluate(&candidate, &policy()),
         Err(ValidationError::DatasetScopeMismatch)
+    );
+}
+
+
+#[test]
+fn evaluator_build_must_match_frozen_validation_policy() {
+    let mut candidate = package();
+    candidate.evaluator_build_sha256 = digest('c');
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::EvaluatorOrPolicyMismatch)
+    );
+}
+
+#[test]
+fn validation_policy_manifest_must_match_exactly() {
+    let mut candidate = package();
+    candidate.policy_manifest_sha256 = digest('d');
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::EvaluatorOrPolicyMismatch)
+    );
+}
+
+#[test]
+fn metric_gate_cannot_claim_a_stratum_outside_required_domain() {
+    let mut invalid_policy = policy();
+    invalid_policy.gates.push(MetricGate {
+        metric: MetricKind::EnergyError,
+        sample_unit: SampleUnit::Flight,
+        stratum_id: "unlisted-stratum".into(),
+        modality: EvidenceModality::Synthetic,
+        comparator: Comparator::AtMost,
+        threshold: 1.0,
+        minimum_independent_units: 1,
+    });
+    assert_eq!(
+        evaluate(&package(), &invalid_policy),
+        Err(ValidationError::InvalidPolicy)
     );
 }
