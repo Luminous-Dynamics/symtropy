@@ -5,8 +5,13 @@
 //! producer's geometric expansion helpers.
 
 mod capsule;
+mod clock_skew_ccd;
 mod co_translation_ccd;
 mod translation_ccd;
+pub use clock_skew_ccd::{
+    BoundedClockSkewClosestApproach, ClockSkewCcdError,
+    bounded_clock_skew_capsule_collision, bounded_clock_skew_capsule_vs_capsule,
+};
 pub use co_translation_ccd::{
     CoTranslatingCapsuleClosestApproach,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
