@@ -244,7 +244,9 @@
         "model_profile_generation",
         "model_profile_digest",
         "backend_generation",
-        "backend_digest"
+        "backend_digest",
+        "mission",
+        "process_batch"
       ],
       "properties": {
         "candidate_id": {
@@ -395,6 +397,19 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 128
+        },
+        "mission": {
+          "$ref": "#/$defs/reference"
+        },
+        "process_batch": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reference"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -429,7 +444,9 @@
         "expected_model_profile_digest",
         "expected_backend_generation",
         "expected_backend_digest",
-        "qualified_model_profile_id"
+        "qualified_model_profile_id",
+        "current_mission",
+        "accepted_process_batch"
       ],
       "properties": {
         "backend_allowlisted": {
@@ -560,6 +577,19 @@
           "type": [
             "string",
             "null"
+          ]
+        },
+        "current_mission": {
+          "$ref": "#/$defs/reference"
+        },
+        "accepted_process_batch": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/reference"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
