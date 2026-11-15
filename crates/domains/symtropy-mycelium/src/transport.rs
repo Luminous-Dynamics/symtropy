@@ -242,9 +242,7 @@ pub fn apply_passive_transport(
 
         proposed_delta[from_index] -= flux;
         proposed_delta[to_index] += flux;
-        if !proposed_delta[from_index].is_finite()
-            || !proposed_delta[to_index].is_finite()
-        {
+        if !proposed_delta[from_index].is_finite() || !proposed_delta[to_index].is_finite() {
             return Err(TransportError::NonFiniteResult(segment.from));
         }
         if flux > 0.0 {
@@ -252,9 +250,7 @@ pub fn apply_passive_transport(
         } else {
             proposed_outgoing[to_index] += -flux;
         }
-        if !proposed_outgoing[from_index].is_finite()
-            || !proposed_outgoing[to_index].is_finite()
-        {
+        if !proposed_outgoing[from_index].is_finite() || !proposed_outgoing[to_index].is_finite() {
             return Err(TransportError::NonFiniteResult(segment.from));
         }
         fluxes.push(EdgeFlux {
@@ -320,9 +316,7 @@ pub fn apply_passive_transport(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hyphal_graph::{
-        HyphalNode, HyphalNodeKind, HyphalSegment, Position3Mm,
-    };
+    use crate::hyphal_graph::{HyphalNode, HyphalNodeKind, HyphalSegment, Position3Mm};
 
     fn node(id: u64, x: f64) -> HyphalNode {
         HyphalNode {
@@ -429,7 +423,10 @@ mod tests {
         let result = apply_passive_transport(&graph, &mut state, &[edge(2.0)], 1.0);
         assert!(matches!(
             result,
-            Err(TransportError::ExplicitStepUnstable { node: NodeId(2), .. })
+            Err(TransportError::ExplicitStepUnstable {
+                node: NodeId(2),
+                ..
+            })
         ));
         assert_eq!(state, before);
     }
