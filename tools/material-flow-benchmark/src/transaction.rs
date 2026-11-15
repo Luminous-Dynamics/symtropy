@@ -22,6 +22,10 @@ pub enum PhysicalTransactionState {
     Rejected,
     SafeHold,
     ReconciliationRequired,
+    ReconciledCompleted,
+    ReconciledNoAction,
+    ReconciledReturned,
+    ReconciledQuarantined,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,6 +45,7 @@ pub enum EventDisposition {
     SafeHold,
     ReconciliationRequired,
     Completed,
+    Reconciled,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,6 +57,8 @@ pub struct TransactionContext {
     pub source_actor_id: String,
     pub receiver_actor_id: String,
     pub receiver_endpoint_id: String,
+    /// Independent operator/custodian allowed to resolve ambiguous outcomes.
+    pub reconciler_actor_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,6 +101,20 @@ pub enum TransactionEventKind {
     ActuationTimeout,
     NetworkPartition,
     SensorDisagreement,
+    ReconciliationResolved {
+        outcome: ReconciliationOutcome,
+        primary_evidence_digest: String,
+        independent_evidence_digest: String,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReconciliationOutcome {
+    Completed,
+    NoActionTaken,
+    Returned,
+    Quarantined,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -167,7 +188,11 @@ impl PhysicalTransaction {
             self.state = PhysicalTransactionState::ReconciliationRequired;
             return Ok(EventDisposition::ReconciliationRequired);
         }
-        if event.sequence != self.last_sequence.saturating_add(1) {
+        let Some(expected_sequence) = self.last_sequence.checked_add(1) else {
+            self.state = PhysicalTransactionState::ReconciliationRequired;
+            return Ok(EventDisposition::ReconciliationRequired);
+        };
+        if event.sequence != expected_sequence {
             self.state = PhysicalTransactionState::ReconciliationRequired;
             return Ok(EventDisposition::ReconciliationRequired);
         }
@@ -175,11 +200,22 @@ impl PhysicalTransaction {
         self.last_sequence = event.sequence;
         self.seen_events.insert(event.event_id.clone(), event.clone());
 
+        if self.state == PhysicalTransactionState::ReconciliationRequired
+            && !matches!(
+                event.kind,
+                TransactionEventKind::ReconciliationResolved { .. }
+            )
+        {
+            return Ok(EventDisposition::ReconciliationRequired);
+        }
         if matches!(
             self.state,
-            PhysicalTransactionState::ReconciliationRequired
-                | PhysicalTransactionState::Rejected
+            PhysicalTransactionState::Rejected
                 | PhysicalTransactionState::Completed
+                | PhysicalTransactionState::ReconciledCompleted
+                | PhysicalTransactionState::ReconciledNoAction
+                | PhysicalTransactionState::ReconciledReturned
+                | PhysicalTransactionState::ReconciledQuarantined
         ) {
             self.state = PhysicalTransactionState::ReconciliationRequired;
             return Ok(EventDisposition::ReconciliationRequired);
@@ -292,8 +328,48 @@ impl PhysicalTransaction {
                 }
             }
             TransactionEventKind::SensorDisagreement => {
-                self.state = PhysicalTransactionState::SafeHold;
-                EventDisposition::SafeHold
+                if self.dispatch_issued || self.release_observed || self.receive_observed {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                } else {
+                    self.state = PhysicalTransactionState::SafeHold;
+                    EventDisposition::SafeHold
+                }
+            }
+            TransactionEventKind::ReconciliationResolved {
+                outcome,
+                primary_evidence_digest,
+                independent_evidence_digest,
+            } => {
+                let valid = self.state == PhysicalTransactionState::ReconciliationRequired
+                    && event.actor_id == self.context.reconciler_actor_id
+                    && self.context.reconciler_actor_id != self.context.principal_actor_id
+                    && self.context.reconciler_actor_id != self.context.source_actor_id
+                    && self.context.reconciler_actor_id != self.context.receiver_actor_id
+                    && valid_sha256_digest(&primary_evidence_digest)
+                    && valid_sha256_digest(&independent_evidence_digest)
+                    && primary_evidence_digest != independent_evidence_digest;
+                if valid {
+                    self.state = match outcome {
+                        ReconciliationOutcome::Completed => {
+                            PhysicalTransactionState::ReconciledCompleted
+                        }
+                        ReconciliationOutcome::NoActionTaken => {
+                            PhysicalTransactionState::ReconciledNoAction
+                        }
+                        ReconciliationOutcome::Returned => {
+                            PhysicalTransactionState::ReconciledReturned
+                        }
+                        ReconciliationOutcome::Quarantined => {
+                            PhysicalTransactionState::ReconciledQuarantined
+                        }
+                    };
+                    EventDisposition::Reconciled
+                } else if self.state == PhysicalTransactionState::ReconciliationRequired {
+                    EventDisposition::ReconciliationRequired
+                } else {
+                    EventDisposition::Rejected
+                }
             }
         };
         Ok(disposition)
@@ -338,6 +414,7 @@ mod tests {
             source_actor_id: "carrier-01".into(),
             receiver_actor_id: "receiver-01".into(),
             receiver_endpoint_id: "nestport-01".into(),
+            reconciler_actor_id: "independent-custodian-01".into(),
         })
     }
 
@@ -620,6 +697,150 @@ mod tests {
             EventDisposition::ReconciliationRequired
         );
         assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    fn reconciliation_event(outcome: ReconciliationOutcome) -> TransactionEventKind {
+        TransactionEventKind::ReconciliationResolved {
+            outcome,
+            primary_evidence_digest: format!("sha256:{}", "a".repeat(64)),
+            independent_evidence_digest: format!("sha256:{}", "b".repeat(64)),
+        }
+    }
+
+    #[test]
+    fn independent_reconciliation_closes_unknown_outcome_without_rearming_dispatch() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-timeout",
+                "carrier-01",
+                TransactionEventKind::ActuationTimeout
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-reconcile",
+                "independent-custodian-01",
+                reconciliation_event(ReconciliationOutcome::NoActionTaken)
+            ))
+            .unwrap(),
+            EventDisposition::Reconciled
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciledNoAction);
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::BlockedByState(PhysicalTransactionState::ReconciledNoAction)
+        );
+    }
+
+    #[test]
+    fn source_or_receiver_cannot_self_reconcile() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(
+            2,
+            "event-timeout",
+            "carrier-01",
+            TransactionEventKind::ActuationTimeout
+        ))
+        .unwrap();
+
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-reconcile",
+                "carrier-01",
+                reconciliation_event(ReconciliationOutcome::Returned)
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn reconciliation_requires_two_distinct_well_formed_evidence_digests() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(
+            2,
+            "event-timeout",
+            "carrier-01",
+            TransactionEventKind::ActuationTimeout
+        ))
+        .unwrap();
+        let invalid = TransactionEventKind::ReconciliationResolved {
+            outcome: ReconciliationOutcome::Quarantined,
+            primary_evidence_digest: format!("sha256:{}", "a".repeat(64)),
+            independent_evidence_digest: format!("sha256:{}", "a".repeat(64)),
+        };
+
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-reconcile",
+                "independent-custodian-01",
+                invalid
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn sensor_disagreement_after_dispatch_requires_reconciliation() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-sensor-disagreement",
+                "receiver-01",
+                TransactionEventKind::SensorDisagreement
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+
+    #[test]
+    fn sensor_disagreement_before_dispatch_enters_safe_hold() {
+        let mut tx = transaction();
+        authorize(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-sensor-disagreement",
+                "receiver-01",
+                TransactionEventKind::SensorDisagreement
+            ))
+            .unwrap(),
+            EventDisposition::SafeHold
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::SafeHold);
+    }
+
+    #[test]
+    fn sequence_overflow_cannot_reuse_the_maximum_sequence() {
+        let mut tx = transaction();
+        tx.last_sequence = u64::MAX;
+        assert_eq!(
+            tx.record_event(event(
+                u64::MAX,
+                "event-overflow",
+                "carrier-01",
+                TransactionEventKind::NetworkPartition
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
     }
 
     #[test]
