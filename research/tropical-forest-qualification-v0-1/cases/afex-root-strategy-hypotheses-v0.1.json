@@ -119,6 +119,59 @@
       "sample_support": "stock data used in 2026 paper; available from corresponding author on reasonable request",
       "unit": "Mg C ha-1",
       "license": "not public raw values in EIDC record"
+    },
+    {
+      "id": "SOIL_MICROBIAL_ENZYMES",
+      "doi": "10.5285/b9a2523e-09ba-43c7-acfa-a894a231b133",
+      "campaign": "2018-01",
+      "depths_cm": [
+        [
+          0,
+          5
+        ],
+        [
+          5,
+          10
+        ]
+      ],
+      "sample_support": "five within-plot points; plot/depth community mean",
+      "unit": "nmol MUF g soil dry weight-1 h-1",
+      "variables": [
+        "potential BG",
+        "potential NAG",
+        "potential PHOS"
+      ],
+      "meaning": "potential soil microbial C/N/P enzyme activity; not realised nutrient flux"
+    },
+    {
+      "id": "FINE_LITTERFALL_PRODUCTION",
+      "doi": "10.5285/c0294ec9-45d6-464c-b543-ce9ece9fd968",
+      "campaign": "2017-07 to 2019-07",
+      "sample_support": "five 0.25 m2 traps per plot (1.25 m2 total), plot×trap×date/category",
+      "variables": [
+        "leaves",
+        "woody material",
+        "reproductive material",
+        "residues",
+        "frass",
+        "nutrient composition"
+      ],
+      "meaning": "aboveground litter production/return; preserve trap area and collection date"
+    },
+    {
+      "id": "LITTERFALL_LEAF_TRAITS",
+      "doi": "10.5285/58b66cdf-451c-42e7-8153-c24ec30631fd",
+      "campaigns": [
+        "2017-08",
+        "2018-08",
+        "2019-08"
+      ],
+      "sample_support": "leaf sample across all traps per plot; three August campaigns",
+      "variables": [
+        "realized leaf area",
+        "leaf mass area (LMA)"
+      ],
+      "meaning": "catalogue summary describes leaf traits; direct herbivory rate not established without archive schema"
     }
   ],
   "hypotheses": [
@@ -253,12 +306,17 @@
         "available P by depth",
         "fungal community/function",
         "soil water and redox",
-        "species-level/root community composition"
+        "species-level/root community composition",
+        "soil microbial potential BG/NAG/PHOS enzyme activities by 0-5 and 5-10 cm",
+        "fine-litterfall production, nutrient composition and trap-level repeated collections",
+        "leaf area/LMA on August litterfall samples"
       ],
       "alternatives": [
         "mis-specified observation operators",
         "treatment non-compliance",
-        "shared data processing or allometry"
+        "shared data processing or allometry",
+        "microbial C/N/P acquisition and organic matter processing",
+        "litter production/composition feedback to soil nutrient return"
       ],
       "causal_status": "MODEL_SET_ADEQUACY_CHALLENGE_NOT_A_SINGLE_PRESELECTED_MECHANISM"
     }
