@@ -293,6 +293,15 @@
         "baseline_id": "degenerate-reference",
         "baseline_scope": "frozen_test"
       }
+    },
+    {
+      "case_id": "HC-T0-021-final-test-model-selection-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "FINAL_TEST_USED_FOR_MODEL_SELECTION",
+        "predictive_claim_eligible": false
+      }
     }
   ]
 }
