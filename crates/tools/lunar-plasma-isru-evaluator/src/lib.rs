@@ -205,7 +205,9 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             || balance.tolerance_g < 0.0
             || balance.outputs.is_empty()
         {
-            rejected.push("feedstock mass balance has invalid input, tolerance or empty outputs".to_owned());
+            rejected.push(
+                "feedstock mass balance has invalid input, tolerance or empty outputs".to_owned(),
+            );
         } else {
             let mut stream_ids = HashSet::new();
             let mut output_sum = 0.0;
@@ -214,7 +216,8 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                     || !non_empty(&stream.kind)
                     || !stream_ids.insert(stream.stream_id.as_str())
                 {
-                    rejected.push("feedstock output stream identity is empty or duplicated".to_owned());
+                    rejected
+                        .push("feedstock output stream identity is empty or duplicated".to_owned());
                 }
                 if !valid_nonnegative(stream.mass_g) {
                     rejected.push("feedstock output mass is non-finite or negative".to_owned());
@@ -225,7 +228,10 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             let residual = balance.input_mass_g - output_sum;
             feedstock_balance_residual_g = Some(residual);
             if !residual.is_finite() || residual.abs() > balance.tolerance_g {
-                rejected.push("feedstock mass balance does not close within its declared tolerance".to_owned());
+                rejected.push(
+                    "feedstock mass balance does not close within its declared tolerance"
+                        .to_owned(),
+                );
             }
         }
     }
@@ -252,13 +258,17 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 let residual = input - output;
                 reagent_balance_residual_g = Some(residual);
                 if !residual.is_finite() || residual.abs() > ledger.tolerance_g {
-                    rejected.push("reagent inventory does not close within its declared tolerance".to_owned());
+                    rejected.push(
+                        "reagent inventory does not close within its declared tolerance".to_owned(),
+                    );
                 }
             }
         }
     }
 
-    let total_grid_energy_wh = scenario.grid_energy.as_ref()
+    let total_grid_energy_wh = scenario
+        .grid_energy
+        .as_ref()
         .and_then(|grid| complete_grid_energy(grid, &mut blocked, &mut rejected));
 
     let observations = scenario.observations.as_deref().unwrap_or(&[]);
@@ -270,7 +280,8 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             || !non_empty(&observation.evidence_class)
             || !observation_ids.insert(observation.observation_id.as_str())
         {
-            rejected.push("observation identity or classification is empty or duplicated".to_owned());
+            rejected
+                .push("observation identity or classification is empty or duplicated".to_owned());
         }
     }
 
@@ -281,7 +292,8 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             product_scoreable = false;
         }
         if product.species != "O2" {
-            rejected.push("the accepted product contract requires O2 as a distinct species".to_owned());
+            rejected
+                .push("the accepted product contract requires O2 as a distinct species".to_owned());
             product_scoreable = false;
         }
 
@@ -293,24 +305,49 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             product.quantitative_measurement_ref.as_deref(),
             product.calibration_ref.as_deref(),
         ) {
-            (Some(mass), Some(purity), Some(pressure), Some(contract), Some(measurement), Some(calibration)) => {
-                if !mass.is_finite() || mass <= 0.0 || !purity.is_finite()
-                    || purity <= 0.0 || purity > 1.0 || !pressure.is_finite() || pressure <= 0.0
+            (
+                Some(mass),
+                Some(purity),
+                Some(pressure),
+                Some(contract),
+                Some(measurement),
+                Some(calibration),
+            ) => {
+                if !mass.is_finite()
+                    || mass <= 0.0
+                    || !purity.is_finite()
+                    || purity <= 0.0
+                    || purity > 1.0
+                    || !pressure.is_finite()
+                    || pressure <= 0.0
                 {
-                    rejected.push("product mass, purity or pressure is outside the valid domain".to_owned());
+                    rejected.push(
+                        "product mass, purity or pressure is outside the valid domain".to_owned(),
+                    );
                     product_scoreable = false;
                 }
                 if !non_empty(contract) || !non_empty(measurement) || !non_empty(calibration) {
                     blocked.push("product contract, quantitative measurement or calibration reference is absent".to_owned());
                     product_scoreable = false;
-                } else if let Some(observation) = observations.iter().find(|obs| obs.observation_id == measurement) {
+                } else if let Some(observation) = observations
+                    .iter()
+                    .find(|obs| obs.observation_id == measurement)
+                {
                     if observation.species != "O2" {
-                        rejected.push("product measurement refers to a different gas species".to_owned());
+                        rejected.push(
+                            "product measurement refers to a different gas species".to_owned(),
+                        );
                         product_scoreable = false;
                     } else if observation.evidence_class != "synthetic"
-                        || !observation.method.to_ascii_lowercase().contains("quantitative")
+                        || !observation
+                            .method
+                            .to_ascii_lowercase()
+                            .contains("quantitative")
                         || !(observation.method.to_ascii_lowercase().contains("gas")
-                            || observation.method.to_ascii_lowercase().contains("mass_flow"))
+                            || observation
+                                .method
+                                .to_ascii_lowercase()
+                                .contains("mass_flow"))
                     {
                         blocked.push("product measurement is not a synthetic quantitative gas or mass-flow observation".to_owned());
                         product_scoreable = false;
@@ -321,22 +358,37 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 }
 
                 if let Some(balance) = &scenario.feedstock_mass_balance {
-                    let product_streams: Vec<_> = balance.outputs.iter()
-                        .filter(|stream| stream.kind == "accepted_o2_product").collect();
+                    let product_streams: Vec<_> = balance
+                        .outputs
+                        .iter()
+                        .filter(|stream| stream.kind == "accepted_o2_product")
+                        .collect();
                     if product_streams.len() != 1 {
-                        blocked.push("feedstock balance must contain exactly one accepted O2 product stream".to_owned());
+                        blocked.push(
+                            "feedstock balance must contain exactly one accepted O2 product stream"
+                                .to_owned(),
+                        );
                         product_scoreable = false;
                     } else if !close_enough(product_streams[0].mass_g, mass, balance.tolerance_g) {
-                        rejected.push("accepted O2 product mass does not match its feedstock output stream".to_owned());
+                        rejected.push(
+                            "accepted O2 product mass does not match its feedstock output stream"
+                                .to_owned(),
+                        );
                         product_scoreable = false;
                     }
                 } else {
-                    blocked.push("accepted O2 product has no reconciled feedstock mass-balance stream".to_owned());
+                    blocked.push(
+                        "accepted O2 product has no reconciled feedstock mass-balance stream"
+                            .to_owned(),
+                    );
                     product_scoreable = false;
                 }
 
                 if total_grid_energy_wh.is_none() {
-                    blocked.push("complete grid-to-product energy boundary is required to score accepted O2".to_owned());
+                    blocked.push(
+                        "complete grid-to-product energy boundary is required to score accepted O2"
+                            .to_owned(),
+                    );
                     product_scoreable = false;
                 }
                 if product_scoreable {
@@ -345,7 +397,6 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             }
             _ => {
                 blocked.push("accepted O2 product is missing mass, purity, pressure, contract, quantitative measurement or calibration".to_owned());
-                product_scoreable = false;
             }
         }
     }
@@ -361,10 +412,19 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 rejected.push("coproduct stream identity or mass is invalid".to_owned());
             }
             if coproduct.credited_as_product
-                && (coproduct.product_grade_ref.as_deref().is_none_or(|value| !non_empty(value))
-                    || coproduct.receiving_process_ref.as_deref().is_none_or(|value| !non_empty(value)))
+                && (coproduct
+                    .product_grade_ref
+                    .as_deref()
+                    .is_none_or(|value| !non_empty(value))
+                    || coproduct
+                        .receiving_process_ref
+                        .as_deref()
+                        .is_none_or(|value| !non_empty(value)))
             {
-                blocked.push("coproduct is credited without a qualified product grade and receiving process".to_owned());
+                blocked.push(
+                    "coproduct is credited without a qualified product grade and receiving process"
+                        .to_owned(),
+                );
             }
         }
     }
@@ -387,7 +447,9 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
     {
         // The individual validators above decide whether the complete chain is scoreable.
     } else if scenario.comparison.is_none() && scenario.coproducts.is_none() {
-        blocked.push("scenario does not contain a complete end-to-end process evidence chain".to_owned());
+        blocked.push(
+            "scenario does not contain a complete end-to-end process evidence chain".to_owned(),
+        );
     }
 
     let (disposition, reasons) = if !rejected.is_empty() {
@@ -425,10 +487,14 @@ fn complete_grid_energy(
     blocked: &mut Vec<String>,
     rejected: &mut Vec<String>,
 ) -> Option<f64> {
-    if !non_empty(&grid.boundary_id) || grid.meter_mode != "non_overlapping_branch_meters"
+    if !non_empty(&grid.boundary_id)
+        || grid.meter_mode != "non_overlapping_branch_meters"
         || !non_empty(&grid.meter_calibration_status)
     {
-        blocked.push("grid energy boundary identity, meter mode or calibration status is incomplete".to_owned());
+        blocked.push(
+            "grid energy boundary identity, meter mode or calibration status is incomplete"
+                .to_owned(),
+        );
         return None;
     }
     if grid.meters.is_empty() || grid.required_roles.is_empty() {
@@ -440,10 +506,14 @@ fn complete_grid_energy(
     let mut roles = HashSet::new();
     let mut total = 0.0;
     for meter in &grid.meters {
-        if !non_empty(&meter.meter_id) || !meter_ids.insert(meter.meter_id.as_str())
-            || !non_empty(&meter.role) || !roles.insert(meter.role.as_str())
+        if !non_empty(&meter.meter_id)
+            || !meter_ids.insert(meter.meter_id.as_str())
+            || !non_empty(&meter.role)
+            || !roles.insert(meter.role.as_str())
         {
-            rejected.push("grid energy meter identity or subsystem role is empty or duplicated".to_owned());
+            rejected.push(
+                "grid energy meter identity or subsystem role is empty or duplicated".to_owned(),
+            );
         }
         if !valid_nonnegative(meter.energy_wh) {
             rejected.push("grid energy meter reading is non-finite or negative".to_owned());
@@ -453,11 +523,18 @@ fn complete_grid_energy(
     }
 
     let mut required = HashSet::new();
-    if grid.required_roles.iter().any(|role| !non_empty(role) || !required.insert(role.as_str())) {
+    if grid
+        .required_roles
+        .iter()
+        .any(|role| !non_empty(role) || !required.insert(role.as_str()))
+    {
         rejected.push("required grid energy roles are empty or duplicated".to_owned());
     }
     if required != roles {
-        blocked.push("grid energy does not provide exactly one meter for every required subsystem role".to_owned());
+        blocked.push(
+            "grid energy does not provide exactly one meter for every required subsystem role"
+                .to_owned(),
+        );
     }
     if !total.is_finite() || total <= 0.0 {
         rejected.push("total grid energy must be finite and positive".to_owned());
@@ -470,14 +547,20 @@ fn complete_grid_energy(
 }
 
 pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
-    let manifest: Manifest = serde_json::from_str(source)
-        .map_err(|error| format!("invalid manifest: {error}"))?;
+    let manifest: Manifest =
+        serde_json::from_str(source).map_err(|error| format!("invalid manifest: {error}"))?;
 
     if manifest.schema_version != SCHEMA_VERSION {
-        return Err(format!("unsupported schema version: {}", manifest.schema_version));
+        return Err(format!(
+            "unsupported schema version: {}",
+            manifest.schema_version
+        ));
     }
     if manifest.benchmark_id != BENCHMARK_ID {
-        return Err(format!("unexpected benchmark ID: {}", manifest.benchmark_id));
+        return Err(format!(
+            "unexpected benchmark ID: {}",
+            manifest.benchmark_id
+        ));
     }
     if !non_empty(&manifest.frozen_at) || !non_empty(&manifest.comparison_policy) {
         return Err("manifest freeze date or comparison policy is missing".to_owned());
@@ -497,16 +580,22 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
         if !non_empty(&scenario.id) || !scenario_ids.insert(scenario.id.as_str()) {
             return Err("scenario IDs must be non-empty and unique".to_owned());
         }
-        if !matches!(scenario.expected_disposition.as_str(),
-            "SYNTHETIC_ACCOUNTING_PASS" | "BLOCKED" | "REJECTED" | "NOT_COMPARABLE")
-        {
-            return Err(format!("scenario {} has unsupported expected disposition", scenario.id));
+        if !matches!(
+            scenario.expected_disposition.as_str(),
+            "SYNTHETIC_ACCOUNTING_PASS" | "BLOCKED" | "REJECTED" | "NOT_COMPARABLE"
+        ) {
+            return Err(format!(
+                "scenario {} has unsupported expected disposition",
+                scenario.id
+            ));
         }
     }
 
     let results: Vec<ScenarioResult> = manifest.scenarios.iter().map(evaluate_scenario).collect();
-    let matched_expectations = results.iter()
-        .filter(|result| result.disposition == result.expected_disposition).count();
+    let matched_expectations = results
+        .iter()
+        .filter(|result| result.disposition == result.expected_disposition)
+        .count();
     let scenario_count = results.len();
 
     Ok(AuditReport {
@@ -527,14 +616,19 @@ mod tests {
     use super::*;
     use serde_json::{Value, json};
 
-    const FIXTURE: &str = include_str!("../../../../benchmarks/plasma/lunar-plasma-isru-process-v0.json");
+    const FIXTURE: &str =
+        include_str!("../../../../benchmarks/plasma/lunar-plasma-isru-process-v0.json");
 
     fn fixture_value() -> Value {
         serde_json::from_str(FIXTURE).expect("fixture JSON must parse")
     }
 
     fn result_for<'a>(report: &'a AuditReport, id: &str) -> &'a ScenarioResult {
-        report.results.iter().find(|result| result.id == id).expect("scenario exists")
+        report
+            .results
+            .iter()
+            .find(|result| result.id == id)
+            .expect("scenario exists")
     }
 
     #[test]
@@ -561,19 +655,28 @@ mod tests {
     #[test]
     fn unknown_reagent_inventory_blocks_closed_loop_claim() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(result_for(&report, "blocked-unknown-reagent-inventory").disposition, "BLOCKED");
+        assert_eq!(
+            result_for(&report, "blocked-unknown-reagent-inventory").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
     fn qualitative_oxygen_signal_cannot_become_product_mass() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(result_for(&report, "blocked-qualitative-oxygen-observation-only").disposition, "BLOCKED");
+        assert_eq!(
+            result_for(&report, "blocked-qualitative-oxygen-observation-only").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
     fn co2_observation_cannot_be_promoted_to_o2() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(result_for(&report, "rejected-co2-promoted-to-o2").disposition, "REJECTED");
+        assert_eq!(
+            result_for(&report, "rejected-co2-promoted-to-o2").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
@@ -582,31 +685,46 @@ mod tests {
         let result = result_for(&report, "blocked-incomplete-grid-boundary");
         assert_eq!(result.disposition, "BLOCKED");
         assert_eq!(result.synthetic_grid_energy_wh_per_kg_o2, None);
-        assert!(result.reasons.iter().any(|reason| reason.contains("required subsystem role")));
+        assert!(
+            result
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("required subsystem role"))
+        );
     }
 
     #[test]
     fn unqualified_coproduct_cannot_be_credited() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(result_for(&report, "blocked-unqualified-coproduct-credit").disposition, "BLOCKED");
+        assert_eq!(
+            result_for(&report, "blocked-unqualified-coproduct-credit").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
     fn mismatched_product_contract_is_not_comparable() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(result_for(&report, "not-comparable-product-contract").disposition, "NOT_COMPARABLE");
+        assert_eq!(
+            result_for(&report, "not-comparable-product-contract").disposition,
+            "NOT_COMPARABLE"
+        );
     }
 
     #[test]
     fn mass_nonclosure_is_rejected() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(result_for(&report, "rejected-feedstock-mass-nonclosure").disposition, "REJECTED");
+        assert_eq!(
+            result_for(&report, "rejected-feedstock-mass-nonclosure").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn oes_reference_cannot_be_used_as_quantitative_product_measurement() {
         let mut value = fixture_value();
-        value["scenarios"][0]["product"]["quantitative_measurement_ref"] = json!("synthetic-oes-o2");
+        value["scenarios"][0]["product"]["quantitative_measurement_ref"] =
+            json!("synthetic-oes-o2");
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
         let result = result_for(&report, "synthetic-balanced-accounting-positive");
         assert_eq!(result.disposition, "BLOCKED");
@@ -619,13 +737,19 @@ mod tests {
         let first_meter_id = value["scenarios"][0]["grid_energy"]["meters"][0]["meter_id"].clone();
         value["scenarios"][0]["grid_energy"]["meters"][1]["meter_id"] = first_meter_id;
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
-        assert_eq!(result_for(&report, "synthetic-balanced-accounting-positive").disposition, "REJECTED");
+        assert_eq!(
+            result_for(&report, "synthetic-balanced-accounting-positive").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn missing_required_meter_role_blocks_grid_intensity() {
         let mut value = fixture_value();
-        value["scenarios"][0]["grid_energy"]["meters"].as_array_mut().unwrap().pop();
+        value["scenarios"][0]["grid_energy"]["meters"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
         let result = result_for(&report, "synthetic-balanced-accounting-positive");
         assert_eq!(result.disposition, "BLOCKED");
