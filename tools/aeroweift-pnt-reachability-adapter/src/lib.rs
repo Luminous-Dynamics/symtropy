@@ -480,10 +480,10 @@ fn evaluate_claim(
         return Err(NotAssessableReason::IndependenceNotQualified);
     }
     if !claim.dependency_snapshot_complete
-        || !claim
+        || claim
             .dependency_snapshot_id
             .as_deref()
-            .is_some_and(|value| !value.trim().is_empty())
+            .is_none_or(|value| value.trim().is_empty())
     {
         return Err(NotAssessableReason::DependencySnapshotIncomplete);
     }
