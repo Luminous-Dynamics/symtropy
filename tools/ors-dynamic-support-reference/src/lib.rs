@@ -7,9 +7,10 @@
 //! absolute spatial or orbital coordinates. The input and output claim class
 //! is SYNTHETIC_NOT_PHYSICAL.
 //!
-//! Equal-and-opposite external bias forces hold the preloaded spring at rest.
-//! At the configured release time both biases are removed. The resulting
-//! damped oscillator has a separate closed-form test oracle.
+//! Independent external bias forces hold the preloaded spring at rest.
+//! Each restraint has its own grid-aligned release event, so asynchronous
+//! release produces a non-zero external impulse that is accounted explicitly.
+//! The resulting damped oscillator has a separate closed-form test oracle.
 
 use std::error::Error;
 use std::fmt;
@@ -17,7 +18,7 @@ use std::fmt;
 pub const SYNTHETIC_FORCE_LAW_ID: &str = "synthetic-linear-spring-damper-v1";
 pub const SYNTHETIC_CLAIM_CLASS: &str = "SYNTHETIC_NOT_PHYSICAL";
 pub const MAX_TIME_STEPS: usize = 1_000_000;
-const EXPECTED_HEADER: &str = "case_id,force_law_id,claim_class,mass_stream_kg,mass_support_kg,stiffness_n_m,damping_n_s_m,preload_n,release_time_s,duration_s,dt_s,expected_final_separation_m,expected_final_relative_velocity_mps,absolute_tolerance";
+const EXPECTED_HEADER: &str = "case_id,force_law_id,claim_class,mass_stream_kg,mass_support_kg,stiffness_n_m,damping_n_s_m,preload_n,release_stream_time_s,release_support_time_s,duration_s,dt_s,expected_final_separation_m,expected_final_relative_velocity_mps,absolute_tolerance";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelError {
@@ -77,7 +78,8 @@ pub struct Scenario {
     pub stiffness_n_m: f64,
     pub damping_n_s_m: f64,
     pub preload_n: f64,
-    pub release_time_s: f64,
+    pub release_stream_time_s: f64,
+    pub release_support_time_s: f64,
     pub duration_s: f64,
     pub dt_s: f64,
 }
@@ -101,6 +103,7 @@ pub struct SimulationReport {
     pub peak_abs_port_force_n: f64,
     pub final_dissipated_energy_j: f64,
     pub final_external_work_j: f64,
+    pub final_external_impulse_n_s: f64,
     pub max_abs_linear_momentum_residual_kg_mps: f64,
     pub max_abs_energy_balance_residual_j: f64,
 }
@@ -132,7 +135,7 @@ fn integer_steps(value_s: f64, dt_s: f64) -> Result<usize, ModelError> {
     Ok(rounded as usize)
 }
 
-pub fn validate_scenario(scenario: &Scenario) -> Result<(usize, usize), ModelError> {
+pub fn validate_scenario(scenario: &Scenario) -> Result<(usize, usize, usize), ModelError> {
     if !valid_case_id(&scenario.case_id) {
         return Err(ModelError::InvalidCaseId);
     }
@@ -149,7 +152,8 @@ pub fn validate_scenario(scenario: &Scenario) -> Result<(usize, usize), ModelErr
         scenario.stiffness_n_m,
         scenario.damping_n_s_m,
         scenario.preload_n,
-        scenario.release_time_s,
+        scenario.release_stream_time_s,
+        scenario.release_support_time_s,
         scenario.duration_s,
         scenario.dt_s,
     ];
@@ -171,40 +175,47 @@ pub fn validate_scenario(scenario: &Scenario) -> Result<(usize, usize), ModelErr
     if scenario.duration_s <= 0.0 || scenario.dt_s <= 0.0 {
         return Err(ModelError::InvalidDuration);
     }
-    if scenario.release_time_s < 0.0 || scenario.release_time_s > scenario.duration_s {
+    if scenario.release_stream_time_s < 0.0
+        || scenario.release_stream_time_s > scenario.duration_s
+        || scenario.release_support_time_s < 0.0
+        || scenario.release_support_time_s > scenario.duration_s
+    {
         return Err(ModelError::ReleaseOutsideDuration);
     }
 
     let steps = integer_steps(scenario.duration_s, scenario.dt_s)?;
-    let release_step = integer_steps(scenario.release_time_s, scenario.dt_s)?;
+    let stream_release_step = integer_steps(scenario.release_stream_time_s, scenario.dt_s)?;
+    let support_release_step = integer_steps(scenario.release_support_time_s, scenario.dt_s)?;
     if steps == 0 {
         return Err(ModelError::InvalidDuration);
     }
-    Ok((steps, release_step))
+    Ok((steps, stream_release_step, support_release_step))
 }
 
-fn port_force(state: &[f64; 6], scenario: &Scenario) -> f64 {
+fn port_force(state: &[f64; 7], scenario: &Scenario) -> f64 {
     let separation = state[0] - state[2];
     let relative_velocity = state[1] - state[3];
     -scenario.stiffness_n_m * separation - scenario.damping_n_s_m * relative_velocity
 }
 
 fn derivative(
-    state: &[f64; 6],
-    bias_force_n: f64,
+    state: &[f64; 7],
+    bias_stream_force_n: f64,
+    bias_support_force_n: f64,
     scenario: &Scenario,
-) -> Result<[f64; 6], ModelError> {
+) -> Result<[f64; 7], ModelError> {
     let relative_velocity = state[1] - state[3];
     let force_on_stream = port_force(state, scenario);
-    let force_on_stream_total = force_on_stream + bias_force_n;
-    let force_on_support_total = -force_on_stream - bias_force_n;
+    let force_on_stream_total = force_on_stream + bias_stream_force_n;
+    let force_on_support_total = -force_on_stream + bias_support_force_n;
     let output = [
         state[1],
         force_on_stream_total / scenario.mass_stream_kg,
         state[3],
         force_on_support_total / scenario.mass_support_kg,
         scenario.damping_n_s_m * relative_velocity * relative_velocity,
-        bias_force_n * relative_velocity,
+        bias_stream_force_n * state[1] + bias_support_force_n * state[3],
+        bias_stream_force_n + bias_support_force_n,
     ];
     if finite(&output) {
         Ok(output)
@@ -213,25 +224,26 @@ fn derivative(
     }
 }
 
-fn add_scaled(state: &[f64; 6], slope: &[f64; 6], scale: f64) -> [f64; 6] {
+fn add_scaled(state: &[f64; 7], slope: &[f64; 7], scale: f64) -> [f64; 7] {
     std::array::from_fn(|index| state[index] + slope[index] * scale)
 }
 
 fn rk4_step(
-    state: &[f64; 6],
+    state: &[f64; 7],
     step_s: f64,
-    bias_force_n: f64,
+    bias_stream_force_n: f64,
+    bias_support_force_n: f64,
     scenario: &Scenario,
-) -> Result<[f64; 6], ModelError> {
-    let k1 = derivative(state, bias_force_n, scenario)?;
+) -> Result<[f64; 7], ModelError> {
+    let k1 = derivative(state, bias_stream_force_n, bias_support_force_n, scenario)?;
     let stage2 = add_scaled(state, &k1, 0.5 * step_s);
-    let k2 = derivative(&stage2, bias_force_n, scenario)?;
+    let k2 = derivative(&stage2, bias_stream_force_n, bias_support_force_n, scenario)?;
     let stage3 = add_scaled(state, &k2, 0.5 * step_s);
-    let k3 = derivative(&stage3, bias_force_n, scenario)?;
+    let k3 = derivative(&stage3, bias_stream_force_n, bias_support_force_n, scenario)?;
     let stage4 = add_scaled(state, &k3, step_s);
-    let k4 = derivative(&stage4, bias_force_n, scenario)?;
+    let k4 = derivative(&stage4, bias_stream_force_n, bias_support_force_n, scenario)?;
 
-    let output: [f64; 6] = std::array::from_fn(|index| {
+    let output: [f64; 7] = std::array::from_fn(|index| {
         state[index] + (step_s / 6.0) * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
     });
     if finite(&output) {
@@ -241,7 +253,7 @@ fn rk4_step(
     }
 }
 
-fn mechanical_energy(state: &[f64; 6], scenario: &Scenario) -> f64 {
+fn mechanical_energy(state: &[f64; 7], scenario: &Scenario) -> f64 {
     let separation = state[0] - state[2];
     let kinetic = 0.5 * scenario.mass_stream_kg * state[1] * state[1]
         + 0.5 * scenario.mass_support_kg * state[3] * state[3];
@@ -254,7 +266,7 @@ fn mechanical_energy(state: &[f64; 6], scenario: &Scenario) -> f64 {
 /// State slots 4 and 5 accumulate viscous dissipation and external bias work.
 /// The energy residual is E_mechanical + E_dissipated - W_external - E_initial.
 pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
-    let (steps, release_step) = validate_scenario(scenario)?;
+    let (steps, stream_release_step, support_release_step) = validate_scenario(scenario)?;
     let initial_separation = scenario.preload_n / scenario.stiffness_n_m;
     if !initial_separation.is_finite() {
         return Err(ModelError::NonFiniteResult);
@@ -265,6 +277,7 @@ pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
         0.5 * initial_separation,
         0.0,
         -0.5 * initial_separation,
+        0.0,
         0.0,
         0.0,
         0.0,
@@ -287,21 +300,27 @@ pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
 
     for step_index in 0..steps {
         // The event is grid-aligned, so no RK stage straddles its discontinuity.
-        let bias = if step_index < release_step {
+        let bias_stream = if step_index < stream_release_step {
             scenario.preload_n
         } else {
             0.0
         };
+        let bias_support = if step_index < support_release_step {
+            -scenario.preload_n
+        } else {
+            0.0
+        };
         peak_abs_port_force_n = peak_abs_port_force_n.max(port_force(&state, scenario).abs());
-        state = rk4_step(&state, scenario.dt_s, bias, scenario)?;
+        state = rk4_step(&state, scenario.dt_s, bias_stream, bias_support, scenario)?;
 
         let separation = state[0] - state[2];
         let relative_velocity = state[1] - state[3];
         let momentum = scenario.mass_stream_kg * state[1] + scenario.mass_support_kg * state[3];
+        let momentum_residual = momentum - state[6];
         let energy_residual =
             mechanical_energy(&state, scenario) + state[4] - state[5] - initial_energy;
 
-        if !finite(&[separation, relative_velocity, momentum, energy_residual]) {
+        if !finite(&[separation, relative_velocity, momentum, momentum_residual, energy_residual]) {
             return Err(ModelError::NonFiniteResult);
         }
 
@@ -309,7 +328,7 @@ pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
         peak_abs_relative_velocity_mps =
             peak_abs_relative_velocity_mps.max(relative_velocity.abs());
         max_abs_linear_momentum_residual_kg_mps =
-            max_abs_linear_momentum_residual_kg_mps.max(momentum.abs());
+            max_abs_linear_momentum_residual_kg_mps.max(momentum_residual.abs());
         max_abs_energy_balance_residual_j =
             max_abs_energy_balance_residual_j.max(energy_residual.abs());
     }
@@ -324,6 +343,7 @@ pub fn evaluate(scenario: &Scenario) -> Result<SimulationReport, ModelError> {
         peak_abs_port_force_n,
         final_dissipated_energy_j: state[4],
         final_external_work_j: state[5],
+        final_external_impulse_n_s: state[6],
         max_abs_linear_momentum_residual_kg_mps,
         max_abs_energy_balance_residual_j,
     })
@@ -361,7 +381,7 @@ pub fn parse_corpus(input: &str) -> Result<Vec<GoldenCase>, ModelError> {
             continue;
         }
         let fields: Vec<&str> = line.split(',').collect();
-        if fields.len() != 14 {
+        if fields.len() != 15 {
             return Err(ModelError::InvalidCorpus);
         }
         let scenario = Scenario {
@@ -373,13 +393,14 @@ pub fn parse_corpus(input: &str) -> Result<Vec<GoldenCase>, ModelError> {
             stiffness_n_m: parse_number(fields[5])?,
             damping_n_s_m: parse_number(fields[6])?,
             preload_n: parse_number(fields[7])?,
-            release_time_s: parse_number(fields[8])?,
-            duration_s: parse_number(fields[9])?,
-            dt_s: parse_number(fields[10])?,
+            release_stream_time_s: parse_number(fields[8])?,
+            release_support_time_s: parse_number(fields[9])?,
+            duration_s: parse_number(fields[10])?,
+            dt_s: parse_number(fields[11])?,
         };
-        let expected_final_separation_m = parse_number(fields[11])?;
-        let expected_final_relative_velocity_mps = parse_number(fields[12])?;
-        let absolute_tolerance = parse_number(fields[13])?;
+        let expected_final_separation_m = parse_number(fields[12])?;
+        let expected_final_relative_velocity_mps = parse_number(fields[13])?;
+        let absolute_tolerance = parse_number(fields[14])?;
 
         validate_scenario(&scenario)?;
         if !finite(&[
