@@ -6,10 +6,9 @@
 
 mod capsule;
 pub use capsule::{
-    Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach,
-    closest_segment_approach, endpoints_only_sphere_capsule_collision,
-    moving_sphere_capsule_collision, moving_sphere_vs_capsule,
-    swept_sphere_capsule_aabb_candidate,
+    Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
+    endpoints_only_sphere_capsule_collision, moving_sphere_capsule_collision,
+    moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
 };
 
 use construction_motion_envelope::{

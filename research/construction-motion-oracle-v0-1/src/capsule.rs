@@ -30,7 +30,11 @@ impl Capsule {
         if !is_finite(start) || !is_finite(end) {
             return Err(CapsuleError::NonFiniteCoordinate);
         }
-        Ok(Self { start, end, radius_mm })
+        Ok(Self {
+            start,
+            end,
+            radius_mm,
+        })
     }
 
     pub fn aabb(self) -> CapsuleAabb3 {
@@ -57,9 +61,12 @@ pub struct CapsuleAabb3 {
 
 impl CapsuleAabb3 {
     pub fn overlaps(self, other: Self) -> bool {
-        self.min.x <= other.max.x && self.max.x >= other.min.x
-            && self.min.y <= other.max.y && self.max.y >= other.min.y
-            && self.min.z <= other.max.z && self.max.z >= other.min.z
+        self.min.x <= other.max.x
+            && self.max.x >= other.min.x
+            && self.min.y <= other.max.y
+            && self.max.y >= other.min.y
+            && self.min.z <= other.max.z
+            && self.max.z >= other.min.z
     }
 }
 
@@ -74,12 +81,7 @@ pub struct SegmentClosestApproach {
 
 /// Shortest distance between two finite 3D segments, including parallel and
 /// degenerate point-segment cases. Parameters are clamped to [0, 1].
-pub fn closest_segment_approach(
-    p0: Vec3,
-    p1: Vec3,
-    q0: Vec3,
-    q1: Vec3,
-) -> SegmentClosestApproach {
+pub fn closest_segment_approach(p0: Vec3, p1: Vec3, q0: Vec3, q1: Vec3) -> SegmentClosestApproach {
     let u = p1.sub(p0);
     let v = q1.sub(q0);
     let w = p0.sub(q0);
@@ -140,7 +142,12 @@ pub fn moving_sphere_vs_capsule(
     if !is_finite(path_start) || !is_finite(path_end) {
         return Err(CapsuleError::NonFiniteCoordinate);
     }
-    Ok(closest_segment_approach(path_start, path_end, obstacle.start, obstacle.end))
+    Ok(closest_segment_approach(
+        path_start,
+        path_end,
+        obstacle.start,
+        obstacle.end,
+    ))
 }
 
 pub fn moving_sphere_capsule_collision(
@@ -210,107 +217,158 @@ fn is_finite(p: Vec3) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn p(x: f64, y: f64, z: f64) -> Vec3 { Vec3::new(x, y, z) }
+    fn p(x: f64, y: f64, z: f64) -> Vec3 {
+        Vec3::new(x, y, z)
+    }
 
     #[test]
     fn transverse_capsule_hit_between_clear_endpoints() {
-        let obstacle = Capsule::new(p(0.0,-100.0,0.0),p(0.0,100.0,0.0),5.0).unwrap();
-        let a=p(-1000.0,0.0,0.0); let b=p(1000.0,0.0,0.0);
-        assert_eq!(moving_sphere_vs_capsule(a,b,10.0,obstacle).unwrap().distance_mm,0.0);
-        assert!(moving_sphere_capsule_collision(a,b,10.0,obstacle).unwrap());
-        assert!(!endpoints_only_sphere_capsule_collision(a,b,10.0,obstacle).unwrap());
+        let obstacle = Capsule::new(p(0.0, -100.0, 0.0), p(0.0, 100.0, 0.0), 5.0).unwrap();
+        let a = p(-1000.0, 0.0, 0.0);
+        let b = p(1000.0, 0.0, 0.0);
+        assert_eq!(
+            moving_sphere_vs_capsule(a, b, 10.0, obstacle)
+                .unwrap()
+                .distance_mm,
+            0.0
+        );
+        assert!(moving_sphere_capsule_collision(a, b, 10.0, obstacle).unwrap());
+        assert!(!endpoints_only_sphere_capsule_collision(a, b, 10.0, obstacle).unwrap());
     }
 
     #[test]
     fn parallel_near_miss_outside_radius_sum_is_clear() {
-        let obstacle=Capsule::new(p(20.0,16.0,0.0),p(80.0,16.0,0.0),5.0).unwrap();
-        let closest=moving_sphere_vs_capsule(p(0.0,0.0,0.0),p(100.0,0.0,0.0),10.0,obstacle).unwrap();
-        assert!((closest.distance_mm-16.0).abs()<1.0e-9);
-        assert!(!moving_sphere_capsule_collision(p(0.0,0.0,0.0),p(100.0,0.0,0.0),10.0,obstacle).unwrap());
+        let obstacle = Capsule::new(p(20.0, 16.0, 0.0), p(80.0, 16.0, 0.0), 5.0).unwrap();
+        let closest =
+            moving_sphere_vs_capsule(p(0.0, 0.0, 0.0), p(100.0, 0.0, 0.0), 10.0, obstacle).unwrap();
+        assert!((closest.distance_mm - 16.0).abs() < 1.0e-9);
+        assert!(
+            !moving_sphere_capsule_collision(p(0.0, 0.0, 0.0), p(100.0, 0.0, 0.0), 10.0, obstacle)
+                .unwrap()
+        );
     }
 
     #[test]
     fn exact_tangency_is_contact() {
-        let obstacle=Capsule::new(p(20.0,15.0,0.0),p(80.0,15.0,0.0),5.0).unwrap();
-        assert!(moving_sphere_capsule_collision(p(0.0,0.0,0.0),p(100.0,0.0,0.0),10.0,obstacle).unwrap());
+        let obstacle = Capsule::new(p(20.0, 15.0, 0.0), p(80.0, 15.0, 0.0), 5.0).unwrap();
+        assert!(
+            moving_sphere_capsule_collision(p(0.0, 0.0, 0.0), p(100.0, 0.0, 0.0), 10.0, obstacle)
+                .unwrap()
+        );
     }
 
     #[test]
     fn skew_segments_use_three_dimensional_closest_approach() {
-        let result=closest_segment_approach(p(0.0,0.0,0.0),p(10.0,0.0,0.0),p(5.0,-10.0,3.0),p(5.0,10.0,3.0));
-        assert!((result.distance_mm-3.0).abs()<1.0e-9);
-        assert!((result.moving_parameter-0.5).abs()<1.0e-9);
-        assert!((result.capsule_parameter-0.5).abs()<1.0e-9);
+        let result = closest_segment_approach(
+            p(0.0, 0.0, 0.0),
+            p(10.0, 0.0, 0.0),
+            p(5.0, -10.0, 3.0),
+            p(5.0, 10.0, 3.0),
+        );
+        assert!((result.distance_mm - 3.0).abs() < 1.0e-9);
+        assert!((result.moving_parameter - 0.5).abs() < 1.0e-9);
+        assert!((result.capsule_parameter - 0.5).abs() < 1.0e-9);
     }
 
     #[test]
     fn parallel_collinear_and_overlapping_segments_have_zero_distance() {
-        for (q0,q1) in [
-            (p(2.0,0.0,0.0),p(8.0,0.0,0.0)),
-            (p(12.0,0.0,0.0),p(18.0,0.0,0.0)),
-            (p(-8.0,0.0,0.0),p(-2.0,0.0,0.0)),
+        for (q0, q1) in [
+            (p(2.0, 0.0, 0.0), p(8.0, 0.0, 0.0)),
+            (p(12.0, 0.0, 0.0), p(18.0, 0.0, 0.0)),
+            (p(-8.0, 0.0, 0.0), p(-2.0, 0.0, 0.0)),
         ] {
-            assert!(closest_segment_approach(p(0.0,0.0,0.0),p(10.0,0.0,0.0),q0,q1).distance_mm<=1.0e-9);
+            assert!(
+                closest_segment_approach(p(0.0, 0.0, 0.0), p(10.0, 0.0, 0.0), q0, q1).distance_mm
+                    <= 1.0e-9
+            );
         }
     }
 
     #[test]
     fn zero_length_capsule_axis_is_a_sphere() {
-        let obstacle=Capsule::new(p(50.0,8.0,0.0),p(50.0,8.0,0.0),6.0).unwrap();
-        let closest=moving_sphere_vs_capsule(p(0.0,0.0,0.0),p(100.0,0.0,0.0),2.0,obstacle).unwrap();
-        assert!((closest.distance_mm-8.0).abs()<1.0e-9);
-        assert!(moving_sphere_capsule_collision(p(0.0,0.0,0.0),p(100.0,0.0,0.0),2.0,obstacle).unwrap());
+        let obstacle = Capsule::new(p(50.0, 8.0, 0.0), p(50.0, 8.0, 0.0), 6.0).unwrap();
+        let closest =
+            moving_sphere_vs_capsule(p(0.0, 0.0, 0.0), p(100.0, 0.0, 0.0), 2.0, obstacle).unwrap();
+        assert!((closest.distance_mm - 8.0).abs() < 1.0e-9);
+        assert!(
+            moving_sphere_capsule_collision(p(0.0, 0.0, 0.0), p(100.0, 0.0, 0.0), 2.0, obstacle)
+                .unwrap()
+        );
     }
 
     #[test]
     fn zero_length_motion_is_point_vs_capsule() {
-        let obstacle=Capsule::new(p(0.0,-5.0,0.0),p(0.0,5.0,0.0),2.0).unwrap();
-        let point=p(0.0,0.0,0.0);
-        assert!(moving_sphere_capsule_collision(point,point,3.0,obstacle).unwrap());
+        let obstacle = Capsule::new(p(0.0, -5.0, 0.0), p(0.0, 5.0, 0.0), 2.0).unwrap();
+        let point = p(0.0, 0.0, 0.0);
+        assert!(moving_sphere_capsule_collision(point, point, 3.0, obstacle).unwrap());
     }
 
     #[test]
     fn broad_phase_can_be_conservative_false_positive() {
-        let obstacle=Capsule::new(p(500.0,15.0,15.0),p(500.0,15.0,15.0),5.0).unwrap();
-        let a=p(0.0,0.0,0.0); let b=p(1000.0,0.0,0.0);
-        assert!(swept_sphere_capsule_aabb_candidate(a,b,10.0,obstacle).unwrap());
-        assert!(!moving_sphere_capsule_collision(a,b,10.0,obstacle).unwrap());
+        let obstacle = Capsule::new(p(500.0, 15.0, 15.0), p(500.0, 15.0, 15.0), 5.0).unwrap();
+        let a = p(0.0, 0.0, 0.0);
+        let b = p(1000.0, 0.0, 0.0);
+        assert!(swept_sphere_capsule_aabb_candidate(a, b, 10.0, obstacle).unwrap());
+        assert!(!moving_sphere_capsule_collision(a, b, 10.0, obstacle).unwrap());
     }
 
     #[test]
     fn rigid_translation_and_quarter_turn_preserve_distance() {
-        let a=p(-50.0,0.0,0.0); let b=p(50.0,0.0,0.0);
-        let q0=p(0.0,0.0,7.0); let q1=p(0.0,20.0,7.0);
-        let base=closest_segment_approach(a,b,q0,q1).distance_mm;
-        let transform=|v:Vec3| p(100.0-v.y,-30.0+v.x,25.0+v.z);
-        let moved=closest_segment_approach(transform(a),transform(b),transform(q0),transform(q1)).distance_mm;
-        assert!((base-moved).abs()<1.0e-9);
+        let a = p(-50.0, 0.0, 0.0);
+        let b = p(50.0, 0.0, 0.0);
+        let q0 = p(0.0, 0.0, 7.0);
+        let q1 = p(0.0, 20.0, 7.0);
+        let base = closest_segment_approach(a, b, q0, q1).distance_mm;
+        let transform = |v: Vec3| p(100.0 - v.y, -30.0 + v.x, 25.0 + v.z);
+        let moved =
+            closest_segment_approach(transform(a), transform(b), transform(q0), transform(q1))
+                .distance_mm;
+        assert!((base - moved).abs() < 1.0e-9);
     }
 
     #[test]
     fn uniform_scaling_scales_distance_and_preserves_collision_truth() {
-        let a=p(-100.0,0.0,0.0); let b=p(100.0,0.0,0.0);
-        let obstacle=Capsule::new(p(0.0,0.0,30.0),p(0.0,50.0,30.0),5.0).unwrap();
-        let base=moving_sphere_vs_capsule(a,b,10.0,obstacle).unwrap();
-        let scaled_obstacle=Capsule::new(p(0.0,0.0,210.0),p(0.0,350.0,210.0),35.0).unwrap();
-        let scaled=moving_sphere_vs_capsule(a.scale(7.0),b.scale(7.0),70.0,scaled_obstacle).unwrap();
-        assert!((scaled.distance_mm-base.distance_mm*7.0).abs()<1.0e-8);
-        assert_eq!(base.distance_mm<=15.0+CONTACT_EPSILON_MM,scaled.distance_mm<=105.0+CONTACT_EPSILON_MM);
+        let a = p(-100.0, 0.0, 0.0);
+        let b = p(100.0, 0.0, 0.0);
+        let obstacle = Capsule::new(p(0.0, 0.0, 30.0), p(0.0, 50.0, 30.0), 5.0).unwrap();
+        let base = moving_sphere_vs_capsule(a, b, 10.0, obstacle).unwrap();
+        let scaled_obstacle = Capsule::new(p(0.0, 0.0, 210.0), p(0.0, 350.0, 210.0), 35.0).unwrap();
+        let scaled =
+            moving_sphere_vs_capsule(a.scale(7.0), b.scale(7.0), 70.0, scaled_obstacle).unwrap();
+        assert!((scaled.distance_mm - base.distance_mm * 7.0).abs() < 1.0e-8);
+        assert_eq!(
+            base.distance_mm <= 15.0 + CONTACT_EPSILON_MM,
+            scaled.distance_mm <= 105.0 + CONTACT_EPSILON_MM
+        );
     }
 
     #[test]
     fn endpoint_clamping_handles_capsule_beyond_path_end() {
-        let result=closest_segment_approach(p(0.0,0.0,0.0),p(10.0,0.0,0.0),p(20.0,5.0,0.0),p(30.0,5.0,0.0));
-        assert_eq!(result.moving_point,p(10.0,0.0,0.0));
-        assert_eq!(result.capsule_axis_point,p(20.0,5.0,0.0));
-        assert!((result.distance_mm-5.0_f64.hypot(10.0)).abs()<1.0e-9);
+        let result = closest_segment_approach(
+            p(0.0, 0.0, 0.0),
+            p(10.0, 0.0, 0.0),
+            p(20.0, 5.0, 0.0),
+            p(30.0, 5.0, 0.0),
+        );
+        assert_eq!(result.moving_point, p(10.0, 0.0, 0.0));
+        assert_eq!(result.capsule_axis_point, p(20.0, 5.0, 0.0));
+        assert!((result.distance_mm - 5.0_f64.hypot(10.0)).abs() < 1.0e-9);
     }
 
     #[test]
     fn rejects_negative_nonfinite_radii_and_nonfinite_coordinates() {
-        assert_eq!(Capsule::new(p(0.0,0.0,0.0),p(1.0,0.0,0.0),-1.0),Err(CapsuleError::InvalidRadius));
-        assert_eq!(Capsule::new(p(0.0,0.0,0.0),p(1.0,0.0,0.0),f64::INFINITY),Err(CapsuleError::InvalidRadius));
-        let obstacle=Capsule::new(p(0.0,0.0,0.0),p(0.0,1.0,0.0),1.0).unwrap();
-        assert_eq!(moving_sphere_capsule_collision(p(f64::NAN,0.0,0.0),p(1.0,0.0,0.0),1.0,obstacle),Err(CapsuleError::NonFiniteCoordinate));
+        assert_eq!(
+            Capsule::new(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), -1.0),
+            Err(CapsuleError::InvalidRadius)
+        );
+        assert_eq!(
+            Capsule::new(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), f64::INFINITY),
+            Err(CapsuleError::InvalidRadius)
+        );
+        let obstacle = Capsule::new(p(0.0, 0.0, 0.0), p(0.0, 1.0, 0.0), 1.0).unwrap();
+        assert_eq!(
+            moving_sphere_capsule_collision(p(f64::NAN, 0.0, 0.0), p(1.0, 0.0, 0.0), 1.0, obstacle),
+            Err(CapsuleError::NonFiniteCoordinate)
+        );
     }
 }

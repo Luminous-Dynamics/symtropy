@@ -1,7 +1,10 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use construction_motion_oracle::{AnalyticPath, Capsule, Vec3, chord_collision, endpoints_only_collision, moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate};
+use construction_motion_oracle::{
+    AnalyticPath, Capsule, Vec3, chord_collision, endpoints_only_collision,
+    moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate,
+};
 
 const BATCH_SIZE: usize = 10_000;
 const SAMPLES: usize = 101;
@@ -109,12 +112,8 @@ fn main() {
         );
     });
 
-    let capsule = Capsule::new(
-        Vec3::new(0.0, -100.0, 0.0),
-        Vec3::new(0.0, 100.0, 0.0),
-        5.0,
-    )
-    .expect("valid capsule fixture");
+    let capsule = Capsule::new(Vec3::new(0.0, -100.0, 0.0), Vec3::new(0.0, 100.0, 0.0), 5.0)
+        .expect("valid capsule fixture");
     let capsule_start = Vec3::new(-1_000.0, 0.0, 0.0);
     let capsule_end = Vec3::new(1_000.0, 0.0, 0.0);
     println!(
