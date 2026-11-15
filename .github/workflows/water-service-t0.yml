@@ -71,6 +71,17 @@ jobs:
           cargo run --locked --package water-service-t0 --bin waterloop-architecture-t0 -- \
             research/water-service-engineering/waterloop-reference-architecture-v0.1.json \
             artifacts/waterloop-architecture-t0/receipt.json
+      - name: Evaluate WaterLoop storage sizing T0 exact checked-out revision
+        id: sizing-evaluate
+        env:
+          WATERLOOP_SIZING_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin waterloop-sizing-t0 -- \
+            research/water-service-engineering/waterloop-sizing-t0-v0.1.json \
+            research/water-service-engineering/waterloop-sizing-manifest-v0.1.json \
+            research/water-service-engineering/waterloop-sizing-oracle-v0.1.json \
+            artifacts/waterloop-sizing-t0/receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,6 +101,11 @@ jobs:
             research/water-service-engineering/waterloop-reference-architecture-v0.1.json
             research/water-service-engineering/waterloop-reference-architecture-v0.1.schema.json
             artifacts/waterloop-architecture-t0/receipt.json
+            research/water-service-engineering/waterloop-sizing-t0-v0.1.json
+            research/water-service-engineering/waterloop-sizing-manifest-v0.1.json
+            research/water-service-engineering/waterloop-sizing-oracle-v0.1.json
+            research/water-service-engineering/waterloop-sizing-t0.schema.json
+            artifacts/waterloop-sizing-t0/receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -97,7 +113,9 @@ jobs:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           WATERLOOP_EVALUATE_OUTCOME: ${{ steps.waterloop-evaluate.outcome }}
           ARCHITECTURE_EVALUATE_OUTCOME: ${{ steps.architecture-evaluate.outcome }}
+          SIZING_EVALUATE_OUTCOME: ${{ steps.sizing-evaluate.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$WATERLOOP_EVALUATE_OUTCOME" = "success"
           test "$ARCHITECTURE_EVALUATE_OUTCOME" = "success"
+          test "$SIZING_EVALUATE_OUTCOME" = "success"
