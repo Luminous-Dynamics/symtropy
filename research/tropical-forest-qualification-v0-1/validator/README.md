@@ -126,6 +126,16 @@ The six-case synthetic corpus returns `PASS_SYNTHETIC_FORECAST_SCORING`. Five ca
 
 This v0.1 corpus is restricted to one variable, unit and horizon. It includes a separate six-case confidence-ranked risk–coverage curve; the declared confidence score is not yet calibrated. The corpus does not establish statistical calibration, PIT/reliability, field forecast skill or transfer. See [FOREST_PROBABILISTIC_FORECAST_BENCHMARK_V0_1.md](../FOREST_PROBABILISTIC_FORECAST_BENCHMARK_V0_1.md) and [issue #5277](https://github.com/Luminous-Dynamics/symtropy/issues/5277).
 
+## Block-aware conformal calibration
+
+The `conformal_kernel` compares naïve pooled residual calibration with a split-conformal quantile over **block-maximum residuals**. The score unit is the declared spatial/campaign block, and the block interval uses one common radius across that block. It reports point coverage, simultaneous all-in-block coverage, interval width and 90% Winkler interval score separately. Training, calibration and test group identities are checked for leakage; calibration/test block IDs must also be disjoint.
+
+The nine-block synthetic corpus yields radius 1 for pooled per-observation residuals and radius 9 for block maxima. On its three test blocks, pooled calibration gives 90% point coverage but 0% whole-block coverage; block calibration gives 93.33% point coverage but 33.33% whole-block coverage. The block radius is wider (18 vs 2), which is why Winkler score is reported alongside coverage. The shift block is known by fixture construction; no prospective shift detector exists.
+
+The split-conformal finite-sample guarantee applies only when the calibration and future **block scores are exchangeable**. Group-ID separation is not a statistical proof. With nine calibration blocks, the nominal 90% order statistic is the maximum block score; a zero-miscoverage request is unbounded. The receipt reports `DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED`.
+
+See [FOREST_BLOCK_CONFORMAL_BENCHMARK_V0_1.md](../FOREST_BLOCK_CONFORMAL_BENCHMARK_V0_1.md) and [issue #5285](https://github.com/Luminous-Dynamics/symtropy/issues/5285). The empirical tournament should compare block maxima with spatially localized conformal (`spconform`), appropriate temporal methods (EnbPI / SPCI), and online approaches such as UP-OCP / SAOCP—under their respective assumptions, and with coverage and interval efficiency both reported. Recent theory also motivates repeated block-level calibration resampling to measure calibration-conditional coverage variability.
+
 ## Executable known-truth model-set diagnostics
 
 The separate `model_set_kernel` evaluates five public analytic counterexamples. It compares candidate historical aggregate fit, pairwise cohort-space forecast disagreement and residual to an explicit validation state. It distinguishes:
@@ -170,6 +180,7 @@ See [DATASET_CANDIDATE_REGISTER_V0_1.json](../DATASET_CANDIDATE_REGISTER_V0_1.js
 - Disconnected-control invariance using declared causal links, comparing canonical stocks separately from derived totals.
 - Variable-aware aggregation tests for area-weighted intensive means, density-to-stock integration, probability-sample count totals and categorical area composition; synthetic consilience/dependence rules for shared upstream assets, campaign, calibration/training, common causes, site, sensor, pipeline and unknown lineage; record-level observation admission checks for source digest/operator/support completeness, declared rights-purpose, missingness, qualified absence, domain, variable semantics, repeated-census support and split leakage.
 - Observation corpus rule execution for support mismatch, no acquisition, label-semantic mismatch, geographic out-of-domain, cloud/no-data, plot leakage, inaccessible DRC units, PNG security/logistics omissions and single-census longitudinal overclaim; production adapter and rights execution remain explicitly not implemented.
+- Block-conformal quantile rank, pooled-vs-block calibration, Winkler width/coverage trade-off, exchangeability claim boundary, group leakage, cross-split block identity and known-shift negative control.
 - Decision-value corpus coverage, public-not-blind boundary, zero-EVSI loss-invariance case and positive-EVSI arithmetic from the declared binary likelihood/loss model.
 - Canopy coordinate bounds, duplicate/overlap/coverage, total and mean LAI, connected gap components, synthetic transmission, uniform-baseline calculations, and ten unique named challenge-family dispositions.
 - Deterministic receipt generation and adversarial mutation tests.
@@ -185,4 +196,4 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 137 Rust unit tests: 49 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 13 in the block-conformal kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The validator currently contains 143 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 16 in the block-conformal kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
