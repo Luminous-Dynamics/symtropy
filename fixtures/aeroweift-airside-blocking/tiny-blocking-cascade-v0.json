@@ -1,0 +1,462 @@
+{
+  "schema_id": "aeroweift.airside-blocking.finite-buffer-event-trace.v0",
+  "fixture_id": "AW-AB-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Exact finite discrete resource/event semantics only; not a real vertiport, aircraft performance or energy model, practical-capacity estimate, approved procedure, flight recommendation, or aircraft safety claim.",
+  "timebase": {
+    "unit": "integer ticks",
+    "epoch": "fixture-local-zero",
+    "intervals": "half-open",
+    "simultaneous_event_order": [
+      "resource_release",
+      "resource_acquire",
+      "service_start",
+      "service_complete",
+      "downstream_request",
+      "derived_disposition"
+    ],
+    "ordering_revision": "AW-AB-EVENT-ORDER-001"
+  },
+  "resources": [
+    {
+      "id": "tlof-1",
+      "kind": "touchdown-and-liftoff-area",
+      "capacity": 1
+    },
+    {
+      "id": "stand-1",
+      "kind": "aircraft-stand",
+      "capacity": 1
+    },
+    {
+      "id": "taxi-link-1",
+      "kind": "taxi-transfer-link",
+      "capacity": 1
+    },
+    {
+      "id": "charger-1",
+      "kind": "charging-service",
+      "capacity": 1
+    },
+    {
+      "id": "terminal-hold-1",
+      "kind": "terminal-area-holding-slot",
+      "capacity": 1
+    }
+  ],
+  "aircraft": [
+    {
+      "id": "aircraft-b",
+      "synthetic_profile_id": "profile-b-turnaround-only-v0",
+      "initial_state": "occupies sole stand and charger",
+      "next_resource_chain": [
+        "stand-1",
+        "charger-1"
+      ],
+      "mission_context": "releasing a stand after charge and turnaround"
+    },
+    {
+      "id": "aircraft-a",
+      "synthetic_profile_id": "profile-a-landing-v0",
+      "scheduled_arrival_tick": 2,
+      "nominal_landing_service": {
+        "start_tick": 2,
+        "end_tick": 5
+      },
+      "downstream_chain": [
+        "taxi-link-1",
+        "stand-1"
+      ],
+      "blocking_after_service": {
+        "start_tick": 5,
+        "end_tick": 10,
+        "cause": "stand-1 occupied by aircraft-b"
+      }
+    },
+    {
+      "id": "aircraft-c",
+      "synthetic_profile_id": "profile-c-hold-energy-v0",
+      "scheduled_arrival_tick": 6,
+      "terminal_hold": {
+        "start_tick": 6,
+        "end_tick": 10
+      },
+      "actual_tlof_occupancy": {
+        "start_tick": 10,
+        "end_tick": 19
+      },
+      "landing_service": {
+        "start_tick": 10,
+        "end_tick": 13
+      },
+      "blocking_after_service": {
+        "start_tick": 13,
+        "end_tick": 19,
+        "cause": "stand-1 occupied by aircraft-a"
+      },
+      "synthetic_energy": {
+        "initial_units": 40,
+        "hold_consumption_units_per_tick": 1,
+        "holding_ticks": 4,
+        "energy_after_hold_units": 36,
+        "next_mission_minimum_units": 40,
+        "base_turnaround_charge_ticks": 4,
+        "recharge_ticks_per_missing_unit": 1,
+        "required_charge_ticks_after_hold": 8,
+        "next_mission_eligible_tick": 28,
+        "claim_boundary": "fixture arithmetic only; not an aircraft battery model"
+      }
+    }
+  ],
+  "occupancy": [
+    {
+      "aircraft_id": "aircraft-b",
+      "resource_id": "stand-1",
+      "start_tick": 0,
+      "end_tick": 10,
+      "purpose": "stand-and-turnaround"
+    },
+    {
+      "aircraft_id": "aircraft-b",
+      "resource_id": "charger-1",
+      "start_tick": 0,
+      "end_tick": 8,
+      "purpose": "charging"
+    },
+    {
+      "aircraft_id": "aircraft-a",
+      "resource_id": "tlof-1",
+      "start_tick": 2,
+      "end_tick": 10,
+      "purpose": "landing-plus-blocking"
+    },
+    {
+      "aircraft_id": "aircraft-c",
+      "resource_id": "terminal-hold-1",
+      "start_tick": 6,
+      "end_tick": 10,
+      "purpose": "airborne-holding"
+    },
+    {
+      "aircraft_id": "aircraft-a",
+      "resource_id": "taxi-link-1",
+      "start_tick": 10,
+      "end_tick": 11,
+      "purpose": "tlof-to-stand-transfer"
+    },
+    {
+      "aircraft_id": "aircraft-a",
+      "resource_id": "stand-1",
+      "start_tick": 11,
+      "end_tick": 19,
+      "purpose": "stand-turnaround"
+    },
+    {
+      "aircraft_id": "aircraft-c",
+      "resource_id": "tlof-1",
+      "start_tick": 10,
+      "end_tick": 19,
+      "purpose": "landing-plus-blocking"
+    },
+    {
+      "aircraft_id": "aircraft-c",
+      "resource_id": "taxi-link-1",
+      "start_tick": 19,
+      "end_tick": 20,
+      "purpose": "tlof-to-stand-transfer"
+    },
+    {
+      "aircraft_id": "aircraft-c",
+      "resource_id": "stand-1",
+      "start_tick": 20,
+      "end_tick": 28,
+      "purpose": "stand-turnaround-and-charge"
+    },
+    {
+      "aircraft_id": "aircraft-c",
+      "resource_id": "charger-1",
+      "start_tick": 20,
+      "end_tick": 28,
+      "purpose": "base-turnaround-plus-hold-energy-recovery"
+    }
+  ],
+  "derived_events": [
+    {
+      "id": "event-b-charge-acquire",
+      "aircraft_id": "aircraft-b",
+      "kind": "acquire",
+      "resource_id": "charger-1",
+      "tick": 0
+    },
+    {
+      "id": "event-b-stand-acquire",
+      "aircraft_id": "aircraft-b",
+      "kind": "acquire",
+      "resource_id": "stand-1",
+      "tick": 0
+    },
+    {
+      "id": "event-a-tlof-acquire",
+      "aircraft_id": "aircraft-a",
+      "kind": "acquire",
+      "resource_id": "tlof-1",
+      "tick": 2
+    },
+    {
+      "id": "event-a-downstream-blocked",
+      "aircraft_id": "aircraft-a",
+      "kind": "downstream-acquire-blocked",
+      "resource_id": "stand-1",
+      "tick": 5,
+      "predecessor": "event-a-service-complete",
+      "blocker_aircraft_id": "aircraft-b"
+    },
+    {
+      "id": "event-a-service-complete",
+      "aircraft_id": "aircraft-a",
+      "kind": "service-complete",
+      "resource_id": "tlof-1",
+      "tick": 5,
+      "predecessor": "event-a-tlof-acquire"
+    },
+    {
+      "id": "event-c-hold-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "terminal-hold-1",
+      "tick": 6
+    },
+    {
+      "id": "event-b-charge-release",
+      "aircraft_id": "aircraft-b",
+      "kind": "release",
+      "resource_id": "charger-1",
+      "tick": 8,
+      "predecessor": "event-b-charge-acquire"
+    },
+    {
+      "id": "event-a-taxi-acquire",
+      "aircraft_id": "aircraft-a",
+      "kind": "acquire",
+      "resource_id": "taxi-link-1",
+      "tick": 10
+    },
+    {
+      "id": "event-a-tlof-release",
+      "aircraft_id": "aircraft-a",
+      "kind": "release",
+      "resource_id": "tlof-1",
+      "tick": 10,
+      "predecessor": "event-a-taxi-acquire"
+    },
+    {
+      "id": "event-b-stand-release",
+      "aircraft_id": "aircraft-b",
+      "kind": "release",
+      "resource_id": "stand-1",
+      "tick": 10,
+      "predecessor": "event-b-stand-acquire"
+    },
+    {
+      "id": "event-c-hold-release",
+      "aircraft_id": "aircraft-c",
+      "kind": "release",
+      "resource_id": "terminal-hold-1",
+      "tick": 10,
+      "predecessor": "event-c-hold-acquire"
+    },
+    {
+      "id": "event-c-tlof-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "tlof-1",
+      "tick": 10,
+      "predecessor": "event-a-tlof-release"
+    },
+    {
+      "id": "event-a-stand-acquire",
+      "aircraft_id": "aircraft-a",
+      "kind": "acquire",
+      "resource_id": "stand-1",
+      "tick": 11,
+      "predecessor": "event-a-taxi-release"
+    },
+    {
+      "id": "event-a-taxi-release",
+      "aircraft_id": "aircraft-a",
+      "kind": "release",
+      "resource_id": "taxi-link-1",
+      "tick": 11,
+      "predecessor": "event-a-taxi-acquire"
+    },
+    {
+      "id": "event-c-downstream-blocked",
+      "aircraft_id": "aircraft-c",
+      "kind": "downstream-acquire-blocked",
+      "resource_id": "stand-1",
+      "tick": 13,
+      "predecessor": "event-c-service-complete",
+      "blocker_aircraft_id": "aircraft-a"
+    },
+    {
+      "id": "event-c-service-complete",
+      "aircraft_id": "aircraft-c",
+      "kind": "service-complete",
+      "resource_id": "tlof-1",
+      "tick": 13,
+      "predecessor": "event-c-tlof-acquire"
+    },
+    {
+      "id": "event-a-stand-release",
+      "aircraft_id": "aircraft-a",
+      "kind": "release",
+      "resource_id": "stand-1",
+      "tick": 19,
+      "predecessor": "event-a-stand-acquire"
+    },
+    {
+      "id": "event-c-taxi-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "taxi-link-1",
+      "tick": 19
+    },
+    {
+      "id": "event-c-tlof-release",
+      "aircraft_id": "aircraft-c",
+      "kind": "release",
+      "resource_id": "tlof-1",
+      "tick": 19,
+      "predecessor": "event-c-taxi-acquire"
+    },
+    {
+      "id": "event-c-charge-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "charger-1",
+      "tick": 20
+    },
+    {
+      "id": "event-c-stand-acquire",
+      "aircraft_id": "aircraft-c",
+      "kind": "acquire",
+      "resource_id": "stand-1",
+      "tick": 20,
+      "predecessor": "event-c-taxi-release"
+    },
+    {
+      "id": "event-c-taxi-release",
+      "aircraft_id": "aircraft-c",
+      "kind": "release",
+      "resource_id": "taxi-link-1",
+      "tick": 20,
+      "predecessor": "event-c-taxi-acquire"
+    },
+    {
+      "id": "event-c-charge-release",
+      "aircraft_id": "aircraft-c",
+      "kind": "release",
+      "resource_id": "charger-1",
+      "tick": 28,
+      "predecessor": "event-c-charge-acquire"
+    },
+    {
+      "id": "event-c-stand-release",
+      "aircraft_id": "aircraft-c",
+      "kind": "release",
+      "resource_id": "stand-1",
+      "tick": 28,
+      "predecessor": "event-c-stand-acquire"
+    }
+  ],
+  "expected_metrics": {
+    "aircraft_a": {
+      "scheduled_arrival_tick": 2,
+      "nominal_service_complete_tick": 5,
+      "tlof_release_tick": 10,
+      "blocking_after_service_ticks": 5,
+      "stand_occupancy_ticks": 8
+    },
+    "aircraft_c": {
+      "scheduled_arrival_tick": 6,
+      "actual_tlof_acquire_tick": 10,
+      "arrival_delay_ticks": 4,
+      "terminal_holding_ticks": 4,
+      "energy_before_hold_units": 40,
+      "energy_after_hold_units": 36,
+      "energy_delta_units": -4,
+      "nominal_landing_service_complete_tick": 13,
+      "actual_tlof_release_tick": 19,
+      "second_blocking_after_service_ticks": 6,
+      "stand_and_charge_release_tick": 28,
+      "next_mission_eligible_tick": 28
+    },
+    "vertiport": {
+      "nominal_tlof_slot_claims": [
+        {
+          "aircraft_id": "aircraft-a",
+          "start_tick": 2,
+          "end_tick": 5
+        },
+        {
+          "aircraft_id": "aircraft-c",
+          "start_tick": 6,
+          "end_tick": 9
+        }
+      ],
+      "physical_tlof_occupancy": [
+        {
+          "aircraft_id": "aircraft-a",
+          "start_tick": 2,
+          "end_tick": 10
+        },
+        {
+          "aircraft_id": "aircraft-c",
+          "start_tick": 10,
+          "end_tick": 19
+        }
+      ],
+      "total_tlof_blocking_ticks": 11,
+      "actual_aircraft_tlof_occupancy_ticks": 17,
+      "nominal_tlof_service_ticks": 6,
+      "terminal_holding_ticks": 4,
+      "resource_releases_without_acquisition": 0,
+      "maximum_overlapping_claims_per_resource": 1
+    }
+  },
+  "optimistic_negative_control": {
+    "id": "decoupled-infinite-buffer",
+    "physically_admissible": false,
+    "assumption": "TLOF service completion releases the landing resource even when no compatible downstream stand exists; stand/charger/airspace occupancy are evaluated independently.",
+    "predicted_aircraft_a_tlof_release_tick": 5,
+    "predicted_aircraft_c_tlof_acquire_tick": 6,
+    "purpose": "demonstrate optimistic underestimation caused by dropping blocking-after-service",
+    "must_not_be_admitted_as_finite_buffer_plan": true
+  },
+  "required_mutations": [
+    "Make stand-1 available at tick 5; aircraft-a TLOF blocking must reduce to zero and the dependent timeline must be recomputed.",
+    "Set stand-1 capacity to zero or unknown; no aircraft may acquire it and the trace must be incomplete/not-assessable rather than silently buffered.",
+    "Set terminal-hold-1 capacity to zero; aircraft-c must have an explicit defer/alternate/unsupported disposition, not an implicit holding slot.",
+    "Extend aircraft-b stand release from tick 10 to tick 12; aircraft-a TLOF blocking must increase by two ticks and aircraft-c holding must not shorten.",
+    "Extend aircraft-a stand occupancy beyond tick 19; aircraft-c blocking on TLOF must extend accordingly.",
+    "Extend aircraft-c holding by two ticks with unchanged energy cost; its energy reserve must fall by two additional synthetic units.",
+    "Remove aircraft-c stand-acquire event while keeping stand occupancy; reject the resource trace as unmatched acquisition/release.",
+    "Overlap aircraft-a and aircraft-c TLOF occupancy by one tick; reject capacity-one resource violation.",
+    "Reorder events without preserving causal predecessor constraints; reject or mark ordering unresolved.",
+    "Permute event and occupancy list order while preserving identities and dependencies; semantic results must remain identical."
+  ],
+  "invariants": [
+    "Landing service completion does not release TLOF if downstream transfer is blocked.",
+    "A physical aircraft cannot occupy two exclusive positions simultaneously unless the fixture explicitly models a transfer overlap with compatible semantics.",
+    "A resource release requires a matching acquisition for the same aircraft and resource.",
+    "All intervals are half-open and all resource capacity is finite and explicit.",
+    "Unknown capacity, unknown downstream compatibility and missing buffer inventory never imply unlimited capacity.",
+    "Holding energy values are synthetic and cannot be promoted into an aircraft model.",
+    "The decoupled/infinite-buffer negative control is not a feasible finite-buffer schedule.",
+    "All aircraft, resources, occupancy, events, delays and energy outcomes are explicitly accounted for.",
+    "Every derived delay and blocking interval retains its causal blocker event.",
+    "No real vertiport throughput or flight-safety claim is made."
+  ]
+}
