@@ -1,0 +1,44 @@
+{
+  "schema_version": "waterloop-sizing-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_storage_sizing_and_pump_power_arithmetic_only_no_site_or_equipment_qualification",
+  "benchmark_id": "WATERLOOP-SIZING-T0",
+  "case_count": 14,
+  "required_case_ids": [
+    "WLS-T0-001-balanced-demand-inflow",
+    "WLS-T0-002-time-shifted-inflow",
+    "WLS-T0-003-unqualified-source-no-credit",
+    "WLS-T0-004-circuit-mismatch-reject",
+    "WLS-T0-005-use-profile-mismatch-reject",
+    "WLS-T0-006-negative-demand-reject",
+    "WLS-T0-007-trace-length-mismatch-reject",
+    "WLS-T0-008-volume-allowances-separate",
+    "WLS-T0-009-declared-capacity-limit-infeasible",
+    "WLS-T0-010-zero-demand-zero-capacity",
+    "WLS-T0-011-timebase-mismatch-reject",
+    "WLS-T0-012-pump-hydraulic-power-lower-bound",
+    "WLS-T0-013-pump-efficiency-invalid-reject",
+    "WLS-T0-014-unadmitted-demand-measurement"
+  ],
+  "families": [
+    "storage_sizing",
+    "pump_power"
+  ],
+  "metric_definitions": {
+    "minimum_usable_capacity": "Minimum initial usable storage C for which every time step of the frozen trace can be met under storage_next=min(C,storage+admitted_inflow)-delivered_demand, with overflow recorded separately.",
+    "gross_installed_volume": "Minimum usable capacity + dead volume + freeboard + measurement uncertainty allowance + contingency allowance; all components stay separately reported.",
+    "admitted_inflow": "Raw source inflow is credited only when both intended-use quality and source metrology are admitted for the same circuit/use profile and timebase; otherwise credited inflow is exactly zero and raw inflow is reported as rejected.",
+    "pump_power": "P_hydraulic = rho*g*(Q_m3_h/3600)*TDH; electrical lower bound = P_hydraulic/eta only if 0 < eta <= 1 and efficiency evidence is admitted."
+  },
+  "rules": [
+    "Demand, storage, source and use profile identities must match.",
+    "Timebase identities and trace array lengths must match exactly.",
+    "Negative/non-finite demand or inflow is rejected and never clipped to zero.",
+    "Quality-unadmitted or measurement-unadmitted inflow is excluded from capacity credit and reported as rejected.",
+    "Tank dead volume, freeboard, uncertainty and contingency are not usable reserve and are reported separately.",
+    "Storage sizing assumes the usable inventory is full at the beginning of the declared design horizon; any other initial condition requires its own explicit input and benchmark.",
+    "Source inflow is added at the beginning of each declared time step before that step's demand; the convention is frozen in the manifest.",
+    "Pump power is a lower-bound arithmetic calculation, not pump selection or duty qualification."
+  ],
+  "time_step_convention": "For every step: add admitted source inflow, cap at usable capacity and record overflow, then serve that step's demand from remaining storage. Initial usable inventory equals the tested capacity."
+}
