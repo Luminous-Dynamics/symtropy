@@ -76,14 +76,10 @@ fn semicircle_distance(point: Point, radius: i64) -> f64 {
     let xy_distance = if theta <= std::f64::consts::PI {
         (rho - radius as f64).abs()
     } else {
-        distance(
-            point,
-            Point { x: -radius, y: 0, z: 0 },
-        )
-        .min(distance(
-            point,
-            Point { x: radius, y: 0, z: 0 },
-        ))
+        let left_dx = point.x as f64 + radius as f64;
+        let right_dx = point.x as f64 - radius as f64;
+        let dy = point.y as f64;
+        left_dx.hypot(dy).min(right_dx.hypot(dy))
     };
     xy_distance.hypot(point.z as f64)
 }
@@ -375,6 +371,13 @@ fn main() -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn lower_half_arc_endpoint_distance_uses_vertical_offset_once() {
+        let point = Point { x: 0, y: -1_000, z: 100 };
+        let expected = 2_010_000.0_f64.sqrt();
+        assert!((semicircle_distance(point, 1_000) - expected).abs() < 1.0e-9);
+    }
 
     #[test]
     fn seed_generates_fixed_partition_cardinalities_and_no_aabb_false_negative() {
