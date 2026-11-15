@@ -426,18 +426,18 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
         }
         "HC-T0-019-overlapping-event-windows-reject" => {
             let windows = array(input, "windows")?;
-            for i in 0..windows.len() {
-                let id_i = text(&windows[i], "event_id")?;
-                let start_i = number(&windows[i], "start_index")?;
-                let end_i = number(&windows[i], "end_index")?;
-                if end_i <= start_i {
+            for (index, window) in windows.iter().enumerate() {
+                let event_id = text(window, "event_id")?;
+                let start = number(window, "start_index")?;
+                let end = number(window, "end_index")?;
+                if end <= start {
                     return Err("event window end must exceed start".to_owned());
                 }
-                for other in windows.iter().skip(i + 1) {
-                    if text(other, "event_id")? == id_i {
-                        let start_j = number(other, "start_index")?;
-                        let end_j = number(other, "end_index")?;
-                        if start_i.max(start_j) < end_i.min(end_j) {
+                for other in windows.iter().skip(index + 1) {
+                    if text(other, "event_id")? == event_id {
+                        let other_start = number(other, "start_index")?;
+                        let other_end = number(other, "end_index")?;
+                        if start.max(other_start) < end.min(other_end) {
                             return Ok(split_result("REJECT", "OVERLAPPING_WINDOWS_DOUBLE_COUNT_EVENT"));
                         }
                     }
