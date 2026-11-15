@@ -75,14 +75,6 @@ fn validate_version_field(value: &Value, path: &str) -> Result<bool, String> {
     }
 }
 
-fn artifact_bytes(path: &str, input: &[u8], output: &[u8]) -> Result<&'static str, String> {
-    match path {
-        "model-evidence-payloads/synthetic-input.json" => Ok("input"),
-        "model-evidence-payloads/synthetic-output.json" => Ok("output"),
-        other => Err(format!("artifact path is not in the frozen E1 fixture set: {other}")),
-    }
-}
-
 fn validate_rights(value: &Value, path: &str, evidence_class: &str) -> Result<bool, String> {
     let status = required_text(value, "status", path)?;
     let license = value
@@ -502,6 +494,10 @@ mod tests {
         root["analysis"]["execution_status"] = Value::String("COMPLETED".into());
         root["analysis"]["run_id"] = Value::String("provider-run-001".into());
         root["analysis"]["completed_at"] = Value::String("2026-11-16T00:00:00+02:00".into());
+        for dataset in root["datasets"].as_array_mut().expect("datasets") {
+            dataset["rights"]["status"] = Value::String("UNKNOWN".into());
+            dataset["rights"]["permitted_use"] = Value::String("NOT_ADMITTED".into());
+        }
         let report = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect("unknown rights should not become an error or a pass");
         assert_eq!(report.disposition, "ABSTAIN_INCOMPLETE_EXTERNAL_EVIDENCE");
@@ -516,6 +512,10 @@ mod tests {
         root["analysis"]["execution_status"] = Value::String("COMPLETED".into());
         root["analysis"]["run_id"] = Value::String("provider-run-001".into());
         root["analysis"]["completed_at"] = Value::String("2026-11-16T00:00:00+02:00".into());
+        for dataset in root["datasets"].as_array_mut().expect("datasets") {
+            dataset["rights"]["status"] = Value::String("UNKNOWN".into());
+            dataset["rights"]["permitted_use"] = Value::String("NOT_ADMITTED".into());
+        }
         let report = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect("unknown revision retained explicitly");
         assert_eq!(report.disposition, "ABSTAIN_INCOMPLETE_EXTERNAL_EVIDENCE");
