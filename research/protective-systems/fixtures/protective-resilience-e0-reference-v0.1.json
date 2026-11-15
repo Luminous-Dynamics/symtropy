@@ -55,7 +55,12 @@
         "beneficiary_unit": "PERSON",
         "beneficiary_count": 100,
         "minimum_service_permille": 800,
-        "delivered_service_permille": [300, 500, 800, 800],
+        "delivered_service_permille": [
+          300,
+          500,
+          800,
+          800
+        ],
         "origin": {
           "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
           "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -70,7 +75,12 @@
         "beneficiary_unit": "PERSON",
         "beneficiary_count": 20,
         "minimum_service_permille": 800,
-        "delivered_service_permille": [200, 400, 600, 800],
+        "delivered_service_permille": [
+          200,
+          400,
+          600,
+          800
+        ],
         "origin": {
           "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
           "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -130,7 +140,12 @@
           "beneficiary_unit": "PERSON",
           "beneficiary_count": 100,
           "minimum_service_permille": 800,
-          "delivered_service_permille": [700, 800, 900, 900],
+          "delivered_service_permille": [
+            700,
+            800,
+            900,
+            900
+          ],
           "origin": {
             "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
             "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -145,7 +160,12 @@
           "beneficiary_unit": "PERSON",
           "beneficiary_count": 20,
           "minimum_service_permille": 800,
-          "delivered_service_permille": [600, 800, 800, 900],
+          "delivered_service_permille": [
+            600,
+            800,
+            800,
+            900
+          ],
           "origin": {
             "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
             "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -158,12 +178,16 @@
         {
           "claim_id": "CORE-WATER-GENERAL-BENEFIT-001",
           "outcome_id": "CORE-WATER-GENERAL-001",
-          "related_hazard_families": ["PNT-COMMS-DIGITAL-DISRUPTION"]
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
         },
         {
           "claim_id": "CORE-WATER-ASSISTED-BENEFIT-001",
           "outcome_id": "CORE-WATER-ASSISTED-001",
-          "related_hazard_families": ["PNT-COMMS-DIGITAL-DISRUPTION"]
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
         }
       ],
       "expected_report": {
@@ -241,7 +265,12 @@
           "beneficiary_unit": "PERSON",
           "beneficiary_count": 100,
           "minimum_service_permille": 800,
-          "delivered_service_permille": [700, 800, 900, 900],
+          "delivered_service_permille": [
+            700,
+            800,
+            900,
+            900
+          ],
           "origin": {
             "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
             "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -256,7 +285,12 @@
           "beneficiary_unit": "PERSON",
           "beneficiary_count": 20,
           "minimum_service_permille": 800,
-          "delivered_service_permille": [600, 800, 800, 900],
+          "delivered_service_permille": [
+            600,
+            800,
+            800,
+            900
+          ],
           "origin": {
             "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
             "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -269,12 +303,16 @@
         {
           "claim_id": "RESERVE-WATER-GENERAL-BENEFIT-001",
           "outcome_id": "RESERVE-WATER-GENERAL-001",
-          "related_hazard_families": ["PNT-COMMS-DIGITAL-DISRUPTION"]
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
         },
         {
           "claim_id": "RESERVE-WATER-ASSISTED-BENEFIT-001",
           "outcome_id": "RESERVE-WATER-ASSISTED-001",
-          "related_hazard_families": ["PNT-COMMS-DIGITAL-DISRUPTION"]
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
         }
       ],
       "expected_report": {
@@ -352,7 +390,12 @@
           "beneficiary_unit": "PERSON",
           "beneficiary_count": 100,
           "minimum_service_permille": 800,
-          "delivered_service_permille": [900, 900, 900, 900],
+          "delivered_service_permille": [
+            900,
+            900,
+            900,
+            900
+          ],
           "origin": {
             "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
             "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -367,7 +410,12 @@
           "beneficiary_unit": "PERSON",
           "beneficiary_count": 20,
           "minimum_service_permille": 800,
-          "delivered_service_permille": [900, 900, 900, 900],
+          "delivered_service_permille": [
+            900,
+            900,
+            900,
+            900
+          ],
           "origin": {
             "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
             "upstream_owner": "CIVDYN-CASCADE-001 #3894",
@@ -380,12 +428,16 @@
         {
           "claim_id": "UNSAFE-WATER-GENERAL-BENEFIT-001",
           "outcome_id": "UNSAFE-WATER-GENERAL-001",
-          "related_hazard_families": ["PNT-COMMS-DIGITAL-DISRUPTION"]
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
         },
         {
           "claim_id": "UNSAFE-WATER-ASSISTED-BENEFIT-001",
           "outcome_id": "UNSAFE-WATER-ASSISTED-001",
-          "related_hazard_families": ["PNT-COMMS-DIGITAL-DISRUPTION"]
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
         }
       ],
       "expected_report": {
@@ -420,5 +472,31 @@
         ]
       }
     }
-  ]
+  ],
+  "expected_baseline_report": {
+    "portfolio_id": "PERSISTENCE_NO_NEW_INTERVENTION",
+    "lifecycle_cost_minor_units": 0,
+    "service_totals": [
+      {
+        "service_id": "POTABLE_WATER",
+        "deficit_milli_beneficiary_minutes": 6240000
+      }
+    ],
+    "service_outcomes": [
+      {
+        "outcome_id": "BASELINE-WATER-GENERAL-001",
+        "deficit_milli_beneficiary_minutes": 4800000,
+        "minimum_delivery_permille": 300,
+        "intervals_below_floor": 2,
+        "sustained_recovery_start_minutes": 120
+      },
+      {
+        "outcome_id": "BASELINE-WATER-ASSISTED-001",
+        "deficit_milli_beneficiary_minutes": 1440000,
+        "minimum_delivery_permille": 200,
+        "intervals_below_floor": 3,
+        "sustained_recovery_start_minutes": null
+      }
+    ]
+  }
 }
