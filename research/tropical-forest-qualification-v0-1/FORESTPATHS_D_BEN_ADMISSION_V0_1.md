@@ -230,3 +230,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 ```
 
 Nine kernel tests and one top-level dispatcher/receipt test are authored but unexecuted. The code path is therefore an implemented metadata verifier with independent JavaScript fixture checks, not a tested Rust binary or empirical data admission.
+
+
+### Separate Zenodo code-release identity
+
+Zenodo 15870478 is a separate Software record: `teatree1212/DBEN_Eckes_Shephard_et_al-v1.0.0.zip`, published 12 July 2025 (89.9 kB; MD5 `8a4d79b4a94dc58a67e36d7e7100cee1`). It points to GitHub tag `v1.0.0`. Zenodo 14415143 remains the Dataset record containing `model_outputs.zip` and `observations.zip`. The R Markdown in the v1.0.0 tag references 14415142; the record remains unresolved by targeted lookup and should be treated as a script reference discrepancy, not a data archive identifier.
+
+The software record's own license field is not populated in the retrieved page. The GitHub tag contains an Apache-2.0 LICENSE, which is a source-code license and must not be silently applied to the separate model-output/observation dataset.
