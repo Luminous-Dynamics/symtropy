@@ -502,7 +502,7 @@ mod tests {
             mission: reference("MISSION-SPACE-STRUCT-001", "m1", '9'),
             candidate: reference("AG-RING-REF-001", "c1", '2'),
             geometry: reference("RING-GEOM-A", "g1", '3'),
-            material: reference("MAT-ANALYTIC-A", "mat1", '4'),
+            material: reference("MAT-ANALYTIC-A", "m1", '4'),
             process_batch: None,
             load_case: reference("LOAD-ROT-STEADY", "l1", '5'),
             frame: reference("FRAME-RING-LOCAL", "f1", '6'),
@@ -783,6 +783,7 @@ mod tests {
         let profile = ring_profile();
         let mut request = base_request(&profile);
         request.intended_use = IntendedUse::BoundedEngineeringScreen;
+        request.model_maturity = ModelMaturity::SoftwareQualified;
         let mut context = base_context(profile);
         context.model_profile.maturity = ModelMaturity::SoftwareQualified;
         context.model_profile.max_intended_use = IntendedUse::BoundedEngineeringScreen;
