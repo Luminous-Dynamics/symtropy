@@ -150,7 +150,7 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
                 .find(|item| item.traffic_class == traffic_class)
                 .cloned()
                 .unwrap_or_else(|| crate::evidence(traffic_class));
-            input.surveillance.push(copy.clone());
+            input.surveillance.push(copy);
             if !class_was_present {
                 // When another fault removed the class, add two copies so this
                 // mutator cannot accidentally repair the missing-class fault.
