@@ -770,15 +770,20 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
     }
 
     let last_end = last_qualified_end.unwrap_or(auth.activated_at_tick);
-    let time_since_last = policy.evaluation_tick.checked_sub(last_end);
-    if time_since_last.is_none_or(|elapsed| elapsed < 0) {
+    let Some(time_since_last) = policy.evaluation_tick.checked_sub(last_end) else {
+        return empty(
+            ConformanceStatus::NotAssessable,
+            Some(ConformanceReason::ArithmeticOverflow),
+            lineage,
+        );
+    };
+    let Ok(time_since_last) = u64::try_from(time_since_last) else {
         return empty(
             ConformanceStatus::NotAssessable,
             Some(ConformanceReason::InvalidObservationWindow),
             lineage,
         );
-    }
-    let time_since_last = u64::try_from(time_since_last.unwrap_or(0)).unwrap_or(u64::MAX);
+    };
     if time_since_last > policy.contact_loss_timeout_ticks {
         return ConformanceAssessment {
             status: ConformanceStatus::Contingent,
