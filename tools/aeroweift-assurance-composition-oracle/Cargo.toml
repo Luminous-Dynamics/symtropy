@@ -1,0 +1,9 @@
+[package]
+name = "aeroweift-assurance-composition-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Finite synthetic cross-layer evidence composition oracle for AeroWeft"
+
+[lib]
+path = "src/lib.rs"
