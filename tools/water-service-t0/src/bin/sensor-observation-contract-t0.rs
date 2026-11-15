@@ -67,6 +67,12 @@ fn classify_channel(channel:&Value)->Result<(String,String),String>{
     if measurement!="measured_raw"&&measurement!="measured_calibrated"{
         return Ok((channel_id,"faulted".to_owned()));
     }
+    let raw_digest=channel.get("raw_record_sha256").and_then(Value::as_str).unwrap_or("");
+    let calibration_digest=channel.get("calibration_record_sha256").and_then(Value::as_str).unwrap_or("");
+    let clock_digest=channel.get("clock_map_sha256").and_then(Value::as_str).unwrap_or("");
+    if !valid_sha(raw_digest)||!valid_sha(calibration_digest)||!valid_sha(clock_digest){
+        return Ok((channel_id,"invalid_provenance".to_owned()));
+    }
     if matches!(health,"fault_suspected"|"fault_confirmed"|"stuck"|"spiky"|"drifting"|"unknown"){
         return Ok((channel_id,"faulted".to_owned()));
     }
@@ -81,12 +87,6 @@ fn classify_channel(channel:&Value)->Result<(String,String),String>{
     }
     if window!="complete"{
         return Ok((channel_id,"window_incomplete".to_owned()));
-    }
-    let raw_digest=text(channel,"raw_record_sha256")?;
-    let calibration_digest=text(channel,"calibration_record_sha256")?;
-    let clock_digest=text(channel,"clock_map_sha256")?;
-    if !valid_sha(raw_digest)||!valid_sha(calibration_digest)||!valid_sha(clock_digest){
-        return Ok((channel_id,"invalid_provenance".to_owned()));
     }
     Ok((channel_id,"measured".to_owned()))
 }
@@ -311,5 +311,21 @@ mod tests{
     #[test]fn truncated_tail_refuses_complete_boundary(){assert_eq!(row("SOC-T0-008-truncated-tail")["mass_closure_evidence_state"],"TEMPORAL_WINDOW_INCOMPLETE");}
     #[test]fn stuck_sensor_refuses_mass_closure(){assert_eq!(row("SOC-T0-009-stuck-sensor")["mass_closure_evidence_state"],"SENSOR_FAULT_UNRESOLVED");}
     #[test]fn invalid_raw_provenance_digest_refuses_mass_closure(){assert_eq!(row("SOC-T0-010-invalid-digest")["mass_closure_evidence_state"],"PROVENANCE_INVALID");}
+    #[test]
+    fn missing_provenance_digest_is_classified_not_silently_accepted() {
+        let mut input=load("input");
+        input["cases"][0]["boundary"]["outlets"][0].as_object_mut().unwrap().remove("raw_record_sha256");
+        let result=compute(&input["cases"][0]).unwrap();
+        assert_eq!(result["mass_closure_evidence_state"],"PROVENANCE_INVALID");
+    }
+
+    #[test]
+    fn invalid_provenance_precedes_a_simultaneous_health_fault() {
+        let mut input=load("input");
+        input["cases"][0]["boundary"]["outlets"][0]["health_state"]=json!("fault_confirmed");
+        input["cases"][0]["boundary"]["outlets"][0]["raw_record_sha256"]=json!("invalid");
+        let result=compute(&input["cases"][0]).unwrap();
+        assert_eq!(result["mass_closure_evidence_state"],"PROVENANCE_INVALID");
+    }
     #[test]fn all_sensor_reconstruction_never_qualifies_boundary(){let r=row("SOC-T0-011-all-inferred");assert_eq!(r["mass_closure_evidence_state"],"INFERRED_MEASUREMENTS_PRESENT");assert_eq!(r["imputation_counted_as_observed"],false);}
 }
