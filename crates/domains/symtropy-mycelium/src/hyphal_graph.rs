@@ -160,7 +160,9 @@ impl fmt::Display for GraphError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::NonFinitePosition => write!(f, "node position must be finite"),
-            Self::NonPositiveSegmentLength => write!(f, "segment length must be finite and positive"),
+            Self::NonPositiveSegmentLength => {
+                write!(f, "segment length must be finite and positive")
+            },
             Self::InvalidDiameter => write!(f, "diameter must be finite and positive when present"),
             Self::ZeroLengthGeometry => write!(f, "event would create zero-length geometry"),
             Self::SegmentEndpointsEqual => write!(f, "segment endpoints must be distinct"),
@@ -168,10 +170,14 @@ impl fmt::Display for GraphError {
             Self::DuplicateSegment(id) => write!(f, "segment {:?} already exists", id),
             Self::MissingNode(id) => write!(f, "node {:?} does not exist", id),
             Self::MissingSegment(id) => write!(f, "segment {:?} does not exist", id),
-            Self::InvalidAttachmentFraction => write!(f, "branch attachment fraction must be inside (0, 1)"),
+            Self::InvalidAttachmentFraction => {
+                write!(f, "branch attachment fraction must be inside (0, 1)")
+            },
             Self::NotActiveTip(id) => write!(f, "node {:?} is not an active tip", id),
             Self::SameFusionTip => write!(f, "fusion requires two distinct tips"),
-            Self::EventIdConflict(id) => write!(f, "event ID {:?} was reused with a different payload", id),
+            Self::EventIdConflict(id) => {
+                write!(f, "event ID {:?} was reused with a different payload", id)
+            },
         }
     }
 }
@@ -224,7 +230,10 @@ impl HyphalGraph {
     }
 
     pub fn total_length_mm(&self) -> f64 {
-        self.segments.values().map(|segment| segment.length_mm).sum()
+        self.segments
+            .values()
+            .map(|segment| segment.length_mm)
+            .sum()
     }
 
     pub fn add_node(&mut self, node: HyphalNode) -> Result<(), GraphError> {
@@ -335,7 +344,8 @@ impl HyphalGraph {
             diameter_mm: parent.diameter_mm,
             state: HyphalSegmentState::Active,
         })?;
-        next.applied_events.insert(event.id, AppliedGraphEvent::Branch(event));
+        next.applied_events
+            .insert(event.id, AppliedGraphEvent::Branch(event));
         *self = next;
         Ok(ApplyOutcome::Applied)
     }
@@ -385,10 +395,14 @@ impl HyphalGraph {
         }
 
         let mut next = self.clone();
-        next.nodes.get_mut(&event.first_tip).expect("validated first tip").kind =
-            HyphalNodeKind::Junction;
-        next.nodes.get_mut(&event.second_tip).expect("validated second tip").kind =
-            HyphalNodeKind::Junction;
+        next.nodes
+            .get_mut(&event.first_tip)
+            .expect("validated first tip")
+            .kind = HyphalNodeKind::Junction;
+        next.nodes
+            .get_mut(&event.second_tip)
+            .expect("validated second tip")
+            .kind = HyphalNodeKind::Junction;
         next.add_node(HyphalNode {
             id: event.fusion_node,
             kind: HyphalNodeKind::Fusion,
@@ -410,7 +424,8 @@ impl HyphalGraph {
             diameter_mm: None,
             state: HyphalSegmentState::Active,
         })?;
-        next.applied_events.insert(event.id, AppliedGraphEvent::Fusion(event));
+        next.applied_events
+            .insert(event.id, AppliedGraphEvent::Fusion(event));
         *self = next;
         Ok(ApplyOutcome::Applied)
     }
@@ -461,10 +476,9 @@ impl HyphalGraph {
         if !self.nodes.contains_key(&from) || !self.nodes.contains_key(&to) {
             return false;
         }
-        self.connected_components()
-            .iter()
-            .any(|component| component.binary_search(&from).is_ok()
-                && component.binary_search(&to).is_ok())
+        self.connected_components().iter().any(|component| {
+            component.binary_search(&from).is_ok() && component.binary_search(&to).is_ok()
+        })
     }
 }
 
@@ -505,8 +519,12 @@ mod tests {
 
     fn linear_graph() -> HyphalGraph {
         let mut graph = HyphalGraph::new();
-        graph.add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(2, HyphalNodeKind::ActiveTip, 10.0, 0.0, 0.0)).unwrap();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 10.0, 0.0, 0.0))
+            .unwrap();
         graph.add_segment(segment(1, 1, 2, 10.0)).unwrap();
         graph
     }
@@ -516,7 +534,10 @@ mod tests {
         let graph = linear_graph();
         assert_eq!(graph.node_count(), 2);
         assert_eq!(graph.segment_count(), 1);
-        assert_eq!(graph.connected_components(), vec![vec![NodeId(1), NodeId(2)]]);
+        assert_eq!(
+            graph.connected_components(),
+            vec![vec![NodeId(1), NodeId(2)]]
+        );
         assert!(graph.has_path(NodeId(1), NodeId(2)));
         assert_eq!(graph.total_length_mm(), 10.0);
     }
@@ -524,23 +545,26 @@ mod tests {
     #[test]
     fn branch_splits_parent_and_preserves_declared_parent_length() {
         let mut graph = linear_graph();
-        let outcome = graph.apply_branch(BranchEvent {
-            id: EventId(10),
-            parent_segment: SegmentId(1),
-            attachment_fraction: 0.5,
-            branch_node: NodeId(3),
-            branch_tip: NodeId(4),
-            proximal_segment: SegmentId(2),
-            distal_segment: SegmentId(3),
-            branch_segment: SegmentId(4),
-            branch_tip_position: Position3Mm::new(5.0, 5.0, 0.0),
-        }).unwrap();
+        let outcome = graph
+            .apply_branch(BranchEvent {
+                id: EventId(10),
+                parent_segment: SegmentId(1),
+                attachment_fraction: 0.5,
+                branch_node: NodeId(3),
+                branch_tip: NodeId(4),
+                proximal_segment: SegmentId(2),
+                distal_segment: SegmentId(3),
+                branch_segment: SegmentId(4),
+                branch_tip_position: Position3Mm::new(5.0, 5.0, 0.0),
+            })
+            .unwrap();
 
         assert_eq!(outcome, ApplyOutcome::Applied);
         assert_eq!(graph.segment_count(), 3);
         assert_eq!(graph.total_length_mm(), 15.0);
         assert_eq!(graph.connected_components().len(), 1);
-        let branch_degree = graph.segments()
+        let branch_degree = graph
+            .segments()
             .filter(|edge| edge.from == NodeId(3) || edge.to == NodeId(3))
             .count();
         assert_eq!(branch_degree, 3);
@@ -562,7 +586,10 @@ mod tests {
         };
         assert_eq!(graph.apply_branch(event).unwrap(), ApplyOutcome::Applied);
         let snapshot = graph.clone();
-        assert_eq!(graph.apply_branch(event).unwrap(), ApplyOutcome::AlreadyApplied);
+        assert_eq!(
+            graph.apply_branch(event).unwrap(),
+            ApplyOutcome::AlreadyApplied
+        );
         assert_eq!(graph, snapshot);
     }
 
@@ -615,10 +642,18 @@ mod tests {
     #[test]
     fn disconnected_tips_have_no_path() {
         let mut graph = HyphalGraph::new();
-        graph.add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(2, HyphalNodeKind::ActiveTip, 5.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(3, HyphalNodeKind::Anchor, 0.0, 10.0, 0.0)).unwrap();
-        graph.add_node(node(4, HyphalNodeKind::ActiveTip, 5.0, 10.0, 0.0)).unwrap();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 5.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(3, HyphalNodeKind::Anchor, 0.0, 10.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(4, HyphalNodeKind::ActiveTip, 5.0, 10.0, 0.0))
+            .unwrap();
         graph.add_segment(segment(1, 1, 2, 5.0)).unwrap();
         graph.add_segment(segment(2, 3, 4, 5.0)).unwrap();
         assert_eq!(graph.connected_components().len(), 2);
@@ -628,28 +663,44 @@ mod tests {
     #[test]
     fn fusion_joins_components_and_deactivates_old_tips() {
         let mut graph = HyphalGraph::new();
-        graph.add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(2, HyphalNodeKind::ActiveTip, 5.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(3, HyphalNodeKind::Anchor, 10.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(4, HyphalNodeKind::ActiveTip, 5.0, 0.1, 0.0)).unwrap();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 5.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(3, HyphalNodeKind::Anchor, 10.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(4, HyphalNodeKind::ActiveTip, 5.0, 0.1, 0.0))
+            .unwrap();
         graph.add_segment(segment(1, 1, 2, 5.0)).unwrap();
         graph.add_segment(segment(2, 3, 4, 5.0)).unwrap();
         assert_eq!(graph.connected_components().len(), 2);
 
-        let outcome = graph.apply_fusion(FusionEvent {
-            id: EventId(20),
-            first_tip: NodeId(2),
-            second_tip: NodeId(4),
-            fusion_node: NodeId(5),
-            first_segment: SegmentId(3),
-            second_segment: SegmentId(4),
-        }).unwrap();
+        let outcome = graph
+            .apply_fusion(FusionEvent {
+                id: EventId(20),
+                first_tip: NodeId(2),
+                second_tip: NodeId(4),
+                fusion_node: NodeId(5),
+                first_segment: SegmentId(3),
+                second_segment: SegmentId(4),
+            })
+            .unwrap();
 
         assert_eq!(outcome, ApplyOutcome::Applied);
         assert_eq!(graph.connected_components().len(), 1);
         assert!(graph.has_path(NodeId(1), NodeId(3)));
-        assert_eq!(graph.node(NodeId(2)).unwrap().kind, HyphalNodeKind::Junction);
-        assert_eq!(graph.node(NodeId(4)).unwrap().kind, HyphalNodeKind::Junction);
+        assert_eq!(
+            graph.node(NodeId(2)).unwrap().kind,
+            HyphalNodeKind::Junction
+        );
+        assert_eq!(
+            graph.node(NodeId(4)).unwrap().kind,
+            HyphalNodeKind::Junction
+        );
         assert_eq!(graph.node(NodeId(5)).unwrap().kind, HyphalNodeKind::Fusion);
     }
 
@@ -676,8 +727,12 @@ mod tests {
             graph.add_node(node(1, HyphalNodeKind::Anchor, f64::NAN, 0.0, 0.0)),
             Err(GraphError::NonFinitePosition)
         );
-        graph.add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0)).unwrap();
-        graph.add_node(node(2, HyphalNodeKind::ActiveTip, 0.0, 0.0, 0.0)).unwrap();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 0.0, 0.0, 0.0))
+            .unwrap();
         assert_eq!(
             graph.add_segment(segment(1, 1, 2, f64::INFINITY)),
             Err(GraphError::NonPositiveSegmentLength)
