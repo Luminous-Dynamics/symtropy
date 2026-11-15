@@ -161,11 +161,7 @@ pub enum ObservabilityError {
     InvalidMinimumIndependentFamilies,
 }
 
-
-fn modality_supports_traffic_class(
-    modality: SensorModality,
-    traffic_class: TrafficClass,
-) -> bool {
+fn modality_supports_traffic_class(modality: SensorModality, traffic_class: TrafficClass) -> bool {
     match modality {
         // ADS-B and TDoA/MLAT derive their surveillance evidence from
         // cooperative transponder emissions in this benchmark's claim model.

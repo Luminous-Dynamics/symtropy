@@ -1,7 +1,6 @@
 use aeroweift_surveillance_observability_oracle::{
-    evaluate, CoverageClaim, CoverageEvidenceClass, CoverageStatus, Observation,
-    ObservationStatus, ObservabilityAssessment, ObservabilityError, SensorModality,
-    TrafficClass,
+    CoverageClaim, CoverageEvidenceClass, CoverageStatus, ObservabilityAssessment,
+    ObservabilityError, Observation, ObservationStatus, SensorModality, TrafficClass, evaluate,
 };
 
 const GOLDEN_FIXTURE: &str = include_str!(
@@ -78,7 +77,10 @@ fn golden_fixture_identity_binds_the_coverage_gap_cases() {
     assert!(GOLDEN_FIXTURE.contains("adsb-only-does-not-cover-noncooperative-crewed-traffic"));
     assert!(GOLDEN_FIXTURE.contains("three-receivers-share-one-critical-failure-domain"));
     assert!(GOLDEN_FIXTURE.contains("missing-report-no-independent-sensor"));
-    assert!(GOLDEN_FIXTURE.contains("positive-control-separate-cooperative-and-noncooperative-coverage"));
+    assert!(
+        GOLDEN_FIXTURE
+            .contains("positive-control-separate-cooperative-and-noncooperative-coverage")
+    );
 }
 
 #[test]
@@ -101,12 +103,7 @@ fn cooperative_track_requires_scoped_independent_coverage() {
             Some("family-west"),
         ),
     ];
-    let report = observation(
-        "receiver-a",
-        TrafficClass::CooperativeCrewed,
-        "cell-a",
-        5,
-    );
+    let report = observation("receiver-a", TrafficClass::CooperativeCrewed, "cell-a", 5);
 
     assert_eq!(
         assessment(
@@ -152,8 +149,6 @@ fn missing_report_outside_coverage_is_not_empty_airspace() {
     assert!(result.unresolved_possible_occupancy);
 }
 
-
-
 #[test]
 fn qualified_coverage_receipt_preserves_claim_and_family_lineage() {
     let claims = [
@@ -183,7 +178,10 @@ fn qualified_coverage_receipt_preserves_claim_and_family_lineage() {
         2,
     );
     assert_eq!(result.qualified_claim_ids, vec!["claim-east", "claim-west"]);
-    assert_eq!(result.independent_family_ids, vec!["family-east", "family-west"]);
+    assert_eq!(
+        result.independent_family_ids,
+        vec!["family-east", "family-west"]
+    );
 }
 
 #[test]
@@ -243,7 +241,6 @@ fn adsb_only_claim_never_qualifies_noncooperative_traffic() {
     assert!(result.unresolved_possible_occupancy);
 }
 
-
 #[test]
 fn adsb_or_tdoa_claim_cannot_self_label_as_noncooperative_coverage() {
     let adsb = claim(
@@ -297,12 +294,7 @@ fn eo_ir_track_is_valid_only_under_its_declared_environment_claim() {
         "cell-day",
         Some("family-eoir"),
     );
-    let report = observation(
-        "eoir-1",
-        TrafficClass::NonCooperativeCrewed,
-        "cell-day",
-        5,
-    );
+    let report = observation("eoir-1", TrafficClass::NonCooperativeCrewed, "cell-day", 5);
 
     let result = assessment(
         &[claim],
@@ -327,7 +319,10 @@ fn eo_ir_track_is_valid_only_under_its_declared_environment_claim() {
         1,
     );
     assert_eq!(result.coverage_status, CoverageStatus::NotQualified);
-    assert_eq!(result.observation_status, ObservationStatus::InvalidOrStaleTrack);
+    assert_eq!(
+        result.observation_status,
+        ObservationStatus::InvalidOrStaleTrack
+    );
     assert!(result.unresolved_possible_occupancy);
 }
 
@@ -408,7 +403,6 @@ fn unknown_tdoa_time_dependency_is_indeterminate_not_independent() {
     assert!(result.unresolved_possible_occupancy);
 }
 
-
 #[test]
 fn explicitly_degraded_sensor_service_is_not_full_coverage() {
     let mut degraded = claim(
@@ -433,7 +427,6 @@ fn explicitly_degraded_sensor_service_is_not_full_coverage() {
     assert_eq!(result.observation_status, ObservationStatus::NoObservation);
     assert!(result.unresolved_possible_occupancy);
 }
-
 
 #[test]
 fn unknown_evidence_class_is_indeterminate_not_qualified() {
@@ -488,7 +481,10 @@ fn degraded_claim_cannot_qualify_an_observed_track() {
         1,
     );
     assert_eq!(result.coverage_status, CoverageStatus::Degraded);
-    assert_eq!(result.observation_status, ObservationStatus::InvalidOrStaleTrack);
+    assert_eq!(
+        result.observation_status,
+        ObservationStatus::InvalidOrStaleTrack
+    );
     assert!(result.qualified_claim_ids.is_empty());
     assert!(result.unresolved_possible_occupancy);
 }
@@ -520,20 +516,16 @@ fn pnt_time_loss_invalidates_a_previously_qualified_report() {
         1,
     );
     assert_eq!(result.coverage_status, CoverageStatus::Indeterminate);
-    assert_eq!(result.observation_status, ObservationStatus::InvalidOrStaleTrack);
+    assert_eq!(
+        result.observation_status,
+        ObservationStatus::InvalidOrStaleTrack
+    );
     assert!(result.unresolved_possible_occupancy);
 }
 
 #[test]
 fn no_report_with_no_claim_is_never_an_empty_set() {
-    let result = assessment(
-        &[],
-        None,
-        TrafficClass::Unknown,
-        "cell-a",
-        5,
-        1,
-    );
+    let result = assessment(&[], None, TrafficClass::Unknown, "cell-a", 5, 1);
     assert_eq!(result.coverage_status, CoverageStatus::NotQualified);
     assert_eq!(result.observation_status, ObservationStatus::NoObservation);
     assert!(result.unresolved_possible_occupancy);
@@ -589,10 +581,22 @@ fn positive_control_accepts_two_classes_separately() {
         1,
     );
 
-    assert_eq!(coop_result.coverage_status, CoverageStatus::QualifiedCoverage);
-    assert_eq!(noncoop_result.coverage_status, CoverageStatus::QualifiedCoverage);
-    assert_eq!(coop_result.observation_status, ObservationStatus::QualifiedTrack);
-    assert_eq!(noncoop_result.observation_status, ObservationStatus::QualifiedTrack);
+    assert_eq!(
+        coop_result.coverage_status,
+        CoverageStatus::QualifiedCoverage
+    );
+    assert_eq!(
+        noncoop_result.coverage_status,
+        CoverageStatus::QualifiedCoverage
+    );
+    assert_eq!(
+        coop_result.observation_status,
+        ObservationStatus::QualifiedTrack
+    );
+    assert_eq!(
+        noncoop_result.observation_status,
+        ObservationStatus::QualifiedTrack
+    );
 }
 
 #[test]
@@ -607,12 +611,7 @@ fn stale_report_and_expired_half_open_claim_are_not_accepted() {
     );
     let mut expired = claim;
     expired.end_tick = 5;
-    let report = observation(
-        "receiver-a",
-        TrafficClass::CooperativeCrewed,
-        "cell-a",
-        5,
-    );
+    let report = observation("receiver-a", TrafficClass::CooperativeCrewed, "cell-a", 5);
 
     let result = assessment(
         &[expired],
@@ -623,7 +622,10 @@ fn stale_report_and_expired_half_open_claim_are_not_accepted() {
         1,
     );
     assert_eq!(result.coverage_status, CoverageStatus::NotQualified);
-    assert_eq!(result.observation_status, ObservationStatus::InvalidOrStaleTrack);
+    assert_eq!(
+        result.observation_status,
+        ObservationStatus::InvalidOrStaleTrack
+    );
     assert!(result.unresolved_possible_occupancy);
 }
 
@@ -674,8 +676,22 @@ fn invalid_policy_is_rejected_and_unknown_class_remains_unresolved() {
 #[test]
 fn input_order_permutation_preserves_semantic_assessment() {
     let claims = [
-        claim("one", "rx1", SensorModality::Adsb, TrafficClass::CooperativeCrewed, "cell-a", Some("family-1")),
-        claim("two", "rx2", SensorModality::Adsb, TrafficClass::CooperativeCrewed, "cell-a", Some("family-2")),
+        claim(
+            "one",
+            "rx1",
+            SensorModality::Adsb,
+            TrafficClass::CooperativeCrewed,
+            "cell-a",
+            Some("family-1"),
+        ),
+        claim(
+            "two",
+            "rx2",
+            SensorModality::Adsb,
+            TrafficClass::CooperativeCrewed,
+            "cell-a",
+            Some("family-2"),
+        ),
     ];
     let baseline = assessment(
         &claims,
