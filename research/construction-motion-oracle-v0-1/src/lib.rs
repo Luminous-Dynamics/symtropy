@@ -4,6 +4,13 @@
 //! upper-semicircle geometry families. This module does not call the envelope
 //! producer's geometric expansion helpers.
 
+mod capsule;
+pub use capsule::{
+    Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
+    endpoints_only_sphere_capsule_collision, moving_sphere_capsule_collision,
+    moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
+};
+
 use construction_motion_envelope::{
     AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build,
 };
