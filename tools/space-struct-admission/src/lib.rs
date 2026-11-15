@@ -29,9 +29,11 @@ pub enum AdmissionDisposition {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ReasonCode {
     RequestIdentityMalformed,
+    MissionIdentityMismatch,
     CandidateIdentityMismatch,
     GeometryIdentityMismatch,
     MaterialIdentityMismatch,
+    ProcessBatchIdentityMismatch,
     LoadCaseIdentityMismatch,
     FrameIdentityMismatch,
     ModelProfileIdentityMismatch,
@@ -178,9 +180,11 @@ pub struct MaterialEvidence {
 pub struct StructuralAnalysisRequest {
     pub schema_version: String,
     pub request: ExactRef,
+    pub mission: ExactRef,
     pub candidate: ExactRef,
     pub geometry: ExactRef,
     pub material: ExactRef,
+    pub process_batch: Option<ExactRef>,
     pub load_case: ExactRef,
     pub frame: ExactRef,
     pub model_profile: ExactRef,
@@ -194,11 +198,13 @@ pub struct StructuralAnalysisRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionContext {
+    pub current_mission: ExactRef,
     pub current_candidate: ExactRef,
     pub current_geometry: ExactRef,
     pub current_load_case: ExactRef,
     pub current_frame: ExactRef,
     pub material_evidence: MaterialEvidence,
+    pub accepted_process_batch: Option<ExactRef>,
     pub model_profile: ModelProfile,
     pub backend_allowlisted: bool,
     pub expected_mesh: Option<ExactRef>,
@@ -255,6 +261,7 @@ pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) ->
 
     let mut references = vec![
         &request.request,
+        &request.mission,
         &request.candidate,
         &request.geometry,
         &request.material,
@@ -262,6 +269,7 @@ pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) ->
         &request.frame,
         &request.model_profile,
         &request.backend,
+        &context.current_mission,
         &context.current_candidate,
         &context.current_geometry,
         &context.current_load_case,
@@ -270,6 +278,12 @@ pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) ->
         &context.model_profile.reference,
         &context.model_profile.backend,
     ];
+    if let Some(process_batch) = request.process_batch.as_ref() {
+        references.push(process_batch);
+    }
+    if let Some(process_batch) = context.accepted_process_batch.as_ref() {
+        references.push(process_batch);
+    }
     if let Some(mesh) = request.mesh.as_ref() {
         references.push(mesh);
     }
@@ -302,6 +316,9 @@ pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) ->
         reject.push(ReasonCode::RequestIdentityMalformed);
     }
 
+    if request.mission != context.current_mission {
+        reject.push(ReasonCode::MissionIdentityMismatch);
+    }
     if request.candidate != context.current_candidate {
         reject.push(ReasonCode::CandidateIdentityMismatch);
     }
@@ -310,6 +327,20 @@ pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) ->
     }
     if request.material != context.material_evidence.subject {
         reject.push(ReasonCode::MaterialIdentityMismatch);
+    }
+    match (&request.process_batch, &context.accepted_process_batch) {
+        (Some(requested), Some(accepted)) if requested != accepted => {
+            reject.push(ReasonCode::ProcessBatchIdentityMismatch);
+        }
+        (Some(_), None) | (None, Some(_)) => {
+            needs_evidence.push(ReasonCode::MaterialBatchUnresolved);
+        }
+        _ => {}
+    }
+    if context.material_evidence.state == MaterialEvidenceState::BatchQualifiedForProfile
+        && request.process_batch.is_none()
+    {
+        needs_evidence.push(ReasonCode::MaterialBatchUnresolved);
     }
     if request.load_case != context.current_load_case {
         reject.push(ReasonCode::LoadCaseIdentityMismatch);
@@ -454,9 +485,11 @@ mod tests {
         StructuralAnalysisRequest {
             schema_version: ADMISSION_SCHEMA_VERSION.to_owned(),
             request: reference("REQUEST-RING-001", "r1", '1'),
+            mission: reference("MISSION-SPACE-STRUCT-001", "m1", '9'),
             candidate: reference("AG-RING-REF-001", "c1", '2'),
             geometry: reference("RING-GEOM-A", "g1", '3'),
-            material: reference("MAT-ANALYTIC-A", "m1", '4'),
+            material: reference("MAT-ANALYTIC-A", "mat1", '4'),
+            process_batch: None,
             load_case: reference("LOAD-ROT-STEADY", "l1", '5'),
             frame: reference("FRAME-RING-LOCAL", "f1", '6'),
             model_profile: profile.reference.clone(),
@@ -478,6 +511,7 @@ mod tests {
 
     fn base_context(profile: ModelProfile) -> AdmissionContext {
         AdmissionContext {
+            current_mission: reference("MISSION-SPACE-STRUCT-001", "m1", '9'),
             current_candidate: reference("AG-RING-REF-001", "c1", '2'),
             current_geometry: reference("RING-GEOM-A", "g1", '3'),
             current_load_case: reference("LOAD-ROT-STEADY", "l1", '5'),
@@ -487,6 +521,7 @@ mod tests {
                 state: MaterialEvidenceState::AnalyticalFixtureOnly,
                 qualified_model_profile_id: None,
             },
+            accepted_process_batch: None,
             backend_allowlisted: true,
             model_profile: profile,
             expected_mesh: None,
@@ -535,6 +570,44 @@ mod tests {
     }
 
     #[test]
+    fn stale_mission_identity_is_rejected() {
+        let profile = ring_profile();
+        let mut request = base_request(&profile);
+        request.mission = reference("MISSION-SPACE-STRUCT-001", "m0", '9');
+        let result = admit(&request, &base_context(profile));
+
+        assert_eq!(result.disposition, AdmissionDisposition::Reject);
+        assert_reason(&result, ReasonCode::MissionIdentityMismatch);
+    }
+
+    #[test]
+    fn missing_process_batch_reference_needs_evidence_for_batch_material() {
+        let profile = ring_profile();
+        let request = base_request(&profile);
+        let mut context = base_context(profile);
+        context.material_evidence.state = MaterialEvidenceState::BatchQualifiedForProfile;
+        context.material_evidence.qualified_model_profile_id =
+            Some("ARTGRAV-THIN-RING-REF-V0_1".to_owned());
+        let result = admit(&request, &context);
+
+        assert_eq!(result.disposition, AdmissionDisposition::NeedsEvidence);
+        assert_reason(&result, ReasonCode::MaterialBatchUnresolved);
+    }
+
+    #[test]
+    fn mismatched_process_batch_identity_is_rejected() {
+        let profile = ring_profile();
+        let mut request = base_request(&profile);
+        request.process_batch = Some(reference("LUNAR-BATCH-A", "b1", '7'));
+        let mut context = base_context(profile);
+        context.accepted_process_batch = Some(reference("LUNAR-BATCH-B", "b1", '8'));
+        let result = admit(&request, &context);
+
+        assert_eq!(result.disposition, AdmissionDisposition::Reject);
+        assert_reason(&result, ReasonCode::ProcessBatchIdentityMismatch);
+    }
+
+    #[test]
     fn stale_candidate_generation_is_rejected() {
         let profile = ring_profile();
         let mut request = base_request(&profile);
@@ -570,6 +643,9 @@ mod tests {
         context.material_evidence.state = MaterialEvidenceState::BatchQualifiedForProfile;
         context.material_evidence.qualified_model_profile_id =
             Some("ARTGRAV-THIN-RING-REF-V0_1".to_owned());
+        let process_batch = reference("LUNAR-BATCH-001", "batch1", '8');
+        request.process_batch = Some(process_batch.clone());
+        context.accepted_process_batch = Some(process_batch);
         let result = admit(&request, &context);
 
         assert_eq!(result.disposition, AdmissionDisposition::OutOfDomain);
