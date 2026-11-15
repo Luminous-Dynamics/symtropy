@@ -14,7 +14,12 @@ Dataset loading code: https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves
 Descriptive article: Yang et al., *Scientific Data* (2025), DOI: https://doi.org/10.1038/s41597-025-05300-5  
 Article text: https://pmc.ncbi.nlm.nih.gov/articles/PMC12162875/
 
-**Rights gate:** the article identifies the dataset DOI and loading code, but this adapter does not assert the dataset's redistribution licence. Before fetching, retaining or redistributing the measurements, inspect and pin the Figshare record's current licence, version, terms and file hashes. The paper's own CC BY-NC-ND article licence must not be conflated with the dataset's licence. The initial software work is metadata-only and does not mirror the dataset.
+**Rights gate (updated 2026-11-15):** OpenAIRE's DataCite-linked metadata currently labels the dataset CC BY and surfaces the base DOI and a version-specific DOI (.v1). This is a useful licence signal, but the primary Figshare record/API could not be directly retrieved in this research session. Before fetching, retaining or redistributing measurements, confirm the exact current Figshare version, licence, terms, file list and hashes from the primary record. Do not infer the licence of individual files or later versions solely from the article's licence or an aggregator summary. The initial software work remains metadata-only and does not mirror the dataset.
+
+Licence/version references:
+- OpenAIRE metadata view: https://oamonitor.ireland.openaire.eu/national/search/dataset?pid=10.6084/m9.figshare.28112504
+- Figshare versioning rules: https://info.figshare.com/user-guide/how-versioning-works/
+- Version-aware citation targets: https://doi.org/10.6084/m9.figshare.28112504 and https://doi.org/10.6084/m9.figshare.28112504.v1
 
 ## 2. A recent published baseline—and why its number is not SOTA
 
@@ -44,7 +49,7 @@ The adapter must not require a 100-GB-class eager load or duplicate the owner da
 
 Read data lazily by file / time range / propagation path. Preserve raw waveforms and raw metadata as immutable source records. Derived windows, normalized signals, features, augmentations and labels get separate derived identities and digests. Never overwrite the raw source or infer a sample rate/unit that is not documented.
 
-The dataset article describes 56 monthly `.pickle` files and eight channels / paths. Treat that description as a discovery aid, then verify each file against the frozen Figshare manifest before decoding. Pickle is executable serialization: do not load untrusted pickle files in a privileged or network-connected process. Use an isolated, least-privilege conversion step only after inspecting the source, with resource limits and no outbound network; persist a safer, typed interchange format with provenance and hashes.
+The source description reports measurements about every 170 seconds and eight channels / propagation paths. The loading-code repository describes monthly `.pickle` files and example waveform arrays with 2,000 samples per channel; treat these as discovery metadata and verify the exact item version/file inventory before ingest. Do not assume that the entire corpus must be loaded in memory. Use bounded, file/time/path streaming. Pickle is executable serialization: do not load untrusted pickle files in a privileged or network-connected process. Use an isolated, least-privilege conversion step only after inspecting the source, with resource limits and no outbound network; persist a safer, typed interchange format with provenance and hashes.
 
 ## 4. Evaluation tracks—keep them separate
 
