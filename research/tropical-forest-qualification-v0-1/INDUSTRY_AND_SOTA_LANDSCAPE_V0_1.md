@@ -468,3 +468,13 @@ The synthetic observation matrices have exact ranks 0, 2, 3 and 4 as measurement
 - plus independent host-to-fungal carbon allocation: rank 4.
 
 This is an algebraic property of a simplified operator, not an empirical AFEX result. It gives Symtropy a useful benchmark advantage to test: detect pathway non-identifiability and recommend the measurement that resolves it before fitting or ranking a high-complexity model. The protocol, exact-rank fixture and Rust validator are [here](AFEX_PATHWAY_IDENTIFIABILITY_V0_1.md), [here](cases/afex-root-pathway-identifiability-synthetic-v0.1.json), and [here](validator/src/afex_root_pathway_identifiability_kernel.rs).
+
+
+### Expanded AFEX evidence surface: microbial enzymes and litterfall
+
+The AFEX collection includes additional observations that help guard against a root-only explanation:
+- Soil microbial potential enzyme activity (DOI 10.5285/b9a2523e-09ba-43c7-acfa-a894a231b133): January 2018, five within-plot soil points, 0–5 and 5–10 cm, potential BG/NAG/PHOS activities by plot/depth. These are potential assay activities, not realised in-situ nutrient flux.
+- Fine litterfall production and nutrient composition (DOI 10.5285/c0294ec9-45d6-464c-b543-ce9ece9fd968): five 0.25 m² traps per plot, 1 m above ground, repeated July 2017–July 2019; trap, date, category and area support must be preserved.
+- The record titled litterfall herbivory (DOI 10.5285/58b66cdf-451c-42e7-8153-c24ec30631fd) is described in its catalogue summary as including realized leaf area and LMA in August 2017/2018/2019. A direct herbivory rate is not established by that summary.
+
+These streams are now included in the dataset register and AFEX support crosswalk. They support a better open-world challenger: a model may explain root trait and turnover responses but miss microbial enzyme or litter-return changes. The five-point subsamples, trap repeats and dates remain nested within the plot treatment unit.
