@@ -1245,7 +1245,7 @@ mod tests {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &oracle)
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 32);
+        assert_eq!(result["matched_case_count"], 33);
         assert_eq!(
             result["mismatches"].as_array().expect("mismatches").len(),
             1
