@@ -366,7 +366,7 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
         "task_performance",
     ]
     .iter()
-    .any(|term| proposition.contains(term));
+    .any(|term| proposition.contains(*term));
     if domain == "human_worn"
         && wearer_usability_claim
         && nested_bool(case, "claim", "performance_claim_permitted") == Some(true)
