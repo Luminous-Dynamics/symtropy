@@ -644,6 +644,11 @@ mod tests {
     fn zero_flow_outlet_cannot_receive_mass() {
         let mut x = load("input");
         x["cases"][0]["snapshot"]["outlet_ports"][0]["volume_m3"] = json!(0.0);
+        let snapshot = x["cases"][0]["snapshot"].as_object_mut().unwrap();
+        snapshot.remove("snapshot_sha256");
+        let bytes = serde_json::to_vec(snapshot).unwrap();
+        let snapshot_digest = digest(&bytes);
+        x["cases"][0]["snapshot"]["snapshot_sha256"] = json!(snapshot_digest);
         assert_eq!(
             compute(&x["cases"][0]["snapshot"]).unwrap()["hook_disposition"],
             "INVALID_INPUT"
