@@ -121,7 +121,7 @@ References:
 
 ## Implementation
 
-The dependency-free Rust crate is `tools/aeroweift-model-credibility/`. It checks exact scope, manifest split and group disjointness, metric-to-confirmatory-manifest binding, preregistered metric gates, independent sample-count floors and required-stratum coverage.
+The dependency-free Rust crate is `tools/aeroweift-model-credibility/`. It checks exact scope, manifest split and group disjointness, metric-to-confirmatory-manifest binding, preregistered metric gates, conservative confidence-bound checks, independent sample-count floors and required-stratum coverage.
 
 The positive disposition is `AdmissibleForDeclaredDomainReviewOnly`. The crate does not calculate residuals, inspect dataset bytes, verify sensor calibration, authenticate the reference evaluator or establish physical truth. Track Q must provide authenticated provenance where real evidence is introduced.
 
