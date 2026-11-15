@@ -18,7 +18,9 @@ const POTABLE_CIRCUIT: &str = "POTABLE";
 const REUSE_STATE: &str = "REUSE_ADMITTED";
 
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("missing field: {key}"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("missing field: {key}"))
 }
 
 fn text(value: &Value, key: &str) -> Result<String, String> {
@@ -93,7 +95,10 @@ fn validate_circuits(architecture: &Value) -> Result<(usize, usize), String> {
     let nodes = array(architecture, "nodes")?;
     let edges = array(architecture, "edges")?;
     if circuits.len() < 3 {
-        return Err("architecture must declare separate potable, greywater and roof-rainwater circuits".to_owned());
+        return Err(
+            "architecture must declare separate potable, greywater and roof-rainwater circuits"
+                .to_owned(),
+        );
     }
     let circuit_index = object_index(circuits, "circuit_id", "circuit")?;
     let node_index = object_index(nodes, "node_id", "node")?;
@@ -103,7 +108,9 @@ fn validate_circuits(architecture: &Value) -> Result<(usize, usize), String> {
     for (node_id, node) in &node_index {
         let circuit_id = text(node, "circuit_id")?;
         if !circuit_index.contains_key(&circuit_id) {
-            return Err(format!("node {node_id} references unknown circuit {circuit_id}"));
+            return Err(format!(
+                "node {node_id} references unknown circuit {circuit_id}"
+            ));
         }
         node_membership.insert(node_id.clone(), circuit_id);
     }
@@ -112,7 +119,9 @@ fn validate_circuits(architecture: &Value) -> Result<(usize, usize), String> {
     for (edge_id, edge) in &edge_index {
         let circuit_id = text(edge, "circuit_id")?;
         if !circuit_index.contains_key(&circuit_id) {
-            return Err(format!("edge {edge_id} references unknown circuit {circuit_id}"));
+            return Err(format!(
+                "edge {edge_id} references unknown circuit {circuit_id}"
+            ));
         }
         let from = text(edge, "from")?;
         let to = text(edge, "to")?;
@@ -136,60 +145,104 @@ fn validate_circuits(architecture: &Value) -> Result<(usize, usize), String> {
         let outlets = strings(circuit, "reuse_outlet_node_ids")?;
         let reject = text(circuit, "reject_node_id")?;
         if sources.is_empty() || quality_gates.is_empty() || outlets.is_empty() {
-            return Err(format!("{circuit_id}: source, quality gate and outlet sets must be non-empty"));
+            return Err(format!(
+                "{circuit_id}: source, quality gate and outlet sets must be non-empty"
+            ));
         }
         let permitted = strings(circuit, "permitted_use_classes")?;
         let forbidden = strings(circuit, "forbidden_use_classes")?;
         if circuit_id != POTABLE_CIRCUIT {
-            if permitted.iter().any(|use_class| forbidden.contains(use_class)) {
-                return Err(format!("{circuit_id}: a use class is both permitted and forbidden"));
+            if permitted
+                .iter()
+                .any(|use_class| forbidden.contains(use_class))
+            {
+                return Err(format!(
+                    "{circuit_id}: a use class is both permitted and forbidden"
+                ));
             }
             if permitted.iter().any(|use_class| {
-                ["drinking", "food_preparation", "personal_hygiene", "bathing", "cooking"]
-                    .contains(&use_class.as_str())
+                [
+                    "drinking",
+                    "food_preparation",
+                    "personal_hygiene",
+                    "bathing",
+                    "cooking",
+                ]
+                .contains(&use_class.as_str())
             }) {
-                return Err(format!("{circuit_id}: non-potable circuit permits a potable use class"));
+                return Err(format!(
+                    "{circuit_id}: non-potable circuit permits a potable use class"
+                ));
             }
         }
 
         for source in &sources {
-            let node = node_index.get(source).ok_or_else(|| format!("{circuit_id}: unknown source node {source}"))?;
+            let node = node_index
+                .get(source)
+                .ok_or_else(|| format!("{circuit_id}: unknown source node {source}"))?;
             if text(node, "circuit_id")? != *circuit_id || text(node, "role")? != "source" {
-                return Err(format!("{circuit_id}: source node {source} has the wrong circuit or role"));
+                return Err(format!(
+                    "{circuit_id}: source node {source} has the wrong circuit or role"
+                ));
             }
             if !path_exists(source, &reject, &adjacency, &BTreeSet::new()) {
-                return Err(format!("{circuit_id}: no fail-safe reject route from source {source}"));
+                return Err(format!(
+                    "{circuit_id}: no fail-safe reject route from source {source}"
+                ));
             }
             for outlet in &outlets {
-                let outlet_node = node_index.get(outlet).ok_or_else(|| format!("{circuit_id}: unknown outlet {outlet}"))?;
-                if text(outlet_node, "circuit_id")? != *circuit_id || text(outlet_node, "role")? != "use_outlet" {
-                    return Err(format!("{circuit_id}: outlet node {outlet} has the wrong circuit or role"));
+                let outlet_node = node_index
+                    .get(outlet)
+                    .ok_or_else(|| format!("{circuit_id}: unknown outlet {outlet}"))?;
+                if text(outlet_node, "circuit_id")? != *circuit_id
+                    || text(outlet_node, "role")? != "use_outlet"
+                {
+                    return Err(format!(
+                        "{circuit_id}: outlet node {outlet} has the wrong circuit or role"
+                    ));
                 }
                 if !path_exists(source, outlet, &adjacency, &BTreeSet::new()) {
-                    return Err(format!("{circuit_id}: no source-to-outlet path from {source} to {outlet}"));
+                    return Err(format!(
+                        "{circuit_id}: no source-to-outlet path from {source} to {outlet}"
+                    ));
                 }
                 let blocked_gates = quality_gates.iter().cloned().collect::<BTreeSet<_>>();
                 if path_exists(source, outlet, &adjacency, &blocked_gates) {
-                    return Err(format!("{circuit_id}: a source-to-outlet path bypasses all declared quality gates"));
+                    return Err(format!(
+                        "{circuit_id}: a source-to-outlet path bypasses all declared quality gates"
+                    ));
                 }
                 let outlet_uses = strings(outlet_node, "use_classes")?;
                 for use_class in outlet_uses {
                     if !permitted.contains(&use_class) || forbidden.contains(&use_class) {
-                        return Err(format!("{circuit_id}: outlet {outlet} declares unpermitted use {use_class}"));
+                        return Err(format!(
+                            "{circuit_id}: outlet {outlet} declares unpermitted use {use_class}"
+                        ));
                     }
                 }
             }
         }
 
         for gate in &quality_gates {
-            let node = node_index.get(gate).ok_or_else(|| format!("{circuit_id}: unknown quality gate {gate}"))?;
+            let node = node_index
+                .get(gate)
+                .ok_or_else(|| format!("{circuit_id}: unknown quality gate {gate}"))?;
             if text(node, "circuit_id")? != *circuit_id || text(node, "role")? != "quality_gate" {
-                return Err(format!("{circuit_id}: declared gate {gate} is not a quality_gate node in this circuit"));
+                return Err(format!(
+                    "{circuit_id}: declared gate {gate} is not a quality_gate node in this circuit"
+                ));
             }
         }
-        let reject_node = node_index.get(&reject).ok_or_else(|| format!("{circuit_id}: unknown reject node {reject}"))?;
-        if text(reject_node, "circuit_id")? != *circuit_id || text(reject_node, "role")? != "reject_or_quarantine" && text(reject_node, "role")? != "reject_or_residual" {
-            return Err(format!("{circuit_id}: reject node {reject} has the wrong circuit or role"));
+        let reject_node = node_index
+            .get(&reject)
+            .ok_or_else(|| format!("{circuit_id}: unknown reject node {reject}"))?;
+        if text(reject_node, "circuit_id")? != *circuit_id
+            || text(reject_node, "role")? != "reject_or_quarantine"
+                && text(reject_node, "role")? != "reject_or_residual"
+        {
+            return Err(format!(
+                "{circuit_id}: reject node {reject} has the wrong circuit or role"
+            ));
         }
     }
 
@@ -219,7 +272,9 @@ fn validate_controller(architecture: &Value) -> Result<usize, String> {
         let to = text(transition, "to")?;
         let trigger = text(transition, "trigger")?;
         if !states.contains(&from) || !states.contains(&to) {
-            return Err(format!("controller transition {from} -> {to} references an undeclared state"));
+            return Err(format!(
+                "controller transition {from} -> {to} references an undeclared state"
+            ));
         }
         if to == REUSE_STATE {
             if from != "QUALITY_HOLD"
@@ -232,13 +287,23 @@ fn validate_controller(architecture: &Value) -> Result<usize, String> {
         }
         let lower = trigger.to_ascii_lowercase();
         let fault_trigger = [
-            "reject", "missing", "unknown", "invalid", "blocked", "failure", "power_loss",
-            "expiry", "out_of_profile", "sensor_fault"
+            "reject",
+            "missing",
+            "unknown",
+            "invalid",
+            "blocked",
+            "failure",
+            "power_loss",
+            "expiry",
+            "out_of_profile",
+            "sensor_fault",
         ]
         .iter()
         .any(|keyword| lower.contains(keyword));
         if fault_trigger && !safe_states.contains(&to) {
-            return Err(format!("fault-triggered transition {from} -> {to} does not enter a declared safe state"));
+            return Err(format!(
+                "fault-triggered transition {from} -> {to} does not enter a declared safe state"
+            ));
         }
     }
     Ok(transitions.len())
@@ -251,7 +316,9 @@ fn validate(architecture: &Value) -> Result<Value, String> {
         || text(architecture, "evidence_class")? != "design_contract_only"
         || text(architecture, "claim_ceiling")? != CLAIM_CEILING
     {
-        return Err("architecture identity, status, evidence class or claim ceiling mismatch".to_owned());
+        return Err(
+            "architecture identity, status, evidence class or claim ceiling mismatch".to_owned(),
+        );
     }
     let (circuit_count, edge_count) = validate_circuits(architecture)?;
     let transition_count = validate_controller(architecture)?;
@@ -278,33 +345,42 @@ fn validate(architecture: &Value) -> Result<Value, String> {
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn valid_revision(value: &str) -> bool {
     value.len() == 40
-        && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn run() -> Result<i32, String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     if args.len() > 2 {
-        return Err("usage: waterloop-architecture-t0 [ARCHITECTURE_JSON] [RECEIPT_JSON]".to_owned());
+        return Err(
+            "usage: waterloop-architecture-t0 [ARCHITECTURE_JSON] [RECEIPT_JSON]".to_owned(),
+        );
     }
     let architecture_path = PathBuf::from(args.first().map(String::as_str).unwrap_or(
         "research/water-service-engineering/waterloop-reference-architecture-v0.1.json",
     ));
-    let receipt_path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
-        "artifacts/waterloop-architecture-t0/receipt.json",
-    ));
+    let receipt_path = PathBuf::from(
+        args.get(1)
+            .map(String::as_str)
+            .unwrap_or("artifacts/waterloop-architecture-t0/receipt.json"),
+    );
     let bytes = fs::read(&architecture_path)
         .map_err(|error| format!("read {}: {error}", architecture_path.display()))?;
     let architecture: Value = serde_json::from_slice(&bytes)
         .map_err(|error| format!("parse {}: {error}", architecture_path.display()))?;
     let validation = validate(&architecture)?;
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
     let revision = env::var("WATERLOOP_ARCH_T0_REVISION")
         .or_else(|_| env::var("GITHUB_SHA"))
         .ok()
@@ -374,12 +450,15 @@ mod tests {
     #[test]
     fn nonpotable_quality_gate_bypass_is_rejected() {
         let mut architecture = fixture();
-        architecture["edges"].as_array_mut().expect("edge array").push(json!({
-            "edge_id": "g-negative-control",
-            "circuit_id": "GREYWATER",
-            "from": "greywater-treatment-core",
-            "to": "greywater-nonpotable-outlets"
-        }));
+        architecture["edges"]
+            .as_array_mut()
+            .expect("edge array")
+            .push(json!({
+                "edge_id": "g-negative-control",
+                "circuit_id": "GREYWATER",
+                "from": "greywater-treatment-core",
+                "to": "greywater-nonpotable-outlets"
+            }));
         assert!(validate(&architecture).is_err());
     }
 
@@ -402,7 +481,10 @@ mod tests {
     fn missing_reject_path_is_rejected() {
         let mut architecture = fixture();
         let edges = architecture["edges"].as_array_mut().expect("edge array");
-        edges.retain(|edge| edge["circuit_id"] != "GREYWATER" || !edge["edge_id"].as_str().unwrap_or("").starts_with("g0"));
+        edges.retain(|edge| {
+            edge["circuit_id"] != "GREYWATER"
+                || !edge["edge_id"].as_str().unwrap_or("").starts_with("g0")
+        });
         assert!(validate(&architecture).is_err());
     }
 }
