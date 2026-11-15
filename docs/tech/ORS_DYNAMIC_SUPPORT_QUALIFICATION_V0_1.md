@@ -222,3 +222,43 @@ No claim of orbital-ring feasibility, magnetic-support viability, safe failure b
 ---
 
 **Claim ceiling:** This document is a research and qualification specification. It is not an executable physics result, an independently verified force law, a design approval, or evidence that an orbital ring can be built.
+
+## 12. Current external credibility and interoperability anchors
+
+The comparison strategy must reflect current public benchmark practice while avoiding the mistake of declaring one software implementation to be physical truth.
+
+### Astrodynamics library comparison
+
+The current Brahe benchmark documentation describes 32 tasks across eight modules (time, coordinates, attitude, frames, orbits, propagation, force models and access). It compares against Orekit 13.1.5, GMAT R2026a on 31 tasks, Basilisk on 14 overlapping tasks, and Nyx/ANISE on 26. It uses 200 independently sampled initial conditions for accuracy comparisons and reports p50/p95/p99/maximum errors; fixed-input performance is measured separately over 200 iterations. See https://docs.brahe.space/latest/about/benchmarks.html
+
+For Luminous, this implies:
+
+- First reproduce the overlapping standard astrodynamics tasks with exact library versions, kernels, frames, epochs, force profiles, integrators and tolerances.
+- Report per-task accuracy distributions, invariant residuals and runtime/memory separately; do not collapse unlike modules into one score.
+- Keep Orekit as one strong software comparator, not a physical truth oracle. Add analytical closed-form cases, independent implementations and eventually measurements where the quantity is experimentally observable.
+- Add architecture-specific PORS/ORS geometry and coupled infrastructure tasks only as separate extensions with their own oracles and claim ceilings.
+- Never benchmark the T1 synthetic spring/damper model against orbital propagators: their physical scope does not overlap.
+
+### Model credibility and structural verification
+
+NASA-STD-7009B (active; 2024-03-05) establishes model-and-simulation lifecycle practices and calls for credibility assessments to be communicated for critical decisions: https://standards.nasa.gov/standard/NASA/NASA-STD-7009
+
+NASA-HDBK-7009B (active; 2026-02-03) is the current implementation guide accompanying NASA-STD-7009B. It provides examples, technical information and process guidance for producing, using and consuming model/simulation products: https://standards.nasa.gov/standard/nasa/nasa-hdbk-7009
+
+NASA JSC-65829 Rev B (active; 2024-03-01) addresses structural loads and dynamics across the spaceflight hardware lifecycle. It describes model verification using modal survey or other suitable test evidence, with boundary conditions representative of the relevant configuration: https://standards.nasa.gov/node/3336
+
+The engineering ladder should therefore retain distinct records for:
+1. code verification and exact-head reproducibility;
+2. analytical solution verification;
+3. numerical convergence and sensitivity;
+4. independent implementation/backend comparison;
+5. calibration and correlation against measured component data;
+6. system-level validation in the intended use domain.
+
+Passing one level does not imply the next.
+
+### Correlation campaign
+
+The instrumented low-energy two-mass article proposed in [ORS-SYNTHETIC-CORRELATION-001 #5437](https://github.com/Luminous-Dynamics/symtropy/issues/5437) is an intentionally modest bridge from software verification to measured behavior. Characterize the spring and damper independently, reserve held-out validation runs, measure release skew and sensor timing, and include fixture/guide forces in the declared conservation boundary.
+
+The sampled-data controller and bounded active-force port are separately owned by [ORS-CONTROL-PORT-001 #5441](https://github.com/Luminous-Dynamics/symtropy/issues/5441). Do not merge ideal active-force control, actuator electrical performance and magnetic constitutive physics into one synthetic force law.
