@@ -51,11 +51,11 @@ fn point_segment_distance(point: Point, start: Point, end: Point) -> f64 {
         (point.y - start.y) as f64,
         (point.z - start.z) as f64,
     ];
-    let denominator = ab.iter().map(|v| v * v).sum::<f64>();
+    let denominator = ab.iter().map(|v| *v * *v).sum::<f64>();
     let parameter = if denominator == 0.0 {
         0.0
     } else {
-        (ap.iter().zip(ab).map(|(a, b)| a * b).sum::<f64>() / denominator)
+        (ap.iter().zip(ab).map(|(&a, b)| a * b).sum::<f64>() / denominator)
             .clamp(0.0, 1.0)
     };
     let closest_x = start.x as f64 + ab[0] * parameter;
@@ -118,7 +118,7 @@ fn make_case(
     partition: Partition,
     index: usize,
     rng: &mut Lcg,
-) -> (String, bool, bool, bool) {
+) -> (String, bool, bool, bool, bool) {
     let is_holdout = matches!(partition, Partition::Holdout);
     let family_name = match family {
         Family::Linear => "linear_segment",
@@ -300,15 +300,16 @@ fn make_case(
     )
     .expect("writing to String cannot fail");
 
-    (json, contact, !endpoint_contact && contact, !chord_contact && contact)
+    (json, contact, !endpoint_contact && contact, !chord_contact && contact, !contact && candidate)
 }
 
-fn generate() -> (String, usize, usize, usize, usize) {
+fn generate() -> (String, usize, usize, usize, usize, usize) {
     let mut rng = Lcg(0xc0c5_7a11);
     let mut cases = Vec::with_capacity(260);
     let mut collisions = 0;
     let mut endpoint_misses = 0;
     let mut chord_misses = 0;
+    let mut broad_phase_false_positives = 0;
 
     for family in [Family::Linear, Family::UpperSemicircle] {
         for partition in [Partition::Development, Partition::Holdout] {
@@ -318,7 +319,7 @@ fn generate() -> (String, usize, usize, usize, usize) {
                 30
             };
             for index in 0..count {
-                let (json, contact, endpoint_miss, chord_miss) =
+                let (json, contact, endpoint_miss, chord_miss, broad_phase_false_positive) =
                     make_case(family, partition, index, &mut rng);
                 if contact {
                     collisions += 1;
@@ -328,6 +329,9 @@ fn generate() -> (String, usize, usize, usize, usize) {
                 }
                 if chord_miss {
                     chord_misses += 1;
+                }
+                if broad_phase_false_positive {
+                    broad_phase_false_positives += 1;
                 }
                 cases.push(json);
             }
@@ -350,17 +354,17 @@ fn generate() -> (String, usize, usize, usize, usize) {
         collisions,
         endpoint_misses,
         chord_misses,
+        broad_phase_false_positives,
     )
 }
 
 fn main() -> io::Result<()> {
-    let (output, count, collisions, endpoint_misses, chord_misses) = generate();
-    let _ = (collisions, endpoint_misses, chord_misses);
+    let (output, count, collisions, endpoint_misses, chord_misses, broad_phase_false_positives) = generate();
     if let Some(path) = std::env::args_os().nth(1) {
         std::fs::write(path, output)
     } else {
         io::stdout().write_all(output.as_bytes())?;
-        eprintln!("generated_cases={count}");
+        eprintln!("generated_cases={count} analytic_contacts={collisions} endpoint_misses={endpoint_misses} chord_misses={chord_misses} broad_phase_false_positives={broad_phase_false_positives} broad_phase_false_negatives=0");
         Ok(())
     }
 }
@@ -371,13 +375,17 @@ mod tests {
 
     #[test]
     fn seed_generates_fixed_partition_cardinalities_and_no_aabb_false_negative() {
-        let (json, count, collisions, endpoint_misses, chord_misses) = generate();
+        let (json, count, collisions, endpoint_misses, chord_misses, broad_phase_false_positives) = generate();
         assert_eq!(count, 260);
         assert_eq!(json.matches("\"partition\":\"development\"").count(), 200);
         assert_eq!(json.matches("\"partition\":\"holdout\"").count(), 60);
         assert!(collisions > 0);
         assert!(endpoint_misses > 0);
         assert!(chord_misses > 0);
+        assert_eq!(collisions, 7);
+        assert_eq!(endpoint_misses, 7);
+        assert_eq!(chord_misses, 2);
+        assert_eq!(broad_phase_false_positives, 16);
         assert!(!json.contains("\"analytic_physical_collision\":true,\"endpoints_only_collision\":false,\"chord_collision\":false,\"physical_envelope_candidate\":false"));
     }
 }
