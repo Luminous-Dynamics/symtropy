@@ -7,6 +7,7 @@ on:
       - research/construction-motion-oracle-bench-v0-1
       - research/construction-capsule-oracle-v0-1
       - research/construction-translating-capsule-oracle-v0-1
+      - research/construction-co-translating-capsule-oracle-v0-2
     paths:
       - "research/construction-motion-oracle-v0-1/**"
       - ".github/workflows/construction-motion-oracle-v0-1.yml"
