@@ -251,7 +251,11 @@ pub fn normalize(
     require_nonempty(&input.source_profile_id, "source_profile_id", &mut errors);
     require_nonempty(&input.producer_id, "producer_id", &mut errors);
     require_nonempty(&input.producer_revision, "producer_revision", &mut errors);
-    require_nonempty(&expected_profile.profile_id, "convention_profile_id", &mut errors);
+    require_nonempty(
+        &expected_profile.profile_id,
+        "convention_profile_id",
+        &mut errors,
+    );
     if !is_sha256(&expected_profile.profile_sha256) {
         errors.push(ValidationError::InvalidSha256("convention_profile_sha256"));
     }
@@ -301,11 +305,7 @@ pub fn normalize(
 
     let r_axis_m: Vec<f64> = input.r_axis.iter().map(|v| v * length_scale).collect();
     let z_axis_m: Vec<f64> = input.z_axis.iter().map(|v| v * length_scale).collect();
-    let timestamps_s: Vec<f64> = input
-        .timestamps
-        .iter()
-        .map(|v| v * time_scale)
-        .collect();
+    let timestamps_s: Vec<f64> = input.timestamps.iter().map(|v| v * time_scale).collect();
 
     validate_axis(&r_axis_m, "R", true, &mut errors);
     validate_axis(&z_axis_m, "Z", false, &mut errors);
@@ -343,9 +343,7 @@ pub fn normalize(
     }
 
     for (frame_index, frame) in input.psi_frames.iter().enumerate() {
-        if frame.len() != r_axis_m.len()
-            || frame.iter().any(|row| row.len() != z_axis_m.len())
-        {
+        if frame.len() != r_axis_m.len() || frame.iter().any(|row| row.len() != z_axis_m.len()) {
             errors.push(ValidationError::FrameShapeMismatch {
                 frame: frame_index,
                 r_rows: frame.len(),
@@ -603,10 +601,7 @@ mod tests {
     #[test]
     fn wb_per_radian_passes_without_scaling() {
         let normalized = normalize(&input(), &expected_profile()).unwrap();
-        assert_eq!(
-            normalized.receipt.flux_transform,
-            FluxTransform::Identity
-        );
+        assert_eq!(normalized.receipt.flux_transform, FluxTransform::Identity);
         assert_eq!(normalized.psi_frames_wb_per_radian[0][0][0], 0.1);
         assert_eq!(
             normalized.claim_ceiling,
@@ -703,7 +698,10 @@ mod tests {
         let mut source = input();
         source.convention.quantity_signs = None;
         let errors = normalize(&source, &expected_profile()).unwrap_err();
-        assert!(contains_error(&errors, ValidationError::MissingQuantitySigns));
+        assert!(contains_error(
+            &errors,
+            ValidationError::MissingQuantitySigns
+        ));
     }
 
     #[test]
@@ -719,7 +717,10 @@ mod tests {
         let mut source = input();
         source.frame_layout = FrameLayout::ZRowsRColumns;
         let errors = normalize(&source, &expected_profile()).unwrap_err();
-        assert!(contains_error(&errors, ValidationError::UnsupportedFrameLayout));
+        assert!(contains_error(
+            &errors,
+            ValidationError::UnsupportedFrameLayout
+        ));
     }
 
     #[test]
@@ -749,10 +750,11 @@ mod tests {
         let mut source = input();
         source.psi_frames[0][0].pop();
         let errors = normalize(&source, &expected_profile()).unwrap_err();
-        assert!(errors.iter().any(|error| matches!(
-            error,
-            ValidationError::FrameShapeMismatch { frame: 0, .. }
-        )));
+        assert!(
+            errors
+                .iter()
+                .any(|error| matches!(error, ValidationError::FrameShapeMismatch { frame: 0, .. }))
+        );
     }
 
     #[test]
@@ -760,10 +762,11 @@ mod tests {
         let mut source = input();
         source.psi_frames[0][0][0] = f64::NAN;
         let errors = normalize(&source, &expected_profile()).unwrap_err();
-        assert!(errors.iter().any(|error| matches!(
-            error,
-            ValidationError::NonFiniteFlux { frame: 0, .. }
-        )));
+        assert!(
+            errors
+                .iter()
+                .any(|error| matches!(error, ValidationError::NonFiniteFlux { frame: 0, .. }))
+        );
     }
 
     #[test]
