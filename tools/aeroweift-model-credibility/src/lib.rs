@@ -168,8 +168,16 @@ pub struct MetricEvidence {
     pub modality: EvidenceModality,
     /// Exact confirmatory dataset manifest digest.
     pub confirmatory_manifest_sha256: String,
-    /// Measured statistic. Interpretation and units are fixed by the gate profile.
+    /// Measured point statistic. Interpretation and units are fixed by the gate profile.
     pub value: f64,
+    /// Conservative lower confidence bound under the declared interval method.
+    pub lower_confidence_bound: f64,
+    /// Conservative upper confidence bound under the declared interval method.
+    pub upper_confidence_bound: f64,
+    /// Confidence level used for the interval, e.g. 0.95.
+    pub confidence_level: f64,
+    /// Digest identifying the frozen interval-estimation method.
+    pub confidence_method_sha256: String,
     /// Number of independent sampling units, not raw correlated rows.
     pub independent_unit_count: u64,
 }
@@ -191,6 +199,10 @@ pub struct MetricGate {
     pub threshold: f64,
     /// Minimum independent units required for this metric/stratum.
     pub minimum_independent_units: u64,
+    /// Required confidence level for the conservative interval.
+    pub confidence_level: f64,
+    /// Frozen interval-estimation method digest.
+    pub confidence_method_sha256: String,
 }
 
 /// Frozen evaluation policy independent of the submitted package.
@@ -280,6 +292,8 @@ pub enum ValidationError {
     InsufficientIndependentUnits,
     /// A measured statistic falls outside its preregistered gate.
     MetricOutsideGate,
+    /// Confidence bounds, level or interval-method identity violate the gate.
+    ConfidenceContractMismatch,
     /// Evaluator build or policy manifest differs from the frozen requirement.
     EvaluatorOrPolicyMismatch,
 }
@@ -371,6 +385,10 @@ pub fn evaluate(
     for gate in &policy.gates {
         if gate.stratum_id.trim().is_empty()
             || !gate.threshold.is_finite()
+            || !gate.confidence_level.is_finite()
+            || gate.confidence_level <= 0.0
+            || gate.confidence_level >= 1.0
+            || !is_sha256(&gate.confidence_method_sha256)
             || gate.minimum_independent_units == 0
             || !gate_keys.insert(gate_key(
                 gate.metric,
@@ -484,6 +502,14 @@ pub fn evaluate(
     let mut evidence_keys = BTreeSet::new();
     for evidence in &package.metrics {
         if !evidence.value.is_finite()
+            || !evidence.lower_confidence_bound.is_finite()
+            || !evidence.upper_confidence_bound.is_finite()
+            || !evidence.confidence_level.is_finite()
+            || evidence.confidence_level <= 0.0
+            || evidence.confidence_level >= 1.0
+            || !is_sha256(&evidence.confidence_method_sha256)
+            || evidence.lower_confidence_bound > evidence.value
+            || evidence.value > evidence.upper_confidence_bound
             || evidence.independent_unit_count == 0
             || evidence.stratum_id.trim().is_empty()
         {
@@ -523,9 +549,14 @@ pub fn evaluate(
         if evidence.independent_unit_count < gate.minimum_independent_units {
             return Err(ValidationError::InsufficientIndependentUnits);
         }
+        if evidence.confidence_level != gate.confidence_level
+            || evidence.confidence_method_sha256 != gate.confidence_method_sha256
+        {
+            return Err(ValidationError::ConfidenceContractMismatch);
+        }
         let passes = match gate.comparator {
-            Comparator::AtMost => evidence.value <= gate.threshold,
-            Comparator::AtLeast => evidence.value >= gate.threshold,
+            Comparator::AtMost => evidence.upper_confidence_bound <= gate.threshold,
+            Comparator::AtLeast => evidence.lower_confidence_bound >= gate.threshold,
         };
         if !passes {
             return Err(ValidationError::MetricOutsideGate);
