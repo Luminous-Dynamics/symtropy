@@ -194,3 +194,32 @@ It is also not a reactive chemistry model. Conservative tracer characterization 
 ## 10. Evidence ceiling
 
 This document is a research and experiment-design contract. It contains no measured transient operator, physical kernel, qualified sensor, validated CFD result or field measurement. T1 requires a controlled non-potable rig, competent oversight, calibrated/synchronized all-port observations, raw-data custody, tracer compatibility and approved handling/disposal. It does not establish potability, contamination, toxicology, SANS 241 compliance or water-release authority.
+
+
+## 11. Implemented synthetic T0 increment
+
+The branch contains a discrete causal-kernel evaluator at `tools/water-service-t0/src/bin/dynamic-kernel-t0.rs` and a 14-case frozen corpus/oracle/manifest.
+
+The evaluator computes a discrete causal convolution of inlet tracer mass-flux histories with an outlet-by-inlet kernel. The steady transfer matrix is represented by a zero-delay kernel. A second convolution applies the calibrated sensor impulse response; model-discrimination separation is calculated on the sensor-filtered signals, not ideal pre-instrument signals.
+
+The T0 controls cover:
+- zero-delay steady transfer limit;
+- distinct outlet delay responses;
+- sub-stochastic kernel and open mass residual;
+- finite observation window with physical/sensor tail outside the window;
+- independently measured inventory;
+- uncalibrated sensor response, for which observed mass and residual are null/unknown;
+- calibrated sensor lag;
+- flow reversal with unobserved direction;
+- out-of-domain use;
+- negative kernel coefficients;
+- equal integrated steady gain but distinct transient response;
+- sampling/sensor resolution that cannot resolve the declared minimum delay;
+- incomplete outlet observation;
+- positive mass/time scale invariance.
+
+The kernel area is constrained to be no greater than one for each inlet. It is never renormalized. A missing portion remains inventory or unresolved mass. The temporal-resolution preflight compares a declared minimum resolvable delay (derived from sample interval, sensor bandwidth/response and clock synchronization) with the minimum physical delay of interest. It also refuses a claimed resolution finer than the sampling interval.
+
+The single model-separation case uses an explicit independent/equal-variance observation-noise contract and a per-sample standard deviation. Its Mahalanobis-like Euclidean signal/noise separation is a synthetic discrimination proxy only; it is not expected information gain or posterior model probability.
+
+T0 is discrete arithmetic, not a water solver. Native Rust tests, rustfmt and Clippy require exact-head execution and are not claimed passed by authoring this artifact.
