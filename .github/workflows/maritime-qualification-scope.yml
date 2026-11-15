@@ -1,0 +1,126 @@
+name: Maritime qualification scope compiler
+
+on:
+  push:
+    branches: ["research/maritime-qualification-scope-v0-1"]
+    paths:
+      - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/qualification-scope-cases.v0.1.json"
+      - "docs/tech/MARITIME_QUALIFICATION_SCOPE_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_QUALIFICATION_SCOPE_CALCULUS_V0_1.md"
+      - ".github/workflows/maritime-qualification-scope.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/qualification-scope-cases.v0.1.json"
+      - "docs/tech/MARITIME_QUALIFICATION_SCOPE_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_QUALIFICATION_SCOPE_CALCULUS_V0_1.md"
+      - ".github/workflows/maritime-qualification-scope.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: maritime-qualification-scope-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: true
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$actual" = "$expected"
+          echo "source_commit=$actual"
+
+      - name: Normalize qualification compiler source
+        run: rustfmt --edition 2024 tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs
+
+      - name: Verify qualification compiler formatting
+        run: rustfmt --edition 2024 --check tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs
+
+      - name: Run frozen qualification-scope tests
+        run: cargo test --locked --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin qualification_scope
+
+      - name: Run strict Clippy for qualification compiler
+        run: cargo clippy --locked --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin qualification_scope -- -D warnings
+
+      - name: Execute exact-head qualification-scope corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          input="benchmarks/maritime-observability/qualification-scope-cases.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked \
+            --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml \
+            --bin qualification_scope -- "$input" \
+            --source-commit "$source_commit" --case-sha256 "$digest" \
+            > maritime-qualification-scope-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .case_sha256 == $digest
+            and .case_count == 20
+            and .disposition_counts.SUPPORTED == 1
+            and .disposition_counts.REQUALIFIED == 1
+            and .disposition_counts.REQUALIFICATION_REQUIRED == 7
+            and .disposition_counts.OUT_OF_SCOPE == 2
+            and .disposition_counts.NOT_EVALUATED == 5
+            and .disposition_counts.CONFLICTED == 1
+            and .disposition_counts.EXPIRED == 3
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .physical_qualification_established == false
+          ' maritime-qualification-scope-receipt.json
+
+      - name: Commit only the normalized compiler source that passed tests
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs
+          tested_tree="$(git write-tree)"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(maritime): format qualification scope compiler"
+            commit_sha="$(git rev-parse HEAD)"
+            committed_tree="$(git rev-parse HEAD^{tree})"
+            test "$tested_tree" = "$committed_tree"
+            git push origin "HEAD:$TARGET_BRANCH"
+            {
+              echo "### Verified qualification compiler source normalization"
+              echo "- Tested source tree: `$tested_tree`"
+              echo "- Commit pushed: `$commit_sha`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Qualification compiler source was already normalized." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload exact-head qualification receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-qualification-scope-${{ github.run_id }}
+          path: maritime-qualification-scope-receipt.json
+          if-no-files-found: error
+          retention-days: 90
