@@ -1,0 +1,8 @@
+{
+  "fixture_id": "SYNTHETIC-COMMUNITY-WATER-INPUT-001",
+  "records": [
+    {"id": "node-a", "demand_permille": 800},
+    {"id": "node-b", "demand_permille": 600}
+  ],
+  "units": {"demand": "permille", "population": "person"}
+}
