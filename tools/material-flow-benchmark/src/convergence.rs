@@ -82,8 +82,7 @@ fn run_case(dt_seconds: f64) -> Result<FreeFallCase, String> {
         .ok_or_else(|| "free-fall body disappeared after integration".to_string())?;
 
     let duration = steps as f64 * dt_seconds;
-    let analytical_position =
-        INITIAL_POSITION_M + 0.5 * GRAVITY_M_S2 * duration * duration;
+    let analytical_position = INITIAL_POSITION_M + 0.5 * GRAVITY_M_S2 * duration * duration;
     let analytical_velocity = GRAVITY_M_S2 * duration;
     let observed_position = body.transform.translation.coord(1);
     let observed_velocity = body.linear_velocity[1];
@@ -172,9 +171,11 @@ mod tests {
         assert_eq!(report.cases.len(), 4);
         assert!(report.position_error_monotonic, "{report:?}");
         assert!(report.all_cases_numerically_healthy, "{report:?}");
-        assert!(report
-            .estimated_position_order
-            .is_some_and(|order| order > 0.8 && order < 1.2));
+        assert!(
+            report
+                .estimated_position_order
+                .is_some_and(|order| order > 0.8 && order < 1.2)
+        );
     }
 
     #[test]
