@@ -136,6 +136,8 @@ A 2026 review of plant regulation of arbuscular mycorrhizal symbiosis distinguis
 
 ## 5. Benchmark protocol
 
+The initial machine-readable synthetic suite is `benchmarks/mycelium/mycelium-known-truth-cases-v0-1.json`. It contains five cases: linear extension, branch insertion/segment splitting, anastomosis connecting components, rejection of hyphal flux without a connected path, and exact element-ledger closure. The fixture is deliberately synthetic and exists to define runner semantics before any biological calibration.
+
 ### T0 — data admission and rights
 
 For every source:
