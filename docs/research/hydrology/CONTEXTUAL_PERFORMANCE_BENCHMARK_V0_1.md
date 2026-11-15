@@ -294,3 +294,30 @@ The register distinguishes:
 - Johannesburg Water notice assertions from independently measured service telemetry.
 
 As of this register revision, **no source bytes are acquired and no usage rights are admitted**. SHA-256 fields remain null. Catchment selection is intentionally deferred until station coverage, audited flow, event coverage, forcing quality, anthropogenic boundary records and source terms can be compared. Synthetic or gridded forcing is not local field validation.
+
+
+## 13. Executable V0 auditor — opened 15 November 2026
+
+The first deterministic evaluator is now implemented in the separate Rust package `tools/hydro-contextual-t0` and frozen corpus:
+- `research/hydrology/hydro-contextual-t0-v0.1.json`
+- `research/hydrology/hydro-contextual-manifest-v0.1.json`
+- `research/hydrology/hydro-contextual-oracle-v0.1.json`
+- `research/hydrology/hydro-contextual-t0.schema.json`
+
+The 21-case synthetic suite covers:
+- B0 persistence / training-only seasonal-climatology metric recomputation;
+- B1 parameter-prior member reporting, including invalid/non-conservative members;
+- B2 repeated train-only calibration-reference summary;
+- B3 frozen temporal-holdout metric recomputation;
+- NSE, KGE, volume bias and MAE with explicit undefined-denominator semantics;
+- contextual attainment with raw references, no clipping, and `NOT_COMPARABLE` / `UNDEFINED` states;
+- split leakage controls for event, nested catchment, future preprocessing, held-out calibration, missing-as-zero, anthropogenic boundary unknowns, timebase mismatch, physical gates, invalid-member hiding and synthetic-to-field claim promotion;
+- boundary attacks for duplicate timestamps and overlapping same-event windows.
+
+The tool reads frozen arrays and run metadata. It does **not** create, calibrate, run, rank or replace a hydrology model. It consumes the existing physical gate as a declared input; #461/#445 and model-specific solver owners remain authoritative.
+
+The separate input/manifest/oracle identity is enforced in Rust. The CLI produces a receipt with SHA-256 digests for inputs, manifest, oracle and Cargo.lock, plus exact implementation revision. The workflow is `.github/workflows/hydro-contextual-t0.yml`.
+
+**Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
+
+The 21-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.

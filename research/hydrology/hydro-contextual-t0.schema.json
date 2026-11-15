@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/hydrology/hydro-contextual-t0.schema.json",
+  "title": "Hydro Contextual T0 Synthetic Benchmark",
+  "description": "Frozen synthetic B0-B3 metric recomputation and split-integrity cases; no hydrologic solver or field-data qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "benchmark_id",
+    "profile",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "hydro-contextual-t0-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification"
+    },
+    "benchmark_id": {
+      "const": "HYDRO-CONTEXTUAL-T0"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_revision",
+        "all_values_are_synthetic"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string"
+        },
+        "profile_revision": {
+          "type": "string"
+        },
+        "all_values_are_synthetic": {
+          "const": true
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 21,
+      "maxItems": 21,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "family",
+          "inputs"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "enum": [
+              "baseline_metrics",
+              "prior_ensemble",
+              "calibration_reference",
+              "contextual_attainment",
+              "split_integrity"
+            ]
+          },
+          "inputs": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

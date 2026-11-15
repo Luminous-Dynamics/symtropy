@@ -1,0 +1,307 @@
+{
+  "schema_version": "hydro-contextual-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
+  "cases": [
+    {
+      "case_id": "HC-T0-001-b0-persistence-metrics",
+      "family": "baseline_metrics",
+      "expected": {
+        "sample_count": 4,
+        "mean_observed": 2.5,
+        "mean_predicted": 1.75,
+        "nse": 0.4,
+        "kge": 0.6001127926616301,
+        "volume_bias_pct": -30,
+        "mae": 0.75,
+        "nse_defined": true,
+        "kge_defined": true,
+        "volume_bias_defined": true,
+        "baseline_id": "B0-persistence",
+        "baseline_scope": "train_only_previous_step"
+      }
+    },
+    {
+      "case_id": "HC-T0-002-b0-seasonal-climatology-metrics",
+      "family": "baseline_metrics",
+      "expected": {
+        "sample_count": 4,
+        "mean_observed": 1.5,
+        "mean_predicted": 1.625,
+        "nse": 0.65,
+        "kge": 0.47498994756515456,
+        "volume_bias_pct": 8.333333333333332,
+        "mae": 0.625,
+        "nse_defined": true,
+        "kge_defined": true,
+        "volume_bias_defined": true,
+        "baseline_id": "B0-seasonal-climatology",
+        "baseline_scope": "train_only_interannual_daily_median"
+      }
+    },
+    {
+      "case_id": "HC-T0-003-b1-prior-ensemble",
+      "family": "prior_ensemble",
+      "expected": {
+        "member_count": 3,
+        "valid_member_count": 2,
+        "invalid_member_count": 1,
+        "invalid_member_ids": [
+          "prior-003"
+        ],
+        "valid_member_nse": [
+          0.6,
+          1
+        ],
+        "median_valid_member_nse": 0.8,
+        "members": [
+          {
+            "member_id": "prior-001",
+            "run_valid": true,
+            "mass_balance_pass": true,
+            "member_disposition": "VALID",
+            "scores": {
+              "sample_count": 4,
+              "mean_observed": 2.5,
+              "mean_predicted": 2.5,
+              "nse": 1,
+              "kge": 1,
+              "volume_bias_pct": 0,
+              "mae": 0,
+              "nse_defined": true,
+              "kge_defined": true,
+              "volume_bias_defined": true
+            }
+          },
+          {
+            "member_id": "prior-002",
+            "run_valid": true,
+            "mass_balance_pass": true,
+            "member_disposition": "VALID",
+            "scores": {
+              "sample_count": 4,
+              "mean_observed": 2.5,
+              "mean_predicted": 2,
+              "nse": 0.6,
+              "kge": 0.664126101394781,
+              "volume_bias_pct": -20,
+              "mae": 0.5,
+              "nse_defined": true,
+              "kge_defined": true,
+              "volume_bias_defined": true
+            }
+          },
+          {
+            "member_id": "prior-003",
+            "run_valid": false,
+            "mass_balance_pass": false,
+            "member_disposition": "INVALID_REPORTED",
+            "scores": {
+              "sample_count": 4,
+              "mean_observed": 2.5,
+              "mean_predicted": 1,
+              "nse": -1.4,
+              "kge": 0.20616256584531334,
+              "volume_bias_pct": -60,
+              "mae": 1.5,
+              "nse_defined": true,
+              "kge_defined": true,
+              "volume_bias_defined": true
+            }
+          }
+        ],
+        "invalid_members_are_visible": true
+      }
+    },
+    {
+      "case_id": "HC-T0-004-b2-calibration-reference",
+      "family": "calibration_reference",
+      "expected": {
+        "calibration_disposition": "ADMITTED_TRAINING_REFERENCE",
+        "reason": "REPEATED_TRAIN_ONLY_STARTS",
+        "start_count": 4,
+        "mean_score": 0.59,
+        "median_score": 0.595,
+        "minimum_score": 0.55,
+        "maximum_score": 0.62
+      }
+    },
+    {
+      "case_id": "HC-T0-005-b3-future-holdout-metrics",
+      "family": "baseline_metrics",
+      "expected": {
+        "sample_count": 4,
+        "mean_observed": 1.5,
+        "mean_predicted": 1.25,
+        "nse": 0.4,
+        "kge": 0.5520225340738493,
+        "volume_bias_pct": -16.666666666666664,
+        "mae": 0.75,
+        "nse_defined": true,
+        "kge_defined": true,
+        "volume_bias_defined": true,
+        "baseline_id": "B3-frozen-future-holdout",
+        "baseline_scope": "test_only_predictions_frozen_before_evaluation"
+      }
+    },
+    {
+      "case_id": "HC-T0-006-contextual-attainment",
+      "family": "contextual_attainment",
+      "expected": {
+        "attainment_disposition": "DEFINED",
+        "reason": "COMPARABLE_REFERENCES",
+        "model_score": 0.8,
+        "lower_reference": 0.5,
+        "upper_reference": 0.75,
+        "attainment": 1.2000000000000002
+      }
+    },
+    {
+      "case_id": "HC-T0-007-attainment-degenerate-bounds",
+      "family": "contextual_attainment",
+      "expected": {
+        "attainment_disposition": "UNDEFINED",
+        "reason": "REFERENCE_GAP_ZERO_OR_WITHIN_TOLERANCE",
+        "model_score": 0.5,
+        "lower_reference": 0.3,
+        "upper_reference": 0.300000001,
+        "attainment": null
+      }
+    },
+    {
+      "case_id": "HC-T0-008-event-overlap-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "EVENT_GROUP_OVERLAP",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-009-future-fit-scope-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "PREPROCESSING_FIT_SCOPE_NOT_TRAIN_ONLY",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-010-nested-catchment-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "NESTED_CATCHMENT_LEAKAGE",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-011-heldout-target-calibration-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "HELDOUT_TARGETS_USED_FOR_CALIBRATION",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-012-missing-flow-zero-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "MISSING_FLOW_COERCED_TO_ZERO",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-013-unknown-anthropogenic-abstain",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "ABSTAIN_OR_DOWNGRADE",
+        "reason": "ANTHROPOGENIC_BOUNDARY_UNKNOWN",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-014-timebase-mismatch-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "TIMEBASE_OR_AGGREGATION_MISMATCH",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-015-physical-gate-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT_PHYSICAL_GATE",
+        "reason": "WATER_BALANCE_GATE_FAILED",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-016-invalid-members-hidden-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "INVALID_ENSEMBLE_MEMBERS_HIDDEN",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-017-synthetic-field-claim-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT_CLAIM_PROMOTION",
+        "reason": "SYNTHETIC_EVIDENCE_CANNOT_SUPPORT_FIELD_CLAIM",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-018-duplicate-time-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "DUPLICATE_TIMESTAMP",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-019-overlapping-event-windows-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "OVERLAPPING_WINDOWS_DOUBLE_COUNT_EVENT",
+        "predictive_claim_eligible": false
+      }
+    },
+    {
+      "case_id": "HC-T0-020-degenerate-observations-undefined",
+      "family": "baseline_metrics",
+      "expected": {
+        "sample_count": 3,
+        "mean_observed": 3,
+        "mean_predicted": 3,
+        "nse": null,
+        "kge": null,
+        "volume_bias_pct": 0,
+        "mae": 0.6666666666666666,
+        "nse_defined": false,
+        "kge_defined": false,
+        "volume_bias_defined": true,
+        "baseline_id": "degenerate-reference",
+        "baseline_scope": "frozen_test"
+      }
+    },
+    {
+      "case_id": "HC-T0-021-final-test-model-selection-reject",
+      "family": "split_integrity",
+      "expected": {
+        "split_disposition": "REJECT",
+        "reason": "FINAL_TEST_USED_FOR_MODEL_SELECTION",
+        "predictive_claim_eligible": false
+      }
+    }
+  ]
+}

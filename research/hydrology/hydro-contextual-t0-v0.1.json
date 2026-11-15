@@ -1,0 +1,314 @@
+{
+  "schema_version": "hydro-contextual-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
+  "benchmark_id": "HYDRO-CONTEXTUAL-T0",
+  "profile": {
+    "profile_id": "SYNTHETIC-SINGLE-CATCHMENT-DAILY-RUNOFF",
+    "profile_revision": "0.1",
+    "all_values_are_synthetic": true
+  },
+  "cases": [
+    {
+      "case_id": "HC-T0-001-b0-persistence-metrics",
+      "family": "baseline_metrics",
+      "inputs": {
+        "baseline_id": "B0-persistence",
+        "baseline_scope": "train_only_previous_step",
+        "observed": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "predicted": [
+          1,
+          1,
+          2,
+          3
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-002-b0-seasonal-climatology-metrics",
+      "family": "baseline_metrics",
+      "inputs": {
+        "baseline_id": "B0-seasonal-climatology",
+        "baseline_scope": "train_only_interannual_daily_median",
+        "observed": [
+          0,
+          2,
+          1,
+          3
+        ],
+        "predicted": [
+          1,
+          1.5,
+          1.5,
+          2.5
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-003-b1-prior-ensemble",
+      "family": "prior_ensemble",
+      "inputs": {
+        "observed": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "denominator_tolerance": 1e-12,
+        "invalid_member_reporting": true,
+        "members": [
+          {
+            "member_id": "prior-001",
+            "run_valid": true,
+            "mass_balance_pass": true,
+            "predicted": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "member_id": "prior-002",
+            "run_valid": true,
+            "mass_balance_pass": true,
+            "predicted": [
+              0,
+              2,
+              2,
+              4
+            ]
+          },
+          {
+            "member_id": "prior-003",
+            "run_valid": false,
+            "mass_balance_pass": false,
+            "predicted": [
+              1,
+              0,
+              1,
+              2
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-004-b2-calibration-reference",
+      "family": "calibration_reference",
+      "inputs": {
+        "fit_scope": "train_only",
+        "test_targets_accessed": false,
+        "start_scores": [
+          0.55,
+          0.61,
+          0.58,
+          0.62
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-005-b3-future-holdout-metrics",
+      "family": "baseline_metrics",
+      "inputs": {
+        "baseline_id": "B3-frozen-future-holdout",
+        "baseline_scope": "test_only_predictions_frozen_before_evaluation",
+        "observed": [
+          0,
+          2,
+          1,
+          3
+        ],
+        "predicted": [
+          0,
+          1,
+          2,
+          2
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-006-contextual-attainment",
+      "family": "contextual_attainment",
+      "inputs": {
+        "model_score": 0.8,
+        "lower_reference": 0.5,
+        "upper_reference": 0.75,
+        "denominator_tolerance": 0.000001,
+        "references_comparable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-007-attainment-degenerate-bounds",
+      "family": "contextual_attainment",
+      "inputs": {
+        "model_score": 0.5,
+        "lower_reference": 0.3,
+        "upper_reference": 0.300000001,
+        "denominator_tolerance": 0.000001,
+        "references_comparable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-008-event-overlap-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "train_event_ids": [
+          "storm-a",
+          "storm-b"
+        ],
+        "test_event_ids": [
+          "storm-b",
+          "storm-c"
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-009-future-fit-scope-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "climatology_fit_scope": "train_only",
+        "normalization_fit_scope": "train_validation_test",
+        "imputation_fit_scope": "train_only"
+      }
+    },
+    {
+      "case_id": "HC-T0-010-nested-catchment-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "train_catchment_ids": [
+          "upstream-1"
+        ],
+        "test_catchment_ids": [
+          "downstream-1"
+        ],
+        "nested_pairs": [
+          [
+            "upstream-1",
+            "downstream-1"
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-011-heldout-target-calibration-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "heldout_targets_accessed": true
+      }
+    },
+    {
+      "case_id": "HC-T0-012-missing-flow-zero-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "observation_state": "MISSING",
+        "value": 0,
+        "imputation_policy": "zero_fill_default"
+      }
+    },
+    {
+      "case_id": "HC-T0-013-unknown-anthropogenic-abstain",
+      "family": "split_integrity",
+      "inputs": {
+        "dam_release_known": false,
+        "abstraction_known": true,
+        "diversion_known": false
+      }
+    },
+    {
+      "case_id": "HC-T0-014-timebase-mismatch-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "forcing_time_semantics": "UTC_daily_00_00_to_24_00",
+        "observation_time_semantics": "Africa_Johannesburg_hydrological_day"
+      }
+    },
+    {
+      "case_id": "HC-T0-015-physical-gate-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "water_balance_pass": false,
+        "predictive_score": 0.99
+      }
+    },
+    {
+      "case_id": "HC-T0-016-invalid-members-hidden-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "has_invalid_members": true,
+        "invalid_members_reported": false
+      }
+    },
+    {
+      "case_id": "HC-T0-017-synthetic-field-claim-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "evidence_class": "synthetic_only",
+        "requested_claim_class": "field_performance"
+      }
+    },
+    {
+      "case_id": "HC-T0-018-duplicate-time-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "timestamps": [
+          "2025-01-01T00:00:00Z",
+          "2025-01-02T00:00:00Z",
+          "2025-01-02T00:00:00Z"
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-019-overlapping-event-windows-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "windows": [
+          {
+            "event_id": "storm-a",
+            "start_index": 0,
+            "end_index": 5
+          },
+          {
+            "event_id": "storm-a",
+            "start_index": 4,
+            "end_index": 8
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-020-degenerate-observations-undefined",
+      "family": "baseline_metrics",
+      "inputs": {
+        "baseline_id": "degenerate-reference",
+        "baseline_scope": "frozen_test",
+        "observed": [
+          3,
+          3,
+          3
+        ],
+        "predicted": [
+          2,
+          3,
+          4
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-021-final-test-model-selection-reject",
+      "family": "split_integrity",
+      "inputs": {
+        "model_selected_using_test_scores": true
+      }
+    }
+  ]
+}

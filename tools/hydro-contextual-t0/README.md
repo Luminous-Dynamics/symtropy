@@ -1,0 +1,39 @@
+# hydro-contextual-t0
+
+Synthetic-first Rust evaluator for catchment-conditioned hydrology benchmark metrics and split-integrity rules.
+
+## Run from repository root
+
+\`\`\`sh
+cargo fmt --package hydro-contextual-t0 -- --check
+cargo test --locked --package hydro-contextual-t0
+cargo clippy --locked --package hydro-contextual-t0 --all-targets -- -D warnings
+HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
+  cargo run --locked --package hydro-contextual-t0 -- \\
+    research/hydrology/hydro-contextual-t0-v0.1.json \\
+    research/hydrology/hydro-contextual-manifest-v0.1.json \\
+    research/hydrology/hydro-contextual-oracle-v0.1.json \\
+    artifacts/hydro-contextual-t0/receipt.json
+\`\`\`
+
+## Scope
+
+The frozen 21-case corpus exercises:
+- B0 persistence and training-only seasonal-climatology metric recomputation;
+- B1 parameter-prior member visibility and invalid-member disclosure;
+- B2 repeated train-only calibration-reference summary;
+- B3 frozen temporal-holdout metric recomputation;
+- NSE, KGE, volume bias and MAE with explicit degenerate-denominator semantics;
+- contextual attainment with raw lower/model/upper values, no clipping, and explicit NOT_COMPARABLE / UNDEFINED abstentions;
+- 12 prescribed split/claim leakage controls plus boundary attacks for missing-as-zero, unknown anthropogenic operations, physical-gate failure, duplicate timestamps and overlapping event windows.
+
+The evaluator reads frozen arrays. It does not generate, calibrate, select or execute a hydrological model. It does not own hydrological mass-balance qualification; physical gate inputs are consumed as a declared result from the existing #461/#445 authorities.
+
+## Evidence receipt
+
+The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 21 rows match the separate oracle.
+
+## Nonclaims
+
+All v0.1 cases are synthetic. No DWS/SAWS/Highveld bytes are acquired, no catchment is calibrated, no flood/groundwater/rainfall-runoff solver is qualified, no field forecast skill is established, and no synthetic result may be represented as South African field performance.
+The corpus includes all 12 named HCB-NC-01 through HCB-NC-12 leakage controls, including a separate rejection when the final test set is used to select a winning model.
