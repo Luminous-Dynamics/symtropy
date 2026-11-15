@@ -19,9 +19,26 @@ For `q = S y`, tangent state maps by `S`, the force covector by `S^T`, and each 
 
 Integer unimodular 2x2 shears provide exact basis maps. The tests span 17 signed shear values and five physical timesteps with non-commuting M, D and K matrices.
 
+## Discrete energy/work ledger
+
+The solver emits a separate `DiscreteEnergyLedgerV1`. For the implicit update, with
+`Δv = v_next - v` and `Δq = q_next - q = h v_next`, the exact algebraic balance is:
+
+```
+ΔT + ΔV
+  + h * v_nextᵀ D v_next
+  + 1/2 * Δvᵀ M Δv
+  + 1/2 * Δqᵀ K Δq
+  = h * fᵀ v_next
+```
+
+The ledger separates kinetic energy before/after, quadratic potential energy before/after, external force work, physical damping dissipation, the mass-weighted velocity-increment term, the stiffness-weighted position-increment term, and absolute/relative balance residuals.
+
+The two increment terms are properties of this implicit discrete update; they must not be reported as physical damping. They explain why a backward/implicit step can be strongly stable while substantially altering amplitude and phase. A dedicated stiff-oscillator control uses a step whose scalar amplification radius is below one while its one-step position differs materially from the analytic continuous trajectory. This is an accuracy warning, not a claim that implicit integration is generally inaccurate.
+
 ## Metrics
 
-The reference reports the effective-metric condition estimate separately from the mass-only metric, backward solve residual, discrete work, potential before/after and lifted physical state errors. Coordinate infinity-norm condition numbers are expected to vary with basis; physical lifted-state and mass-metric differences are the invariance criteria.
+The reference reports the effective-metric condition estimate separately from the mass-only metric, backward solve residual, the discrete energy/work ledger, and lifted physical state errors. Coordinate infinity-norm condition numbers are expected to vary with basis; physical lifted-state, metric-induced differences, and scalar energy/work terms are the invariance criteria.
 
 ## Claim boundary
 
@@ -37,6 +54,10 @@ v0.1 is a linear 2D oscillator method reference. It is not a full MuJoCo `discre
 
 - correct `M + h D + h^2 K` construction;
 - exact dyadic closed-form step;
+- discrete kinetic/potential/work/dissipation ledger identity;
+- energy-ledger covariance under dense re-basing;
+- unforced dissipative energy non-growth;
+- stable-but-inaccurate large-timestep oscillator control;
 - five timesteps × 17 dense non-orthogonal shears;
 - force-covector variance negative control;
 - missing timestep exponent negative control;
