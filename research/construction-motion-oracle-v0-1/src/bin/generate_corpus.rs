@@ -249,7 +249,7 @@ fn make_case(
                 aabb_overlap(minimum, maximum, obstacle_min, obstacle_max),
             )
         }
-        };
+    };
 
     let contact = analytic_distance <= (moving_radius + obstacle_radius) as f64;
     let endpoint_contact = endpoint_distance <= (moving_radius + obstacle_radius) as f64;
