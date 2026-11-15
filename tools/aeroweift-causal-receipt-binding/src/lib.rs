@@ -287,6 +287,10 @@ pub enum VerificationError {
     ExpectedScopeInvalid,
     /// A receipt has incomplete metadata, digest syntax or invalid time fields.
     ReceiptMalformed,
+    /// A receipt's own validity interval does not include its evaluation instant.
+    ReceiptOutsideOwnValidity,
+    /// Original observation arrival occurred after the owning receipt's evaluation.
+    ObservationReceivedAfterEvaluation,
     /// A receipt subject differs from the exact expected subject.
     SubjectMismatch,
     /// A receipt identifier occurs more than once.
@@ -432,6 +436,9 @@ fn validate_observation_time(receipt: &Receipt) -> Result<(), VerificationError>
     if !receipt.subject.evaluation_window.contains(observed) || observed > received {
         return Err(VerificationError::ObservationTimeInvalid);
     }
+    if received > receipt.time.evaluated_at {
+        return Err(VerificationError::ObservationReceivedAfterEvaluation);
+    }
     if received > receipt.time.produced_at {
         return Err(VerificationError::ReceiptTimeInversion);
     }
@@ -481,6 +488,11 @@ pub fn verify(
         }
         if receipt.subject != policy.expected_subject {
             return Err(VerificationError::SubjectMismatch);
+        }
+        if receipt.time.evaluated_at < receipt.time.valid_from
+            || receipt.time.evaluated_at >= receipt.time.valid_until
+        {
+            return Err(VerificationError::ReceiptOutsideOwnValidity);
         }
         validate_observation_time(receipt)?;
 
