@@ -385,6 +385,7 @@ pub fn evaluate_claim(
             .copied()
             .filter(|event| event.dependency == dependency.kind)
             .collect();
+        let mut previous_baseline_successor: Option<String> = None;
 
         for event in dimension_events.drain(..) {
             if event.source_id != dependency.change_source_id {
@@ -403,6 +404,14 @@ pub fn evaluate_claim(
             let part_of_claim_baseline = event.effective_at <= claim.validated_at_effective
                 && event.recorded_at <= claim.recorded_at;
             if part_of_claim_baseline {
+                if let Some(previous) = previous_baseline_successor.as_ref()
+                    && event.prior_digest != *previous
+                {
+                    indeterminate.insert(dependency.kind);
+                    affected.insert(dependency.kind);
+                    event_ids.insert(event.event_id.clone());
+                }
+                previous_baseline_successor = Some(event.successor_digest.clone());
                 active_digest = event.successor_digest.clone();
                 continue;
             }
