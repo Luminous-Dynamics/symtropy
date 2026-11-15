@@ -160,6 +160,7 @@ fn parse_tensor(
     parse_tensor_value(field(value, key)?, key, nout, nin)
 }
 
+#[allow(clippy::needless_range_loop)]
 fn cholesky(matrix: &Matrix) -> Result<Matrix, String> {
     let n = matrix.len();
     if n == 0 || matrix.iter().any(|row| row.len() != n) {
@@ -202,6 +203,7 @@ fn cholesky(matrix: &Matrix) -> Result<Matrix, String> {
     Ok(lower)
 }
 
+#[allow(clippy::needless_range_loop)]
 fn solve_spd(lower: &Matrix, rhs: &[f64]) -> Result<Vector, String> {
     let n = lower.len();
     if rhs.len() != n {
@@ -229,6 +231,7 @@ fn solve_spd(lower: &Matrix, rhs: &[f64]) -> Result<Vector, String> {
     Ok(result)
 }
 
+#[allow(clippy::needless_range_loop)]
 fn convolve_channels(input: &Matrix, response: &Matrix) -> Result<Matrix, String> {
     if input.is_empty() || input.len() != response.len() {
         return Err("channel convolution count mismatch".into());
@@ -295,6 +298,7 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| a * b).sum()
 }
 
+#[allow(clippy::needless_range_loop)]
 fn fisher_information(
     jacobian: &Matrix,
     covariance_lower: &Matrix,
@@ -459,6 +463,7 @@ fn submatrix(
         .collect()
 }
 
+#[allow(clippy::needless_range_loop)]
 fn nuisance_adjusted(
     information: &Matrix,
     target_count: usize,
@@ -535,6 +540,7 @@ fn base_candidate(state: &str, reason: &str) -> Value {
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn compute_candidate(
     candidate: &Value,
     physics: &Value,
@@ -1048,30 +1054,6 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
         let last = results.last_mut().ok_or_else(|| "missing candidate result".to_owned())?;
         last["design_id"] = json!(text(candidate, "design_id")?);
     }
-    let mut mismatches = Vec::new();
-    for case in cases {
-        let expected_case = expected
-            .iter()
-            .find(|row| {
-                row.get("case_id").and_then(Value::as_str)
-                    == case.get("case_id").and_then(Value::as_str)
-            })
-            .ok_or_else(|| "oracle case missing".to_owned())?;
-        let expected_rows = array(expected_case, "candidates")?;
-        if expected_rows.len() != results.len() {
-            return Err("oracle candidate count mismatch".into());
-        }
-        for (actual, expected_row) in results.iter().zip(expected_rows) {
-            if !compare(actual, expected_row) {
-                mismatches.push(json!({
-                    "case_id": text(case, "case_id")?,
-                    "design_id": actual["design_id"],
-                    "expected": expected_row,
-                    "actual": actual
-                }));
-            }
-        }
-    }
     for i in 0..results.len() {
         if results[i]["candidate_state"] != "ELIGIBLE_DESIGN_CANDIDATE" {
             continue;
@@ -1119,6 +1101,30 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
         .map(|(index, _)| index);
     if let Some(index) = selected_index {
         results[index]["selected"] = json!(true);
+    }
+    let mut mismatches = Vec::new();
+    for case in cases {
+        let expected_case = expected
+            .iter()
+            .find(|row| {
+                row.get("case_id").and_then(Value::as_str)
+                    == case.get("case_id").and_then(Value::as_str)
+            })
+            .ok_or_else(|| "oracle case missing".to_owned())?;
+        let expected_rows = array(expected_case, "candidates")?;
+        if expected_rows.len() != results.len() {
+            return Err("oracle candidate count mismatch".into());
+        }
+        for (actual, expected_row) in results.iter().zip(expected_rows) {
+            if !compare(actual, expected_row) {
+                mismatches.push(json!({
+                    "case_id": text(case, "case_id")?,
+                    "design_id": actual["design_id"],
+                    "expected": expected_row,
+                    "actual": actual
+                }));
+            }
+        }
     }
     let matched = mismatches.is_empty();
     Ok(json!({
