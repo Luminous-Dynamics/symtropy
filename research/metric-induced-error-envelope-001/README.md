@@ -40,6 +40,46 @@ These are floating-point numerical checks, not formally verified bounds. The Cho
 
 The dependency-free Rust test suite covers dense non-orthogonal rebasing invariance for tangent and cotangent norms; dual pairing and coordinate-map round trips; equality of tangent mass norm and the dual norm of its Riesz-lowered covector; a deterministic shear family with 17 parameter values; explicit changes in raw Euclidean/infinity component norms while the metric norm stays invariant; wrong tensor-variance and metric-congruence negative controls; singular transforms and invalid metrics; and explicit recording of admitted roundoff asymmetry.
 
+## Constraint-space extension: Delassus metric
+
+The crate now includes a separate typed constraint-space layer. For a full-row-rank constraint Jacobian J, the Delassus operator W = J M^-1 J^T maps constraint multiplier covectors to constraint residual vectors. Thus multipliers are measured with the cometric W, while residual vectors are measured with the dual metric W^-1. The two object types are distinct in the Rust API. Given an SPD mass metric M = L L^T, the implementation whitens each constraint row:
+
+Y = J L^-T
+
+and builds the Delassus operator as the row Gram matrix:
+
+W = Y Y^T = J M^-1 J^T.
+
+The implementation uses triangular solves only and does not form M^-1. It retains Y as an explicit witness, reconstructs W from Y Y^T, and independently compares that result with the direct Riesz-solve formulation in the test suite. The exact diagonal of W is therefore available as the row-wise squared norm of Y.
+
+For constraint multiplier covector lambda and residual vector r, the layer uses the induced dual pair:
+
+- multiplier cometric norm: ||lambda||_W = sqrt(lambda^T W lambda);
+- residual metric norm: ||r||_(W^-1) = sqrt(r^T W^-1 r).
+
+The mechanical identities exercised by the tests are:
+
+- ||M^-1 J^T lambda||_M = ||lambda||_W;
+- the minimum-kinetic-norm correction satisfying J delta_v = r has norm ||r||_(W^-1).
+
+Under q = S y, the correct Jacobian law is J_y = J_q S and the Delassus operator is invariant: J_y M_y^-1 J_y^T = J_q M_q^-1 J_q^T. Redundant constraint rows are rejected because they make W singular; v0 does not silently regularize them.
+
+This is deliberately compared with the same underlying whitened-Jacobian structure exposed by MuJoCo 3.9.0 as efc_Y = J M^-1/2, plus its diagexact constraint-space inertia diagonal. A Cholesky whitening factor is not necessarily the symmetric principal square root M^-1/2, but it produces the same Gram matrix W. The reference's contribution is frame/type separation, independent reconstruction, coordinate-invariance checks, admission receipts and explicit fail-closed behavior—not a claim to have invented Delassus whitening. See the [MuJoCo 3.9.0 changelog](https://mujoco.readthedocs.io/en/3.9.0/changelog.html) and [computation documentation](https://mujoco.readthedocs.io/en/latest/computation/).
+
+A deterministic seven-point example is available at:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
+
+The example reports the coordinate-matrix condition estimate, Jacobian component growth, Delassus defect, multiplier/residual norms and minimum kinetic correction norms across dense rebases. It is a bounded algebraic reference, not a contact solver benchmark.
+
+## Congruence complexity ladder
+
+The optimized metric re-basing path computes two matrix products, O(N^3), instead of a four-index accumulation, O(N^4). The independent example compares both methods with the same SPD admission/Cholesky work at dimensions 6, 12, 24 and 48:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example congruence_scaling_ladder
+
+This is an internal algorithmic scaling comparison, not a simulator or industry solver result. Retain the exact runner/compiler/CPU receipt before making a speed claim.
+
 ## Operator conditioning extension
 
 The stacked operator track in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https://github.com/Luminous-Dynamics/symtropy/issues/4818) adds separate frame-typed maps:
@@ -49,7 +89,7 @@ The stacked operator track in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https:/
 
 A one-sided Jacobi SVD estimates the singular spectrum without forming (B^T B). Rank-deficient maps receive no finite condition estimate; maps beyond the declared condition envelope are marked separately. The mass Riesz map (M:T\to T^*), paired with the same metric on both sides, should whiten to identity and have condition 1. This is a check of the Riesz isomorphism, not a claim that arbitrary physical operators are well-conditioned.
 
-The initial extension covers square dense operators only. It is not a formal interval enclosure and does not yet qualify rectangular constraint maps or nonlinear residual-to-state error.
+The operator module now supports square and rectangular dense maps in both tangent-to-tangent and tangent-to-cotangent variance classes. The one-sided Jacobi spectrum is a numerical estimate, not a formal interval enclosure, and the current reference does not qualify nonlinear residual-to-state maps.
 
 ## Rectangular operators and the constraint coisometry
 
@@ -72,9 +112,9 @@ This remains a bounded small-dense f64 qualification. It does not prove all cons
 
 ## Scope and next step
 
-v0.1 is a small dense linear-algebra reference. It does not yet implement a backward/forward error envelope for a general operator, the constrained Delassus solve, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, contact/friction, sparse articulated systems or production solver claims.
+v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
 
-The next step is to connect these frame-typed norms to the mass solve M a = f, constraint-space/Delassus solves, and the physical one-step dumbbell fixture in Symtropy #4730. Every residual must identify its domain/codomain and tensor variance; raw coordinate norms remain diagnostic only.
+The next step is to connect these frame-typed, operator-condition and constraint-space receipts to the physical one-step dumbbell fixture in Symtropy #4730 and the matched industry comparison in #4805. Every residual must identify its domain/codomain, metric and tensor variance; raw coordinate norms remain diagnostic only.
 
 ## Reproducible microbenchmark v0.1
 
@@ -84,7 +124,9 @@ The `metric-induced-microbenchmark` binary uses one frozen 6-DOF diagonal-mass /
 - tangent and dual-cotangent metric norms in both coordinate frames;
 - tangent pushforward and covector pullback;
 - dense metric rebasing and metric admission / Cholesky factorization;
-- the combined metric/dual norm path.
+- the combined metric/dual norm path;
+- whitened-Jacobian Delassus construction versus direct mass-Riesz solves;
+- Delassus multiplier and residual dual norms.
 
 Run it with:
 

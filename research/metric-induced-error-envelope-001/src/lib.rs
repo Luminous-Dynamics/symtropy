@@ -18,12 +18,22 @@
 use core::marker::PhantomData;
 use std::fmt;
 
+pub mod constraint_metric;
 pub mod operator;
 
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
 
 pub trait CoordinateFrame: Copy + 'static {}
+
+/// Type-level identity for the multiplier/residual coordinates of a constraint system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConstraintSpace;
+impl CoordinateFrame for ConstraintSpace {}
+
+pub use constraint_metric::{
+    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1, rebase_constraint_jacobian,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CartesianQ;
@@ -413,8 +423,12 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         }
     }
 
-    /// ||alpha||_(M^-1) = sqrt(alpha^T M^-1 alpha), evaluated as ||L^-1 alpha||_2.
-    pub fn cotangent_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
+    /// Apply the inverse square-root factor in Cholesky coordinates:
+    /// z = L^-1 alpha, so ||z||_2 = ||alpha||_(M^-1).
+    ///
+    /// This whitening primitive is also used to construct Y = J L^-T
+    /// and the Delassus metric W = Y Y^T without forming M^-1.
+    pub fn whiten_cotangent(&self, covector: &Cotangent<F, N>) -> Result<Vector<N>, MetricErrorV1> {
         let mut whitened = [0.0; N];
         for row in 0..N {
             let mut value = covector.components[row];
@@ -426,6 +440,12 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
                 return Err(MetricErrorV1::NonFiniteIntermediate);
             }
         }
+        Ok(whitened)
+    }
+
+    /// ||alpha||_(M^-1) = sqrt(alpha^T M^-1 alpha), evaluated as ||L^-1 alpha||_2.
+    pub fn cotangent_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
+        let whitened = self.whiten_cotangent(covector)?;
         let norm = vector_euclidean(&whitened);
         if norm.is_finite() {
             Ok(norm)
@@ -465,6 +485,92 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
             }
         }
         Tangent::new(components)
+    }
+    /// Apply an SPD matrix interpreted as a cometric W: T* -> T.
+    pub(crate) fn apply_cometric(
+        &self,
+        covector: &Cotangent<F, N>,
+    ) -> Result<Tangent<F, N>, MetricErrorV1> {
+        Tangent::new(apply(&self.matrix, covector.components()))
+    }
+
+    /// Solve W lambda = r for lambda in T*, where W is this SPD factor matrix.
+    pub(crate) fn solve_cometric(
+        &self,
+        vector: &Tangent<F, N>,
+    ) -> Result<Cotangent<F, N>, MetricErrorV1> {
+        let mut intermediate = [0.0; N];
+        for row in 0..N {
+            let mut value = vector.components[row];
+            for (column, previous) in intermediate.iter().take(row).enumerate() {
+                value -= self.cholesky[row][column] * previous;
+            }
+            intermediate[row] = value / self.cholesky[row][row];
+            if !intermediate[row].is_finite() {
+                return Err(MetricErrorV1::NonFiniteIntermediate);
+            }
+        }
+
+        let mut components = [0.0; N];
+        for row in (0..N).rev() {
+            let mut value = intermediate[row];
+            for (column, component) in components.iter().enumerate().skip(row + 1) {
+                value -= self.cholesky[column][row] * component;
+            }
+            components[row] = value / self.cholesky[row][row];
+            if !components[row].is_finite() {
+                return Err(MetricErrorV1::NonFiniteIntermediate);
+            }
+        }
+        Cotangent::new(components)
+    }
+
+    /// Cometric norm of a covector: sqrt(alpha^T W alpha).
+    pub(crate) fn cometric_covector_norm(
+        &self,
+        covector: &Cotangent<F, N>,
+    ) -> Result<f64, MetricErrorV1> {
+        let mut transformed = [0.0; N];
+        for (column, output) in transformed.iter_mut().enumerate() {
+            let mut value = 0.0;
+            for row in column..N {
+                value += self.cholesky[row][column] * covector.components[row];
+            }
+            if !value.is_finite() {
+                return Err(MetricErrorV1::NonFiniteIntermediate);
+            }
+            *output = value;
+        }
+        let norm = vector_euclidean(&transformed);
+        if norm.is_finite() {
+            Ok(norm)
+        } else {
+            Err(MetricErrorV1::NonFiniteIntermediate)
+        }
+    }
+
+    /// Dual metric norm of a vector: sqrt(v^T W^-1 v).
+    pub(crate) fn inverse_cometric_vector_norm(
+        &self,
+        vector: &Tangent<F, N>,
+    ) -> Result<f64, MetricErrorV1> {
+        let mut whitened = [0.0; N];
+        for row in 0..N {
+            let mut value = vector.components[row];
+            for (column, previous) in whitened.iter().take(row).enumerate() {
+                value -= self.cholesky[row][column] * previous;
+            }
+            whitened[row] = value / self.cholesky[row][row];
+            if !whitened[row].is_finite() {
+                return Err(MetricErrorV1::NonFiniteIntermediate);
+            }
+        }
+        let norm = vector_euclidean(&whitened);
+        if norm.is_finite() {
+            Ok(norm)
+        } else {
+            Err(MetricErrorV1::NonFiniteIntermediate)
+        }
     }
 }
 
@@ -548,17 +654,33 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         profile: MetricProfileV1,
     ) -> Result<Metric<To, N>, MetricErrorV1> {
         validate_profile(profile)?;
-        let mut upper = [[0.0; N]; N];
-        for (row, upper_row) in upper.iter_mut().enumerate() {
-            for (column, output) in upper_row.iter_mut().enumerate().skip(row) {
-                let mut value = 0.0;
-                for left in 0..N {
-                    for right in 0..N {
-                        value += self.matrix[left][row]
-                            * metric_from.matrix[left][right]
-                            * self.matrix[right][column];
-                    }
+        // Two dense matrix products keep the congruence at O(N^3):
+        // first P = M_q S, then M_y = S^T P. Only the upper triangle of
+        // the final symmetric metric is accumulated; it is mirrored once.
+        let mut mass_times_basis = [[0.0; N]; N];
+        for (row, output_row) in mass_times_basis.iter_mut().enumerate() {
+            for (column, output) in output_row.iter_mut().enumerate() {
+                let value = metric_from.matrix[row]
+                    .iter()
+                    .zip(self.matrix.iter())
+                    .map(|(mass_value, basis_row)| mass_value * basis_row[column])
+                    .sum::<f64>();
+                if !value.is_finite() {
+                    return Err(MetricErrorV1::NonFiniteIntermediate);
                 }
+                *output = value;
+            }
+        }
+
+        let mut upper = [[0.0; N]; N];
+        for (row, output_row) in upper.iter_mut().enumerate() {
+            for (column, output) in output_row.iter_mut().enumerate().skip(row) {
+                let value = self
+                    .matrix
+                    .iter()
+                    .zip(mass_times_basis.iter())
+                    .map(|(basis_row, product_row)| basis_row[row] * product_row[column])
+                    .sum::<f64>();
                 if !value.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
                 }
@@ -575,6 +697,47 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
             })
         });
         Metric::admit(transformed, profile)
+    }
+}
+
+/// An SPD cometric W: T* -> T, with a checked Cholesky factor.
+///
+/// Unlike a metric, a cometric measures covectors with W and vectors with
+/// W^-1. This distinction is important for constraint multipliers/residuals.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Cometric<F: CoordinateFrame, const N: usize> {
+    factor: Metric<F, N>,
+}
+
+impl<F: CoordinateFrame, const N: usize> Cometric<F, N> {
+    pub fn admit(matrix: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
+        Ok(Self {
+            factor: Metric::admit(matrix, profile)?,
+        })
+    }
+
+    pub fn matrix(&self) -> &Matrix<N> {
+        self.factor.matrix()
+    }
+
+    pub fn admission_receipt(&self) -> MetricAdmissionReceiptV1 {
+        self.factor.admission_receipt()
+    }
+
+    pub fn apply(&self, covector: &Cotangent<F, N>) -> Result<Tangent<F, N>, MetricErrorV1> {
+        self.factor.apply_cometric(covector)
+    }
+
+    pub fn solve(&self, vector: &Tangent<F, N>) -> Result<Cotangent<F, N>, MetricErrorV1> {
+        self.factor.solve_cometric(vector)
+    }
+
+    pub fn covector_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
+        self.factor.cometric_covector_norm(covector)
+    }
+
+    pub fn vector_norm(&self, vector: &Tangent<F, N>) -> Result<f64, MetricErrorV1> {
+        self.factor.inverse_cometric_vector_norm(vector)
     }
 }
 
@@ -840,6 +1003,37 @@ mod tests {
             .map(|(row, column)| (correct.matrix()[row][column] - wrong[row][column]).abs())
             .fold(0.0_f64, f64::max);
         assert!(difference > 1.0e-3);
+    }
+
+    #[test]
+    fn six_dof_metric_congruence_matches_independent_two_stage_product() {
+        const N: usize = 6;
+        let mass = [
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 2.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 3.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 4.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 5.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 6.0],
+        ];
+        let basis = [
+            [1.0, 2.0, -1.0, 0.0, 1.0, 0.0],
+            [0.0, 1.0, 3.0, -1.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 2.0, -1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0, 3.0, -1.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 2.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        ];
+        let metric_q = Metric::<CartesianQ, N>::admit(mass, profile()).unwrap();
+        let rebasis = Rebasis::<CartesianQ, DenseY, N>::new(basis, profile()).unwrap();
+        let metric_y = rebasis.metric_to_to(&metric_q, profile()).unwrap();
+        let expected = multiply(&multiply(&transpose(&basis), &mass), &basis);
+
+        for (metric_row, expected_row) in metric_y.matrix().iter().zip(expected.iter()) {
+            for (actual, expected_value) in metric_row.iter().zip(expected_row.iter()) {
+                close(*actual, *expected_value, 2.0e-13);
+            }
+        }
     }
 
     #[test]
