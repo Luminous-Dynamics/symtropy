@@ -104,14 +104,23 @@ The frozen fixture catalogue covers biased but low-RMSE calibration, high-tail e
 
 ## Industry and research comparison
 
+- **NASA-STD-7009B (active, dated 5 March 2024)** is a cross-domain model-and-simulation lifecycle standard. It requires project/program acceptance criteria to be set and approved by delegated technical authority and explicitly treats credibility products in development and use phases. Track T should map to its model credibility, uncertainty, sensitivity and use-assessment concepts; it must not describe its synthetic checker as NASA-standard compliant.
+- **NASA-HDBK-7009B (active, dated 3 February 2026)** is the newly issued implementation handbook companion to NASA-STD-7009B. It gives practices, examples and implementation clarification beyond the standard's requirements. This is now a primary current comparator for the Track T evidence package and intended-use assessment.
+- **AIAA R-154-2021** provides six recommended tasks where flight modelling is proposed to reduce flight testing for certification. It provides a useful engineering-task framework for model verification, application correctness, validation, uncertainty/analysis adequacy and applicability; it does not prescribe one universal model or simulation method.
 - **ASTM F3705-25** is a testing guide aligned with F3442. It describes test methodologies/data collection and use of physical testing and statistical modelling; its scope notes that flight tests may be needed to validate fast-time simulation models, and describes verifying simulation models against flight-test efforts. It is limited to its stated small-UA/lower-risk crewed-traffic DAA applicability; it is not a universal standard for UA-to-UA, terrain, weather or all autonomous aviation.
-- **ASTM F3442-26** is the DAA performance specification. Its operational scope and encounter assumptions must be checked before using it as a comparator.
+- **ASTM F3442-26** is the DAA performance specification, but its stated scope is materially bounded: smaller UA maximum dimension ≤25 ft, airspeed below 100 kt, lower-risk airspace, and mixed cooperative/non-cooperative crewed-aircraft encounters. It excludes ARC-d and does not address bird or natural hazards such as weather, clouds, terrain/obstacles. Use it only as a matched baseline; it is not a general standard for all UAM/eVTOL, UA-to-UA, terrain-aware or high-risk operations.
 - **ASTM F3201-26** is a software-dependability practice for UAS software and associated elements, and may also be used by third-party providers including UTM service providers and ADSPs. It expects lifecycle-wide configuration management and verification/validation; examples of methods include Monte Carlo, SIL, HIL and flight testing. It expressly does not establish technical or performance requirements for software components or third-party services. Use it as a lifecycle dependability/process comparator, not as a DAA threshold source or a claim that this crate or a green CI run is compliant.
+- **FAA DAA Criteria for Making 44807 Determinations (DAA CMD, revision 11 March 2026)** is a voluntary manufacturer-submitted change/documentation framework that includes equipment and software alterations, complete test data and possible case-by-case operational evaluation. This supports explicit change-impact and requalification records, but does not turn a completed form into operational authority.
 - **NASA/TP-20250003243 (July 2025)** reports a strategic flight-path-management evaluation with two helicopters and up to 330 virtual aircraft. The report describes successful core intent-based conflict functions but less successful flow-corridor maneuvers where tighter volumes reduced maneuvering degrees of freedom; it also reports an initial simulation validation using flight data.
 - **NASA/TM-20240015613 (October 2024)** uses Monte Carlo scenarios and modeled collision probability per flight hour to evaluate strategic deconfliction and CMSA. It is a safety-model methodology comparator, not physical ground truth for AeroWeft.
 - **ISO/TR 23310:2025** surveys UTM actors, services, functions, data and system-level functional/performance requirements. It is an ecosystem baseline, not a DAA model-validation standard.
 
 References:
+- NASA-STD-7009B: https://standards.nasa.gov/standard/nasa/nasa-std-7009
+- NASA-HDBK-7009B (2026-02-03): https://standards.nasa.gov/standard/nasa/nasa-hdbk-7009
+- AIAA R-154-2021: https://webstore.ansi.org/standards/aiaa/AIAA1542021
+- FAA DAA CMD (Revision 2026-03-11): https://www.faa.gov/uas/public_safety_gov/public_safety_toolkit/All_Purpose_CMD-DAA.pdf
+- ASTM F3442-26: https://store.astm.org/f3442-26.html
 - ASTM F3201-26 (scope, significance/use and current edition): https://store.astm.org/f3201-26.html
 - ASTM F3705-25: https://store.astm.org/f3705-25.html
 - ASTM F3442-26: https://store.astm.org/f3442-26.html
