@@ -130,7 +130,7 @@ jobs:
             (.dx2026_boundary_falsification.status == "protocol_only_not_executed") and
             (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.2") and
             (.sequential_evidence.status == "protocol_only_not_executed") and
-            (.sequential_evidence.model.evidence_unit_kind == "non_overlapping_calibrated_block") and
+            (.sequential_evidence.evidence_unit_kind == "non_overlapping_calibrated_block") and
             (.sequential_evidence.raw_sample_pseudoreplication_allowed == false) and
             (.sequential_evidence.non_overlapping_blocks == true) and
             (.sequential_evidence.minimum_block_separation_required == true) and
