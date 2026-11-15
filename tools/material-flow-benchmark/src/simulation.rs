@@ -106,11 +106,7 @@ fn seeded_offset(seed: u64, lane: u64) -> f64 {
     (value as f64 - 50.0) * 0.00005
 }
 
-fn add_static_box(
-    world: &mut PhysicsWorld<3>,
-    position_m: [f64; 3],
-    half_extents_m: [f64; 3],
-) {
+fn add_static_box(world: &mut PhysicsWorld<3>, position_m: [f64; 3], half_extents_m: [f64; 3]) {
     let mut body = RigidBody::static_body(
         BodyHandle(0),
         Point::new(position_m),
@@ -246,8 +242,7 @@ fn hash_snapshot(hasher: &mut Sha256, tick: usize, snapshot: &WorldSnapshot<3>) 
 }
 
 fn run_episode(scenario: &ScenarioManifest) -> Result<EpisodeTrace, String> {
-    let (mut world, package_handle, _initial_position, _package_half) =
-        build_world(scenario)?;
+    let (mut world, package_handle, _initial_position, _package_half) = build_world(scenario)?;
 
     let impulse = SVector::from([0.0, -RELEASE_IMPULSE_NS, 0.0]);
     let mut tape = ReplayTape::<3>::default();
@@ -303,7 +298,9 @@ fn custody_transaction(
         .actors
         .iter()
         .find(|actor| actor.role == crate::ActorRole::Custodian)
-        .ok_or_else(|| "L1 simulation requires a declared independent Custodian actor".to_string())?;
+        .ok_or_else(|| {
+            "L1 simulation requires a declared independent Custodian actor".to_string()
+        })?;
 
     let transaction_id = format!("tx-{}", scenario.scenario_id);
     let command_id = format!("cmd-{}", scenario.scenario_id);
@@ -416,8 +413,7 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
     let first = run_episode(scenario)?;
     let replay = run_episode(scenario)?;
     let replay_bitwise_equal = first.digest == replay.digest
-        && first.final_position_m.map(f64::to_bits)
-            == replay.final_position_m.map(f64::to_bits)
+        && first.final_position_m.map(f64::to_bits) == replay.final_position_m.map(f64::to_bits)
         && first.final_speed_m_s.to_bits() == replay.final_speed_m_s.to_bits();
 
     let geometry = tote_geometry(scenario)?;
@@ -436,10 +432,9 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
     let settled = first.final_speed_m_s <= SETTLED_SPEED_M_S;
 
     let physical_result_valid = replay_bitwise_equal && safe_inside_tote && settled;
-    let transaction_state =
-        custody_transaction(scenario, &first.digest, physical_result_valid)?;
-    let accepted = physical_result_valid
-        && transaction_state == PhysicalTransactionState::Completed;
+    let transaction_state = custody_transaction(scenario, &first.digest, physical_result_valid)?;
+    let accepted =
+        physical_result_valid && transaction_state == PhysicalTransactionState::Completed;
 
     Ok(SimulationResult {
         schema_version: scenario.schema_version,
