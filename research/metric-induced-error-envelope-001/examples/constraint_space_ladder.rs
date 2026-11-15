@@ -283,8 +283,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         println!(
             "{shear:.1},{:.8e},{:.8e},{singular_delta:.8e},{eigen_delta:.8e},{delassus_defect:.8e},{:.8e},{:.8e},{:.8e},{correction_delta:.8e}",
-            domain_rebasis.condition_inf_estimate(),
-            constraint_rebasis.condition_inf_estimate(),
+            domain_rebasis.condition_inf_estimate()?,
+            constraint_rebasis.condition_inf_estimate()?,
             (rate_norm_q - rate_norm_d).abs(),
             (covector_norm_q - covector_norm_d).abs(),
             (residual_norm_q - residual_norm_d).abs()
