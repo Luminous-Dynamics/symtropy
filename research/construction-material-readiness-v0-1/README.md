@@ -15,6 +15,7 @@ Owner composition:
 ## V0.1 semantics
 
 - Material requirement pins project, floor, work package, task, design and specification revisions, material class/grade, unit, quantity and approved substitutions.
+- Source-owned inventory reservations must match the current site epoch as well as project, lot, work package, design, location and use window; prior-epoch reservations are Superseded.
 - Lot projection composes owner-issued provenance and quality receipts, logistics/recipient acceptance and inventory reservation receipts.
 - Each source receipt is checked for lot/project/revision scope and currentness at the assessment time.
 - Dispatch/in-transit is not delivery; delivery is not recipient acceptance.
