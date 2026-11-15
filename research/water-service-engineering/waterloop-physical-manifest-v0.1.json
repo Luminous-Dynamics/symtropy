@@ -1,0 +1,37 @@
+{
+  "schema_version": "waterloop-physical-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
+  "benchmark_id": "WATERLOOP-PHYSICAL-T0",
+  "case_count": 12,
+  "required_case_ids": [
+    "WL-T0-001-balanced-volume-closure",
+    "WL-T0-002-unbalanced-volume-closure",
+    "WL-T0-003-deliverable-storage-sufficient",
+    "WL-T0-004-deliverable-storage-insufficient",
+    "WL-T0-005-qualified-source-substitution",
+    "WL-T0-006-unqualified-source-no-credit",
+    "WL-T0-007-hydraulic-power-known-answer",
+    "WL-T0-008-wire-to-water-energy",
+    "WL-T0-009-service-floor-met",
+    "WL-T0-010-service-floor-not-met",
+    "WL-T0-011-leak-event-metrics",
+    "WL-T0-012-missed-leak-volume"
+  ],
+  "families": [
+    "volume_closure",
+    "storage_service",
+    "source_substitution",
+    "pump_energy",
+    "service_floor",
+    "leak_metrics"
+  ],
+  "rules": [
+    "All values are synthetic known-answer vectors; this manifest grants no physical qualification.",
+    "The declared volume uncertainty bound is a conservative additive bound, not an independence-based root-sum-square estimate.",
+    "Source substitution credit is capped by both metered recovered outlet delivery and matched end-use demand.",
+    "No source substitution is credited without source identity, current meter calibration, matched use/window and qualified declared-use evidence.",
+    "Service floors are hard constraints; no energy or cost benefit compensates for a pressure/flow failure.",
+    "Leak metrics are event-level arithmetic and do not establish detector field performance."
+  ]
+}
