@@ -33,3 +33,13 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 ```
 
 The fixture is a synthetic L1 manifest, not an executed simulation result.
+
+Validate the ten-fault campaign against the nominal scenario:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
+  tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+```
+
+Campaign validity proves only that the ten test episodes and their expected terminal states form a consistent test plan. It does not prove that any simulated or physical fault has been injected or recovered.
