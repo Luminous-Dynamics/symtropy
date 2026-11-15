@@ -17,6 +17,15 @@ type Vector = Vec<f64>;
 type Matrix = Vec<Vec<f64>>;
 type Tensor3 = Vec<Vec<Vec<f64>>>;
 
+struct PriorEnsemble {
+    particles: Vec<Value>,
+    weights: Vec<f64>,
+    particle_ids: Vec<String>,
+    actuator_lags: usize,
+    kernel_lags: usize,
+    sensor_lags: usize,
+}
+
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
     value
         .get(key)
@@ -441,7 +450,7 @@ fn validate_prior_particles(
     input: &Value,
     nin: usize,
     nout: usize,
-) -> Result<(Vec<Value>, Vec<f64>, Vec<String>, usize, usize, usize), String> {
+) -> Result<PriorEnsemble, String> {
     let particles = array(input, "prior_particles")?;
     if particles.len() < 2 {
         return Err("at least two prior particles are required".into());
@@ -537,14 +546,14 @@ fn validate_prior_particles(
     if (weight_sum - 1.0).abs() > 1.0e-9 {
         return Err("prior particle weights must sum to one".into());
     }
-    Ok((
-        particles.iter().cloned().collect(),
+    Ok(PriorEnsemble {
+        particles: particles.to_vec(),
         weights,
-        ordered_ids,
-        actuator_lags.unwrap_or(0),
-        kernel_lags.unwrap_or(0),
-        sensor_lags.unwrap_or(0),
-    ))
+        particle_ids: ordered_ids,
+        actuator_lags: actuator_lags.unwrap_or(0),
+        kernel_lags: kernel_lags.unwrap_or(0),
+        sensor_lags: sensor_lags.unwrap_or(0),
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -969,8 +978,13 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
     if nout == 0 {
         return Err("prior particle has no sensor outlet channels".into());
     }
-    let (particles, weights, particle_ids, actuator_lags, kernel_lags, sensor_lags) =
-        validate_prior_particles(input, first_nin, nout)?;
+    let prior = validate_prior_particles(input, first_nin, nout)?;
+    let particles = prior.particles;
+    let weights = prior.weights;
+    let particle_ids = prior.particle_ids;
+    let actuator_lags = prior.actuator_lags;
+    let kernel_lags = prior.kernel_lags;
+    let sensor_lags = prior.sensor_lags;
     let mut directions = Vec::with_capacity(TARGET_PARAMETER_COUNT);
     for (index, raw) in direction_raw.iter().enumerate() {
         directions.push(parse_tensor(
@@ -990,7 +1004,6 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
         }
     }
     let observation_count = ntime + actuator_lags + kernel_lags + sensor_lags - 3;
-    let covariance_raw = array(config, "measurement_covariance")?;
     let covariance = parse_matrix(
         config,
         "measurement_covariance",
