@@ -291,7 +291,7 @@ mod tests {
     fn frozen_profile_passes_schema_and_semantic_contract() {
         let (schema, profile) = fixture();
         assert!(is_valid(&schema, &profile));
-        assert_eq!(profile["metrics"].as_array().expect("metrics array").len(), 23);
+        assert_eq!(profile["metrics"].as_array().expect("metrics array").len(), 24);
         assert_eq!(profile["baselines"].as_array().expect("baselines array").len(), 2);
     }
 
