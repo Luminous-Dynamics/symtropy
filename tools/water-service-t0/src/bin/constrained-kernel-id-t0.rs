@@ -900,8 +900,7 @@ mod tests {
         let x = result();
         assert_eq!(x["case_count"], CASE_COUNT);
         assert_eq!(
-            x["matched_case_count"],
-            CASE_COUNT,
+            x["matched_case_count"], CASE_COUNT,
             "oracle mismatches: {}",
             x["mismatches"]
         );
