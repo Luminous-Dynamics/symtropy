@@ -6,9 +6,10 @@
 
 ## 1. New vehicle benchmark crosswalk: Euro NCAP 2026–2028
 
-Added machine-readable crosswalk:
+Added machine-readable crosswalk and refreshed standards snapshot:
 
-`standards/EURO_NCAP_2026_2028_CROSSWALK_2026_11_15.json`
+- `standards/EURO_NCAP_2026_2028_CROSSWALK_2026_11_15.json`
+- `standards/standards-register-snapshot-2026-11-15.json` (18 entries; supersedes the 14 November snapshot for current research use, while preserving the older snapshot as an immutable historical record)
 
 Euro NCAP's 2026–2028 rating framework separates four stages:
 1. Safe Driving
