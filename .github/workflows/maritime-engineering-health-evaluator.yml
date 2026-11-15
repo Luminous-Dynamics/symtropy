@@ -100,8 +100,10 @@ jobs:
           expected="${{ github.event.pull_request.head.sha || github.sha }}"
           test "$actual" = "$expected"
 
-      - name: Install pinned Rust toolchain
+      - name: Install minimal pinned Rust toolchain for payload audit
         uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: ""
 
       - name: Set up pinned schema validator
         uses: actions/setup-python@v5
