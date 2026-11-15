@@ -9,7 +9,7 @@ fn emit_row(
     metrics: RingScalingMetrics,
 ) {
     println!(
-        "{model},{input_parameter:.6},{target_g:.4},{:.6},{:.9},{:.9},{:.9},{:.9},{:.9}",
+        "{model},{input_parameter:.6},{target_g:.4},{:.6},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9}",
         metrics.radius_m,
         metrics.moving_mass_kg,
         metrics.angular_velocity_rad_s,
