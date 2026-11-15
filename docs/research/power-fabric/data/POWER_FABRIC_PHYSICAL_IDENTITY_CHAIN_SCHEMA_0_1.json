@@ -1,0 +1,665 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/power-fabric/data/POWER_FABRIC_PHYSICAL_IDENTITY_CHAIN_SCHEMA_0_1.json",
+  "title": "Power Fabric Physical Identity Chain v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "installation",
+    "products",
+    "design_slots",
+    "physical_instances",
+    "actors",
+    "evidence",
+    "events",
+    "scenarios",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "installation": {
+      "$ref": "#/$defs/installation"
+    },
+    "products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/product"
+      }
+    },
+    "design_slots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/designSlot"
+      }
+    },
+    "physical_instances": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/physicalInstance"
+      }
+    },
+    "actors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/actor"
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "installation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "installation_id",
+        "revision",
+        "source_ir_digest",
+        "graph_id",
+        "graph_revision",
+        "graph_payload_digest"
+      ],
+      "properties": {
+        "installation_id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision": {
+          "$ref": "#/$defs/id"
+        },
+        "source_ir_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "graph_id": {
+          "$ref": "#/$defs/id"
+        },
+        "graph_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "graph_payload_digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product_id",
+        "manufacturer",
+        "catalogue_identifier",
+        "catalogue_revision",
+        "hardware_revisions"
+      ],
+      "properties": {
+        "product_id": {
+          "$ref": "#/$defs/id"
+        },
+        "manufacturer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalogue_identifier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalogue_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_revisions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "designSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot_id",
+        "source_node_id",
+        "module_contract_id",
+        "location_ref",
+        "accepted_products",
+        "max_active_instances"
+      ],
+      "properties": {
+        "slot_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_node_id": {
+          "$ref": "#/$defs/id"
+        },
+        "module_contract_id": {
+          "$ref": "#/$defs/id"
+        },
+        "location_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "accepted_products": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "product_id",
+              "hardware_revisions"
+            ],
+            "properties": {
+              "product_id": {
+                "$ref": "#/$defs/id"
+              },
+              "hardware_revisions": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "max_active_instances": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "physicalInstance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_instance_id",
+        "identity_namespace",
+        "manufacturer",
+        "product_id",
+        "serial_identifier",
+        "hardware_revision",
+        "configuration_digest",
+        "fixture_identity_only"
+      ],
+      "properties": {
+        "physical_instance_id": {
+          "$ref": "#/$defs/id"
+        },
+        "identity_namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "manufacturer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product_id": {
+          "$ref": "#/$defs/id"
+        },
+        "serial_identifier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "fixture_identity_only": {
+          "const": true
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_ref",
+        "actor_kind"
+      ],
+      "properties": {
+        "actor_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "actor_kind": {
+          "enum": [
+            "design_system",
+            "supplier",
+            "installer",
+            "qualified_reviewer",
+            "observer",
+            "owner_representative"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "evidence_kind",
+        "digest_algorithm",
+        "digest",
+        "captured_at",
+        "received_at",
+        "source_receipt_ref",
+        "fixture_digest_only"
+      ],
+      "properties": {
+        "evidence_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "evidence_kind": {
+          "enum": [
+            "source_ir",
+            "supplier_record",
+            "delivery_record",
+            "serial_label_observation",
+            "installation_observation",
+            "removal_record",
+            "relocation_record",
+            "configuration_record",
+            "inspection_record",
+            "independent_reconciliation_record"
+          ]
+        },
+        "digest_algorithm": {
+          "const": "sha256"
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "captured_at": {
+          "$ref": "#/$defs/time"
+        },
+        "received_at": {
+          "$ref": "#/$defs/time"
+        },
+        "source_receipt_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "fixture_digest_only": {
+          "const": true
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_type",
+        "occurred_at",
+        "recorded_at",
+        "actor_ref",
+        "slot_id",
+        "identity_resolution_method",
+        "evidence_refs",
+        "predecessor_event_ids"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/id"
+        },
+        "event_type": {
+          "enum": [
+            "design_slot_created",
+            "unit_delivered",
+            "identity_observed",
+            "unit_installed",
+            "unit_removed",
+            "unit_replaced",
+            "unit_relocated",
+            "configuration_changed",
+            "inspection_recorded",
+            "independent_reconciliation_recorded",
+            "conflict_declared"
+          ]
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/time"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/time"
+        },
+        "actor_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "slot_id": {
+          "$ref": "#/$defs/id"
+        },
+        "physical_instance_id": {
+          "$ref": "#/$defs/id"
+        },
+        "previous_physical_instance_id": {
+          "$ref": "#/$defs/id"
+        },
+        "from_location_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "to_location_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "identity_resolution_method": {
+          "enum": [
+            "design_document_binding",
+            "supplier_record",
+            "serial_label_scan",
+            "device_authenticated_identity",
+            "qualified_physical_inspection",
+            "independent_reconciliation",
+            "not_applicable"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "review_attestation_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "predecessor_event_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "location_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "observed_identity_namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "observed_serial_identifier": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "enum": [
+                  "unit_delivered",
+                  "identity_observed",
+                  "unit_installed",
+                  "unit_removed",
+                  "unit_replaced",
+                  "unit_relocated",
+                  "configuration_changed",
+                  "inspection_recorded",
+                  "independent_reconciliation_recorded"
+                ]
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "physical_instance_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "unit_replaced"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "previous_physical_instance_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "unit_relocated"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "from_location_ref",
+              "to_location_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "independent_reconciliation_recorded"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "review_attestation_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "enum": [
+                  "unit_installed",
+                  "unit_removed"
+                ]
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "location_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "unit_replaced"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "location_ref",
+              "previous_physical_instance_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "identity_observed"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "observed_identity_namespace",
+              "observed_serial_identifier"
+            ]
+          }
+        }
+      ]
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "description",
+        "as_known_at",
+        "event_ids",
+        "expected_status",
+        "expected_active_assignments",
+        "expected_invalidated_output_ids",
+        "expected_retained_output_ids",
+        "expected_reason_codes"
+      ],
+      "properties": {
+        "scenario_id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_known_at": {
+          "$ref": "#/$defs/time"
+        },
+        "event_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_status": {
+          "enum": [
+            "declared_only",
+            "delivered_unreconciled",
+            "installed_unreconciled",
+            "reconciled",
+            "conflicted",
+            "unknown"
+          ]
+        },
+        "expected_active_assignments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "slot_id",
+              "physical_instance_id",
+              "location_ref"
+            ],
+            "properties": {
+              "slot_id": {
+                "$ref": "#/$defs/id"
+              },
+              "physical_instance_id": {
+                "$ref": "#/$defs/id"
+              },
+              "location_ref": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "expected_invalidated_output_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_retained_output_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    }
+  }
+}
