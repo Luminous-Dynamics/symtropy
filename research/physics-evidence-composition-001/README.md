@@ -17,9 +17,11 @@ The two outcomes are reported separately. A passing physical step does not imply
 
 ## Fail-closed rules
 
-- All evidence must bind to the same immutable problem binding.
-- Every non-coordinate receipt must refer to the request's exact target coordinate frame and metric.
-- The coordinate-covariance receipt must bind the exact source/target frame pair and basis-transform digest.
+- All evidence must bind to the same immutable physical-problem binding.
+- The task-semantics digest is optional for physical-step claims and required for task-equivalence claims.
+- Mathematical symmetry evidence is explicitly source-frame bound; physical operator/constraint/KKT/sensitivity/step evidence is target-frame bound; task semantics are representation-independent.
+- The coordinate-covariance receipt must bind the exact source/target frame pair, both metric digests and the basis-transform digest.
+- Each required receipt must match an explicit expected verifier ID, version and checker commit SHA.
 - The nonlinear receipt's declared validity radius must cover the requested perturbation radius.
 - The mathematical evidence class must meet the request's minimum class.
 - Missing or inconclusive evidence cannot become PASS.
