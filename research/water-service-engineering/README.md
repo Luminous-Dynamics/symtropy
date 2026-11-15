@@ -148,3 +148,8 @@ The T0 household-economics suite now has nine synthetic cases (026–034). It ex
 [WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md](WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md) and the matching machine-readable [architecture graph](waterloop-reference-architecture-v0.1.json) define separate potable, shower/bath greywater and roof-rainwater circuits, source/use profiles, treatment-core candidate interfaces, storage/pump sizing contracts, reject paths, safe controller states and a functional manufacturing interface schedule.
 
 The graph is audited by the Rust binary `waterloop-architecture-t0`. It rejects cross-circuit edges, non-potable use classes on potable fixtures, reuse paths that bypass quality gates, circuits with no reject path and fault transitions that can release reuse. This proves only the static design contract, not a plumbing installation, water quality or field result.
+
+
+## WaterLoop storage sizing and pump boundary
+
+[WATERLOOP_STORAGE_SIZING_V0_1.md](WATERLOOP_STORAGE_SIZING_V0_1.md) defines a time-resolved inventory method for calculating minimum usable storage and separately reporting dead volume, freeboard, uncertainty and contingency. The executable `waterloop-sizing-t0` uses a frozen 16-case synthetic corpus and a separate oracle. It excludes unqualified source inflow and keeps the pump-power lower bound separate from pump selection.
