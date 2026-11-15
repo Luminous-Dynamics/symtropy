@@ -29,6 +29,14 @@ pub enum FlowDirection {
     Stationary,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlowVelocitySupport {
+    /// Velocity of a tracked particle/trajectory; not a cross-sectional mean.
+    TrajectoryParticle,
+    /// Velocity explicitly qualified as representative across the stream area.
+    CrossSectionMean,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FlowSoluteConcentration {
     pub solute: SoluteId,
@@ -45,6 +53,8 @@ pub struct CytoplasmicFlowObservation {
     pub time_hours: f64,
     /// Signed relative to the graph segment's declared from-to orientation.
     pub signed_velocity_mm_per_s: f64,
+    /// Prevents treating a tracked particle's local speed as bulk mean velocity.
+    pub velocity_support: FlowVelocitySupport,
     pub velocity_std_dev_mm_per_s: Option<f64>,
     pub observation_count: u32,
     /// Optional measured stream cross-section, in square millimetres.
@@ -157,8 +167,14 @@ impl CytoplasmicFlowObservation {
         }
     }
 
-    /// Signed volumetric flow in mm^3/s; None means area was not measured.
+    /// Signed volumetric flow in mm^3/s.
+    ///
+    /// Returns None unless the velocity is explicitly qualified as a
+    /// cross-section mean and the associated stream area is measured.
     pub fn signed_volume_flow_mm3_per_s(&self) -> Option<f64> {
+        if self.velocity_support != FlowVelocitySupport::CrossSectionMean {
+            return None;
+        }
         self.cross_section_area_mm2
             .map(|area| self.signed_velocity_mm_per_s * area)
     }
@@ -197,6 +213,7 @@ mod tests {
             segment: SegmentId(7),
             time_hours: 12.0,
             signed_velocity_mm_per_s: velocity,
+            velocity_support: FlowVelocitySupport::TrajectoryParticle,
             velocity_std_dev_mm_per_s: Some(0.2),
             observation_count: 20,
             cross_section_area_mm2: area,
@@ -245,7 +262,8 @@ mod tests {
 
     #[test]
     fn measured_area_converts_velocity_to_signed_volume_flow() {
-        let item = observation(2, 1, 2.0, Some(0.5));
+        let mut item = observation(2, 1, 2.0, Some(0.5));
+        item.velocity_support = FlowVelocitySupport::CrossSectionMean;
         assert_eq!(item.signed_volume_flow_mm3_per_s(), Some(1.0));
         assert_eq!(item.integrated_volume_mm3(), Some(2.0));
     }
@@ -253,6 +271,7 @@ mod tests {
     #[test]
     fn solute_mass_rate_requires_area_and_concentration() {
         let mut item = observation(3, 1, 2.0, Some(0.5));
+        item.velocity_support = FlowVelocitySupport::CrossSectionMean;
         item.solute = Some(FlowSoluteConcentration {
             solute: SoluteId(42),
             concentration_mg_per_mm3: 3.0,
@@ -263,8 +282,10 @@ mod tests {
 
     #[test]
     fn antiparallel_streams_are_preserved_as_distinct_observations() {
-        let forward = observation(4, 10, 1.5, Some(0.2));
-        let reverse = observation(5, 11, -0.75, Some(0.1));
+        let mut forward = observation(4, 10, 1.5, Some(0.2));
+        let mut reverse = observation(5, 11, -0.75, Some(0.1));
+        forward.velocity_support = FlowVelocitySupport::CrossSectionMean;
+        reverse.velocity_support = FlowVelocitySupport::CrossSectionMean;
         assert_eq!(forward.segment, reverse.segment);
         assert_ne!(forward.stream, reverse.stream);
         assert_eq!(forward.direction(), FlowDirection::AlongSegment);
@@ -274,8 +295,17 @@ mod tests {
     }
 
     #[test]
+    fn trajectory_particle_velocity_is_not_promoted_to_bulk_flow() {
+        let item = observation(12, 20, 3.0, Some(0.4));
+        assert_eq!(item.velocity_support, FlowVelocitySupport::TrajectoryParticle);
+        assert_eq!(item.signed_volume_flow_mm3_per_s(), None);
+        assert_eq!(item.signed_solute_mass_rate_mg_per_s(), None);
+    }
+
+    #[test]
     fn stationary_stream_is_not_dropped() {
-        let item = observation(6, 12, 0.0, Some(0.2));
+        let mut item = observation(6, 12, 0.0, Some(0.2));
+        item.velocity_support = FlowVelocitySupport::CrossSectionMean;
         assert_eq!(item.direction(), FlowDirection::Stationary);
         assert_eq!(item.signed_volume_flow_mm3_per_s(), Some(0.0));
     }
