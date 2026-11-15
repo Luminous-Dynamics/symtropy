@@ -70,6 +70,11 @@ pub enum TransportError {
     MissingSegment(SegmentId),
     InactiveSegment(SegmentId),
     InvalidConductance(SegmentId),
+    ExplicitStepUnstable {
+        node: NodeId,
+        courant: f64,
+        max_courant: f64,
+    },
     InsufficientDonorMass {
         node: NodeId,
         requested_mg: f64,
@@ -109,6 +114,15 @@ impl fmt::Display for TransportError {
             Self::InvalidConductance(segment) => {
                 write!(f, "conductance for segment {:?} must be finite and positive", segment)
             }
+            Self::ExplicitStepUnstable {
+                node,
+                courant,
+                max_courant,
+            } => write!(
+                f,
+                "explicit transport step at node {:?} is unstable: courant {}, maximum {}",
+                node, courant, max_courant
+            ),
             Self::InsufficientDonorMass {
                 node,
                 requested_mg,
@@ -137,6 +151,9 @@ impl std::error::Error for TransportError {}
 /// the same pre-step state, then settled together. The operation is atomic:
 /// any invalid edge or donor overdraw rejects the complete step and leaves
 /// compartments unchanged.
+pub const MAX_EXPLICIT_TRANSPORT_COURANT: f64 = 1.0;
+
+/// Apply passive diffusion-like exchange over existing active graph segments.
 pub fn apply_passive_transport(
     graph: &HyphalGraph,
     compartments: &mut [SoluteCompartment],
@@ -176,6 +193,7 @@ pub fn apply_passive_transport(
     let mut seen_edges = BTreeSet::new();
     let mut proposed_delta = vec![0.0_f64; compartments.len()];
     let mut proposed_outgoing = vec![0.0_f64; compartments.len()];
+    let mut incident_conductance = vec![0.0_f64; compartments.len()];
     let mut fluxes = Vec::with_capacity(edges.len());
 
     for edge in edges {
@@ -201,6 +219,13 @@ pub fn apply_passive_transport(
         let to_index = *index_by_node
             .get(&segment.to)
             .ok_or(TransportError::MissingCompartment(segment.to))?;
+        incident_conductance[from_index] += edge.conductance_ml_per_hour;
+        incident_conductance[to_index] += edge.conductance_ml_per_hour;
+        if !incident_conductance[from_index].is_finite()
+            || !incident_conductance[to_index].is_finite()
+        {
+            return Err(TransportError::NonFiniteResult(segment.from));
+        }
         let from = compartments[from_index];
         let to = compartments[to_index];
         let concentration_from = from.mass_mg / from.volume_ml;
@@ -234,6 +259,17 @@ pub fn apply_passive_transport(
             segment: edge.segment,
             signed_mass_mg: flux,
         });
+    }
+
+    for (index, total_conductance) in incident_conductance.iter().copied().enumerate() {
+        let courant = dt_hours * total_conductance / compartments[index].volume_ml;
+        if !courant.is_finite() || courant > MAX_EXPLICIT_TRANSPORT_COURANT {
+            return Err(TransportError::ExplicitStepUnstable {
+                node: compartments[index].node,
+                courant,
+                max_courant: MAX_EXPLICIT_TRANSPORT_COURANT,
+            });
+        }
     }
 
     for (index, outgoing) in proposed_outgoing.iter().copied().enumerate() {
@@ -364,6 +400,32 @@ mod tests {
         assert!(matches!(
             result,
             Err(TransportError::InsufficientDonorMass { .. })
+        ));
+        assert_eq!(state, before);
+    }
+
+    #[test]
+    fn unstable_explicit_step_is_rejected_even_without_donor_overdraw() {
+        let graph = graph_with_edge(HyphalSegmentState::Active);
+        let mut state = vec![
+            SoluteCompartment {
+                node: NodeId(1),
+                solute: SoluteId(42),
+                volume_ml: 100.0,
+                mass_mg: 1_000.0,
+            },
+            SoluteCompartment {
+                node: NodeId(2),
+                solute: SoluteId(42),
+                volume_ml: 1.0,
+                mass_mg: 0.0,
+            },
+        ];
+        let before = state.clone();
+        let result = apply_passive_transport(&graph, &mut state, &[edge(2.0)], 1.0);
+        assert!(matches!(
+            result,
+            Err(TransportError::ExplicitStepUnstable { node: NodeId(2), .. })
         ));
         assert_eq!(state, before);
     }
