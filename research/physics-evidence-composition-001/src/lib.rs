@@ -806,12 +806,6 @@ mod tests {
         let mut semantics = receipt(EvidenceKindV1::TaskSemantics);
         semantics.binding = task_binding();
         evidence.push(semantics);
-        task_request.expected_verifiers.push(ExpectedVerifierIdentityV1 {
-            kind: EvidenceKindV1::TaskSemantics,
-            verifier_id: format!("checker-{:?}", EvidenceKindV1::TaskSemantics).to_ascii_lowercase(),
-            verifier_version: "1.0.0".to_owned(),
-            verifier_commit_sha: "a".repeat(40),
-        });
         let output = compose_evidence(
             &task_request,
             &evidence,
