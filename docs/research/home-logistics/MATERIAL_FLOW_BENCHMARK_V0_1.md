@@ -4,7 +4,7 @@
 **Status:** Research benchmark specification v0.1; proposed, not yet implemented  
 **Date:** 2026-11-15  
 **Tracking:** Symtropy #5422  
-**Related:** Symtropy #5393; Mycelix #6258, #6259, #6264 and PR #6265; Symthaea PR #12343; Sol-Atlas PR #879
+**Related:** Symtropy #5393; Mycelix #6258, #6259, #6264, #6267, #6269 and PRs #6265/#6268; Symthaea PR #12343 and CEB evidence-continuity protocols; Sol-Atlas PR #879
 
 ## 1. Thesis and benchmark boundary
 
@@ -63,6 +63,7 @@ Required properties:
 - stable opaque identifier and machine-readable version;
 - external dimensions and tolerances;
 - mass and centre-of-gravity bounds;
+- asset-specific payload mass and dimensional envelopes, including the loaded container rather than package-only checks;
 - orientation and acceleration/tilt limits;
 - permitted grasp, restraint and support interfaces;
 - handling, fragility, hygiene/contamination and temperature classes;
@@ -389,7 +390,7 @@ The benchmark branch now includes a standalone Rust tool at `tools/material-flow
 
 The first implementation intentionally does not authenticate signatures, query Hearth or Commons, model 3D packing, simulate physics, or prove real-world safety. It validates internal consistency of the declared scenario contract only.
 
-**Verification status (2026-11-15):** the dedicated GitHub Actions run `43759881081` on source head `1ceda4188420fda493f10067ec128cbf8176945e` completed successfully. The exact job completed all steps: formatting, Clippy with `-D warnings`, Rust unit tests, and nominal-fixture CLI validation. The rustfmt output from that passing run was then read back and committed to the branch in the formatted source commits `2d1f8158a2410f6ae60ff1fa899a520d16d4c59f` and `88ff034a77d7f085cd8be9866a16a23431e53dc3`. A subsequent workflow change restores a non-mutating `cargo fmt -- --check` gate, and the exact final PR head is being requalified separately. This environment itself has no Rust/Cargo toolchain, so no local compile/test claim is made. No physical simulation, HIL, guarded rig or field operation has been run; the fixture is only a validated scenario contract.
+**Verification status (2026-11-15):** the dedicated GitHub Actions run `43761778600` on source head `4cefddfa4ea7e6a9c6d0b7741fd4a872b5552a73` completed successfully. Its exact job passed formatting, Clippy with `-D warnings`, all **24 Rust unit tests**, and nominal-fixture CLI validation. The standalone tool has its own committed `Cargo.lock`; the same run used `--locked` for Clippy, tests and fixture execution, pinning the dependency resolution. The temporary lock-export helper has since been removed, leaving a non-mutating, lock-enforced workflow. The environment itself has no Rust/Cargo toolchain, so no local compile/test claim is made. No physical simulation, HIL, guarded rig or field operation has been run; the fixture is only a validated scenario contract.
 
 ## 12. First executable slice
 
