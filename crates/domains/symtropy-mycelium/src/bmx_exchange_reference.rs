@@ -303,7 +303,9 @@ pub fn apply_bmx_reference_exchange(
                 || !concentration_delta[second_index][slot].is_finite()
             {
                 return Err(BmxExchangeError::NonFiniteTransfer(
-                    pair.first, pair.second, species
+                    pair.first,
+                    pair.second,
+                    species,
                 ));
             }
         }
@@ -465,7 +467,10 @@ mod tests {
         let report = apply_bmx_reference_exchange(
             &mut state,
             &[
-                BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) },
+                BmxExchangePair {
+                    first: BmxSegmentId(1),
+                    second: BmxSegmentId(2),
+                },
                 BmxExchangePair {
                     first: BmxSegmentId(3),
                     second: BmxSegmentId(2),
@@ -494,7 +499,10 @@ mod tests {
         let before = state.clone();
         let report = apply_bmx_reference_exchange(
             &mut state,
-            &[BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) }],
+            &[BmxExchangePair {
+                first: BmxSegmentId(1),
+                second: BmxSegmentId(2),
+            }],
             parameters(0.00002),
         )
         .unwrap();
@@ -516,7 +524,10 @@ mod tests {
         let before = state.clone();
         let report = apply_bmx_reference_exchange(
             &mut state,
-            &[BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) }],
+            &[BmxExchangePair {
+                first: BmxSegmentId(1),
+                second: BmxSegmentId(2),
+            }],
             parameters(0.00002),
         )
         .unwrap();
@@ -533,7 +544,10 @@ mod tests {
         let before = state.clone();
         let report = apply_bmx_reference_exchange(
             &mut state,
-            &[BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) }],
+            &[BmxExchangePair {
+                first: BmxSegmentId(1),
+                second: BmxSegmentId(2),
+            }],
             parameters(0.00002),
         )
         .unwrap();
@@ -585,7 +599,10 @@ mod tests {
         state[1].concentrations = [0.0, 0.0, 0.0];
         let report = apply_bmx_reference_exchange(
             &mut state,
-            &[BmxExchangePair { first: BmxSegmentId(1), second: BmxSegmentId(2) }],
+            &[BmxExchangePair {
+                first: BmxSegmentId(1),
+                second: BmxSegmentId(2),
+            }],
             BmxExchangeParameters {
                 mt_m_per_time: [0.00001, 0.00002, 0.00004],
                 dt_time_units: 0.25,
