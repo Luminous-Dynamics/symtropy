@@ -61,13 +61,17 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-process-trajectory-synthetic-v0.1.json
 
+# Exact structural flux identifiability and measurement subset tournament
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forest-flux-identifiability-synthetic-v0.1.json
+
 # Public forest decision-value development corpus (uses synthetic arithmetic only)
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-decision-value-development-v0.1.json
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL`, `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`, `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`, `PASS_SYNTHETIC_PROCESS_TRAJECTORY` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL`, `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`, `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`, `PASS_SYNTHETIC_PROCESS_TRAJECTORY`, `PASS_SYNTHETIC_FLUX_IDENTIFIABILITY` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -205,7 +209,7 @@ The original core suite contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the h
 
 ## Spatial localization and residual autocorrelation kernels
 
-Two additional library modules are intentionally **not** wired into the fixture CLI receipt dispatcher yet; they are exercised by Rust unit tests and independently checked against compact public reference corpora:
+The block-coverage and spatial-localization modules are exported and wired into the fixture CLI receipt dispatcher. Their kernels are exercised by Rust unit tests and their public corpora emit SHA-256-bound synthetic receipts:
 
 - `coverage_inference_kernel` computes an assumption-labelled Hoeffding interval over held-out block-coverage indicators. The number of blocks is the effective sample size; within-block pixel/stem count is never substituted. Independence is declared, not verified.
 - `spatial_localization_kernel` computes a Gaussian distance-weighted residual quantile for one declared projected metric coordinate system, local effective sample size, maximum normalized weight and low-support abstention. Gaussian similarity is not a density ratio, so the output is explicitly diagnostic-only and has no finite-sample spatial coverage guarantee.
@@ -240,7 +244,7 @@ The `forest_corpus_receipts` module adds mutation tests for interval-oracle corr
 
 The spatial-localization corpus now includes an optional `nearest_neighbor_count`. When present, the validator limits the Gaussian diagnostic to the nearest k calibration records and records the selected physical neighbourhood radius. This is a diagnostic control; it must not be described as implementing the statistical guarantees of spconform. The new frozen fixture demonstrates a pooled radius of 50 versus a k=12 local diagnostic radius of 0.5 over an 11 m neighbourhood.
 
-The package now has 173 authored Rust test functions: 144 original core tests, 7 block-coverage kernel tests, 15 spatial localization/Moran/k-neighbour tests, and 7 CLI receipt-adapter tests. They remain authored but unexecuted until exact-head Rust verification.
+The package now has 195 authored Rust test functions: 144 original core tests, 7 block-coverage kernel tests, 15 spatial localization/Moran/k-neighbour tests, 7 prior CLI receipt-adapter tests, 12 process-trajectory tests, and 10 flux-identifiability tests (9 kernel + 1 top-level receipt dispatcher). They remain authored but unexecuted until exact-head Rust verification.
 
 
 ## Process-resolved forest trajectory kernel
@@ -250,3 +254,12 @@ The exported `trajectory_budget_kernel` module evaluates a bounded two-pool refe
 The four-case synthetic corpus returns `PASS_SYNTHETIC_PROCESS_TRAJECTORY` when the kernel detects: a full process match; identical stock trajectories with compensating growth/mortality/decomposition errors; a valid budget with a wrong stock trajectory; and a pool budget that does not close. In the compensating case, stock error is exactly zero while the largest primitive-flow error is 20 synthetic biomass units. Eleven kernel Rust unit tests are authored, including per-flow oracle mutation, missing/negative-flow, reordered-period, discontinuity and initial-census mismatch controls. One additional library test exercises top-level corpus dispatch and the SHA-256 receipt. These twelve new tests remain unexecuted until exact-head Rust verification; the package inventory is 185 authored tests.
 
 Run the CLI command shown above. The receipt binds the exact fixture SHA-256 and reports `ecological_validation: NOT_ESTABLISHED`. This is an arithmetic benchmark oracle, not a process model or real-forest validation. See [FOREST_PROCESS_TRAJECTORY_V0_1.md](../FOREST_PROCESS_TRAJECTORY_V0_1.md) and [#5340](https://github.com/Luminous-Dynamics/symtropy/issues/5340).
+
+
+## Exact flux identifiability and measurement design
+
+The exported `flux_identifiability_kernel` uses exact rational row reduction over bounded integer observation matrices. For the six-flux live/deadwood balance, stock increments alone have rank 2 and nullity 4. Four independent nullspace witnesses show which changes in growth, recruitment, mortality transfer, exports and decomposition cannot be distinguished from stock observations alone.
+
+The kernel exhaustively enumerates all 64 subsets of six optional direct measurement channels and reports rank/nullity, measurement count, declared synthetic effort, and every tied minimum-cost full-rank design. The frozen synthetic oracle finds 18 full-rank subsets and two tied minimum-cost designs at 14 synthetic effort units, each with four measurements. These effort values are fixture inputs, not real-world costs or a field survey recommendation.
+
+The corpus returns `PASS_SYNTHETIC_FLUX_IDENTIFIABILITY` and includes exact source-manifest SHA-256. Nine kernel tests cover rank/nullity, nullspace witnesses, design enumeration, tied optima, cost mutation and malformed designs; one top-level test checks dispatcher/receipt behavior. It does not model observation noise or establish practical identifiability. See [FOREST_FLUX_IDENTIFIABILITY_V0_1.md](../FOREST_FLUX_IDENTIFIABILITY_V0_1.md), [#5349](https://github.com/Luminous-Dynamics/symtropy/issues/5349), and the empirical ForestPaths archive follow-on [#5352](https://github.com/Luminous-Dynamics/symtropy/issues/5352).
