@@ -483,7 +483,8 @@ mod tests {
         // F(x) = x + x^2, so F'(0)=1 and |F''|=2.
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
-        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -561,7 +562,8 @@ mod tests {
     fn empirical_curvature_remains_an_estimate_not_an_upper_bound() {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
-        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -588,7 +590,8 @@ mod tests {
     fn missing_curvature_reports_first_order_only() {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
-        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
         let receipt = propagate_output_error(
             &jacobian,
             &input,
@@ -776,7 +779,8 @@ mod tests {
     fn invalid_radius_curvature_and_evidence_identity_fail_closed() {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
-        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
         assert_eq!(
             propagate_output_error(
                 &jacobian,
@@ -824,7 +828,8 @@ mod tests {
     fn curvature_evidence_cannot_be_reused_beyond_its_validity_radius() {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
-        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[1.0]]).unwrap();
 
         assert_eq!(
             propagate_output_error(
@@ -847,7 +852,8 @@ mod tests {
     fn empirical_observable_curvature_never_becomes_a_bound() {
         let input = identity_metric::<CartesianQ, 1>();
         let output = identity_metric::<DenseY, 1>();
-        let jacobian = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
+        let jacobian =
+            RectangularTangentToTangentOperator::<CartesianQ, DenseY, 1, 1>::new([[2.0]]).unwrap();
         let gradient = Cotangent::<DenseY, 1>::new([3.0]).unwrap();
         let receipt = observable_sensitivity(
             &jacobian,
