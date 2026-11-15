@@ -649,6 +649,7 @@ pub fn evaluate_flight(
 
     let mut seen_snapshots = BTreeSet::new();
     let mut seen_sequences = BTreeSet::new();
+    let mut service_identity: BTreeMap<&str, (&str, Capability)> = BTreeMap::new();
     for observation in &eligible {
         validate_observation(observation)?;
         if !seen_snapshots.insert(observation.snapshot_id.as_str()) {
@@ -657,6 +658,15 @@ pub fn evaluate_flight(
         if !seen_sequences.insert((observation.service_id.as_str(), observation.source_sequence)) {
             return Err(ResilienceError::ServiceSequenceFork);
         }
+        if let Some((provider_id, capability)) = service_identity.get(observation.service_id.as_str())
+            && (*provider_id != observation.provider_id || *capability != observation.capability)
+        {
+            return Err(ResilienceError::InvalidServiceObservation);
+        }
+        service_identity.insert(
+            observation.service_id.as_str(),
+            (observation.provider_id.as_str(), observation.capability),
+        );
     }
 
     let mut capability_assessments = Vec::new();
@@ -716,7 +726,12 @@ pub fn evaluate_flight(
     let mut missing_contingency_capabilities = Vec::new();
     let mut missing_neighbor_flight_ids = Vec::new();
 
-    if scope.mode == FlightMode::Active {
+    let has_indeterminate = capability_assessments
+        .iter()
+        .any(|item| item.status == CapabilityStatus::Indeterminate);
+    let has_degraded = !degraded_capabilities.is_empty();
+
+    if scope.mode == FlightMode::Active && has_degraded {
         for capability in &degraded_capabilities {
             if !contingency_is_valid(scope, *capability) {
                 missing_contingency_capabilities.push(*capability);
@@ -728,11 +743,6 @@ pub fn evaluate_flight(
             }
         }
     }
-
-    let has_indeterminate = capability_assessments
-        .iter()
-        .any(|item| item.status == CapabilityStatus::Indeterminate);
-    let has_degraded = !degraded_capabilities.is_empty();
 
     let disposition = match scope.mode {
         FlightMode::Proposed => {
