@@ -147,10 +147,7 @@ impl PhysicalTransaction {
     /// Authorizes one logical release command. Replaying the same command ID
     /// never issues a second permit; a different command ID after an uncertain
     /// dispatch moves the transaction to reconciliation.
-    pub fn request_release_command(
-        &mut self,
-        command_id: &str,
-    ) -> Result<DispatchGate, String> {
+    pub fn request_release_command(&mut self, command_id: &str) -> Result<DispatchGate, String> {
         check_identifier("command_id", command_id)?;
         if self.state != PhysicalTransactionState::Authorized {
             return Ok(DispatchGate::BlockedByState(self.state));
@@ -172,10 +169,7 @@ impl PhysicalTransaction {
     /// Applies an independently observed event. A duplicate event ID is
     /// idempotently ignored. A gap, reordered event, mismatched party/item or
     /// ambiguous post-dispatch outcome fails closed.
-    pub fn record_event(
-        &mut self,
-        event: TransactionEvent,
-    ) -> Result<EventDisposition, String> {
+    pub fn record_event(&mut self, event: TransactionEvent) -> Result<EventDisposition, String> {
         check_identifier("event_id", &event.event_id)?;
         check_identifier("actor_id", &event.actor_id)?;
         check_identifier("transaction_id", &event.transaction_id)?;
@@ -201,7 +195,8 @@ impl PhysicalTransaction {
         }
 
         self.last_sequence = event.sequence;
-        self.seen_events.insert(event.event_id.clone(), event.clone());
+        self.seen_events
+            .insert(event.event_id.clone(), event.clone());
 
         if self.state == PhysicalTransactionState::ReconciliationRequired
             && !matches!(
@@ -234,16 +229,15 @@ impl PhysicalTransaction {
                 scope_matches,
                 use_remaining,
             } => {
-                let valid =
-                    self.state == PhysicalTransactionState::AwaitingAuthorization
-                        && event.actor_id == self.context.principal_actor_id
-                        && not_before_unix_ms <= checked_at_unix_ms
-                        && checked_at_unix_ms < expires_at_unix_ms
-                        && expires_at_unix_ms > not_before_unix_ms
-                        && audience_matches
-                        && endpoint_matches
-                        && scope_matches
-                        && use_remaining;
+                let valid = self.state == PhysicalTransactionState::AwaitingAuthorization
+                    && event.actor_id == self.context.principal_actor_id
+                    && not_before_unix_ms <= checked_at_unix_ms
+                    && checked_at_unix_ms < expires_at_unix_ms
+                    && expires_at_unix_ms > not_before_unix_ms
+                    && audience_matches
+                    && endpoint_matches
+                    && scope_matches
+                    && use_remaining;
                 if valid {
                     self.state = PhysicalTransactionState::Authorized;
                     EventDisposition::Applied
@@ -320,8 +314,7 @@ impl PhysicalTransaction {
                     EventDisposition::ReconciliationRequired
                 }
             }
-            TransactionEventKind::ActuationTimeout
-            | TransactionEventKind::NetworkPartition => {
+            TransactionEventKind::ActuationTimeout | TransactionEventKind::NetworkPartition => {
                 if self.dispatch_issued || self.release_observed {
                     self.state = PhysicalTransactionState::ReconciliationRequired;
                     EventDisposition::ReconciliationRequired
@@ -532,7 +525,10 @@ mod tests {
         let mut tx = transaction();
         issue_release(&mut tx);
         let first = event(2, "event-release", "carrier-01", release_event());
-        assert_eq!(tx.record_event(first.clone()).unwrap(), EventDisposition::Applied);
+        assert_eq!(
+            tx.record_event(first.clone()).unwrap(),
+            EventDisposition::Applied
+        );
         assert_eq!(
             tx.record_event(first).unwrap(),
             EventDisposition::DuplicateIgnored
@@ -546,7 +542,10 @@ mod tests {
         let mut tx = transaction();
         issue_release(&mut tx);
         let original = event(2, "event-release", "carrier-01", release_event());
-        assert_eq!(tx.record_event(original.clone()).unwrap(), EventDisposition::Applied);
+        assert_eq!(
+            tx.record_event(original.clone()).unwrap(),
+            EventDisposition::Applied
+        );
         let conflicting = event(
             2,
             "event-release",
@@ -567,8 +566,13 @@ mod tests {
         tx.record_event(event(2, "event-release", "carrier-01", release_event()))
             .unwrap();
         assert_eq!(
-            tx.record_event(event(3, "event-release-duplicate", "carrier-01", release_event()))
-                .unwrap(),
+            tx.record_event(event(
+                3,
+                "event-release-duplicate",
+                "carrier-01",
+                release_event()
+            ))
+            .unwrap(),
             EventDisposition::ReconciliationRequired
         );
     }
@@ -669,13 +673,8 @@ mod tests {
             use_remaining: true,
         };
         assert_eq!(
-            tx.record_event(event(
-                1,
-                "event-auth",
-                "household-01",
-                invalid_grant
-            ))
-            .unwrap(),
+            tx.record_event(event(1, "event-auth", "household-01", invalid_grant))
+                .unwrap(),
             EventDisposition::Rejected
         );
         assert_eq!(
@@ -750,7 +749,7 @@ mod tests {
             2,
             "event-timeout",
             "carrier-01",
-            TransactionEventKind::ActuationTimeout
+            TransactionEventKind::ActuationTimeout,
         ))
         .unwrap();
 
@@ -775,7 +774,7 @@ mod tests {
             2,
             "event-timeout",
             "carrier-01",
-            TransactionEventKind::ActuationTimeout
+            TransactionEventKind::ActuationTimeout,
         ))
         .unwrap();
         let invalid = TransactionEventKind::ReconciliationResolved {
