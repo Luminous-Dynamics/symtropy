@@ -105,3 +105,31 @@ Run it with:
 The JSON records the fixture ID, crate version, target architecture/OS, available parallelism, iteration count, sample count and raw timing summary. Record the CPU model, OS image, compiler commit and machine configuration alongside each retained report; the program intentionally does not guess those facts from portable runtime APIs.
 
 These timings are **only the reference-layer microbenchmark**. They are not comparable to Drake, MuJoCo or Pinocchio solver timings, do not establish a general overhead bound, and do not measure physical integration. Matched solver comparisons are tracked separately in Symtropy #4805.
+
+## Industry comparison and benchmark strategy
+
+This work should sit beside mature dynamics solvers as an **assurance and coordinate-covariance layer**, not attempt to replace their optimized multibody algorithms.
+
+- MuJoCo formulates constrained acceleration using an inertia-weighted Gauss principle and solves primal/dual constraint-force problems. This is the closest conceptual physical baseline for the mass metric and its dual pairing: [MuJoCo computation documentation](https://mujoco.readthedocs.io/en/latest/computation.html).
+- Drake exposes multibody equations, generalized-velocity mappings, mass-matrix computation via the Composite Body Algorithm, and inverse-dynamics alternatives. Its documentation warns that explicit mass-matrix formation is O(n²) and should be avoided when possible: [Drake MultibodyPlant](https://drake.mit.edu/pydrake/pydrake.multibody.plant.html).
+- Pinocchio provides RNEA, CRBA, ABA, sparse Cholesky-based constrained forward dynamics, and derivatives of its principal algorithms. It is an appropriate articulated-body comparator, not a reference implementation of this typed assurance contract: [Pinocchio feature overview](https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/md_doc_a_features_intro.html).
+- Variational integrators provide a mature discrete-mechanics foundation, including a discrete Noether theorem and principled treatment of forces, dissipation, and constraints. The next physical benchmark should therefore test the actual discrete step map, not infer it from a continuous-time generator alone: [Marsden and West, Discrete Mechanics and Variational Integrators](https://doi.org/10.1017/S096249290100006X).
+
+The differentiating contribution here is not a faster CRBA/ABA implementation. It is a typed, replayable contract that makes tangent/cotangent variance explicit, verifies metric congruence, and compares physical error measures across coordinate descriptions.
+
+### Recommended benchmark tiers
+
+1. **Algebraic contract:** random but seeded SPD metrics, nonsingular dense basis changes, tangent/cotangent round trips, dual pairing, metric congruence, and Riesz identities.
+2. **Condition ladder:** increase the basis-change condition estimate over approximately 10¹, 10², 10³, 10⁴, 10⁵, and 10⁶ where the declared f64 profile still admits it. Record raw component norms, induced norms, metric asymmetry, Cholesky pivots, and abstentions.
+3. **Tensor-variance adversaries:** deliberately transform a force as a tangent, transform the metric on the wrong side, or transform a constraint Jacobian with the wrong variance. Every mutation must be detected.
+4. **Mechanical operator tier:** apply the norms to the same mass solve, Delassus/constraint solve, and midpoint residual used by the dense-coordinate dumbbell reference. Compare with an independent high-precision oracle.
+5. **Discrete symmetry tier:** compare complete one-step maps, constraint reactions, momentum maps, work, and physical observables across transformed coordinates. Use a variational or other geometric integrator as a comparator where the physical model supports it.
+
+### Proposed targets (not achieved)
+
+- Zero false accepts on singular, non-finite, wrong-variance, wrong-congruence, and wrong-Jacobian controls.
+- All admitted dense re-bases preserve induced tangent and dual-cotangent norms within preregistered, condition-aware tolerances.
+- 100% explicit abstention for singular or out-of-declared-envelope cases.
+- Report component-norm drift alongside induced-norm invariance; never hide representation sensitivity.
+- Demonstrate identical physical step-map and constraint observables across coordinate descriptions before making any physical-equivalence claim.
+- Publish runtime and memory against the solver baselines on matched models. No speed claim is made by this small dense reference.
