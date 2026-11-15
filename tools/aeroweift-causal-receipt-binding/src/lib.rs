@@ -657,7 +657,12 @@ pub fn verify(
                 .find(|edge| edge.role == ParentRole::RequiredTrafficClasses)
                 .and_then(|edge| by_id.get(&edge.parent_receipt_id).copied())
                 .ok_or(VerificationError::MissingRequiredParent)?;
-            if profile.required_traffic_classes.as_ref() != Some(&required) {
+            let Some(profile_classes) = profile.required_traffic_classes.as_ref() else {
+                return Err(VerificationError::ProfileClassMismatch);
+            };
+            let mut canonical_profile_classes = profile_classes.clone();
+            canonical_profile_classes.sort_unstable();
+            if canonical_profile_classes != required {
                 return Err(VerificationError::ProfileClassMismatch);
             }
         }
