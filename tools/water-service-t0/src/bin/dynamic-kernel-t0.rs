@@ -60,6 +60,7 @@ fn tensor3(v:&Value,key:&str,nout:usize,nin:usize)->Result<Tensor3,String>{
     }
     Ok(result)
 }
+#[allow(clippy::needless_range_loop)]
 fn convolution(input:&Matrix,kernel:&Tensor3)->Result<Matrix,String>{
     let ntime=input.first().map(Vec::len).unwrap_or(0);
     if ntime==0{return Err("inlet mass-flux series cannot be empty".into());}
@@ -73,6 +74,7 @@ fn convolution(input:&Matrix,kernel:&Tensor3)->Result<Matrix,String>{
     if output.iter().flatten().any(|x|!x.is_finite()){return Err("convolution overflow".into());}
     Ok(output)
 }
+#[allow(clippy::needless_range_loop)]
 fn convolve_sensor(physical:&Matrix,response:&Matrix)->Result<Matrix,String>{
     if physical.len()!=response.len(){return Err("sensor response outlet count mismatch".into());}
     let nout=physical.len();
@@ -105,6 +107,7 @@ fn base(state:&str,reason:&str)->Value{
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     })
 }
+#[allow(clippy::needless_range_loop)]
 fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     let dt=number(case,"sample_interval_seconds")?;
     if dt<=0.0{return Ok(base("INVALID_INPUT","SAMPLE_INTERVAL_NOT_POSITIVE"));}
