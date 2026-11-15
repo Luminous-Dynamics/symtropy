@@ -380,7 +380,7 @@ pub fn reference_scenarios() -> Vec<Scenario> {
             ] },
         Scenario { id: "PRESSURE_TEST_SKILL_UNKNOWN", disabled_roles: vec![], unavailable_partner_nodes: vec![],
             gate_overrides: vec![GateOverride { role: PressureTest, gate: Workforce, status: Unknown }] },
-        Scenario { id: "POWER_UTILITY_INTERRUPTION", disabled_roles: vec![], unavailable_partner_nodes: vec[],
+        Scenario { id: "POWER_UTILITY_INTERRUPTION", disabled_roles: vec![], unavailable_partner_nodes: vec![],
             gate_overrides: vec![
                 GateOverride { role: PrimaryMachining, gate: Utilities, status: Stale },
                 GateOverride { role: BackupMachining, gate: Utilities, status: Stale },
