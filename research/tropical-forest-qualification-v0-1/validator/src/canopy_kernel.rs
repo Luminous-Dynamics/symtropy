@@ -18,10 +18,18 @@ pub struct CanopyCohort {
 }
 
 impl CanopyCohort {
-    pub fn id(&self) -> &str { &self.id }
-    pub fn support(&self) -> &BTreeSet<(usize, usize)> { &self.support }
-    pub fn lai_per_cell(&self) -> f64 { self.lai_per_cell }
-    pub fn is_alive(&self) -> bool { self.alive }
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+    pub fn support(&self) -> &BTreeSet<(usize, usize)> {
+        &self.support
+    }
+    pub fn lai_per_cell(&self) -> f64 {
+        self.lai_per_cell
+    }
+    pub fn is_alive(&self) -> bool {
+        self.alive
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -41,11 +49,19 @@ impl CanopyPatch {
                 "canopy dimensions must contain between 1 and {MAX_PATCH_CELLS} cells"
             ));
         }
-        Ok(Self { width, height, cohorts: BTreeMap::new() })
+        Ok(Self {
+            width,
+            height,
+            cohorts: BTreeMap::new(),
+        })
     }
 
-    pub fn dimensions(&self) -> (usize, usize) { (self.width, self.height) }
-    pub fn cohorts(&self) -> &BTreeMap<String, CanopyCohort> { &self.cohorts }
+    pub fn dimensions(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
+    pub fn cohorts(&self) -> &BTreeMap<String, CanopyCohort> {
+        &self.cohorts
+    }
 
     /// Add one cohort's per-cell LAI contribution over its declared horizontal support.
     ///
@@ -58,7 +74,9 @@ impl CanopyPatch {
         lai_per_cell: f64,
     ) -> Result<(), String> {
         let id = id.into();
-        if id.trim().is_empty() { return Err("cohort id must not be empty".to_string()); }
+        if id.trim().is_empty() {
+            return Err("cohort id must not be empty".to_string());
+        }
         if self.cohorts.contains_key(&id) {
             return Err(format!("duplicate canopy cohort id: {id}"));
         }
@@ -67,14 +85,20 @@ impl CanopyPatch {
         }
 
         let coordinates: Vec<(usize, usize)> = support.into_iter().collect();
-        if coordinates.is_empty() { return Err("cohort support must contain at least one cell".to_string()); }
+        if coordinates.is_empty() {
+            return Err("cohort support must contain at least one cell".to_string());
+        }
         let support: BTreeSet<(usize, usize)> = coordinates.iter().copied().collect();
         if support.len() != coordinates.len() {
-            return Err(format!("cohort {id} contains duplicate support coordinates"));
+            return Err(format!(
+                "cohort {id} contains duplicate support coordinates"
+            ));
         }
         for (x, y) in &support {
             if *x >= self.width || *y >= self.height {
-                return Err(format!("cohort {id} support cell ({x}, {y}) is outside the patch"));
+                return Err(format!(
+                    "cohort {id} support cell ({x}, {y}) is outside the patch"
+                ));
             }
         }
         let added_total = lai_per_cell * support.len() as f64;
@@ -89,16 +113,28 @@ impl CanopyPatch {
             }
         }
 
-        self.cohorts.insert(id.clone(), CanopyCohort { id, support, lai_per_cell, alive: true });
+        self.cohorts.insert(
+            id.clone(),
+            CanopyCohort {
+                id,
+                support,
+                lai_per_cell,
+                alive: true,
+            },
+        );
         Ok(())
     }
 
     /// Mortality is a one-way state transition in this v0 kernel.
     /// Crown support is removed from the derived LAI field on the next evaluation.
     pub fn kill_cohort(&mut self, id: &str) -> Result<(), String> {
-        let cohort = self.cohorts.get_mut(id)
+        let cohort = self
+            .cohorts
+            .get_mut(id)
             .ok_or_else(|| format!("unknown canopy cohort: {id}"))?;
-        if !cohort.alive { return Err(format!("canopy cohort is already dead: {id}")); }
+        if !cohort.alive {
+            return Err(format!("canopy cohort is already dead: {id}"));
+        }
         cohort.alive = false;
         Ok(())
     }
@@ -114,15 +150,21 @@ impl CanopyPatch {
         field
     }
 
-    pub fn total_lai(&self) -> f64 { self.lai_field().iter().sum() }
-    pub fn mean_lai(&self) -> f64 { self.total_lai() / (self.width * self.height) as f64 }
+    pub fn total_lai(&self) -> f64 {
+        self.lai_field().iter().sum()
+    }
+    pub fn mean_lai(&self) -> f64 {
+        self.total_lai() / (self.width * self.height) as f64
+    }
 
     /// Analytical direct-beam transmittance T=exp(-k*LAI); k is synthetic unless calibrated externally.
     pub fn transmittance_field(&self, extinction_coefficient: f64) -> Result<Vec<f64>, String> {
         if !extinction_coefficient.is_finite() || extinction_coefficient < 0.0 {
             return Err("extinction coefficient must be finite and non-negative".to_string());
         }
-        Ok(self.lai_field().iter()
+        Ok(self
+            .lai_field()
+            .iter()
             .map(|lai| (-extinction_coefficient * lai).exp())
             .collect())
     }
@@ -151,10 +193,18 @@ impl CanopyPatch {
             queue.push_back(start);
             while let Some((x, y)) = queue.pop_front() {
                 let mut neighbours = Vec::with_capacity(4);
-                if let Some(left) = x.checked_sub(1) { neighbours.push((left, y)); }
-                if x + 1 < self.width { neighbours.push((x + 1, y)); }
-                if let Some(up) = y.checked_sub(1) { neighbours.push((x, up)); }
-                if y + 1 < self.height { neighbours.push((x, y + 1)); }
+                if let Some(left) = x.checked_sub(1) {
+                    neighbours.push((left, y));
+                }
+                if x + 1 < self.width {
+                    neighbours.push((x + 1, y));
+                }
+                if let Some(up) = y.checked_sub(1) {
+                    neighbours.push((x, up));
+                }
+                if y + 1 < self.height {
+                    neighbours.push((x, y + 1));
+                }
                 for neighbour in neighbours {
                     if remaining.remove(&neighbour) {
                         component.push(neighbour);
@@ -196,22 +246,31 @@ mod tests {
 
     fn add_pattern(patch: &mut CanopyPatch, occupied: impl IntoIterator<Item = (usize, usize)>) {
         for (index, cell) in occupied.into_iter().enumerate() {
-            patch.add_cohort(format!("cohort-{index:03}"), [cell], 2.0)
+            patch
+                .add_cohort(format!("cohort-{index:03}"), [cell], 2.0)
                 .expect("synthetic single-cell cohort should be valid");
         }
     }
 
     fn checkerboard_cells(width: usize, height: usize) -> Vec<(usize, usize)> {
         let mut cells = Vec::new();
-        for y in 0..height { for x in 0..width {
-            if (x + y) % 2 == 0 { cells.push((x, y)); }
-        }}
+        for y in 0..height {
+            for x in 0..width {
+                if (x + y) % 2 == 0 {
+                    cells.push((x, y));
+                }
+            }
+        }
         cells
     }
 
     fn block_cells(width: usize, height: usize) -> Vec<(usize, usize)> {
         let mut cells = Vec::new();
-        for y in 0..height { for x in 0..(width / 2) { cells.push((x, y)); }}
+        for y in 0..height {
+            for x in 0..(width / 2) {
+                cells.push((x, y));
+            }
+        }
         cells
     }
 
@@ -232,7 +291,9 @@ mod tests {
     fn cohort_mortality_changes_only_declared_crown_support() {
         let mut patch = CanopyPatch::new(4, 2).unwrap();
         patch.add_cohort("upper", [(0, 0), (1, 0)], 2.0).unwrap();
-        patch.add_cohort("understory", [(1, 0), (2, 0)], 0.5).unwrap();
+        patch
+            .add_cohort("understory", [(1, 0), (2, 0)], 0.5)
+            .unwrap();
         let before = patch.lai_field();
         patch.kill_cohort("upper").unwrap();
         let after = patch.lai_field();
@@ -268,10 +329,22 @@ mod tests {
     fn translation_preserves_gap_component_count_when_inside_bounds() {
         let mut original = CanopyPatch::new(8, 8).unwrap();
         let mut translated = CanopyPatch::new(8, 8).unwrap();
-        let cells = vec![(2, 2), (3, 2), (4, 2), (2, 3), (4, 3), (2, 4), (3, 4), (4, 4)];
+        let cells = vec![
+            (2, 2),
+            (3, 2),
+            (4, 2),
+            (2, 3),
+            (4, 3),
+            (2, 4),
+            (3, 4),
+            (4, 4),
+        ];
         add_pattern(&mut original, cells.iter().copied());
         add_pattern(&mut translated, cells.iter().map(|(x, y)| (x + 1, y + 1)));
-        assert_eq!(original.gap_components(0.0).unwrap().len(), translated.gap_components(0.0).unwrap().len());
+        assert_eq!(
+            original.gap_components(0.0).unwrap().len(),
+            translated.gap_components(0.0).unwrap().len()
+        );
         assert_eq!(original.total_lai(), translated.total_lai());
     }
 
@@ -282,8 +355,10 @@ mod tests {
         let first = patch.transmittance_field(0.5).unwrap();
         let second = patch.transmittance_field(0.5).unwrap();
         assert_eq!(first, second);
-        assert_eq!(patch.understory_light_eligible_cells(0.5, 0.9).unwrap(),
-            BTreeSet::from([(0, 1), (1, 0), (1, 1)]));
+        assert_eq!(
+            patch.understory_light_eligible_cells(0.5, 0.9).unwrap(),
+            BTreeSet::from([(0, 1), (1, 0), (1, 1)])
+        );
     }
 
     #[test]
@@ -298,7 +373,11 @@ mod tests {
     fn patch_size_and_lai_overflow_fail_closed() {
         assert!(CanopyPatch::new(1_000_001, 1).is_err());
         let mut patch = CanopyPatch::new(2, 1).unwrap();
-        assert!(patch.add_cohort("huge", [(0, 0), (1, 0)], f64::MAX).is_err());
+        assert!(
+            patch
+                .add_cohort("huge", [(0, 0), (1, 0)], f64::MAX)
+                .is_err()
+        );
         patch.add_cohort("first", [(0, 0)], f64::MAX).unwrap();
         assert!(patch.add_cohort("overflow", [(0, 0)], f64::MAX).is_err());
     }
