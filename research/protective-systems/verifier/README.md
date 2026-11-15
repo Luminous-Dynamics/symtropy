@@ -12,6 +12,7 @@ cargo test --manifest-path research/protective-systems/verifier/Cargo.toml
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml -- path/to/fixture-corpus.json
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
 
 ```
 
@@ -32,6 +33,16 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin 
 It is a synthetic binary decision fixture, not evidence of improved materials
 discovery. Its known-answer negative controls include an anti-correlated proxy
 and a cheapest experiment that is worse than doing nothing.
+
+The exact finite robust-design oracle is available as:
+
+```sh
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
+```
+
+It compares a finite ambiguity set, scenario safety floors, worst expected loss
+and discrete upper-tail CVaR. Incomplete uncertainty sets abstain, and a problem
+with no robust-feasible design returns an explicit no-design disposition.
 
 The library also exposes `damage`, a synthetic claim-state transition oracle.
 It invalidates directly affected claims, moves claims with unresolved dependency
