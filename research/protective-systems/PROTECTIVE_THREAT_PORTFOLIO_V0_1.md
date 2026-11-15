@@ -118,6 +118,23 @@ Compare interventions by:
 
 Do not monetize away hard safety requirements. Report Pareto-efficient portfolios and residual risks separately.
 
+## 4.1 Industry comparison: whole-system economics
+
+The industry comparison must include the operational system around a protective technology, not only its headline performance.
+
+- The CRS directed-energy primer notes a potentially low marginal energy cost per engagement only **assuming sufficient power supply**; this is not the full acquisition, integration, cooling, maintenance or support cost.
+- A public U.S. Army discussion on 21 August 2026 described a year-long operational pilot intended to establish the fully burdened cost of running directed-energy systems, including maintainability, personnel and field-support requirements, while checking that operations do not disrupt the installation's other critical functions.
+- GAO's April 2026 sustainment report notes that operating and support costs historically account for approximately 70% of a weapon system's total lifecycle costs in the U.S. defense acquisition context. This is not a universal fraction for protective products, but it is a warning against using purchase price as a proxy for lifecycle affordability.
+- CISA's EMP guidance uses graduated protection levels tied to permitted mission outage duration, illustrating that protection intensity should follow the value and continuity requirement of the protected service.
+
+Sources:
+- CRS directed-energy primer: https://www.everycrsreport.com/files/2026-01-07_IF11882_97aff318dfa7ee420f43e2fc93c0e2a642284ee8.html
+- U.S. Army operational pilot discussion (21 August 2026): https://www.army.mil/article/294836/jiatf_401_counter_uas_and_critical_infrastructure_protection_media_roundtable_august_21_2026
+- GAO-26-108140 sustainment findings (23 April 2026): https://files.gao.gov/reports/GAO-26-108140/index.html
+- CISA EMP protection and resilience guidelines: https://www.cisa.gov/sites/default/files/publications/19_0307_CISA_EMP-Protection-Resilience-Guidelines.pdf
+
+Therefore, every proposed protective intervention should report power and cooling demand, operator and maintainer hours, calibration/inspection intervals, spares and consumables, support-contractor dependence, downtime, training burden, failure/repair availability, replacement and decommissioning. Compare cost per beneficiary-year or critical-service-hour preserved; never compare only purchase price or marginal energy cost.
+
 ## 5. How Symthaea, Symtropy and Mycelix should cooperate
 
 **Symthaea:** maintain source-aware hazard hypotheses, expose uncertainty and propose the next useful evidence or assessment. Do not infer intent or assign unsupported event probability.
