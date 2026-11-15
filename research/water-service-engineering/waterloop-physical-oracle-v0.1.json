@@ -82,6 +82,8 @@
       "case_id": "WL-T0-008-wire-to-water-energy",
       "family": "pump_energy",
       "expected": {
+        "measurement_disposition": "ADMITTED",
+        "reason": "BOUNDARIES_AND_WINDOWS_MATCH",
         "wire_to_water_efficiency": 0.7,
         "electrical_specific_energy_kwh_m3": 0.07785714285714287
       }
@@ -123,6 +125,38 @@
       "expected": {
         "point_missed_volume_l": 30,
         "conservative_upper_missed_volume_l": 35.2
+      }
+    },
+    {
+      "case_id": "WL-T0-013-source-quality-without-evidence-no-credit",
+      "family": "source_substitution",
+      "expected": {
+        "source_substitution_disposition": "NOT_CREDITABLE",
+        "reason": "QUALITY_EVIDENCE_REFERENCE_MISSING",
+        "credited_mains_displacement_l": 0,
+        "unmet_matched_demand_l": 120,
+        "recovered_delivery_not_credited_l": 100
+      }
+    },
+    {
+      "case_id": "WL-T0-014-service-floor-missing-pressure-evidence",
+      "family": "service_floor",
+      "expected": {
+        "service_disposition": "INDETERMINATE",
+        "reason": "CRITICAL_MEASUREMENT_NOT_ADMITTED",
+        "pressure_floor_met": null,
+        "flow_floor_met": true,
+        "service_credit_eligible": false
+      }
+    },
+    {
+      "case_id": "WL-T0-015-energy-boundary-mismatch-abstains",
+      "family": "pump_energy",
+      "expected": {
+        "measurement_disposition": "INDETERMINATE",
+        "reason": "ENERGY_WINDOWS_NOT_ALIGNED",
+        "wire_to_water_efficiency": null,
+        "electrical_specific_energy_kwh_m3": null
       }
     }
   ]
