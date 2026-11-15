@@ -18,7 +18,7 @@ HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
 
 ## Scope
 
-The frozen 20-case corpus exercises:
+The frozen 21-case corpus exercises:
 - B0 persistence and training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member visibility and invalid-member disclosure;
 - B2 repeated train-only calibration-reference summary;
@@ -31,8 +31,9 @@ The evaluator reads frozen arrays. It does not generate, calibrate, select or ex
 
 ## Evidence receipt
 
-The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 20 rows match the separate oracle.
+The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 21 rows match the separate oracle.
 
 ## Nonclaims
 
 All v0.1 cases are synthetic. No DWS/SAWS/Highveld bytes are acquired, no catchment is calibrated, no flood/groundwater/rainfall-runoff solver is qualified, no field forecast skill is established, and no synthetic result may be represented as South African field performance.
+The corpus includes all 12 named HCB-NC-01 through HCB-NC-12 leakage controls, including a separate rejection when the final test set is used to select a winning model.
