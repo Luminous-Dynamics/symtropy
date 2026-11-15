@@ -51,6 +51,8 @@ fn array<'a>(value: &'a Value, key: &str) -> Result<&'a Vec<Value>, String> {
 
 fn parse_matrix(value: &Value, key: &str, rows: usize, cols: usize) -> Result<Matrix, String> {
     let raw = value
+        .get(key)
+        .unwrap_or(value)
         .as_array()
         .ok_or_else(|| format!("{key} must be a matrix"))?;
     if raw.len() != rows {
@@ -80,6 +82,8 @@ fn parse_matrix(value: &Value, key: &str, rows: usize, cols: usize) -> Result<Ma
 
 fn parse_tensor(value: &Value, key: &str, nout: usize, nin: usize) -> Result<Tensor3, String> {
     let outputs = value
+        .get(key)
+        .unwrap_or(value)
         .as_array()
         .ok_or_else(|| format!("{key} must be a rank-three tensor"))?;
     if outputs.len() != nout {
