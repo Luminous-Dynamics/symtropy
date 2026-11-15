@@ -279,10 +279,10 @@ fn validate_problem_binding(binding: &ProblemBindingV1) -> Result<(), Compositio
             return Err(CompositionErrorV1::InvalidSha256(name));
         }
     }
-    if let Some(task_digest) = &binding.task_semantics_sha256 {
-        if !valid_sha256(task_digest) {
-            return Err(CompositionErrorV1::InvalidSha256("task_semantics_sha256"));
-        }
+    if let Some(task_digest) = &binding.task_semantics_sha256
+        && !valid_sha256(task_digest)
+    {
+        return Err(CompositionErrorV1::InvalidSha256("task_semantics_sha256"));
     }
     Ok(())
 }
