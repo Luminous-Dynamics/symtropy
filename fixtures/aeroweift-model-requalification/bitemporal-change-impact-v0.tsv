@@ -27,3 +27,5 @@ coverage-deletion|remove-coverage|INDETERMINATE
 known-contradiction-plus-other-gap|mixed-evidence|CONTRADICTED_WITH_EXPLICIT_UNKNOWN
 future-effective-coverage|coverage-effective-window|EARLIER_VIEW_STABLE
 unrelated-feed-corruption|dependency-source-filter|CLAIM_RESULT_UNCHANGED
+unrelated-malformed-event|claim-dependency-filter|CLAIM_RESULT_UNCHANGED
+wrong-source-for-claim-dependency|source-binding|SOURCE_MISMATCH
