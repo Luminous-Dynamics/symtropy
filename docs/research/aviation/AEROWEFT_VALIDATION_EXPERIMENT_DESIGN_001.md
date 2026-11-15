@@ -55,7 +55,8 @@ The following dimensions remain separate:
 
 Hard eligibility gates include:
 - decision question and objective identity match;
-- explicit external authorization where required; ControlledFlight is always authorization-gated, and the frozen policy can require authorization for HIL/other modalities;
+- explicit external authorization where required; controlled flight is always authorization-gated, and the frozen policy can require it for HIL/other modalities;
+- positive owner receipts for safety, envelope, reference, semantic-equivalence and authorization gates; ControlledFlight is always authorization-gated, and the frozen policy can require authorization for HIL/other modalities;
 - owner receipts for affirmative safety, envelope, reference, semantic-equivalence and authorization gates; ControlledFlight is always authorization-gated, and the frozen policy can additionally require authorization for HIL/other modalities;
 - positive owner receipts for safety, envelope, independent-reference, semantic-equivalence and authorization gates;
 - safety constraints clear;
@@ -146,4 +147,4 @@ A reduction in test count is not success if the resulting model is less reliable
 
 ## Claim ceiling
 
-A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, utility estimates and separate resource budgets. It does not verify those utility estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance. It does not verify those utility estimates, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
+A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, utility estimates and separate resource budgets. It does not verify those utility estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
