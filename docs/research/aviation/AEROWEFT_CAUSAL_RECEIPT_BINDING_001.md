@@ -27,7 +27,7 @@ Every receipt must match the exact scenario and manifest digest, operation, pseu
 
 Receipts bind stage, schema/revision, producer/revision, producer stream and sequence, payload digest string, subject scope, typed disposition, evaluated/produced times, validity interval, and consumed-parent edges. Observation receipts additionally retain observed-at and received-at separately. Profile policy receipts bind the required traffic-class set.
 
-The verifier checks unique IDs, producer sequence forks, parent existence and exact digest equality, role-to-stage mappings, required/optional edge multiplicity, parent claim disposition, causal order, parent validity at child evaluation, graph acyclicity and root closure. Every receipt must be an ancestor of the declared root; otherwise it is an orphan.
+The verifier checks unique IDs, producer sequence forks, parent existence and exact digest equality, role-to-stage mappings, required/optional edge multiplicity, parent claim disposition, causal order, parent validity at child evaluation, graph acyclicity and root closure. Every surveillance-assessment receipt also carries its own traffic class; a `TrafficOccupancy(class)` edge must resolve to that exact class. A qualified track requires exactly one observation parent, while a `NoReportQualifiedCoverage` receipt must have none. Conflict screening must consume exactly one occupancy receipt for each profile-required class and cannot add or substitute a class. Every receipt must be an ancestor of the declared root; otherwise it is an orphan.
 
 ## Trust boundary
 
@@ -42,6 +42,7 @@ Byte-integrity recomputation, signature verification, issuer authority and key r
 - 100% agreement with an independently authored finite graph oracle.
 - Zero cross-subject or cross-authorization receipt splices accepted.
 - Zero parent digest/owner/role substitutions, cycles, orphans, forks, causal-time or validity violations accepted.
+- Zero cross-class surveillance relabelling, duplicate required-class occupancy or contradictory report/no-report evidence accepted.
 - Zero permutation-induced semantic variance.
 - Evidence deletion, scope narrowing, validity expiry and revision supersession cannot improve admissibility.
 - Positive controls must pass; reject-all is not success.
