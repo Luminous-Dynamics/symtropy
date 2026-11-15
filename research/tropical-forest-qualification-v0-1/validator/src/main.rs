@@ -62,6 +62,7 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt"
             | Some("PASS_SYNTHETIC_SPATIAL_LOCALIZATION")
             | Some("PASS_SYNTHETIC_PROCESS_TRAJECTORY")
             | Some("PASS_SYNTHETIC_FLUX_IDENTIFIABILITY")
+            | Some("PASS_SYNTHETIC_FORESTPATHS_CROSSWALK")
     );
     if !successful_result {
         process::exit(1);
