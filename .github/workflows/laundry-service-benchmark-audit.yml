@@ -7,6 +7,7 @@ on:
       - research/large-appliance-repairable-architecture-v0-1
     paths:
       - "docs/tech/LAUNDRY_SERVICE_SYSTEM_BENCHMARK_V0_1.md"
+      - "docs/tech/LAUNDRY_CLEANING_INTENSIFICATION_SCREEN_V0_1.md"
       - "schemas/laundry/laundry_service_benchmark_v0_1.schema.json"
       - "fixtures/laundry/laundry_service_benchmark_v0_1.json"
       - "tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs"
