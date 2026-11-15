@@ -101,10 +101,16 @@ pub fn apply_change(
         }
     }
 
-    let changed_components: BTreeSet<&str> =
-        event.changed_component_ids.iter().map(String::as_str).collect();
-    let changed_lots: BTreeSet<&str> =
-        event.changed_material_lot_ids.iter().map(String::as_str).collect();
+    let changed_components: BTreeSet<&str> = event
+        .changed_component_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let changed_lots: BTreeSet<&str> = event
+        .changed_material_lot_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
 
     let mut transitions = Vec::new();
     for claim in claims.iter_mut() {
@@ -183,12 +189,7 @@ pub fn requalify_claim(
 mod tests {
     use super::*;
 
-    fn claim(
-        id: &str,
-        components: &[&str],
-        lots: &[&str],
-        complete: bool,
-    ) -> Claim {
+    fn claim(id: &str, components: &[&str], lots: &[&str], complete: bool) -> Claim {
         Claim {
             claim_id: id.to_owned(),
             qualified_configuration_revision: "R1".to_owned(),
@@ -212,7 +213,9 @@ mod tests {
 
     #[test]
     fn only_claims_with_declared_changed_dependencies_are_invalidated() {
-        let mut configuration = Configuration { current_revision: "R1".into() };
+        let mut configuration = Configuration {
+            current_revision: "R1".into(),
+        };
         let mut claims = vec![
             claim("CLAIM-A", &["PANEL-A"], &[], true),
             claim("CLAIM-B", &["PANEL-B"], &["LOT-B"], true),
@@ -230,7 +233,9 @@ mod tests {
 
     #[test]
     fn incomplete_impact_map_does_not_leave_unknown_dependencies_qualified() {
-        let mut configuration = Configuration { current_revision: "R1".into() };
+        let mut configuration = Configuration {
+            current_revision: "R1".into(),
+        };
         let mut claims = vec![
             claim("DIRECT", &["PANEL-A"], &[], true),
             claim("UNKNOWN-DEPENDENCY", &["PANEL-B"], &[], false),
@@ -245,11 +250,12 @@ mod tests {
 
     #[test]
     fn a_repair_or_change_event_never_requalifies_a_claim() {
-        let mut configuration = Configuration { current_revision: "R1".into() };
+        let mut configuration = Configuration {
+            current_revision: "R1".into(),
+        };
         let mut claims = vec![claim("CLAIM-A", &["PANEL-A"], &[], true)];
 
-        apply_change(&mut configuration, &mut claims, &event(true))
-            .expect("change event");
+        apply_change(&mut configuration, &mut claims, &event(true)).expect("change event");
         // Recording repair alone has no API that upgrades the claim.
         assert_eq!(claims[0].status, ClaimStatus::Invalidated);
         assert_eq!(claims[0].requalification_evidence_id, None);
@@ -272,12 +278,17 @@ mod tests {
             .expect("correctly scoped requalification");
         assert_eq!(claim.status, ClaimStatus::Qualified);
         assert_eq!(claim.qualified_configuration_revision, "R2");
-        assert_eq!(claim.requalification_evidence_id.as_deref(), Some("TEST-REPORT-NEW"));
+        assert_eq!(
+            claim.requalification_evidence_id.as_deref(),
+            Some("TEST-REPORT-NEW")
+        );
     }
 
     #[test]
     fn stale_change_event_is_rejected_without_mutation() {
-        let mut configuration = Configuration { current_revision: "R2".into() };
+        let mut configuration = Configuration {
+            current_revision: "R2".into(),
+        };
         let mut claims = vec![claim("CLAIM-A", &["PANEL-A"], &[], true)];
         let before = claims.clone();
 
@@ -289,7 +300,9 @@ mod tests {
 
     #[test]
     fn later_unknown_event_cannot_downgrade_invalidated_claim() {
-        let mut configuration = Configuration { current_revision: "R1".into() };
+        let mut configuration = Configuration {
+            current_revision: "R1".into(),
+        };
         let mut claims = vec![
             claim("ALREADY-INVALIDATED", &["PANEL-A"], &[], true),
             claim("OTHER", &["PANEL-B"], &[], false),
@@ -307,16 +320,22 @@ mod tests {
             changed_material_lot_ids: vec![],
             impact_map_complete: false,
         };
-        let transitions = apply_change(&mut configuration, &mut claims, &later)
-            .expect("second event");
+        let transitions =
+            apply_change(&mut configuration, &mut claims, &later).expect("second event");
         assert_eq!(claims[0].status, ClaimStatus::Invalidated);
         assert_eq!(claims[1].status, ClaimStatus::NeedsReview);
-        assert!(!transitions.iter().any(|t| t.claim_id == "ALREADY-INVALIDATED"));
+        assert!(
+            !transitions
+                .iter()
+                .any(|t| t.claim_id == "ALREADY-INVALIDATED")
+        );
     }
 
     #[test]
     fn material_lot_change_invalidates_dependent_claim() {
-        let mut configuration = Configuration { current_revision: "R1".into() };
+        let mut configuration = Configuration {
+            current_revision: "R1".into(),
+        };
         let mut claims = vec![
             claim("LOT-DEPENDENT", &["PANEL-B"], &["LOT-7"], true),
             claim("UNRELATED", &["PANEL-C"], &["LOT-8"], true),
