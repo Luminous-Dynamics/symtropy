@@ -1,0 +1,326 @@
+{
+  "schema_version": "active-experiment-design-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-ACTIVE-EXPERIMENT-DESIGN-001",
+  "physical_operator_qualified": false,
+  "physical_experiment_performed": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "AED-T0-001-orthogonal-versus-collinear",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "collinear_high_dose",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          },
+          {
+            "candidate_id": "orthogonal_low_dose",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-002-rank-deficient-only",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "repeated_collinear_code",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          },
+          {
+            "candidate_id": "same_time_identical_inlets",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-003-sensor-bandwidth-limit",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "fast_sequence_above_bandwidth",
+            "candidate_disposition": "TEMPORAL_RESOLUTION_INADEQUATE",
+            "reason": "SENSOR_CANNOT_RESOLVE_MINIMUM_DELAY_OF_INTEREST",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          },
+          {
+            "candidate_id": "slow_resolvable_sequence",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-004-missing-outlet-channel",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "unobserved_outlet",
+            "candidate_disposition": "PARTIAL_OUTLET_BOUNDARY",
+            "reason": "NOT_ALL_OUTLETS_ARE_INSTRUMENTED",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-005-dose-duration-budget",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "high_dose",
+            "candidate_disposition": "DOSE_LIMIT_EXCEEDED",
+            "reason": "TRACER_DOSE_EXCEEDS_APPROVED_DESIGN_LIMIT",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          },
+          {
+            "candidate_id": "low_dose",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-006-regime-transition",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "flow_step_and_pulse",
+            "candidate_disposition": "REGIME_TRANSITION_UNSUPPORTED",
+            "reason": "FIXED_REGIME_IDENTIFICATION_CANNOT_CROSS_HYDRAULIC_TRANSITION",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-007-flow-reversal-unobserved",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "reversal_without_signed_flow",
+            "candidate_disposition": "ABSTAIN_FLOW_DIRECTION_UNOBSERVED",
+            "reason": "SIGNED_PORT_DIRECTION_NOT_MEASURED",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "AED-T0-008-invalid-variance",
+      "expected": {
+        "design_disposition": "NO_FEASIBLE_DESIGN",
+        "reason": "NO_CANDIDATE_PASSES_THE_SENSOR_AND_PHYSICAL_DESIGN_GATES",
+        "selected_candidate_id": null,
+        "candidate_results": [
+          {
+            "candidate_id": "zero_variance_contract",
+            "candidate_disposition": "INVALID_COVARIANCE_OR_SENSITIVITY",
+            "reason": "observation variances must be positive and finite",
+            "observation_count": null,
+            "parameter_count": null,
+            "design_rank": null,
+            "singular_values": null,
+            "minimum_singular_value": null,
+            "condition_number": null,
+            "fisher_log_determinant": null,
+            "fisher_trace": null,
+            "total_dose": null,
+            "duration_seconds": null,
+            "information_per_cost": null,
+            "selected": false
+          }
+        ],
+        "physical_operator_qualified": false,
+        "physical_experiment_performed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}
