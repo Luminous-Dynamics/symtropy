@@ -88,6 +88,7 @@ pub struct EnvelopeSlice {
     pub primitive_id: String,
     pub start_ms: u64,
     pub end_ms: u64,
+    pub radius_mm: u64,
     pub physical_swept_outer: AabbMm,
     pub stopping_outer: AabbMm,
     pub coordination_outer: AabbMm,
@@ -118,6 +119,7 @@ impl Report {
             put_str(&mut out, &s.primitive_id);
             put_u64(&mut out, s.start_ms);
             put_u64(&mut out, s.end_ms);
+            put_u64(&mut out, s.radius_mm);
             for b in [s.physical_swept_outer, s.stopping_outer, s.coordination_outer] {
                 put_point(&mut out, b.min);
                 put_point(&mut out, b.max);
@@ -216,7 +218,7 @@ pub fn build(context: &Context, input: &[Segment]) -> Result<Report, ErrorKind> 
             let coordination = expand(stopping, m.policy_clearance)?;
             out.push(EnvelopeSlice {
                 slice_index: *index, primitive_id: s.primitive_id.clone(),
-                start_ms: start, end_ms: end, physical_swept_outer: physical,
+                start_ms: start, end_ms: end, radius_mm: s.radius_mm, physical_swept_outer: physical,
                 stopping_outer: stopping, coordination_outer: coordination,
                 margins: m, evidence: s.evidence.clone(),
             });
