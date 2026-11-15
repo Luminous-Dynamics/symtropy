@@ -1,0 +1,24 @@
+# scenario|mutation|expected
+positive-control|none|CAUSALLY_BOUND_ONLY
+permuted-replay|permute|CAUSALLY_BOUND_ONLY
+cross-flight-splice|cross-flight|SUBJECT_MISMATCH
+cross-aircraft-splice|cross-aircraft|SUBJECT_MISMATCH
+authorization-revision-splice|auth-revision|SUBJECT_MISMATCH
+scenario-manifest-splice|scenario-digest|SUBJECT_MISMATCH
+evaluation-window-splice|window|SUBJECT_MISMATCH
+missing-parent-receipt|missing-parent|PARENT_MISSING
+parent-payload-substitution|parent-digest|PARENT_DIGEST_MISMATCH
+parent-role-substitution|parent-role|ROLE_MISMATCH
+parent-cycle|cycle|CYCLE
+parent-produced-after-child|causal-time|CAUSAL_TIME_VIOLATION
+parent-validity-expired|parent-validity|OUTSIDE_PARENT_VALIDITY
+future-observation|future-observation|OBSERVATION_TIME_INVALID
+duplicate-receipt-id|duplicate-id|DUPLICATE_RECEIPT_ID
+forked-producer-sequence|forked-sequence|FORKED_SEQUENCE
+orphan-receipt|orphan|ORPHAN_RECEIPT
+missing-required-parent-edge|missing-edge|MISSING_REQUIRED_PARENT
+stale-pnt-not-refreshed-by-wrapper|stale-pnt|PARENT_NOT_QUALIFIED
+expired-authorization-parent|expired-auth|OUTSIDE_PARENT_VALIDITY
+profile-requirement-weakened|class-omission|PROFILE_CLASS_MISMATCH
+duplicate-parent-edge|duplicate-edge|DUPLICATE_PARENT_EDGE
+receipt-created-before-observation-arrival|receipt-time|RECEIPT_TIME_INVERSION
