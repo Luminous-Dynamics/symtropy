@@ -1024,14 +1024,14 @@ mod tests {
             performance_requirements: vec![
                 PerformanceRequirement {
                     metric_id: "fire-rating-minutes".to_owned(),
-                    unit_symbol: "min",
+                    unit_symbol: "min".to_owned(),
                     scale: 1,
                     minimum_value: Some(60),
                     maximum_value: None,
                 },
                 PerformanceRequirement {
                     metric_id: "acoustic-insulation".to_owned(),
-                    unit_symbol: "dB",
+                    unit_symbol: "dB".to_owned(),
                     scale: 1,
                     minimum_value: Some(45),
                     maximum_value: None,
