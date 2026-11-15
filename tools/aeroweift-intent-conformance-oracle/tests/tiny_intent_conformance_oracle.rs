@@ -377,6 +377,31 @@ fn overlapping_observation_windows_are_rejected_not_double_counted() {
     );
 }
 
+
+#[test]
+fn future_receipt_and_future_observation_are_not_accepted() {
+    let mut sample = observation("future-receipt", 0, 100, (1, 2));
+    sample.receipt_tick = 101;
+    let mut request = input(vec![sample]);
+    request.policy.evaluation_tick = 100;
+    let result = evaluate(&request);
+    assert_status(
+        &result,
+        ConformanceStatus::NotAssessable,
+        Some(ConformanceReason::ReceiptAfterEvaluation),
+    );
+
+    let mut sample = observation("future-sample", 0, 100, (1, 2));
+    sample.observed_at = ci(100, 100);
+    sample.receipt_tick = 100;
+    let result = evaluate(&input(vec![sample]));
+    assert_status(
+        &result,
+        ConformanceStatus::NotAssessable,
+        Some(ConformanceReason::InvalidObservedAtInterval),
+    );
+}
+
 #[test]
 fn accepted_receipt_preserves_authorization_and_observation_lineage() {
     let result = evaluate(&input(vec![observation("lineage-observation", 0, 100, (1, 2))]));
