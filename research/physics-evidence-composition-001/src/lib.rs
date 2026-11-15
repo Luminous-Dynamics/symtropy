@@ -1056,6 +1056,76 @@ mod tests {
     }
 
     #[test]
+    fn missing_energy_work_receipt_never_becomes_a_physical_pass() {
+        let mut evidence = physical_receipts();
+        evidence.retain(|receipt| receipt.kind != EvidenceKindV1::EnergyWorkLedger);
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::MissingEvidence(
+                EvidenceKindV1::EnergyWorkLedger
+            ))
+        );
+    }
+
+    #[test]
+    fn energy_work_receipt_must_bind_the_same_exact_physical_problem() {
+        let mut evidence = physical_receipts();
+        let energy = evidence
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKindV1::EnergyWorkLedger)
+            .unwrap();
+        energy.binding.initial_state_sha256 = digest('f');
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::BindingMismatch(
+                EvidenceKindV1::EnergyWorkLedger
+            ))
+        );
+    }
+
+    #[test]
+    fn failed_energy_work_verification_rejects_the_composition() {
+        let mut evidence = physical_receipts();
+        let energy = evidence
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKindV1::EnergyWorkLedger)
+            .unwrap();
+        energy.verification_status = VerificationStatusV1::Fail;
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::ReceiptFailed(
+                EvidenceKindV1::EnergyWorkLedger
+            ))
+        );
+    }
+
+    #[test]
+    fn energy_work_verifier_identity_is_pinned_separately() {
+        let mut request = request(CompositionClaimV1::PhysicalStepEquivalence);
+        let expected = request
+            .expected_verifiers
+            .iter_mut()
+            .find(|expected| expected.kind == EvidenceKindV1::EnergyWorkLedger)
+            .unwrap();
+        expected.verifier_commit_sha = "b".repeat(40);
+        assert_eq!(
+            compose_evidence(&request, &physical_receipts()),
+            Err(CompositionErrorV1::VerifierIdentityMismatch(
+                EvidenceKindV1::EnergyWorkLedger
+            ))
+        );
+    }
+
+    #[test]
     fn missing_evidence_never_becomes_a_pass() {
         let mut evidence = physical_receipts();
         evidence.pop();
