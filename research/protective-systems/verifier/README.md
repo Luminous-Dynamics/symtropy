@@ -36,8 +36,9 @@ and a cheapest experiment that is worse than doing nothing.
 The library also exposes `damage`, a synthetic claim-state transition oracle.
 It invalidates directly affected claims, moves claims with unresolved dependency
 scope to review, and requires new independent evidence bound to the exact
-current configuration revision before requalification. A repair record alone
-cannot restore a claim.
+current configuration revision before requalification. INVALIDATED is monotonic
+until explicit requalification; later unknown changes cannot weaken it to
+NEEDS_REVIEW. A repair record alone cannot restore a claim.
 
 ## Claim ceiling
 
