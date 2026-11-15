@@ -1,0 +1,453 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-DISTORTION-CO-DESIGN-ENUMERABLE-ORACLE-001",
+  "objective_policy": "Minimize all four integer objectives lexicographically only for stable serialization; Pareto dominance is componentwise across final_geometry_units, production_time_units, fixture_cost_units and robustness_risk_units. Lower is better for each synthetic objective.",
+  "cases": [
+    {
+      "case_id": "ENUM-2-001",
+      "tasks": [
+        {
+          "task_id": "A",
+          "duration_units": 4,
+          "geometry_units": 2,
+          "risk_units": 1
+        },
+        {
+          "task_id": "B",
+          "duration_units": 3,
+          "geometry_units": 1,
+          "risk_units": 2
+        }
+      ],
+      "precedence": [
+        [
+          "A",
+          "B"
+        ]
+      ],
+      "transitions": [
+        {
+          "before": "A",
+          "after": "B",
+          "geometry_penalty_units": 1,
+          "time_penalty_units": 2,
+          "risk_penalty_units": 1
+        }
+      ],
+      "fixtures": [
+        {
+          "fixture_id": "F-LIGHT",
+          "reaction_units": 7,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 2,
+          "setup_time_units": 1,
+          "lifecycle_cost_units": 3,
+          "risk_units": 1
+        },
+        {
+          "fixture_id": "F-OVER",
+          "reaction_units": 12,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 0,
+          "setup_time_units": 0,
+          "lifecycle_cost_units": 1,
+          "risk_units": 0
+        }
+      ],
+      "releases": [
+        {
+          "release_id": "R-FULL",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 2,
+          "time_units": 2,
+          "risk_units": 1
+        },
+        {
+          "release_id": "R-PARTIAL",
+          "cooling_complete": true,
+          "all_restraints_removed": false,
+          "geometry_penalty_units": 0,
+          "time_units": 0,
+          "risk_units": 0
+        }
+      ],
+      "feasible_plan_count": 1,
+      "pareto_plan_ids": [
+        "ENUM-2-001|A>B|F-LIGHT|R-FULL"
+      ]
+    },
+    {
+      "case_id": "ENUM-3-002",
+      "tasks": [
+        {
+          "task_id": "A",
+          "duration_units": 3,
+          "geometry_units": 2,
+          "risk_units": 1
+        },
+        {
+          "task_id": "B",
+          "duration_units": 5,
+          "geometry_units": 1,
+          "risk_units": 2
+        },
+        {
+          "task_id": "C",
+          "duration_units": 2,
+          "geometry_units": 3,
+          "risk_units": 1
+        }
+      ],
+      "precedence": [
+        [
+          "A",
+          "C"
+        ]
+      ],
+      "transitions": [
+        {
+          "before": "A",
+          "after": "B",
+          "geometry_penalty_units": 3,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 1
+        },
+        {
+          "before": "B",
+          "after": "C",
+          "geometry_penalty_units": 1,
+          "time_penalty_units": 1,
+          "risk_penalty_units": 0
+        },
+        {
+          "before": "A",
+          "after": "C",
+          "geometry_penalty_units": 0,
+          "time_penalty_units": 2,
+          "risk_penalty_units": 1
+        },
+        {
+          "before": "C",
+          "after": "B",
+          "geometry_penalty_units": 2,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 0
+        },
+        {
+          "before": "B",
+          "after": "A",
+          "geometry_penalty_units": 0,
+          "time_penalty_units": 2,
+          "risk_penalty_units": 2
+        },
+        {
+          "before": "C",
+          "after": "A",
+          "geometry_penalty_units": 5,
+          "time_penalty_units": 2,
+          "risk_penalty_units": 3
+        }
+      ],
+      "fixtures": [
+        {
+          "fixture_id": "F-1",
+          "reaction_units": 8,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 1,
+          "setup_time_units": 1,
+          "lifecycle_cost_units": 5,
+          "risk_units": 1
+        },
+        {
+          "fixture_id": "F-2",
+          "reaction_units": 6,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 3,
+          "setup_time_units": 0,
+          "lifecycle_cost_units": 2,
+          "risk_units": 2
+        },
+        {
+          "fixture_id": "F-3",
+          "reaction_units": 13,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 0,
+          "setup_time_units": 0,
+          "lifecycle_cost_units": 1,
+          "risk_units": 0
+        }
+      ],
+      "releases": [
+        {
+          "release_id": "R-STAGED",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 1,
+          "time_units": 3,
+          "risk_units": 0
+        },
+        {
+          "release_id": "R-FAST",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 4,
+          "time_units": 1,
+          "risk_units": 2
+        }
+      ],
+      "feasible_plan_count": 12,
+      "pareto_plan_ids": [
+        "ENUM-3-002|A>B>C|F-1|R-FAST",
+        "ENUM-3-002|A>B>C|F-1|R-STAGED",
+        "ENUM-3-002|A>B>C|F-2|R-FAST",
+        "ENUM-3-002|A>B>C|F-2|R-STAGED",
+        "ENUM-3-002|A>C>B|F-1|R-FAST",
+        "ENUM-3-002|A>C>B|F-1|R-STAGED",
+        "ENUM-3-002|A>C>B|F-2|R-FAST",
+        "ENUM-3-002|A>C>B|F-2|R-STAGED",
+        "ENUM-3-002|B>A>C|F-1|R-STAGED",
+        "ENUM-3-002|B>A>C|F-2|R-STAGED"
+      ]
+    },
+    {
+      "case_id": "ENUM-4-003",
+      "tasks": [
+        {
+          "task_id": "W1",
+          "duration_units": 2,
+          "geometry_units": 1,
+          "risk_units": 1
+        },
+        {
+          "task_id": "W2",
+          "duration_units": 3,
+          "geometry_units": 2,
+          "risk_units": 1
+        },
+        {
+          "task_id": "W3",
+          "duration_units": 4,
+          "geometry_units": 1,
+          "risk_units": 2
+        },
+        {
+          "task_id": "W4",
+          "duration_units": 2,
+          "geometry_units": 3,
+          "risk_units": 1
+        }
+      ],
+      "precedence": [
+        [
+          "W1",
+          "W3"
+        ],
+        [
+          "W2",
+          "W4"
+        ]
+      ],
+      "transitions": [
+        {
+          "before": "W1",
+          "after": "W2",
+          "geometry_penalty_units": 1,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 0
+        },
+        {
+          "before": "W2",
+          "after": "W1",
+          "geometry_penalty_units": 3,
+          "time_penalty_units": 1,
+          "risk_penalty_units": 2
+        },
+        {
+          "before": "W3",
+          "after": "W4",
+          "geometry_penalty_units": 1,
+          "time_penalty_units": 2,
+          "risk_penalty_units": 1
+        },
+        {
+          "before": "W4",
+          "after": "W3",
+          "geometry_penalty_units": 0,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 0
+        },
+        {
+          "before": "W1",
+          "after": "W4",
+          "geometry_penalty_units": 2,
+          "time_penalty_units": 1,
+          "risk_penalty_units": 1
+        },
+        {
+          "before": "W4",
+          "after": "W1",
+          "geometry_penalty_units": 4,
+          "time_penalty_units": 2,
+          "risk_penalty_units": 2
+        },
+        {
+          "before": "W2",
+          "after": "W3",
+          "geometry_penalty_units": 2,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 1
+        },
+        {
+          "before": "W3",
+          "after": "W2",
+          "geometry_penalty_units": 1,
+          "time_penalty_units": 1,
+          "risk_penalty_units": 0
+        },
+        {
+          "before": "W1",
+          "after": "W3",
+          "geometry_penalty_units": 0,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 0
+        },
+        {
+          "before": "W2",
+          "after": "W4",
+          "geometry_penalty_units": 0,
+          "time_penalty_units": 0,
+          "risk_penalty_units": 0
+        }
+      ],
+      "fixtures": [
+        {
+          "fixture_id": "F-RIGID",
+          "reaction_units": 9,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 0,
+          "setup_time_units": 3,
+          "lifecycle_cost_units": 8,
+          "risk_units": 0
+        },
+        {
+          "fixture_id": "F-MOD",
+          "reaction_units": 7,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 2,
+          "setup_time_units": 1,
+          "lifecycle_cost_units": 4,
+          "risk_units": 1
+        }
+      ],
+      "releases": [
+        {
+          "release_id": "R-CONTROLLED",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 1,
+          "time_units": 3,
+          "risk_units": 0
+        },
+        {
+          "release_id": "R-UNCONTROLLED",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 4,
+          "time_units": 0,
+          "risk_units": 3
+        },
+        {
+          "release_id": "R-TOO-EARLY",
+          "cooling_complete": false,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 0,
+          "time_units": 0,
+          "risk_units": 0
+        }
+      ],
+      "feasible_plan_count": 24,
+      "pareto_plan_ids": [
+        "ENUM-4-003|W1>W2>W4>W3|F-MOD|R-CONTROLLED",
+        "ENUM-4-003|W1>W2>W4>W3|F-MOD|R-UNCONTROLLED",
+        "ENUM-4-003|W1>W2>W4>W3|F-RIGID|R-CONTROLLED",
+        "ENUM-4-003|W1>W2>W4>W3|F-RIGID|R-UNCONTROLLED"
+      ]
+    },
+    {
+      "case_id": "ENUM-4-004",
+      "tasks": [
+        {
+          "task_id": "X1",
+          "duration_units": 2,
+          "geometry_units": 1,
+          "risk_units": 1
+        },
+        {
+          "task_id": "X2",
+          "duration_units": 2,
+          "geometry_units": 1,
+          "risk_units": 1
+        },
+        {
+          "task_id": "X3",
+          "duration_units": 3,
+          "geometry_units": 2,
+          "risk_units": 1
+        },
+        {
+          "task_id": "X4",
+          "duration_units": 1,
+          "geometry_units": 2,
+          "risk_units": 1
+        }
+      ],
+      "precedence": [
+        [
+          "X1",
+          "X2"
+        ],
+        [
+          "X2",
+          "X3"
+        ],
+        [
+          "X3",
+          "X1"
+        ]
+      ],
+      "transitions": [],
+      "fixtures": [
+        {
+          "fixture_id": "F-ONLY",
+          "reaction_units": 2,
+          "reaction_limit_units": 10,
+          "approved": true,
+          "geometry_bias_units": 0,
+          "setup_time_units": 0,
+          "lifecycle_cost_units": 1,
+          "risk_units": 0
+        }
+      ],
+      "releases": [
+        {
+          "release_id": "R-FULL",
+          "cooling_complete": true,
+          "all_restraints_removed": true,
+          "geometry_penalty_units": 0,
+          "time_units": 0,
+          "risk_units": 0
+        }
+      ],
+      "feasible_plan_count": 0,
+      "pareto_plan_ids": []
+    }
+  ]
+}
