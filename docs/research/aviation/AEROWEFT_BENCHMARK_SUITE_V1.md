@@ -617,3 +617,20 @@ authenticated current briefings, regulatory amendments and data rights. The
 medical benchmark remains synthetic until every required source is admitted for
 its declared purpose; a public PDF or NOTAM summary is not a live operational
 feed or flight-preparation service.
+
+
+### Track O — cross-layer assurance composition
+
+**Question:** can PNT/time, bounded reachability, cooperative/non-cooperative surveillance and operational-intent conformance be composed without converting unknown, stale, revoked or unqualified owner outputs into false-safe planning inputs?
+
+**Consumes:** #5163, #5270, #5275, #5284 and existing #2279/#2297/#5186, with Mycelix #435/#458/#5904 and Symthaea #6249/#10775/#10826.
+
+**Owned output:** a deterministic, receipt-preserving composition disposition. The strongest positive state is `READY_FOR_CONFLICT_SCREEN`, never "safe", "clear", "authorized" or "dispatchable".
+
+**Hard gates:** zero false-empty occupancy; zero unqualified positive admissions; zero traffic-class substitution; zero suppression of reauthorization, nonconformance or contingency; at least one positive control; exact replay and permutation invariance; zero evidence-degradation monotonicity violations; complete receipt traceability.
+
+**Paradigm shift:** non-compensatory evidence composition rather than a weighted safety score. Each domain keeps its own authority and algorithm. Cross-layer composition checks identity, receipt, status, class scope and authority transitions only. A no-report under qualified surveillance becomes unresolved possible occupancy; a class with unqualified or missing coverage remains not assessable. No partial validated occupancy list is returned on composition failure.
+
+**Fixture:** `fixtures/aeroweift-assurance-composition/evidence-composition-v0.json`, synthetic-only. The isolated oracle is in `tools/aeroweift-assurance-composition-oracle/`. The fixture and Rust tests are finite contract checks, not physical, operational, certification or safety evidence.
+
+**Research comparator:** 2026 integrated vertiport/vertipad optimization, demand/queueing and airside discrete-event simulation remain the planning/capacity comparators; AAM DAA/separation literature remains the surveillance/conflict comparator. Track O evaluates the evidence interface to such systems rather than reimplementing their optimizers or DAA algorithms.
