@@ -4,6 +4,8 @@ use std::time::{Duration, Instant};
 use construction_motion_oracle::{
     AnalyticPath, Capsule, Vec3, chord_collision, endpoints_only_collision,
     moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate,
+    endpoints_only_two_moving_capsules_collision, two_moving_capsules_aabb_candidate,
+    two_moving_capsules_collision, two_moving_capsules_vs_capsules,
     endpoints_only_translating_capsule_collision, translating_capsule_aabb_candidate,
     translating_capsule_capsule_collision, translating_capsule_vs_capsule,
 };
@@ -222,6 +224,83 @@ fn main() {
             black_box(stationary),
         )
         .expect("valid translating capsule broad-phase query");
+    });
+
+    let moving_pair = Capsule::new(
+        Vec3::new(-10.0, -2.0, 0.0),
+        Vec3::new(-10.0, 2.0, 0.0),
+        0.5,
+    )
+    .expect("valid first moving capsule");
+    let opposing_pair = Capsule::new(
+        Vec3::new(10.0, -2.0, 0.0),
+        Vec3::new(10.0, 2.0, 0.0),
+        0.5,
+    )
+    .expect("valid second moving capsule");
+    let moving_delta = Vec3::new(20.0, 0.0, 0.0);
+    let opposing_delta = Vec3::new(-20.0, 0.0, 0.0);
+    let pair_closest = two_moving_capsules_vs_capsules(
+        black_box(moving_pair),
+        black_box(moving_delta),
+        black_box(opposing_pair),
+        black_box(opposing_delta),
+    )
+    .expect("valid two-moving-capsule narrow-phase query");
+    println!(
+        "two-moving-capsules,analytic_collision,{}",
+        two_moving_capsules_collision(
+            black_box(moving_pair),
+            black_box(moving_delta),
+            black_box(opposing_pair),
+            black_box(opposing_delta),
+        )
+        .expect("valid two-moving-capsule query")
+    );
+    println!(
+        "two-moving-capsules,endpoint_collision,{}",
+        endpoints_only_two_moving_capsules_collision(
+            black_box(moving_pair),
+            black_box(moving_delta),
+            black_box(opposing_pair),
+            black_box(opposing_delta),
+        )
+        .expect("valid two-moving-capsule endpoint baseline")
+    );
+    println!(
+        "two-moving-capsules,closest_time,{}",
+        pair_closest.time_parameter
+    );
+    println!(
+        "two-moving-capsules,minimum_distance_mm,{}",
+        pair_closest.distance_mm
+    );
+    measure("two-moving-capsules-relative-narrow-phase", || {
+        two_moving_capsules_vs_capsules(
+            black_box(moving_pair),
+            black_box(moving_delta),
+            black_box(opposing_pair),
+            black_box(opposing_delta),
+        )
+        .expect("valid two-moving-capsule narrow-phase query");
+    });
+    measure("two-moving-capsules-endpoint-only", || {
+        endpoints_only_two_moving_capsules_collision(
+            black_box(moving_pair),
+            black_box(moving_delta),
+            black_box(opposing_pair),
+            black_box(opposing_delta),
+        )
+        .expect("valid two-moving-capsule endpoint baseline");
+    });
+    measure("two-moving-capsules-swept-aabb", || {
+        two_moving_capsules_aabb_candidate(
+            black_box(moving_pair),
+            black_box(moving_delta),
+            black_box(opposing_pair),
+            black_box(opposing_delta),
+        )
+        .expect("valid two-moving-capsule broad-phase query");
     });
 
 }

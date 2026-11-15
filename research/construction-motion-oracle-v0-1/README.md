@@ -62,3 +62,18 @@ See docs/differential-adapter-contract.md.
 ## Claim ceiling
 
 Passing tests establish only the implemented mathematics for the declared line and planar semicircle families and the adapter's tested structural behavior. They do not establish arbitrary continuous collision detection, physical robot model accuracy, localization/tracking/stopping truth, safe separation, construction productivity, standards conformity or vendor interoperability.
+
+## Two independently moving capsules
+
+The two-moving-capsule child reduces independent constant translations to relative translation: `d_relative = d_A - d_B`. It runs the existing fixed-orientation translating-capsule oracle against the other capsule's initial pose, then applies `d_B * t` to both closest points to return the shared world-frame contact geometry.
+
+This supports two rigid capsules with fixed orientations and constant linear translations over the same normalized interval. It does not cover rotation, articulated links, acceleration, deformation, uncertain tracking, or physical human-protection qualification.
+
+The child provides:
+- exact relative-motion narrow phase and closest world points at the common time;
+- a separate endpoint-only baseline;
+- conservative per-object swept-AABB candidate generation;
+- typed propagation of non-finite, overflow and near-singular `NumericallyUnresolved` outcomes;
+- metamorphic and adversarial tests for crossing between clear endpoints, equal velocity, closing/receding, tangency, time reversal, common rigid transforms, scaling, near-parallel abstention and broad-phase containment.
+
+The Linux formula benchmark prints separate latency distributions for relative narrow phase, endpoints-only and per-object swept-AABB. These are formula microbenchmarks, not moving-robot field performance or a MoveIt/Tesseract comparison.
