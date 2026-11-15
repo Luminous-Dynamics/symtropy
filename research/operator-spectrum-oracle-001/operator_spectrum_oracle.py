@@ -67,7 +67,10 @@ def ratio_interval(
 
 
 def build_oracle(input_document: dict[str, Any]) -> dict[str, Any]:
-    epsilon = sp.Rational(input_document["root_isolation_epsilon"])
+    root_power = int(input_document["root_isolation_power"])
+    if root_power < 1:
+        raise ValueError("root-isolation power must be positive")
+    epsilon = sp.Rational(1, 10 ** root_power)
     precision = int(input_document["singular_value_decimal_digits"])
     if precision < 30:
         raise ValueError("singular-value enclosure precision must be at least 30 digits")
@@ -148,7 +151,7 @@ def build_oracle(input_document: dict[str, Any]) -> dict[str, Any]:
             "isolation; this squares nonzero spectral condition numbers and is not "
             "the production SVD path."
         ),
-        "root_isolation_epsilon": input_document["root_isolation_epsilon"],
+        "root_isolation_epsilon": f"1/10^{root_power}",
         "singular_value_decimal_digits": precision,
         "fixtures": records,
     }
