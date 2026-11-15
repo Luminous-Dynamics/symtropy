@@ -924,36 +924,52 @@ mod tests {
         .unwrap();
         let mass_y = rebasis.metric_to_to(&mass_q, profile).unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
-        let delassus =
+        let old_basis_delassus =
             DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
                 &mass_y,
                 jacobian_y,
                 profile,
             )
             .unwrap();
-        let correct_metric = Metric::<ConstraintSpace, 2>::admit(
-            invert_spd_2(delassus.matrix()),
-            profile,
-        )
-        .unwrap();
-        let stale_metric = Metric::<ConstraintSpace, 2>::admit(
-            invert_spd_2(delassus_q_matrix_placeholder()),
-            profile,
-        );
 
-        let correct = RectangularTangentToTangentOperator::<DenseY, ConstraintSpace, 2, 3>::new(
-            jacobian_y,
+        let transform = [[1.0, 2.0], [0.0, 0.5]];
+        let jacobian_new = rebase_constraint_rows(&jacobian_y, &transform);
+        let new_basis_delassus =
+            DelassusMetricV1::<DenseY, ConstraintRowsRebased, 3, 2>::from_mass_jacobian(
+                &mass_y,
+                jacobian_new,
+                profile,
+            )
+            .unwrap();
+        let correct_metric = Metric::<ConstraintRowsRebased, 2>::admit(
+            invert_spd_2(new_basis_delassus.matrix()),
+            profile,
         )
-        .unwrap()
-        .assess(&mass_y, &correct_metric, operator_profile())
         .unwrap();
-        // A stale constraint metric is bound to the wrong Delassus identity
-        // and must not reproduce the unit coisometry spectrum.
-        let _ = stale_metric;
-        close(
-            correct.nonzero_spectrum_condition_estimate.unwrap(),
-            1.0,
-            3.0e-11,
+        // Deliberately reuse W^-1 from the old residual basis after applying T.
+        let stale_metric = Metric::<ConstraintRowsRebased, 2>::admit(
+            invert_spd_2(old_basis_delassus.matrix()),
+            profile,
+        )
+        .unwrap();
+        let operator =
+            RectangularTangentToTangentOperator::<DenseY, ConstraintRowsRebased, 2, 3>::new(
+                jacobian_new,
+            )
+            .unwrap();
+
+        let correct = operator
+            .assess(&mass_y, &correct_metric, operator_profile())
+            .unwrap();
+        let stale = operator
+            .assess(&mass_y, &stale_metric, operator_profile())
+            .unwrap();
+
+        close(correct.singular_values[0], 1.0, 3.0e-11);
+        close(correct.singular_values[1], 1.0, 3.0e-11);
+        assert!(
+            (stale.singular_values[0] - 1.0).abs() > 1.0e-3
+                || (stale.singular_values[1] - 1.0).abs() > 1.0e-3
         );
     }
 
