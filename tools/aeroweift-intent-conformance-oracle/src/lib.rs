@@ -402,9 +402,10 @@ pub struct ConformanceAssessment {
     pub unobserved_ticks: u64,
     /// Total duration of qualified observation support.
     pub qualified_observed_ticks: u64,
-    /// Definite outside share in parts per million of qualified observed time.
+    /// Definite outside lower-bound share in parts per million of the full evaluation window.
     pub definite_outside_ppm: u32,
-    /// Possible outside share in parts per million of qualified observed time.
+    /// Possible outside upper-bound share in parts per million of the full evaluation window.
+    /// Unobserved and unassessable time contributes to this upper bound.
     pub possible_outside_ppm: u32,
     /// Exact authority/observation lineage.
     pub lineage: ConformanceLineage,
@@ -748,13 +749,6 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         );
     }
 
-    let Some(evaluation_duration) = policy.evaluation_window.duration() else {
-        return empty(
-            ConformanceStatus::NotAssessable,
-            Some(ConformanceReason::InvalidPolicyOrAuthorization),
-            lineage,
-        );
-    };
     let Some(unobserved) = evaluation_duration.checked_sub(covered_window_ticks) else {
         return empty(
             ConformanceStatus::NotAssessable,
@@ -774,8 +768,28 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         }
     };
 
-    let definite_outside_ppm = ratio_ppm(definite_outside, qualified_observed);
-    let possible_outside_ppm = ratio_ppm(possible_outside, qualified_observed);
+    let Some(evaluation_duration) = policy.evaluation_window.duration() else {
+        return empty(
+            ConformanceStatus::NotAssessable,
+            Some(ConformanceReason::InvalidPolicyOrAuthorization),
+            lineage,
+        );
+    };
+    let Some(possible_or_unknown_ticks) = possible_outside
+        .checked_add(unassessable)
+        .and_then(|value| value.checked_add(unobserved))
+    else {
+        return empty(
+            ConformanceStatus::NotAssessable,
+            Some(ConformanceReason::ArithmeticOverflow),
+            lineage,
+        );
+    };
+    // The definite fraction is a lower bound over the full evaluation window.
+    // The possible fraction is an upper bound: all unobserved/unassessable time
+    // remains unresolved rather than being counted as observed-inside time.
+    let definite_outside_ppm = ratio_ppm(definite_outside, evaluation_duration);
+    let possible_outside_ppm = ratio_ppm(possible_or_unknown_ticks, evaluation_duration);
 
     if unassessable > 0 {
         return ConformanceAssessment {
