@@ -89,7 +89,7 @@ fn integer_matrix(value: &Value, columns: usize) -> Result<Vec<Vec<i128>>, Strin
     Ok(matrix)
 }
 
-fn exact_rank(matrix: &[Vec<i128>], columns: usize) -> Result<usize, String> {
+pub(crate) fn exact_rank(matrix: &[Vec<i128>], columns: usize) -> Result<usize, String> {
     if matrix.is_empty() { return Ok(0); }
     let mut work = Vec::with_capacity(matrix.len());
     for row in matrix {
