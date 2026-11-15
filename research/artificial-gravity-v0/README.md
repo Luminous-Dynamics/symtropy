@@ -191,7 +191,7 @@ A September 2026 Research Square preprint by Zhang proposes co-designing human e
 - [Constraint-intersection fixture](fixtures/codesign_constraint_intersection.csv)
 - [Full derivation and scaling note](CODESIGN_CONSTRAINTS_AND_SCALING.md)
 
-The Rust reference now supports three independently declared bounds: body gradient, maximum RPM, and a caller-specified Coriolis fraction for an explicitly supplied transverse movement speed. The Coriolis fraction is only a parameterized engineering envelope; it is not a validated comfort, safety or medical limit.
+The Rust reference now supports three independently declared bounds: body gradient, maximum RPM, and a caller-specified Coriolis fraction for an explicitly supplied transverse movement speed. The Coriolis fraction is only a parameterized engineering envelope; it is not a validated comfort, safety or medical limit. The 288-case independent expected output is fixtures/coupled_design_space_expected.csv.
 
 Run the deterministic matrix:
 
@@ -216,6 +216,7 @@ For fixed linear mass density instead, total mass grows with circumference:
 These are distinct mass-scaling assumptions. The tension relation is a limiting thin-ring membrane result—not structural qualification, pressure-vessel design, or a full mass estimate. Joint, shielding, pressure-shell, thermal, fatigue, buckling, dynamic and manufacturing effects are omitted.
 
 - [Ring scaling fixture](fixtures/ring_scaling_laws.csv)
+- [64-case independent expected output](fixtures/ring_scaling_matrix_expected.csv)
 - [Ring scaling derivations and evidence limits](CODESIGN_CONSTRAINTS_AND_SCALING.md)
 - [Ring scaling generator](src/bin/ring_scaling_matrix.rs)
 
@@ -229,7 +230,7 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --
 
 The AG-SIM-1 reference adds an exact constant-angular-acceleration solution for a point fixed to a rotor about a fixed z-axis. It emits inertial position, velocity and acceleration and independently checks that inertial acceleration cancels the rotating-frame centrifugal plus Euler pseudo-acceleration.
 
-The fixture covers spin-up, steady rotation and spin-down: fixtures/spin_profile_exact.csv.
+The spot-check fixture covers spin-up, steady rotation and spin-down: fixtures/spin_profile_exact.csv. The full 18-case independent expected output is fixtures/spin_profile_matrix_expected.csv.
 
 ~~~bash
 cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin spin_profile_matrix
