@@ -300,7 +300,8 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
                 .is_some_and(|operation| operation.contains("10000"))
     });
     let model_specific_units_valid =
-        actual_annual_models == expected_annual_models
+        model_applications.len() == expected_annual_models.len()
+            && actual_annual_models == expected_annual_models
             && annual_applications_valid
             && no_double_conversion
             && per_area_scaling;
