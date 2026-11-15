@@ -1,5 +1,5 @@
 {
-  "benchmark_id": "FOREST-SPATIAL-LOCALIZATION-001",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
   "version": "0.1.0",
   "status": "SYNTHETIC_REFERENCE_CORPUS",
   "method": "GAUSSIAN_DISTANCE_WEIGHTED_RESIDUAL_QUANTILE",
@@ -274,5 +274,6 @@
       ],
       "expected_morans_i": null
     }
-  ]
+  ],
+  "corpus_id": "FOREST-SPATIAL-LOCALIZATION-001"
 }
