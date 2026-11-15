@@ -1,0 +1,108 @@
+{
+  "schema_version": "protective-model-evidence-envelope/0.1",
+  "evidence_class": "synthetic",
+  "source": {
+    "provider_id": "synthetic.incore-shaped",
+    "platform_name": "IN-CORE-shaped compatibility fixture; not an IN-CORE execution",
+    "provider_kind": "SYNTHETIC_FIXTURE",
+    "software_version": {
+      "status": "UNKNOWN",
+      "value": null
+    },
+    "documentation_uri": "https://tools.in-core.org/doc/pyincore/modules.html"
+  },
+  "analysis": {
+    "analysis_id": "synthetic.analysis.water-continuity.001",
+    "run_id": null,
+    "execution_status": "NOT_EXECUTED",
+    "started_at": null,
+    "completed_at": null
+  },
+  "scope": {
+    "context_id": "SYNTHETIC-COMMUNITY-WATER-001",
+    "jurisdiction": "ZA synthetic context only; no actual location or legal determination",
+    "system_boundary_id": "SYNTHETIC-WATER-BOUNDARY-001",
+    "scenario_id": "SYNTHETIC-BOUNDED-POWER-COMMS-INTERRUPTION-001",
+    "scenario_basis": "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC",
+    "time_horizon": "3 synthetic hourly intervals",
+    "coordinate_reference": {
+      "status": "UNKNOWN",
+      "value": null
+    }
+  },
+  "datasets": [
+    {
+      "dataset_id": "synthetic.dataset.water.input.001",
+      "direction": "INPUT",
+      "data_type": "application/json",
+      "semantic_type": "synthetic.service-demand",
+      "revision": {
+        "status": "UNKNOWN",
+        "value": null
+      },
+      "rights": {
+        "status": "SYNTHETIC_OPEN_FIXTURE",
+        "license_id": null,
+        "permitted_use": "SYNTHETIC_TEST_ONLY"
+      },
+      "units": "demand=permille; population=person",
+      "coordinate_reference": {
+        "status": "UNKNOWN",
+        "value": null
+      },
+      "artifacts": [
+        {
+          "relative_path": "model-evidence-payloads/synthetic-input.json",
+          "byte_length": 228,
+          "sha256": "7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf"
+        }
+      ]
+    },
+    {
+      "dataset_id": "synthetic.dataset.water.output.001",
+      "direction": "OUTPUT",
+      "data_type": "application/json",
+      "semantic_type": "synthetic.service-performance-trajectory",
+      "revision": {
+        "status": "UNKNOWN",
+        "value": null
+      },
+      "rights": {
+        "status": "SYNTHETIC_OPEN_FIXTURE",
+        "license_id": null,
+        "permitted_use": "SYNTHETIC_TEST_ONLY"
+      },
+      "units": "delivered_service=permille",
+      "coordinate_reference": {
+        "status": "UNKNOWN",
+        "value": null
+      },
+      "artifacts": [
+        {
+          "relative_path": "model-evidence-payloads/synthetic-output.json",
+          "byte_length": 272,
+          "sha256": "ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6"
+        }
+      ]
+    }
+  ],
+  "lineage_edges": [
+    {
+      "from": "dataset:synthetic.dataset.water.input.001",
+      "to": "analysis:synthetic.analysis.water-continuity.001",
+      "relationship": "CONSUMED_BY"
+    },
+    {
+      "from": "analysis:synthetic.analysis.water-continuity.001",
+      "to": "dataset:synthetic.dataset.water.output.001",
+      "relationship": "PRODUCED_BY"
+    }
+  ],
+  "uncertainty": {
+    "status": "NOT_REPRESENTED",
+    "representation": "No probabilistic or calibrated uncertainty is represented in this synthetic fixture.",
+    "method_id": null,
+    "calibration_reference": null
+  },
+  "claim_ceiling": "Synthetic envelope, lineage-shape and local artifact-integrity conformance only. This is not an IN-CORE run, model validation, physical protection, field performance, regulatory compliance or certification."
+}
