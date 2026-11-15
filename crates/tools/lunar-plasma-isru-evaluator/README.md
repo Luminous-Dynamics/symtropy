@@ -16,7 +16,7 @@ The package has its own Cargo workspace boundary. It does not join the root work
 
 - Exact schema and synthetic-only top-level claim boundary.
 - Unique scenario, feedstock, material-stream, observation, coproduct and meter identities.
-- Feedstock material mass closure.
+- Feedstock material mass closure, including reconciliation to the declared dry batch mass.
 - Separate reagent inventory closure (opening + makeup = ending + residue-bound + purge).
 - Distinct O2 / CO / CO2 species identity.
 - Quantitative gas measurement and calibration reference for any accepted O2 product.
@@ -42,7 +42,7 @@ The measurement receipt is intentionally local to the synthetic plasma process f
 - cross-sensitivity qualification passed for the declared species;
 - a sampling interval and raw trace artifact are identified.
 
-The expanded fixture contains 15 scenarios: 1 synthetic pass, 8 blocked, 5 rejected and 1 not comparable. UTC timestamps are checked for normalized form and real calendar/time ranges; impossible dates are refused. No calibration or measurement values in the fixture represent an actual instrument or experiment.
+The expanded fixture contains 16 scenarios: 1 synthetic pass, 8 blocked, 6 rejected and 1 not comparable. UTC timestamps are checked for normalized form and real calendar/time ranges; impossible dates are refused. No calibration or measurement values in the fixture represent an actual instrument or experiment.
 
 
 ## Evidence-reference boundary
