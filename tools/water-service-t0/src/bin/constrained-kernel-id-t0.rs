@@ -23,6 +23,11 @@ fn number(v: &Value, k: &str) -> Result<f64, String> {
         .filter(|x| x.is_finite())
         .ok_or_else(|| format!("{k} must be finite numeric"))
 }
+fn text<'a>(v: &'a Value, k: &str) -> Result<&'a str, String> {
+    field(v, k)?
+        .as_str()
+        .ok_or_else(|| format!("{k} must be text"))
+}
 fn usize_value(v: &Value, k: &str) -> Result<usize, String> {
     field(v, k)?
         .as_u64()
@@ -387,7 +392,7 @@ fn constrained_fit(
     let n = b.len();
     let mut h = project_groups(&vec![0.0; n], groups, targets)?;
     let mut z = h.clone();
-    let mut t = 1.0;
+    let mut t: f64 = 1.0;
     let mut converged = false;
     let mut iterations = 0;
     for iteration in 0..max_iter {
