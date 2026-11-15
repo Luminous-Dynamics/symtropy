@@ -395,7 +395,8 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !bounded_unit_interval(policy.minimum_worst_case_robust_reduction)
         || !bounded_unit_interval(policy.minimum_model_discrimination)
         || !bounded_unit_interval(policy.minimum_pair_separation)
-        || policy.minimum_distinct_hypothesis_group_pairs == 0
+        || (policy.objective == ExperimentObjective::ModelDiscrimination
+            && policy.minimum_distinct_hypothesis_group_pairs == 0)
         || !bounded_unit_interval(policy.maximum_probability_uninformative)
     {
         return Err(DesignError::InvalidPolicy);
@@ -413,6 +414,9 @@ fn independent_group_count(candidate: &ExperimentCandidate) -> usize {
 }
 
 fn independent_group_pair_count(candidate: &ExperimentCandidate, minimum_separation: f64) -> usize {
+    if candidate.objective != ExperimentObjective::ModelDiscrimination {
+        return 0;
+    }
     let hypotheses: std::collections::BTreeMap<&str, &str> = candidate
         .hypothesis_groups
         .iter()
