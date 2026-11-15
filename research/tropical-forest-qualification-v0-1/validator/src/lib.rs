@@ -4498,6 +4498,16 @@ mod tests {
     }
 
     #[test]
+    fn block_conformal_corpus_rejects_calibration_test_block_identity_reuse() {
+        let mut manifest: Value =
+            serde_json::from_str(BLOCK_CONFORMAL_FIXTURE).expect("valid block conformal corpus");
+        manifest["scenario"]["test_blocks"][0]["block_id"] =
+            manifest["scenario"]["calibration_blocks"][0]["block_id"].clone();
+        let bytes = serde_json::to_vec(&manifest).expect("serialize duplicate block identity");
+        assert!(evaluate(&bytes).is_err());
+    }
+
+    #[test]
     fn block_conformal_corpus_rejects_calibration_test_group_leakage() {
         let mut manifest: Value =
             serde_json::from_str(BLOCK_CONFORMAL_FIXTURE).expect("valid block conformal corpus");
