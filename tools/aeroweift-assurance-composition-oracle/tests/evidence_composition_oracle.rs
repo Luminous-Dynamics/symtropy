@@ -46,6 +46,134 @@ fn valid_input() -> CompositionInput {
     }
 }
 
+fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
+    let traffic_class = if class_index == 0 {
+        TrafficClass::CooperativeCrewed
+    } else {
+        TrafficClass::NonCooperativeCrewed
+    };
+    let evidence = || {
+        input
+            .surveillance
+            .iter_mut()
+            .find(|item| item.traffic_class == traffic_class)
+    };
+
+    match fault {
+        0 => input.pnt_disposition = PntDisposition::Stale,
+        1 => input.pnt_disposition = PntDisposition::StatisticalOnly,
+        2 => input.pnt_disposition = PntDisposition::Recovering,
+        3 => input.pnt_disposition = PntDisposition::Indeterminate,
+        4 => input.pnt_disposition = PntDisposition::ClockUnqualified,
+        5 => input.pnt_disposition = PntDisposition::Contradictory,
+        6 => input.reachability_disposition = ReachabilityDisposition::NotAssessable,
+        7 => input.reachability_disposition = ReachabilityDisposition::ArithmeticFailure,
+        8 => input.intent_disposition = IntentDisposition::PotentiallyNonconforming,
+        9 => input.intent_disposition = IntentDisposition::NotAssessable,
+        10 => input.intent_disposition = IntentDisposition::Nonconforming,
+        11 => input.intent_disposition = IntentDisposition::Contingent,
+        12 => input.intent_disposition = IntentDisposition::ReauthorizationRequired,
+        13 => input.pnt_receipt_ref = None,
+        14 => input.reachability_receipt_ref = None,
+        15 => input.intent_receipt_ref = None,
+        16 => input
+            .surveillance
+            .retain(|item| item.traffic_class != traffic_class),
+        17 => {
+            if let Some(item) = evidence() {
+                item.disposition = SurveillanceDisposition::NoQualifiedCoverage;
+                item.observation_ref = None;
+            }
+        }
+        18 => {
+            if let Some(item) = evidence() {
+                item.disposition = SurveillanceDisposition::UnqualifiedTrack;
+            }
+        }
+        19 => {
+            if let Some(item) = evidence() {
+                item.coverage_qualification_ref = None;
+            }
+        }
+        20 => {
+            if let Some(item) = evidence() {
+                item.observation_ref = None;
+            }
+        }
+        21 => {
+            if let Some(item) = evidence() {
+                item.dependency_snapshot_ref = None;
+            }
+        }
+        22 => {
+            if let Some(item) = evidence() {
+                item.independence_qualified = false;
+            }
+        }
+        23 => {
+            if let Some(item) = evidence() {
+                item.identity.time_scale_id = "OTHER-TIME";
+            }
+        }
+        24 => {
+            if let Some(item) = evidence() {
+                item.identity.profile_id = "OTHER-PROFILE";
+            }
+        }
+        25 => {
+            if let Some(item) = evidence() {
+                item.identity.frame_id = "OTHER-FRAME";
+            }
+        }
+        26 => {
+            if let Some(item) = evidence() {
+                item.identity.vertical_datum_id = "OTHER-DATUM";
+            }
+        }
+        27 => input.expected_identity.vertical_datum_id = "",
+        28 => {
+            let copy = input
+                .surveillance
+                .iter()
+                .find(|item| item.traffic_class == traffic_class)
+                .cloned()
+                .unwrap_or_else(|| crate::evidence(traffic_class));
+            input.surveillance.push(copy);
+        }
+        29 => input.required_traffic_classes.push(traffic_class),
+        30 => input.required_traffic_classes.clear(),
+        31 => input.expected_identity.time_scale_id = "",
+        32 => input.reachability_identity.profile_id = "",
+        33 => input.intent_identity.vertical_datum_id = "OTHER-DATUM",
+        34 => input.pnt_receipt_ref = Some(" "),
+        35 => input.reachability_receipt_ref = Some(" "),
+        36 => input.intent_receipt_ref = Some(" "),
+        37 => {
+            if let Some(item) = evidence() {
+                item.coverage_qualification_ref = Some(" ");
+            }
+        }
+        38 => {
+            if let Some(item) = evidence() {
+                item.dependency_snapshot_ref = Some(" ");
+            }
+        }
+        39 => {
+            if let Some(item) = evidence() {
+                item.identity.frame_id = "";
+            }
+        }
+        _ => unreachable!("fault index is bounded by the campaign"),
+    }
+}
+
+fn next_seeded(seed: &mut u64) -> u64 {
+    *seed ^= *seed << 13;
+    *seed ^= *seed >> 7;
+    *seed ^= *seed << 17;
+    *seed
+}
+
 #[test]
 fn fully_qualified_positive_control_reaches_conflict_screen_only() {
     let result = compose(&valid_input());
@@ -408,6 +536,56 @@ fn duplicate_required_traffic_class_is_rejected() {
             TrafficClass::NonCooperativeCrewed
         ))
     );
+}
+
+#[test]
+fn exhaustive_pairs_and_seeded_ten_thousand_fault_trials_never_admit() {
+    const FAULTS: usize = 40;
+
+    // Exhaust every single mutator and every unordered pair of mutators.
+    for first in 0..FAULTS {
+        let mut single = valid_input();
+        apply_fault(&mut single, first, first % 2);
+        let single_result = compose(&single);
+        assert_ne!(
+            single_result.decision,
+            Decision::ReadyForConflictScreen,
+            "single fault {first} admitted"
+        );
+        assert!(single_result.class_occupancy.is_empty());
+
+        for second in first..FAULTS {
+            let mut pair = valid_input();
+            apply_fault(&mut pair, first, first % 2);
+            apply_fault(&mut pair, second, second % 2);
+            let result = compose(&pair);
+            assert_ne!(
+                result.decision,
+                Decision::ReadyForConflictScreen,
+                "fault pair ({first}, {second}) admitted"
+            );
+            assert!(result.class_occupancy.is_empty());
+        }
+    }
+
+    // Deterministic seeded combinations exercise repeated cross-layer interactions.
+    let mut seed = 0xA3E0_5AFE_2026_0015_u64;
+    for sample in 0..10_000 {
+        let first = (next_seeded(&mut seed) as usize) % FAULTS;
+        let second = (next_seeded(&mut seed) as usize) % FAULTS;
+        let class_index = (next_seeded(&mut seed) as usize) % 2;
+        let mut input = valid_input();
+        apply_fault(&mut input, first, class_index);
+        apply_fault(&mut input, second, 1 - class_index);
+
+        let result = compose(&input);
+        assert_ne!(
+            result.decision,
+            Decision::ReadyForConflictScreen,
+            "seeded sample {sample} with faults ({first}, {second}) admitted"
+        );
+        assert!(result.class_occupancy.is_empty());
+    }
 }
 
 #[test]
