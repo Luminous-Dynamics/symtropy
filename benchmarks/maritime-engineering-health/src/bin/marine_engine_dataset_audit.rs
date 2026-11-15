@@ -1310,7 +1310,12 @@ mod tests {
             .collect::<Vec<_>>();
         let mut units = vec!["unit".to_string(); BASELINE_COLUMNS];
         units[0] = "sec".into();
-        let mut output = format!("{}\n{}\n{}\n", names.join(","), symbols.join(","), units.join(","));
+        let mut output = format!(
+            "{}\n{}\n{}\n",
+            names.join(","),
+            symbols.join(","),
+            units.join(",")
+        );
         for time in rows {
             let mut cells = vec!["value".to_string(); BASELINE_COLUMNS];
             cells[0] = (*time).into();
@@ -1346,15 +1351,18 @@ mod tests {
     #[test]
     fn reference_baseline_cannot_be_relabelled_as_a_fault_scenario() {
         let data = synthetic_scenario_csv(&[("100", "0", "0"), ("101", "1", "1")]);
-        let scenario = inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes())
-            .unwrap();
+        let scenario =
+            inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes()).unwrap();
         assert!(!validate_csv_role("baseline_csv", &scenario).is_empty());
     }
 
     #[test]
     fn a_baseline_header_cannot_smuggle_in_scenario_only_label_semantics() {
-        let data = synthetic_baseline_csv(&["0", "1", "2"])
-            .replacen("Time,channel", "Time,Anomaly State", 1);
+        let data = synthetic_baseline_csv(&["0", "1", "2"]).replacen(
+            "Time,channel",
+            "Time,Anomaly State",
+            1,
+        );
         let audit = inspect_csv("Reference_Data.csv", "baseline_csv", data.as_bytes()).unwrap();
         assert!(!validate_csv_role("baseline_csv", &audit).is_empty());
     }
