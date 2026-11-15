@@ -47,12 +47,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ]])?;
         let output_curvature = CurvatureEvidenceV1::AnalyticUpperBound {
             second_derivative_norm_bound: case.second_derivative.abs(),
+            valid_radius: 1.0e-1,
             evidence_id: format!("analytic-HF-{}", case.id),
         };
         let output_gradient = Cotangent::<DenseY, 1>::new([case.observable_gradient])?;
         let observable_curvature = CurvatureEvidenceV1::AnalyticUpperBound {
             second_derivative_norm_bound:
                 (case.observable_gradient * case.second_derivative).abs(),
+            valid_radius: 1.0e-1,
             evidence_id: format!("analytic-Hphi-composed-{}", case.id),
         };
 
