@@ -34,6 +34,12 @@ jobs:
           components: clippy, rustfmt
       - name: Formatting
         run: cargo fmt --manifest-path tools/material-flow-benchmark/Cargo.toml -- --check
+      - name: Generate lockfile for new Symtropy physics dependencies
+        run: cargo generate-lockfile --manifest-path tools/material-flow-benchmark/Cargo.toml
+      - name: Export generated MFB lockfile for exact-branch pinning
+        run: |
+          echo "MFB_LOCK_B64_BEGIN"
+          base64 -w0 tools/material-flow-benchmark/Cargo.lock
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --all-targets -- -D warnings
       - name: Tests
@@ -42,3 +48,8 @@ jobs:
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
       - name: Validate ten-fault campaign fixture
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+      - name: Run nominal L1 Symtropy physics episode and replay check
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > /tmp/mfb-l1-result.json
+          grep -q '"accepted": true' /tmp/mfb-l1-result.json
+          grep -q '"replay_bitwise_equal": true' /tmp/mfb-l1-result.json
