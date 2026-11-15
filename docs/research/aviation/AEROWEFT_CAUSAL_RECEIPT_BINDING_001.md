@@ -84,6 +84,8 @@ References:
 
 Track P itself remains a structural receipt-graph verifier, not cryptographic custody or conflict-management performance qualification.
 
+The shared H–S benchmark programme and matched-baseline scorecard are maintained in [AEROWEFT_BENCHMARK_SUITE_V1.md](AEROWEFT_BENCHMARK_SUITE_V1.md).
+
 
 ## Follow-on workstreams
 
