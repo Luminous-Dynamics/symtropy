@@ -180,6 +180,8 @@ pub enum ParentRole {
     ConflictAssessment,
     /// Execution conformance result consumed by scheduling.
     ExecutionConformance,
+    /// Current operational-intent conformance required before conflict screening.
+    OperationalIntentConformance,
     /// Prior conflict-screen receipt used as non-authoritative replay context.
     PriorConflictAssessment,
 }
@@ -363,7 +365,9 @@ fn stage_for_role(role: ParentRole) -> Stage {
         ParentRole::ConflictAssessment | ParentRole::PriorConflictAssessment => {
             Stage::ConflictScreening
         }
-        ParentRole::ExecutionConformance => Stage::IntentConformance,
+        ParentRole::ExecutionConformance | ParentRole::OperationalIntentConformance => {
+            Stage::IntentConformance
+        }
     }
 }
 
@@ -388,6 +392,7 @@ fn required_roles(stage: Stage) -> Vec<ParentRole> {
             ParentRole::ActiveRestrictions,
         ],
         Stage::ConflictScreening => vec![
+            ParentRole::OperationalIntentConformance,
             ParentRole::ReachableOccupancy,
             ParentRole::RequiredTrafficClasses,
             ParentRole::ActiveRestrictions,
