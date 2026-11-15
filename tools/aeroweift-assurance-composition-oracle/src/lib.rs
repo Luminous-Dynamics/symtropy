@@ -77,6 +77,11 @@ pub struct CompositionInput {
     pub intent_disposition: IntentDisposition,
     pub intent_receipt_ref: Option<&'static str>,
     pub intent_identity: EvidenceIdentity,
+    /// Profile-owned traffic classes required for this operation.
+    pub profile_required_traffic_classes: Vec<TrafficClass>,
+    /// Qualification receipt binding the required class set to profile_id.
+    pub profile_traffic_class_requirement_ref: Option<&'static str>,
+    /// Request-derived class list; it must exactly match the profile-owned list.
     pub required_traffic_classes: Vec<TrafficClass>,
     pub surveillance: Vec<SurveillanceEvidence>,
 }
@@ -108,6 +113,10 @@ pub enum Reason {
     ReachabilityNotQualified,
     IntentNotQualified,
     NoRequiredTrafficClasses,
+    MissingProfileTrafficClassRequirementReceipt,
+    NoProfileRequiredTrafficClasses,
+    DuplicateProfileRequiredTrafficClass(TrafficClass),
+    ProfileTrafficClassRequirementMismatch,
     DuplicateRequiredTrafficClass(TrafficClass),
     IncompleteIdentity(IdentityOwner),
     IdentityMismatch(IdentityOwner),
@@ -162,6 +171,7 @@ fn not_assessable(input: &CompositionInput, reason: Reason) -> CompositionResult
 /// Retain all submitted evidence while making non-semantic list order deterministic.
 fn canonical_snapshot(input: &CompositionInput) -> CompositionInput {
     let mut snapshot = input.clone();
+    snapshot.profile_required_traffic_classes.sort_unstable();
     snapshot.required_traffic_classes.sort_unstable();
     snapshot.surveillance.sort_by_key(|evidence| evidence.traffic_class);
     snapshot
@@ -252,6 +262,25 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         }
     }
 
+    if !has_reference(input.profile_traffic_class_requirement_ref) {
+        return not_assessable(input, Reason::MissingProfileTrafficClassRequirementReceipt);
+    }
+
+    if input.profile_required_traffic_classes.is_empty() {
+        return not_assessable(input, Reason::NoProfileRequiredTrafficClasses);
+    }
+
+    let mut profile_required_classes = input.profile_required_traffic_classes.clone();
+    profile_required_classes.sort_unstable();
+    for pair in profile_required_classes.windows(2) {
+        if pair[0] == pair[1] {
+            return not_assessable(
+                input,
+                Reason::DuplicateProfileRequiredTrafficClass(pair[0]),
+            );
+        }
+    }
+
     if input.required_traffic_classes.is_empty() {
         return not_assessable(input, Reason::NoRequiredTrafficClasses);
     }
@@ -264,9 +293,13 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         }
     }
 
-    let mut class_occupancy = Vec::with_capacity(required_classes.len());
+    if required_classes != profile_required_classes {
+        return not_assessable(input, Reason::ProfileTrafficClassRequirementMismatch);
+    }
 
-    for traffic_class in required_classes {
+    let mut class_occupancy = Vec::with_capacity(profile_required_classes.len());
+
+    for traffic_class in profile_required_classes {
         let mut matches = input
             .surveillance
             .iter()
