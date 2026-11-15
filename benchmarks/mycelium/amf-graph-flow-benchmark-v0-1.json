@@ -1,0 +1,250 @@
+{
+  "schema_version": "myco.amf.graph_flow_benchmark.v0.1",
+  "suite_id": "AMF-GRAPH-FLOW-001",
+  "title": "Dynamic AMF topology, cytoplasmic flow and trade-network co-evolution",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5450",
+  "evidence_status": "source_admission_required",
+  "execution_status": "not_run",
+  "source": {
+    "publication_doi": "10.1038/s41586-025-08614-x",
+    "code_repository": "https://github.com/Cocopyth/AMFTravellingWave",
+    "figshare_doi": "10.6084/m9.figshare.27889143",
+    "source_data_revision": null,
+    "source_code_revision": null,
+    "file_inventory": [],
+    "data_license": "unverified_at_file_level",
+    "code_license": "MIT_as_stated_by_publication",
+    "source_scope": "in-vitro 2D-constrained AMF network growth and ROI-linked flow observations"
+  },
+  "biological_scope": {
+    "fungi": [
+      "Rhizophagus irregularis A5",
+      "Rhizophagus irregularis C2",
+      "Rhizophagus aggregatum"
+    ],
+    "host": "Daucus carota in-vitro root organ culture",
+    "geometry": "split Petri plate, root compartment and fungus-only compartment",
+    "typical_image_cadence_hours": 2,
+    "typical_images_per_replicate": 150,
+    "tracked_nodes_reported": 500000,
+    "flow_trajectories_reported": 100000,
+    "high_resolution_flow_videos_reported": 1600,
+    "flow_sampling_fps": [
+      20,
+      25
+    ],
+    "flow_video_duration_seconds": [
+      20,
+      60
+    ]
+  },
+  "evaluation_tracks": [
+    {
+      "id": "AMF-T1",
+      "name": "time_resolved_graph_reconstruction",
+      "observables": [
+        "node_identity_persistence",
+        "edge_identity_persistence",
+        "branch_degree",
+        "component_count",
+        "cycle_count",
+        "anastomosis_events",
+        "spore_and_BAS_locations"
+      ],
+      "metrics": [
+        "node_tracking_precision_recall",
+        "edge_tracking_precision_recall",
+        "identity_switch_rate",
+        "graph_edit_distance",
+        "component_count_error",
+        "degree_distribution_distance"
+      ]
+    },
+    {
+      "id": "AMF-T2",
+      "name": "travelling_wave_morphology",
+      "observables": [
+        "radial_filament_density",
+        "radial_growing_tip_density",
+        "front_position",
+        "front_speed",
+        "trailing_saturation_density"
+      ],
+      "metrics": [
+        "profile_RMSE",
+        "front_position_MAE",
+        "front_speed_bias",
+        "saturation_density_error",
+        "bootstrap_interval_coverage"
+      ]
+    },
+    {
+      "id": "AMF-T3",
+      "name": "network_efficiency_and_construction_cost",
+      "observables": [
+        "normalized_root_efficiency",
+        "normalized_global_efficiency",
+        "network_length_cost",
+        "anastomosis_density"
+      ],
+      "metrics": [
+        "root_efficiency_error",
+        "global_efficiency_error",
+        "cost_error",
+        "pareto_dominance",
+        "robustness_after_edge_removal"
+      ],
+      "reference_methods": [
+        "minimum_spanning_tree",
+        "delaunay_triangulation"
+      ],
+      "note": "Reproduce the exact article normalization and reference-graph construction; do not substitute unnormalized shortest-path efficiency."
+    },
+    {
+      "id": "AMF-T4",
+      "name": "cytoplasmic_flow_measurement",
+      "observables": [
+        "flow_direction",
+        "bidirectional_velocity_distribution",
+        "antiparallel_stream_presence",
+        "temporal_velocity_variation",
+        "maximum_velocity"
+      ],
+      "metrics": [
+        "direction_accuracy",
+        "velocity_MAE",
+        "velocity_distribution_distance",
+        "interval_coverage",
+        "manual_outlier_recovery"
+      ]
+    },
+    {
+      "id": "AMF-T5",
+      "name": "structure_flow_coupling",
+      "observables": [
+        "edge_radius",
+        "betweenness_centrality",
+        "distance_to_root",
+        "edge_flow_velocity",
+        "edge_direction"
+      ],
+      "metrics": [
+        "rank_correlation_reproduction",
+        "heldout_velocity_prediction_error",
+        "radius_centrality_association_error",
+        "centrality_flow_association_error"
+      ],
+      "controls": [
+        "shuffled_flow_to_edge",
+        "random_radius_assignment",
+        "degree_preserving_graph_rewire"
+      ]
+    },
+    {
+      "id": "AMF-T6",
+      "name": "temporal_generalization",
+      "observables": [
+        "early_graph_state",
+        "early_flow_state",
+        "later_graph_state",
+        "later_flow_state"
+      ],
+      "metrics": [
+        "graph_forecast_error",
+        "flow_forecast_error",
+        "calibration",
+        "OOD_detection"
+      ],
+      "holdout_policy": "fit early time windows, predict later time windows; never randomize adjacent frames across train and test"
+    }
+  ],
+  "model_families": [
+    {
+      "id": "observed_source_graph_flow",
+      "description": "Source-provided graph and measured flow, used as reference where available",
+      "status": "data_admission_required"
+    },
+    {
+      "id": "topology_only_shortest_path",
+      "description": "Topology-based efficiency with no measured-flow model",
+      "status": "baseline"
+    },
+    {
+      "id": "uniform_radius_uniform_flow",
+      "description": "Constant edge geometry and flow baseline",
+      "status": "negative_control"
+    },
+    {
+      "id": "measured_flow_interpolation",
+      "description": "Interpolate observed flow from training ROIs / edges only",
+      "status": "baseline"
+    },
+    {
+      "id": "geometry_aware_flow",
+      "description": "Predict flow from qualified edge geometry and measured training data",
+      "status": "research_model"
+    },
+    {
+      "id": "co_evolving_graph_flow",
+      "description": "Dynamic graph, edge geometry, measured-flow observations and resource/cost constraints",
+      "status": "research_target"
+    }
+  ],
+  "split_contract": {
+    "unit": "complete biological replicate",
+    "required_splits": [
+      "leave_replicate_out",
+      "leave_strain_out",
+      "early_to_late_time_holdout"
+    ],
+    "forbidden_splits": [
+      "random neighboring frame split",
+      "random edge split across same replicate",
+      "ROI leakage from validation to training"
+    ],
+    "stratification": [
+      "strain",
+      "replicate",
+      "network_age",
+      "distance_to_root",
+      "flow_direction"
+    ],
+    "reporting": "pooled, per-strain, per-replicate and worst-stratum results"
+  },
+  "scientific_hypotheses_to_test": [
+    "tip-density pulse leads the trailing hyphal filament-density wave",
+    "trailing filament density approaches a strain-specific saturation profile",
+    "fusion/anastomosis contributes to network density regulation",
+    "normalized root-directed efficiency remains approximately stable while normalized global efficiency rises",
+    "edge radius is associated with betweenness centrality",
+    "measured flow speeds and/or fluxes vary with network position and edge geometry",
+    "bidirectional and antiparallel flow coexist in the same network",
+    "early tipward/rootward velocity asymmetry weakens with network age"
+  ],
+  "claim_boundaries": [
+    "graph shortest-path efficiency is not measured cytoplasmic flow",
+    "flow velocity is not volumetric flow without cross-sectional area and geometry",
+    "volumetric flow is not nutrient delivery without concentration and transport terms",
+    "tracer enrichment is not automatically direct fungal transport",
+    "the in-vitro 2D plate is not a 3D soil network",
+    "findings from the three AMF profiles do not establish a universal rule for septate fungi, endophytes or saprotrophs"
+  ],
+  "proposed_targets_not_results": {
+    "exact_reproduction": "reproduce available main-figure source tables within published uncertainty and documented numerical tolerance",
+    "uncertainty": "nominal 90% and 95% interval coverage evaluated by strain and time horizon",
+    "graph_flow_model": "outperform topology-only, uniform-flow and shuffled-flow controls on preregistered held-out flow prediction tasks",
+    "generalization": "leave-one-strain-out and complete-replicate holdouts before a cross-strain claim",
+    "cost_efficiency": "plot prediction error and calibration against runtime, memory and data-processing cost"
+  },
+  "receipt_requirements": [
+    "exact publication and code revision",
+    "Figshare article version and complete file inventory",
+    "per-file SHA-256 and terms/rights decision",
+    "image/graph/flow processing configuration and observation cadence",
+    "replicate, strain and ROI identity mapping",
+    "flow-to-edge association identity and uncertainty",
+    "MST/DT reference graph construction and normalization method",
+    "per-track metrics, held-out results and worst-stratum results",
+    "explicit PASS/FAIL/NOT_RUN/INSUFFICIENT_EVIDENCE statuses"
+  ]
+}
