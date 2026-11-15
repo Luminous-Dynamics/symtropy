@@ -1008,7 +1008,7 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
             minimum_information,
             minimum_mi,
             field(config, "limits")?,
-            nin,
+            first_nin,
             nout,
             kernel_lags,
         )?;
