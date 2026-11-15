@@ -132,3 +132,10 @@ The South African GN 6292 Regulation 4 context case represents four people over 
 
 
 The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
+
+
+## Household economics and service affordability
+
+[WATER_ECONOMICS_BENCHMARK_V0_1.md](WATER_ECONOMICS_BENCHMARK_V0_1.md) defines the water-specific whole-life and monthly cost boundary, matched industry comparators, tariff/price evidence, fixed-charge handling and resident-authorised burden semantics. It composes with Sol-Atlas #816 and #700 rather than duplicating their whole-household cost or post-occupancy owners.
+
+The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
