@@ -84,6 +84,13 @@ References:
 
 Track P itself remains a structural receipt-graph verifier, not cryptographic custody or conflict-management performance qualification.
 
+
+## Follow-on workstreams
+
+- **Track Q — trusted evidence custody:** [#5351](https://github.com/Luminous-Dynamics/symtropy/issues/5351). Reuses Mycelix's sensor provenance, pinned trust roots, signed evidence, revocation and EvidenceLease owners; no parallel trust stack.
+- **Track R — conflict-management performance evidence envelope:** [#5354](https://github.com/Luminous-Dynamics/symtropy/issues/5354). Defines domain-scoped performance evidence and statistical reporting inspired by NASA's RCMP research; it does not set separation minima or authorize operations.
+- **Track S — multi-subject evidence scope:** [#5359](https://github.com/Luminous-Dynamics/symtropy/issues/5359). Separates the focal flight under assessment from external observed traffic subjects and environmental coverage cells. Track P V0 is explicitly a single-focal-flight synthetic graph and does not yet solve fleet-wide target-identity association.
+
 ## Claim ceiling
 
-A passing result proves only that the supplied synthetic receipt headers form a structurally coherent subject-matched causal graph under the declared edge policy. It does not prove source-byte integrity, signer authenticity, issuer authority, revocation state, aircraft physical truth, sensor calibration, traffic observability beyond the supplied owner claims, flight safety, regulatory compliance, separation, clearance, dispatch authority or certification. The digest fields are syntax/value matched by this crate; the actual bytes and cryptographic envelopes are not evaluated.
+A passing result proves only that the supplied synthetic, single-focal-flight receipt headers form a structurally coherent subject-matched causal graph under the declared edge policy. External surveillance targets and multi-aircraft subject relationships require Track S. It does not prove source-byte integrity, signer authenticity, issuer authority, revocation state, aircraft physical truth, sensor calibration, traffic observability beyond the supplied owner claims, flight safety, regulatory compliance, separation, clearance, dispatch authority or certification. The digest fields are syntax/value matched by this crate; the actual bytes and cryptographic envelopes are not evaluated.
