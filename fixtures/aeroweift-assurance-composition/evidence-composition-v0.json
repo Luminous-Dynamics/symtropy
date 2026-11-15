@@ -4,7 +4,7 @@
   "revision": "0.1.0",
   "evidence_class": "synthetic-only",
   "operational_use": false,
-  "claim_ceiling": "Finite composition of owner-produced synthetic claims only; not flight authorization, conflict-free proof, dispatch, DAA, separation assurance, aircraft control, airworthiness or certification.",
+  "claim_ceiling": "Finite composition of owner-produced synthetic claims only; each decision preserves the complete source input snapshot and requires time scale, profile, horizontal frame and vertical datum identity. Not flight authorization, conflict-free proof, dispatch, DAA, separation assurance, aircraft control, airworthiness or certification.",
   "owners": {
     "pnt_time": "Symtropy #5270 / Mycelix #435 #458 #5904",
     "reachability": "Symtropy #5163",
@@ -26,7 +26,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -34,7 +35,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -43,7 +45,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -52,7 +55,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -71,7 +75,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -84,7 +89,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -102,7 +108,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_QUALIFIED_FALLBACK",
@@ -110,7 +117,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -119,7 +127,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -128,7 +137,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -147,7 +157,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -160,7 +171,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -178,7 +190,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -186,7 +199,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -195,7 +209,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -204,7 +219,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -223,7 +239,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -236,7 +253,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -256,7 +274,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "STALE",
@@ -264,7 +283,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -273,7 +293,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -282,7 +303,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -301,7 +323,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -314,7 +337,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -332,7 +356,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "STATISTICAL_ONLY",
@@ -340,7 +365,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -349,7 +375,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -358,7 +385,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -377,7 +405,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -390,7 +419,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -408,7 +438,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -416,7 +447,8 @@
           "identity": {
             "time_scale_id": "OTHER-TIME-SCALE",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -425,7 +457,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -434,7 +467,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -453,7 +487,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -466,7 +501,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -484,7 +520,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "CLOCK_UNQUALIFIED",
@@ -492,7 +529,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -501,7 +539,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -510,7 +549,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -529,7 +569,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -542,7 +583,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -560,7 +602,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -568,7 +611,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -577,7 +621,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -586,7 +631,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -605,7 +651,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -618,7 +665,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -636,7 +684,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -644,7 +693,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -653,7 +703,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -662,7 +713,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -681,7 +733,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -699,7 +752,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -707,7 +761,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -716,7 +771,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -725,7 +781,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -744,7 +801,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -757,7 +815,8 @@
             "identity": {
               "time_scale_id": "UNKNOWN-TDOA-CLOCK",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -775,7 +834,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -783,7 +843,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -792,7 +853,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -801,7 +863,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -820,7 +883,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -833,7 +897,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -851,7 +916,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -859,7 +925,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -868,7 +935,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -877,7 +945,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -896,7 +965,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -909,7 +979,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -927,7 +998,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -935,7 +1007,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -944,7 +1017,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -953,7 +1027,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -972,7 +1047,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -985,7 +1061,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1003,7 +1080,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1011,7 +1089,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1020,7 +1099,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1029,7 +1109,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": false
         },
@@ -1048,7 +1129,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1061,7 +1143,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1079,7 +1162,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1087,7 +1171,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1096,7 +1181,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1105,7 +1191,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1124,7 +1211,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1137,7 +1225,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1155,7 +1244,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1163,7 +1253,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1172,7 +1263,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1181,7 +1273,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1200,7 +1293,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1213,7 +1307,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1231,7 +1326,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "STALE",
@@ -1239,7 +1335,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1248,7 +1345,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1257,7 +1355,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1276,7 +1375,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1289,7 +1389,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1307,7 +1408,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1315,7 +1417,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1324,7 +1427,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1333,7 +1437,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1352,7 +1457,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1365,7 +1471,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1383,7 +1490,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1391,7 +1499,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1400,7 +1509,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1409,7 +1519,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1428,7 +1539,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1441,7 +1553,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1459,7 +1572,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1467,7 +1581,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1476,7 +1591,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1485,7 +1601,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1504,7 +1621,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1517,7 +1635,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1535,7 +1654,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1543,7 +1663,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1552,7 +1673,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1561,7 +1683,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1580,7 +1703,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1593,7 +1717,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1611,7 +1736,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1619,7 +1745,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1628,7 +1755,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1637,7 +1765,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1656,7 +1785,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1669,7 +1799,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1687,7 +1818,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1695,7 +1827,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1704,7 +1837,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1713,7 +1847,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1732,7 +1867,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "OTHER-FRAME"
+              "frame_id": "OTHER-FRAME",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1745,7 +1881,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1763,7 +1900,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1771,7 +1909,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1780,7 +1919,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1789,7 +1929,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1808,7 +1949,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1821,7 +1963,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1834,7 +1977,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1852,7 +1996,8 @@
         "expected_identity": {
           "time_scale_id": "SYNTHETIC-TIME-1",
           "profile_id": "SYNTHETIC-PROFILE-1",
-          "frame_id": "SYNTHETIC-FRAME-1"
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
         },
         "pnt": {
           "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
@@ -1860,7 +2005,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "reachability": {
@@ -1869,7 +2015,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           }
         },
         "intent": {
@@ -1878,7 +2025,8 @@
           "identity": {
             "time_scale_id": "SYNTHETIC-TIME-1",
             "profile_id": "SYNTHETIC-PROFILE-1",
-            "frame_id": "SYNTHETIC-FRAME-1"
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
           },
           "authorization_revision_current": true
         },
@@ -1897,7 +2045,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           },
           {
@@ -1910,7 +2059,8 @@
             "identity": {
               "time_scale_id": "SYNTHETIC-TIME-1",
               "profile_id": "SYNTHETIC-PROFILE-1",
-              "frame_id": "SYNTHETIC-FRAME-1"
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
             }
           }
         ]
@@ -1920,6 +2070,252 @@
         "unresolved_possible_occupancy": false,
         "unresolved_traffic_classes": [],
         "positive_is_conflict_screen_only": true
+      }
+    },
+    {
+      "id": "vertical-datum-mismatch",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "OTHER-DATUM"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "missing-vertical-datum-identity",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "duplicate-required-traffic-class",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1",
+          "vertical_datum_id": "SYNTHETIC-DATUM-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1",
+            "vertical_datum_id": "SYNTHETIC-DATUM-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1",
+              "vertical_datum_id": "SYNTHETIC-DATUM-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
       }
     }
   ]
