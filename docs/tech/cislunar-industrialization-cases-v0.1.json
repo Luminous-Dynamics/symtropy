@@ -40,9 +40,10 @@
         "service_floor_months": 11,
         "product_status": "ACCEPTED",
         "evidence": {
-          "resource": "NOT_APPLICABLE",
-          "process": "EARTH_SUPPLY",
-          "product": "ACCEPTED"
+          "resource_evidence": "NOT_APPLICABLE",
+          "process_evidence": "EARTH_SUPPLY",
+          "product_evidence": "ACCEPTED",
+          "source": "EARTH"
         },
         "dependencies": [
           {
