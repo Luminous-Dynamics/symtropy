@@ -316,7 +316,7 @@ fn evaluate(
     ) {
         return ("NOT_EVALUATED", "qualification claim class is missing or unsupported");
     }
-    if !string_set(qualification, "capability_ids").is_some()
+    if string_set(qualification, "capability_ids").is_none()
         || !is_sha256(text(qualification, "scope_sha256").unwrap_or(""))
         || !is_sha256(text(qualification, "retention_suite_sha256").unwrap_or(""))
     {
