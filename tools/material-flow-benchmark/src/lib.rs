@@ -9,6 +9,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+pub mod transaction;
+
 pub const SCHEMA_VERSION: u16 = 1;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
