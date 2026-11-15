@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 27,
+  "case_count": 32,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -31,7 +31,12 @@
     "HC-T0-024-probabilistic-interval-coverage-width",
     "HC-T0-025-invalid-probabilistic-interval-reject",
     "HC-T0-026-low-flow-log-zero-abstains",
-    "HC-T0-027-event-peak-ties-earliest-index"
+    "HC-T0-027-event-peak-ties-earliest-index",
+    "HC-T0-028-ensemble-crps",
+    "HC-T0-029-threshold-event-brier",
+    "HC-T0-030-brier-reliability-diagnostic",
+    "HC-T0-031-invalid-event-probability-reject",
+    "HC-T0-032-ensemble-crps-negative-flow-reject"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -47,7 +52,10 @@
     "attainment": "(model_score-lower_reference)/(upper_reference-lower_reference), not clipped",
     "event_peak_error": "Peak magnitude error is relative to the observed event-window maximum; timing error is signed predicted minus observed peak index times the declared fixed step duration. Ties select the first maximum.",
     "low_flow_log_error": "Mean absolute/signed log10(flow_predicted)-log10(flow_observed) over samples whose observed flow is <= a frozen threshold; only strictly positive observed and predicted values are admitted; no pseudocount.",
-    "interval_metrics": "Empirical coverage is count(observed within [lower,upper])/N; width is the arithmetic mean of upper-lower; report nominal and empirical coverage, error and width."
+    "interval_metrics": "Empirical coverage is count(observed within [lower,upper])/N; width is the arithmetic mean of upper-lower; report nominal and empirical coverage, error and width.",
+    "empirical_ensemble_crps": "CRPS(F,y) = mean_m |x_m-y| - (1/(2M^2)) sum_m sum_n |x_m-x_n| for the finite empirical ensemble; lower is better. Report raw ensemble size and do not clip negative CRPS caused by an implementation bug.",
+    "binary_event_brier": "Brier score = mean_i (p_i-o_i)^2 for explicitly defined binary events, where p is a forecast probability in [0,1] and o is an observed 0/1 outcome.",
+    "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -67,6 +75,10 @@
     "Low-flow log10 error uses a predeclared threshold and only strictly positive observed/predicted flows; zeros are not replaced with pseudocounts and yield Indeterminate.",
     "Probabilistic interval coverage and width are reported separately; invalid lower>upper interval rows reject the interval metric rather than being silently repaired.",
     "Coverage/width metrics do not themselves establish probabilistic calibration across a sufficiently large event population; sample size and event strata remain mandatory.",
-    "When multiple equal maxima occur in a named event window, peak timing is assigned to the earliest time step for both observation and prediction."
+    "When multiple equal maxima occur in a named event window, peak timing is assigned to the earliest time step for both observation and prediction.",
+    "Probabilistic forecasts must be scored with proper scores such as empirical ensemble CRPS for continuous flow and Brier score for declared threshold events; do not substitute interval coverage alone.",
+    "Event definitions, units, threshold, forecast lead and valid-time semantics must be frozen before evaluation; observed event labels are independently derived.",
+    "Forecast probabilities outside [0,1], non-binary outcomes, or negative streamflow ensemble values are rejected, never clipped.",
+    "Reliability bins are descriptive diagnostics; sparse bins do not establish calibration. Report sample counts and uncertainty and evaluate across multiple events, catchments and lead times."
   ]
 }
