@@ -69,16 +69,17 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 rows.push(format!(
-                    "{{\"case_id\":\"{}\",\"status\":\"ERROR\",\"reason\":\"{}\"}}",
-                    case.scenario.case_id, error
+                    "{{\"case_id\":\"{}\",\"status\":\"ERROR\",\"reason\":\"{error}\"}}",
+                    case.scenario.case_id
                 ));
             }
         }
     }
 
-    let commit_json = source_commit
-        .map(|value| format!("\"{value}\""))
-        .unwrap_or_else(|| "null".to_owned());
+    let commit_json = match source_commit {
+        Some(value) => format!("\"{value}\""),
+        None => "null".to_owned(),
+    };
     println!(
         concat!(
             "{{",
