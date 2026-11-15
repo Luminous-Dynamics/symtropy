@@ -1,0 +1,249 @@
+{
+  "schema_version": "body-armor-standards-crosswalk/0.1",
+  "snapshot_date": "2026-11-15",
+  "programme": "Luminous-Dynamics/symtropy BODY-ARMOR-001",
+  "purpose": "Source-linked standards and solver applicability snapshot for research planning. This is not legal advice, a complete normative interpretation, a laboratory approval, a certification or a product performance claim.",
+  "status_legend": {
+    "CURRENT_WITH_AMENDMENTS": "Official issuing authority identifies a published standard and the listed addenda must be incorporated.",
+    "CURRENT_PUBLISHED": "Official issuing authority identifies a published current edition at snapshot date; applicability still needs checking.",
+    "DRAFT_OR_ENQUIRY": "Published for public comment or enquiry; not treated as a final normative edition.",
+    "VERIFY_LOCALLY": "Exact current edition, amendments, adoption, laboratory scope or jurisdictional applicability requires confirmation from the competent official catalogue/authority.",
+    "PROGRAMME_REQUIREMENT": "A product conformity/compliance programme document, not itself the technical test standard.",
+    "RESEARCH_REFERENCE": "Peer-reviewed literature or research context; not a normative test requirement.",
+    "SOFTWARE_CANDIDATE": "Potential simulation software; not independently validated for this armour use case."
+  },
+  "entries": [
+    {
+      "id": "NIJ-0101.07",
+      "domain": "human_worn_torso_ballistic",
+      "publisher": "United States National Institute of Justice",
+      "edition": "0101.07",
+      "status": "CURRENT_WITH_AMENDMENTS",
+      "checked": "2026-11-15",
+      "addenda": [
+        "Addendum 1",
+        "Addendum 2",
+        "Addendum 3"
+      ],
+      "scope": "Minimum performance requirements and test methods for ballistic-resistant body armour intended to protect the human torso against declared handgun/rifle protection categories. NIJ CTP scope must not be generalized to limbs, helmets, animals, backpacks, blankets, shields, accessories or other unqualified articles.",
+      "requires_companion": [
+        "NIJ-0123.00"
+      ],
+      "interpretation_limits": [
+        "Incorporate all applicable addenda; do not cite only the base edition.",
+        "A test result is not NIJ compliance status unless all applicable CTP product, laboratory, workmanship, labelling and follow-up requirements are satisfied.",
+        "A change to the tested carrier, cover, panel, insert, size, closure, seam, lot or construction requires an explicit applicability/requalification decision.",
+        "A ballistic result does not establish fit, mobility, thermal comfort, durability, multi-hit behavior or medical injury reduction beyond the exact test scope."
+      ],
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/ballistic-resistance-body-armor-nij-standard-010107",
+        "https://nij.ojp.gov/library/publications/ballistic-resistance-body-armor-nij-standard-010107"
+      ]
+    },
+    {
+      "id": "NIJ-0123.00",
+      "domain": "human_worn_torso_ballistic",
+      "publisher": "United States National Institute of Justice",
+      "edition": "0123.00",
+      "status": "CURRENT_WITH_AMENDMENTS",
+      "checked": "2026-11-15",
+      "addenda": [
+        "Addendum 1",
+        "Addendum 2"
+      ],
+      "scope": "Defines NIJ ballistic protection levels and associated test threats for use with equipment test standards. It is not, by itself, a product-performance test method or product certification.",
+      "requires_companion": [
+        "NIJ-0101.07"
+      ],
+      "interpretation_limits": [
+        "Incorporate both published addenda.",
+        "Do not treat a protection-level label as a tested product result.",
+        "Do not translate legacy level labels into current categories without a versioned mapping."
+      ],
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/specification-nij-ballistic-protection-levels-and-associated-test-threats-nij-standard-012300",
+        "https://nij.ojp.gov/library/publications/nij-ballistic-protection-levels-and-test-threats-nij-standard-012300"
+      ]
+    },
+    {
+      "id": "NIJ-CTP-100-1",
+      "domain": "product_conformity",
+      "publisher": "National Institute of Justice Compliance Testing Program",
+      "edition": "Version 1.0",
+      "status": "PROGRAMME_REQUIREMENT",
+      "checked": "2026-11-15",
+      "scope": "General requirements for products in the NIJ Product Conformity Assessment System.",
+      "interpretation_limits": [
+        "Read with the applicable product-category scheme.",
+        "Do not infer compliance from a laboratory report without the applicable programme decision and product listing."
+      ],
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    },
+    {
+      "id": "NIJ-CTP-101-07",
+      "domain": "product_conformity",
+      "publisher": "National Institute of Justice Compliance Testing Program",
+      "edition": "Version 1.0",
+      "status": "PROGRAMME_REQUIREMENT",
+      "checked": "2026-11-15",
+      "scope": "Product conformity assessment scheme for ballistic body armour tested against NIJ Standard 0101.07.",
+      "interpretation_limits": [
+        "Manufacturer participation, approved-laboratory testing, workmanship and labelling requirements, model listing and follow-up obligations are separate from a stand-alone test report.",
+        "NIJ states six follow-up inspections and testing over five years for a compliant model.",
+        "NIJ-approved labs must be independent third parties, meet NIST NVLAP and technical-scope requirements, and conduct NIJ compliance testing within the United States."
+      ],
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    },
+    {
+      "id": "NIJ-0115.00",
+      "domain": "human_worn_stab_resistance",
+      "publisher": "United States National Institute of Justice",
+      "edition": "0115.00",
+      "status": "VERIFY_LOCALLY",
+      "checked": "2026-11-15",
+      "scope": "Separate torso-worn stab-resistant armour standard. Not interchangeable with ballistic resistance qualification.",
+      "interpretation_limits": [
+        "Confirm the current edition, applicable programme status and exact product class before any current qualification claim.",
+        "Keep stab, slash and ballistic claims separate and bound to the exact method."
+      ],
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    },
+    {
+      "id": "SANS-1658-20XX-ED3-DRAFT",
+      "domain": "human_worn_torso_ballistic_south_africa",
+      "publisher": "South African Bureau of Standards (draft public-comment notice)",
+      "edition": "20XX Edition 3",
+      "status": "DRAFT_OR_ENQUIRY",
+      "checked": "2026-11-15",
+      "scope": "Draft minimum ballistic-resistance performance requirements for body armour intended to protect the wearer's torso. Government Gazette Notice 3339 of 2025 lists the draft for public comment with closing date 2025-08-27.",
+      "interpretation_limits": [
+        "The Gazette notice establishes that this edition was a draft for comment; it does not establish final publication.",
+        "Do not treat the 20XX draft as a current normative edition.",
+        "Confirm the final published SABS edition, amendments, currentness and applicability in the SABS catalogue."
+      ],
+      "source_urls": [
+        "https://www.gov.za/sites/default/files/gcis_document/202506/52914gen3339.pdf",
+        "https://www.sabs.co.za/standards"
+      ]
+    },
+    {
+      "id": "SANS-1658-2025-ADVERTISED",
+      "domain": "human_worn_torso_ballistic_south_africa",
+      "publisher": "Local testing provider webpage (vendor source)",
+      "edition": "2025 (as advertised)",
+      "status": "VERIFY_LOCALLY",
+      "checked": "2026-11-15",
+      "scope": "A South African ballistic-testing provider currently advertises SANS 1658:2025 for body-armour testing.",
+      "interpretation_limits": [
+        "A vendor service webpage is not the SABS normative catalogue and does not establish the exact published edition or currentness.",
+        "Resolve the discrepancy against the official SABS catalogue and obtain the complete normative standard before relying on it.",
+        "The provider's claim of SANAS approval must be checked against the current SANAS certificate and schedule for the exact test method and scope."
+      ],
+      "source_urls": [
+        "https://www.bpt.co.za/services/ballistic-testing/",
+        "https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx",
+        "https://www.sabs.co.za/standards"
+      ]
+    },
+    {
+      "id": "ISO-IEC-17025-SANAS-SCOPE",
+      "domain": "laboratory_competence",
+      "publisher": "SANAS / applicable accreditation body",
+      "edition": "Current certificate and scope schedule required",
+      "status": "VERIFY_LOCALLY",
+      "checked": "2026-11-15",
+      "scope": "Competence and scope of a testing laboratory for the exact ballistic test method and product class.",
+      "interpretation_limits": [
+        "Accreditation is scope-specific; general ISO/IEC 17025 status is not proof that the laboratory is accredited for a particular armour method.",
+        "A SANAS-accredited laboratory is not automatically an NIJ-approved Compliance Testing Program laboratory.",
+        "Verify certificate number, active status, expiry, test method, specimen/product scope, location and any relevant restrictions."
+      ],
+      "source_urls": [
+        "https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx",
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    }
+  ],
+  "research_references": [
+    {
+      "id": "ARAMID-MECHANISTIC-REVIEW-2026",
+      "status": "RESEARCH_REFERENCE",
+      "title": "Aramid Fibre Composites for Ballistic Impact Protection: A Mechanistic Review of Recent Advances",
+      "published": "2026-05-30",
+      "doi": "10.1007/s10443-026-10485-y",
+      "use": "Mechanism and architecture literature review. Candidate design families are not established performance recommendations.",
+      "limits": [
+        "Review synthesis is not independent qualification of a new Luminous design.",
+        "Hybridization and architecture effects are configuration-dependent; inappropriate choices can reduce ballistic performance."
+      ],
+      "source_urls": [
+        "https://doi.org/10.1007/s10443-026-10485-y"
+      ]
+    },
+    {
+      "id": "3D-WOVEN-MULTISCALE-REVIEW-2026",
+      "status": "RESEARCH_REFERENCE",
+      "title": "Three-dimensional woven fabric composites under ballistic impact: A systematic review of multiscale modeling strategies from fiber to structural scale",
+      "published": "2026-09-19",
+      "doi": "10.1177/00219983261480233",
+      "use": "Research-gap and model-credibility comparator.",
+      "limits": [
+        "The review reports no broad, independently validated multiscale predictive framework across architectures and impact regimes.",
+        "It identifies calibration-dependent reported accuracy, missing dynamic interfacial fracture-toughness data and a near-absence of validated multi-hit models.",
+        "Do not generalize a result for one architecture or regime to all 3D woven designs."
+      ],
+      "source_urls": [
+        "https://doi.org/10.1177/00219983261480233"
+      ]
+    },
+    {
+      "id": "WEARER-ERGONOMICS-STUDY-2026",
+      "status": "RESEARCH_REFERENCE",
+      "title": "Soldiers experience fit issues, musculoskeletal pain, and equipment and mobility interference with military body armour",
+      "published": "2026-01",
+      "doi": "10.1016/j.apergo.2025.104645",
+      "use": "Fit, anthropometry, pain and mobility measurement rationale.",
+      "limits": [
+        "Study population and military context must not be treated as universal estimates for all wearers.",
+        "A literature finding does not replace local anthropometric, wearer-centred research under approved protocols."
+      ],
+      "source_urls": [
+        "https://doi.org/10.1016/j.apergo.2025.104645"
+      ]
+    }
+  ],
+  "solver_candidates": [
+    {
+      "id": "OpenCourant",
+      "status": "SOFTWARE_CANDIDATE",
+      "license": "AGPL-3.0",
+      "domain_claimed_by_project": "Explicit finite element simulation for crash, impact and highly nonlinear dynamic events.",
+      "currentness_note": "Community continuation of the OpenRadioss code base; latest published package page observed 2026-10-11.",
+      "limits": [
+        "Not validated by this record for the exact body-armour materials, architecture, impact regime or injury endpoint.",
+        "Every model law, contact/interface model, mesh/time step, boundary condition and failure mechanism requires case-specific verification, calibration and independent validation.",
+        "AGPL-3.0 licensing requires a separate architecture/licensing review before use or distribution.",
+        "No solver output may be treated as physical proof or certification."
+      ],
+      "source_urls": [
+        "https://opencourant.org/",
+        "https://opencourant.org/downloads/",
+        "https://github.com/OpenCourant/OpenCourant"
+      ]
+    }
+  ],
+  "required_reverification_before_claim": [
+    "Retrieve the current normative text and addenda from the official issuing body.",
+    "Re-check the NIJ Compliant Products List and current CTP documents for the exact model.",
+    "For South Africa, resolve SANS 1658 publication/currentness through SABS and the competent procurement/approval authority.",
+    "Retrieve the laboratory's active accreditation certificate and scope schedule for the exact method.",
+    "Bind the tested article, size, carrier, cover, panels, lot, construction and conditioning to the evidence.",
+    "Do not make product-performance, medical, certification or compliance claims from this research crosswalk alone."
+  ]
+}
