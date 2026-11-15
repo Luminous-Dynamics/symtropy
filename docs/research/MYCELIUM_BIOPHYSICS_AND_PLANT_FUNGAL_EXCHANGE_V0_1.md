@@ -64,7 +64,7 @@ The initial typed graph should distinguish:
 
 - **Tip:** an active or inactive extension front.
 - **Branch point:** a segment junction created by a declared branching event.
-- **Fusion point:** a hyphal anastomosis junction, created only when the selected model's fusion criterion is met.
+- **Fusion point:** a hyphal anastomosis junction, created only when the selected model's fusion criterion is met. Distinguish tip-to-tip connection from tip-to-interior-segment fusion; the latter splits the target segment at the attachment point, as in the published BMX topology operation.
 - **Segment:** a geometrical connection with endpoints, length, optional measured radius/diameter, age/state, and parameterized transport properties.
 - **Interface:** a typed association to an existing canonical root/plant structural element or another explicitly supported substrate.
 
@@ -169,7 +169,7 @@ A 2026 review of plant regulation of arbuscular mycorrhizal symbiosis distinguis
 
 ## 5. Benchmark protocol
 
-The initial machine-readable synthetic suite is `benchmarks/mycelium/mycelium-known-truth-cases-v0-1.json`. It contains five cases: linear extension, branch insertion/segment splitting, anastomosis connecting components, rejection of hyphal flux without a connected path, and exact element-ledger closure. The fixture is deliberately synthetic and exists to define runner semantics before any biological calibration.
+The initial machine-readable synthetic suite is `benchmarks/mycelium/mycelium-known-truth-cases-v0-1.json`. It contains six cases: linear extension, branch insertion/segment splitting, tip-to-tip anastomosis, tip-to-interior-segment anastomosis, rejection of hyphal flux without a connected path, and exact element-ledger closure. The fixture is deliberately synthetic and exists to define runner semantics before any biological calibration.
 
 The multiscale graph-to-wave tournament is specified in `benchmarks/mycelium/multiscale-colony-benchmark-v0-1.json`: seven task families, six baseline/model families, ten observable/compute tracks, and explicit promotion/demotion and receipt contracts. It is a benchmark protocol, not an executed result. The CEN source-admission register is `benchmarks/mycelium/cen-study-data-admission-v0-1.json`; it explicitly records that source bytes are not downloaded, the data/script licences are unverified, and the study's control gaps must remain visible before any direct-transfer claim.
 
