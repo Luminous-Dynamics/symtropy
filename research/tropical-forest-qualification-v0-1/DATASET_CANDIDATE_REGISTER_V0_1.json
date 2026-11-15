@@ -360,7 +360,10 @@
         "expected_observation_processing_script": "Process_observations.R is described in Zenodo record but was not found at the two expected paths in the current default GitHub branch during this audit; locate exact source or reproduce its archived version before processing raw observations.",
         "environment": "R + DGVMTools and helper packages declared in scripts; no renv.lock found at repository root during this audit; pin actual R/package versions during reproduction."
       },
-      "schema_warning": "The repository helper lists model-specific names and 15 output variables for FIN/BIA/BCI. Treat these as the analysis script's declared vocabulary, not an immutable D-BEN standard. The Zenodo record calls D-BEN informal and not settled; the paper-specific mapping and per-model adapters must be audited."
+      "schema_warning": "The repository helper lists model-specific names and 15 output variables for FIN/BIA/BCI. Treat these as the analysis script's declared vocabulary, not an immutable D-BEN standard. The Zenodo record calls D-BEN informal and not settled; the paper-specific mapping and per-model adapters must be audited.",
+      "crosswalk_document": "FORESTPATHS_D_BEN_ADMISSION_V0_1.md",
+      "crosswalk_manifest": "cases/forestpaths-dben-source-crosswalk-v0.1.json",
+      "crosswalk_issue": 5357
     }
   ],
   "cross_source_admission_gates": [
