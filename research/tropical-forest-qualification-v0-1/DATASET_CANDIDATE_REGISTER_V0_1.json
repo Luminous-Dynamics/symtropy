@@ -776,7 +776,11 @@
           "year2": -24
         },
         "phosphorus_cation_interaction_year2_change_percent": -33,
-        "nitrogen": "No statistically significant main effect in the reported two-year period; non-significance is not evidence of a zero effect"
+        "nitrogen": "No statistically significant main effect in the reported two-year period; non-significance is not evidence of a zero effect",
+        "nutrient_interactions_year2": {
+          "phosphorus_cations": "The faster turnover with P was counteracted by base cation addition.",
+          "nitrogen_cations": "The paper reports a significant year-two N-by-cation interaction and a -N-CAT versus +N-CAT grouping contrast; preserve source notation and do not interpret it as a pure N main effect."
+        }
       },
       "method": {
         "turnover": "annual fine-root productivity divided by fine-root stock",
