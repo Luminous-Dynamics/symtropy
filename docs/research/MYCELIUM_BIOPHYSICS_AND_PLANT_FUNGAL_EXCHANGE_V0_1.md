@@ -264,7 +264,7 @@ Controls must include fixed high fidelity, fixed coarse fidelity, random refinem
 
 ### T7 — hyphal skeleton and topology observation
 
-Use SkelPy as a direct skeletonization comparator where its complete image/data rights and acquisition metadata are available. Separate:
+Use SkelPy as a direct skeletonization comparator where its complete image/data rights and acquisition metadata are available. The machine-readable admission record is `benchmarks/mycelium/skelpy-source-admission-v0-1.json`; the source-specific reproduction is tracked in [SKELPY-HYPHAL-REPRO-001 #5421](https://github.com/Luminous-Dynamics/symtropy/issues/5421). It records that the published 180-image series is a fixed-focal-plane 2D projection, that only 15 images from one isolate were manually traced, and that node-validation sample sizes are small. Separate publication, code and image-data rights must be admitted. Separate:
 - trace geometry distance against manual traces;
 - node detection precision/recall/F1;
 - graph connectivity and branch-degree agreement;
