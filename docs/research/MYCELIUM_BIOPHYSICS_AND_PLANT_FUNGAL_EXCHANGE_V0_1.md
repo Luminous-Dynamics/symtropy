@@ -171,6 +171,8 @@ A 2026 review of plant regulation of arbuscular mycorrhizal symbiosis distinguis
 
 The initial machine-readable synthetic suite is `benchmarks/mycelium/mycelium-known-truth-cases-v0-1.json`. It contains five cases: linear extension, branch insertion/segment splitting, anastomosis connecting components, rejection of hyphal flux without a connected path, and exact element-ledger closure. The fixture is deliberately synthetic and exists to define runner semantics before any biological calibration.
 
+The multiscale graph-to-wave tournament is specified in `benchmarks/mycelium/multiscale-colony-benchmark-v0-1.json`: seven task families, six baseline/model families, ten observable/compute tracks, and explicit promotion/demotion and receipt contracts. It is a benchmark protocol, not an executed result. The CEN source-admission register is `benchmarks/mycelium/cen-study-data-admission-v0-1.json`; it explicitly records that source bytes are not downloaded, the data/script licences are unverified, and the study's control gaps must remain visible before any direct-transfer claim.
+
 ### T0 — data admission and rights
 
 For every source:
@@ -311,7 +313,7 @@ The Symthaea benchmark should separately measure proper predictive score/calibra
 
 ## 9. Ownership and claim boundaries
 
-- **Symtropy:** canonical hyphal graph, field coupling, transport, ledgers, replay and benchmark execution.
+- **Symtropy:** canonical hyphal graph, field coupling, transport, ledgers, replay and benchmark execution. The initial passive transport primitive, if accepted by review and CI, only settles caller-supplied conductance on active graph edges; it is not a biological conductance model.
 - **Plant structural owner:** canonical root/plant structure and developmental authority; this work consumes its interfaces.
 - **Basin/soil/hydrology owners:** existing environmental substrate and water processes; no parallel solver.
 - **Symthaea:** evidence synthesis, causal hypotheses, calibrated forecast interpretation and bounded experiment proposals; it cannot invent source truth or model parameters.
