@@ -30,10 +30,18 @@ fn manifest(
     scenarios: &[&str],
     strata: &[&str],
 ) -> DatasetManifest {
+    let model_scope = scope();
     DatasetManifest {
         manifest_sha256: digest(digest_char),
         split,
-        operating_domain_sha256: scope().operating_domain_sha256,
+        operating_domain_sha256: model_scope.operating_domain_sha256,
+        aircraft_configuration_sha256: model_scope.aircraft_configuration_sha256,
+        control_stack_sha256: model_scope.control_stack_sha256,
+        sensor_stack_sha256: model_scope.sensor_stack_sha256,
+        horizontal_frame_id: model_scope.horizontal_frame_id,
+        vertical_datum_id: model_scope.vertical_datum_id,
+        time_scale_id: model_scope.time_scale_id,
+        reference_measurement_profile_sha256: digest('8'),
         flight_group_ids: flights.iter().map(|value| (*value).into()).collect(),
         scenario_group_ids: scenarios.iter().map(|value| (*value).into()).collect(),
         strata: strata.iter().map(|value| (*value).into()).collect(),
@@ -43,6 +51,7 @@ fn manifest(
 fn policy() -> ValidationPolicy {
     ValidationPolicy {
         expected_scope: scope(),
+        expected_reference_measurement_profile_sha256: digest('8'),
         required_strata: vec!["crosswind-high".into(), "corridor-edge".into()],
         gates: vec![
             MetricGate {
@@ -284,7 +293,7 @@ fn dataset_manifest_domain_must_match_model_scope() {
     candidate.confirmatory.operating_domain_sha256 = digest('8');
     assert_eq!(
         evaluate(&candidate, &policy()),
-        Err(ValidationError::DatasetDomainMismatch)
+        Err(ValidationError::DatasetScopeMismatch)
     );
 }
 
@@ -323,5 +332,36 @@ fn unrequested_metric_cannot_be_smuggled_into_a_package() {
     assert_eq!(
         evaluate(&candidate, &policy()),
         Err(ValidationError::UnexpectedOrDuplicateMetric)
+    );
+}
+
+
+#[test]
+fn confirmatory_sensor_stack_must_match_exact_model_scope() {
+    let mut candidate = package();
+    candidate.confirmatory.sensor_stack_sha256 = digest('7');
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::DatasetScopeMismatch)
+    );
+}
+
+#[test]
+fn confirmatory_reference_measurement_profile_must_be_pinned() {
+    let mut candidate = package();
+    candidate.confirmatory.reference_measurement_profile_sha256 = digest('6');
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::DatasetScopeMismatch)
+    );
+}
+
+#[test]
+fn confirmatory_time_basis_must_match_model_scope() {
+    let mut candidate = package();
+    candidate.confirmatory.time_scale_id = "OTHER-TIME-SCALE".into();
+    assert_eq!(
+        evaluate(&candidate, &policy()),
+        Err(ValidationError::DatasetScopeMismatch)
     );
 }
