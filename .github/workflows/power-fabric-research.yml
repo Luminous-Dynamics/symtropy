@@ -1,0 +1,62 @@
+name: Power Fabric Research Qualification
+
+on:
+  push:
+    branches:
+      - research/power-fabric-physical-identity-v0.1
+      - research/power-fabric-source-inventory-closure-v0.1
+    paths:
+      - "crates/domains/symtropy-energy-systems/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/power-fabric-research.yml"
+  pull_request:
+    branches:
+      - main
+      - research/power-fabric-physical-identity-v0.1
+      - research/power-fabric-source-inventory-closure-v0.1
+    paths:
+      - "crates/domains/symtropy-energy-systems/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/power-fabric-research.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: power-fabric-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  energy-systems:
+    name: Power Fabric exact-head Rust qualification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy energy systems
+        run: cargo clippy -p symtropy-energy-systems --all-targets --all-features -- -D warnings
+
+      - name: Test energy systems
+        run: cargo test -p symtropy-energy-systems --lib
+
+      - name: Check energy systems
+        run: cargo check -p symtropy-energy-systems --all-targets
