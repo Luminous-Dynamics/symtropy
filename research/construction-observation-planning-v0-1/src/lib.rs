@@ -806,7 +806,7 @@ mod tests {
 
     #[test]
     fn targeted_policy_rejects_mixed_cost_currencies() {
-        let mut usd = action(
+        let usd = action(
             "survey-usd",
             &["region-a"],
             bounds([0, 0, 0], [1_000, 1_000, 1_000]),
