@@ -10,7 +10,7 @@ This crate checks the binding and scope composition of already verified receipts
 
 ## Claim tiers
 
-- Physical-step equivalence requires mathematical symmetry qualification, coordinate covariance, operator spectrum, constraint/Delassus qualification, KKT residual qualification, nonlinear sensitivity evidence and a discrete-step receipt.
+- Physical-step equivalence requires mathematical symmetry qualification, coordinate covariance, operator spectrum, constraint/Delassus qualification, KKT residual qualification, nonlinear sensitivity evidence, a discrete-step receipt, and a distinct energy/work-ledger receipt.
 - Task equivalence requires all physical-step evidence plus a task-semantics receipt binding the candidate domain, objective, feasibility conditions, initial/boundary conditions, observables and answer interpretation.
 
 The two outcomes are reported separately. A passing physical step does not imply that the scientific task is invariant.
@@ -21,12 +21,14 @@ The two outcomes are reported separately. A passing physical step does not imply
 - The task-semantics digest is optional for physical-step claims and required for task-equivalence claims.
 - Mathematical symmetry evidence is explicitly source-frame bound; physical operator/constraint/KKT/sensitivity/step evidence is target-frame bound; task semantics are representation-independent.
 - The coordinate-covariance receipt must bind the exact source/target frame pair, both metric digests and the basis-transform digest.
-- Each required receipt must match an explicit expected verifier ID, version and checker commit SHA.
+- Each required receipt—including the energy/work ledger—must match an explicit expected verifier ID, version and checker commit SHA.
+- Energy/work closure is a separate obligation from the discrete-step output: it must independently bind and verify kinetic/potential changes, external work, physical damping, implicit increment terms and contact impulse work under the same target frame, initial state, timestep and solver profile.
 - The nonlinear receipt's declared validity radius must cover the requested perturbation radius.
 - The mathematical evidence class must meet the request's minimum class.
 - Missing or inconclusive evidence cannot become PASS.
 - A failed or mismatched receipt rejects composition.
 - Duplicate evidence kinds reject composition rather than selecting the most convenient copy.
+- Missing, failed, stale-verifier or mismatched energy/work receipts reject physical-step composition.
 - Scientific-search hard-pruning authority is always false in v0.1.
 
 ## Important trust boundary
