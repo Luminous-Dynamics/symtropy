@@ -248,3 +248,16 @@ Once baseline variance, sample size and cluster structure are known, preregister
 ## Claim ceiling
 
 A passing synthetic fixture demonstrates software/model verification only. A retrospective hindcast demonstrates performance on that declared held-out dataset only. A prospective forecast demonstrates performance for that region, variable and horizon only. None alone establishes complete rainforest simulation, ecological understanding, conservation effectiveness, SOTA superiority, or permission to intervene in a real ecosystem.
+
+
+## 15 November 2026 — additional qualification work
+
+The programme now has three additional child lanes:
+
+- [#5319 — realized block-coverage inference](https://github.com/Luminous-Dynamics/symtropy/issues/5319): uncertainty about observed whole-block coverage, kept distinct from prediction intervals and calibration-conditional coverage.
+- [#5327 — spatial localization and conditional coverage](https://github.com/Luminous-Dynamics/symtropy/issues/5327): local weighted-residual diagnostics, effective local sample size, abstention, and Moran's I descriptive residual autocorrelation. Specialist external comparators include spconform, ERT and stable localized conformal (StCP); the small Rust kernel is not those methods.
+- [#5328 — sealed blind model-set adequacy](https://github.com/Luminous-Dynamics/symtropy/issues/5328): separate public development fixtures from independently custodied hidden generators, immutable candidate submissions and signed evaluation receipts. No custodian/evaluator has yet been appointed.
+
+The implementation and literature update are recorded in [FOREST_BLOCK_COVERAGE_INFERENCE_V0_1.md](FOREST_BLOCK_COVERAGE_INFERENCE_V0_1.md), [FOREST_SPATIAL_LOCALIZATION_V0_1.md](FOREST_SPATIAL_LOCALIZATION_V0_1.md), [FOREST_BLIND_MODEL_SET_CUSTODY_V0_1.md](FOREST_BLIND_MODEL_SET_CUSTODY_V0_1.md), and [INDUSTRY_AND_SOTA_LANDSCAPE_V0_1.md](INDUSTRY_AND_SOTA_LANDSCAPE_V0_1.md).
+
+The core claim boundary remains unchanged: no real forest observations have been ingested, no hindcast or field calibration has been performed, no LPJ-GUESS reproduction has been executed, and no SOTA superiority is established.
