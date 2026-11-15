@@ -12,9 +12,6 @@ fn text<'a>(v:&'a Value,k:&str)->Result<&'a str,String>{field(v,k)?.as_str().ok_
 fn num(v:&Value,k:&str)->Result<f64,String>{field(v,k)?.as_f64().filter(|x|x.is_finite()).ok_or_else(||format!("{k} must be finite numeric"))}
 fn boolv(v:&Value,k:&str)->Result<bool,String>{field(v,k)?.as_bool().ok_or_else(||format!("{k} must be boolean"))}
 fn arr<'a>(v:&'a Value,k:&str)->Result<&'a Vec<Value>,String>{field(v,k)?.as_array().ok_or_else(||format!("{k} must be array"))}
-fn ids(rows:&[Value],key:&str)->Result<BTreeSet<String>,String>{
-    rows.iter().map(|x|text(x,key).map(str::to_owned)).collect()
-}
 fn valid_sha(value:&str,n:usize)->bool{
     value.len()==n&&value.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b))
 }
@@ -42,6 +39,13 @@ fn compute(case:&Value)->Result<Value,String>{
     if !valid_sha(rev,40){return Ok(base("REJECTED_CONTRACT","ENGINE_REVISION_NOT_PINNED"));}
     for key in ["geometry_sha256","operator_sha256","snapshot_sha256"]{
         if !valid_sha(text(case,key)?,64){return Ok(base("REJECTED_CONTRACT","PROVENANCE_DIGEST_INVALID"));}
+    }
+    let mut snapshot_material=case.clone();
+    snapshot_material.as_object_mut().ok_or_else(||"hook snapshot must be an object".to_owned())?
+        .remove("snapshot_sha256");
+    let snapshot_bytes=serde_json::to_vec(&snapshot_material).map_err(|e|format!("serialize snapshot: {e}"))?;
+    if digest(&snapshot_bytes)!=text(case,"snapshot_sha256")?{
+        return Ok(base("REJECTED_CONTRACT","SNAPSHOT_DIGEST_MISMATCH"));
     }
     let node=text(case,"node_id")?;
     if node.trim().is_empty(){return Ok(base("REJECTED_CONTRACT","NODE_ID_EMPTY"));}
@@ -86,7 +90,7 @@ fn compute(case:&Value)->Result<Value,String>{
     for seg in segments{
         let link=text(seg,"link_id")?;let sid=text(seg,"segment_id")?;
         if !segment_ids.insert(format!("{link}::{sid}")){return Ok(base("REJECTED_CONTRACT","DUPLICATE_CONSUMED_SEGMENT_ID"));}
-        if text(seg,"direction")?!="into_node"{return Ok(base("REJECTED_CONTRACT","CONSUMED_SEGMENT_DIRECTION_NOT_INTO_NODE"));}
+        if text(seg,"direction")? != "into_node"{return Ok(base("REJECTED_CONTRACT","CONSUMED_SEGMENT_DIRECTION_NOT_INTO_NODE"));}
         let vol=num(seg,"consumed_volume_m3")?;let conc=num(seg,"concentration_kg_per_m3")?;
         let total_segment_volume=num(seg,"available_segment_volume_m3")?;
         if vol<0.0||conc<0.0||total_segment_volume<0.0||vol>total_segment_volume+1.0e-12{
@@ -99,6 +103,7 @@ fn compute(case:&Value)->Result<Value,String>{
     }
     let outlet_rows=arr(case,"outlet_ports")?;
     let expected_rows=arr(case,"expected_outlet_port_ids")?;
+    if expected_rows.is_empty(){return Ok(base("INVALID_INPUT","EXPECTED_OUTLET_SET_EMPTY"));}
     let mut expected=BTreeSet::new();
     for x in expected_rows{
         let id=x.as_str().ok_or_else(||"expected outlet identity must be text".to_owned())?;
@@ -197,14 +202,14 @@ fn compute(case:&Value)->Result<Value,String>{
     }))
 }
 fn validate(input:&Value,oracle:&Value,manifest:&Value)->Result<(),String>{
-    if text(input,"schema_version")?!="epanet-junction-hook-t0-input-v0.1"{return Err("unexpected input schema".into());}
-    if text(oracle,"schema_version")?!="epanet-junction-hook-t0-oracle-v0.1"{return Err("unexpected oracle schema".into());}
-    for x in [input,oracle,manifest]{if text(x,"programme_id")?!=PROGRAMME{return Err("programme identity mismatch".into());}}
+    if text(input,"schema_version")? != "epanet-junction-hook-t0-input-v0.1"{return Err("unexpected input schema".into());}
+    if text(oracle,"schema_version")? != "epanet-junction-hook-t0-oracle-v0.1"{return Err("unexpected oracle schema".into());}
+    for x in [input,oracle,manifest]{if text(x,"programme_id")? != PROGRAMME{return Err("programme identity mismatch".into());}}
     for k in ["physical_operator_qualified","potability_claim_permitted","release_authorized"]{
         if field(oracle,k)?.as_bool()!=Some(false){return Err(format!("oracle cannot claim {k}"));}
     }
     let cases=arr(input,"cases")?;let expected=arr(oracle,"cases")?;let ids=arr(manifest,"case_ids")?;
-    if cases.len()!=CASE_COUNT||expected.len()!=CASE_COUNT||usize_value(manifest,"case_count")?!=CASE_COUNT{
+    if cases.len()!=CASE_COUNT||expected.len()!=CASE_COUNT||usize_value(manifest,"case_count")? != CASE_COUNT{
         return Err("frozen hook case count mismatch".into());
     }
     let input_ids=ids_from(cases,"case_id")?;let oracle_ids=ids_from(expected,"case_id")?;
@@ -313,4 +318,10 @@ mod tests{
     #[test]fn open_volume_residual_is_separate_from_mass_residual(){assert_eq!(row("EJH-T0-009-open-volume-residual")["hook_disposition"],"OPEN_VOLUME_RESIDUAL");}
     #[test]fn quality_step_cannot_cross_hydraulic_event(){assert_eq!(row("EJH-T0-010-step-over-event")["hook_disposition"],"INVALID_INPUT");}
     #[test]fn zero_flow_outlet_cannot_receive_mass(){let mut x=load("input");x["cases"][0]["snapshot"]["outlet_ports"][0]["volume_m3"]=json!(0.0);assert_eq!(compute(&x["cases"][0]["snapshot"]).unwrap()["hook_disposition"],"INVALID_INPUT");}
+    #[test]fn snapshot_mutation_without_digest_update_is_rejected(){
+        let mut x=load("input");
+        x["cases"][0]["snapshot"]["outlet_ports"][0]["operator_mass_kg"]=json!(0.5);
+        let result=compute(&x["cases"][0]["snapshot"]).unwrap();
+        assert_eq!(result["hook_disposition"],"REJECTED_CONTRACT");
+    }
 }
