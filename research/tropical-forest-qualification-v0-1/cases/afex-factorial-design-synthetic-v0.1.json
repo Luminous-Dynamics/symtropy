@@ -434,5 +434,30 @@
     "dendrometer_time_support": "irregular_repeated_measurements",
     "rainy_collection_policy": "NOT_COLLECTED_HUMIDITY_SENSITIVE_INSTRUMENT",
     "rainy_missingness_numeric_zero": false
+  },
+  "published_protocol_metadata": {
+    "source_doi": "10.1007/s11104-026-08303-2",
+    "source_url": "https://link.springer.com/article/10.1007/s11104-026-08303-2",
+    "plot_count": 32,
+    "plot_dimensions_m": [
+      50,
+      50
+    ],
+    "inter_plot_spacing_m_minimum": 50,
+    "inter_block_spacing_m_minimum": 200,
+    "wet_season_applications_per_year": 3,
+    "application_schedule": "three equal applications during each wet season",
+    "first_application_window": [
+      "2017-05",
+      "2017-06"
+    ],
+    "annual_application_rates_verbatim": {
+      "nitrogen": "125 kg ha-1 yr-1 as urea",
+      "phosphorus": "50 kg ha-1 yr-1 as triple superphosphate",
+      "base_cations": "50 kg ha-1 yr-1 for Ca; 20 kg ha-1 yr-1 as Mg in the form of dolomitic limestone; 50 kg ha-1 yr-1 as potassium chloride for K"
+    },
+    "rate_semantics": "Preserve source-verbatim product/element wording; do not normalize into elemental nutrient quantities without original protocol confirmation.",
+    "actual_application_logs_ingested": false,
+    "actual_plot_treatment_allocation_reconciled": false
   }
 }
