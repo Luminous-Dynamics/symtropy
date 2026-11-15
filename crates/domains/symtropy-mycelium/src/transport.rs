@@ -90,10 +90,18 @@ impl fmt::Display for TransportError {
             Self::EmptyCompartments => write!(f, "at least one transport compartment is required"),
             Self::NonFiniteTotalMass => write!(f, "total mass is not finite"),
             Self::InvalidVolume(node) => {
-                write!(f, "compartment {:?} volume must be finite and positive", node)
+                write!(
+                    f,
+                    "compartment {:?} volume must be finite and positive",
+                    node
+                )
             }
             Self::InvalidMass(node) => {
-                write!(f, "compartment {:?} mass must be finite and non-negative", node)
+                write!(
+                    f,
+                    "compartment {:?} mass must be finite and non-negative",
+                    node
+                )
             }
             Self::MixedSolutes => write!(f, "all compartments must contain the same solute"),
             Self::DuplicateCompartment(node) => {
@@ -106,13 +114,21 @@ impl fmt::Display for TransportError {
                 write!(f, "missing transport compartment for node {:?}", node)
             }
             Self::MissingSegment(segment) => {
-                write!(f, "transport segment {:?} is absent from the graph", segment)
+                write!(
+                    f,
+                    "transport segment {:?} is absent from the graph",
+                    segment
+                )
             }
             Self::InactiveSegment(segment) => {
                 write!(f, "transport segment {:?} is inactive", segment)
             }
             Self::InvalidConductance(segment) => {
-                write!(f, "conductance for segment {:?} must be finite and positive", segment)
+                write!(
+                    f,
+                    "conductance for segment {:?} must be finite and positive",
+                    segment
+                )
             }
             Self::ExplicitStepUnstable {
                 node,
@@ -199,9 +215,7 @@ pub fn apply_passive_transport(
     let mut fluxes = Vec::with_capacity(edges.len());
 
     for edge in edges {
-        if !edge.conductance_ml_per_hour.is_finite()
-            || edge.conductance_ml_per_hour <= 0.0
-        {
+        if !edge.conductance_ml_per_hour.is_finite() || edge.conductance_ml_per_hour <= 0.0 {
             return Err(TransportError::InvalidConductance(edge.segment));
         }
         if !seen_edges.insert(edge.segment) {
@@ -232,9 +246,8 @@ pub fn apply_passive_transport(
         let to = compartments[to_index];
         let concentration_from = from.mass_mg / from.volume_ml;
         let concentration_to = to.mass_mg / to.volume_ml;
-        let flux = edge.conductance_ml_per_hour
-            * dt_hours
-            * (concentration_from - concentration_to);
+        let flux =
+            edge.conductance_ml_per_hour * dt_hours * (concentration_from - concentration_to);
 
         if !flux.is_finite() {
             return Err(TransportError::NonFiniteResult(segment.from));
