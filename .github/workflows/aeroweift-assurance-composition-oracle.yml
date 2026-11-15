@@ -9,7 +9,7 @@ on:
       - "tools/aeroweift-assurance-composition-oracle/**"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   isolated-rust:
@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Check out exact revision
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -27,6 +29,20 @@ jobs:
           components: rustfmt, clippy
 
       - name: Formatting
+        run: cargo fmt --manifest-path Cargo.toml
+      - name: Commit rustfmt output to the PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'research/aeroweFt-assurance-composition-001'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if ! git diff --quiet -- tools/aeroweift-assurance-composition-oracle; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- tools/aeroweift-assurance-composition-oracle
+            git commit -m "style(aviation): apply rustfmt to assurance composition oracle"
+            git push origin "HEAD:${HEAD_REF}"
+          fi
+      - name: Verify formatting
         run: cargo fmt --manifest-path Cargo.toml -- --check
       - name: Clippy
         run: cargo clippy --locked --all-targets -- -D warnings
