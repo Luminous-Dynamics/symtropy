@@ -480,7 +480,7 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const K: usize, const N
 mod tests {
     use super::*;
     use crate::{
-        CartesianQ, ConstraintSpace, DenseY, DelassusMetricV1, MetricProfileV1, Rebasis,
+        CartesianQ, ConstraintSpace, DelassusMetricV1, DenseY, MetricProfileV1, Rebasis,
         rebase_constraint_jacobian,
     };
 
@@ -742,15 +742,17 @@ mod tests {
     ) -> [[f64; 3]; 2] {
         std::array::from_fn(|row| {
             std::array::from_fn(|column| {
-                transform[row][0] * jacobian[0][column]
-                    + transform[row][1] * jacobian[1][column]
+                transform[row][0] * jacobian[0][column] + transform[row][1] * jacobian[1][column]
             })
         })
     }
 
     fn congruence_2(matrix: &[[f64; 2]; 2], transform: &[[f64; 2]; 2]) -> [[f64; 2]; 2] {
         let left = multiply(transform, matrix);
-        let transform_transpose = [[transform[0][0], transform[1][0]], [transform[0][1], transform[1][1]]];
+        let transform_transpose = [
+            [transform[0][0], transform[1][0]],
+            [transform[0][1], transform[1][1]],
+        ];
         multiply(&left, &transform_transpose)
     }
 
@@ -763,18 +765,12 @@ mod tests {
         )
         .unwrap();
         let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
-        let delassus =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q,
-                jacobian_q,
-                profile,
-            )
-            .unwrap();
-        let residual_metric = Metric::<ConstraintSpace, 2>::admit(
-            invert_spd_2(delassus.matrix()),
-            profile,
+        let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q, jacobian_q, profile,
         )
         .unwrap();
+        let residual_metric =
+            Metric::<ConstraintSpace, 2>::admit(invert_spd_2(delassus.matrix()), profile).unwrap();
         let operator =
             RectangularTangentToTangentOperator::<CartesianQ, ConstraintSpace, 2, 3>::new(
                 jacobian_q,
@@ -807,13 +803,10 @@ mod tests {
         )
         .unwrap();
         let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
-        let delassus_q =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q,
-                jacobian_q,
-                profile,
-            )
-            .unwrap();
+        let delassus_q = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q, jacobian_q, profile,
+        )
+        .unwrap();
 
         let baseline_residual_metric = Metric::<ConstraintSpace, 2>::admit(
             invert_spd_2(delassus_q.matrix()),
@@ -847,24 +840,21 @@ mod tests {
             let rebasis = Rebasis::<CartesianQ, DenseY, 3>::new(basis, profile).unwrap();
             let mass_y = rebasis.metric_to_to(&mass_q, profile).unwrap();
             let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
-            let delassus_y =
-                DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                    &mass_y,
-                    jacobian_y,
-                    profile,
-                )
-                .unwrap();
+            let delassus_y = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass_y, jacobian_y, profile,
+            )
+            .unwrap();
 
             for (constraint_shear, row_scale) in [(-2.0, 0.1), (0.0, 1.0), (3.0, 10.0)] {
                 let transform = [[1.0, constraint_shear], [0.0, row_scale]];
                 let jacobian_new = rebase_constraint_rows(&jacobian_y, &transform);
-                let delassus_new = DelassusMetricV1::<
-                    DenseY,
-                    ConstraintRowsRebased,
-                    3,
-                    2,
-                >::from_mass_jacobian(&mass_y, jacobian_new, profile)
-                .unwrap();
+                let delassus_new =
+                    DelassusMetricV1::<DenseY, ConstraintRowsRebased, 3, 2>::from_mass_jacobian(
+                        &mass_y,
+                        jacobian_new,
+                        profile,
+                    )
+                    .unwrap();
 
                 let expected_delassus = congruence_2(delassus_y.matrix(), &transform);
                 for row in 0..2 {
@@ -924,13 +914,10 @@ mod tests {
         .unwrap();
         let mass_y = rebasis.metric_to_to(&mass_q, profile).unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
-        let old_basis_delassus =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                jacobian_y,
-                profile,
-            )
-            .unwrap();
+        let old_basis_delassus = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y, jacobian_y, profile,
+        )
+        .unwrap();
 
         let transform = [[1.0, 2.0], [0.0, 0.5]];
         let jacobian_new = rebase_constraint_rows(&jacobian_y, &transform);
