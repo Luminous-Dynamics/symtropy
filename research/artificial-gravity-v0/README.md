@@ -152,6 +152,18 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --
 
 This is a kinematic scenario generator. It does not predict gait, nausea, injury, human tolerance, contact forces, or physiological adaptation.
 
+## Counter-rotation and attitude reference
+
+The axial rotor oracle evaluates signed module angular momentum and positive stored rotational energy; a second executable emits inertia-ratio and cancellation-speed scenarios:
+
+~~~bash
+cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin rotor_balance_matrix
+~~~
+
+Reference fixture: fixtures/rotor_balance_matrix.csv. Scope is limited to coaxial scalar momentum/energy accounting. Full 3D gyroscopic stability, SO(3) attitude dynamics and environmental torque response remain dependent on existing Symtropy rotational-dynamics work.
+
+Follow-on: https://github.com/Luminous-Dynamics/symtropy/issues/5291.
+
 ## Additional work packages
 
 - Movement/field benchmark issue: https://github.com/Luminous-Dynamics/symtropy/issues/5289
