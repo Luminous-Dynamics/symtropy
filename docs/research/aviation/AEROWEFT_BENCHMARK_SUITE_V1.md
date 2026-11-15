@@ -369,6 +369,8 @@ It owns only a finite conformance oracle, deviation-duration accounting, authori
 - Time to definite-deviation detection, possible-deviation escalation and contact-loss/contingency transition.
 - Expired, withdrawn, superseded authorization and dynamic-restriction revalidation outcomes.
 - Exact authorization, intent, policy, observation, clock and restriction lineage.
+- Every admitted track carries exact PNT/time and surveillance qualification receipt IDs; each dynamic restriction binds issuer, snapshot revision, digest and time-scale identity.
+- Deviation expansion is clipped to the authorization activation/expiry interval; it cannot make a pre-activation observation conforming.
 
 **Initial targets**
 - 100% exact agreement with an independent integer/rational oracle on the frozen fixture.
