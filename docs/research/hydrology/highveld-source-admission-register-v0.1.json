@@ -477,6 +477,94 @@
     "All candidate station records remain not acquired; no usage rights, quality flag, calibration, rating curve, gap report or raw data is admitted by this register.",
     "Missingness values are catalogue summaries and should be associated only with the named series when the catalogue identifies the relation; verify from the raw gap report before benchmark inclusion.",
     "A2H040 and A2H042 have older end dates in the current catalogue; they are historical-only candidates unless supplementary contemporary data are found.",
-    "No preferred catchment or station is selected by this matrix."
+    "No preferred catchment or station is selected by this matrix.",
+    "DWS RQIS/WMS index metadata lists A2H044 chemistry site A21-90189 with 1,649 indexed observations from 1971-12-06 to 2018-05-21; A2H047 site A21-90191 with 639 from 1971-12-06 to 2018-06-05; A2H042 site A21-90187 with 952 from 1971-12-06 to 1997-10-13. These are index metadata, not acquired raw sample records.",
+    "A 2016 DWS national monitoring-network review says A2H023 may be redundant if A2H044 can be upgraded and return flow measured at N21; it describes A2H047 as a small urban catchment. Treat this as historical design context, not verified present-day station status or an installed return-flow measurement.",
+    "Any urban Jukskei runoff benchmark should separately admit wastewater return flows and other transfers/abstractions; absent anthropogenic flux records must trigger abstention/downgrade under hydro-contextual evaluator control HC-T0-013."
+  ],
+  "candidate_quality_records": [
+    {
+      "sample_site_id": "A21-90189",
+      "station_link": "A2H044",
+      "provider": "DWS Resource Quality Information Services / Water Management System",
+      "source_url": "https://www.dws.gov.za/iwqs/wms/data/A_reg_WMS_nobor.htm",
+      "source_label": "Vlakfontein 494 JQ on Jukskeirivier (NCWQ)",
+      "sample_count_as_listed": 1649,
+      "listed_period": "1971-12-06 to 2018-05-21",
+      "coordinates_as_listed": {
+        "latitude": -25.8955,
+        "longitude": 27.93481
+      },
+      "data_kind": "surface_water_quality_sampling_index",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "evidence_ceiling": "candidate metadata for historical chemistry sampling; raw analytes, methods, units, sample identities, detection limits and laboratory QC not acquired",
+      "cautions": [
+        "Index row count is not a validated sample/analyte count until raw export is inspected.",
+        "Do not combine this chemistry series with hydraulic flow observations without time-window/site identity and sampling-method crosswalk.",
+        "Do not infer drinking-water suitability from raw river chemistry."
+      ]
+    },
+    {
+      "sample_site_id": "A21-90191",
+      "station_link": "A2H047",
+      "provider": "DWS Resource Quality Information Services / Water Management System",
+      "source_url": "https://www.dws.gov.za/iwqs/wms/data/A_reg_WMS_nobor.htm",
+      "source_label": "Klipfontein/Randburg on Klein-Jukskeirivier (NCWQ)",
+      "sample_count_as_listed": 639,
+      "listed_period": "1971-12-06 to 2018-06-05",
+      "coordinates_as_listed": {
+        "latitude": -26.06818,
+        "longitude": 27.97202
+      },
+      "data_kind": "surface_water_quality_sampling_index",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "evidence_ceiling": "candidate metadata for historical chemistry sampling; raw analytes, methods, units, sample identities, detection limits and laboratory QC not acquired",
+      "cautions": [
+        "Index row count is not a validated sample/analyte count until raw export is inspected.",
+        "Small urban catchment sampling may be useful for urban-water quality challenge cases but is not a representative all-Highveld population.",
+        "Do not infer potable or reuse quality."
+      ]
+    },
+    {
+      "sample_site_id": "A21-90187",
+      "station_link": "A2H042",
+      "provider": "DWS Resource Quality Information Services / Water Management System",
+      "source_url": "https://www.dws.gov.za/iwqs/wms/data/A_reg_WMS_nobor.htm",
+      "source_label": "Jukskei River at Lone Hill",
+      "sample_count_as_listed": 952,
+      "listed_period": "1971-12-06 to 1997-10-13",
+      "coordinates_as_listed": {
+        "latitude": -26.00528,
+        "longitude": 28.03333
+      },
+      "data_kind": "surface_water_quality_sampling_index",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "evidence_ceiling": "candidate metadata for historical chemistry sampling; raw analytes, methods, units, sample identities, detection limits and laboratory QC not acquired",
+      "cautions": [
+        "Listed period is historical and does not imply ongoing monitoring.",
+        "Sample count must be validated against raw records and parameter availability."
+      ]
+    }
+  ],
+  "network_design_evidence": [
+    {
+      "source_id": "DWS-NWRM-NETWORK-REVIEW-2016",
+      "publisher": "South African Department of Water and Sanitation",
+      "title": "Review, Evaluation and Optimisation of the South African Water Resources Monitoring Network — Final, August 2016",
+      "source_url": "https://www.dws.gov.za/Projects/NWRM/doc/Main%20Scientific%20Review%20Report%20Annexure%20%20-%20Final%20August%202016.pdf",
+      "evidence_kind": "historical_monitoring_network_review",
+      "relevant_finding_as_published": "A2H023 (Jukskei @ Nietgedacht) was described as possibly redundant if A2H044 could be upgraded and return flow measured at N21; A2H047 was described as a small urban catchment.",
+      "interpretation": "Historical planning context only. It does not prove a present-day A2H023/A2H044 station status, A2H044 upgrade, N21 flow meter installation, or current redundancy.",
+      "engineering_implication": "For urban Jukskei benchmark selection, explicitly audit wastewater treatment-plant return flows, N21 or equivalent transfers, abstractions and channel diversions before interpreting catchment outlet hydrographs as rainfall-runoff.",
+      "acquisition_status": "public_report_locator_only",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null
+    }
   ]
 }
