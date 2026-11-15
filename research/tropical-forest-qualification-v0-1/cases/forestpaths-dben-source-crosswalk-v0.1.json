@@ -327,7 +327,60 @@
       "transformation": "change_unit_stoy",
       "operation": "multiply data columns by 60*60*24*365",
       "output_unit": "kgC m-2 yr-1",
-      "meaning": "convert per-second flux to annual flux using fixed 365-day year"
+      "meaning": "convert per-second flux to annual flux using fixed 365-day year",
+      "model_applications": [
+        {
+          "model": "CABLE-POP",
+          "variables": [
+            "cmort",
+            "cmort_crowd",
+            "cmort_dist",
+            "cmort_res",
+            "gpp",
+            "npp"
+          ],
+          "operation": "multiply by 60*60*24*365 and relabel",
+          "source_adapter": "get_output_CABLEPOP"
+        },
+        {
+          "model": "JULES-RED",
+          "variables": [
+            "gpp",
+            "npp"
+          ],
+          "operation": "multiply by 60*60*24*365 and relabel",
+          "source_adapter": "get_output_JULESRED"
+        },
+        {
+          "model": "FATES",
+          "variables": [
+            "gpp",
+            "npp"
+          ],
+          "operation": "multiply by 60*60*24*365 and relabel",
+          "source_adapter": "get_output_FATES"
+        },
+        {
+          "model": "SEIB-DGVM",
+          "variables": [
+            "gpp",
+            "npp"
+          ],
+          "operation": "multiply by 60*60*24*365 and relabel",
+          "source_adapter": "get_output_SEIBDGVM"
+        },
+        {
+          "model": "BiomeE-Standalone",
+          "variables": [
+            "cmort",
+            "cmort_age",
+            "cmort_other",
+            "cmort_greff"
+          ],
+          "operation": "multiply by 60*60*24*365 and relabel",
+          "source_adapter": "get_output_BiomeE_standalone"
+        }
+      ]
     },
     {
       "model": "LPJ-GUESS",
@@ -361,6 +414,57 @@
       ],
       "operation": "multiply data columns by 10000 in helper",
       "meaning": "per-square-metre to per-hectare scaling"
+    },
+    {
+      "model": "JULES-RED",
+      "variables": [
+        "cmort",
+        "cmort_age",
+        "cmort_other",
+        "cmort_greff"
+      ],
+      "operation": "set unit metadata to kgC m-2 yr-1 without multiplying",
+      "source_comment": "helper states these values were changed to annual units in post-processing",
+      "double_conversion": "PROHIBITED"
+    },
+    {
+      "model": "BiomeEP",
+      "variables": [
+        "cmort_size"
+      ],
+      "operation": "set unit metadata to kgC m-2 yr-1 without multiplying",
+      "source_adapter": "get_output_BiomeEP",
+      "double_conversion": "DO NOT APPLY seconds-to-year conversion without checking raw source data"
+    },
+    {
+      "model": "BiomeEP",
+      "variables": [
+        "stemmort_size",
+        "stemmort"
+      ],
+      "operation": "multiply data values by 10000",
+      "meaning": "per-square-metre to per-hectare scaling",
+      "source_adapter": "get_output_BiomeEP"
+    },
+    {
+      "model": "BiomeE-Standalone",
+      "variables": [
+        "stemmort_size"
+      ],
+      "operation": "multiply data values by 10000",
+      "meaning": "per-square-metre to per-hectare scaling",
+      "source_adapter": "get_output_BiomeE_standalone"
+    },
+    {
+      "model": "FATES",
+      "variables": [
+        "nstem_size",
+        "stemmort"
+      ],
+      "operation": "multiply data values by 10000",
+      "meaning": "per-square-metre to per-hectare scaling",
+      "source_adapter": "get_output_FATES",
+      "condition": "helper includes a special 562ppm nstem_size conversion and a later nstem_size/stemmort scaling note"
     }
   ],
   "size_class_families": {
