@@ -1,0 +1,2197 @@
+{
+  "schema_version": "maritime-qualification-scope-v0.1",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "as_of_utc": "2026-11-14T00:00:00Z",
+  "cases": [
+    {
+      "case_id": "exact-scope-match",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "exact-scope-match",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "different-asset",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "different-asset",
+        "asset_id": "synthetic-aux-engine-02",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "configuration-changed",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "configuration-changed",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "new-operating-regime",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "new-operating-regime",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "high-sea-state-transient",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "missing-calibration",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "missing-calibration",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "conflicted-timebase",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "conflicted-timebase",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "CONFLICTED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "CONFLICTED"
+    },
+    {
+      "case_id": "qualification-expired",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2026-11-13T23:59:59Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "qualification-expired",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "EXPIRED"
+    },
+    {
+      "case_id": "calibration-expired",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "calibration-expired",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": "2026-11-13T00:00:00Z"
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "EXPIRED"
+    },
+    {
+      "case_id": "sensor-topology-changed",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "sensor-topology-changed",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "model-changed-no-retention",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "model-changed-no-retention",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "model-update-exact-retention",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "model-update-exact-retention",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": {
+          "receipt_id": "RET-Q-MAIN-ENGINE-DIAG-R3-001",
+          "prior_qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+          "old_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "new_model_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "verification_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "evidence_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "review_status": "INDEPENDENTLY_REVIEWED",
+          "result": "PASS",
+          "retained_capability_ids": [
+            "detect-intake-restriction",
+            "isolate-pressure-sensor-bias"
+          ],
+          "tested_regimes": [
+            "steady",
+            "load_transient"
+          ],
+          "worst_case_regression_pp": 1,
+          "maximum_allowed_regression_pp": 2,
+          "unknown_fault_rejection_passed": true,
+          "calibration_retention_passed": true,
+          "scope_unchanged": true
+        }
+      },
+      "expected_disposition": "REQUALIFIED"
+    },
+    {
+      "case_id": "model-update-widened-capabilities",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "model-update-widened-capabilities",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": {
+          "receipt_id": "RET-Q-MAIN-ENGINE-DIAG-R3-001",
+          "prior_qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+          "old_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "new_model_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "verification_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "evidence_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "review_status": "INDEPENDENTLY_REVIEWED",
+          "result": "PASS",
+          "retained_capability_ids": [
+            "detect-intake-restriction"
+          ],
+          "tested_regimes": [
+            "steady",
+            "load_transient"
+          ],
+          "worst_case_regression_pp": 1,
+          "maximum_allowed_regression_pp": 2,
+          "unknown_fault_rejection_passed": true,
+          "calibration_retention_passed": true,
+          "scope_unchanged": true
+        }
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "model-update-widened-regimes",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "model-update-widened-regimes",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": {
+          "receipt_id": "RET-Q-MAIN-ENGINE-DIAG-R3-001",
+          "prior_qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+          "old_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "new_model_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "verification_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "evidence_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "review_status": "INDEPENDENTLY_REVIEWED",
+          "result": "PASS",
+          "retained_capability_ids": [
+            "detect-intake-restriction",
+            "isolate-pressure-sensor-bias"
+          ],
+          "tested_regimes": [
+            "steady",
+            "load_transient",
+            "high-sea-state-transient"
+          ],
+          "worst_case_regression_pp": 1,
+          "maximum_allowed_regression_pp": 2,
+          "unknown_fault_rejection_passed": true,
+          "calibration_retention_passed": true,
+          "scope_unchanged": true
+        }
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "model-update-excessive-regression",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "model-update-excessive-regression",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": {
+          "receipt_id": "RET-Q-MAIN-ENGINE-DIAG-R3-001",
+          "prior_qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+          "old_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "new_model_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "verification_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "evidence_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "review_status": "INDEPENDENTLY_REVIEWED",
+          "result": "PASS",
+          "retained_capability_ids": [
+            "detect-intake-restriction",
+            "isolate-pressure-sensor-bias"
+          ],
+          "tested_regimes": [
+            "steady",
+            "load_transient"
+          ],
+          "worst_case_regression_pp": 2.5,
+          "maximum_allowed_regression_pp": 2,
+          "unknown_fault_rejection_passed": true,
+          "calibration_retention_passed": true,
+          "scope_unchanged": true
+        }
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "physical-claim-simulator-only",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "PHYSICAL_ENGINEERING_CAPABILITY",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "physical-claim-simulator-only",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "MEASURED_PHYSICAL",
+            "valid_until_utc": null,
+            "independence_status": "INDEPENDENTLY_AUDITED"
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "MEASURED_PHYSICAL",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "MEASURED_PHYSICAL",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SIMULATED",
+            "valid_until_utc": null,
+            "payload_verified": true
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null,
+            "review_status": "INDEPENDENTLY_REVIEWED"
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "invalid-calendar-validity",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2026-02-30T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "invalid-calendar-validity",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "qualification-omits-required-dependency",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "qualification-omits-required-dependency",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "unknown-request-dependency-key",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "unknown-request-dependency-key",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "shadow_sensor": {
+            "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "MEASURED_PHYSICAL"
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "prior-qualification-revoked",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "REVOKED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "prior-qualification-revoked",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "prior-qualification-expired",
+      "qualification": {
+        "qualification_id": "Q-MAIN-ENGINE-DIAG-R3",
+        "state": "EXPIRED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "steady",
+          "load_transient"
+        ],
+        "capability_ids": [
+          "detect-intake-restriction",
+          "isolate-pressure-sensor-bias"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "request": {
+        "request_id": "prior-qualification-expired",
+        "asset_id": "synthetic-main-engine-01",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "requested_regime": "steady",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "EXPIRED"
+    }
+  ]
+}
