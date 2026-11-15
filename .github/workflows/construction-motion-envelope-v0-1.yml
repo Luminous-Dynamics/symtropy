@@ -1,0 +1,35 @@
+name: Construction Motion Envelope v0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-motion-envelope-v0-1/**"
+      - ".github/workflows/construction-motion-envelope-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-motion-envelope-v0-1-\${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rust:
+    runs-on: \${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - run: cargo metadata --manifest-path research/construction-motion-envelope-v0-1/Cargo.toml --locked --format-version 1
+      - run: cargo fmt --manifest-path research/construction-motion-envelope-v0-1/Cargo.toml -- --check
+      - run: cargo test --manifest-path research/construction-motion-envelope-v0-1/Cargo.toml --locked
+      - run: cargo clippy --manifest-path research/construction-motion-envelope-v0-1/Cargo.toml --locked --all-targets -- -D warnings
+      - if: runner.os == 'Linux'
+        run: cargo bench --manifest-path research/construction-motion-envelope-v0-1/Cargo.toml --locked --bench sweep_scale
