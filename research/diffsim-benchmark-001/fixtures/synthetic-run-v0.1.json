@@ -54,8 +54,8 @@
   "results": {
     "primal": {
       "reference_identity_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
-      "state_error_metric_norm": 0,
-      "observable_error_max": 0,
+      "state_error_metric_norm": null,
+      "observable_error_max": null,
       "replay_status": "INCONCLUSIVE",
       "trajectory_digest_sha256": null
     },
@@ -68,7 +68,7 @@
       "adjoint_gradient_digest_sha256": null
     },
     "constraint": {
-      "residual_norm_max": 0,
+      "residual_norm_max": null,
       "complementarity_defect": null,
       "active_set_consistency": "NOT_APPLICABLE"
     },
@@ -98,15 +98,16 @@
     }
   },
   "resources": {
-    "primal_wall_ms": 0,
-    "derivative_wall_ms": 0,
+    "measurement_status": "synthetic_placeholder",
+    "primal_wall_ms": null,
+    "derivative_wall_ms": null,
     "adjoint_wall_ms": null,
-    "p50_ms": 0,
-    "p95_ms": 0,
-    "p99_ms": 0,
-    "peak_memory_bytes": 0,
-    "checkpoint_bytes": 0,
-    "cpu_time_ms": 0
+    "p50_ms": null,
+    "p95_ms": null,
+    "p99_ms": null,
+    "peak_memory_bytes": null,
+    "checkpoint_bytes": null,
+    "cpu_time_ms": null
   },
   "claim_boundary": {
     "claims": {
