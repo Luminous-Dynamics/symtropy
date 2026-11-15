@@ -737,6 +737,19 @@ mod tests {
     }
 
     #[test]
+    fn unknown_buffer_evidence_abstains_without_assuming_recovery() {
+        let mut root = fixture_value();
+        root["portfolios"][0]["buffer_recovery"]["status"] = Value::String("UNKNOWN".into());
+        root["portfolios"][0]["expected_report"]["disposition"] =
+            Value::String("ABSTAIN_MISSING_UPSTREAM_EVIDENCE".into());
+        let report = evaluate_fixture(&root.to_string(), REGISTRY).expect("unknown evidence abstains");
+        assert_eq!(
+            report["portfolio_reports"][0]["disposition"],
+            "ABSTAIN_MISSING_UPSTREAM_EVIDENCE"
+        );
+    }
+
+    #[test]
     fn scope_mismatch_abstains_instead_of_ranking_incomparable_portfolios() {
         let mut root = fixture_value();
         root["portfolios"][0]["scope"]["demand_profile_id"] =
