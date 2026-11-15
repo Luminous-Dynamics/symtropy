@@ -226,7 +226,7 @@ pub enum NotAssessableReason {
 
 
 /// Evidence lineage retained by every accepted initial-position receipt.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AcceptedClaimLineage {
     /// Stable source-claim identifier.
     pub source_id: String,
