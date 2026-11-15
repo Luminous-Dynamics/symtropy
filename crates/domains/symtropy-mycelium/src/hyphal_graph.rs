@@ -1338,14 +1338,15 @@ mod tests {
                 .unwrap();
         }
         for id in 1..NODE_COUNT {
-            graph
-                .add_segment(segment(id, id, id + 1, 1.0))
-                .unwrap();
+            graph.add_segment(segment(id, id, id + 1, 1.0)).unwrap();
         }
 
         let criticality = graph.active_graph_criticality();
         assert_eq!(criticality.bridge_segments.len(), (NODE_COUNT - 1) as usize);
-        assert_eq!(criticality.articulation_nodes.len(), (NODE_COUNT - 2) as usize);
+        assert_eq!(
+            criticality.articulation_nodes.len(),
+            (NODE_COUNT - 2) as usize
+        );
     }
 
     #[test]
