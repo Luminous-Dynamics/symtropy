@@ -1,0 +1,194 @@
+{
+  "schema_version": "myco.bmx_exchange.reference.v0.1",
+  "suite_id": "BMX-PASSIVE-EXCHANGE-001",
+  "evidence_class": "synthetic_known_answer_source_equation_crosswalk",
+  "result_status": "not_executed_against_BMX_or_Symtropy",
+  "source": {
+    "repository": "PNNL-CompBio/BoltzmannMFX",
+    "commit": "ad0bea280a9fb655e77e32db1f2931c2bea1fb28",
+    "equation_file": {
+      "path": "src/chemistry/bmx_chem_K.H",
+      "blob_sha": "9f23f083cc230c5b9fb36515a38f2c89cbc8fc9b",
+      "function": "evaluateExchange",
+      "source_lines": [
+        1960,
+        2077
+      ]
+    },
+    "parameter_declaration": {
+      "path": "src/chemistry/bmx_chem.H",
+      "blob_sha": "39a3cfa5a60a12bf0d2ba51ff5c29b3c2cf189dd",
+      "description": "mtA, mtB and mtC are described as septum mass transfer coefficients"
+    },
+    "parameter_reader": {
+      "path": "src/chemistry/bmx_chem.cpp",
+      "blob_sha": "475a0915969594cc6bbc53447236fa3f686a3039"
+    },
+    "input_profile": {
+      "path": "exec/fungi/input_fungi",
+      "blob_sha": "fd74644c70cd09593d894dc3e54c68396f3e8d8a",
+      "excerpted_values": {
+        "fixed_dt_numeric": 0.25,
+        "max_segment_radius_numeric": 0.00025,
+        "mass_transfer_A_numeric": 0.00002,
+        "mass_transfer_B_numeric": 0.00002,
+        "mass_transfer_C_numeric": 0.00002,
+        "max_segment_length_numeric": 0.0035
+      }
+    },
+    "source_license": "BSD-2-Clause"
+  },
+  "equation": {
+    "area_m2": "0.5 * (PI * radius_1_m^2 + PI * radius_2_m^2)",
+    "signed_raw_transfer": "(concentration_1 - concentration_2) * area_m2 * mt * dt",
+    "interpretation": "positive transfer is from segment 1 to segment 2; negative transfer is from segment 2 to segment 1",
+    "donor_share_limit": "absolute transfer on one edge is limited to donor concentration * donor volume / donor bond_count",
+    "equivalent_conductance": "G = area * mt",
+    "paired_update": {
+      "segment_1": "c1_final = c1_initial - signed_transfer / volume_1",
+      "segment_2": "c2_final = c2_initial + signed_transfer / volume_2"
+    }
+  },
+  "unit_admission": {
+    "geometry_unit": "metre assumed for the synthetic fixtures and consistent with source input magnitudes; independently confirm against the deposited release and paper",
+    "dt_unit": "unverified in inspected source/input",
+    "concentration_unit": "synthetic amount per cubic metre for exact fixtures; source concentration semantics must be confirmed",
+    "mt_unit": "length per time inferred dimensionally from concentration * area * mt * dt; external unit declaration not found in inspected source",
+    "status": "dimensionally_crosswalked_but_physical_units_not_fully_admitted"
+  },
+  "algorithm_details": [
+    "Both particles must be fungal.",
+    "Each particle must list the other as a reciprocal bond.",
+    "The endcap area is the mean of the two circular endcap areas.",
+    "mt is selected per chemical species.",
+    "The donor-share limiter uses the donor particle bond count.",
+    "Mass transfer is applied as a paired debit and credit.",
+    "The inspected implementation reads base concentrations and accumulates concentration increments in separate slots."
+  ],
+  "cases": [
+    {
+      "id": "BMX-EXCH-001",
+      "name": "unequal_radii_unclipped_pair",
+      "synthetic": true,
+      "inputs": {
+        "radius_1_m": 0.00025,
+        "radius_2_m": 0.00015,
+        "length_1_m": 0.003,
+        "length_2_m": 0.002,
+        "concentration_1": 100,
+        "concentration_2": 20,
+        "bond_count_1": 1,
+        "bond_count_2": 1,
+        "mt": 0.00002,
+        "dt_numeric": 0.25
+      },
+      "expected": {
+        "area_m2": 1.335176877775662e-7,
+        "volume_1_m3": 5.890486225480862e-10,
+        "volume_2_m3": 1.4137166941154068e-10,
+        "raw_transfer_amount": 5.340707511102649e-11,
+        "applied_transfer_amount": 5.340707511102649e-11,
+        "concentration_1_final": 99.90933333333334,
+        "concentration_2_final": 20.377777777777776,
+        "whole_pair_mass_residual": 0
+      }
+    },
+    {
+      "id": "BMX-EXCH-002",
+      "name": "two_neighbor_source_degree_limiter",
+      "synthetic": true,
+      "inputs": {
+        "source_radius_m": 0.00025,
+        "receiver_radius_m": 0.00025,
+        "all_segment_lengths_m": 0.003,
+        "source_concentration": 100,
+        "receiver_concentrations": [
+          20,
+          20
+        ],
+        "source_bond_count": 2,
+        "each_receiver_bond_count": 1,
+        "mt": 1,
+        "dt_numeric": 0.25,
+        "note": "mt is intentionally elevated to activate the donor-share limiter; this is not a published biological parameter."
+      },
+      "expected": {
+        "endcap_area_m2": 1.9634954084936208e-7,
+        "each_segment_volume_m3": 5.890486225480862e-10,
+        "raw_transfer_per_edge": 0.000003926990816987242,
+        "donor_share_cap_per_edge": 2.9452431127404313e-8,
+        "applied_transfer_per_edge": 2.9452431127404313e-8,
+        "source_concentration_final": 0,
+        "receiver_concentration_final_each": 70,
+        "source_total_debit_equals_initial_stock": true,
+        "whole_network_mass_residual": 0
+      }
+    },
+    {
+      "id": "BMX-EXCH-003",
+      "name": "reverse_gradient_two_neighbor_donor",
+      "synthetic": true,
+      "inputs": {
+        "receiver_concentrations": [
+          20,
+          20
+        ],
+        "central_donor_concentration": 100,
+        "all_radii_m": 0.00025,
+        "all_lengths_m": 0.003,
+        "central_donor_bond_count": 2,
+        "each_receiver_bond_count": 1,
+        "mt": 1,
+        "dt_numeric": 0.25
+      },
+      "expected": {
+        "signed_transfer_from_each_receiver_to_central_donor": -2.9452431127404313e-8,
+        "central_donor_concentration_final": 0,
+        "receiver_concentration_final_each": 70,
+        "whole_network_mass_residual": 0
+      }
+    },
+    {
+      "id": "BMX-EXCH-004",
+      "name": "equal_concentration_zero_flux",
+      "synthetic": true,
+      "inputs": {
+        "radius_1_m": 0.00025,
+        "radius_2_m": 0.00025,
+        "concentration_1": 20,
+        "concentration_2": 20,
+        "bond_count_1": 1,
+        "bond_count_2": 1,
+        "mt": 0.00002,
+        "dt_numeric": 0.25
+      },
+      "expected": {
+        "signed_transfer_amount": 0,
+        "concentration_1_final": 20,
+        "concentration_2_final": 20
+      }
+    },
+    {
+      "id": "BMX-EXCH-005",
+      "name": "no_reciprocal_bond_negative_control",
+      "synthetic": true,
+      "inputs": {
+        "both_particles_are_fungi": true,
+        "segment_1_lists_segment_2": true,
+        "segment_2_lists_segment_1": false
+      },
+      "expected": {
+        "exchange_invoked": false,
+        "transfer_amount": 0,
+        "disposition": "no_reciprocal_connection"
+      }
+    }
+  ],
+  "non_goals": [
+    "No BMX execution or source-code modification is performed by this fixture.",
+    "No species-specific mt parameter is claimed to be physically calibrated.",
+    "No active transport, advection, membrane exchange, mycorrhizal exchange or field-scale transfer is represented.",
+    "The source limiter is reproduced as a per-edge donor-share rule, not presumed equivalent to every global conservative solver."
+  ],
+  "claim_ceiling": "The values are synthetic known answers for the inspected BMX equation and limiter. They do not constitute a measured fungal transport law, reproduced BMX run, biological parameter calibration or SOTA result."
+}
