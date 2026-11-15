@@ -1,0 +1,36 @@
+name: AeroWeft Assurance Composition Oracle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aeroweift-assurance-composition-oracle.yml"
+      - "docs/research/aviation/AEROWEFT_ASSURANCE_COMPOSITION_001.md"
+      - "fixtures/aeroweift-assurance-composition/**"
+      - "tools/aeroweift-assurance-composition-oracle/**"
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-rust:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/aeroweift-assurance-composition-oracle
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --locked --all-targets
