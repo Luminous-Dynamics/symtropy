@@ -11,8 +11,8 @@
 //! It is intentionally separate from the legacy field-growth model below.
 
 pub mod bmx_exchange_reference;
-pub mod legacy_accounting;
 pub mod hyphal_graph;
+pub mod legacy_accounting;
 pub mod transport;
 
 use std::collections::{HashMap, VecDeque};
@@ -499,14 +499,11 @@ mod tests {
             report.assimilation_nutrient_debit
         );
         assert!(
-            (report.origin_biomass_extra_credit
-                - report.assimilation_local_biomass_credit * 0.25)
+            (report.origin_biomass_extra_credit - report.assimilation_local_biomass_credit * 0.25)
                 .abs()
                 < 0.000_001
         );
-        assert!(
-            (report.origin_credit_fraction_of_assimilation() - 0.25).abs() < 0.000_001
-        );
+        assert!((report.origin_credit_fraction_of_assimilation() - 0.25).abs() < 0.000_001);
         assert!(report.biomass_after_decay < report.biomass_before_decay);
         assert_eq!(report.tick_after, report.tick_before + 1);
     }
