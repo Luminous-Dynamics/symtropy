@@ -1,0 +1,400 @@
+{
+  "schema_id": "aeroweift.infrastructure-resilience.synthetic-portfolio.v0",
+  "fixture_id": "AW-IR-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "raw_source_bytes_included": false,
+  "claim_ceiling": "Finite portfolio and adversarial outage semantics only; not real airfield suitability, aircraft performance, electrical resilience, reliability probabilities, route approval, flight clearance, or operational recovery assurance.",
+  "scenario_context": {
+    "date": "2026-11-14",
+    "timezone": "Africa/Johannesburg",
+    "geography": "fictional-local-grid",
+    "timebase": "integer synthetic ticks",
+    "note": "All locations, profiles, capacities, costs, failures, domains and dependencies are fictional."
+  },
+  "mission": {
+    "id": "remote-medical-cargo-repeat-service",
+    "service_class": "synthetic-remote-medical-cargo",
+    "origin_id": "synthetic-district-hospital",
+    "destination_id": "synthetic-remote-clinic",
+    "aircraft_profile_id": "synthetic-electric-cargo-profile-v0",
+    "requires_landing_site": true,
+    "requires_ground_transfer": true,
+    "requires_charging_for_next_sortie": true,
+    "service_floor": "at least one complete landing + charging + ground-transfer chain in each declared singleton outage scenario",
+    "deadline_tick": 40
+  },
+  "resources": [
+    {
+      "id": "charger-north",
+      "kind": "synthetic-charging-service",
+      "failure_domain": "power-north",
+      "status": "synthetic-qualified"
+    },
+    {
+      "id": "charger-south",
+      "kind": "synthetic-charging-service",
+      "failure_domain": "power-south",
+      "status": "synthetic-qualified"
+    },
+    {
+      "id": "ground-bridge-north",
+      "kind": "synthetic-ground-transfer-link",
+      "failure_domain": "bridge-north",
+      "status": "synthetic-qualified"
+    },
+    {
+      "id": "ground-road-south",
+      "kind": "synthetic-ground-transfer-link",
+      "failure_domain": "road-south",
+      "status": "synthetic-qualified"
+    }
+  ],
+  "failure_domains": [
+    {
+      "id": "wx-coastal",
+      "kind": "shared-weather-region",
+      "members": [
+        "site-north-a",
+        "site-north-b"
+      ],
+      "description": "One synthetic weather event affects both nominal north alternatives."
+    },
+    {
+      "id": "power-north",
+      "kind": "shared-power-feed",
+      "members": [
+        "charger-north",
+        "site-north-a",
+        "site-north-b"
+      ],
+      "description": "Both north-site charging chains share the same upstream feeder."
+    },
+    {
+      "id": "bridge-north",
+      "kind": "shared-ground-access",
+      "members": [
+        "ground-bridge-north",
+        "site-north-a",
+        "site-north-b"
+      ],
+      "description": "Both north sites depend on one synthetic bridge/ground transfer link."
+    },
+    {
+      "id": "wx-inland",
+      "kind": "weather-region",
+      "members": [
+        "site-south-c"
+      ],
+      "description": "Separate synthetic inland weather domain."
+    },
+    {
+      "id": "power-south",
+      "kind": "power-feed",
+      "members": [
+        "charger-south",
+        "site-south-c"
+      ],
+      "description": "Separate synthetic south feeder."
+    },
+    {
+      "id": "road-south",
+      "kind": "ground-access",
+      "members": [
+        "ground-road-south",
+        "site-south-c"
+      ],
+      "description": "Separate synthetic south ground transfer link."
+    }
+  ],
+  "candidate_sites": [
+    {
+      "id": "site-north-a",
+      "site_kind": "synthetic-recovery-landing-site",
+      "source_state": "DEVELOPMENT_ONLY_FIXTURE",
+      "operational_status": "synthetic-qualified-for-fixture-only",
+      "aircraft_profiles": [
+        "synthetic-electric-cargo-profile-v0"
+      ],
+      "pad_capacity": 1,
+      "capital_cost_units": 90,
+      "landing_failure_domains": [
+        "wx-coastal"
+      ],
+      "energy_resource_id": "charger-north",
+      "energy_failure_domains": [
+        "power-north"
+      ],
+      "ground_transfer_id": "ground-bridge-north",
+      "ground_transfer_failure_domains": [
+        "bridge-north"
+      ],
+      "complete_chain_required": true
+    },
+    {
+      "id": "site-north-b",
+      "site_kind": "synthetic-recovery-landing-site",
+      "source_state": "DEVELOPMENT_ONLY_FIXTURE",
+      "operational_status": "synthetic-qualified-for-fixture-only",
+      "aircraft_profiles": [
+        "synthetic-electric-cargo-profile-v0"
+      ],
+      "pad_capacity": 1,
+      "capital_cost_units": 80,
+      "landing_failure_domains": [
+        "wx-coastal"
+      ],
+      "energy_resource_id": "charger-north",
+      "energy_failure_domains": [
+        "power-north"
+      ],
+      "ground_transfer_id": "ground-bridge-north",
+      "ground_transfer_failure_domains": [
+        "bridge-north"
+      ],
+      "complete_chain_required": true
+    },
+    {
+      "id": "site-south-c",
+      "site_kind": "synthetic-recovery-landing-site",
+      "source_state": "DEVELOPMENT_ONLY_FIXTURE",
+      "operational_status": "synthetic-qualified-for-fixture-only",
+      "aircraft_profiles": [
+        "synthetic-electric-cargo-profile-v0"
+      ],
+      "pad_capacity": 1,
+      "capital_cost_units": 130,
+      "landing_failure_domains": [
+        "wx-inland"
+      ],
+      "energy_resource_id": "charger-south",
+      "energy_failure_domains": [
+        "power-south"
+      ],
+      "ground_transfer_id": "ground-road-south",
+      "ground_transfer_failure_domains": [
+        "road-south"
+      ],
+      "complete_chain_required": true
+    },
+    {
+      "id": "site-unknown-status",
+      "site_kind": "synthetic-geometry-only-site",
+      "source_state": "RIGHTS_PENDING",
+      "operational_status": "unknown",
+      "aircraft_profiles": [
+        "synthetic-electric-cargo-profile-v0"
+      ],
+      "pad_capacity": "unknown",
+      "capital_cost_units": 0,
+      "landing_failure_domains": [],
+      "energy_resource_id": null,
+      "energy_failure_domains": [],
+      "ground_transfer_id": null,
+      "ground_transfer_failure_domains": [],
+      "complete_chain_required": true,
+      "geometry_exists": true,
+      "expected_usable": false,
+      "rejection_reason": "Geometry does not establish operational status, capacity, permissions, or complete recovery chain."
+    }
+  ],
+  "portfolios": [
+    {
+      "id": "nominal-coverage-a-plus-b",
+      "selected_site_ids": [
+        "site-north-a",
+        "site-north-b"
+      ],
+      "nominal_site_count": 2,
+      "capital_cost_units": 170,
+      "expected_nominal_service": true,
+      "expected_single_failure_service": false,
+      "expected_failed_singleton_domains": [
+        "wx-coastal",
+        "power-north",
+        "bridge-north"
+      ],
+      "expected_minimal_failure_sets": [
+        [
+          "wx-coastal"
+        ],
+        [
+          "power-north"
+        ],
+        [
+          "bridge-north"
+        ]
+      ],
+      "interpretation": "Two site identifiers but three shared single-domain cut sets."
+    },
+    {
+      "id": "recovery-diverse-a-plus-c",
+      "selected_site_ids": [
+        "site-north-a",
+        "site-south-c"
+      ],
+      "nominal_site_count": 2,
+      "capital_cost_units": 220,
+      "expected_nominal_service": true,
+      "expected_single_failure_service": true,
+      "expected_failed_singleton_domains": [],
+      "expected_minimal_failure_sets": [
+        [
+          "wx-coastal",
+          "wx-inland"
+        ],
+        [
+          "wx-coastal",
+          "power-south"
+        ],
+        [
+          "wx-coastal",
+          "road-south"
+        ],
+        [
+          "power-north",
+          "wx-inland"
+        ],
+        [
+          "power-north",
+          "power-south"
+        ],
+        [
+          "power-north",
+          "road-south"
+        ],
+        [
+          "bridge-north",
+          "wx-inland"
+        ],
+        [
+          "bridge-north",
+          "power-south"
+        ],
+        [
+          "bridge-north",
+          "road-south"
+        ]
+      ],
+      "interpretation": "Higher fictional capital cost; each minimal loss set needs one declared failure in each independent site dependency family."
+    }
+  ],
+  "outage_scenarios": [
+    {
+      "id": "normal",
+      "failed_domains": [],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": true,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "coastal-weather",
+      "failed_domains": [
+        "wx-coastal"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": false,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "north-feeder",
+      "failed_domains": [
+        "power-north"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": false,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "north-bridge",
+      "failed_domains": [
+        "bridge-north"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": false,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "inland-weather",
+      "failed_domains": [
+        "wx-inland"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": true,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "south-feeder",
+      "failed_domains": [
+        "power-south"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": true,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "south-road",
+      "failed_domains": [
+        "road-south"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": true,
+        "recovery-diverse-a-plus-c": true
+      }
+    },
+    {
+      "id": "compound-coast-plus-south-power",
+      "failed_domains": [
+        "wx-coastal",
+        "power-south"
+      ],
+      "expected_service": {
+        "nominal-coverage-a-plus-b": false,
+        "recovery-diverse-a-plus-c": false
+      }
+    }
+  ],
+  "oracle_expectations": {
+    "enumeration_required": true,
+    "implementation_must_not_call_oracle": true,
+    "unknown_status_site_is_excluded": true,
+    "nominal_portfolio_singleton_cutset_count": 3,
+    "recovery_diverse_portfolio_minimal_cutset_count": 9,
+    "recovery_diverse_portfolio_minimum_failure_cardinality": 2,
+    "singleton_service_floor": {
+      "nominal_coverage_a_plus_b": false,
+      "recovery_diverse_a_plus_c": true
+    },
+    "compound_outage_kills_recovery_diverse_portfolio": true,
+    "common_cause_groups_must_remain_explicit": true,
+    "probabilities": null,
+    "reliability_claim_allowed": false
+  },
+  "invariants": [
+    "A candidate site is usable only when operational status, aircraft applicability, capacity, required energy, required ground transfer and source rights/validity are all admitted.",
+    "Geometry-only and rights-pending sites never count as usable.",
+    "Landing recovery and repeat-service charging are distinct claims; power loss does not automatically imply that a landing surface is unavailable.",
+    "Two site IDs sharing a failure domain are not independent alternatives.",
+    "Unknown or incomplete failure-domain inventories do not produce optimistic numeric cut sets.",
+    "Adding a failure cannot create a new recovery chain.",
+    "Adding a genuinely independent compatible resource cannot shrink the robust feasible set under the declared set ordering.",
+    "No probability or real-world reliability figure is inferred from the synthetic scenario counts.",
+    "All records are fictional; no operational flight or site decisions are supported."
+  ],
+  "required_mutations": [
+    "Set the unknown site's operational status to confirmed but leave its capacity unknown; it must remain unavailable for the complete chain.",
+    "Remove the common coastal weather dependency from site-north-b; the oracle must detect inconsistent dependency evidence rather than silently treat it as independent.",
+    "Remove the north feeder from the dependency inventory while retaining charger-north; result becomes incomplete, not resilient.",
+    "Set the ground bridge validity to expired; the north service chains are unavailable.",
+    "Set the south charger state to unknown; the recovery-diverse portfolio loses its repeat-service chain in the affected scenario.",
+    "Add a new independent site with a complete chain; the robust portfolio feasible set may only grow or remain equal.",
+    "Add an outage domain to a scenario; the recovery chain set may only shrink or remain equal."
+  ]
+}
