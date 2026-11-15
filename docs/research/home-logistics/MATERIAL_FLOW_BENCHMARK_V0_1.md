@@ -432,27 +432,39 @@ The new tests cover independent reconciliation, self-reconciliation rejection, d
 
 ### 12.4 First L1 physics episode — stationary receiver
 
-The benchmark now has a first headless simulation entry point: `tools/material-flow-benchmark/src/simulation.rs` and the `mfb-simulate` CLI.
+The benchmark has a headless simulation entry point in `tools/material-flow-benchmark/src/simulation.rs` and the `mfb-simulate` CLI. It composes the scenario contract with Symtropy's existing `symtropy-physics` engine; it does not introduce a second rigid-body engine.
 
-It composes the contract validator with Symtropy's existing `symtropy-physics` crate rather than introducing a second rigid-body engine. The episode:
-- builds an open-top tote from static 3D box colliders using the scenario's internal/external dimensions;
-- represents the package as a rigid box using its declared mass and dimensions;
-- releases it from a fixed, seeded offset above the tote under gravity;
-- advances 480 fixed ticks at 120 Hz with the physics crate's `deterministic-net` Q16.16 feature;
-- captures bitwise world snapshots at every tick and hashes the full trace;
-- repeats the same episode and requires same-host per-tick replay equality;
-- checks package containment, floor support and final linear speed;
-- feeds physical outcome into the append-only handoff state machine, so custody completes only after successful placement and replay checks.
+The current source uses:
+- an open-top tote built from static 3D box colliders using the scenario's internal/external dimensions;
+- a rigid-box package proxy using declared mass and dimensions;
+- a fixed seeded offset above the tote under gravity;
+- **480 Hz / 1,920 fixed steps over four seconds** with the `deterministic-net` Q16.16 feature;
+- per-tick bitwise world snapshots hashed into a trace digest and repeated same-host replay;
+- rotated world-space package AABB containment, settling, max-contact-penetration, rotation-orthogonality/determinant and non-finite-body checks;
+- handoff state-machine completion only after placement, numerical-health and replay gates pass.
 
-The machine-readable result reports final package centre/speed, trace digest, replay equality, containment, settling and final transaction state. A failed placement or replay does not produce a completed custody transaction.
+**Measured refinement history:**
+- 120 Hz / 480 steps: max contact penetration **10.256 mm** (first baseline, run [43768458267](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267), exact source `c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1)).
+- 240 Hz / 960 steps: max contact penetration **5.023 mm**, about 51% lower; safe containment, zero final linear/angular speed, same-host replay and custody completion remained true (run [43769246594](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43769246594), exact source `b9a8fc5416e721f81fe9a0c41d9cb710e78d799d)).
+- The current source advances to 480 Hz and tightens the hard contact-penetration gate to **5.000 mm**. Its exact-head workflow is required to pass before this latest setting can be claimed qualified.
 
-**Evidence level:** L1 simulation of one stationary receiver episode only. The model is a rigid-box proxy; it is not deformable packaging, grasp planning, a robot, a full carrier, truck/aircraft, route or fleet model. It contains no sensor uncertainty, metrology, human/animal exposure, doors/latches, actuator limits, guarding or emergency-stop hardware. The Q16.16 feature and bitwise replay comparison make a same-build same-host replay assertion; cross-platform bitwise determinism is not claimed. None of these tests qualifies HIL or field operation.
+The 240 Hz result is preserved as the comparison baseline; it is not retroactively counted as meeting the 5 mm target.
 
-**Verification status (2026-11-15):** dedicated workflow run [`43768458267`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267), on exact source head `c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1`, completed successfully. Strict formatting, Clippy with `-D warnings`, **53 Rust tests**, nominal manifest validation, ten-fault campaign validation, the L1 simulation/replay CLI and evidence upload all passed. The standalone dependency graph is committed in `Cargo.lock`; every check uses `--locked`.
+**Evidence level:** L1 simulation of one stationary receiver episode. The model is a rigid-box proxy, not deformable packaging, grasp planning, a robot, full carrier, truck/aircraft, route or fleet model. It contains no sensor uncertainty/metrology, perception, human/animal exposure, door/latch or actuator constraints, guarding or emergency-stop hardware. Same-host replay is demonstrated; cross-platform bitwise determinism is not claimed. The physics engine currently approximates asymmetric-body inertia, so the centred low-angular-motion drop does not qualify tumbling packages.
 
-The uploaded evidence artifact is `mfb-l1-evidence-c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1` (artifact ID `14183207787`), with raw result and environment metadata. The nominal episode reported centre `[-0.0024414, 0.0455627, -0.0003204] m`, zero final linear/angular speed, same-host replay equality, safe tote containment, completed transaction, zero non-finite bodies, rotation orthogonality error `3.33e-15`, and maximum contact penetration `10.26 mm`. The result passed the current demonstrator limit of 40 mm; that tolerance is intentionally called out as loose, not as a model-fidelity result. Tightening contact penetration and establishing four-timestep convergence / an independent-engine baseline are tracked in [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469).
+**Exact-head verification:** the 240 Hz code and convergence baseline passed dedicated workflow [43769246594](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43769246594) on `b9a8fc5416e721f81fe9a0c41d9cb710e78d799d`: formatting, Clippy with `-D warnings`, **56 Rust tests**, nominal manifest CLI, ten-fault campaign CLI, analytical convergence CLI, L1 simulation/replay and evidence upload. The artifact is `mfb-l1-evidence-b9a8fc5416e721f81fe9a0c41d9cb710e78d799d` (artifact ID `14183875989`).
 
-This establishes an executable same-host L1 integration result, not Tier-B analytical physical validation, Tier-C independent-engine agreement, HIL, guarded-rig, human/animal safety, or field qualification.
+### 12.5 Tier-B analytical free-fall convergence
+
+The new `mfb-validate-convergence` CLI runs the same one-second, pre-contact free-fall initial condition at (dt = 1/30, 1/60, 1/120, 1/240) s and compares against the closed-form uniform-gravity position/velocity solution.
+
+On exact source `b9a8fc5416e721f81fe9a0c41d9cb710e78d799d`, it measured:
+- absolute position error: **163.436 mm, 81.725 mm, 41.228 mm, 20.812 mm**;
+- absolute velocity error: **0.125 mm/s, 0.125 mm/s, 0.791 mm/s, 0.791 mm/s**;
+- relative energy drift: **−0.164%, −0.0818%, −0.0404%, −0.0200%**;
+- mean estimated position-convergence order: **0.9911**, with monotonically decreasing position error and all numerical-health checks true.
+
+This supports a narrow Tier-B statement for **translational free fall before contact** under the tested Q16.16 build/host. It does not validate contact dynamics, packaging, asymmetric inertia, articulated systems, robot handling or the whole receiver. Independent-engine comparison and broader contact validation remain open in [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469).
 
 ## 12. First executable slice
 
