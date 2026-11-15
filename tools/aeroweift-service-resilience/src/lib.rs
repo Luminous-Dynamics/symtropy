@@ -488,24 +488,22 @@ fn derive_service_state(
     {
         return ServiceEvidenceState::Stale;
     }
+    if observation.owner_evidence == OwnerEvidenceState::Unknown
+        || observation.trust_evidence == TrustEvidenceState::Unknown
+        || !observation.source_coverage_complete
+    {
+        return ServiceEvidenceState::Indeterminate;
+    }
+    if observation.owner_evidence == OwnerEvidenceState::Unqualified
+        || observation.trust_evidence == TrustEvidenceState::Unqualified
+    {
+        return ServiceEvidenceState::Unqualified;
+    }
+    if !observation.anti_rollback_verified || !observation.reconciliation_complete {
+        return ServiceEvidenceState::ReconciliationRequired;
+    }
     match observation.declared_state {
-        DeclaredServiceState::AvailableQualified => {
-            if observation.owner_evidence == OwnerEvidenceState::Unknown
-                || observation.trust_evidence == TrustEvidenceState::Unknown
-                || !observation.source_coverage_complete
-            {
-                return ServiceEvidenceState::Indeterminate;
-            }
-            if observation.owner_evidence == OwnerEvidenceState::Unqualified
-                || observation.trust_evidence == TrustEvidenceState::Unqualified
-            {
-                return ServiceEvidenceState::Unqualified;
-            }
-            if !observation.anti_rollback_verified || !observation.reconciliation_complete {
-                return ServiceEvidenceState::ReconciliationRequired;
-            }
-            ServiceEvidenceState::AvailableQualified
-        }
+        DeclaredServiceState::AvailableQualified => ServiceEvidenceState::AvailableQualified,
         DeclaredServiceState::AvailableDegraded => ServiceEvidenceState::AvailableDegraded,
         DeclaredServiceState::Stale => ServiceEvidenceState::Stale,
         DeclaredServiceState::Partitioned => ServiceEvidenceState::Partitioned,
@@ -745,7 +743,6 @@ pub fn evaluate_flight(
         .iter()
         .filter(|capability| capability.status != CapabilityStatus::AvailableQualified)
         .flat_map(|capability| capability.providers.iter())
-        .filter(|provider| provider.state != ServiceEvidenceState::AvailableQualified)
         .map(|provider| provider.service_id.clone())
         .collect();
 
