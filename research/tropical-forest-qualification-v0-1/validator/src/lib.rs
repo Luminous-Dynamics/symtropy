@@ -12,6 +12,7 @@ pub mod coverage_inference_kernel;
 pub mod forecast_kernel;
 pub mod model_set_kernel;
 pub mod support_kernel;
+pub mod spatial_localization_kernel;
 
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
