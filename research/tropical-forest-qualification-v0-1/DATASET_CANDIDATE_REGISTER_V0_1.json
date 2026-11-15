@@ -808,8 +808,206 @@
         "ratio_estimand_protocol": "AFEX_RATIO_ESTIMAND_V0_1.md",
         "ratio_estimand_fixture": "cases/afex-ratio-estimand-synthetic-v0.1.json",
         "ratio_estimand_validator": "validator/src/afex_ratio_estimand_kernel.rs",
-        "claim_ceiling": "Synthetic estimand/covariance benchmark only; not raw plot-pair reproduction or empirical uncertainty calibration."
+        "claim_ceiling": "Synthetic estimand/covariance benchmark only; not raw plot-pair reproduction or empirical uncertainty calibration.",
+        "root_strategy_issue": 5445,
+        "root_strategy_protocol": "AFEX_ROOT_STRATEGY_DISCRIMINATION_V0_1.md",
+        "root_strategy_hypotheses": "cases/afex-root-strategy-hypotheses-v0.1.json"
       }
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-AM-COLONISATION-2018",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Fine root arbuscular mycorrhizal colonisation in fertilised plots in Central Amazon, 2018",
+      "doi": "10.5285/52f756a1-a0f6-4991-b21b-4042018a451f",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/52f756a1-a0f6-4991-b21b-4042018a451f",
+      "temporal_support": {
+        "campaign": "2018-02",
+        "context": "eight months after AFEX fertilization started"
+      },
+      "measurement_support": {
+        "variable": "percentage of total fine-root length colonised",
+        "structures": [
+          "hyphae",
+          "arbuscules",
+          "vesicles"
+        ],
+        "root_sample": "root tips <1 mm from fine-root ingrowth-core material",
+        "depth_cm": [
+          0,
+          10
+        ],
+        "within_plot_sampling_points": 5,
+        "aggregation": "mean plant-community colonisation per plot",
+        "instrument_operator": "roots cleared with 2.5% KOH, bleached, acidified, Trypan Blue stained; microscope root-point intersections scored along root length"
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot-level community mean",
+      "nested_sampling_unit": "five within-plot points; not treatment replicates",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "2018 plot-level AM colonisation response to randomized nutrient assignment; exploratory mechanism proxy for fungal outsourcing",
+      "disallowed_inference": "AM colonisation percentage is not a fungal nutrient-transfer flux, fungal biomass, carbon cost, species-level trait or direct causal mediator of 2019 turnover. It is 0-10 cm only and must not be silently extrapolated to 0-30 cm.",
+      "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-ROOT-MORPHOLOGY-2018",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Fine root morphological properties in fertilised plots in the Central Amazon, 2018",
+      "doi": "10.5285/4ccaab66-2818-41b8-8b31-1a710766c5d6",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/4ccaab66-2818-41b8-8b31-1a710766c5d6",
+      "temporal_support": {
+        "campaign": "2018-02",
+        "context": "eight months after AFEX fertilization started",
+        "temporal_extent": [
+          "2018-02-01",
+          "2018-09-30"
+        ]
+      },
+      "measurement_support": {
+        "root_size": "fine roots <2 mm",
+        "depths_cm": [
+          [
+            0,
+            10
+          ],
+          [
+            10,
+            30
+          ]
+        ],
+        "within_plot_sampling_points": 5,
+        "aggregation": "mean plant-community value per plot and depth",
+        "raw_traits": [
+          "root length",
+          "root area",
+          "root volume",
+          "mean root diameter"
+        ],
+        "derived_traits": [
+          "specific root length (SRL)",
+          "specific root area (SRA)",
+          "root tissue density (RTD)"
+        ],
+        "method": "root subsamples scanned at 600 dpi using WinRHIZO Regular 2015; dried at 60 C to constant mass"
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × depth community mean",
+      "nested_sampling_unit": "five within-plot points; not treatment replicates",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "direct root exploration morphology and size/geometry response under randomized nutrients",
+      "disallowed_inference": "Morphological traits are proxies for root strategy, not direct nutrient flux or uptake. Keep depth strata; do not collapse five points into five randomized plot units.",
+      "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-ROOT-PHOSPHATASE-2018",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Fine root phosphatase enzyme activity in fertilised plots in Central Amazon, 2018",
+      "doi": "10.5285/6529004d-b6e8-429d-ac68-0f5324d7e5d0",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/6529004d-b6e8-429d-ac68-0f5324d7e5d0",
+      "temporal_support": {
+        "campaign": "2018-02",
+        "context": "eight months after AFEX fertilization started",
+        "temporal_extent": [
+          "2018-02-01",
+          "2018-09-30"
+        ]
+      },
+      "measurement_support": {
+        "variable": "potential root acid phosphomonoesterase activity",
+        "depths_cm": [
+          [
+            0,
+            10
+          ],
+          [
+            10,
+            30
+          ]
+        ],
+        "root_sample": "fine roots younger than three months from ingrowth cores; absorptive root tips",
+        "within_plot_sampling_points": 5,
+        "aggregation": "mean plant-community activity per plot and depth",
+        "assay": "Methylumbelliferyl-phosphate fluorimetric microplate assay; roots measured within three days of sampling",
+        "unit": "μmol MUF g-1 dry mass h-1"
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × depth potential enzyme activity mean",
+      "nested_sampling_unit": "five within-plot points; not treatment replicates",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "biochemical P-mining/acquisition proxy under randomized nutrient perturbation",
+      "disallowed_inference": "Potential ex-situ enzyme activity is not in-situ P uptake, realised P flux or proof of P limitation. Retain the assay method, dry-mass denominator and depth.",
+      "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-ROOT-NUTRIENT-CONCENTRATION-2018",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Fine root nutrient concentration in fertilised plots in the Central Amazon, 2018",
+      "doi": "10.5285/ba190356-1731-4558-be7a-3fedc570663a",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/ba190356-1731-4558-be7a-3fedc570663a",
+      "temporal_support": {
+        "campaign_composite": [
+          "2017-11",
+          "2018-08"
+        ],
+        "note": "samples bulked across four time intervals from November 2017 to August 2018; not a single February 2018 observation"
+      },
+      "measurement_support": {
+        "root_size": "fine roots <2 mm",
+        "depths_cm": [
+          [
+            0,
+            10
+          ],
+          [
+            10,
+            30
+          ]
+        ],
+        "within_plot_sampling_points": 5,
+        "aggregation": "mean community concentration per plot and depth after temporal bulking",
+        "analytes": [
+          "iron",
+          "zinc",
+          "manganese",
+          "calcium",
+          "magnesium",
+          "potassium",
+          "phosphorus",
+          "nitrogen",
+          "carbon"
+        ],
+        "preparation": "fine roots bulked by plot/depth, dried, ground; micronutrients/P/cations by nitroperchloric digestion and spectroscopy; C/N by automatic analyser"
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × depth temporal composite",
+      "nested_sampling_unit": "five within-plot points; not treatment replicates",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "root tissue nutrient concentration response during AFEX year one",
+      "disallowed_inference": "Tissue concentration is not nutrient uptake rate or total nutrient content without compatible biomass and sampling support. Preserve the four-interval temporal composite.",
+      "mechanism_issue": 5445
     }
   ],
   "cross_source_admission_gates": [
