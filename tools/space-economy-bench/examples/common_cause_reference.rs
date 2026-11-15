@@ -20,6 +20,61 @@ struct Architecture {
     claim_ceiling: &'static str,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct Fault {
+    id: &'static str,
+}
+
+const DEMAND: u64 = 60;
+
+const FAULTS: [Fault; 5] = [
+    Fault { id: "provider/relay-a" },
+    Fault { id: "provider/relay-b" },
+    Fault { id: "power/shared-bus" },
+    Fault { id: "power/bus-a" },
+    Fault { id: "power/bus-b" },
+];
+
+const SHARED_PROVIDERS: [Provider; 2] = [
+    Provider { id: "relay-a", capacity: 70, power_domain: "power/shared-bus" },
+    Provider { id: "relay-b", capacity: 70, power_domain: "power/shared-bus" },
+];
+
+const DIVERSE_PROVIDERS: [Provider; 2] = [
+    Provider { id: "relay-a", capacity: 70, power_domain: "power/bus-a" },
+    Provider { id: "relay-b", capacity: 70, power_domain: "power/bus-b" },
+];
+
+const SHARED_REQUIRED_FAULTS: [&str; 3] = [
+    "provider/relay-a",
+    "provider/relay-b",
+    "power/shared-bus",
+];
+
+const DIVERSE_REQUIRED_FAULTS: [&str; 4] = [
+    "provider/relay-a",
+    "provider/relay-b",
+    "power/bus-a",
+    "power/bus-b",
+];
+
+const ARCHITECTURES: [Architecture; 2] = [
+    Architecture {
+        id: "shared-controller",
+        cost_scu: 65,
+        providers: &SHARED_PROVIDERS,
+        required_faults: &SHARED_REQUIRED_FAULTS,
+        claim_ceiling: "Two synthetic relay providers sharing one power controller; named provider faults and the shared controller fault are evaluated separately.",
+    },
+    Architecture {
+        id: "separate-controllers",
+        cost_scu: 85,
+        providers: &DIVERSE_PROVIDERS,
+        required_faults: &DIVERSE_REQUIRED_FAULTS,
+        claim_ceiling: "Two synthetic relay providers with separately modeled power controllers; deterministic single-component fault set only.",
+    },
+];
+
 fn capacity_after_fault(architecture: &Architecture, failed: &BTreeSet<&str>) -> u64 {
     architecture.providers.iter()
         .filter(|provider| {
