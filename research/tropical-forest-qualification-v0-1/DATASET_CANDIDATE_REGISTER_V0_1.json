@@ -381,6 +381,81 @@
         "code_archive_retrieval": "NOT_RETRIEVED",
         "archive_rights_field": "NOT_POPULATED_IN_RETRIEVED_RECORD; GitHub v1.0.0 repository LICENSE is Apache-2.0, but archive/file rights still need review"
       }
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-TREE-CENSUS-DENDROMETER-2017-2020",
+      "provider": "NERC Environmental Information Data Centre; AFEX Central Amazon fertilization experiment",
+      "dataset_title": "Tree census and diameter increment in fertilised plots in the Central Amazon, 2017-2020",
+      "doi": "10.5285/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3",
+      "region": {
+        "country": "Brazil",
+        "region": "Central Amazon near Manaus, Amazonas",
+        "biome": "Amazon tropical forest",
+        "coverage_note": "Experimental plots; exact plot IDs, boundaries and treatment map must be verified from the released archive and protocol"
+      },
+      "temporal": {
+        "start": "2017",
+        "end": "2020-01",
+        "inventory_campaigns": [
+          "2017",
+          "2018",
+          "2019"
+        ],
+        "dendrometer_window": "2018-04 through 2020-01",
+        "resolution": "irregular repeated circumference-window readings; preserve actual measurement timestamps and interval duration",
+        "note": "The dendrometer series is not an annual equally spaced time series"
+      },
+      "sample": {
+        "dendrometer_tree_count_in_record": 1299,
+        "count_status": "official_record_metadata_only_not_recounted_from_downloaded_archive",
+        "measures": [
+          "tree census",
+          "DBH",
+          "alive/dead state",
+          "recruitment",
+          "mortality",
+          "repeated dendrometer-band circumference-window measurements"
+        ],
+        "inventory_threshold_note": "EIDC record describes inventory trees above the stated DBH threshold; confirm exact threshold and exceptions in the protocol files",
+        "recruitment_note": "Retain source-defined recruit threshold and date of first threshold crossing; do not substitute a generic seedling count",
+        "experimental_design_candidate": {
+          "design": "randomized complete-block fully factorial N/P/cation manipulation",
+          "treatment_combinations": 8,
+          "block_replicates": 4,
+          "expected_plot_assignment_units": 32,
+          "verification_status": "DESIGN_METADATA_CANDIDATE_NOT_RECONCILED_TO_RELEASED_PLOT_FILES"
+        }
+      },
+      "measurement_units": {
+        "treatment_assignment_unit": "plot",
+        "biological_observation_unit": "tree",
+        "repeated_measurement_unit": "tree by measurement date",
+        "warning": "Tree records and repeat dendrometer readings are nested within plot and are not independent randomized treatment replicates"
+      },
+      "rights": {
+        "source_record_license": "Open Government Licence as stated by the EIDC record",
+        "attribution_required": true,
+        "redistribution_note": "Retain full dataset citation and verify archive-level metadata before redistribution of derived extracts"
+      },
+      "intended_use": "Empirical pilot for plot-level nutrient treatment contrasts and process-resolved stem growth, recruitment and mortality trajectories, conditional on file-level admission",
+      "disallowed_inference": "Do not claim 1,299 independent treatment replicates. Do not infer treatment effects from the metadata page alone. Do not equate raw circumference-window movement with DBH or biomass without an explicit measurement/allometry operator. Do not infer matched tree-level mortality/recruitment until persistent identities and plot mappings are verified.",
+      "admission_status": "RIGHTS_CLEARED_CANDIDATE_METADATA_ONLY_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Retrieve the official EIDC ZIP in a network-enabled environment; verify provider checksum if supplied and compute SHA-256; inspect archive content, plot/block/treatment IDs, repeated tree IDs, census dates, dendrometer dates, units, missingness, fertilization dates/doses, treatment compliance and all file-level licence/attribution metadata.",
+      "download": {
+        "download_page_url": "https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3",
+        "direct_zip_url": "https://data-package.ceh.ac.uk/data/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3.zip",
+        "binary_retrieval_status": "NOT_RETRIEVED_IN_CURRENT_RUNTIME",
+        "retrieval_blocker": "The current execution container could not resolve data-package.ceh.ac.uk and the browser did not return archive bytes; no archive checksum was verified."
+      },
+      "qualification_artifacts": {
+        "design_protocol": "AFEX_FACTORIAL_DESIGN_V0_1.md",
+        "synthetic_fixture": "cases/afex-factorial-design-synthetic-v0.1.json",
+        "validator": "validator/src/afex_design_kernel.rs",
+        "issue": 5408
+      }
     }
   ],
   "cross_source_admission_gates": [
