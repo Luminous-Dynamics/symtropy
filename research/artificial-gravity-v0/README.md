@@ -142,6 +142,23 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml
 
 The CLI emits CSV design points for Moon-, Mars-, and Earth-equivalent gravity at 1, 2, 3.5, 4, and 6 RPM.
 
+## Movement matrix executable
+
+The second CLI emits a deterministic CSV over 3 gravity levels × 6 RPM values × 4 relative speeds × 4 movement headings (radial, prograde, retrograde, axial). It reports Coriolis vector components, magnitude, fraction of target g, and the ideal 2 m head-to-feet gradient:
+
+~~~bash
+cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin motion_matrix
+~~~
+
+This is a kinematic scenario generator. It does not predict gait, nausea, injury, human tolerance, contact forces, or physiological adaptation.
+
+## Additional work packages
+
+- Movement/field benchmark issue: https://github.com/Luminous-Dynamics/symtropy/issues/5289
+- Symthaea human-factors experiment design: https://github.com/Luminous-Dynamics/symthaea/issues/12222
+- Domain run-manifest JSON Schema: AG_RUN_MANIFEST.schema.json
+- Example analytic fixture: fixtures/analytic_1g_2rpm_manifest.example.json
+
 ## Sources
 
 - Briard & Baatout (2026), *Artificial gravity for long-duration human spaceflight: physiological rationale, evidence gaps, risks, and research priorities*. https://doi.org/10.3389/frspt.2026.1967384
