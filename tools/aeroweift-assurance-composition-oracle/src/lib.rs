@@ -14,6 +14,7 @@ pub struct EvidenceIdentity {
     pub time_scale_id: &'static str,
     pub profile_id: &'static str,
     pub frame_id: &'static str,
+    pub vertical_datum_id: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -95,6 +96,7 @@ pub enum IdentityOwner {
     Reachability,
     Intent,
     Surveillance,
+    Expected,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -106,6 +108,8 @@ pub enum Reason {
     ReachabilityNotQualified,
     IntentNotQualified,
     NoRequiredTrafficClasses,
+    DuplicateRequiredTrafficClass(TrafficClass),
+    IncompleteIdentity(IdentityOwner),
     IdentityMismatch(IdentityOwner),
     MissingTrafficClass(TrafficClass),
     DuplicateTrafficClass(TrafficClass),
@@ -134,22 +138,32 @@ pub struct CompositionResult {
     pub decision: Decision,
     pub reason: Option<Reason>,
     pub class_occupancy: Vec<ClassOccupancy>,
+    /// Exact owner-produced inputs retained even when composition fails.
+    pub source_snapshot: CompositionInput,
 }
 
 fn has_reference(reference: Option<&str>) -> bool {
     reference.is_some_and(|value| !value.trim().is_empty())
 }
 
-fn blocked(decision: Decision, reason: Reason) -> CompositionResult {
+fn blocked(input: &CompositionInput, decision: Decision, reason: Reason) -> CompositionResult {
     CompositionResult {
         decision,
         reason: Some(reason),
         class_occupancy: Vec::new(),
+        source_snapshot: input.clone(),
     }
 }
 
-fn not_assessable(reason: Reason) -> CompositionResult {
-    blocked(Decision::NotAssessable, reason)
+fn not_assessable(input: &CompositionInput, reason: Reason) -> CompositionResult {
+    blocked(input, Decision::NotAssessable, reason)
+}
+
+fn identity_is_complete(identity: EvidenceIdentity) -> bool {
+    !identity.time_scale_id.trim().is_empty()
+        && !identity.profile_id.trim().is_empty()
+        && !identity.frame_id.trim().is_empty()
+        && !identity.vertical_datum_id.trim().is_empty()
 }
 
 /// Compose qualified owner outputs without recalculating their domain logic.
@@ -157,44 +171,57 @@ fn not_assessable(reason: Reason) -> CompositionResult {
 /// A successful result means only that the supplied claims are eligible for the
 /// existing conflict-screening owner. It is not a clearance or conflict-free result.
 pub fn compose(input: &CompositionInput) -> CompositionResult {
+    if !identity_is_complete(input.expected_identity) {
+        return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Expected));
+    }
+
     if !has_reference(input.intent_receipt_ref) {
         return not_assessable(Reason::MissingIntentReceipt);
     }
 
+    if !identity_is_complete(input.intent_identity) {
+        return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Intent));
+    }
     if input.intent_identity != input.expected_identity {
-        return not_assessable(Reason::IdentityMismatch(IdentityOwner::Intent));
+        return not_assessable(input, Reason::IdentityMismatch(IdentityOwner::Intent));
     }
 
     match input.intent_disposition {
         IntentDisposition::ReauthorizationRequired => {
-            return blocked(Decision::ReauthorizationRequired, Reason::IntentNotQualified);
+            return blocked(input, Decision::ReauthorizationRequired, Reason::IntentNotQualified);
         }
         IntentDisposition::Nonconforming => {
-            return blocked(Decision::Nonconforming, Reason::IntentNotQualified);
+            return blocked(input, Decision::Nonconforming, Reason::IntentNotQualified);
         }
         IntentDisposition::Contingent => {
-            return blocked(Decision::ContingencyHandoff, Reason::IntentNotQualified);
+            return blocked(input, Decision::ContingencyHandoff, Reason::IntentNotQualified);
         }
         IntentDisposition::PotentiallyNonconforming | IntentDisposition::NotAssessable => {
-            return not_assessable(Reason::IntentNotQualified);
+            return not_assessable(input, Reason::IntentNotQualified);
         }
         IntentDisposition::Conforming => {}
     }
 
     if !has_reference(input.pnt_receipt_ref) {
-        return not_assessable(Reason::MissingPntReceipt);
+        return not_assessable(input, Reason::MissingPntReceipt);
     }
 
     if !has_reference(input.reachability_receipt_ref) {
-        return not_assessable(Reason::MissingReachabilityReceipt);
+        return not_assessable(input, Reason::MissingReachabilityReceipt);
     }
 
+    if !identity_is_complete(input.pnt_identity) {
+        return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Pnt));
+    }
     if input.pnt_identity != input.expected_identity {
-        return not_assessable(Reason::IdentityMismatch(IdentityOwner::Pnt));
+        return not_assessable(input, Reason::IdentityMismatch(IdentityOwner::Pnt));
     }
 
+    if !identity_is_complete(input.reachability_identity) {
+        return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Reachability));
+    }
     if input.reachability_identity != input.expected_identity {
-        return not_assessable(Reason::IdentityMismatch(IdentityOwner::Reachability));
+        return not_assessable(input, Reason::IdentityMismatch(IdentityOwner::Reachability));
     }
 
     match input.pnt_disposition {
@@ -206,23 +233,28 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         | PntDisposition::Indeterminate
         | PntDisposition::ClockUnqualified
         | PntDisposition::Contradictory => {
-            return not_assessable(Reason::PntNotHardBound);
+            return not_assessable(input, Reason::PntNotHardBound);
         }
     }
 
     match input.reachability_disposition {
         ReachabilityDisposition::QualifiedBounded => {}
         ReachabilityDisposition::NotAssessable | ReachabilityDisposition::ArithmeticFailure => {
-            return not_assessable(Reason::ReachabilityNotQualified);
+            return not_assessable(input, Reason::ReachabilityNotQualified);
         }
     }
 
     if input.required_traffic_classes.is_empty() {
-        return not_assessable(Reason::NoRequiredTrafficClasses);
+        return not_assessable(input, Reason::NoRequiredTrafficClasses);
     }
 
     let mut required_classes = input.required_traffic_classes.clone();
     required_classes.sort_unstable();
+    for pair in required_classes.windows(2) {
+        if pair[0] == pair[1] {
+            return not_assessable(input, Reason::DuplicateRequiredTrafficClass(pair[0]));
+        }
+    }
 
     let mut class_occupancy = Vec::with_capacity(required_classes.len());
 
@@ -233,37 +265,40 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
             .filter(|evidence| evidence.traffic_class == traffic_class);
 
         let Some(evidence) = matches.next() else {
-            return not_assessable(Reason::MissingTrafficClass(traffic_class));
+            return not_assessable(input, Reason::MissingTrafficClass(traffic_class));
         };
 
         if matches.next().is_some() {
-            return not_assessable(Reason::DuplicateTrafficClass(traffic_class));
+            return not_assessable(input, Reason::DuplicateTrafficClass(traffic_class));
         }
 
+        if !identity_is_complete(evidence.identity) {
+            return not_assessable(input, Reason::IncompleteIdentity(IdentityOwner::Surveillance));
+        }
         if evidence.identity != input.expected_identity {
-            return not_assessable(Reason::IdentityMismatch(IdentityOwner::Surveillance));
+            return not_assessable(input, Reason::IdentityMismatch(IdentityOwner::Surveillance));
         }
 
         if !has_reference(evidence.coverage_qualification_ref)
             || !has_reference(evidence.dependency_snapshot_ref)
         {
-            return not_assessable(Reason::MissingSurveillanceReceipt(traffic_class));
+            return not_assessable(input, Reason::MissingSurveillanceReceipt(traffic_class));
         }
 
         if !evidence.independence_qualified {
-            return not_assessable(Reason::IndependenceNotQualified(traffic_class));
+            return not_assessable(input, Reason::IndependenceNotQualified(traffic_class));
         }
 
         let interpretation = match evidence.disposition {
             SurveillanceDisposition::QualifiedTrack => {
                 if !has_reference(evidence.observation_ref) {
-                    return not_assessable(Reason::MissingSurveillanceReceipt(traffic_class));
+                    return not_assessable(input, Reason::MissingSurveillanceReceipt(traffic_class));
                 }
                 OccupancyInterpretation::ObservedTrack
             }
             SurveillanceDisposition::NoReportQualifiedCoverage => {
                 if evidence.observation_ref.is_some() {
-                    return not_assessable(Reason::SurveillanceNotQualified(traffic_class));
+                    return not_assessable(input, Reason::SurveillanceNotQualified(traffic_class));
                 }
                 OccupancyInterpretation::UnresolvedPossibleOccupancy
             }
@@ -290,5 +325,6 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         decision: Decision::ReadyForConflictScreen,
         reason: None,
         class_occupancy,
+        source_snapshot: input.clone(),
     }
 }
