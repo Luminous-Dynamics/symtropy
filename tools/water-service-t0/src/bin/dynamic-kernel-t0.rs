@@ -190,7 +190,12 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     let domain=text(case,"domain_state")?;
     let reversal=bool_value(case,"flow_reversal_present")?;
     let direction_observed=bool_value(case,"flow_direction_observed")?;
-    let temporal_resolution=text(case,"temporal_resolution_state")?;
+    let minimum_resolvable_delay=number(case,"minimum_resolvable_delay_seconds")?;
+    let minimum_delay_of_interest=number(case,"minimum_delay_of_interest_seconds")?;
+    if minimum_resolvable_delay<=0.0||minimum_delay_of_interest<=0.0
+        ||minimum_resolvable_delay+1.0e-12<dt{
+        return Ok(base("INVALID_INPUT","TEMPORAL_RESOLUTION_CONTRACT_INVALID"));
+    }
     let (state,reason)=if domain!="in_domain"{
         ("OUT_OF_DOMAIN","OPERATING_STATE_OUTSIDE_QUALIFIED_DOMAIN")
     }else if reversal&&!direction_observed{
