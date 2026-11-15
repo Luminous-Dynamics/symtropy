@@ -13,6 +13,7 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ConformalError {
     InvalidMiscoverage,
+    InvalidTestRegime,
     EmptyCalibration,
     EmptyBlockIdentity,
     DuplicateBlockIdentity,
@@ -252,7 +253,7 @@ pub fn evaluate_block_conformal(
         if block.regime != "DECLARED_IN_DOMAIN"
             && block.regime != "KNOWN_SHIFT_NEGATIVE_CONTROL"
         {
-            return Err(ConformalError::InvalidMiscoverage);
+            return Err(ConformalError::InvalidTestRegime);
         }
         if block.point_predictions.len() != expected_test_size
             || block.observations.len() != expected_test_size
@@ -468,6 +469,28 @@ mod tests {
         let mut value = scenario();
         value.test_blocks[0].group_id = value.calibration_blocks[0].group_id.clone();
         assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::GroupLeakage));
+    }
+
+
+    #[test]
+    fn calibration_groups_must_be_disjoint_from_training_groups() {
+        let mut value = scenario();
+        value.calibration_blocks[0].group_id = "train-region-1".to_string();
+        assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::GroupLeakage));
+    }
+
+    #[test]
+    fn unknown_test_regime_is_rejected_not_treated_as_in_domain() {
+        let mut value = scenario();
+        value.test_blocks[0].regime = "MAYBE_SHIFTED".to_string();
+        assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::InvalidTestRegime));
+    }
+
+    #[test]
+    fn ninety_five_percent_target_needs_at_least_nineteen_calibration_blocks() {
+        let scores: Vec<f64> = (1..=19).map(f64::from).collect();
+        assert_eq!(split_conformal_radius(&scores, 0.05), Ok(Some(19.0)));
+        assert_eq!(split_conformal_radius(&scores[..18], 0.05), Ok(None));
     }
 
     #[test]
