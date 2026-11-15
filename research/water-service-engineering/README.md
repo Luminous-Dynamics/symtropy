@@ -139,3 +139,5 @@ The full time-resolved service semantics, scenario families, South African regul
 [WATER_ECONOMICS_BENCHMARK_V0_1.md](WATER_ECONOMICS_BENCHMARK_V0_1.md) defines the water-specific whole-life and monthly cost boundary, matched industry comparators, tariff/price evidence, fixed-charge handling and resident-authorised burden semantics. It composes with Sol-Atlas #816 and #700 rather than duplicating their whole-household cost or post-occupancy owners.
 
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
+
+The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
