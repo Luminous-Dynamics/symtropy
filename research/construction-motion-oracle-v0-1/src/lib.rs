@@ -519,11 +519,7 @@ mod tests {
         let translated_obstacle = Vec3::new(700.0, -285.0, 50.0);
         assert_eq!(
             expected,
-            translated.collides_with_stationary_sphere(
-                10.0,
-                translated_obstacle,
-                5.0
-            )
+            translated.collides_with_stationary_sphere(10.0, translated_obstacle, 5.0)
         );
     }
 
@@ -533,15 +529,18 @@ mod tests {
             start: Vec3::new(0.0, 0.0, 0.0),
             end: Vec3::new(1_000.0, 400.0, 100.0),
         };
-        let whole = aabb_from_kernel(build_kernel_slice(
-            whole_path,
-            "tool",
-            50,
-            axis(5, 5, 5),
-            zero(),
-            zero(),
-            zero(),
-        ).physical_swept_outer);
+        let whole = aabb_from_kernel(
+            build_kernel_slice(
+                whole_path,
+                "tool",
+                50,
+                axis(5, 5, 5),
+                zero(),
+                zero(),
+                zero(),
+            )
+            .physical_swept_outer,
+        );
 
         let mut partials = Vec::new();
         for index in 0..4 {
@@ -571,17 +570,34 @@ mod tests {
 
         let union = Aabb3 {
             min: Vec3::new(
-                partials.iter().map(|item| item.min.x).fold(f64::INFINITY, f64::min),
-                partials.iter().map(|item| item.min.y).fold(f64::INFINITY, f64::min),
-                partials.iter().map(|item| item.min.z).fold(f64::INFINITY, f64::min),
+                partials
+                    .iter()
+                    .map(|item| item.min.x)
+                    .fold(f64::INFINITY, f64::min),
+                partials
+                    .iter()
+                    .map(|item| item.min.y)
+                    .fold(f64::INFINITY, f64::min),
+                partials
+                    .iter()
+                    .map(|item| item.min.z)
+                    .fold(f64::INFINITY, f64::min),
             ),
             max: Vec3::new(
-                partials.iter().map(|item| item.max.x).fold(f64::NEG_INFINITY, f64::max),
-                partials.iter().map(|item| item.max.y).fold(f64::NEG_INFINITY, f64::max),
-                partials.iter().map(|item| item.max.z).fold(f64::NEG_INFINITY, f64::max),
+                partials
+                    .iter()
+                    .map(|item| item.max.x)
+                    .fold(f64::NEG_INFINITY, f64::max),
+                partials
+                    .iter()
+                    .map(|item| item.max.y)
+                    .fold(f64::NEG_INFINITY, f64::max),
+                partials
+                    .iter()
+                    .map(|item| item.max.z)
+                    .fold(f64::NEG_INFINITY, f64::max),
             ),
         };
         assert_eq!(whole, union);
     }
-
 }

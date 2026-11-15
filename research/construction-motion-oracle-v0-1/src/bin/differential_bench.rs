@@ -1,9 +1,7 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use construction_motion_oracle::{
-    AnalyticPath, Vec3, chord_collision, endpoints_only_collision,
-};
+use construction_motion_oracle::{AnalyticPath, Vec3, chord_collision, endpoints_only_collision};
 
 const BATCH_SIZE: usize = 10_000;
 const SAMPLES: usize = 101;
