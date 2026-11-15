@@ -313,6 +313,12 @@ struct MeasurementOption {
     row: Vec<i64>,
 }
 
+#[derive(Clone, Debug)]
+struct TargetEstimand {
+    id: String,
+    coefficients: Vec<i64>,
+}
+
 fn parse_measurement_options(
     value: &Value,
     variable_count: usize,
@@ -365,9 +371,78 @@ fn parse_measurement_options(
     Ok(parsed)
 }
 
+fn parse_target_estimands(
+    manifest: &Value,
+    variable_count: usize,
+) -> Result<Vec<TargetEstimand>, String> {
+    let entries = manifest.get("target_estimands")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "target_estimands must be an array".to_string())?;
+    if entries.is_empty() || entries.len() > MAX_VARIABLES {
+        return Err(format!("target_estimands count must be in 1..={MAX_VARIABLES}"));
+    }
+    let mut seen = BTreeSet::new();
+    let mut estimands = Vec::with_capacity(entries.len());
+    for (index, entry) in entries.iter().enumerate() {
+        let id = string_at(entry, "estimand_id")?;
+        if id.trim().is_empty() || !seen.insert(id.clone()) {
+            return Err(format!("target_estimands[{index}] has an empty or duplicate identity"));
+        }
+        let coefficients = entry.get("coefficients")
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("target estimand {id} coefficients must be an array"))?
+            .iter()
+            .enumerate()
+            .map(|(coefficient_index, value)| {
+                let coefficient = value.as_i64().ok_or_else(|| {
+                    format!("target_estimands[{index}].coefficients[{coefficient_index}] must be an integer")
+                })?;
+                if !(-MAX_ABSOLUTE_COEFFICIENT..=MAX_ABSOLUTE_COEFFICIENT).contains(&coefficient) {
+                    return Err(format!("target estimand {id} coefficient exceeds bounds"));
+                }
+                Ok(coefficient)
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        if coefficients.len() != variable_count {
+            return Err(format!("target estimand {id} has wrong coefficient width"));
+        }
+        if coefficients.iter().all(|coefficient| *coefficient == 0) {
+            return Err(format!("target estimand {id} must not be the zero functional"));
+        }
+        estimands.push(TargetEstimand { id, coefficients });
+    }
+    Ok(estimands)
+}
+
+fn evaluate_estimand_identifiability(
+    observation_matrix: &[Vec<i64>],
+    estimands: &[TargetEstimand],
+    variable_count: usize,
+) -> Result<Vec<Value>, String> {
+    let observation_rank = exact_rank(observation_matrix, variable_count)?;
+    estimands.iter().map(|estimand| {
+        let mut augmented = observation_matrix.to_vec();
+        augmented.push(estimand.coefficients.clone());
+        let augmented_rank = exact_rank(&augmented, variable_count)?;
+        let identifiable = augmented_rank == observation_rank;
+        Ok(json!({
+            "estimand_id": estimand.id,
+            "identifiable": identifiable,
+            "observation_rank": observation_rank,
+            "rank_after_adding_estimand": augmented_rank,
+            "reason": if identifiable {
+                "ESTIMAND_LIES_IN_OBSERVATION_ROW_SPACE"
+            } else {
+                "ESTIMAND_VARIES_ALONG_AN_UNOBSERVED_NULLSPACE_DIRECTION"
+            }
+        }))
+    }).collect()
+}
+
 fn enumerate_designs(
     base_matrix: &[Vec<i64>],
     options: &[MeasurementOption],
+    estimands: &[TargetEstimand],
     variable_count: usize,
 ) -> Result<Vec<Value>, String> {
     let subset_count = 1_u32
@@ -391,13 +466,25 @@ fn enumerate_designs(
             }
         }
         let rank = exact_rank(&matrix, variable_count)?;
+        let estimand_results = evaluate_estimand_identifiability(&matrix, estimands, variable_count)?;
+        let identifiable_estimands: Vec<String> = estimand_results.iter()
+            .filter(|result| result["identifiable"].as_bool() == Some(true))
+            .filter_map(|result| result["estimand_id"].as_str().map(ToOwned::to_owned))
+            .collect();
+        let unidentifiable_estimands: Vec<String> = estimand_results.iter()
+            .filter(|result| result["identifiable"].as_bool() == Some(false))
+            .filter_map(|result| result["estimand_id"].as_str().map(ToOwned::to_owned))
+            .collect();
         designs.push(json!({
             "measurement_ids": selected,
             "measurement_count": selected.len(),
             "synthetic_effort_cost": cost,
             "rank": rank,
             "nullity": variable_count - rank,
-            "structurally_identifies_all_fluxes": rank == variable_count
+            "structurally_identifies_all_fluxes": rank == variable_count,
+            "estimand_results": estimand_results,
+            "identifiable_estimands": identifiable_estimands,
+            "unidentifiable_estimands": unidentifiable_estimands
         }));
     }
     Ok(designs)
@@ -524,8 +611,19 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     )?;
 
     let options = parse_measurement_options(manifest, variable_count)?;
-    let designs = enumerate_designs(&base_matrix, &options, variable_count)?;
+    let target_estimands = parse_target_estimands(manifest, variable_count)?;
+    let baseline_estimand_results =
+        evaluate_estimand_identifiability(&base_matrix, &target_estimands, variable_count)?;
+    let designs = enumerate_designs(&base_matrix, &options, &target_estimands, variable_count)?;
     let design_summary = summarize_designs(&designs, variable_count)?;
+    let baseline_identifiable_estimands: Vec<String> = baseline_estimand_results.iter()
+        .filter(|result| result["identifiable"].as_bool() == Some(true))
+        .filter_map(|result| result["estimand_id"].as_str().map(ToOwned::to_owned))
+        .collect();
+    let baseline_unidentifiable_estimands: Vec<String> = baseline_estimand_results.iter()
+        .filter(|result| result["identifiable"].as_bool() == Some(false))
+        .filter_map(|result| result["estimand_id"].as_str().map(ToOwned::to_owned))
+        .collect();
 
     let expected = manifest
         .get("expected")
@@ -540,6 +638,10 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
     let expected_optimal_designs = expected
         .get("optimal_designs")
         .ok_or_else(|| "expected.optimal_designs is required".to_string())?;
+    let expected_baseline_identifiable = expected.get("baseline_identifiable_estimands")
+        .ok_or_else(|| "expected.baseline_identifiable_estimands is required".to_string())?;
+    let expected_baseline_unidentifiable = expected.get("baseline_unidentifiable_estimands")
+        .ok_or_else(|| "expected.baseline_unidentifiable_estimands is required".to_string())?;
 
     let actual_subset_count = designs.len();
     let actual_optimal_designs = design_summary["optimal_designs"].clone();
@@ -555,6 +657,15 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             "expected_rank": expected_rank,
             "actual_nullity": baseline_nullity,
             "expected_nullity": expected_nullity
+        }),
+        json!({
+            "id": "BASE-TARGET-ESTIMAND-IDENTIFIABILITY-001",
+            "passed": json!(baseline_identifiable_estimands) == *expected_baseline_identifiable
+                && json!(baseline_unidentifiable_estimands) == *expected_baseline_unidentifiable,
+            "actual_identifiable_estimands": baseline_identifiable_estimands,
+            "expected_identifiable_estimands": expected_baseline_identifiable,
+            "actual_unidentifiable_estimands": baseline_unidentifiable_estimands,
+            "expected_unidentifiable_estimands": expected_baseline_unidentifiable
         }),
         json!({
             "id": "NULLSPACE-WITNESSES-001",
@@ -620,6 +731,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             "nullspace_witnesses": witnesses
         },
         "measurement_design": design_summary,
+        "baseline_estimand_results": baseline_estimand_results,
         "designs": designs,
         "structural_identifiability": if baseline_nullity == 0 { "STRUCTURALLY_IDENTIFIABLE" } else { "STRUCTURALLY_NON_IDENTIFIABLE" },
         "practical_identifiability": "NOT_EVALUATED",
@@ -711,6 +823,58 @@ mod tests {
         value["measurement_options"][0]["row"].as_array_mut().unwrap().pop();
         let raw = serde_json::to_vec(&value).expect("serialize malformed row");
         assert!(validate_corpus(&raw, &value).is_err());
+    }
+
+    #[test]
+    fn stock_only_observations_identify_pool_and_total_increments_not_primitive_fluxes() {
+        let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest()).expect("valid corpus");
+        let baseline = &receipt["baseline_estimand_results"];
+        for id in ["net_live_pool_increment", "net_deadwood_pool_increment", "net_total_pool_increment"] {
+            assert!(baseline.as_array().unwrap().iter().any(|item| {
+                item["estimand_id"] == id && item["identifiable"] == true
+            }));
+        }
+        for id in ["mortality_transfer", "gross_live_inputs"] {
+            assert!(baseline.as_array().unwrap().iter().any(|item| {
+                item["estimand_id"] == id && item["identifiable"] == false
+            }));
+        }
+    }
+
+    #[test]
+    fn a_full_rank_measurement_design_identifies_every_declared_estimand() {
+        let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest()).expect("valid corpus");
+        let full = receipt["designs"].as_array().unwrap().iter()
+            .find(|design| design["structurally_identifies_all_fluxes"] == true)
+            .expect("a full-rank design exists");
+        assert_eq!(
+            full["identifiable_estimands"].as_array().unwrap().len(),
+            5
+        );
+        assert_eq!(full["unidentifiable_estimands"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn baseline_estimand_oracle_mutation_is_rejected() {
+        let mut value = manifest();
+        value["expected"]["baseline_identifiable_estimands"][0] = json!("mortality_transfer");
+        let raw = serde_json::to_vec(&value).expect("serialize estimand oracle mutation");
+        let receipt = validate_corpus(&raw, &value).expect("well-formed mutation returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn duplicate_or_zero_target_estimands_are_rejected() {
+        let mut duplicate = manifest();
+        duplicate["target_estimands"][1]["estimand_id"] =
+            duplicate["target_estimands"][0]["estimand_id"].clone();
+        let duplicate_raw = serde_json::to_vec(&duplicate).expect("serialize duplicate estimand");
+        assert!(validate_corpus(&duplicate_raw, &duplicate).is_err());
+
+        let mut zero = manifest();
+        zero["target_estimands"][0]["coefficients"] = json!([0, 0, 0, 0, 0, 0]);
+        let zero_raw = serde_json::to_vec(&zero).expect("serialize zero estimand");
+        assert!(validate_corpus(&zero_raw, &zero).is_err());
     }
 
     #[test]
