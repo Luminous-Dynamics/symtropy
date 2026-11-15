@@ -117,8 +117,8 @@ pub fn split_conformal_radius(
         return Err(ConformalError::NonFiniteOrNegativeResidual);
     }
 
-    let count = u32::try_from(nonconformity_scores.len())
-        .map_err(|_| ConformalError::NumericOverflow)?;
+    let count =
+        u32::try_from(nonconformity_scores.len()).map_err(|_| ConformalError::NumericOverflow)?;
     let rank = (f64::from(count) + 1.0) * (1.0 - alpha);
     let required_rank = rank.ceil();
     if required_rank > f64::from(count) {
@@ -181,7 +181,6 @@ fn coverage_for_radius(
     }
     Ok((covered, covered == observations.len()))
 }
-
 
 fn mean_winkler_score_for_radius(
     predictions: &[f64],
@@ -290,9 +289,7 @@ pub fn evaluate_block_conformal(
         {
             return Err(ConformalError::GroupLeakage);
         }
-        if block.regime != "DECLARED_IN_DOMAIN"
-            && block.regime != "KNOWN_SHIFT_NEGATIVE_CONTROL"
-        {
+        if block.regime != "DECLARED_IN_DOMAIN" && block.regime != "KNOWN_SHIFT_NEGATIVE_CONTROL" {
             return Err(ConformalError::InvalidTestRegime);
         }
         if block.point_predictions.len() != expected_test_size
@@ -384,7 +381,8 @@ pub fn evaluate_block_conformal(
     let test_block_count = scenario.test_blocks.len();
     let pooled_interval_width = pooled_observation_radius.map(|radius| 2.0 * radius);
     let block_interval_width = block_maximum_radius.map(|radius| 2.0 * radius);
-    let pooled_mean_interval_score = if test_block_count == 0 || pooled_observation_radius.is_none() {
+    let pooled_mean_interval_score = if test_block_count == 0 || pooled_observation_radius.is_none()
+    {
         None
     } else {
         Some(pooled_interval_score_total / checked_count(test_block_count)?)
@@ -508,9 +506,18 @@ mod tests {
 
     #[test]
     fn zero_miscoverage_and_nonfinite_miscoverage_are_rejected() {
-        assert_eq!(split_conformal_radius(&[1.0], 0.0), Err(ConformalError::InvalidMiscoverage));
-        assert_eq!(split_conformal_radius(&[1.0], 1.0), Err(ConformalError::InvalidMiscoverage));
-        assert_eq!(split_conformal_radius(&[1.0], f64::NAN), Err(ConformalError::InvalidMiscoverage));
+        assert_eq!(
+            split_conformal_radius(&[1.0], 0.0),
+            Err(ConformalError::InvalidMiscoverage)
+        );
+        assert_eq!(
+            split_conformal_radius(&[1.0], 1.0),
+            Err(ConformalError::InvalidMiscoverage)
+        );
+        assert_eq!(
+            split_conformal_radius(&[1.0], f64::NAN),
+            Err(ConformalError::InvalidMiscoverage)
+        );
     }
 
     #[test]
@@ -521,7 +528,6 @@ mod tests {
         assert_eq!(result.pooled_interval_width, Some(2.0));
         assert_eq!(result.block_interval_width, Some(18.0));
     }
-
 
     #[test]
     fn winkler_interval_score_compares_interval_width_and_miscoverage() {
@@ -544,29 +550,40 @@ mod tests {
         let result = evaluate_block_conformal(&scenario()).expect("block conformal");
         assert_eq!(result.declared_in_domain_block_coverage, Some(1.0 / 2.0));
         assert_eq!(result.declared_shift_block_coverage, Some(0.0));
-        assert_eq!(result.exchangeability_status, "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED");
+        assert_eq!(
+            result.exchangeability_status,
+            "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED"
+        );
     }
 
     #[test]
     fn calibration_and_test_groups_must_be_disjoint_from_training_and_each_other() {
         let mut value = scenario();
         value.test_blocks[0].group_id = value.calibration_blocks[0].group_id.clone();
-        assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::GroupLeakage));
+        assert_eq!(
+            evaluate_block_conformal(&value),
+            Err(ConformalError::GroupLeakage)
+        );
     }
-
 
     #[test]
     fn calibration_groups_must_be_disjoint_from_training_groups() {
         let mut value = scenario();
         value.calibration_blocks[0].group_id = "train-region-1".to_string();
-        assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::GroupLeakage));
+        assert_eq!(
+            evaluate_block_conformal(&value),
+            Err(ConformalError::GroupLeakage)
+        );
     }
 
     #[test]
     fn unknown_test_regime_is_rejected_not_treated_as_in_domain() {
         let mut value = scenario();
         value.test_blocks[0].regime = "MAYBE_SHIFTED".to_string();
-        assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::InvalidTestRegime));
+        assert_eq!(
+            evaluate_block_conformal(&value),
+            Err(ConformalError::InvalidTestRegime)
+        );
     }
 
     #[test]
@@ -580,7 +597,10 @@ mod tests {
     fn calibration_blocks_must_have_equal_size() {
         let mut value = scenario();
         value.calibration_blocks[0].absolute_residuals.pop();
-        assert_eq!(evaluate_block_conformal(&value), Err(ConformalError::UnequalBlockSize));
+        assert_eq!(
+            evaluate_block_conformal(&value),
+            Err(ConformalError::UnequalBlockSize)
+        );
     }
 
     #[test]
