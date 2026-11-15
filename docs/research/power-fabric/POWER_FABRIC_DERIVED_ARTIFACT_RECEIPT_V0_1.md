@@ -11,7 +11,7 @@ A verified graph is not enough if the diagrams, labels, circuit directory, resid
 The DerivedArtifactReceipt binds:
 - artifact identity and revision;
 - artifact kind and output format;
-- exact generator identity/version, source digest and generator-configuration digest; the source build's compiler version remains a separate field;
+- exact generator identity/version, source digest and generator-configuration digest; the source compiler version and mapping-profile version remain separate and are used by change-impact compatibility checks; the source build's compiler version remains a separate field;
 - complete declared dependency ID set and dependency-inventory completeness state;
 - source build-lock digest;
 - source graph ID, revision and declared content digest;

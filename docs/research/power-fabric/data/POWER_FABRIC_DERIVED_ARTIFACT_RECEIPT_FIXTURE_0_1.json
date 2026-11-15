@@ -23,5 +23,6 @@
     "input:generator-configuration:power-fabric-human-projection-compiler",
     "input:module:inverter"
   ],
-  "dependency_inventory_complete": true
+  "dependency_inventory_complete": true,
+  "source_compiler_version": "0.1.0"
 }

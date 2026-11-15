@@ -20,6 +20,7 @@
     "output_digest",
     "generator_source_digest",
     "generator_configuration_digest",
+    "source_compiler_version",
     "source_mapping_profile_version",
     "dependency_ids",
     "dependency_inventory_complete"
@@ -103,6 +104,10 @@
     },
     "dependency_inventory_complete": {
       "type": "boolean"
+    },
+    "source_compiler_version": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
