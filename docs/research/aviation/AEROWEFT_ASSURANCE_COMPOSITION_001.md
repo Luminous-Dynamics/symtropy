@@ -125,7 +125,9 @@ These are targets for this declared benchmark, not achieved field results.
 | Evidence-degradation monotonicity violations | **0** | Worsening input cannot improve admissibility |
 | Accepted/rejected receipt traceability | **100%** | Every decision must be auditable |
 
-For a later benchmark release, expand to at least 10,000 deterministically seeded combinations, pairwise and selected higher-order fault interactions, mutation testing of every admission predicate, adversarial time-boundary sweeps, and independent implementation comparison. Report p50/p95/p99 latency and memory only after measuring them on declared hardware and fixture scale. Never trade away hard-gate correctness for throughput.
+The Rust test suite now supplements the 28-case golden fixture with a generated fault campaign: 40 single-fault mutators, all 820 unordered mutator pairs (including repeated same-mutator pairs), and 10,000 deterministic seeded two-fault trials. Every mutated input must fail to reach `READY_FOR_CONFLICT_SCREEN` and must emit no partial occupancy list. The positive control remains a separate required test, so an implementation that rejects all inputs cannot pass the whole suite. This is a finite two-fault falsification campaign, not exhaustive coverage of all possible inputs or higher-order interactions.
+
+The next benchmark expansion is higher-order fault interaction, mutation testing of every admission predicate, adversarial time-boundary sweeps, cross-implementation differential testing, and declared-scale performance measurement. Report p50/p95/p99 latency and memory only after measuring them on declared hardware and fixture scale. Never trade away hard-gate correctness for throughput.
 
 ## 7. Industry and SOTA comparison
 
@@ -156,6 +158,6 @@ A benchmark result is invalidated if any of these can occur:
 
 ## 9. Implementation and evidence status
 
-The isolated Rust oracle is dependency-free. It checks only owner status, identity and receipt composition. The JSON fixture is a separately inspectable golden corpus. The composition layer never claims to verify the truth of upstream claims; each upstream owner remains responsible for qualification.
+The isolated Rust oracle is dependency-free. It checks only owner status, identity and receipt composition. The 28-case JSON fixture is a separately inspectable golden corpus. Rust tests add 860 exhaustive single/pair mutator inputs and 10,000 seeded two-fault inputs. The composition layer never claims to verify the truth of upstream claims; each upstream owner remains responsible for qualification.
 
 All checks must be reported by exact commit SHA. A queued workflow is not a pass; a format pass is not a Clippy or test pass; fixture evaluation is not physical validation.
