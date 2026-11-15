@@ -831,16 +831,13 @@ pub fn evaluate_command_response(
         result.status = ResponseStatus::NotEvaluableTemporalOrder;
         return Ok(result);
     }
-    let command_age_worst_case =
-        prediction_time.latest_seconds() - command_time.earliest_seconds();
+    let command_age_worst_case = prediction_time.latest_seconds() - command_time.earliest_seconds();
     if command_age_worst_case > pair.maximum_command_age_seconds {
         result.status = ResponseStatus::NotEvaluableStaleCommand;
         return Ok(result);
     }
-    let response_lag_minimum =
-        response_time.earliest_seconds() - prediction_time.latest_seconds();
-    let response_lag_maximum =
-        response_time.latest_seconds() - prediction_time.earliest_seconds();
+    let response_lag_minimum = response_time.earliest_seconds() - prediction_time.latest_seconds();
+    let response_lag_maximum = response_time.latest_seconds() - prediction_time.earliest_seconds();
     if response_lag_minimum > pair.maximum_response_horizon_seconds {
         result.status = ResponseStatus::NotEvaluableResponseOutsideHorizon;
         return Ok(result);

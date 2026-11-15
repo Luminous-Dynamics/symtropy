@@ -25,7 +25,10 @@ pub enum TemporalIntervalError {
 impl BoundedEventTimeInterval {
     /// Construct [timestamp - uncertainty, timestamp + uncertainty].
     /// Invalid bounds are rejected; they are never clamped.
-    pub fn new(timestamp_seconds: f64, uncertainty_seconds: f64) -> Result<Self, TemporalIntervalError> {
+    pub fn new(
+        timestamp_seconds: f64,
+        uncertainty_seconds: f64,
+    ) -> Result<Self, TemporalIntervalError> {
         if !timestamp_seconds.is_finite() || !uncertainty_seconds.is_finite() {
             return Err(TemporalIntervalError::NonFinite);
         }
@@ -43,7 +46,10 @@ impl BoundedEventTimeInterval {
         if earliest_seconds < 0.0 {
             return Err(TemporalIntervalError::IntervalUnderflow);
         }
-        Ok(Self { earliest_seconds, latest_seconds })
+        Ok(Self {
+            earliest_seconds,
+            latest_seconds,
+        })
     }
 
     pub fn earliest_seconds(self) -> f64 {

@@ -434,11 +434,8 @@ fn validate_input_sample(
     {
         return Err(StreamingError::InvalidInputSample);
     }
-    BoundedEventTimeInterval::new(
-        sample.time_seconds,
-        sample.timestamp_uncertainty_seconds,
-    )
-    .map_err(|_| StreamingError::InvalidInputSample)
+    BoundedEventTimeInterval::new(sample.time_seconds, sample.timestamp_uncertainty_seconds)
+        .map_err(|_| StreamingError::InvalidInputSample)
 }
 
 fn validate_output(output: &StreamingDiagnosisOutput) -> Result<(), StreamingError> {
@@ -719,7 +716,10 @@ mod tests {
         session.input(&sample(0, 1.0)).unwrap();
         let mut changed = sample(1, 1.05);
         changed.timebase_id = "unmapped-controller-clock".into();
-        assert_eq!(session.input(&changed), Err(StreamingError::TimebaseChanged));
+        assert_eq!(
+            session.input(&changed),
+            Err(StreamingError::TimebaseChanged)
+        );
         assert_eq!(session.sample_count(), 1);
         assert!(!session.is_poisoned());
     }
@@ -729,11 +729,17 @@ mod tests {
         let mut session = session();
         let mut unqualified = sample(0, 1.0);
         unqualified.timebase_qualified = false;
-        assert_eq!(session.input(&unqualified), Err(StreamingError::InvalidTimebase));
+        assert_eq!(
+            session.input(&unqualified),
+            Err(StreamingError::InvalidTimebase)
+        );
 
         let mut malformed_digest = sample(0, 1.0);
         malformed_digest.timebase_qualification_sha256 = "not-a-digest".into();
-        assert_eq!(session.input(&malformed_digest), Err(StreamingError::InvalidTimebase));
+        assert_eq!(
+            session.input(&malformed_digest),
+            Err(StreamingError::InvalidTimebase)
+        );
         assert_eq!(session.sample_count(), 0);
     }
 
