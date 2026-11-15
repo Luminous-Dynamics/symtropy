@@ -590,9 +590,7 @@ pub fn verify(
                 return Err(VerificationError::ParentNotQualified);
             }
             match edge.role {
-                ParentRole::PositionObservation
-                    if parent.observation_traffic_class.is_some() =>
-                {
+                ParentRole::PositionObservation if parent.observation_traffic_class.is_some() => {
                     return Err(VerificationError::ObservationRoleMismatch);
                 }
                 ParentRole::SurveillanceObservation
