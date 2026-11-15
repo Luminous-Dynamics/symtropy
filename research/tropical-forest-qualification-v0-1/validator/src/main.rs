@@ -70,6 +70,7 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt"
             | Some("PASS_SYNTHETIC_ROOT_PATHWAY_TOURNAMENT_SPEC")
             | Some("PASS_SYNTHETIC_PATHWAY_IDENTIFIABILITY")
             | Some("PASS_SYNTHETIC_PRACTICAL_DESIGN")
+            | Some("PASS_SYNTHETIC_SOURCE_IDENTITY_POLICY")
             | Some("PASS_SYNTHETIC_AFEX_ROOT_DISTRIBUTION_ORACLE")
     );
     if !successful_result {
