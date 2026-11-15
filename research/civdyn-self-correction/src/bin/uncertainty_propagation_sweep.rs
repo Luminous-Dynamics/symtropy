@@ -390,7 +390,11 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
 
     let afex_root_negative_covariance = state(
         "input-afex-root-turnover-negative-covariance",
-        &["root-productivity-normalized", "root-stock-normalized", "ratio-linearization-offset"],
+        &[
+            "root-productivity-normalized",
+            "root-stock-normalized",
+            "ratio-linearization-offset",
+        ],
         &[1.2, 1.0, 1.0],
         vec![
             vec![0.04, -0.005, 0.0],
@@ -441,7 +445,10 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
             "afex_root_turnover_zero_covariance_ablation",
             afex_root_independent_result,
         ),
-        ("afex_root_turnover_negative_covariance", afex_root_negative_result),
+        (
+            "afex_root_turnover_negative_covariance",
+            afex_root_negative_result,
+        ),
     ])
 }
 
