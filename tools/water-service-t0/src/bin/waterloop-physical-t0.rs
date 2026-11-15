@@ -361,9 +361,18 @@ fn compute(case: &Value) -> Result<Value, String> {
             }))
         }
         "WL-T0-015-energy-boundary-mismatch-abstains" => {
-            let hydraulic_energy = nonnegative(number(input, "hydraulic_output_energy_kwh")?, "hydraulic_output_energy_kwh")?;
-            let electrical_energy = positive(number(input, "electrical_input_energy_kwh")?, "electrical_input_energy_kwh")?;
-            let delivered_volume = positive(number(input, "measured_delivered_volume_m3")?, "measured_delivered_volume_m3")?;
+            let hydraulic_energy = nonnegative(
+                number(input, "hydraulic_output_energy_kwh")?,
+                "hydraulic_output_energy_kwh",
+            )?;
+            let electrical_energy = positive(
+                number(input, "electrical_input_energy_kwh")?,
+                "electrical_input_energy_kwh",
+            )?;
+            let delivered_volume = positive(
+                number(input, "measured_delivered_volume_m3")?,
+                "measured_delivered_volume_m3",
+            )?;
             let windows_aligned = boolean(input, "hydraulic_and_electrical_windows_aligned")?;
             let delivery_boundary_matched = boolean(input, "delivered_volume_boundary_matched")?;
             let auxiliary_loads_included = boolean(input, "auxiliary_loads_included")?;
@@ -384,7 +393,10 @@ fn compute(case: &Value) -> Result<Value, String> {
             }
             let efficiency = hydraulic_energy / electrical_energy;
             if efficiency > 1.0 + 1.0e-9 {
-                return Err("wire-to-water efficiency exceeds unity; reject evidence/model boundary".to_owned());
+                return Err(
+                    "wire-to-water efficiency exceeds unity; reject evidence/model boundary"
+                        .to_owned(),
+                );
             }
             Ok(json!({
                 "measurement_disposition": "ADMITTED",
