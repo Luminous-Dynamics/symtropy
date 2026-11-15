@@ -14,6 +14,7 @@
     {"id":"approved-substitution-current-scope","expected":"ReadyForWorkPackage","matching_test":"exact_revision_approved_substitute_can_be_eligible"},
     {"id":"approved-substitution-stale-design","expected":"SubstitutionApprovalRequired","matching_test":"substitute_approval_for_old_design_revision_is_not_current"},
     {"id":"approved-substitution-wrong-project","expected":"SubstitutionApprovalRequired","matching_test":"substitution_approval_must_match_project_and_requirement_revision"},
+    {"id":"inventory-reservation-previous-site-epoch","expected":"Superseded","matching_test":"inventory_reservation_from_previous_site_epoch_is_superseded"},
     {"id":"lot-quantity-double-counted-across-lines","expected":"InsufficientQuantity","matching_test":"same_lot_quantity_cannot_be_double_counted_across_kit_lines"},
     {"id":"damaged-or-quarantined-lot","expected":"Rejected","matching_test":"damaged_or_quarantined_material_is_rejected"},
     {"id":"unit-mismatch-no-conversion","expected":"HeldUnknown","matching_test":"unit_mismatch_is_held_without_implicit_conversion"},
