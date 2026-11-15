@@ -347,7 +347,7 @@
       ],
       "review_attestation_ref": "attestation-synthetic-review-001",
       "predecessor_event_ids": [
-        "event-installed-001"
+        "event-inspection-001"
       ]
     },
     {
@@ -414,7 +414,7 @@
       ],
       "review_attestation_ref": "attestation-synthetic-review-002",
       "predecessor_event_ids": [
-        "event-installed-002"
+        "event-inspection-002"
       ]
     },
     {
@@ -463,8 +463,7 @@
         "evidence-install-001"
       ],
       "predecessor_event_ids": [
-        "event-design-slot-02",
-        "event-installed-001"
+        "event-duplicate-delivery"
       ],
       "location_ref": "location-cabinet-spare"
     },
@@ -549,6 +548,57 @@
         "event-rev-b-delivered"
       ],
       "location_ref": "location-cabinet-east"
+    },
+    {
+      "event_id": "event-inspection-001",
+      "event_type": "inspection_recorded",
+      "occurred_at": "2026-11-14T09:00:00Z",
+      "recorded_at": "2026-11-14T09:10:00Z",
+      "actor_ref": "actor-reviewer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-001",
+      "location_ref": "location-cabinet-east",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-001"
+      ],
+      "predecessor_event_ids": [
+        "event-installed-001"
+      ]
+    },
+    {
+      "event_id": "event-inspection-002",
+      "event_type": "inspection_recorded",
+      "occurred_at": "2026-11-14T14:30:00Z",
+      "recorded_at": "2026-11-14T14:35:00Z",
+      "actor_ref": "actor-reviewer",
+      "slot_id": "slot-inverter-01",
+      "physical_instance_id": "instance-inverter-002",
+      "location_ref": "location-cabinet-east",
+      "identity_resolution_method": "qualified_physical_inspection",
+      "evidence_refs": [
+        "evidence-install-002"
+      ],
+      "predecessor_event_ids": [
+        "event-installed-002"
+      ]
+    },
+    {
+      "event_id": "event-duplicate-delivery",
+      "event_type": "unit_delivered",
+      "occurred_at": "2026-11-14T17:30:00Z",
+      "recorded_at": "2026-11-14T17:35:00Z",
+      "actor_ref": "actor-supplier",
+      "slot_id": "slot-inverter-02",
+      "physical_instance_id": "instance-inverter-001",
+      "identity_resolution_method": "supplier_record",
+      "evidence_refs": [
+        "evidence-delivery-001"
+      ],
+      "predecessor_event_ids": [
+        "event-installed-001",
+        "event-design-slot-02"
+      ]
     }
   ],
   "scenarios": [
@@ -651,6 +701,7 @@
         "event-design-slot-01",
         "event-delivered-001",
         "event-installed-001",
+        "event-inspection-001",
         "event-reconciled-001"
       ],
       "expected_status": "reconciled",
@@ -678,7 +729,8 @@
         "event-reconciled-001",
         "event-remove-001",
         "event-delivered-002",
-        "event-installed-002"
+        "event-installed-002",
+        "event-inspection-002"
       ],
       "expected_status": "installed_unreconciled",
       "expected_active_assignments": [
@@ -710,7 +762,7 @@
         "event-design-slot-01",
         "event-delivered-002",
         "event-installed-002",
-        "event-reconciled-late"
+        "event-inspection-002"
       ],
       "expected_status": "installed_unreconciled",
       "expected_active_assignments": [
@@ -742,7 +794,8 @@
         "event-design-slot-01",
         "event-delivered-002",
         "event-installed-002",
-        "event-reconciled-late"
+        "event-reconciled-late",
+        "event-inspection-002"
       ],
       "expected_status": "reconciled",
       "expected_active_assignments": [
@@ -792,6 +845,7 @@
         "event-design-slot-02",
         "event-delivered-001",
         "event-installed-001",
+        "event-duplicate-delivery",
         "event-duplicate-assignment"
       ],
       "expected_status": "conflicted",
@@ -844,7 +898,7 @@
         "event-reconciled-late",
         "event-relocated-002"
       ],
-      "expected_status": "reconciled",
+      "expected_status": "installed_unreconciled",
       "expected_active_assignments": [
         {
           "slot_id": "slot-inverter-01",
@@ -863,7 +917,8 @@
         "output-carbon-report-unrelated"
       ],
       "expected_reason_codes": [
-        "installation_location_changed"
+        "installation_location_changed",
+        "reconciliation_invalidated_by_relocation"
       ]
     },
     {
