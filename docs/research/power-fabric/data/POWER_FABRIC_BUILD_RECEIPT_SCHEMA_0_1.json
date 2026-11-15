@@ -151,7 +151,8 @@
         "edition",
         "amendments",
         "publication_status",
-        "jurisdiction"
+        "jurisdiction",
+        "corrections"
       ],
       "properties": {
         "standard_id": {
@@ -190,6 +191,14 @@
             "string",
             "null"
           ]
+        },
+        "corrections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

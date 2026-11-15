@@ -8,7 +8,11 @@
   "dependency_lock_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "source_document_id": "document:synthetic-home",
   "source_document_revision_id": "revision:ir:1",
-  "source_schema_version": { "major": 0, "minor": 2, "patch": 0 },
+  "source_schema_version": {
+    "major": 0,
+    "minor": 2,
+    "patch": 0
+  },
   "mapping_profile_id": "profile:residential-service-graph",
   "mapping_profile_version": "0.1",
   "graph_id": "graph:synthetic-home",
@@ -26,9 +30,14 @@
         "standard_id": "IEC 60364-8-82",
         "part": "8-82",
         "edition": "2022",
-        "amendments": ["AMD1:2026"],
+        "amendments": [
+          "AMD1:2026"
+        ],
         "publication_status": "published",
-        "jurisdiction": null
+        "jurisdiction": null,
+        "corrections": [
+          "CORRECTED VERSION 2026-11"
+        ]
       },
       "registry_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "applicability_rules_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"

@@ -26,12 +26,12 @@ Every receipt requires:
 - mapping profile ID/version, explicit namespaced maps and per-object exact module/configuration identities;
 - graph ID/revision/maturity and declared graph content digest;
 - at least one standard applicability profile pin;
-- each standard profile's exact ID/version, standard/part, edition, amendments, publication status and jurisdiction;
+- each standard profile's exact ID/version, standard/part, edition, amendments, correction notices/corrected-consolidated-version label, publication status and jurisdiction;
 - digest of the standards-register record used to identify the publication;
 - digest of the profile's applicability-rule set;
 - upstream artifact IDs/revisions/roles and SHA-256 digests.
 
-An unknown standard publication lifecycle cannot be pinned as a complete build input. Published editions and working drafts remain distinct values. A working-draft profile can be pinned for research but must not be relabelled as published.
+An unknown standard publication lifecycle cannot be pinned as a complete build input. Published editions and working drafts remain distinct values. A working-draft profile can be pinned for research but must not be relabelled as published. Correction notices are recorded separately from edition and amendment identifiers: IEC 60364-8-82 remains edition 1.1, IEC 60364-8-82:2022+AMD1:2026 CSV, with the catalogue currently labelling the consolidated copy CORRECTED VERSION 2026-11.
 
 ## 3. Deterministic serialization contract
 
@@ -75,3 +75,8 @@ Next increments should add role-projection artifact digests, export/import outpu
 ## 6. Claim ceiling
 
 The receipt demonstrates only that specified serialized inputs and outputs are bound by digests under the declared serialization contract. It does not authenticate any source, attest a physical installation, prove source-path completeness, validate engineering calculations, establish isolation, certify standards conformity, or issue a Certificate of Compliance.
+
+
+## Correction-state discipline (2026-11)
+
+The IEC Webstore identifies the consolidated IEC 60364-8-82:2022+AMD1:2026 CSV as **CORRECTED VERSION 2026-11**, while the same page reports Edition 1.1 and publication date 2026-04-16. Power Fabric stores this correction label in `StandardReference.corrections`, not as a new edition or amendment. A different correction label therefore changes the build-lock digest without falsifying the edition history. Source: https://webstore.iec.ch/en/publication/113148

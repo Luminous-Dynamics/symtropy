@@ -545,15 +545,28 @@ mod tests {
 
 
     fn build_metadata(include_amd1: bool) -> BuildMetadata {
-        build_metadata_with_lock(include_amd1, b"synthetic Cargo.lock")
+        build_metadata_with_correction(include_amd1, true, b"synthetic Cargo.lock")
     }
 
     fn build_metadata_with_lock(include_amd1: bool, lock_contents: &[u8]) -> BuildMetadata {
+        build_metadata_with_correction(include_amd1, true, lock_contents)
+    }
+
+    fn build_metadata_with_correction(
+        include_amd1: bool,
+        include_correction: bool,
+        lock_contents: &[u8],
+    ) -> BuildMetadata {
         let standard = StandardReference::new(
             "IEC 60364-8-82", Some("8-82".into()), "2022",
             if include_amd1 { vec!["AMD1:2026".into()] } else { Vec::new() },
             StandardPublicationStatus::Published, None,
         ).unwrap();
+        let standard = if include_correction {
+            standard.with_corrections(vec!["CORRECTED VERSION 2026-11".into()]).unwrap()
+        } else {
+            standard
+        };
         let standard_pin = StandardProfilePin::new(
             "profile:prosumer-pei", "0.1", standard,
             Sha256Digest::from_bytes(b"synthetic registry record"),
@@ -609,6 +622,35 @@ mod tests {
         assert_eq!(receipt.standard_profiles().len(), 1);
         assert_eq!(receipt.upstream_artifacts().len(), 1);
     }
+
+
+    #[test]
+    fn changed_standard_correction_notice_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let corrected = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_correction(true, true, b"synthetic Cargo.lock"),
+        ).unwrap();
+        let uncorrected = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_correction(true, false, b"synthetic Cargo.lock"),
+        ).unwrap();
+        assert_ne!(
+            corrected.receipt().build_lock_digest(),
+            uncorrected.receipt().build_lock_digest()
+        );
+        assert_eq!(
+            corrected.receipt().standard_profiles()[0].standard().corrections(),
+            &["CORRECTED VERSION 2026-11".to_owned()]
+        );
+        assert!(uncorrected.receipt().standard_profiles()[0].standard().corrections().is_empty());
+    }
+
 
     #[test]
     fn changed_standard_profile_changes_build_lock_digest() {
