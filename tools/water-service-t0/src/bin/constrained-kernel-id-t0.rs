@@ -178,7 +178,6 @@ fn weighted_mse(actual: &Vector, predicted: &Vector, weights: &Vector) -> Result
         / total)
 }
 #[allow(clippy::needless_range_loop)]
-#[allow(clippy::needless_range_loop)]
 fn solve_linear(mut a: Matrix, mut b: Vector, tol: f64) -> Result<Vector, String> {
     let n = b.len();
     if a.len() != n || a.iter().any(|r| r.len() != n) {
