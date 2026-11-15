@@ -293,10 +293,9 @@ fn run_episode(scenario: &ScenarioManifest) -> Result<EpisodeTrace, String> {
         hash_snapshot(&mut hasher, tick, &snapshot);
 
         let invariants = world.invariant_snapshot();
-        max_contact_penetration_m =
-            max_contact_penetration_m.max(invariants.max_penetration_depth);
-        max_rotation_orthogonality_error = max_rotation_orthogonality_error
-            .max(invariants.max_rotation_orthogonality_error);
+        max_contact_penetration_m = max_contact_penetration_m.max(invariants.max_penetration_depth);
+        max_rotation_orthogonality_error =
+            max_rotation_orthogonality_error.max(invariants.max_rotation_orthogonality_error);
         max_rotation_determinant_error =
             max_rotation_determinant_error.max(invariants.max_rotation_determinant_error);
         non_finite_body_count = non_finite_body_count.max(invariants.non_finite_body_count);
@@ -312,9 +311,7 @@ fn run_episode(scenario: &ScenarioManifest) -> Result<EpisodeTrace, String> {
     let rotation = package_body.transform.rotation.to_matrix();
     let final_world_aabb_half_extents_m = std::array::from_fn(|world_axis| {
         (0..3)
-            .map(|local_axis| {
-                rotation[(world_axis, local_axis)].abs() * _package_half[local_axis]
-            })
+            .map(|local_axis| rotation[(world_axis, local_axis)].abs() * _package_half[local_axis])
             .sum()
     });
 
@@ -473,8 +470,7 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
     let physics_numerically_healthy = first.non_finite_body_count == 0
         && first.max_rotation_orthogonality_error <= ROTATION_HEALTH_TOLERANCE
         && first.max_rotation_determinant_error <= ROTATION_HEALTH_TOLERANCE;
-    let penetration_within_limit =
-        first.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M;
+    let penetration_within_limit = first.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M;
 
     let physical_result_valid = replay_bitwise_equal
         && safe_inside_tote
