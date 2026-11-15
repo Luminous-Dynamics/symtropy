@@ -425,7 +425,7 @@ mod tests {
     fn source_crosswalk_binds_every_model_to_eight_protocol_runs() {
         let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest()).expect("crosswalk parses");
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORESTPATHS_CROSSWALK");
-        assert_eq!(receipt["checks_total"], 10);
+        assert_eq!(receipt["checks_total"], 11);
     }
 
     #[test]
