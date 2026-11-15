@@ -1,4 +1,5 @@
 name: AeroWeft Validation Experiment Design Oracle
+# Exact-head gated workflow for the stacked Track V review branch.
 
 on:
   pull_request:
