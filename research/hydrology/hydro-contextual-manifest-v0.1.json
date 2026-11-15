@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 26,
+  "case_count": 27,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -30,7 +30,8 @@
     "HC-T0-023-low-flow-log10-error",
     "HC-T0-024-probabilistic-interval-coverage-width",
     "HC-T0-025-invalid-probabilistic-interval-reject",
-    "HC-T0-026-low-flow-log-zero-abstains"
+    "HC-T0-026-low-flow-log-zero-abstains",
+    "HC-T0-027-event-peak-ties-earliest-index"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -65,6 +66,7 @@
     "Peak magnitude/timing metrics are computed only on a named frozen event window with declared fixed time step; timing error is signed predicted minus observed peak time and ties choose the earliest peak.",
     "Low-flow log10 error uses a predeclared threshold and only strictly positive observed/predicted flows; zeros are not replaced with pseudocounts and yield Indeterminate.",
     "Probabilistic interval coverage and width are reported separately; invalid lower>upper interval rows reject the interval metric rather than being silently repaired.",
-    "Coverage/width metrics do not themselves establish probabilistic calibration across a sufficiently large event population; sample size and event strata remain mandatory."
+    "Coverage/width metrics do not themselves establish probabilistic calibration across a sufficiently large event population; sample size and event strata remain mandatory.",
+    "When multiple equal maxima occur in a named event window, peak timing is assigned to the earliest time step for both observation and prediction."
   ]
 }
