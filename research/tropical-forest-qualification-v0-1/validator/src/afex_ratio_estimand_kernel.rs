@@ -67,6 +67,21 @@ fn sample_covariance(x: &[f64], y: &[f64], mean_x: f64, mean_y: f64) -> Result<f
     }
     Ok(x.iter().zip(y.iter()).map(|(a,b)| (a-mean_x)*(b-mean_y)).sum::<f64>() / (x.len()-1) as f64)
 }
+fn compare_optional_number(expected: &Value, key: &str, actual: Option<f64>, tolerance: f64) -> Result<(), String> {
+    match (actual, expected.get(key)) {
+        (Some(value), Some(expected_value)) => {
+            let expected_number=expected_value.as_f64()
+                .ok_or_else(||format!("expected_summary.{key} must be numeric"))?;
+            if !value.is_finite() || (value-expected_number).abs()>tolerance {
+                return Err(format!("expected_summary.{key} mismatch: actual={value}, expected={expected_number}"));
+            }
+        }
+        (None, Some(Value::Null)) => {}
+        (None, _) => return Err(format!("expected_summary.{key} must be null when the estimand is undefined")),
+        (Some(_), None) => return Err(format!("expected_summary.{key} is required")),
+    }
+    Ok(())
+}
 fn expected_support(period: &str) -> Result<(&'static str, &'static str, &'static str), String> {
     match period {
         "year1" => Ok(("2017-08", "2017-08", "2018-09")),
@@ -257,10 +272,7 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
             ("sample_covariance",summary.sample_covariance),
             ("mean_plot_turnover",summary.mean_plot_turnover),
             ("pooled_ratio_of_sums",summary.pooled_ratio_of_sums),
-            ("mean_plot_lifespan_days",summary.mean_plot_lifespan_days.unwrap_or(f64::NAN)),
-            ("inverse_mean_turnover_days",summary.inverse_mean_turnover_days.unwrap_or(f64::NAN)),
             ("mean_plot_turnover_standard_error",summary.mean_plot_turnover_standard_error),
-            ("mean_plot_lifespan_standard_error",summary.mean_plot_lifespan_standard_error.unwrap_or(f64::NAN)),
             ("ratio_of_means_delta_variance",summary.ratio_of_means_delta_variance),
             ("ratio_of_means_delta_standard_error",summary.ratio_of_means_delta_standard_error)
         ];
@@ -271,6 +283,9 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
                 return Err(format!("case {case_id} oracle mismatch at {key}: actual={actual}, expected={expected_value}"));
             }
         }
+        compare_optional_number(expected,"mean_plot_lifespan_days",summary.mean_plot_lifespan_days,tol)?;
+        compare_optional_number(expected,"inverse_mean_turnover_days",summary.inverse_mean_turnover_days,tol)?;
+        compare_optional_number(expected,"mean_plot_lifespan_standard_error",summary.mean_plot_lifespan_standard_error,tol)?;
         reports.insert(case_id.clone(),summary.clone());
         rows.push(json!({"case_id":case_id,"disposition":"ESTIMAND_SUMMARY_VALID","summary":summary_json(&summary)}));
     }
@@ -371,5 +386,16 @@ mod tests {
         m["cases"][0]["treatment_id"]=json!("N1-P1-C1");
         let raw=serde_json::to_vec(&m).expect("serialize");
         assert!(validate_corpus(&raw,&m).is_err());
+    }
+    #[test]
+    fn zero_productivity_keeps_lifespan_undefined_instead_of_infinite(){
+        let pairs=vec![
+            PlotPair{plot_id:"p1".to_string(),block_id:"b1".to_string(),treatment_id:"t".to_string(),stock:1.0,productivity:0.0,turnover:0.0,lifespan_days:None},
+            PlotPair{plot_id:"p2".to_string(),block_id:"b2".to_string(),treatment_id:"t".to_string(),stock:1.0,productivity:1.0,turnover:1.0,lifespan_days:Some(365.25)},
+        ];
+        let summary=summarize(&pairs).expect("zero productivity is a valid zero-turnover observation");
+        assert_eq!(summary.mean_plot_lifespan_days,None);
+        assert_eq!(summary.mean_plot_lifespan_standard_error,None);
+        assert_eq!(summary.inverse_mean_turnover_days,Some(730.5));
     }
 }
