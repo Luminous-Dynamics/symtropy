@@ -185,7 +185,7 @@ impl<Domain: CoordinateFrame, ConstraintSpace: CoordinateFrame, const N: usize, 
             delassus_whitened_eigenvalue_estimates.push(squared);
         }
         delassus_whitened_eigenvalue_estimates
-            .extend(std::iter::repeat_n(0.0, operator_receipt.codomain_nullity));
+            .extend(std::iter::repeat_n(0.0, K.saturating_sub(singular_values.len())));
 
         let rank_status = if operator_receipt.status
             == RectangularOperatorStatusV1::OutsideConditionEnvelope
@@ -608,6 +608,43 @@ mod tests {
         {
             close(*actual, *expected, 2.0e-12);
         }
+
+        // Solve a compatible constraint residual independently in both bases.
+        let target_rate_q = Tangent::<ConstraintSpace, 2>::new([0.4, -0.2]).unwrap();
+        let target_rate_d = constraint_rebasis.tangent_to_to(&target_rate_q).unwrap();
+        let (lambda_solved_q, correction_solved_q) = receipt_q
+            .solve_minimum_kinetic_correction(&target_rate_q)
+            .unwrap();
+        let (lambda_solved_d, correction_solved_d) = receipt_d
+            .solve_minimum_kinetic_correction(&target_rate_d)
+            .unwrap();
+        let expected_lambda_d = constraint_rebasis.cotangent_to_to(&lambda_solved_q).unwrap();
+        for (actual, expected) in lambda_solved_d
+            .components()
+            .iter()
+            .zip(expected_lambda_d.components().iter())
+        {
+            close(*actual, *expected, 2.0e-10);
+        }
+        let correction_solved_q_from_y =
+            domain_rebasis.tangent_to_from(&correction_solved_d).unwrap();
+        for (actual, expected) in correction_solved_q
+            .components()
+            .iter()
+            .zip(correction_solved_q_from_y.components().iter())
+        {
+            close(*actual, *expected, 2.0e-10);
+        }
+        close(
+            receipt_q.residual_delassus_dual_norm(&target_rate_q).unwrap(),
+            receipt_d.residual_delassus_dual_norm(&target_rate_d).unwrap(),
+            2.0e-10,
+        );
+        close(
+            receipt_q.mass_metric.tangent_norm(&correction_solved_q).unwrap(),
+            receipt_q.residual_delassus_dual_norm(&target_rate_q).unwrap(),
+            2.0e-10,
+        );
     }
 
     #[test]
