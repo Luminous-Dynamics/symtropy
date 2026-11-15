@@ -32,13 +32,14 @@ Use existing Symtropy process-closure and hydraulic component owners for shared 
 
 ## WaterLoop physical-bench T0
 
-The `waterloop-physical-t0` binary adds a separate 12-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
+The `waterloop-physical-t0` binary adds a separate 15-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
 - conservative water-volume closure against an additive uncertainty bound;
 - measured deliverable volume versus gross tank inventory and operating heel;
 - source-substitution credit only at a matched end-use boundary with current meter calibration and use-specific quality evidence;
 - hydraulic power and wire-to-water energy arithmetic;
 - hard pressure/flow service floors;
-- event-level leak precision/recall, false alarms per sensor-day and missed-volume arithmetic.
+- event-level leak precision/recall, false alarms per sensor-day and missed-volume arithmetic;
+- fail-closed abstention when source-quality evidence, profile revision, required pressure/flow metrology or matched pump-energy boundaries are missing.
 
 Run from the repository root:
 
