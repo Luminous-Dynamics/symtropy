@@ -184,6 +184,7 @@ pub enum ReasonCode {
     StakeholderCoverageMissing,
     DissentHandlingMissing,
     LifecycleTradeStudyRequired,
+    ReviewStateIncomplete,
 }
 
 impl ReasonCode {
@@ -206,6 +207,7 @@ impl ReasonCode {
             Self::StakeholderCoverageMissing => "STAKEHOLDER_COVERAGE_MISSING",
             Self::DissentHandlingMissing => "DISSENT_HANDLING_MISSING",
             Self::LifecycleTradeStudyRequired => "LIFECYCLE_TRADE_STUDY_REQUIRED",
+            Self::ReviewStateIncomplete => "REVIEW_STATE_INCOMPLETE",
         }
     }
 }
@@ -231,6 +233,17 @@ fn valid_token(value: &str) -> bool {
 }
 
 fn parse_date(value: &str) -> Option<(u32, u32, u32)> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 10
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes
+            .iter()
+            .enumerate()
+            .any(|(index, byte)| index != 4 && index != 7 && !byte.is_ascii_digit())
+    {
+        return None;
+    }
     let mut parts = value.split('-');
     let year = parts.next()?.parse::<u32>().ok()?;
     let month = parts.next()?.parse::<u32>().ok()?;
@@ -351,7 +364,7 @@ pub fn evaluate(envelope: &ReviewEnvelope) -> ReviewDecision {
             && envelope
                 .trade_study_evidence_id
                 .as_deref()
-                .is_none_or(|value| value.trim().is_empty())
+                .is_none_or(|value| !valid_token(value))
         {
             return decision(
                 Disposition::TradeStudyRequired,
@@ -379,9 +392,9 @@ pub fn evaluate(envelope: &ReviewEnvelope) -> ReviewDecision {
     if !envelope.dissent_handling_recorded {
         reasons.push(ReasonCode::DissentHandlingMissing);
     }
-    if envelope.review_status == ReviewStatus::Incomplete && reasons.is_empty() {
+    if envelope.review_status == ReviewStatus::Incomplete {
         // A record cannot self-label "incomplete" and still pass all checks.
-        reasons.push(ReasonCode::RequiredViewsMissing);
+        reasons.push(ReasonCode::ReviewStateIncomplete);
     }
     if !reasons.is_empty() {
         return review_incomplete(reasons, gate_findings);
