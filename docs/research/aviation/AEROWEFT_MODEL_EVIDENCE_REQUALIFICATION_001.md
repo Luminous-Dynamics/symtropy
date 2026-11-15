@@ -70,6 +70,7 @@ Every dependency requires a matching coverage record with:
 - source namespace and dependency kind;
 - effective-time interval beginning no later than the original qualification time and ending no earlier than the requested effective cutoff;
 - knowledge-time interval beginning no later than the original claim-recorded time and ending no earlier than the requested knowledge cutoff;
+- recorded/availability time at which this coverage manifest itself became known;
 - sequence interval;
 - completeness state;
 - owner-declared evidence state;
@@ -99,11 +100,11 @@ The assessment also returns separate lists for:
 
 A known contradiction takes precedence over unrelated missing feed coverage, while the unknown dimensions remain explicit. A known material change plus an unrelated coverage gap produces an indeterminate overall reliance status while preserving the known requalification dimension.
 
-The original claim and its historical evidence are never mutated or deleted.
+The original claim and its historical evidence are never mutated or deleted. Every assessment carries the exact claim package digest, both requested cutoffs and policy digest. Coverage manifests have their own recorded/availability time, so a future coverage correction cannot affect an earlier historical query.
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 34 tests including:
+The Rust suite currently exercises 37 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
@@ -117,7 +118,9 @@ The Rust suite currently exercises 34 tests including:
 - late-recorded correction and historical/current reconstruction;
 - duplicate event IDs, source-sequence reuse/forks and duplicate coverage;
 - event-array permutation invariance;
-- a future-recorded duplicate does not poison an earlier as-known query but is rejected once it enters the knowledge cutoff;
+- future-recorded duplicate events and coverage manifests do not poison an earlier as-known query but are rejected once they enter the knowledge cutoff;
+- assessment output binds the exact claim package, effective cutoff, knowledge cutoff and policy digest;
+- claim dependency permutation produces a canonical identical result;
 - source-sequence digest succession remains deterministic even when a corrective event has an earlier effective time than its predecessor.
 - evaluation before claim existence;
 - coverage deletion monotonicity;
