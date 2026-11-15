@@ -447,8 +447,9 @@ fn solve_spd3(matrix: Matrix3, rhs: Vector3) -> Result<Vector3, MixingErrorV1> {
     for row in 0..3 {
         for column in 0..=row {
             let mut sum = matrix[row][column];
-            for (row_factor, column_factor) in
-                lower[row][..column].iter().zip(lower[column][..column].iter())
+            for (row_factor, column_factor) in lower[row][..column]
+                .iter()
+                .zip(lower[column][..column].iter())
             {
                 sum -= row_factor * column_factor;
             }
