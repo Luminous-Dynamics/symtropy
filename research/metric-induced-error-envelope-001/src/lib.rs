@@ -19,6 +19,7 @@ use core::marker::PhantomData;
 use std::fmt;
 
 pub mod constraint_metric;
+pub mod nonlinear_sensitivity;
 pub mod operator;
 pub mod rectangular_operator;
 
