@@ -86,3 +86,30 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+  factory-exact-schedule:
+    name: Exact Factory Schedule Oracle
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+    - name: Check Formatting
+      run: cargo fmt --manifest-path tools/factory-exact-schedule/Cargo.toml -- --check
+
+    - name: Run Clippy
+      run: cargo clippy --manifest-path tools/factory-exact-schedule/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests
+      run: cargo test --manifest-path tools/factory-exact-schedule/Cargo.toml --all-targets
+
+    - name: Emit and Verify Exact Schedule Certificate
+      run: |
+        cargo run --quiet --manifest-path tools/factory-exact-schedule/Cargo.toml --bin schedule-oracle | tee /tmp/factory-exact-schedule.tsv
+        test "$(wc -l < /tmp/factory-exact-schedule.tsv)" -eq 2
+        grep -F $'JSSP-3X3-SPT-GAP-001\tEXACT\ttrue\t26\t34\t8\t216\t128\t88' /tmp/factory-exact-schedule.tsv
