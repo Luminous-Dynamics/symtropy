@@ -71,17 +71,26 @@ impl fmt::Display for FlowObservationError {
             Self::InvalidTimestamp => write!(f, "flow timestamp must be finite and non-negative"),
             Self::InvalidVelocity => write!(f, "signed flow velocity must be finite"),
             Self::InvalidVelocityUncertainty => {
-                write!(f, "velocity standard deviation must be finite and non-negative")
+                write!(
+                    f,
+                    "velocity standard deviation must be finite and non-negative"
+                )
             }
             Self::EmptyObservationCount => write!(f, "flow observation count must be positive"),
             Self::InvalidCrossSectionArea => {
-                write!(f, "stream cross-section area must be finite and positive when present")
+                write!(
+                    f,
+                    "stream cross-section area must be finite and positive when present"
+                )
             }
             Self::InvalidSoluteConcentration => {
                 write!(f, "solute concentration must be finite and non-negative")
             }
             Self::InvalidSampleDuration => {
-                write!(f, "sample duration must be finite and positive when present")
+                write!(
+                    f,
+                    "sample duration must be finite and positive when present"
+                )
             }
             Self::MissingSegment(id) => {
                 write!(f, "flow observation references missing segment {:?}", id)
@@ -114,9 +123,7 @@ impl CytoplasmicFlowObservation {
             }
         }
         if let Some(solute) = self.solute {
-            if !solute.concentration_mg_per_mm3.is_finite()
-                || solute.concentration_mg_per_mm3 < 0.0
-            {
+            if !solute.concentration_mg_per_mm3.is_finite() || solute.concentration_mg_per_mm3 < 0.0 {
                 return Err(FlowObservationError::InvalidSoluteConcentration);
             }
         }
