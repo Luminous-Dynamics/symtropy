@@ -1,7 +1,7 @@
 {
   "schema_version": "luminous.operator_spectrum_input.v0.1",
   "arithmetic_domain": "integer matrices interpreted exactly over the rationals",
-  "root_isolation_epsilon": "1/10^70",
+  "root_isolation_power": 70,
   "singular_value_decimal_digits": 60,
   "fixtures": [
     {
