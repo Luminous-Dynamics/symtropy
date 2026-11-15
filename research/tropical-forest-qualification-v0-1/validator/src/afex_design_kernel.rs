@@ -84,6 +84,37 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         return Err("treatment assignment unit must be plot".to_string());
     }
 
+    let protocol = manifest.get("published_protocol_metadata")
+        .ok_or_else(|| "published_protocol_metadata is required".to_string())?;
+    let dimensions = protocol.get("plot_dimensions_m").and_then(Value::as_array)
+        .ok_or_else(|| "plot_dimensions_m must be an array".to_string())?;
+    let first_window = protocol.get("first_application_window").and_then(Value::as_array)
+        .ok_or_else(|| "first_application_window must be an array".to_string())?;
+    let rates = protocol.get("annual_application_rates_verbatim")
+        .ok_or_else(|| "annual_application_rates_verbatim is required".to_string())?;
+    let protocol_valid =
+        string_at(protocol, "source_doi")? == "10.1007/s11104-026-08303-2"
+        && usize_at(protocol, "plot_count")? == 32
+        && dimensions.len() == 2
+        && dimensions[0].as_u64() == Some(50)
+        && dimensions[1].as_u64() == Some(50)
+        && usize_at(protocol, "inter_plot_spacing_m_minimum")? == 50
+        && usize_at(protocol, "inter_block_spacing_m_minimum")? == 200
+        && usize_at(protocol, "wet_season_applications_per_year")? == 3
+        && string_at(protocol, "application_schedule")? == "three equal applications during each wet season"
+        && first_window.len() == 2
+        && first_window[0].as_str() == Some("2017-05")
+        && first_window[1].as_str() == Some("2017-06")
+        && string_at(rates, "nitrogen")? == "125 kg ha-1 yr-1 as urea"
+        && string_at(rates, "phosphorus")? == "50 kg ha-1 yr-1 as triple superphosphate"
+        && string_at(rates, "base_cations")? == "50 kg ha-1 yr-1 for Ca; 20 kg ha-1 yr-1 as Mg in the form of dolomitic limestone; 50 kg ha-1 yr-1 as potassium chloride for K"
+        && string_at(protocol, "rate_semantics")?.contains("do not normalize")
+        && !protocol.get("actual_application_logs_ingested").and_then(Value::as_bool).unwrap_or(true)
+        && !protocol.get("actual_plot_treatment_allocation_reconciled").and_then(Value::as_bool).unwrap_or(true);
+    if !protocol_valid {
+        return Err("AFEX published protocol metadata or empirical claim ceiling is invalid".to_string());
+    }
+
     let declared_blocks = design.get("blocks").and_then(Value::as_array)
         .ok_or_else(|| "design.blocks must be an array".to_string())?;
     let mut blocks = BTreeSet::new();
@@ -251,6 +282,9 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         "residual_degrees_of_freedom":if calculated_rank.is_some() {Some(plots.len().saturating_sub(expected_rank))} else {None::<usize>},
         "checks_total":check_count,
         "checks_passed":passed_count,
+        "published_protocol_metadata_verified":protocol_valid,
+        "actual_application_logs_ingested":false,
+        "actual_plot_treatment_allocation_reconciled":false,
         "external_data_ingested":false,
         "empirical_treatment_effects":"NOT_ESTABLISHED",
         "claim_ceiling":claim_ceiling,
@@ -325,5 +359,13 @@ mod tests {
         let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
         let receipt = validate_corpus(&raw, &manifest).expect("semantic failure receipt");
         assert_eq!(receipt["result"], "FAIL");
+    }
+    #[test]
+    fn source_rate_wording_cannot_be_silently_normalized() {
+        let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
+        manifest["published_protocol_metadata"]["annual_application_rates_verbatim"]["nitrogen"] =
+            json!("125 kg N ha-1 yr-1");
+        let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
+        assert!(validate_corpus(&raw, &manifest).is_err());
     }
 }
