@@ -521,6 +521,13 @@
       "input": "Reject-all and accept-all controls are required to fail the corpus oracle.",
       "expected": "conflicted",
       "oracle": "accept_all_or_reject_all_control_failed"
+    },
+    {
+      "id": "INV-025",
+      "family": "source_inventory_closure",
+      "input": "An accept-all implementation that marks every malformed inventory complete must fail the frozen negative-control oracle.",
+      "expected": "conflicted",
+      "oracle": "accept_all_control_failed"
     }
   ],
   "performance_sizes": [
