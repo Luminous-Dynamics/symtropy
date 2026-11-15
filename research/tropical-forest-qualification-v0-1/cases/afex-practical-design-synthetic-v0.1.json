@@ -1,0 +1,342 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-PRACTICAL-DESIGN-001",
+  "evidence_class": "synthetic_linear_gaussian_design",
+  "claim_ceiling": "All assay costs, noise levels, priors, sensitivities, utility weights and selected designs are synthetic. The four pathway unknowns are not calibrated AFEX parameters. AM colonisation is a covariate/proxy and contributes no direct flux sensitivity row in this fixed-f pathway-rate model. No AFEX field campaign optimum or assay price is established.",
+  "unknown_parameters": [
+    "k_root_inorganic",
+    "k_myc_inorganic",
+    "k_myc_organic",
+    "c_host_to_fungal"
+  ],
+  "prior_covariance": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "strong_prior_diagnostic_covariance": [
+    [
+      0.01,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0.01,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0.01,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0.01
+    ]
+  ],
+  "decision_weights_diagonal": [
+    1,
+    1.5,
+    1,
+    0.5
+  ],
+  "posterior_sd_practical_weak_threshold": 0.6,
+  "budget": {
+    "total_cost_units": 24,
+    "cost_semantics": "Synthetic relative effort units for comparing designs only; not monetary values, observed assay prices or fieldwork estimates.",
+    "require_base_measurements": true
+  },
+  "base_measurements": [
+    {
+      "measurement_id": "TOTAL_UPTAKE_F025",
+      "sensitivity_row": [
+        3,
+        1,
+        1,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 2,
+      "role": "AGGREGATE_TOTAL_UPTAKE"
+    },
+    {
+      "measurement_id": "TOTAL_UPTAKE_F050",
+      "sensitivity_row": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 2,
+      "role": "AGGREGATE_TOTAL_UPTAKE"
+    },
+    {
+      "measurement_id": "TOTAL_UPTAKE_F075",
+      "sensitivity_row": [
+        1,
+        3,
+        3,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 2,
+      "role": "AGGREGATE_TOTAL_UPTAKE"
+    }
+  ],
+  "candidate_measurements": [
+    {
+      "measurement_id": "MYCO_INORGANIC_TRACER",
+      "sensitivity_row": [
+        0,
+        4,
+        0,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 8,
+      "role": "DIRECT_SOURCE_SPECIFIC_FLUX"
+    },
+    {
+      "measurement_id": "MYCO_ORGANIC_TRACER",
+      "sensitivity_row": [
+        0,
+        0,
+        4,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 8,
+      "role": "DIRECT_SOURCE_SPECIFIC_FLUX"
+    },
+    {
+      "measurement_id": "HOST_FUNGAL_CARBON_TRACER",
+      "sensitivity_row": [
+        0,
+        0,
+        0,
+        4
+      ],
+      "noise_sd": 1,
+      "cost_units": 10,
+      "role": "DIRECT_CARBON_ALLOCATION"
+    },
+    {
+      "measurement_id": "DIRECT_ROOT_UPTAKE_TRACER",
+      "sensitivity_row": [
+        4,
+        0,
+        0,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 7,
+      "role": "DIRECT_SOURCE_SPECIFIC_FLUX"
+    },
+    {
+      "measurement_id": "REPEAT_TOTAL_UPTAKE_F050",
+      "sensitivity_row": [
+        2,
+        2,
+        2,
+        0
+      ],
+      "noise_sd": 0.8,
+      "cost_units": 3,
+      "role": "REPEAT_AGGREGATE_FLUX"
+    },
+    {
+      "measurement_id": "AM_COLONISATION_REMEASURE",
+      "sensitivity_row": null,
+      "noise_sd": 0.1,
+      "cost_units": 2,
+      "role": "COVARIATE_ONLY_NO_PATHWAY_FLUX_SENSITIVITY"
+    }
+  ],
+  "diagnostic_scenarios": [
+    {
+      "scenario_id": "BASE_AGGREGATE_ONLY",
+      "include_candidate_ids": [],
+      "noise_override": null,
+      "prior_covariance": "prior_covariance",
+      "expected": {
+        "data_rank": 2,
+        "weighted_posterior_variance": 1.8869950968946998,
+        "information_gain_nats": 3.1414837179677684,
+        "posterior_sd": [
+          0.28911290407928864,
+          0.7220550742400582,
+          0.7220550742400582,
+          1
+        ]
+      }
+    },
+    {
+      "scenario_id": "LOW_NOISE_MYCO_INORGANIC_TRACER",
+      "include_candidate_ids": [
+        "MYCO_INORGANIC_TRACER"
+      ],
+      "noise_override": null,
+      "prior_covariance": "prior_covariance",
+      "expected": {
+        "data_rank": 3,
+        "weighted_posterior_variance": 0.7510564317561723,
+        "information_gain_nats": 4.46222834073289,
+        "posterior_sd": [
+          0.28647677492257656,
+          0.19274282614927346,
+          0.3365453812461524,
+          1
+        ]
+      }
+    },
+    {
+      "scenario_id": "HIGH_NOISE_MYCO_INORGANIC_TRACER",
+      "include_candidate_ids": [
+        "MYCO_INORGANIC_TRACER"
+      ],
+      "noise_override": {
+        "MYCO_INORGANIC_TRACER": 20
+      },
+      "prior_covariance": "prior_covariance",
+      "expected": {
+        "data_rank": 3,
+        "weighted_posterior_variance": 1.862009185055074,
+        "information_gain_nats": 3.151803748992386,
+        "posterior_sd": [
+          0.28905517882028176,
+          0.7146417620731031,
+          0.7158121377175887,
+          1
+        ]
+      }
+    },
+    {
+      "scenario_id": "REPEAT_AGGREGATE_ONLY",
+      "include_candidate_ids": [
+        "REPEAT_TOTAL_UPTAKE_F050"
+      ],
+      "noise_override": null,
+      "prior_covariance": "prior_covariance",
+      "expected": {
+        "data_rank": 2,
+        "weighted_posterior_variance": 1.8818405771599505,
+        "information_gain_nats": 3.282896499808644,
+        "posterior_sd": [
+          0.2838859577765327,
+          0.7214566764920125,
+          0.7214566764920126,
+          1
+        ]
+      }
+    },
+    {
+      "scenario_id": "COLONISATION_COVARIATE_ONLY",
+      "include_candidate_ids": [
+        "AM_COLONISATION_REMEASURE"
+      ],
+      "noise_override": null,
+      "prior_covariance": "prior_covariance",
+      "expected": {
+        "data_rank": 2,
+        "weighted_posterior_variance": 1.8869950968946998,
+        "information_gain_nats": 3.1414837179677684,
+        "posterior_sd": [
+          0.28911290407928864,
+          0.7220550742400582,
+          0.7220550742400582,
+          1
+        ]
+      }
+    },
+    {
+      "scenario_id": "STRONG_PRIOR_NOT_DATA_INFORMATION",
+      "include_candidate_ids": [],
+      "noise_override": null,
+      "prior_covariance": "strong_prior_diagnostic_covariance",
+      "expected": {
+        "data_rank": 2,
+        "weighted_posterior_variance": 0.03488532110091743,
+        "information_gain_nats": 0.2662323994347359,
+        "posterior_sd": [
+          0.09187146985042237,
+          0.0926173938921634,
+          0.0926173938921634,
+          0.1
+        ]
+      }
+    }
+  ],
+  "expected_budget_optimum": {
+    "best_added_measurement_ids": [
+      "MYCO_INORGANIC_TRACER",
+      "HOST_FUNGAL_CARBON_TRACER"
+    ],
+    "total_cost_units": 24,
+    "data_rank": 4,
+    "weighted_posterior_variance": 0.2804681964620546,
+    "information_gain_nats": 5.878835012760998,
+    "posterior_sd": [
+      0.28647677492257656,
+      0.19274282614927346,
+      0.3365453812461524,
+      0.24253562503633297
+    ]
+  },
+  "expected_pareto_frontier_added_ids": [
+    [],
+    [
+      "REPEAT_TOTAL_UPTAKE_F050"
+    ],
+    [
+      "DIRECT_ROOT_UPTAKE_TRACER"
+    ],
+    [
+      "MYCO_INORGANIC_TRACER"
+    ],
+    [
+      "MYCO_INORGANIC_TRACER",
+      "REPEAT_TOTAL_UPTAKE_F050"
+    ],
+    [
+      "MYCO_INORGANIC_TRACER",
+      "DIRECT_ROOT_UPTAKE_TRACER"
+    ],
+    [
+      "MYCO_INORGANIC_TRACER",
+      "MYCO_ORGANIC_TRACER"
+    ],
+    [
+      "MYCO_INORGANIC_TRACER",
+      "HOST_FUNGAL_CARBON_TRACER"
+    ]
+  ]
+}
