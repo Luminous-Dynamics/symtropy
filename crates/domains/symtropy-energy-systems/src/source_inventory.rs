@@ -1536,6 +1536,26 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_identity_in_same_namespace_is_rejected_at_manifest_boundary() {
+        let manifest = complete_manifest();
+        let mut records = manifest.records.clone();
+        records.push(records[0].clone());
+        let result = SourceInventoryManifest::new(
+            manifest.scope,
+            manifest.snapshot,
+            manifest.traversal,
+            manifest.pages,
+            records,
+            manifest.dispositions,
+            manifest.exclusions,
+        );
+        assert!(matches!(
+            result,
+            Err(InventoryError::DuplicateRecordIdentity { .. })
+        ));
+    }
+
+    #[test]
     fn unordered_pages_are_normalized_before_manifest_commitment() {
         let manifest = complete_manifest();
         let mut reversed_pages = manifest.pages.clone();
