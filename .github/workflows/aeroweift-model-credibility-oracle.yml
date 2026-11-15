@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/aeroweift-model-credibility/**"
       - "docs/research/aviation/AEROWEFT_MODEL_CREDIBILITY_001.md"
+      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
       - "fixtures/aeroweift-model-credibility/**"
       - ".github/workflows/aeroweift-model-credibility-oracle.yml"
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - "tools/aeroweift-model-credibility/**"
       - "docs/research/aviation/AEROWEFT_MODEL_CREDIBILITY_001.md"
+      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
       - "fixtures/aeroweift-model-credibility/**"
       - ".github/workflows/aeroweift-model-credibility-oracle.yml"
   workflow_dispatch:
