@@ -1,0 +1,751 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json",
+  "title": "Maritime fault observability and diagnosability report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "generated_at",
+    "asset",
+    "operating_domain",
+    "evidence_digests",
+    "sensor_inventory",
+    "fault_assessments",
+    "pair_assessments",
+    "sensor_loss_scenarios",
+    "metrics",
+    "authority_boundary",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "assessment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "asset_class",
+        "configuration_revision",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_class": {
+          "enum": [
+            "main_engine",
+            "auxiliary_engine",
+            "generator",
+            "propulsion_train",
+            "cooling_system",
+            "fuel_system",
+            "electrical_system",
+            "other"
+          ]
+        },
+        "vessel_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "engine_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "operating_domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regime_id",
+        "description",
+        "qualification_state"
+      ],
+      "properties": {
+        "regime_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_state": {
+          "enum": [
+            "qualified",
+            "unsupported",
+            "not_evaluated"
+          ]
+        },
+        "load_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "speed_rpm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transient_state": {
+          "enum": [
+            "steady",
+            "transient",
+            "mixed",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "evidence_digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_topology_sha256",
+        "fault_model_sha256",
+        "evaluator_sha256",
+        "dataset_sha256",
+        "split_manifest_sha256",
+        "model_sha256"
+      ],
+      "properties": {
+        "sensor_topology_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fault_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "evaluator_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "dataset_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "split_manifest_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "sensor_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sensor_id",
+          "channel_id",
+          "installed",
+          "measurement_principle",
+          "unit",
+          "source_role",
+          "quality_state",
+          "calibration_state",
+          "dependency_groups",
+          "derived_from_channel_ids",
+          "timebase_id",
+          "timestamp_uncertainty_ms",
+          "timestamp_uncertainty_source",
+          "timebase_qualification_state",
+          "timebase_qualification_sha256"
+        ],
+        "properties": {
+          "sensor_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "installed": {
+            "type": "boolean"
+          },
+          "measurement_principle": {
+            "type": "string",
+            "minLength": 1
+          },
+          "physical_location": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_role": {
+            "enum": [
+              "measured",
+              "derived",
+              "reconstructed",
+              "simulated"
+            ]
+          },
+          "quality_state": {
+            "enum": [
+              "current",
+              "missing",
+              "stale",
+              "rejected",
+              "conflicted",
+              "unknown"
+            ]
+          },
+          "calibration_state": {
+            "enum": [
+              "current",
+              "expired",
+              "unknown",
+              "not_applicable"
+            ]
+          },
+          "clock_domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "acquisition_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dependency_groups": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "derived_from_channel_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "timebase_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "timestamp_uncertainty_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "timestamp_uncertainty_source": {
+            "enum": [
+              "measured_offset_bound",
+              "instrument_specification",
+              "vendor_specification",
+              "estimated",
+              "unknown"
+            ]
+          },
+          "timebase_qualification_state": {
+            "enum": [
+              "qualified",
+              "unqualified",
+              "unknown"
+            ]
+          },
+          "timebase_qualification_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "timebase_qualification_state": {
+                  "const": "qualified"
+                }
+              },
+              "required": [
+                "timebase_qualification_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "timebase_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "timestamp_uncertainty_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "timebase_qualification_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "timebase_id",
+                "timestamp_uncertainty_ms",
+                "timebase_qualification_sha256"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "fault_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fault_id",
+          "state",
+          "ambiguity_class_id",
+          "candidate_fault_ids",
+          "signature_evidence",
+          "review_state"
+        ],
+        "properties": {
+          "fault_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "enum": [
+              "observable_and_isolable",
+              "detectable_not_isolable",
+              "ambiguity_class",
+              "unobservable",
+              "unsupported_regime",
+              "evidence_conflict",
+              "not_evaluated"
+            ]
+          },
+          "ambiguity_class_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "candidate_fault_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "signature_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "evidence_role",
+                "channel_ids"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "evidence_role": {
+                  "enum": [
+                    "measured",
+                    "derived",
+                    "simulated",
+                    "expert_authored",
+                    "reconstructed"
+                  ]
+                },
+                "channel_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          },
+          "review_state": {
+            "enum": [
+              "not_reviewed",
+              "human_review_required",
+              "independently_reviewed"
+            ]
+          }
+        }
+      }
+    },
+    "pair_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fault_a",
+          "fault_b",
+          "state",
+          "method",
+          "evidence_refs"
+        ],
+        "properties": {
+          "fault_a": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fault_b": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "enum": [
+              "isolable",
+              "non_isolable",
+              "not_evaluated"
+            ]
+          },
+          "method": {
+            "enum": [
+              "structural",
+              "statistical",
+              "physics_model",
+              "expert_review",
+              "mixed"
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "evidence_role",
+                "channel_ids"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "evidence_role": {
+                  "enum": [
+                    "measured",
+                    "derived",
+                    "simulated",
+                    "expert_authored",
+                    "reconstructed"
+                  ]
+                },
+                "channel_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "sensor_loss_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "removed_sensor_ids",
+          "removed_dependency_groups",
+          "assessment_state",
+          "lost_isolability_pairs"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "removed_sensor_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "removed_dependency_groups": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "assessment_state": {
+            "enum": [
+              "recomputed",
+              "not_evaluated"
+            ]
+          },
+          "lost_isolability_pairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fault_a",
+                "fault_b"
+              ],
+              "properties": {
+                "fault_a": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fault_b": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "value",
+          "unit",
+          "stratum",
+          "sample_count"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stratum": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "lower_bound": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "upper_bound": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read_only",
+        "actuation",
+        "maintenance_authorization",
+        "mode_transition_authorization",
+        "restriction_clearance"
+      ],
+      "properties": {
+        "read_only": {
+          "const": true
+        },
+        "actuation": {
+          "const": false
+        },
+        "maintenance_authorization": {
+          "const": false
+        },
+        "mode_transition_authorization": {
+          "const": false
+        },
+        "restriction_clearance": {
+          "const": false
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "evidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256",
+        "evidence_role",
+        "channel_ids"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "evidence_role": {
+          "enum": [
+            "measured",
+            "derived",
+            "simulated",
+            "expert_authored",
+            "reconstructed"
+          ]
+        },
+        "channel_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "faultPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_a",
+        "fault_b"
+      ],
+      "properties": {
+        "fault_a": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_b": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

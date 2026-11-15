@@ -1,0 +1,299 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "MARITIME-VALIDATION-EVIDENCE-PROFILES-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "profiles": [
+    {
+      "profile_id": "A0-window-random-split",
+      "physical_independence": {
+        "declared_level": "A0",
+        "partition_unit": "window"
+      },
+      "domain_shift": {
+        "declared_level": "B0"
+      },
+      "target_domain_access": "NONE",
+      "unit_records": [
+        {
+          "unit_id": "window-1",
+          "partition": "DEVELOPMENT",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        {
+          "unit_id": "window-2",
+          "partition": "EVALUATION",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      ],
+      "leakage_audit": {
+        "grouping_before_segmentation": false,
+        "overlapping_samples_across_partitions": true,
+        "preprocessing_fit_scope": "ALL_DATA",
+        "model_selection_data": "TEST_USED",
+        "evaluation_used_for_thresholds": true,
+        "documented_concerns": [
+          "Random windows from one acquisition"
+        ],
+        "split_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+    },
+    {
+      "profile_id": "A1-recording-holdout-operating-shift",
+      "physical_independence": {
+        "declared_level": "A1",
+        "partition_unit": "recording"
+      },
+      "domain_shift": {
+        "declared_level": "B1"
+      },
+      "target_domain_access": "NONE",
+      "unit_records": [
+        {
+          "unit_id": "recording-1",
+          "partition": "DEVELOPMENT",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "unit_id": "recording-2",
+          "partition": "EVALUATION",
+          "recording_id": "recording-2",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ],
+      "leakage_audit": {
+        "grouping_before_segmentation": true,
+        "overlapping_samples_across_partitions": false,
+        "preprocessing_fit_scope": "TRAIN_ONLY",
+        "model_selection_data": "VALIDATION_ONLY",
+        "evaluation_used_for_thresholds": false,
+        "documented_concerns": [],
+        "split_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+    },
+    {
+      "profile_id": "A2-component-holdout-sensor-shift-adapted",
+      "physical_independence": {
+        "declared_level": "A2",
+        "partition_unit": "component"
+      },
+      "domain_shift": {
+        "declared_level": "B2"
+      },
+      "target_domain_access": "UNLABELED_ADAPTATION",
+      "unit_records": [
+        {
+          "unit_id": "component-1",
+          "partition": "DEVELOPMENT",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+        },
+        {
+          "unit_id": "component-2",
+          "partition": "EVALUATION",
+          "recording_id": "recording-2",
+          "component_id": "component-2",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      ],
+      "leakage_audit": {
+        "grouping_before_segmentation": true,
+        "overlapping_samples_across_partitions": false,
+        "preprocessing_fit_scope": "TRAIN_ONLY",
+        "model_selection_data": "VALIDATION_ONLY",
+        "evaluation_used_for_thresholds": false,
+        "documented_concerns": [],
+        "split_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+    },
+    {
+      "profile_id": "A3-machine-holdout-with-concern",
+      "physical_independence": {
+        "declared_level": "A3",
+        "partition_unit": "machine"
+      },
+      "domain_shift": {
+        "declared_level": "B3"
+      },
+      "target_domain_access": "LABELED_ADAPTATION",
+      "unit_records": [
+        {
+          "unit_id": "machine-1",
+          "partition": "DEVELOPMENT",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+        },
+        {
+          "unit_id": "machine-2",
+          "partition": "EVALUATION",
+          "recording_id": "recording-2",
+          "component_id": "component-2",
+          "machine_id": "machine-2",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-2",
+          "artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+        }
+      ],
+      "leakage_audit": {
+        "grouping_before_segmentation": true,
+        "overlapping_samples_across_partitions": false,
+        "preprocessing_fit_scope": "TRAIN_PLUS_VALIDATION",
+        "model_selection_data": "VALIDATION_ONLY",
+        "evaluation_used_for_thresholds": false,
+        "documented_concerns": [
+          "Validation normalization used a commissioning statistic"
+        ],
+        "split_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+    },
+    {
+      "profile_id": "A4-site-holdout",
+      "physical_independence": {
+        "declared_level": "A4",
+        "partition_unit": "site"
+      },
+      "domain_shift": {
+        "declared_level": "B4"
+      },
+      "target_domain_access": "NONE",
+      "unit_records": [
+        {
+          "unit_id": "site-1",
+          "partition": "DEVELOPMENT",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        {
+          "unit_id": "site-2",
+          "partition": "EVALUATION",
+          "recording_id": "recording-2",
+          "component_id": "component-2",
+          "machine_id": "machine-2",
+          "site_id": "site-2",
+          "operating_condition_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "sensor_configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "test_rig_id": "rig-2",
+          "artifact_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "leakage_audit": {
+        "grouping_before_segmentation": true,
+        "overlapping_samples_across_partitions": false,
+        "preprocessing_fit_scope": "TRAIN_ONLY",
+        "model_selection_data": "VALIDATION_ONLY",
+        "evaluation_used_for_thresholds": false,
+        "documented_concerns": [],
+        "split_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+    },
+    {
+      "profile_id": "A1-incomplete-reporting",
+      "physical_independence": {
+        "declared_level": "A1",
+        "partition_unit": "recording"
+      },
+      "domain_shift": {
+        "declared_level": "B0"
+      },
+      "target_domain_access": "UNCLEAR",
+      "unit_records": [
+        {
+          "unit_id": "recording-1",
+          "partition": "DEVELOPMENT",
+          "recording_id": "recording-1",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "unit_id": "recording-2",
+          "partition": "EVALUATION",
+          "recording_id": "recording-2",
+          "component_id": "component-1",
+          "machine_id": "machine-1",
+          "site_id": "site-1",
+          "operating_condition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sensor_configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "test_rig_id": "rig-1",
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "leakage_audit": {
+        "grouping_before_segmentation": true,
+        "overlapping_samples_across_partitions": false,
+        "preprocessing_fit_scope": "UNKNOWN",
+        "model_selection_data": "UNKNOWN",
+        "evaluation_used_for_thresholds": false,
+        "documented_concerns": [],
+        "split_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "mutation_performed": false,
+    "authorization_granted": false
+  },
+  "claim_ceiling": "Synthetic validation-evidence profile only. It does not verify source artifact payloads, physical asset identity, acquisition independence, deployment performance, class approval, maintenance authority or permission to operate."
+}

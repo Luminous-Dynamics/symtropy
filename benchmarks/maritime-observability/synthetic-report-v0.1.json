@@ -1,0 +1,315 @@
+{
+  "schema_version": "0.1.0",
+  "assessment_id": "SYNTHETIC-MARITIME-OBSERVABILITY-001",
+  "generated_at": "2026-11-11T08:00:00Z",
+  "asset": {
+    "asset_id": "synthetic-main-engine-01",
+    "asset_class": "main_engine",
+    "vessel_id": "synthetic-vessel-01",
+    "engine_id": "engine-01",
+    "configuration_revision": "cfg-r3",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "operating_domain": {
+    "regime_id": "steady-load-50",
+    "description": "Synthetic steady-state 50% load conformance fixture",
+    "qualification_state": "qualified",
+    "load_percent": 50,
+    "speed_rpm": 600,
+    "transient_state": "steady"
+  },
+  "evidence_digests": {
+    "sensor_topology_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "fault_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "evaluator_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "dataset_sha256": null,
+    "split_manifest_sha256": null,
+    "model_sha256": null
+  },
+  "sensor_inventory": [
+    {
+      "sensor_id": "sensor-pressure-01",
+      "channel_id": "injection-pressure",
+      "installed": true,
+      "measurement_principle": "pressure-transducer",
+      "physical_location": "synthetic injection rail",
+      "unit": "bar",
+      "source_role": "measured",
+      "quality_state": "current",
+      "calibration_state": "current",
+      "clock_domain": "daq-a",
+      "acquisition_path": "gateway-a/input-01",
+      "dependency_groups": [
+        "pressure-power",
+        "gateway-a"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timestamp_uncertainty_ms": 0.8,
+      "timestamp_uncertainty_source": "measured_offset_bound",
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "sensor_id": "sensor-speed-01",
+      "channel_id": "shaft-speed",
+      "installed": true,
+      "measurement_principle": "magnetic-pickup",
+      "physical_location": "synthetic flywheel",
+      "unit": "rpm",
+      "source_role": "measured",
+      "quality_state": "current",
+      "calibration_state": "current",
+      "clock_domain": "daq-b",
+      "acquisition_path": "gateway-b/counter-02",
+      "dependency_groups": [
+        "tachometer-power",
+        "gateway-b"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timestamp_uncertainty_ms": 1.2,
+      "timestamp_uncertainty_source": "measured_offset_bound",
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "sensor_id": "sensor-rack-feedback-01",
+      "channel_id": "rack-position-feedback",
+      "installed": true,
+      "measurement_principle": "linear-position-transducer",
+      "physical_location": "synthetic injection rack",
+      "unit": "percent",
+      "source_role": "measured",
+      "quality_state": "current",
+      "calibration_state": "current",
+      "clock_domain": "controller-clock",
+      "acquisition_path": "controller-gateway/feedback-register",
+      "dependency_groups": [
+        "controller-gateway",
+        "rack-feedback-power"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timestamp_uncertainty_ms": 2,
+      "timestamp_uncertainty_source": "instrument_specification",
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "sensor_id": "sensor-command-01",
+      "channel_id": "fuel-command",
+      "installed": true,
+      "measurement_principle": "controller-register",
+      "physical_location": null,
+      "unit": "percent",
+      "source_role": "measured",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "clock_domain": "controller-clock",
+      "acquisition_path": "controller-gateway/register-17",
+      "dependency_groups": [
+        "controller-gateway"
+      ],
+      "derived_from_channel_ids": [],
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timestamp_uncertainty_ms": 2,
+      "timestamp_uncertainty_source": "instrument_specification",
+      "timebase_qualification_state": "qualified",
+      "timebase_qualification_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "sensor_id": "derived-fuel-flow-01",
+      "channel_id": "fuel-flow",
+      "installed": true,
+      "measurement_principle": "derived-model",
+      "physical_location": null,
+      "unit": "kg/h",
+      "source_role": "derived",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "clock_domain": "derived-clock",
+      "acquisition_path": "edge-transform/v2",
+      "dependency_groups": [
+        "derived-pipeline-v2"
+      ],
+      "derived_from_channel_ids": [
+        "fuel-command",
+        "rack-position-feedback"
+      ],
+      "timebase_id": "engine-run-common-timebase-v1",
+      "timestamp_uncertainty_ms": 2.5,
+      "timestamp_uncertainty_source": "estimated",
+      "timebase_qualification_state": "unknown",
+      "timebase_qualification_sha256": null
+    },
+    {
+      "sensor_id": "derived-load-estimate-01",
+      "channel_id": "inferred-load",
+      "installed": true,
+      "measurement_principle": "derived-model",
+      "physical_location": null,
+      "unit": "percent",
+      "source_role": "derived",
+      "quality_state": "current",
+      "calibration_state": "not_applicable",
+      "clock_domain": "derived-clock",
+      "acquisition_path": "edge-transform/v3",
+      "dependency_groups": [
+        "derived-pipeline-v3"
+      ],
+      "derived_from_channel_ids": [
+        "fuel-command",
+        "shaft-speed"
+      ],
+      "timebase_id": null,
+      "timestamp_uncertainty_ms": null,
+      "timestamp_uncertainty_source": "unknown",
+      "timebase_qualification_state": "unknown",
+      "timebase_qualification_sha256": null
+    }
+  ],
+  "fault_assessments": [
+    {
+      "fault_id": "fuel-delivery-restriction",
+      "state": "detectable_not_isolable",
+      "ambiguity_class_id": "fuel-delivery-ambiguity",
+      "candidate_fault_ids": [
+        "fuel-delivery-restriction",
+        "injector-degradation"
+      ],
+      "signature_evidence": [
+        {
+          "artifact_id": "synthetic-signature-01",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "evidence_role": "measured",
+          "channel_ids": [
+            "injection-pressure",
+            "shaft-speed"
+          ]
+        }
+      ],
+      "review_state": "human_review_required"
+    },
+    {
+      "fault_id": "injector-degradation",
+      "state": "ambiguity_class",
+      "ambiguity_class_id": "fuel-delivery-ambiguity",
+      "candidate_fault_ids": [
+        "fuel-delivery-restriction",
+        "injector-degradation"
+      ],
+      "signature_evidence": [
+        {
+          "artifact_id": "synthetic-signature-02",
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "evidence_role": "simulated",
+          "channel_ids": [
+            "fuel-flow"
+          ]
+        }
+      ],
+      "review_state": "not_reviewed"
+    },
+    {
+      "fault_id": "sensor-bias",
+      "state": "not_evaluated",
+      "ambiguity_class_id": null,
+      "candidate_fault_ids": [],
+      "signature_evidence": [],
+      "review_state": "not_reviewed"
+    }
+  ],
+  "pair_assessments": [
+    {
+      "pair_id": "fuel-restriction-vs-injector-degradation",
+      "fault_a": "fuel-delivery-restriction",
+      "fault_b": "injector-degradation",
+      "state": "isolable",
+      "method": "statistical",
+      "evidence_refs": [
+        {
+          "artifact_id": "synthetic-pair-01",
+          "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "evidence_role": "measured",
+          "channel_ids": [
+            "injection-pressure",
+            "shaft-speed"
+          ]
+        }
+      ]
+    },
+    {
+      "pair_id": "fuel-delivery-vs-sensor-bias",
+      "fault_a": "fuel-delivery-restriction",
+      "fault_b": "sensor-bias",
+      "state": "non_isolable",
+      "method": "mixed",
+      "evidence_refs": [
+        {
+          "artifact_id": "synthetic-pair-02",
+          "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "evidence_role": "measured",
+          "channel_ids": [
+            "inferred-load",
+            "fuel-command"
+          ]
+        }
+      ]
+    },
+    {
+      "pair_id": "injector-degradation-vs-sensor-bias",
+      "fault_a": "injector-degradation",
+      "fault_b": "sensor-bias",
+      "state": "not_evaluated",
+      "method": "expert_review",
+      "evidence_refs": [
+        {
+          "artifact_id": "synthetic-pair-03",
+          "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "evidence_role": "measured",
+          "channel_ids": [
+            "rack-position-feedback"
+          ]
+        }
+      ]
+    }
+  ],
+  "sensor_loss_scenarios": [
+    {
+      "scenario_id": "loss-of-speed-measurement",
+      "removed_sensor_ids": [
+        "sensor-speed-01"
+      ],
+      "removed_dependency_groups": [
+        "tachometer-power"
+      ],
+      "assessment_state": "recomputed",
+      "lost_isolability_pairs": [
+        {
+          "fault_a": "fuel-delivery-restriction",
+          "fault_b": "injector-degradation"
+        }
+      ]
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "synthetic-pair-coverage",
+      "value": 0.67,
+      "unit": "fraction",
+      "stratum": "steady-load-50",
+      "sample_count": 3,
+      "lower_bound": 0.2,
+      "upper_bound": 0.95
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition_authorization": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic evidence-admission fixture only. It does not establish real sensor installation, calibration, clock synchronization, fault separability, physical diagnosability, machinery health, seaworthiness or permission to operate."
+}

@@ -11774,3 +11774,21 @@ checksum = "27bc9d5b815bc103f142aa054f561d9187d191692ec7c2d1e2b4737f8dbd7296"
 dependencies = [
  "zune-core",
 ]
+
+
+[[package]]
+name = "maritime-observability-evidence-validator"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "symtropy-sensor-observability-bench",
+ "sha2",
+]
+
+[[package]]
+name = "symtropy-sensor-observability-bench"
+version = "0.1.0"
+source = "git+https://github.com/Luminous-Dynamics/symtropy?rev=3c4a86de830a24bbf97c7d7fe30d79de299999c5#3c4a86de830a24bbf97c7d7fe30d79de299999c5"
+dependencies = [
+ "serde_json",
+]
