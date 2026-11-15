@@ -199,7 +199,13 @@ fn module_failures(module: &Module, route: &ProductRoute, operation: Operation, 
         }
     }
     if module.calibration_required {
-        let status = scenario.gate_status(module, Gate::Calibration);
+        // A scenario may stale or invalidate an existing calibration record,
+        // but it cannot create a missing declaration.
+        let status = if module.calibration.is_none() {
+            None
+        } else {
+            scenario.gate_status(module, Gate::Calibration)
+        };
         if status != Some(GateStatus::Current) {
             failures.push(ModuleFailure::GateNotCurrent { gate: Gate::Calibration, status });
         }
@@ -606,9 +612,14 @@ mod tests {
     fn missing_required_calibration_declaration_fails_closed() {
         let mut architecture = reference_architectures().remove(0);
         let route = reference_routes().remove(0);
-        let scenario = reference_scenarios().remove(0);
+        let mut scenario = reference_scenarios().remove(0);
         let cmm = architecture.modules.iter_mut().find(|module| module.id == "DL-CMM").unwrap();
         cmm.calibration = None;
+        scenario.gate_overrides.push(GateOverride {
+            role: ModuleRole::Metrology,
+            gate: Gate::Calibration,
+            status: GateStatus::Current,
+        });
         let result = evaluate(&architecture, &route, &scenario);
         assert_eq!(result.disposition, Disposition::Blocked);
         let blocked = result.blocked_operations.iter().find(|operation| operation.operation_id == "DIMENSIONAL_METROLOGY").unwrap();
