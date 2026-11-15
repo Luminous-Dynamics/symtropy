@@ -1,0 +1,191 @@
+{
+  "schema_version": "construction-motion-oracle/0.1",
+  "units": "mm",
+  "cases": [
+    {
+      "case_id": "LINE-THIN-BARRIER-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "waypoint_only",
+      "expected_analytic_collision": true,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": true,
+      "purpose": "Thin stationary obstacle crossed between otherwise clear endpoints.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 5
+    },
+    {
+      "case_id": "ARC-CHORD-MISS-001",
+      "path_family": "upper_semicircle",
+      "baseline_profile": "chord_ccd",
+      "expected_analytic_collision": true,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "Semicircle hits an obstacle at its apex while its endpoint diameter chord does not.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 1000,
+        "z": 0
+      },
+      "moving_radius_mm": 20,
+      "obstacle_radius_mm": 20
+    },
+    {
+      "case_id": "ARC-AABB-FALSE-POSITIVE-001",
+      "path_family": "upper_semicircle",
+      "baseline_profile": "envelope_broad_phase",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "Obstacle near the outer AABB corner creates a conservative candidate without true contact.",
+      "obstacle_center_mm": {
+        "x": 1015,
+        "y": 1015,
+        "z": 0
+      },
+      "moving_radius_mm": 20,
+      "obstacle_radius_mm": 10
+    },
+    {
+      "case_id": "LINE-TANGENCY-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "chord_ccd",
+      "expected_analytic_collision": true,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": true,
+      "purpose": "Exact sphere tangency in the segment interior is contact.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 15,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 5
+    },
+    {
+      "case_id": "LINE-NEAR-MISS-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "chord_ccd",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "A near miss remains clear under the exact sphere-segment oracle.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 16,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 5
+    },
+    {
+      "case_id": "ARC-NEAR-CHORD-001",
+      "path_family": "upper_semicircle",
+      "baseline_profile": "chord_ccd",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "An obstacle near the diameter chord but far from the arc remains non-contact.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": -100,
+        "z": 0
+      },
+      "moving_radius_mm": 20,
+      "obstacle_radius_mm": 20
+    },
+    {
+      "case_id": "PAYLOAD-RADIUS-CHANGE-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "envelope_broad_phase",
+      "expected_analytic_collision": true,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": true,
+      "purpose": "Increasing payload/tool bounding radius changes collision truth without changing the centerline.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 35,
+        "z": 0
+      },
+      "moving_radius_mm": 30,
+      "obstacle_radius_mm": 10
+    },
+    {
+      "case_id": "UNCERTAINTY-CREATE-CONFLICT-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "envelope_broad_phase",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "Nominal physical path is clear while an uncertainty-inflated coordination envelope overlaps.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 80,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 10
+    },
+    {
+      "case_id": "STOPPING-ONLY-CONFLICT-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "envelope_broad_phase",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "Stopping reachability creates coordination overlap without physical contact.",
+      "obstacle_center_mm": {
+        "x": -450,
+        "y": 0,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 10
+    },
+    {
+      "case_id": "POLICY-ONLY-CONFLICT-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "envelope_broad_phase",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "Project policy clearance creates a coordination conflict distinct from physical collision.",
+      "obstacle_center_mm": {
+        "x": -250,
+        "y": 0,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 10
+    },
+    {
+      "case_id": "FRAME-ROTATION-INVARIANCE-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "chord_ccd",
+      "expected_analytic_collision": true,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": true,
+      "purpose": "A rigid transform applied consistently to path and obstacle preserves collision truth.",
+      "obstacle_center_mm": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "moving_radius_mm": 10,
+      "obstacle_radius_mm": 5
+    },
+    {
+      "case_id": "MISSING-PRIMITIVE-NEGATIVE-001",
+      "path_family": "linear_segment",
+      "baseline_profile": "envelope_broad_phase",
+      "expected_analytic_collision": false,
+      "expected_endpoint_collision": false,
+      "expected_chord_collision": false,
+      "purpose": "A link/tool/payload omitted from the expected manifest is rejected before geometry is scored."
+    }
+  ]
+}

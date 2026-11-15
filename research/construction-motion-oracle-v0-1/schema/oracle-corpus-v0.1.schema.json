@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-motion-oracle-corpus-v0.1.json",
+  "title": "Construction Motion Analytic Oracle Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "units",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-motion-oracle/0.1"
+    },
+    "units": {
+      "const": "mm"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "path_family",
+          "baseline_profile",
+          "expected_analytic_collision",
+          "expected_endpoint_collision",
+          "expected_chord_collision",
+          "purpose"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path_family": {
+            "enum": [
+              "linear_segment",
+              "upper_semicircle"
+            ]
+          },
+          "baseline_profile": {
+            "enum": [
+              "waypoint_only",
+              "chord_ccd",
+              "envelope_broad_phase"
+            ]
+          },
+          "expected_analytic_collision": {
+            "type": "boolean"
+          },
+          "expected_endpoint_collision": {
+            "type": "boolean"
+          },
+          "expected_chord_collision": {
+            "type": "boolean"
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "obstacle_center_mm": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y",
+              "z"
+            ],
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            }
+          },
+          "moving_radius_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "obstacle_radius_mm": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    }
+  }
+}
