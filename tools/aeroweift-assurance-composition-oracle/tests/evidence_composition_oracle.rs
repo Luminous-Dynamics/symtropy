@@ -1,7 +1,7 @@
 use aeroweift_assurance_composition_oracle::{
-    compose, ClassOccupancy, CompositionInput, Decision, EvidenceIdentity, IdentityOwner,
-    IntentDisposition, OccupancyInterpretation, PntDisposition, ReachabilityDisposition, Reason,
-    SurveillanceDisposition, SurveillanceEvidence, TrafficClass,
+    ClassOccupancy, CompositionInput, Decision, EvidenceIdentity, IdentityOwner, IntentDisposition,
+    OccupancyInterpretation, PntDisposition, ReachabilityDisposition, Reason,
+    SurveillanceDisposition, SurveillanceEvidence, TrafficClass, compose,
 };
 
 const IDENTITY: EvidenceIdentity = EvidenceIdentity {
@@ -641,10 +641,7 @@ fn profile_owned_required_class_set_cannot_be_empty() {
     let mut input = valid_input();
     input.profile_required_traffic_classes.clear();
     let result = compose(&input);
-    assert_eq!(
-        result.reason,
-        Some(Reason::NoProfileRequiredTrafficClasses)
-    );
+    assert_eq!(result.reason, Some(Reason::NoProfileRequiredTrafficClasses));
 }
 
 #[test]
