@@ -137,7 +137,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-1-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-1-1"
         }
       ],
       "expected": {
@@ -235,7 +237,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-2-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-2-1"
         }
       ],
       "expected": {
@@ -333,7 +337,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-3-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-3-1"
         }
       ],
       "expected": {
@@ -431,7 +437,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-4-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-4-1"
         },
         {
           "observation_id": "o-in",
@@ -463,7 +471,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-4-2",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-4-2"
         }
       ],
       "expected": {
@@ -561,7 +571,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-5-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-5-1"
         },
         {
           "observation_id": "o-in-long",
@@ -593,7 +605,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-5-2",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-5-2"
         }
       ],
       "expected": {
@@ -691,7 +705,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-6-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-6-1"
         }
       ],
       "expected": {
@@ -790,7 +806,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-7-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-7-1"
         }
       ],
       "expected": {
@@ -889,7 +907,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-8-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-8-1"
         }
       ],
       "expected": {
@@ -988,7 +1008,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-9-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-9-1"
         }
       ],
       "expected": {
@@ -1082,7 +1104,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-10-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-10-1"
         }
       ],
       "expected": {
@@ -1167,7 +1191,11 @@
             50,
             60
           ]
-        }
+        },
+        "issuer_reference": "synthetic-restriction-authority",
+        "snapshot_revision": 1,
+        "restriction_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "observations": [
         {
@@ -1200,7 +1228,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-11-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-11-1"
         }
       ],
       "expected": {
@@ -1285,7 +1315,11 @@
             50,
             60
           ]
-        }
+        },
+        "issuer_reference": "synthetic-restriction-authority",
+        "snapshot_revision": 2,
+        "restriction_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "observations": [
         {
@@ -1318,7 +1352,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-12-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-12-1"
         }
       ],
       "expected": {
@@ -1416,7 +1452,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-13-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-13-1"
         }
       ],
       "expected": {
@@ -1514,7 +1552,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-14-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-14-1"
         },
         {
           "observation_id": "o-first",
@@ -1546,7 +1586,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-14-2",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-14-2"
         }
       ],
       "expected": {
@@ -1644,7 +1686,9 @@
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
           "vertical_datum_id": "SYNTHETIC-UP-01",
-          "time_scale_id": "SYNTHETIC-TIME"
+          "time_scale_id": "SYNTHETIC-TIME",
+          "pnt_qualification_reference": "synthetic-pnt-qualification-15-1",
+          "surveillance_qualification_reference": "synthetic-surveillance-qualification-15-1"
         }
       ],
       "expected": {
@@ -1671,7 +1715,10 @@
     "An effective dynamic restriction intersecting the intent requires reauthorization/revalidation.",
     "A non-intersecting dynamic restriction does not invalidate an otherwise valid authorization.",
     "The deviation exposure fraction is supplied by the profile; the oracle does not hard-code a universal 5 percent threshold.",
-    "No status authorizes flight, provides tactical advice or controls an aircraft."
+    "No status authorizes flight, provides tactical advice or controls an aircraft.",
+    "A qualified PNT/time flag without its exact upstream qualification receipt identity is not sufficient for admission.",
+    "A qualified surveillance flag without its exact upstream qualification receipt identity is not sufficient for admission.",
+    "A dynamic restriction binds issuing authority, snapshot revision, artifact digest and time-scale identity."
   ],
   "required_mutations": [
     "Widen a position interval until it straddles the allowed boundary; it cannot remain definitely inside.",
@@ -1681,6 +1728,10 @@
     "Move a dynamic restriction from intersecting to non-intersecting geometry; only reauthorization status may clear.",
     "Permute non-overlapping observation windows; aggregate conformance result and durations remain identical.",
     "Create overlapping support windows; reject rather than double-count duration.",
-    "Move a support window start to the authorized half-open time end; it becomes outside when no temporal deviation margin exists."
+    "Move a support window start to the authorized half-open time end; it becomes outside when no temporal deviation margin exists.",
+    "Remove the PNT qualification receipt reference while preserving the PNT-qualified flag; the observation becomes not-assessable.",
+    "Remove the surveillance qualification receipt reference while preserving the surveillance-qualified flag; the observation becomes not-assessable.",
+    "Remove the dynamic restriction issuer, revision or digest; the restriction snapshot is not admitted.",
+    "Change the dynamic restriction time-scale identity; the restriction snapshot is not compared."
   ]
 }
