@@ -284,12 +284,7 @@ mod tests {
             (p(12.0, 0.0, 0.0), p(18.0, 0.0, 0.0)),
             (p(-8.0, 0.0, 0.0), p(-2.0, 0.0, 0.0)),
         ] {
-            let separated = closest_segment_approach(
-                p(0.0, 0.0, 0.0),
-                p(10.0, 0.0, 0.0),
-                q0,
-                q1,
-            );
+            let separated = closest_segment_approach(p(0.0, 0.0, 0.0), p(10.0, 0.0, 0.0), q0, q1);
             assert!((separated.distance_mm - 2.0).abs() < 1.0e-9);
         }
     }
