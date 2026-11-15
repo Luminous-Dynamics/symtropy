@@ -52,6 +52,8 @@ impl WorkPackageBinding {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ApprovedSubstitution {
+    pub project_id: String,
+    pub requirement_revision_digest: String,
     pub material_class_id: String,
     pub grade_id: String,
     pub approval_ref: String,
@@ -88,6 +90,11 @@ impl MaterialRequirement {
         }
         let mut substitutions = BTreeSet::new();
         for substitute in &self.approved_substitutions {
+            require_non_empty("substitution_project_id", &substitute.project_id)?;
+            require_non_empty(
+                "substitution_requirement_revision_digest",
+                &substitute.requirement_revision_digest,
+            )?;
             require_non_empty("substitute_material_class_id", &substitute.material_class_id)?;
             require_non_empty("substitute_grade_id", &substitute.grade_id)?;
             require_non_empty("substitution_approval_ref", &substitute.approval_ref)?;
@@ -248,9 +255,7 @@ pub enum ReadinessDisposition {
 pub enum BlockerCode {
     MissingAllocation,
     MissingLotProjection,
-    DuplicateAllocation,
     InvalidAllocationQuantity,
-    QuantityOverflow,
     InsufficientReservedQuantity,
     ExcessAllocation,
     MaterialClassMismatch,
@@ -322,6 +327,9 @@ pub enum ReadinessError {
     DuplicateRequirementLine(String),
     DuplicateLotProjection(String),
     DuplicateApprovedSubstitution(String),
+    DuplicateAllocation(String),
+    UnknownAllocationLine(String),
+    QuantityOverflow(String),
 }
 
 pub fn assess_material_kit(
@@ -365,19 +373,22 @@ pub fn assess_material_kit(
             return Err(ReadinessError::EmptyField("allocation_quantity_milli"));
         }
         if !requirement_by_id.contains_key(allocation.line_id.as_str()) {
-            return Err(ReadinessError::EmptyField("allocation_unknown_line"));
-        }
-        if !unique_allocations.insert((allocation.line_id.as_str(), allocation.lot_id.as_str())) {
-            return Err(ReadinessError::DuplicateRequirementLine(
+            return Err(ReadinessError::UnknownAllocationLine(
                 allocation.line_id.clone(),
             ));
+        }
+        if !unique_allocations.insert((allocation.line_id.as_str(), allocation.lot_id.as_str())) {
+            return Err(ReadinessError::DuplicateAllocation(format!(
+                "{}:{}",
+                allocation.line_id, allocation.lot_id
+            )));
         }
         let total = used_quantity_by_lot
             .get(allocation.lot_id.as_str())
             .copied()
             .unwrap_or(0)
             .checked_add(allocation.quantity_milli)
-            .ok_or(ReadinessError::EmptyField("allocation_quantity_overflow"))?;
+            .ok_or_else(|| ReadinessError::QuantityOverflow(allocation.lot_id.clone()))?;
         used_quantity_by_lot.insert(allocation.lot_id.as_str(), total);
         allocations_by_line
             .entry(allocation.line_id.as_str())
@@ -412,7 +423,7 @@ pub fn assess_material_kit(
         for allocation in allocations {
             allocated_quantity = allocated_quantity
                 .checked_add(allocation.quantity_milli)
-                .ok_or(ReadinessError::EmptyField("line_quantity_overflow"))?;
+                .ok_or_else(|| ReadinessError::QuantityOverflow(requirement.line_id.clone()))?;
 
             let Some(lot) = lots_by_id.get(allocation.lot_id.as_str()).copied() else {
                 push_blocker(
@@ -462,7 +473,7 @@ pub fn assess_material_kit(
         let permitted_total = requirement
             .required_quantity_milli
             .checked_add(requirement.allowed_overage_milli)
-            .ok_or(ReadinessError::EmptyField("requirement_quantity_overflow"))?;
+            .ok_or_else(|| ReadinessError::QuantityOverflow(requirement.line_id.clone()))?;
         if allocated_quantity > permitted_total {
             push_blocker(
                 &mut blockers,
@@ -560,9 +571,13 @@ fn assess_material_compatibility(
         });
         match approved {
             Some(substitute)
-                if substitute.design_revision_digest == binding.design_revision_digest =>
+                if substitute.project_id == binding.project_id
+                    && substitute.requirement_revision_digest
+                        == binding.requirement_revision_digest
+                    && substitute.design_revision_digest == binding.design_revision_digest =>
             {
-                // An explicit, revision-bound approval exists; source evidence is still required.
+                // An explicit, project/spec/design-bound approval exists; source evidence is
+                // still required independently.
             }
             Some(_) => push_blocker(
                 blockers,
@@ -1226,6 +1241,8 @@ mod tests {
     fn exact_revision_approved_substitute_can_be_eligible() {
         let mut req = requirement();
         req.approved_substitutions.push(ApprovedSubstitution {
+            project_id: "project-01".to_owned(),
+            requirement_revision_digest: "material-spec-r4".to_owned(),
             material_class_id: "approved-rebar-alt".to_owned(),
             grade_id: "500A".to_owned(),
             approval_ref: "design-decision:substitution-22".to_owned(),
@@ -1245,9 +1262,60 @@ mod tests {
     }
 
     #[test]
+    fn substitution_approval_must_match_project_and_requirement_revision() {
+        let mut req = requirement();
+        req.approved_substitutions.push(ApprovedSubstitution {
+            project_id: "other-project".to_owned(),
+            requirement_revision_digest: "material-spec-r4".to_owned(),
+            material_class_id: "approved-rebar-alt".to_owned(),
+            grade_id: "500A".to_owned(),
+            approval_ref: "design-decision:substitution-22".to_owned(),
+            authority_ref: "engineer:approval-01".to_owned(),
+            design_revision_digest: "design-r7".to_owned(),
+        });
+        let mut item = lot();
+        item.material_class_id = "approved-rebar-alt".to_owned();
+        item.grade_id = "500A".to_owned();
+
+        let result = assess_material_kit(
+            &kit(vec![req], vec![allocation("rebar-grade-500", "lot-a", 1_000_000)]),
+            &[item],
+            5_000,
+        )
+        .expect("assessment");
+        assert_eq!(
+            result.disposition,
+            ReadinessDisposition::SubstitutionApprovalRequired
+        );
+    }
+
+    #[test]
+    fn duplicate_lot_line_allocation_identity_is_rejected() {
+        let result = assess_material_kit(
+            &kit(
+                vec![requirement()],
+                vec![
+                    allocation("rebar-grade-500", "lot-a", 500_000),
+                    allocation("rebar-grade-500", "lot-a", 500_000),
+                ],
+            ),
+            &[lot()],
+            5_000,
+        );
+        assert_eq!(
+            result,
+            Err(ReadinessError::DuplicateAllocation(
+                "rebar-grade-500:lot-a".to_owned()
+            ))
+        );
+    }
+
+    #[test]
     fn substitute_approval_for_old_design_revision_is_not_current() {
         let mut req = requirement();
         req.approved_substitutions.push(ApprovedSubstitution {
+            project_id: "project-01".to_owned(),
+            requirement_revision_digest: "material-spec-r4".to_owned(),
             material_class_id: "approved-rebar-alt".to_owned(),
             grade_id: "500A".to_owned(),
             approval_ref: "design-decision:substitution-old".to_owned(),
