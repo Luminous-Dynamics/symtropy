@@ -106,5 +106,7 @@ jobs:
     - name: Run Tests
       run: cargo test --manifest-path tools/factory-matched-routes/Cargo.toml --all-targets
 
-    - name: Emit Synthetic Route Matrix
-      run: cargo run --manifest-path tools/factory-matched-routes/Cargo.toml --bin route-matrix
+    - name: Emit and Verify Synthetic Route Matrix
+      run: |
+        cargo run --quiet --manifest-path tools/factory-matched-routes/Cargo.toml --bin route-matrix | tee /tmp/factory-route-matrix.tsv
+        test "$(wc -l < /tmp/factory-route-matrix.tsv)" -eq 57
