@@ -145,7 +145,7 @@ fn exact_rank(matrix: &[Vec<i64>], column_count: usize) -> Result<usize, String>
                 row.len()
             ));
         }
-        if row.iter().any(|value| value.abs() > MAX_ABSOLUTE_COEFFICIENT) {
+        if row.iter().any(|value| *value < -MAX_ABSOLUTE_COEFFICIENT || *value > MAX_ABSOLUTE_COEFFICIENT) {
             return Err(format!(
                 "matrix row {row_index} contains a coefficient outside the supported range"
             ));
