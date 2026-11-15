@@ -264,10 +264,11 @@ fn compute_service_continuity(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let currency = text(input, "currency")?;
-    if currency != "ZAR" { return Err("T0 water economics requires currency ZAR".to_owned()); }
+    if currency != "ZAR" {
+        return Err("T0 water economics requires currency ZAR".to_owned());
+    }
     let price_date = text(input, "price_date")?;
     let region = text(input, "region")?;
     let cost_profile = text(input, "cost_use_profile_id")?;
@@ -294,16 +295,35 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let mut gross_system_cost = None;
     let mut energy_cost = None;
     if cost_admitted {
-        let capex = nonnegative(number(input, "monthly_capex_equivalent_zar")?, "monthly_capex_equivalent_zar")?;
-        let maintenance = nonnegative(number(input, "maintenance_repair_zar")?, "maintenance_repair_zar")?;
+        let capex = nonnegative(
+            number(input, "monthly_capex_equivalent_zar")?,
+            "monthly_capex_equivalent_zar",
+        )?;
+        let maintenance = nonnegative(
+            number(input, "maintenance_repair_zar")?,
+            "maintenance_repair_zar",
+        )?;
         let energy_kwh = nonnegative(number(input, "electricity_kwh")?, "electricity_kwh")?;
-        let energy_rate = nonnegative(number(input, "electricity_tariff_zar_per_kwh")?, "electricity_tariff_zar_per_kwh")?;
-        let consumables = nonnegative(number(input, "consumables_replacement_zar")?, "consumables_replacement_zar")?;
-        let external_water = nonnegative(number(input, "external_water_delivery_zar")?, "external_water_delivery_zar")?;
-        let residual = nonnegative(number(input, "residual_disposal_zar")?, "residual_disposal_zar")?;
+        let energy_rate = nonnegative(
+            number(input, "electricity_tariff_zar_per_kwh")?,
+            "electricity_tariff_zar_per_kwh",
+        )?;
+        let consumables = nonnegative(
+            number(input, "consumables_replacement_zar")?,
+            "consumables_replacement_zar",
+        )?;
+        let external_water = nonnegative(
+            number(input, "external_water_delivery_zar")?,
+            "external_water_delivery_zar",
+        )?;
+        let residual = nonnegative(
+            number(input, "residual_disposal_zar")?,
+            "residual_disposal_zar",
+        )?;
         let computed_energy = energy_kwh * energy_rate;
         energy_cost = Some(computed_energy);
-        gross_system_cost = Some(capex + maintenance + computed_energy + consumables + external_water + residual);
+        gross_system_cost =
+            Some(capex + maintenance + computed_energy + consumables + external_water + residual);
     }
 
     let mut baseline_bill = None;
@@ -312,10 +332,22 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let mut actual_fixed = None;
     let mut bill_delta = None;
     if tariff_admitted && tariff_period_matches {
-        let baseline = nonnegative(number(input, "baseline_utility_bill_zar")?, "baseline_utility_bill_zar")?;
-        let actual = nonnegative(number(input, "actual_utility_bill_zar")?, "actual_utility_bill_zar")?;
-        let fixed_before = nonnegative(number(input, "baseline_fixed_charge_zar")?, "baseline_fixed_charge_zar")?;
-        let fixed_after = nonnegative(number(input, "actual_fixed_charge_zar")?, "actual_fixed_charge_zar")?;
+        let baseline = nonnegative(
+            number(input, "baseline_utility_bill_zar")?,
+            "baseline_utility_bill_zar",
+        )?;
+        let actual = nonnegative(
+            number(input, "actual_utility_bill_zar")?,
+            "actual_utility_bill_zar",
+        )?;
+        let fixed_before = nonnegative(
+            number(input, "baseline_fixed_charge_zar")?,
+            "baseline_fixed_charge_zar",
+        )?;
+        let fixed_after = nonnegative(
+            number(input, "actual_fixed_charge_zar")?,
+            "actual_fixed_charge_zar",
+        )?;
         if fixed_before > baseline || fixed_after > actual {
             return Err("fixed utility charge exceeds its admitted total bill".to_owned());
         }
@@ -329,14 +361,29 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     let service_use_matches = cost_profile == service_profile;
     let service_credit = service_admitted && service_use_matches;
     let useful_volume = if service_credit {
-        Some(nonnegative(number(input, "verified_useful_delivered_m3")?, "verified_useful_delivered_m3")?)
-    } else { None };
+        Some(nonnegative(
+            number(input, "verified_useful_delivered_m3")?,
+            "verified_useful_delivered_m3",
+        )?)
+    } else {
+        None
+    };
     let critical_person_days = if service_credit {
-        Some(nonnegative(number(input, "critical_person_days_delivered")?, "critical_person_days_delivered")?)
-    } else { None };
+        Some(nonnegative(
+            number(input, "critical_person_days_delivered")?,
+            "critical_person_days_delivered",
+        )?)
+    } else {
+        None
+    };
     let income = if income_admitted {
-        Some(positive(number(input, "monthly_disposable_income_zar")?, "monthly_disposable_income_zar")?)
-    } else { None };
+        Some(positive(
+            number(input, "monthly_disposable_income_zar")?,
+            "monthly_disposable_income_zar",
+        )?)
+    } else {
+        None
+    };
 
     let incremental_cost = match (gross_system_cost, bill_delta) {
         (Some(system), Some(delta)) => Some(system + delta),
@@ -363,20 +410,42 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
         _ => None,
     };
 
-    let service_credit_disposition = if !service_admitted { "INDETERMINATE" }
-        else if !service_use_matches { "NOT_CREDITABLE" } else { "ADMITTED" };
-    let service_equivalence = if !service_admitted { "INDETERMINATE" }
-        else if !service_use_matches { "NOT_COMPARABLE" }
-        else if !service_floors_met { "FAIL" } else { "PASS" };
-    let economic_comparison = if !service_admitted || !cost_admitted || !tariff_admitted || !tariff_period_matches {
+    let service_credit_disposition = if !service_admitted {
         "INDETERMINATE"
-    } else if !service_use_matches { "NOT_COMPARABLE" }
-    else if !service_floors_met { "SERVICE_FLOORS_NOT_MET" } else { "ADMITTED" };
-    let affordability_disposition = if !income_admitted || !cost_admitted || !tariff_admitted || !service_admitted {
+    } else if !service_use_matches {
+        "NOT_CREDITABLE"
+    } else {
+        "ADMITTED"
+    };
+    let service_equivalence = if !service_admitted {
         "INDETERMINATE"
-    } else if !service_use_matches { "NOT_COMPARABLE" }
-    else if !service_floors_met { "NOT_SERVICE_EQUIVALENT" }
-    else { "COMPUTED_NO_UNIVERSAL_THRESHOLD_APPLIED" };
+    } else if !service_use_matches {
+        "NOT_COMPARABLE"
+    } else if !service_floors_met {
+        "FAIL"
+    } else {
+        "PASS"
+    };
+    let economic_comparison =
+        if !service_admitted || !cost_admitted || !tariff_admitted || !tariff_period_matches {
+            "INDETERMINATE"
+        } else if !service_use_matches {
+            "NOT_COMPARABLE"
+        } else if !service_floors_met {
+            "SERVICE_FLOORS_NOT_MET"
+        } else {
+            "ADMITTED"
+        };
+    let affordability_disposition =
+        if !income_admitted || !cost_admitted || !tariff_admitted || !service_admitted {
+            "INDETERMINATE"
+        } else if !service_use_matches {
+            "NOT_COMPARABLE"
+        } else if !service_floors_met {
+            "NOT_SERVICE_EQUIVALENT"
+        } else {
+            "COMPUTED_NO_UNIVERSAL_THRESHOLD_APPLIED"
+        };
 
     Ok(json!({
         "cost_ledger_disposition": if cost_admitted { "ADMITTED" } else { "INDETERMINATE" },
@@ -1226,7 +1295,6 @@ mod tests {
         assert_eq!(actual["hours_to_first_essential_shortfall"], 24.0);
     }
 
-
     #[test]
     fn economics_preserves_fixed_charges_and_reports_burden() {
         let case = fixture("inputs")["cases"][25].clone();
@@ -1252,8 +1320,14 @@ mod tests {
     fn economics_zero_useful_volume_has_undefined_unit_cost() {
         let case = fixture("inputs")["cases"][28].clone();
         let actual = compute(&case).expect("zero delivered volume");
-        assert_eq!(actual["gross_system_cost_per_verified_useful_m3_zar"], Value::Null);
-        assert_eq!(actual["incremental_household_cost_per_verified_useful_m3_zar"], Value::Null);
+        assert_eq!(
+            actual["gross_system_cost_per_verified_useful_m3_zar"],
+            Value::Null
+        );
+        assert_eq!(
+            actual["incremental_household_cost_per_verified_useful_m3_zar"],
+            Value::Null
+        );
     }
 
     #[test]
@@ -1266,7 +1340,6 @@ mod tests {
         assert_eq!(actual["economic_comparison_disposition"], "ADMITTED");
         assert_eq!(actual["economic_preference_eligible"], true);
     }
-
 
     #[test]
     fn economics_billing_period_mismatch_abstains_from_bill_comparison() {
@@ -1285,7 +1358,10 @@ mod tests {
         let actual = compute(&case).expect("use mismatch case");
         assert_eq!(actual["service_credit_disposition"], "NOT_CREDITABLE");
         assert_eq!(actual["verified_useful_delivered_m3"], Value::Null);
-        assert_eq!(actual["gross_system_cost_per_verified_useful_m3_zar"], Value::Null);
+        assert_eq!(
+            actual["gross_system_cost_per_verified_useful_m3_zar"],
+            Value::Null
+        );
         assert_eq!(actual["economic_comparison_disposition"], "NOT_COMPARABLE");
     }
 
@@ -1295,7 +1371,10 @@ mod tests {
         let actual = compute(&case).expect("service-floor failure");
         assert_eq!(actual["cost_ledger_disposition"], "ADMITTED");
         assert_eq!(actual["service_equivalence_disposition"], "FAIL");
-        assert_eq!(actual["economic_comparison_disposition"], "SERVICE_FLOORS_NOT_MET");
+        assert_eq!(
+            actual["economic_comparison_disposition"],
+            "SERVICE_FLOORS_NOT_MET"
+        );
         assert_eq!(actual["economic_preference_eligible"], false);
     }
 
