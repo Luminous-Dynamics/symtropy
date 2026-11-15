@@ -94,7 +94,9 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
         return Err(ProblemError("task_id must be non-empty".into()));
     }
     if !problem.cvar_alpha.is_finite() || !(0.0..1.0).contains(&problem.cvar_alpha) {
-        return Err(ProblemError("cvar_alpha must be finite and in [0,1)".into()));
+        return Err(ProblemError(
+            "cvar_alpha must be finite and in [0,1)".into(),
+        ));
     }
     if problem.scenarios.is_empty() {
         return Err(ProblemError("at least one scenario is required".into()));
@@ -102,7 +104,9 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
     let mut scenario_ids = BTreeSet::new();
     for scenario in &problem.scenarios {
         if scenario.trim().is_empty() || !scenario_ids.insert(scenario.as_str()) {
-            return Err(ProblemError("scenario IDs must be non-empty and unique".into()));
+            return Err(ProblemError(
+                "scenario IDs must be non-empty and unique".into(),
+            ));
         }
     }
     if problem.ambiguity_set.is_empty() {
@@ -148,7 +152,9 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
     let mut design_ids = BTreeSet::new();
     for design in &problem.designs {
         if design.design_id.trim().is_empty() || !design_ids.insert(design.design_id.as_str()) {
-            return Err(ProblemError("design IDs must be non-empty and unique".into()));
+            return Err(ProblemError(
+                "design IDs must be non-empty and unique".into(),
+            ));
         }
         if design.loss_by_scenario.len() != problem.scenarios.len()
             || design.hard_safety_floor_satisfied.len() != problem.scenarios.len()
@@ -186,7 +192,9 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
                 .as_deref()
                 .ok_or_else(|| ProblemError("selected-design expectation needs an ID".into()))?;
             if !design_ids.contains(expected) {
-                return Err(ProblemError("expected design ID is not in the design set".into()));
+                return Err(ProblemError(
+                    "expected design ID is not in the design set".into(),
+                ));
             }
         }
         NO_FEASIBLE | ABSTAIN_INCOMPLETE => {
@@ -262,10 +270,7 @@ pub fn run(problem: &Problem) -> Result<Report, ProblemError> {
             .iter()
             .map(|distribution| DistributionScore {
                 distribution_id: distribution.distribution_id.clone(),
-                expected_loss: expected_loss(
-                    &design.loss_by_scenario,
-                    &distribution.probabilities,
-                ),
+                expected_loss: expected_loss(&design.loss_by_scenario, &distribution.probabilities),
                 upper_tail_cvar: upper_tail_cvar(
                     &design.loss_by_scenario,
                     &distribution.probabilities,
@@ -326,8 +331,8 @@ pub fn run(problem: &Problem) -> Result<Report, ProblemError> {
         None
     };
 
-    let canonical_problem = serde_json::to_vec(problem)
-        .expect("serializing a validated Problem value must succeed");
+    let canonical_problem =
+        serde_json::to_vec(problem).expect("serializing a validated Problem value must succeed");
     let canonical_problem_sha256 = format!("{:x}", Sha256::digest(canonical_problem));
 
     Ok(Report {
@@ -381,7 +386,10 @@ mod tests {
             fragile.hard_floor_failure_scenarios,
             vec!["DISTRIBUTION_SHIFT".to_owned()]
         );
-        assert_ne!(report.selected_design_id.as_deref(), Some("CHEAP_FRAGILE_DESIGN"));
+        assert_ne!(
+            report.selected_design_id.as_deref(),
+            Some("CHEAP_FRAGILE_DESIGN")
+        );
     }
 
     #[test]
@@ -436,13 +444,15 @@ mod tests {
         assert!(report.oracle_matches_fixture);
     }
 
-
     #[test]
     fn identical_problem_has_identical_input_receipt() {
         let problem = problem();
         let first = run(&problem).expect("first run");
         let second = run(&problem).expect("second run");
-        assert_eq!(first.canonical_problem_sha256, second.canonical_problem_sha256);
+        assert_eq!(
+            first.canonical_problem_sha256,
+            second.canonical_problem_sha256
+        );
     }
 
     #[test]
