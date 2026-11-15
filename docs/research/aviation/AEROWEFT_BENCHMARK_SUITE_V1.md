@@ -649,3 +649,8 @@ AeroWeft-facing adapter to Mycelix's role-separated signed evidence, pinned trus
 ### Track R — conflict-management performance evidence envelope (#5354)
 
 Builds a declared-domain performance evidence profile above planning and composition. It measures missed/late/nuisance alerts, latency tails, resolution feasibility, contingency/recovery, unresolved occupancy, exposure-normalized rates with confidence bounds, and subgroup coverage by traffic/encounter/environment/failure class. It reports a non-compensatory vector rather than a single safety score and keeps synthetic, simulation, SIL, HIL, flight-test and accepted operational evidence levels separate. NASA's 2025 Required Conflict Management Performance (RCMP) research is a motivating comparator; AeroWeft does not set separation minima, authorize operators or implement authority acceptance. See #5354.
+
+
+### Track S — multi-subject evidence scope (#5359)
+
+Separates the focal flight/operation being assessed from the external target an observation describes and from the environment/coverage cell to which a surveillance claim applies. Requires typed scope relations so an external or unknown target may contribute unresolved occupancy without becoming the focal aircraft or receiving a fabricated identity. Extends Track P's single-focal-flight causal receipt graph to multi-aircraft and unidentified-target cases; it does not implement detection, sensor fusion or target association itself.
