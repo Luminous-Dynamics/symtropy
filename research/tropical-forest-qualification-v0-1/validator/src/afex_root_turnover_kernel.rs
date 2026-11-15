@@ -21,6 +21,25 @@ fn number_at(value: &Value, key: &str) -> Result<f64, String> {
 fn same_number(a: f64, b: f64, tolerance: f64) -> bool {
     (a - b).abs() <= tolerance
 }
+fn parse_metric(record: &Value, label: &str, value_key: &str, unit_key: &str) -> Result<f64, String> {
+    let value = number_at(record, value_key)?;
+    let unit = string_at(record, unit_key)?;
+    let expected_unit = if value_key == "stock_value" {
+        "Mg C ha-1"
+    } else {
+        "Mg C ha-1 yr-1"
+    };
+    if unit != expected_unit {
+        return Err(format!("{label} unit must be {expected_unit}"));
+    }
+    if value_key == "stock_value" && value <= 0.0 {
+        return Err(format!("{label} stock must be positive"));
+    }
+    if value_key == "productivity_value" && value < 0.0 {
+        return Err(format!("{label} productivity must be non-negative"));
+    }
+    Ok(value)
+}
 fn sha256_hex(raw: &[u8]) -> String {
     let digest = Sha256::digest(raw);
     let mut out = String::with_capacity(64);
