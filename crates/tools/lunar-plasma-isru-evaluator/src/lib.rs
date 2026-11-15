@@ -241,12 +241,7 @@ fn valid_utc_timestamp(value: &str) -> bool {
         _ => return false,
     };
 
-    year > 0
-        && day >= 1
-        && day <= days_in_month
-        && hour <= 23
-        && minute <= 59
-        && second <= 59
+    year > 0 && day >= 1 && day <= days_in_month && hour <= 23 && minute <= 59 && second <= 59
 }
 
 fn observation_is_metrologically_scoreable(
