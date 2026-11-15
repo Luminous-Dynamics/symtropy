@@ -101,6 +101,7 @@ fn symmetric_eigenvalues(mut a: Matrix) -> Result<Vector, String> {
     for value in &mut values { if *value < 0.0 { *value = 0.0; } }
     Ok(values)
 }
+#[allow(clippy::needless_range_loop)]
 fn fisher_information(jacobian: &Matrix, variances: &Vector) -> Result<Matrix, String> {
     if jacobian.is_empty() || jacobian.len() != variances.len() { return Err("Jacobian/variance row count mismatch".into()); }
     let p = jacobian[0].len();
