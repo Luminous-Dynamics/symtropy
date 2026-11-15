@@ -200,4 +200,4 @@ No tier is inherited automatically by another model, material, geometry, solver 
 
 ---
 
-**Next implementation step:** a dependency-light Rust analytical evaluator and independent test suite. The present deliverable is the frozen specification and test corpus, not an implemented FE solver.
+**Initial executable slice:** `tools/artgrav-prestress-reference/` contains a dependency-free Rust evaluator for the thin-ring and radial-spoke formulae, ten unit tests and a pinned Rust 1.96.0 workflow at `.github/workflows/artgrav-prestress-reference.yml`. It is an analytical reference kernel, not an implemented FE, prestressed-modal or aerospace solver. Rust compilation remains pending the exact-head workflow.
