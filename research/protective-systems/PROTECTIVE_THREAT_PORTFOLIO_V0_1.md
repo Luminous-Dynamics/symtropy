@@ -205,3 +205,15 @@ The frozen synthetic cases are in `research/protective-systems/fixtures/protecti
 This register does not contain weapon recipes, construction instructions, transmission parameters, target analysis, damage calculations or protection-defeat guidance. It does not authorize physical testing, procurement or human-subject research. The only positive result this portfolio can produce is a defensible *research/investment-priority disposition* for a declared asset context.
 
 A theoretical possibility with no credible deployment path remains monitor-only. This keeps scientific curiosity alive without letting a dramatic hypothetical consume resources that could reduce real-world harm today.
+
+
+## 10. Cross-owner resilience evidence bridge
+
+The bridge contract and six synthetic conformance fixtures are now specified in:
+
+- `PROTECTIVE_RESILIENCE_EVIDENCE_BRIDGE_V0_1.md`
+- `fixtures/protective-resilience-bridge-cases-v0.1.json`
+
+This is an adapter over CIVDYN-CASCADE (#3894), CIVDYN-RES (#3621/#3739), PROTECT-ROBUST (#5317), PROTECT-VOI (#5268) and CIVBENCH-MAD (#3731), not a duplicate simulator or optimizer. It keeps service, buffer, human-safety and ecological/physical outcomes separate; enforces no double-counting; and fails closed when owner evidence, comparable scope or probability support is absent.
+
+NIST anchors include SP 1339 (final, 17 June 2026), SP 1800-45 (final, 24 June 2026), and SP 800-82 Rev. 4 (initial public draft, 21 September 2026; comments due 30 November 2026). Draft status and standards applicability must remain explicit.
