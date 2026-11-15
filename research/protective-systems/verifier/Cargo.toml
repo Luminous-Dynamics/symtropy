@@ -15,3 +15,7 @@ sha2 = "0.10"
 [[bin]]
 name = "protective-voi"
 path = "src/bin/voi.rs"
+
+[[bin]]
+name = "protective-robust"
+path = "src/bin/robust.rs"
