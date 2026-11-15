@@ -846,6 +846,8 @@ mod tests {
         assert!(
             (first_linear[0] - first_nonlinear[0]).abs() > 1.0e-3
                 || (first_linear[1] - first_nonlinear[1]).abs() > 1.0e-3
+                || (first_linear[2] - first_nonlinear[2]).abs() > 1.0e-3,
+            "expected the nonlinear chart to change at least one component of the first normal correction: linear={first_linear:?}, nonlinear={first_nonlinear:?}"
         );
 
         let exact = circle_plane_nearest_point(start).unwrap();
