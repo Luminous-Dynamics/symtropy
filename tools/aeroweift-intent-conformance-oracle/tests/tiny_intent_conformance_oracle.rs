@@ -527,6 +527,14 @@ fn accepted_receipt_preserves_authorization_and_observation_lineage() {
         result.lineage.canonicalized_observations[0].position.east,
         ci(1, 2)
     );
+    assert_eq!(
+        result.lineage.canonicalized_observations[0].pnt_qualification_reference,
+        "synthetic-pnt-qualification-v0"
+    );
+    assert_eq!(
+        result.lineage.canonicalized_observations[0].surveillance_qualification_reference,
+        "synthetic-surveillance-qualification-v0"
+    );
 }
 
 #[test]
