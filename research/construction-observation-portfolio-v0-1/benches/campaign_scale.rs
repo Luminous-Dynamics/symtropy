@@ -88,7 +88,7 @@ fn main() {
             ReservationBook::new("site-epoch-1", "site-clock-1", 0).expect("reservation book");
         for index in 0..action_count {
             reservations
-                .register_resource(&format!("resource-{index:02}"), 1)
+                .register_resource(format!("resource-{index:02}"), 1)
                 .expect("resource");
         }
 
