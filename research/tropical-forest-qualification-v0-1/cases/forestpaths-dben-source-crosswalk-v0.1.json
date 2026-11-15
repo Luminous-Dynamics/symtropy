@@ -645,7 +645,10 @@
       "rmarkdown"
     ],
     "renv_lock_at_repository_root": "NOT_FOUND_DURING_AUDIT",
-    "observation_processing_script": "Process_observations.R described by Zenodo; not found at scripts/Process_observations.R or repository root on inspected main branch"
+    "observation_processing_script": "Process_observations.R described by Zenodo; not found at scripts/Process_observations.R or repository root on inspected main branch",
+    "dgvmtools_required_release": "v1.1.0 (Zenodo dataset record related-work dependency)",
+    "dgvmtools_release_url": "https://github.com/MagicForrest/DGVMTools/releases/tag/v1.1.0",
+    "environment_lock_status": "NO renv.lock FOUND AT INSPECTED REPOSITORY ROOT; pin R, DGVMTools v1.1.0 and all R packages in a new lockfile or reproducible Nix/R environment before reproduction"
   },
   "admission_gates": [
     "Do not treat D-BEN as an established universal data standard.",
