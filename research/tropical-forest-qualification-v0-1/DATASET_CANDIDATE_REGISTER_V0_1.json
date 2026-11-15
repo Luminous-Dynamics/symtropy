@@ -513,7 +513,9 @@
         "replicates_or_blocks": 4,
         "all_treatments_represented_in_each_block": true,
         "plot_assignment_units_expected": 32,
-        "status": "COLLECTION_METADATA_ONLY_RECONCILE_INDIVIDUAL_CHILD_DATASETS"
+        "status": "COLLECTION_METADATA_ONLY_RECONCILE_INDIVIDUAL_CHILD_DATASETS",
+        "assignment_unit": "plot",
+        "claim_ceiling": "Published design description, not archive-level verification of plot IDs, treatment maps, applied dose or compliance."
       },
       "companion_resources_listed": [
         "Litterfall nutrient content (2017-2019)",
@@ -546,7 +548,30 @@
         "Preserve variable-specific time windows, units, measurement operators and spatial support",
         "Identify shared plot and campaign dependencies before any evidence fusion",
         "Do not treat all 15 streams as independent observations or as interchangeable process fluxes"
-      ]
+      ],
+      "published_protocol_crosswalk": {
+        "source_doi": "10.1007/s11104-026-08303-2",
+        "source_url": "https://link.springer.com/article/10.1007/s11104-026-08303-2",
+        "plot_count": 32,
+        "block_count": 4,
+        "plots_per_block": 8,
+        "plot_dimensions_m": [
+          50,
+          50
+        ],
+        "inter_plot_spacing_m_at_least": 50,
+        "inter_block_spacing_m_at_least": 200,
+        "within_block_randomized_treatments": 8,
+        "exact_treatment_replicates_across_blocks": 4,
+        "application_schedule": "Three equal applications during each wet season; first application between May and June 2017",
+        "reported_annual_application_rates_verbatim": {
+          "nitrogen": "125 kg ha-1 yr-1 as urea",
+          "phosphorus": "50 kg ha-1 yr-1 as triple superphosphate",
+          "base_cations": "Ca 50 kg ha-1 yr-1; Mg 20 kg ha-1 yr-1 as dolomitic limestone; K 50 kg ha-1 yr-1 as potassium chloride"
+        },
+        "unit_semantics_warning": "Preserve the article's exact wording. Reconcile elemental nutrient mass versus fertilizer-product mass with the original field protocol before normalization or dose aggregation.",
+        "treatment_compliance": "Actual application dates, batches and plot-level deviations must be checked in original records; assignment remains the primary intention-to-treat field."
+      }
     },
     {
       "source_id": "CENTRAL-AMAZON-AFEX-STEM-SOIL-RESPIRATION-2017-2019",
