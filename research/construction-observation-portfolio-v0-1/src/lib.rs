@@ -563,7 +563,7 @@ pub fn plan_greedy_observation_campaign(
     ordered_actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
 
     let mut covered = vec![false; work_needs.len()];
-    let mut selected = Vec::new();
+    let mut selected: Vec<usize> = Vec::new();
     let mut scratch_occupancy = occupancy_book.clone();
     let mut scratch_reservations = reservation_book.clone();
     let mut rejected_actions = Vec::new();
