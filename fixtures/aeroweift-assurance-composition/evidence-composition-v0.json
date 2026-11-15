@@ -2318,5 +2318,16 @@
         "positive_is_conflict_screen_only": false
       }
     }
-  ]
+  ],
+  "generated_fault_campaign": {
+    "implemented_in": "tools/aeroweift-assurance-composition-oracle/tests/evidence_composition_oracle.rs",
+    "mutator_count": 40,
+    "exhaustive_single_mutations": 40,
+    "exhaustive_unordered_mutator_pairs_including_same_mutator": 820,
+    "seeded_two_fault_trials": 10000,
+    "seed_hex": "0xA3E05AFE20260015",
+    "expected_invariant": "Every mutated input is not READY_FOR_CONFLICT_SCREEN and returns no partial occupancy list; separate positive control remains required.",
+    "evidence_class": "synthetic-only",
+    "note": "The generated campaign complements, but does not alter, the 28 curated golden fixture cases. It is not exhaustive over all possible input values or higher-order interactions."
+  }
 }
