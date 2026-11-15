@@ -26,7 +26,7 @@ fn base(state:&str,reason:&str)->Value{
         "baseline_complete_mix_concentration_kg_per_m3":null,
         "baseline_parity_max_abs_mass_error_kg":null,
         "outlet_ports":null,
-        "engine_hook_consumed_segment_truth":false,
+        "snapshot_contains_consumed_segment_records":false,
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     })
 }
@@ -134,7 +134,7 @@ fn compute(case:&Value)->Result<Value,String>{
             "inventory_delta_volume_m3":null,"inventory_delta_mass_kg":null,
             "volume_balance_residual_m3":null,"mass_balance_residual_kg":null,
             "baseline_complete_mix_concentration_kg_per_m3":null,"baseline_parity_max_abs_mass_error_kg":null,
-            "outlet_ports":outlet_detail,"engine_hook_consumed_segment_truth":true,
+            "outlet_ports":outlet_detail,"snapshot_contains_consumed_segment_records":true,
             "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
         }));
     }
@@ -173,7 +173,7 @@ fn compute(case:&Value)->Result<Value,String>{
                 "inventory_delta_volume_m3":inventory_vol,"inventory_delta_mass_kg":inventory_mass,
                 "volume_balance_residual_m3":volume_residual,"mass_balance_residual_kg":mass_residual,
                 "baseline_complete_mix_concentration_kg_per_m3":c,"baseline_parity_max_abs_mass_error_kg":max_error,
-                "outlet_ports":outlet_detail,"engine_hook_consumed_segment_truth":true,
+                "outlet_ports":outlet_detail,"snapshot_contains_consumed_segment_records":true,
                 "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
             }));}
             Some((c,max_error))
@@ -197,7 +197,7 @@ fn compute(case:&Value)->Result<Value,String>{
         "volume_balance_residual_m3":volume_residual,"mass_balance_residual_kg":mass_residual,
         "baseline_complete_mix_concentration_kg_per_m3":baseline.map(|x|x.0),
         "baseline_parity_max_abs_mass_error_kg":baseline.map(|x|x.1),
-        "outlet_ports":outlet_detail,"engine_hook_consumed_segment_truth":true,
+        "outlet_ports":outlet_detail,"snapshot_contains_consumed_segment_records":true,
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     }))
 }
