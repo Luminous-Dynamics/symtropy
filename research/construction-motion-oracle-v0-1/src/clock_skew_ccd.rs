@@ -451,7 +451,7 @@ fn is_feasible(
             .coefficients
             .iter()
             .zip(parameters)
-            .map(|(coefficient, parameter)| coefficient * parameter)
+            .map(|(coefficient, parameter)| *coefficient * parameter)
             .sum::<f64>();
         value.is_finite() && value <= constraint.upper_bound + FEASIBILITY_EPSILON
     })
