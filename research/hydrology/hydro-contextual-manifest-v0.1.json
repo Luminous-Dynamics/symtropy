@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 20,
+  "case_count": 21,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -24,7 +24,8 @@
     "HC-T0-017-synthetic-field-claim-reject",
     "HC-T0-018-duplicate-time-reject",
     "HC-T0-019-overlapping-event-windows-reject",
-    "HC-T0-020-degenerate-observations-undefined"
+    "HC-T0-020-degenerate-observations-undefined",
+    "HC-T0-021-final-test-model-selection-reject"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -51,6 +52,7 @@
     "Timebase, calendar, timezone and aggregation semantics must match exactly.",
     "Predictive skill cannot override a failed physical water-balance gate.",
     "Contextual attainment is metric/task/population scoped; it is not clipped to [0,1] and must be undefined/not-comparable when references cannot support it.",
-    "Synthetic evidence may not be promoted to field or operational qualification."
+    "Synthetic evidence may not be promoted to field or operational qualification.",
+    "The final test split may not be used to select the winning model from a tournament; model selection must use the predeclared validation process."
   ]
 }
