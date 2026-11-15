@@ -206,10 +206,17 @@ fn evaluate_case(
         if observed.period_index != predicted.period_index || observed.period_id != predicted.period_id {
             return Err(format!("{case_id}: candidate period identity/order differs from reference"));
         }
-        let live_error = (observed.live_end - predicted.live_end).abs();
-        let deadwood_error = (observed.deadwood_end - predicted.deadwood_end).abs();
-        maximum_stock_absolute_error = maximum_stock_absolute_error.max(live_error).max(deadwood_error);
-        stock_absolute_error_sum += live_error + deadwood_error;
+        let live_start_error = (observed.live_start - predicted.live_start).abs();
+        let deadwood_start_error = (observed.deadwood_start - predicted.deadwood_start).abs();
+        let live_end_error = (observed.live_end - predicted.live_end).abs();
+        let deadwood_end_error = (observed.deadwood_end - predicted.deadwood_end).abs();
+        maximum_stock_absolute_error = maximum_stock_absolute_error
+            .max(live_start_error)
+            .max(deadwood_start_error)
+            .max(live_end_error)
+            .max(deadwood_end_error);
+        stock_absolute_error_sum +=
+            live_start_error + deadwood_start_error + live_end_error + deadwood_end_error;
 
         let observed_flows = flow_values(observed);
         let predicted_flows = flow_values(predicted);
@@ -227,8 +234,10 @@ fn evaluate_case(
         period_results.push(json!({
             "period_index": predicted.period_index,
             "period_id": predicted.period_id,
-            "live_stock_absolute_error": live_error,
-            "deadwood_stock_absolute_error": deadwood_error,
+            "live_start_stock_absolute_error": live_start_error,
+            "deadwood_start_stock_absolute_error": deadwood_start_error,
+            "live_end_stock_absolute_error": live_end_error,
+            "deadwood_end_stock_absolute_error": deadwood_end_error,
             "flow_absolute_errors": {
                 "growth": period_flow_errors[0],
                 "recruitment": period_flow_errors[1],
@@ -276,8 +285,8 @@ fn evaluate_case(
         "oracle_matches": expected_checks,
         "interval_count": reference.intervals.len(),
         "maximum_stock_absolute_error": maximum_stock_absolute_error,
-        "mean_stock_absolute_error_per_pool_period": stock_absolute_error_sum
-            / (2.0 * interval_count_f64),
+        "mean_stock_absolute_error_per_pool_boundary": stock_absolute_error_sum
+            / (4.0 * interval_count_f64),
         "maximum_flow_absolute_error": maximum_flow_absolute_error,
         "mean_flow_absolute_error_per_flow_period": flow_absolute_error_sum
             / (6.0 * interval_count_f64),
@@ -420,6 +429,20 @@ mod tests {
         let bytes = serde_json::to_vec(&value).expect("serialize mutated fixture");
         let receipt = validate_corpus(&bytes, &value).expect("valid structure returns receipt");
         assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn initial_census_stock_mismatch_is_not_hidden_by_matching_final_stock() {
+        let mut value = manifest();
+        value["cases"][0]["candidate_intervals"][0]["live_start"] = json!(110.0);
+        value["cases"][0]["candidate_intervals"][0]["growth"] = json!(10.0);
+        let bytes = serde_json::to_vec(&value).expect("serialize initial stock mismatch");
+        let receipt = validate_corpus(&bytes, &value).expect("valid modified trace");
+        let row = receipt["case_results"].as_array().unwrap().iter()
+            .find(|row| row["case_id"] == "PROCESS-AND-STOCK-MATCH")
+            .unwrap();
+        assert_eq!(row["disposition"], "TRAJECTORY_STATE_MISMATCH");
+        assert_eq!(row["maximum_stock_absolute_error"], 10.0);
     }
 
     #[test]
