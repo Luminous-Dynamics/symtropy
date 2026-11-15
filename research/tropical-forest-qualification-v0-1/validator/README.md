@@ -61,6 +61,10 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-process-trajectory-synthetic-v0.1.json
 
+# ForestPaths D-BEN source crosswalk admission (metadata only; does not read archive data)
+cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
+  research/tropical-forest-qualification-v0-1/cases/forestpaths-dben-source-crosswalk-v0.1.json
+
 # Exact structural flux identifiability and measurement subset tournament
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
   research/tropical-forest-qualification-v0-1/cases/forest-flux-identifiability-synthetic-v0.1.json
@@ -71,7 +75,7 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 
 ```
 
-Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL`, `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`, `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`, `PASS_SYNTHETIC_PROCESS_TRAJECTORY`, `PASS_SYNTHETIC_FLUX_IDENTIFIABILITY` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
+Exit status is 0 for a successful fixture-specific verification (`PASS`, `PASS_SYNTHETIC_RULES`, `PASS_SYNTHETIC_GEOMETRY`, `PASS_SYNTHETIC_SUPPORT`, `PASS_SYNTHETIC_AGGREGATION`, `PASS_SYNTHETIC_CONSILIENCE`, `PASS_SYNTHETIC_MODEL_SET_DIAGNOSTICS`, `PASS_SYNTHETIC_FORECAST_SCORING`, `PASS_SYNTHETIC_BRIER`, `PASS_SYNTHETIC_BLOCK_CONFORMAL`, `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`, `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`, `PASS_SYNTHETIC_PROCESS_TRAJECTORY`, `PASS_SYNTHETIC_FLUX_IDENTIFIABILITY`, `PASS_SYNTHETIC_FORESTPATHS_CROSSWALK` or `MANIFEST_VALID`), 1 for a semantic `FAIL`, and 2 for malformed JSON, missing required fields, or invalid invocation. The receipt includes the exact input-byte SHA-256 and individual checks.
 
 ## CI integration
 
@@ -204,7 +208,7 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The original core suite contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. Additional suites add 7 block-coverage kernel tests, 15 spatial-localization/Moran/k-neighbour tests, 7 prior CLI receipt-adapter tests, 12 process-trajectory tests, and 10 flux-identifiability tests (9 kernel + 1 top-level dispatch/receipt), for 195 authored Rust test functions. All remain subject to exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The original core suite contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. Additional suites add 7 block-coverage kernel tests, 15 spatial-localization/Moran/k-neighbour tests, 7 prior CLI receipt-adapter tests, 12 process-trajectory tests, and 10 flux-identifiability tests (9 kernel + 1 top-level dispatch/receipt), for 205 authored Rust test functions. All remain subject to exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
 
 
 ## Spatial localization and residual autocorrelation kernels
@@ -244,7 +248,7 @@ The `forest_corpus_receipts` module adds mutation tests for interval-oracle corr
 
 The spatial-localization corpus now includes an optional `nearest_neighbor_count`. When present, the validator limits the Gaussian diagnostic to the nearest k calibration records and records the selected physical neighbourhood radius. This is a diagnostic control; it must not be described as implementing the statistical guarantees of spconform. The new frozen fixture demonstrates a pooled radius of 50 versus a k=12 local diagnostic radius of 0.5 over an 11 m neighbourhood.
 
-The package now has 195 authored Rust test functions: 144 original core tests, 7 block-coverage kernel tests, 15 spatial localization/Moran/k-neighbour tests, 7 prior CLI receipt-adapter tests, 12 process-trajectory tests, and 10 flux-identifiability tests (9 kernel + 1 top-level receipt dispatcher). They remain authored but unexecuted until exact-head Rust verification.
+The package now has 205 authored Rust test functions: 144 original core tests, 7 block-coverage kernel tests, 15 spatial localization/Moran/k-neighbour tests, 7 prior CLI receipt-adapter tests, 12 process-trajectory tests, 10 flux-identifiability tests (9 kernel + 1 top-level receipt dispatcher), and 10 ForestPaths crosswalk tests (9 kernel + 1 top-level receipt dispatcher). They remain authored but unexecuted until exact-head Rust verification.
 
 
 ## Process-resolved forest trajectory kernel
@@ -272,3 +276,10 @@ The ForestPaths analysis repository is not a universal D-BEN schema. Its model-s
 The crosswalk preserves nine exact model-helper labels, FIN/BIA/BCI, P0-P7 run-name mappings, forcing identifiers, 24 quantity definitions, four composite/turnover warnings, model-specific unit conversion paths and five distinct size-class families. It also records the visually selected model/site equilibrium windows from the published R Markdown. Its structural checks (9 model names, eight run mappings each, and three 9-wide equilibrium tables) were independently inspected from the JSON. This is source-code admission only; it does not validate NetCDF data or reproduce the paper.
 
 The core traps are consequential: `cmort` includes mortality or other turnover, BiomeE `WDgrowTot` includes reproduction and migration, BiomeE `WDmortTot` includes density-related killing and disturbance removal, and size-class bins differ by model. Every transformation must bind raw units, source variable, model, run and output unit before cross-model scoring. See [#5357](https://github.com/Luminous-Dynamics/symtropy/issues/5357) and empirical reproduction gate [#5352](https://github.com/Luminous-Dynamics/symtropy/issues/5352).
+
+
+## Executable ForestPaths / D-BEN crosswalk admission
+
+The exported `forestpaths_crosswalk_kernel` validates the public source-code crosswalk before it is used to read or harmonize model outputs. It checks the nine model identities, P0-P7 run mapping coverage, site and visually selected equilibrium-window arrays, unique variable/unit declarations, source blob identity fields, per-model forcing IDs, composite growth/mortality semantics, distinct model-specific size-class families, and separation of data/code/R Markdown DOI references.
+
+A successful receipt returns `PASS_SYNTHETIC_FORESTPATHS_CROSSWALK`, binds the exact JSON bytes with SHA-256, and explicitly states `data_ingested=false`, `model_outputs_validated=false`, and `empirical_reproduction=NOT_RUN`. It does **not** authenticate the upstream GitHub source, inspect data archive bytes, or prove the declared variable semantics are scientifically correct. Nine kernel tests and one top-level dispatch/receipt test are authored. See [FORESTPATHS_D_BEN_ADMISSION_V0_1.md](../FORESTPATHS_D_BEN_ADMISSION_V0_1.md), [#5357](https://github.com/Luminous-Dynamics/symtropy/issues/5357), and the separate archive-reproduction owner [#5352](https://github.com/Luminous-Dynamics/symtropy/issues/5352).
