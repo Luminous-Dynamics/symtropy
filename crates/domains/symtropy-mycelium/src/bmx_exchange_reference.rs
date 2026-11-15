@@ -342,7 +342,7 @@ pub fn apply_bmx_reference_exchange(
         total_after[1] - total_before[1],
         total_after[2] - total_before[2],
     ];
-    *segments = next;
+    segments.clone_from_slice(&next);
 
     Ok(BmxExchangeReport {
         pair_exchanges,
