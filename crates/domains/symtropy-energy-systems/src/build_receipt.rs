@@ -404,11 +404,11 @@ impl DerivedArtifactReceipt {
         }
         // Build-lock, graph payload, generator source and generator config are
         // mandatory first-class dependencies, not optional caller annotations.
-        dependency_ids.push(format!("input:build-lock:{}", build_receipt.build_lock_digest.as_str()));
-        dependency_ids.push(format!("input:service-graph-payload:{}", build_receipt.service_graph_payload_digest.as_str()));
-        dependency_ids.push(format!("input:generator-version:{generator_id}:{generator_version}"));
-        dependency_ids.push(format!("input:generator-source:{generator_id}:{}", generator_source_digest.as_str()));
-        dependency_ids.push(format!("input:generator-configuration:{generator_id}:{}", generator_configuration_digest.as_str()));
+        dependency_ids.push(format!("input:build-lock:{}", build_receipt.graph_id));
+        dependency_ids.push(format!("input:service-graph-payload:{}", build_receipt.graph_id));
+        dependency_ids.push(format!("input:generator-version:{generator_id}"));
+        dependency_ids.push(format!("input:generator-source:{generator_id}"));
+        dependency_ids.push(format!("input:generator-configuration:{generator_id}"));
         dependency_ids.sort();
         if let Some(pair) = dependency_ids.windows(2).find(|pair| pair[0] == pair[1]) {
             return Err(DerivedArtifactReceiptError::DuplicateDependencyId {
@@ -475,23 +475,23 @@ impl DerivedArtifactReceipt {
     pub fn pinned_dependency_fingerprints(&self) -> Result<Vec<InputFingerprint>, ChangeImpactError> {
         Ok(vec![
             InputFingerprint::new(
-                format!("input:generator-version:{}:{}", self.generator_id, self.generator_version),
+                format!("input:generator-version:{}", self.generator_id),
                 self.generator_version.clone(),
             )?,
             InputFingerprint::new(
-                format!("input:build-lock:{}", self.source_build_lock_digest.as_str()),
+                format!("input:build-lock:{}", self.source_graph_id),
                 self.source_build_lock_digest.as_str(),
             )?,
             InputFingerprint::new(
-                format!("input:service-graph-payload:{}", self.source_graph_payload_digest.as_str()),
+                format!("input:service-graph-payload:{}", self.source_graph_id),
                 self.source_graph_payload_digest.as_str(),
             )?,
             InputFingerprint::new(
-                format!("input:generator-source:{}:{}", self.generator_id, self.generator_source_digest.as_str()),
+                format!("input:generator-source:{}", self.generator_id),
                 self.generator_source_digest.as_str(),
             )?,
             InputFingerprint::new(
-                format!("input:generator-configuration:{}:{}", self.generator_id, self.generator_configuration_digest.as_str()),
+                format!("input:generator-configuration:{}", self.generator_id),
                 self.generator_configuration_digest.as_str(),
             )?,
         ])

@@ -671,7 +671,7 @@ mod tests {
 
         assert_eq!(receipt.source_build_lock_digest(), built.receipt().build_lock_digest());
         assert_eq!(receipt.source_compiler_version(), built.receipt().compiler_version());
-        assert!(receipt.dependency_ids().iter().any(|id| id == "input:generator-version:power-fabric-view-compiler:0.1.0"));
+        assert!(receipt.dependency_ids().iter().any(|id| id == "input:generator-version:power-fabric-view-compiler"));
         assert_eq!(receipt.source_graph_id(), built.receipt().graph_id());
         assert_eq!(receipt.source_graph_revision_id(), built.receipt().graph_revision_id());
         assert_eq!(receipt.source_graph_payload_digest(), built.receipt().service_graph_payload_digest());
@@ -745,6 +745,95 @@ mod tests {
         assert_ne!(first_artifact.receipt_digest().unwrap(), second_artifact.receipt_digest().unwrap());
     }
 
+
+
+
+    #[test]
+    fn renderer_version_change_invalidates_derived_artifact_via_stable_dependency_id() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter",
+            "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let renderer_change = crate::InputChange::new(
+            "input:generator-version:power-fabric-view-compiler",
+            "0.1.0",
+            Some("0.2.0".into()),
+        ).unwrap();
+        let report = graph.assess(
+            vec![renderer_change],
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+    #[test]
+    fn build_lock_change_invalidates_derived_artifact_using_stable_dependency_id() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter",
+            "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let build_lock_id = format!("input:build-lock:{}", receipt.source_graph_id());
+        let build_change = crate::InputChange::new(
+            build_lock_id,
+            receipt.source_build_lock_digest().as_str(),
+            Some("sha256:replacement-build-lock".into()),
+        ).unwrap();
+        let report = graph.assess(
+            vec![build_change],
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
 
 
     #[test]
