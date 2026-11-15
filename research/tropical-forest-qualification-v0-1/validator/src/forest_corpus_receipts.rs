@@ -9,10 +9,15 @@ use crate::spatial_localization_kernel;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+use std::fmt::Write as FmtWrite;
 
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+    let mut output = String::with_capacity(64);
+    for byte in digest {
+        write!(&mut output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
 }
 
 fn string_at(root: &Value, key: &str) -> Result<String, String> {
