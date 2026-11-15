@@ -70,6 +70,20 @@ pub struct DatasetManifest {
     pub split: DatasetSplit,
     /// Operating-domain profile represented by this manifest.
     pub operating_domain_sha256: String,
+    /// Exact aircraft configuration represented by the data.
+    pub aircraft_configuration_sha256: String,
+    /// Exact flight-control/guidance stack represented by the data.
+    pub control_stack_sha256: String,
+    /// Exact sensor/receiver stack represented by the data.
+    pub sensor_stack_sha256: String,
+    /// Horizontal frame used by the reference measurements.
+    pub horizontal_frame_id: String,
+    /// Vertical datum used by the reference measurements.
+    pub vertical_datum_id: String,
+    /// Time scale used by the reference measurements.
+    pub time_scale_id: String,
+    /// Independent reference measurement/calibration profile identity.
+    pub reference_measurement_profile_sha256: String,
     /// Flight-level grouping identifiers used for leakage control.
     pub flight_group_ids: Vec<String>,
     /// Scenario/encounter-family grouping identifiers used for leakage control.
@@ -184,6 +198,8 @@ pub struct MetricGate {
 pub struct ValidationPolicy {
     /// Exact model and operating-domain identity requested for credit.
     pub expected_scope: ModelScope,
+    /// Exact reference measurement/calibration profile required for all datasets.
+    pub expected_reference_measurement_profile_sha256: String,
     /// Strata that must be explicitly represented in confirmatory evidence.
     pub required_strata: Vec<String>,
     /// Predeclared metric gates, one per metric/unit/stratum/modality tuple.
@@ -239,7 +255,7 @@ pub enum ValidationError {
     /// Calibration, development and confirmatory groups overlap.
     DataLeakage,
     /// Dataset manifest applies to a different operating domain.
-    DatasetDomainMismatch,
+    DatasetScopeMismatch,
     /// One or more required validation strata are absent.
     MissingRequiredStratum,
     /// A required metric gate has no exact matching result.
@@ -273,10 +289,18 @@ fn intersects(left: &[String], right: &[String]) -> bool {
 fn validate_manifest(
     manifest: &DatasetManifest,
     expected_split: DatasetSplit,
-    expected_domain: &str,
+    expected_scope: &ModelScope,
+    expected_reference_profile: &str,
 ) -> Result<(), ValidationError> {
     if !is_sha256(&manifest.manifest_sha256)
         || !is_sha256(&manifest.operating_domain_sha256)
+        || !is_sha256(&manifest.aircraft_configuration_sha256)
+        || !is_sha256(&manifest.control_stack_sha256)
+        || !is_sha256(&manifest.sensor_stack_sha256)
+        || !is_sha256(&manifest.reference_measurement_profile_sha256)
+        || manifest.horizontal_frame_id.trim().is_empty()
+        || manifest.vertical_datum_id.trim().is_empty()
+        || manifest.time_scale_id.trim().is_empty()
         || manifest.split != expected_split
         || manifest.flight_group_ids.is_empty()
         || manifest.scenario_group_ids.is_empty()
@@ -287,8 +311,16 @@ fn validate_manifest(
     {
         return Err(ValidationError::InvalidPackage);
     }
-    if manifest.operating_domain_sha256 != expected_domain {
-        return Err(ValidationError::DatasetDomainMismatch);
+    if manifest.operating_domain_sha256 != expected_scope.operating_domain_sha256
+        || manifest.aircraft_configuration_sha256 != expected_scope.aircraft_configuration_sha256
+        || manifest.control_stack_sha256 != expected_scope.control_stack_sha256
+        || manifest.sensor_stack_sha256 != expected_scope.sensor_stack_sha256
+        || manifest.horizontal_frame_id != expected_scope.horizontal_frame_id
+        || manifest.vertical_datum_id != expected_scope.vertical_datum_id
+        || manifest.time_scale_id != expected_scope.time_scale_id
+        || manifest.reference_measurement_profile_sha256 != expected_reference_profile
+    {
+        return Err(ValidationError::DatasetScopeMismatch);
     }
     Ok(())
 }
@@ -312,6 +344,7 @@ pub fn evaluate(
     policy: &ValidationPolicy,
 ) -> Result<ValidationResult, ValidationError> {
     if !policy.expected_scope.is_complete()
+        || !is_sha256(&policy.expected_reference_measurement_profile_sha256)
         || policy.required_strata.is_empty()
         || !unique_nonempty(&policy.required_strata)
         || policy.gates.is_empty()
@@ -357,12 +390,14 @@ pub fn evaluate(
     validate_manifest(
         &package.calibration,
         DatasetSplit::Calibration,
-        &package.scope.operating_domain_sha256,
+        &package.scope,
+        &policy.expected_reference_measurement_profile_sha256,
     )?;
     validate_manifest(
         &package.confirmatory,
         DatasetSplit::Confirmatory,
-        &package.scope.operating_domain_sha256,
+        &package.scope,
+        &policy.expected_reference_measurement_profile_sha256,
     )?;
     if package.calibration.manifest_sha256 == package.confirmatory.manifest_sha256
         || intersects(
@@ -381,7 +416,8 @@ pub fn evaluate(
         validate_manifest(
             development,
             DatasetSplit::Development,
-            &package.scope.operating_domain_sha256,
+            &package.scope,
+            &policy.expected_reference_measurement_profile_sha256,
         )?;
         if development.manifest_sha256 == package.calibration.manifest_sha256
             || development.manifest_sha256 == package.confirmatory.manifest_sha256
