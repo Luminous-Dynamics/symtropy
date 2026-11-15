@@ -841,7 +841,8 @@ fn compute(case: &Value) -> Result<Value, String> {
         | "WL-T0-030-economics-unadmitted-cost-ledger"
         | "WL-T0-031-economics-income-unavailable"
         | "WL-T0-032-economics-use-profile-mismatch"
-        | "WL-T0-033-economics-low-cost-service-floor-failure" => compute_water_economics(input),
+        | "WL-T0-033-economics-low-cost-service-floor-failure"
+        | "WL-T0-034-economics-tariff-billing-period-mismatch" => compute_water_economics(input),
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
 }
@@ -1135,7 +1136,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twenty_five_cases_match_the_separate_oracle() {
+    fn all_thirty_four_cases_match_the_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluation completes");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1240,7 +1241,7 @@ mod tests {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &oracle)
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 32);
+        assert_eq!(result["matched_case_count"], 33);
         assert_eq!(
             result["mismatches"].as_array().expect("mismatches").len(),
             1
