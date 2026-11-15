@@ -229,8 +229,7 @@ impl IntegerFrame2V1 {
 
     pub fn inverse_basis(&self) -> Matrix2 {
         let [[a, b], [c, d]] = self.basis_to_physical;
-        let determinant = i128::from(a) * i128::from(d)
-            - i128::from(b) * i128::from(c);
+        let determinant = i128::from(a) * i128::from(d) - i128::from(b) * i128::from(c);
         let determinant = determinant as f64;
         [
             [d as f64 / determinant, -(b as f64) / determinant],
@@ -294,8 +293,7 @@ fn multiply(left: Matrix2, right: Matrix2) -> Matrix2 {
     let mut result = [[0.0; 2]; 2];
     for (row, output_row) in result.iter_mut().enumerate() {
         for (column, output) in output_row.iter_mut().enumerate() {
-            *output = left[row][0] * right[0][column]
-                + left[row][1] * right[1][column];
+            *output = left[row][0] * right[0][column] + left[row][1] * right[1][column];
         }
     }
     result
@@ -319,7 +317,11 @@ fn matrix_inf(matrix: Matrix2) -> f64 {
         .fold(0.0, f64::max)
 }
 
-fn solve(matrix: Matrix2, rhs: Vector2, profile: EffectiveMetricProfileV1) -> Result<Vector2, EffectiveMetricErrorV1> {
+fn solve(
+    matrix: Matrix2,
+    rhs: Vector2,
+    profile: EffectiveMetricProfileV1,
+) -> Result<Vector2, EffectiveMetricErrorV1> {
     let mut augmented = [
         [matrix[0][0], matrix[0][1], rhs[0]],
         [matrix[1][0], matrix[1][1], rhs[1]],
@@ -337,9 +339,7 @@ fn solve(matrix: Matrix2, rhs: Vector2, profile: EffectiveMetricProfileV1) -> Re
     let factor = augmented[1][0] / augmented[0][0];
     augmented[1][1] -= factor * augmented[0][1];
     augmented[1][2] -= factor * augmented[0][2];
-    if augmented[1][1].abs() <= profile.minimum_pivot
-        || !augmented[1][1].is_finite()
-    {
+    if augmented[1][1].abs() <= profile.minimum_pivot || !augmented[1][1].is_finite() {
         return Err(EffectiveMetricErrorV1::SingularSolve);
     }
     let second = augmented[1][2] / augmented[1][1];
@@ -350,13 +350,19 @@ fn solve(matrix: Matrix2, rhs: Vector2, profile: EffectiveMetricProfileV1) -> Re
     Ok([first, second])
 }
 
-fn inverse(matrix: Matrix2, profile: EffectiveMetricProfileV1) -> Result<Matrix2, EffectiveMetricErrorV1> {
+fn inverse(
+    matrix: Matrix2,
+    profile: EffectiveMetricProfileV1,
+) -> Result<Matrix2, EffectiveMetricErrorV1> {
     let first = solve(matrix, [1.0, 0.0], profile)?;
     let second = solve(matrix, [0.0, 1.0], profile)?;
     Ok([[first[0], second[0]], [first[1], second[1]]])
 }
 
-fn condition_inf(matrix: Matrix2, profile: EffectiveMetricProfileV1) -> Result<f64, EffectiveMetricErrorV1> {
+fn condition_inf(
+    matrix: Matrix2,
+    profile: EffectiveMetricProfileV1,
+) -> Result<f64, EffectiveMetricErrorV1> {
     let result = matrix_inf(matrix) * matrix_inf(inverse(matrix, profile)?);
     if !result.is_finite() {
         return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
@@ -450,8 +456,8 @@ pub fn solve_discrete_step(
         reconstructed[0] - right_hand_side[0],
         reconstructed[1] - right_hand_side[1],
     ];
-    let backward_scale = matrix_inf(effective_metric) * vector_inf(next_velocity)
-        + vector_inf(right_hand_side);
+    let backward_scale =
+        matrix_inf(effective_metric) * vector_inf(next_velocity) + vector_inf(right_hand_side);
     if residual.iter().any(|value| !value.is_finite()) || !backward_scale.is_finite() {
         return Err(EffectiveMetricErrorV1::ArithmeticOverflow);
     }
@@ -568,14 +574,8 @@ mod tests {
     fn effective_metric_is_exact_declared_m_plus_h_d_plus_h_squared_k() {
         let problem = fixture(0.5);
         let expected = [
-            [
-                2.0 + 0.5 * 0.4 + 0.25 * 4.0,
-                0.2 + 0.5 * 0.1 - 0.25,
-            ],
-            [
-                0.2 + 0.5 * 0.1 - 0.25,
-                1.5 + 0.5 * 0.3 + 0.25 * 2.0,
-            ],
+            [2.0 + 0.5 * 0.4 + 0.25 * 4.0, 0.2 + 0.5 * 0.1 - 0.25],
+            [0.2 + 0.5 * 0.1 - 0.25, 1.5 + 0.5 * 0.3 + 0.25 * 2.0],
         ];
         let actual = problem.effective_metric().unwrap();
         for (actual_row, expected_row) in actual.iter().zip(expected.iter()) {
@@ -717,10 +717,12 @@ mod tests {
         let canonical = solve_discrete_step(&physical, profile).unwrap();
         let wrong_result = solve_discrete_step(&wrong, profile).unwrap();
         let lifted = apply(frame.basis(), wrong_result.next_velocity);
-        assert!(vector_inf([
-            canonical.next_velocity[0] - lifted[0],
-            canonical.next_velocity[1] - lifted[1]
-        ]) > 1.0e-5);
+        assert!(
+            vector_inf([
+                canonical.next_velocity[0] - lifted[0],
+                canonical.next_velocity[1] - lifted[1]
+            ]) > 1.0e-5
+        );
     }
 
     #[test]
@@ -734,8 +736,7 @@ mod tests {
         let mut wrong_damping = correct_problem.clone();
         wrong_damping.damping = physical.damping;
         let wrong_damping_result = solve_discrete_step(&wrong_damping, profile).unwrap();
-        let lifted_damping_velocity =
-            apply(frame.basis(), wrong_damping_result.next_velocity);
+        let lifted_damping_velocity = apply(frame.basis(), wrong_damping_result.next_velocity);
         assert!(
             vector_inf([
                 canonical.next_velocity[0] - lifted_damping_velocity[0],
@@ -746,8 +747,7 @@ mod tests {
         let mut wrong_stiffness = correct_problem;
         wrong_stiffness.stiffness = physical.stiffness;
         let wrong_stiffness_result = solve_discrete_step(&wrong_stiffness, profile).unwrap();
-        let lifted_stiffness_velocity =
-            apply(frame.basis(), wrong_stiffness_result.next_velocity);
+        let lifted_stiffness_velocity = apply(frame.basis(), wrong_stiffness_result.next_velocity);
         assert!(
             vector_inf([
                 canonical.next_velocity[0] - lifted_stiffness_velocity[0],
@@ -763,14 +763,15 @@ mod tests {
         let mut wrong = problem.mass;
         for (row, wrong_row) in wrong.iter_mut().enumerate() {
             for (column, value) in wrong_row.iter_mut().enumerate() {
-                *value += 0.5 * problem.damping[row][column]
-                    + 0.5 * problem.stiffness[row][column];
+                *value += 0.5 * problem.damping[row][column] + 0.5 * problem.stiffness[row][column];
             }
         }
-        assert!(matrix_inf([
-            [correct[0][0] - wrong[0][0], correct[0][1] - wrong[0][1]],
-            [correct[1][0] - wrong[1][0], correct[1][1] - wrong[1][1]]
-        ]) > 0.1);
+        assert!(
+            matrix_inf([
+                [correct[0][0] - wrong[0][0], correct[0][1] - wrong[0][1]],
+                [correct[1][0] - wrong[1][0], correct[1][1] - wrong[1][1]]
+            ]) > 0.1
+        );
     }
 
     #[test]
