@@ -196,7 +196,7 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The original core suite contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. Additional suites add 7 block-coverage kernel tests, 13 spatial-localization/Moran tests and 6 CLI receipt-adapter tests, for 170 authored Rust test functions in total. All remain subject to exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The original core suite contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. Additional suites add 7 block-coverage kernel tests, 15 spatial-localization/Moran/k-neighbour tests and 7 CLI receipt-adapter tests, for 173 authored Rust test functions in total. All remain subject to exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
 
 
 ## Spatial localization and residual autocorrelation kernels
@@ -231,3 +231,9 @@ cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/
 The CLI emits source-manifest SHA-256, per-case checks and explicit claim ceilings. Success result names are `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE` and `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`. These are synthetic arithmetic/diagnostic receipts only; neither claims ecological calibration, spatial conditional validity, independent block structure or field performance.
 
 The `forest_corpus_receipts` module adds mutation tests for interval-oracle corruption, pseudo-replication acceptance, local undercoverage mutation and Moran reference mutation. Those tests are authored but have not been run in the current environment.
+
+# Optional k-nearest-neighbour spatial diagnostic
+
+The spatial-localization corpus now includes an optional `nearest_neighbor_count`. When present, the validator limits the Gaussian diagnostic to the nearest k calibration records and records the selected physical neighbourhood radius. This is a diagnostic control; it must not be described as implementing the statistical guarantees of spconform. The new frozen fixture demonstrates a pooled radius of 50 versus a k=12 local diagnostic radius of 0.5 over an 11 m neighbourhood.
+
+The package now has 173 authored Rust test functions: 144 original core tests, 7 block-coverage kernel tests, 15 spatial localization/Moran/k-neighbour tests, and 7 CLI receipt-adapter tests. They remain authored but unexecuted until exact-head Rust verification.
