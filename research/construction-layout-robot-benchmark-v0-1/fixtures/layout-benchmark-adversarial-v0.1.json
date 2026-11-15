@@ -1,0 +1,207 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "construction-layout-robot-benchmark-adversarial-v0.1",
+  "owner_issue": 3523,
+  "evidence_class": "synthetic",
+  "cases": [
+    {
+      "case_id": "LAYOUT-001",
+      "name": "matched-valid-work-package",
+      "input": {
+        "design_revision_matches": true,
+        "site_epoch_current": true,
+        "target_frame_matches": true,
+        "transform_digest_matches": true,
+        "robot_configuration_current": true,
+        "acceptance_profile_matches": true,
+        "measurement_uncertainty_ratio": 0.2,
+        "planned_features": 100,
+        "accepted_accessible_features": 95,
+        "blocked_features": 5,
+        "prep_hours": 4,
+        "setup_hours": 1,
+        "operation_hours": 3,
+        "inspection_hours": 1,
+        "rework_hours": 0.5
+      },
+      "expected": "eligible_for_independent_acceptance_evaluation",
+      "must_not_emit": [
+        "robot_self_accepted"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-002",
+      "name": "stale-design-revision",
+      "input": {
+        "design_revision_matches": false
+      },
+      "expected": "reject_stale_context",
+      "must_not_emit": [
+        "dispatch_admitted",
+        "accepted_output"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-003",
+      "name": "site-epoch-invalidated",
+      "input": {
+        "site_epoch_current": false
+      },
+      "expected": "reject_stale_context",
+      "must_not_emit": [
+        "dispatch_admitted"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-004",
+      "name": "coordinate-frame-mismatch",
+      "input": {
+        "target_frame_matches": false
+      },
+      "expected": "reject_spatial_context",
+      "must_not_emit": [
+        "measurement_comparable"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-005",
+      "name": "transform-bundle-changed",
+      "input": {
+        "transform_digest_matches": false
+      },
+      "expected": "reject_spatial_context",
+      "must_not_emit": [
+        "measurement_comparable"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-006",
+      "name": "uncertainty-too-large-for-decision-margin",
+      "input": {
+        "measurement_uncertainty_ratio": 0.7
+      },
+      "expected": "measurement_indeterminate_or_requalify",
+      "must_not_emit": [
+        "confident_pass"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-007",
+      "name": "preparation-time-omitted",
+      "input": {
+        "recorded_prep_hours": 0,
+        "known_prep_hours": 4,
+        "setup_hours": 1,
+        "operation_hours": 3,
+        "inspection_hours": 1,
+        "rework_hours": 0.5
+      },
+      "expected": "reject_incomplete_workflow_accounting",
+      "must_not_emit": [
+        "comparable_total_workflow_productivity"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-008",
+      "name": "blocked-features-removed-from-total-denominator",
+      "input": {
+        "planned_features": 100,
+        "accepted_features": 95,
+        "blocked_features": 5,
+        "reported_planned_features": 95
+      },
+      "expected": "reject_denominator_mismatch",
+      "must_not_emit": [
+        "total_scope_coverage_pass"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-009",
+      "name": "vendor-tolerance-substitution",
+      "input": {
+        "project_tolerance_mm": 3,
+        "vendor_advertised_tolerance_mm": 1.6,
+        "applied_tolerance_mm": 1.6
+      },
+      "expected": "reject_acceptance_profile_substitution",
+      "must_not_emit": [
+        "project_tolerance_pass"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-010",
+      "name": "executor-finished-without-independent-receipt",
+      "input": {
+        "executor_reported_finished": true,
+        "physical_measurement_receipt": false,
+        "independent_inspection_receipt": false
+      },
+      "expected": "executor_reported_finished_only",
+      "must_not_emit": [
+        "accepted_output"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-011",
+      "name": "manual-baseline-different-geometry",
+      "input": {
+        "manual_design_digest": "design-A",
+        "robot_design_digest": "design-B"
+      },
+      "expected": "reject_unmatched_comparison",
+      "must_not_emit": [
+        "productivity_superiority_claim"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-012",
+      "name": "missing-instrument-calibration-evidence",
+      "input": {
+        "instrument_calibration_valid": false
+      },
+      "expected": "measurement_evidence_inadmissible",
+      "must_not_emit": [
+        "independent_acceptance"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-013",
+      "name": "unit-conversion-loss",
+      "input": {
+        "source_unit": "mm",
+        "target_unit": "m",
+        "conversion_exact": false
+      },
+      "expected": "reject_semantic_loss",
+      "must_not_emit": [
+        "dispatch_admitted"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-014",
+      "name": "accessible-and-total-coverage-separated",
+      "input": {
+        "planned_features": 100,
+        "accessible_features": 90,
+        "accepted_accessible_features": 90,
+        "blocked_features": 10
+      },
+      "expected": "accessible_coverage_100_percent_total_coverage_90_percent",
+      "must_not_emit": [
+        "omit_blocked_scope"
+      ]
+    },
+    {
+      "case_id": "LAYOUT-015",
+      "name": "lifecycle-cost-excludes-downtime-and-rework",
+      "input": {
+        "downtime_cost_included": false,
+        "rework_cost_included": false
+      },
+      "expected": "reject_incomplete_lifecycle_cost",
+      "must_not_emit": [
+        "comparable_cost_per_accepted_unit"
+      ]
+    }
+  ]
+}
