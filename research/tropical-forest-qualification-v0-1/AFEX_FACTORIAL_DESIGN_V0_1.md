@@ -8,7 +8,7 @@
 
 ## 1. Why AFEX is the next empirical pilot
 
-The official EIDC candidate is *Tree census and diameter increment in fertilised plots in the Central Amazon, 2017–2020*, DOI [10.5285/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3](https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3). Its record describes annual tree inventories in 2017–2019, dendrometer-band circumference readings on 1,299 trees from April 2018 to January 2020, and recruitment/mortality observations. The record states Open Government Licence; attribution remains required.
+The official EIDC candidate is *Tree census and diameter increment in fertilised plots in the Central Amazon, 2017–2020*, DOI [10.5285/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3](https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3). Its record specifies annual inventories in 2017–2019 (May in 2018/2019; June–November in 2017), trees with DBH >10 cm measured at 1.3 m unless buttresses/deformities require a different height, recruitment as new individuals reaching 10 cm DBH, and recorded mortality. Dendrometer bands were installed on 1,299 trees; circumference-window distance (mm) was read with a digital caliper from April 2018 through January 2020 on an irregular schedule. The instrument is humidity-sensitive and readings were not collected during rain. The EIDC record states Open Government Licence and requires dataset citation/attribution.
 
 The companion AFEX experiment describes a randomized complete-block, fully factorial manipulation of nitrogen (N), phosphorus (P), and cations (C), with eight treatment combinations and four blocks/replicates. This yields a candidate design of 32 plot-level assignment units. This expected allocation must be confirmed against the released files and protocol before any treatment estimate is admitted.
 
@@ -57,7 +57,7 @@ Potential outcomes include:
 - litterfall and nutrient cycling where compatible companion observations are admitted;
 - canopy/LAI observations where their dates and spatial support align.
 
-Do not equate raw circumference-window movement with DBH or biomass increment without the instrument's measurement operator and an explicit allometric transformation. Dendrometer dates are irregular; interval durations must be preserved. Rain-related missing readings, instrument resets, lost bands, tree death and other missingness must be distinguished.
+Do not equate raw circumference-window distance (mm) with circumference increment, DBH increment or biomass increment without reconstructing the instrument reading convention, band geometry, calibration and any allometric transformation. The EIDC data describe window distance, not a ready-made annual biomass-growth series. Preserve exact observation timestamps and interval durations. Rain-related uncollected readings, instrument resets, lost bands, tree death and other missingness must be distinguished; a missing reading is never numeric zero.
 
 Growth, recruitment and mortality must remain separate response channels. A treatment may affect one before another, and total biomass alone can conceal compensating responses. Compose their downstream qualification with #5340, #5349 and #5360 instead of implementing another flux engine.
 
