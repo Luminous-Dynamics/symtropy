@@ -506,3 +506,89 @@ fn missing_calibration_does_not_create_a_fusion_time_claim_gap() {
     assert_eq!(result.disposition, TemporalDisposition::BoundedFusionTimeEligible);
     assert!(result.gaps.contains(&TemporalGap::CalibrationProfileMissing));
 }
+
+
+#[test]
+fn one_sensor_cannot_claim_cross_modal_time_qualification() {
+    let only = sensor(
+        "cw-only",
+        SensorModality::ContinuousWaveRadar,
+        1,
+        Some(window(0, 100_000, 10)),
+    );
+    let result = evaluate_cycle(&[only], &hardware_policy()).unwrap();
+    assert_eq!(result.disposition, TemporalDisposition::ModalitySpecificOnly);
+    assert!(result.gaps.contains(&TemporalGap::InsufficientSensors));
+}
+
+#[test]
+fn overlapping_start_and_end_uncertainty_is_not_a_valid_capture_window() {
+    let mut first = sensor(
+        "cw-1",
+        SensorModality::ContinuousWaveRadar,
+        1,
+        Some(window(0, 100_000, 10)),
+    );
+    first.capture_window = Some(CaptureWindow {
+        start: TimeInterval {
+            lower_ns: 0,
+            upper_ns: 100,
+        },
+        end: TimeInterval {
+            lower_ns: 50,
+            upper_ns: 150,
+        },
+    });
+    let second = sensor(
+        "rf-1",
+        SensorModality::RfReceiver,
+        2,
+        Some(window(200, 100_200, 10)),
+    );
+
+    let result = evaluate_cycle(&[first, second], &hardware_policy()).unwrap();
+    assert_eq!(result.disposition, TemporalDisposition::Indeterminate);
+    assert!(result.gaps.contains(&TemporalGap::InvalidCaptureWindow));
+}
+
+#[test]
+fn missing_calibration_is_separate_from_valid_clock_alignment() {
+    let mut first = sensor(
+        "cw-1",
+        SensorModality::ContinuousWaveRadar,
+        1,
+        Some(window(0, 100_000, 10)),
+    );
+    let second = sensor(
+        "rf-1",
+        SensorModality::RfReceiver,
+        2,
+        Some(window(10, 100_010, 10)),
+    );
+    first.calibration_profile_sha256 = None;
+
+    let result = evaluate_cycle(&[first, second], &hardware_policy()).unwrap();
+    assert_eq!(result.disposition, TemporalDisposition::BoundedFusionTimeEligible);
+    assert!(!result.measurement_metadata_complete);
+    assert!(result.gaps.contains(&TemporalGap::CalibrationProfileMissing));
+}
+
+#[test]
+fn complete_calibration_metadata_is_reported_separately() {
+    let first = sensor(
+        "cw-1",
+        SensorModality::ContinuousWaveRadar,
+        1,
+        Some(window(0, 100_000, 10)),
+    );
+    let second = sensor(
+        "rf-1",
+        SensorModality::RfReceiver,
+        2,
+        Some(window(10, 100_010, 10)),
+    );
+
+    let result = evaluate_cycle(&[first, second], &hardware_policy()).unwrap();
+    assert!(result.measurement_metadata_complete);
+    assert_eq!(result.disposition, TemporalDisposition::BoundedFusionTimeEligible);
+}
