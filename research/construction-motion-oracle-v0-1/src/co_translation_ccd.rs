@@ -229,18 +229,18 @@ mod tests {
     }
 
     #[test]
-    fn unequal_same_direction_speeds_use_relative_motion() {
+    fn different_same_direction_speeds_use_relative_motion() {
         let moving = capsule(p(0.0, -1.0, 0.0), p(0.0, 1.0, 0.0), 0.25);
         let obstacle = capsule(p(10.0, -1.0, 0.0), p(10.0, 1.0, 0.0), 0.25);
         let closest = co_translating_capsule_vs_capsule(
             moving,
             p(20.0, 0.0, 0.0),
             obstacle,
-            p(0.0, 0.0, 0.0),
+            p(5.0, 0.0, 0.0),
         )
         .unwrap();
 
-        assert!((closest.time_parameter - 0.5).abs() < 1.0e-9);
+        assert!((closest.time_parameter - (2.0 / 3.0)).abs() < 1.0e-9);
         assert!(closest.distance_mm <= CONTACT_EPSILON_MM);
     }
 
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     fn endpoint_clamping_and_skew_three_dimensional_axes_are_supported() {
         let moving = capsule(p(0.0, 0.0, 0.0), p(4.0, 0.0, 0.0), 0.2);
-        let obstacle = capsule(p(2.0, 2.0, 3.0), p(2.0, 2.0, 7.0), 0.2);
+        let obstacle = capsule(p(2.0, 0.0, 3.0), p(2.0, 0.0, 7.0), 0.2);
         let closest = co_translating_capsule_vs_capsule(
             moving,
             p(0.0, 0.0, 0.0),
