@@ -3,7 +3,7 @@ use aeroweift_pnt_reachability_adapter::{
     IndependenceAssessment, NavigationClaim, NotAssessableReason, PntServiceState, PositionBounds,
     VelocityBounds, evaluate,
 };
-use aeroweift_reachability_core::Interval;
+use aeroweft_reachability_core::Interval;
 
 const GOLDEN_FIXTURE: &str =
     include_str!("../../../fixtures/aeroweift-pnt-reachability/tiny-pnt-time-envelope-v0.json");
