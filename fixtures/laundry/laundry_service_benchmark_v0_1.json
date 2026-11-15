@@ -403,6 +403,26 @@
       ]
     },
     {
+      "id": "SPIN-TO-DRYER-ENERGY-TRADE",
+      "system_boundary": "paired_system",
+      "unit": "kWh dryer electricity/kg additional water removed upstream",
+      "denominator": "additional residual water removed from the same textile load by washer spin relative to the frozen control",
+      "direction": "minimize",
+      "method": "Run matched and randomized spin conditions; measure washer energy and residual moisture gravimetrically, then dry each load to the same final-moisture endpoint and measure dryer electricity and elapsed time. Report paired net energy, textile gentleness, vibration, noise and imbalance.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "Measure the empirical change rather than assume a conversion. An illustrative 8 kg calculation for 53.9% to 45.0% residual moisture gives 0.712 kg less water; latent-heat and illustrative COP assumptions imply 0.15–0.23 kWh electrical equivalent, not a product-saving prediction.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Subtract any added washer spin energy when reporting paired net energy.",
+        "Same load, final moisture and cleaning/rinse/fabric-care acceptance are required.",
+        "No high-spin strategy wins if vibration, noise, fabric damage or reliability regress."
+      ]
+    },
+    {
       "id": "PAIRED-ENERGY",
       "system_boundary": "paired_system",
       "unit": "kWh/kg accepted dry-equivalent textile",
