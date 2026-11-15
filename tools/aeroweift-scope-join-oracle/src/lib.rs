@@ -332,10 +332,16 @@ pub fn join_scope(input: &JoinInput) -> ScopeJoinResult {
             .iter()
             .filter(|claim| claim.query_id == requirement.query_id);
         let Some(claim) = matches.next() else {
-            return blocked(input, Reason::MissingSurveillanceClaim(requirement.query_id));
+            return blocked(
+                input,
+                Reason::MissingSurveillanceClaim(requirement.query_id),
+            );
         };
         if matches.next().is_some() {
-            return blocked(input, Reason::DuplicateSurveillanceClaim(requirement.query_id));
+            return blocked(
+                input,
+                Reason::DuplicateSurveillanceClaim(requirement.query_id),
+            );
         }
         if claim.evaluation_id != request.operation.evaluation_id
             || claim.airspace_id != requirement.airspace_id
@@ -343,10 +349,16 @@ pub fn join_scope(input: &JoinInput) -> ScopeJoinResult {
             || claim.traffic_class != requirement.traffic_class
             || claim.query_window != requirement.window
         {
-            return blocked(input, Reason::SurveillanceQueryMismatch(requirement.query_id));
+            return blocked(
+                input,
+                Reason::SurveillanceQueryMismatch(requirement.query_id),
+            );
         }
         if !claim.validity_window.is_valid() {
-            return blocked(input, Reason::InvalidSurveillanceValidity(requirement.query_id));
+            return blocked(
+                input,
+                Reason::InvalidSurveillanceValidity(requirement.query_id),
+            );
         }
         if !claim.validity_window.covers(requirement.window) {
             return blocked(
@@ -358,10 +370,16 @@ pub fn join_scope(input: &JoinInput) -> ScopeJoinResult {
             return blocked(input, Reason::MissingCoverageReceipt(requirement.query_id));
         }
         if !has_reference(claim.dependency_snapshot_ref) {
-            return blocked(input, Reason::MissingDependencySnapshot(requirement.query_id));
+            return blocked(
+                input,
+                Reason::MissingDependencySnapshot(requirement.query_id),
+            );
         }
         if !identity_is_complete(claim.identity) || claim.identity != request.identity {
-            return blocked(input, Reason::SurveillanceIdentityMismatch(requirement.query_id));
+            return blocked(
+                input,
+                Reason::SurveillanceIdentityMismatch(requirement.query_id),
+            );
         }
         if claim.received_at > request.as_of_tick {
             return blocked(
@@ -396,7 +414,10 @@ pub fn join_scope(input: &JoinInput) -> ScopeJoinResult {
     }
 
     for claim in &input.surveillance_claims {
-        if !requirements.iter().any(|item| item.query_id == claim.query_id) {
+        if !requirements
+            .iter()
+            .any(|item| item.query_id == claim.query_id)
+        {
             return blocked(input, Reason::UnexpectedSurveillanceClaim(claim.query_id));
         }
     }
