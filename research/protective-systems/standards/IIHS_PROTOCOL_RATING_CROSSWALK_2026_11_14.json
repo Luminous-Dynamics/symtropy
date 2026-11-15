@@ -1,0 +1,61 @@
+{
+  "schema_version": "protective-systems-vehicle-protocol-crosswalk/0.1",
+  "checked_on": "2026-11-14",
+  "source": "https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information",
+  "purpose": "Reproducible vehicle benchmark protocol identity. Test protocol and rating guidelines are separate versioned artifacts.",
+  "entries": [
+    {
+      "test_family": "moderate_overlap_front_2_0",
+      "test_protocol": {"version": "II", "published": "2025-05"},
+      "rating_guidelines": {"version": "III", "published": "2026-02"},
+      "source_links": [
+        "https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information"
+      ],
+      "applicability_note": "Bind the test protocol and rating guidance independently; do not infer either version from a generic 2026 label."
+    },
+    {
+      "test_family": "small_overlap_front",
+      "test_protocol": {"version": "VIII", "published": "2025-05"},
+      "rating_guidelines": {"version": "VII", "published": "2024-04"},
+      "source_links": [
+        "https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information"
+      ],
+      "applicability_note": "Test protocol and rating guidelines have different publication dates."
+    },
+    {
+      "test_family": "side_impact_2_0",
+      "test_protocol": {"version": "III", "published": "2025-05"},
+      "rating_guidelines": {"version": "IV", "published": "2024-04"},
+      "source_links": [
+        "https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information"
+      ],
+      "applicability_note": "Bind test and rating protocol separately; declare vehicle class/model year and any program applicability conditions."
+    },
+    {
+      "test_family": "whiplash_prevention",
+      "test_protocol": {"version": "II", "published": "2026-08"},
+      "rating_guidelines": {"version": "II", "published": "2026-08"},
+      "source_links": [
+        "https://www.iihs.org/ratings/about-our-tests/test-protocols-and-technical-information"
+      ],
+      "applicability_note": "Both versions are II, but the two artifacts remain semantically distinct."
+    }
+  ],
+  "required_record_fields": [
+    "organization",
+    "program",
+    "test_family",
+    "test_protocol_version",
+    "test_protocol_publication_date",
+    "rating_guidelines_version",
+    "rating_guidelines_publication_date",
+    "vehicle_make_model_model_year_trim",
+    "vehicle_class",
+    "powertrain",
+    "mass_and_configuration",
+    "market_jurisdiction",
+    "source_record_uri",
+    "retrieval_date"
+  ],
+  "claim_boundary": "This crosswalk identifies published protocol/rating artifacts only. It does not establish a vehicle rating, modification approval, regulatory compliance, or safety improvement."
+}

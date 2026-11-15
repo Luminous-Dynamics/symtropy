@@ -1,0 +1,41 @@
+{
+  "schema_version": "protective-robust/0.1",
+  "evidence_class": "synthetic",
+  "task_id": "FINITE_COMPOUND_HAZARD_DESIGN_001",
+  "uncertainty_set_complete": true,
+  "cvar_alpha": 0.8,
+  "scenarios": [
+    "NOMINAL",
+    "COMPOUND_HAZARD",
+    "DISTRIBUTION_SHIFT"
+  ],
+  "ambiguity_set": [
+    {
+      "distribution_id": "HISTORICAL_LIKE",
+      "probabilities": [0.9, 0.1, 0.0]
+    },
+    {
+      "distribution_id": "SHIFTED_REGIME",
+      "probabilities": [0.5, 0.25, 0.25]
+    }
+  ],
+  "designs": [
+    {
+      "design_id": "NOMINAL_OPTIMUM",
+      "loss_by_scenario": [1.0, 10.0, 18.0],
+      "hard_safety_floor_satisfied": [true, true, true]
+    },
+    {
+      "design_id": "ROBUST_DESIGN",
+      "loss_by_scenario": [3.0, 5.0, 8.0],
+      "hard_safety_floor_satisfied": [true, true, true]
+    },
+    {
+      "design_id": "CHEAP_FRAGILE_DESIGN",
+      "loss_by_scenario": [0.5, 1.0, 0.5],
+      "hard_safety_floor_satisfied": [true, true, false]
+    }
+  ],
+  "expected_disposition": "ROBUST_FEASIBLE_DESIGN_SELECTED",
+  "expected_best_design_id": "ROBUST_DESIGN"
+}
