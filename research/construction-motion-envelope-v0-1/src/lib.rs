@@ -655,6 +655,7 @@ mod tests {
         assert_eq!(x.canonical_bytes(), y.canonical_bytes());
         let mut c = context();
         c.tool_config_sha256 = "9".repeat(64);
+        c.expected_primitive_ids = vec!["base".into(), "tool".into()];
         assert_ne!(
             x.canonical_bytes(),
             build(&c, &[a, b]).unwrap().canonical_bytes()
@@ -725,8 +726,10 @@ mod tests {
             Point3Mm { x: 9, y: 0, z: 0 },
             Point3Mm { x: 20, y: 0, z: 0 },
         );
+        let mut only_base_context = context();
+        only_base_context.expected_primitive_ids = vec!["base".into()];
         assert!(matches!(
-            build(&ctx, &[a, d]),
+            build(&only_base_context, &[a, d]),
             Err(ErrorKind::CenterDiscontinuity(_))
         ));
     }
