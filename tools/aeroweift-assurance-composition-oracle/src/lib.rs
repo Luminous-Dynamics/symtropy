@@ -151,12 +151,20 @@ fn blocked(input: &CompositionInput, decision: Decision, reason: Reason) -> Comp
         decision,
         reason: Some(reason),
         class_occupancy: Vec::new(),
-        source_snapshot: input.clone(),
+        source_snapshot: canonical_snapshot(input),
     }
 }
 
 fn not_assessable(input: &CompositionInput, reason: Reason) -> CompositionResult {
     blocked(input, Decision::NotAssessable, reason)
+}
+
+/// Retain all submitted evidence while making non-semantic list order deterministic.
+fn canonical_snapshot(input: &CompositionInput) -> CompositionInput {
+    let mut snapshot = input.clone();
+    snapshot.required_traffic_classes.sort_unstable();
+    snapshot.surveillance.sort_by_key(|evidence| evidence.traffic_class);
+    snapshot
 }
 
 fn identity_is_complete(identity: EvidenceIdentity) -> bool {
