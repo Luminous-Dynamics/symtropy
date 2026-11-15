@@ -925,7 +925,9 @@ fn validate_block_conformal_corpus(
     let claim_ceiling = string_at(manifest, &["claim_ceiling"])?;
     let scenario_value = at(manifest, &["scenario"])?;
 
-    let training_group_ids = string_array_at(scenario_value, &["training_group_ids"])?;
+    let training_group_ids: Vec<String> = string_set_at(scenario_value, &["training_group_ids"])?
+        .into_iter()
+        .collect();
     let calibration_values = at(scenario_value, &["calibration_blocks"])?
         .as_array()
         .ok_or_else(|| "scenario.calibration_blocks must be an array".to_string())?;
