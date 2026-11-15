@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/megstructure-design-quality-cases-v0.1.schema.json",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/megastructure-design-quality-cases-v0.1.schema.json",
   "title": "Synthetic Megastructure Design Quality Cases v0.1",
   "type": "object",
   "additionalProperties": false,
