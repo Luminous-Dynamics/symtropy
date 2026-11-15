@@ -570,41 +570,28 @@ mod tests {
     #[test]
     fn complete_mix_zero_delay_matches_flow_weighted_concentration() {
         let x = row("EJH-T0-001-baseline-complete-mix");
-        assert_eq!(
-            x["hook_disposition"],
-            "CLOSED_WITHIN_DECLARED_UNCERTAINTY"
-        );
-        assert_eq!(
-            x["baseline_complete_mix_concentration_kg_per_m3"],
-            0.003
-        );
+        assert_eq!(x["hook_disposition"], "CLOSED_WITHIN_DECLARED_UNCERTAINTY");
+        assert_eq!(x["baseline_complete_mix_concentration_kg_per_m3"], 0.003);
     }
 
     #[test]
     fn segment_mass_uses_consumed_portion_not_full_segment_volume() {
         let x = row("EJH-T0-002-multiple-leading-segments");
-        assert!(
-            (x["incoming_segment_mass_kg"].as_f64().unwrap() - 0.006).abs() < 1.0e-12
-        );
+        assert!((x["incoming_segment_mass_kg"].as_f64().unwrap() - 0.006).abs() < 1.0e-12);
     }
 
     #[test]
     fn supported_mass_booster_contribution_is_counted_once() {
         let x = row("EJH-T0-003-mass-booster");
         assert_eq!(x["external_source_mass_kg"], 0.001);
-        assert_eq!(
-            x["hook_disposition"],
-            "CLOSED_WITHIN_DECLARED_UNCERTAINTY"
-        );
+        assert_eq!(x["hook_disposition"], "CLOSED_WITHIN_DECLARED_UNCERTAINTY");
     }
 
     #[test]
     fn concentration_source_volume_and_mass_are_both_counted() {
         let x = row("EJH-T0-004-concentration-source");
         assert_eq!(x["external_source_volume_m3"], 0.1);
-        assert!(
-            (x["external_source_mass_kg"].as_f64().unwrap() - 0.0002).abs() < 1e-12
-        );
+        assert!((x["external_source_mass_kg"].as_f64().unwrap() - 0.0002).abs() < 1e-12);
     }
 
     #[test]
@@ -634,9 +621,7 @@ mod tests {
     fn open_mass_residual_is_signed_and_not_normalized() {
         let x = row("EJH-T0-008-open-mass-residual");
         assert_eq!(x["hook_disposition"], "OPEN_MASS_RESIDUAL");
-        assert!(
-            (x["mass_balance_residual_kg"].as_f64().unwrap() - 0.002).abs() < 1e-12
-        );
+        assert!((x["mass_balance_residual_kg"].as_f64().unwrap() - 0.002).abs() < 1e-12);
     }
 
     #[test]
