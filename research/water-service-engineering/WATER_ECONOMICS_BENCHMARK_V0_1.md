@@ -164,3 +164,35 @@ No model-generated income, inferred household traits, credit score or automatic 
 ## 8. Nonclaims
 
 This synthetic protocol does not qualify any current tariff, household bill, product price, installation, water-quality result, household affordability, savings, payback, energy intensity, public benefit or lifecycle advantage. It authorises no procurement, tariff, subsidy, loan, tenancy, installation or utility action.
+
+
+### Certified capacity is not the same as nominal treatment throughput
+
+An additional official comparison check matters here. The NSF official listing, current as of **14 November 2026**, lists **Hydraloop H350/H300 at 52.8 US gallons/day (about 200 L/day), Class R**, with the classification shown as “Laundry & Bathing”; H600 is listed at 260 US gallons/day. The H300 product page separately declares 360 L/day cleaning capacity and up to 45% water-use reduction.
+
+Those two capacity figures are not interchangeable. The 360 L/day is the product-page nominal treatment-capacity declaration; 52.8 US gallons/day is the standard listing's rated capacity for the certified Class R entry. Do not collapse them into one throughput value or infer a 360 L/day NSF certification from the page's separate headline number. Record both exact source, revision, unit, classification and claim scope; seek the manufacturer's underlying NSF test/technical documentation before treating them as matched measures.
+
+Using the annual 280 kWh declaration:
+- against the product-page 360 L/day nominal capacity: approximately **2.13 kWh per nominal m³**;
+- against the NSF listing's 52.8 US gallons/day (~0.200 m³/day): approximately **3.84 kWh per listed-rated-capacity m³**.
+
+Both are arithmetic normalizations combining different public declarations, **not measured energy per actual useful m³** and not proof that either denominator represents normal in-use throughput. The benchmark's answer is to measure electricity and quality-admitted end-use delivery on the same time boundary.
+
+The 2026 installation manual also explicitly says Hydraloop output is non-potable and warns against drinking use and cross-connections. NSF/ANSI 350 Class R is therefore not a drinking-water claim. The local benchmark must preserve separate use classes and must not compare this output with a potable-water service.
+
+Sources:
+- NSF Official Listings, NSF/ANSI 350, current listing: https://info.nsf.org/Certified/Wastewater/Listings.asp?Company=C0427542&Standard=350
+- Hydraloop H300 product page: https://www.hydraloop.com/h300
+- Hydraloop H300 2026 installation manual: https://static1.squarespace.com/static/6809d6b186796545157fbf2f/t/69e5a64534faab28389f1f69/1776658009052/Hydraloop%2BInstallation%2BPack%2B2026.pdf
+
+### Stats SA interruption denominators
+
+Keep two different GHS 2025 indicators separate:
+- **56.8%** reported at least one water interruption during 2025; 43.2% reported none.
+- **37.6%** met the report's longer-duration functionality threshold (interruptions lasting at least two days at a time or more than 15 days in total); Gauteng was 32.5%.
+
+The first is any interruption; the second is the longer-duration threshold. Neither is an address-level measured outage series.
+
+Sources:
+- Stats SA GHS 2025, Figure 9.5 and 9.6: https://www.statssa.gov.za/publications/P0318/P03182025.pdf
+- Stats SA GHS 2025 presentation: https://www.statssa.gov.za/publications/P0318/GHS%202025%20Presentation.pdf
