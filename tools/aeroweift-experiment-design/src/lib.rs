@@ -597,11 +597,6 @@ fn candidate_rejection_reasons(
     if candidate.selection_evidence_role != SelectionEvidenceRole::AdaptiveDevelopment {
         reasons.insert(RejectionReason::SealedEvidenceUsedForSelection);
     }
-    if candidate.objective == ExperimentObjective::ModelDiscrimination
-        && candidate.semantic_equivalence != SemanticEquivalence::Established
-    {
-        reasons.insert(RejectionReason::SemanticEquivalenceNotEstablished);
-    }
     if !validate_hypothesis_contract(candidate) {
         reasons.insert(RejectionReason::InvalidHypothesisContrast);
     }
@@ -702,10 +697,14 @@ fn candidate_rejection_reasons(
 ///
 /// Benefits are maximized, uninformative probability and cost are minimized.
 /// No scalar weighting or tie-breaking on different objective dimensions occurs.
-fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
+fn dominates(
+    left: &ExperimentCandidate,
+    right: &ExperimentCandidate,
+    minimum_pair_separation: f64,
+) -> bool {
     let no_worse = left.expected_uncertainty_reduction >= right.expected_uncertainty_reduction
         && left.expected_model_discrimination >= right.expected_model_discrimination
-        && independent_group_pair_count(left, 0.0) >= independent_group_pair_count(right, 0.0)
+        && independent_group_pair_count(left, minimum_pair_separation) >= independent_group_pair_count(right, minimum_pair_separation)
         && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
         && left.decision_relevance >= right.decision_relevance
         && left.probability_uninformative <= right.probability_uninformative
@@ -721,7 +720,7 @@ fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
     let strictly_better = left.expected_uncertainty_reduction
         > right.expected_uncertainty_reduction
         || left.expected_model_discrimination > right.expected_model_discrimination
-        || independent_group_pair_count(left, 0.0) > independent_group_pair_count(right, 0.0)
+        || independent_group_pair_count(left, minimum_pair_separation) > independent_group_pair_count(right, minimum_pair_separation)
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
         || left.decision_relevance > right.decision_relevance
         || left.probability_uninformative < right.probability_uninformative
@@ -737,12 +736,18 @@ fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
     no_worse && strictly_better
 }
 
-fn to_pareto(candidate: &ExperimentCandidate) -> ParetoCandidate {
+fn to_pareto(
+    candidate: &ExperimentCandidate,
+    minimum_pair_separation: f64,
+) -> ParetoCandidate {
     ParetoCandidate {
         candidate_id: candidate.candidate_id.clone(),
         expected_uncertainty_reduction: candidate.expected_uncertainty_reduction,
         expected_model_discrimination: candidate.expected_model_discrimination,
-        independent_hypothesis_group_pair_count: independent_group_pair_count(candidate, 0.0),
+        independent_hypothesis_group_pair_count: independent_group_pair_count(
+            candidate,
+            minimum_pair_separation,
+        ),
         worst_case_robust_reduction: candidate.worst_case_robust_reduction,
         decision_relevance: candidate.decision_relevance,
         probability_uninformative: candidate.probability_uninformative,
@@ -789,12 +794,16 @@ pub fn select_experiments(
         .copied()
         .filter(|candidate| {
             !admissible.iter().copied().any(|other| {
-                other.candidate_id != candidate.candidate_id && dominates(other, candidate)
+                other.candidate_id != candidate.candidate_id
+                    && dominates(other, candidate, policy.minimum_pair_separation)
             })
         })
         .collect();
 
-    let mut pareto_front: Vec<ParetoCandidate> = front.into_iter().map(to_pareto).collect();
+    let mut pareto_front: Vec<ParetoCandidate> = front
+        .into_iter()
+        .map(|candidate| to_pareto(candidate, policy.minimum_pair_separation))
+        .collect();
     pareto_front.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     rejected.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
 
