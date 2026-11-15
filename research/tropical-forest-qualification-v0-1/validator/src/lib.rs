@@ -21,6 +21,7 @@ pub mod forestpaths_crosswalk_kernel;
 pub mod afex_design_kernel;
 pub mod afex_root_turnover_kernel;
 pub mod afex_ratio_estimand_kernel;
+pub mod afex_root_pathway_tournament_kernel;
 pub mod afex_root_distribution_kernel;
 
 use sha2::{Digest, Sha256};
@@ -3878,6 +3879,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return afex_ratio_estimand_kernel::validate_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("AFEX-ROOT-PATHWAY-MODEL-TOURNAMENT-001")
+    {
+        return afex_root_pathway_tournament_kernel::validate_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("AFEX-ROOT-DISTRIBUTION-UQ-001")
     {
         return afex_root_distribution_kernel::validate_corpus(raw, &manifest);
@@ -4994,6 +5000,18 @@ mod tests {
         assert_eq!(receipt["result"], "PASS_SYNTHETIC_RATIO_ESTIMANDS");
         assert_eq!(receipt["valid_summary_count"], 2);
         assert_eq!(receipt["support_refusal_count"], 1);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
+    
+    #[test]
+    fn afex_root_pathway_tournament_dispatches_with_exact_manifest_receipt() {
+        let bytes = include_str!("../../cases/afex-root-pathway-model-tournament-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("AFEX root-pathway tournament dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_ROOT_PATHWAY_TOURNAMENT_SPEC");
+        assert_eq!(receipt["model_count"], 8);
+        assert_eq!(receipt["no_mediation_present"], true);
+        assert_eq!(receipt["omitted_mechanism_present"], true);
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
