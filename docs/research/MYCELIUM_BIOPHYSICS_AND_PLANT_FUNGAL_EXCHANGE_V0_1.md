@@ -276,7 +276,7 @@ A small manual-trace subset must not be represented as dense ground truth for th
 
 ### T8 — dynamic AMF graph and cytoplasmic-flow co-evolution
 
-Use the source-admitted Nature/Figshare dataset where its code/data versions and file-level rights are verified. The source register is `benchmarks/mycelium/amf-travelling-wave-source-admission-v0-1.json`; the reproduction and modelling work is tracked in [AMF-GRAPH-FLOW-QUAL-001 #5450](https://github.com/Luminous-Dynamics/symtropy/issues/5450).
+Use the source-admitted Nature/Figshare dataset where its code/data versions and file-level rights are verified. The source register is `benchmarks/mycelium/amf-travelling-wave-source-admission-v0-1.json`; the machine-readable six-track evaluation contract is `benchmarks/mycelium/amf-graph-flow-benchmark-v0-1.json`; the reproduction and modelling work is tracked in [AMF-GRAPH-FLOW-QUAL-001 #5450](https://github.com/Luminous-Dynamics/symtropy/issues/5450).
 
 Reproduce graph evolution and flow separately, then measure their coupling:
 - node/edge identity persistence, branching, anastomosis, spore/BAS structures and front movement;
