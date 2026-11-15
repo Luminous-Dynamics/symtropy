@@ -452,7 +452,9 @@ pub fn verify(
     }
     let mut required = policy.required_traffic_classes.clone();
     required.sort_unstable();
-    if required.windows(2).any(|pair| pair[0] == pair[1]) {
+    if required.windows(2).any(|pair| pair[0] == pair[1])
+        || !required.contains(&policy.subject_traffic_class)
+    {
         return Err(VerificationError::ProfileClassMismatch);
     }
 
@@ -609,6 +611,13 @@ pub fn verify(
         }
 
         if receipt.stage == Stage::ConflictScreening {
+            for edge in &receipt.parents {
+                if let ParentRole::TrafficOccupancy(class) = edge.role {
+                    if !required.contains(&class) {
+                        return Err(VerificationError::ProfileClassMismatch);
+                    }
+                }
+            }
             for class in &required {
                 let count = receipt
                     .parents
