@@ -32,7 +32,7 @@ pub enum VerificationStatusV1 {
     NotApplicable,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathematicalEvidenceClassV1 {
     LearnedProposal,
     SampledNumeric,
@@ -142,6 +142,8 @@ pub enum CompositionErrorV1 {
     InvalidTimestep,
     DuplicateEvidenceKind(EvidenceKindV1),
     UnexpectedCoordinateRelation(EvidenceKindV1),
+    UnexpectedMathematicalEvidenceClass(EvidenceKindV1),
+    UnexpectedPerturbationRadius(EvidenceKindV1),
     MissingCoordinateRelation,
     MissingEvidence(EvidenceKindV1),
     BindingMismatch(EvidenceKindV1),
@@ -349,10 +351,14 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
         (_, None) => {}
     }
 
-    if receipt.kind == EvidenceKindV1::NonlinearSensitivity
-        && receipt.valid_perturbation_radius_nanometers.is_none()
-    {
-        return Err(CompositionErrorV1::PerturbationRadiusInsufficient);
+    if receipt.kind == EvidenceKindV1::NonlinearSensitivity {
+        if receipt.valid_perturbation_radius_nanometers.is_none() {
+            return Err(CompositionErrorV1::PerturbationRadiusInsufficient);
+        }
+    } else if receipt.valid_perturbation_radius_nanometers.is_some() {
+        return Err(CompositionErrorV1::UnexpectedPerturbationRadius(
+            receipt.kind,
+        ));
     }
     if receipt.kind == EvidenceKindV1::MathematicalSymmetry
         && receipt.mathematical_evidence_class.is_none()
@@ -362,7 +368,7 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
     if receipt.kind != EvidenceKindV1::MathematicalSymmetry
         && receipt.mathematical_evidence_class.is_some()
     {
-        return Err(CompositionErrorV1::UnexpectedCoordinateRelation(
+        return Err(CompositionErrorV1::UnexpectedMathematicalEvidenceClass(
             receipt.kind,
         ));
     }
@@ -439,7 +445,14 @@ pub fn compose_evidence(
             let class = receipt
                 .mathematical_evidence_class
                 .ok_or(CompositionErrorV1::MathematicalEvidenceClassMissing)?;
-            if class < request.minimum_mathematical_evidence_class {
+            // Evidence classes are not a total strength ordering: an exact
+            // finite-group artifact does not prove a continuous Lie-basis
+            // obligation, and an exact polynomial identity is a different
+            // proposition. Formal proof may satisfy the requested class only
+            // because its source claim scope is independently bound above.
+            if class != request.minimum_mathematical_evidence_class
+                && class != MathematicalEvidenceClassV1::FormalProof
+            {
                 return Err(CompositionErrorV1::MathematicalEvidenceTooWeak);
             }
         }
@@ -804,6 +817,51 @@ mod tests {
         assert_eq!(
             compose_evidence(&request, &physical_receipts()),
             Err(CompositionErrorV1::MathematicalEvidenceTooWeak)
+        );
+    }
+
+    #[test]
+    fn different_exact_mathematical_evidence_kind_is_not_interchangeable() {
+        let mut evidence = physical_receipts();
+        evidence[0].mathematical_evidence_class =
+            Some(MathematicalEvidenceClassV1::ExactFiniteGroup);
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::MathematicalEvidenceTooWeak)
+        );
+    }
+
+    #[test]
+    fn formal_proof_can_satisfy_a_numeric_proposal_requirement_only_in_bound_scope() {
+        let mut evidence = physical_receipts();
+        evidence[0].mathematical_evidence_class =
+            Some(MathematicalEvidenceClassV1::FormalProof);
+        assert!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn source_metric_digest_is_part_of_the_covariance_witness() {
+        let mut evidence = physical_receipts();
+        evidence[1]
+            .coordinate_relation
+            .as_mut()
+            .unwrap()
+            .source_metric_sha256 = digest('c');
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::CoordinateRelationMismatch)
         );
     }
 
