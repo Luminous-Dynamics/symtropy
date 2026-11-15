@@ -253,7 +253,8 @@ mod tests {
     #[test]
     fn duplicated_plot_identity_fails_closed() {
         let mut manifest: Value = serde_json::from_str(FIXTURE).expect("fixture parses");
-        manifest["plots"][1]["plot_id"] = manifest["plots"][0]["plot_id"].clone();
+        let first_plot_id = manifest["plots"][0]["plot_id"].clone();
+        manifest["plots"][1]["plot_id"] = first_plot_id;
         let raw = serde_json::to_vec(&manifest).expect("serialize mutation");
         assert!(validate_corpus(&raw, &manifest).is_err());
     }
