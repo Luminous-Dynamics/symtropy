@@ -57,6 +57,18 @@ jobs:
     - name: Check Formatting
       run: cargo fmt --all -- --check
 
+    # Research harnesses intentionally declare their own Cargo workspaces so
+    # they can remain dependency-isolated from the production workspace. Run
+    # their gates explicitly; root --workspace commands do not discover them.
+    - name: Check Observation Integrity Harness Formatting
+      run: cargo fmt --manifest-path research/civdyn-observation-integrity/Cargo.toml --all -- --check
+
+    - name: Test Observation Integrity Harness
+      run: cargo test --manifest-path research/civdyn-observation-integrity/Cargo.toml --all-targets
+
+    - name: Strict Clippy Observation Integrity Harness
+      run: cargo clippy --manifest-path research/civdyn-observation-integrity/Cargo.toml --all-targets -- -D warnings
+
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for
     # weeks: check-workspace.sh still asserted `Bevy 0.18.1` (the workspace has
