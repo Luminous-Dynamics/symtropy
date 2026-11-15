@@ -23,8 +23,8 @@ use crate::transaction::{
 };
 use crate::{AuthorizationAction, EvidenceLevel, ScenarioManifest, UseLimit};
 
-const FIXED_DT: f64 = 1.0 / 120.0;
-const TICK_COUNT: usize = 480;
+const FIXED_DT: f64 = 1.0 / 240.0;
+const TICK_COUNT: usize = 960;
 const RELEASE_IMPULSE_NS: f64 = 0.015;
 const SETTLED_SPEED_M_S: f64 = 0.08;
 const SETTLED_ANGULAR_SPEED_RAD_S: f64 = 0.08;
@@ -152,7 +152,7 @@ fn build_world(
     }
 
     let mut world = PhysicsWorld::<3>::new(SVector::from([0.0, -9.81, 0.0]));
-    world.solver_iterations = 12;
+    world.solver_iterations = 16;
     world.slop = 0.001;
     world.baumgarte = 0.2;
 
