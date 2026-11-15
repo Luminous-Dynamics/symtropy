@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CASE_COUNT: usize = 25;
+const CASE_COUNT: usize = 34;
 const SCHEMA_VERSION: &str = "waterloop-physical-t0-v0.1";
 const CLAIM_CEILING: &str = "synthetic_water_service_arithmetic_and_contract_semantics_only";
 
@@ -261,6 +261,231 @@ fn compute_service_continuity(input: &Value) -> Result<Value, String> {
         "rejected_source_inflow_l": rejected_inflow,
         "overflow_l": overflow_total,
         "end_storage_l": storage
+    }))
+}
+
+fn compute_water_economics(input: &Value) -> Result<Value, String> {
+    let currency = text(input, "currency")?;
+    if currency != "ZAR" {
+        return Err("T0 water economics requires currency ZAR".to_owned());
+    }
+    let price_date = text(input, "price_date")?;
+    let region = text(input, "region")?;
+    let cost_profile = text(input, "cost_use_profile_id")?;
+    let service_profile = text(input, "service_use_profile_id")?;
+    let period_days = positive(number(input, "cost_period_days")?, "cost_period_days")?;
+    let cost_admitted = boolean(input, "cost_ledger_admitted")?;
+    let tariff_admitted = boolean(input, "tariff_evidence_admitted")?;
+    let income_admitted = boolean(input, "income_evidence_admitted")?;
+    let service_admitted = boolean(input, "service_evidence_admitted")?;
+    let service_floors_met = boolean(input, "service_floors_met")?;
+    let schedule = text(input, "tariff_schedule_revision")?;
+    let bill_method = text(input, "tariff_bill_method_id")?;
+    let tariff_period_days = if tariff_admitted {
+        Some(positive(
+            number(input, "tariff_billing_period_days")?,
+            "tariff_billing_period_days",
+        )?)
+    } else {
+        None
+    };
+    let tariff_period_matches =
+        tariff_period_days.is_some_and(|days| nearly_equal(days, period_days));
+
+    let mut gross_system_cost = None;
+    let mut energy_cost = None;
+    if cost_admitted {
+        let capex = nonnegative(
+            number(input, "monthly_capex_equivalent_zar")?,
+            "monthly_capex_equivalent_zar",
+        )?;
+        let maintenance = nonnegative(
+            number(input, "maintenance_repair_zar")?,
+            "maintenance_repair_zar",
+        )?;
+        let energy_kwh = nonnegative(number(input, "electricity_kwh")?, "electricity_kwh")?;
+        let energy_rate = nonnegative(
+            number(input, "electricity_tariff_zar_per_kwh")?,
+            "electricity_tariff_zar_per_kwh",
+        )?;
+        let consumables = nonnegative(
+            number(input, "consumables_replacement_zar")?,
+            "consumables_replacement_zar",
+        )?;
+        let external_water = nonnegative(
+            number(input, "external_water_delivery_zar")?,
+            "external_water_delivery_zar",
+        )?;
+        let residual = nonnegative(
+            number(input, "residual_disposal_zar")?,
+            "residual_disposal_zar",
+        )?;
+        let computed_energy = energy_kwh * energy_rate;
+        energy_cost = Some(computed_energy);
+        gross_system_cost =
+            Some(capex + maintenance + computed_energy + consumables + external_water + residual);
+    }
+
+    let mut baseline_bill = None;
+    let mut actual_bill = None;
+    let mut baseline_fixed = None;
+    let mut actual_fixed = None;
+    let mut bill_delta = None;
+    if tariff_admitted && tariff_period_matches {
+        let baseline = nonnegative(
+            number(input, "baseline_utility_bill_zar")?,
+            "baseline_utility_bill_zar",
+        )?;
+        let actual = nonnegative(
+            number(input, "actual_utility_bill_zar")?,
+            "actual_utility_bill_zar",
+        )?;
+        let fixed_before = nonnegative(
+            number(input, "baseline_fixed_charge_zar")?,
+            "baseline_fixed_charge_zar",
+        )?;
+        let fixed_after = nonnegative(
+            number(input, "actual_fixed_charge_zar")?,
+            "actual_fixed_charge_zar",
+        )?;
+        if fixed_before > baseline || fixed_after > actual {
+            return Err("fixed utility charge exceeds its admitted total bill".to_owned());
+        }
+        baseline_bill = Some(baseline);
+        actual_bill = Some(actual);
+        baseline_fixed = Some(fixed_before);
+        actual_fixed = Some(fixed_after);
+        bill_delta = Some(actual - baseline);
+    }
+
+    let service_use_matches = cost_profile == service_profile;
+    let service_credit = service_admitted && service_use_matches;
+    let useful_volume = if service_credit {
+        Some(nonnegative(
+            number(input, "verified_useful_delivered_m3")?,
+            "verified_useful_delivered_m3",
+        )?)
+    } else {
+        None
+    };
+    let critical_person_days = if service_credit {
+        Some(nonnegative(
+            number(input, "critical_person_days_delivered")?,
+            "critical_person_days_delivered",
+        )?)
+    } else {
+        None
+    };
+    let income = if income_admitted {
+        Some(positive(
+            number(input, "monthly_disposable_income_zar")?,
+            "monthly_disposable_income_zar",
+        )?)
+    } else {
+        None
+    };
+
+    let incremental_cost = match (gross_system_cost, bill_delta) {
+        (Some(system), Some(delta)) => Some(system + delta),
+        _ => None,
+    };
+    let monthly_spend = match (gross_system_cost, actual_bill) {
+        (Some(system), Some(actual)) => Some(system + actual),
+        _ => None,
+    };
+    let gross_cost_per_useful = match (gross_system_cost, useful_volume) {
+        (Some(cost), Some(volume)) if volume > 0.0 => Some(cost / volume),
+        _ => None,
+    };
+    let incremental_cost_per_useful = match (incremental_cost, useful_volume) {
+        (Some(cost), Some(volume)) if volume > 0.0 => Some(cost / volume),
+        _ => None,
+    };
+    let cost_per_critical_person_day = match (gross_system_cost, critical_person_days) {
+        (Some(cost), Some(days)) if days > 0.0 => Some(cost / days),
+        _ => None,
+    };
+    let affordability_burden = match (monthly_spend, income) {
+        (Some(spend), Some(income)) => Some(spend / income),
+        _ => None,
+    };
+
+    let service_credit_disposition = if !service_admitted {
+        "INDETERMINATE"
+    } else if !service_use_matches {
+        "NOT_CREDITABLE"
+    } else {
+        "ADMITTED"
+    };
+    let service_equivalence = if !service_admitted {
+        "INDETERMINATE"
+    } else if !service_use_matches {
+        "NOT_COMPARABLE"
+    } else if !service_floors_met {
+        "FAIL"
+    } else {
+        "PASS"
+    };
+    let economic_comparison =
+        if !service_admitted || !cost_admitted || !tariff_admitted || !tariff_period_matches {
+            "INDETERMINATE"
+        } else if !service_use_matches {
+            "NOT_COMPARABLE"
+        } else if !service_floors_met {
+            "SERVICE_FLOORS_NOT_MET"
+        } else {
+            "ADMITTED"
+        };
+    let affordability_disposition = if !income_admitted
+        || !cost_admitted
+        || !tariff_admitted
+        || !tariff_period_matches
+        || !service_admitted
+    {
+        "INDETERMINATE"
+    } else if !service_use_matches {
+        "NOT_COMPARABLE"
+    } else if !service_floors_met {
+        "NOT_SERVICE_EQUIVALENT"
+    } else {
+        "COMPUTED_NO_UNIVERSAL_THRESHOLD_APPLIED"
+    };
+
+    Ok(json!({
+        "cost_ledger_disposition": if cost_admitted { "ADMITTED" } else { "INDETERMINATE" },
+        "cost_reason": if cost_admitted { "ALL_DECLARED_COST_COMPONENTS_ADMITTED" } else { "COST_LEDGER_NOT_ADMITTED" },
+        "tariff_disposition": if tariff_admitted && tariff_period_matches { "ADMITTED" } else { "INDETERMINATE" },
+        "tariff_reason": if !tariff_admitted { "TARIFF_EVIDENCE_NOT_ADMITTED_NO_SAVINGS_CREDIT" } else if !tariff_period_matches { "TARIFF_BILLING_PERIOD_MISMATCH" } else { "VERSIONED_BASELINE_AND_ACTUAL_BILLS_ADMITTED" },
+        "tariff_billing_period_days": tariff_period_days,
+        "tariff_schedule_revision": schedule,
+        "tariff_bill_method_id": bill_method,
+        "service_credit_disposition": service_credit_disposition,
+        "service_equivalence_disposition": service_equivalence,
+        "service_reason": if !service_admitted { "SERVICE_EVIDENCE_NOT_ADMITTED" } else if !service_use_matches { "COST_AND_SERVICE_USE_PROFILE_MISMATCH" } else if !service_floors_met { "DECLARED_SERVICE_FLOORS_NOT_MET" } else { "MATCHED_USE_PROFILE_AND_SERVICE_FLOORS_MET" },
+        "economic_comparison_disposition": economic_comparison,
+        "affordability_disposition": affordability_disposition,
+        "economic_preference_eligible": economic_comparison == "ADMITTED",
+        "currency": currency,
+        "price_date": price_date,
+        "region": region,
+        "cost_period_days": period_days,
+        "cost_use_profile_id": cost_profile,
+        "service_use_profile_id": service_profile,
+        "verified_useful_delivered_m3": useful_volume,
+        "critical_person_days_delivered": critical_person_days,
+        "gross_system_cost_zar": gross_system_cost,
+        "electricity_cost_zar": energy_cost,
+        "baseline_utility_bill_zar": baseline_bill,
+        "actual_utility_bill_zar": actual_bill,
+        "baseline_fixed_charge_zar": baseline_fixed,
+        "actual_fixed_charge_zar": actual_fixed,
+        "utility_bill_delta_zar": bill_delta,
+        "incremental_household_cost_zar": incremental_cost,
+        "monthly_water_spend_zar": monthly_spend,
+        "gross_system_cost_per_verified_useful_m3_zar": gross_cost_per_useful,
+        "incremental_household_cost_per_verified_useful_m3_zar": incremental_cost_per_useful,
+        "direct_system_cost_per_critical_person_day_zar": cost_per_critical_person_day,
+        "monthly_water_spend_burden": affordability_burden
     }))
 }
 
@@ -613,6 +838,15 @@ fn compute(case: &Value) -> Result<Value, String> {
         | "WL-T0-023-unadmitted-service-measurement-abstains"
         | "WL-T0-024-stored-water-use-quality-unqualified"
         | "WL-T0-025-unqualified-source-inflow-not-credited" => compute_service_continuity(input),
+        "WL-T0-026-economics-admitted-cost-and-service"
+        | "WL-T0-027-economics-rising-block-bill-delta"
+        | "WL-T0-028-economics-unadmitted-tariff-no-savings"
+        | "WL-T0-029-economics-zero-useful-volume-undefined"
+        | "WL-T0-030-economics-unadmitted-cost-ledger"
+        | "WL-T0-031-economics-income-unavailable"
+        | "WL-T0-032-economics-use-profile-mismatch"
+        | "WL-T0-033-economics-low-cost-service-floor-failure"
+        | "WL-T0-034-economics-tariff-billing-period-mismatch" => compute_water_economics(input),
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
 }
@@ -906,7 +1140,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twenty_five_cases_match_the_separate_oracle() {
+    fn all_thirty_four_cases_match_the_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluation completes");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1011,7 +1245,7 @@ mod tests {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &oracle)
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 24);
+        assert_eq!(result["matched_case_count"], 33);
         assert_eq!(
             result["mismatches"].as_array().expect("mismatches").len(),
             1
@@ -1064,6 +1298,91 @@ mod tests {
         assert_eq!(actual["essential_unmet_l"], 30.0);
         assert_eq!(actual["first_essential_shortfall_step"], 2);
         assert_eq!(actual["hours_to_first_essential_shortfall"], 24.0);
+    }
+
+    #[test]
+    fn economics_preserves_fixed_charges_and_reports_burden() {
+        let case = fixture("inputs")["cases"][25].clone();
+        let actual = compute(&case).expect("admitted cost/service case");
+        assert_eq!(actual["gross_system_cost_zar"], 680.0);
+        assert_eq!(actual["baseline_fixed_charge_zar"], 150.0);
+        assert_eq!(actual["actual_fixed_charge_zar"], 150.0);
+        assert_eq!(actual["incremental_household_cost_zar"], 480.0);
+        assert!((actual["monthly_water_spend_burden"].as_f64().unwrap() - 0.06).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn economics_does_not_invent_savings_without_tariff_evidence() {
+        let case = fixture("inputs")["cases"][27].clone();
+        let actual = compute(&case).expect("unadmitted tariff case");
+        assert_eq!(actual["gross_system_cost_zar"], 680.0);
+        assert_eq!(actual["utility_bill_delta_zar"], Value::Null);
+        assert_eq!(actual["incremental_household_cost_zar"], Value::Null);
+        assert_eq!(actual["economic_preference_eligible"], false);
+    }
+
+    #[test]
+    fn economics_zero_useful_volume_has_undefined_unit_cost() {
+        let case = fixture("inputs")["cases"][28].clone();
+        let actual = compute(&case).expect("zero delivered volume");
+        assert_eq!(
+            actual["gross_system_cost_per_verified_useful_m3_zar"],
+            Value::Null
+        );
+        assert_eq!(
+            actual["incremental_household_cost_per_verified_useful_m3_zar"],
+            Value::Null
+        );
+    }
+
+    #[test]
+    fn economics_does_not_turn_missing_income_into_zero_or_a_pass() {
+        let case = fixture("inputs")["cases"][30].clone();
+        let actual = compute(&case).expect("missing income case");
+        assert_eq!(actual["monthly_water_spend_zar"], 1080.0);
+        assert_eq!(actual["monthly_water_spend_burden"], Value::Null);
+        assert_eq!(actual["affordability_disposition"], "INDETERMINATE");
+        assert_eq!(actual["economic_comparison_disposition"], "ADMITTED");
+        assert_eq!(actual["economic_preference_eligible"], true);
+    }
+
+    #[test]
+    fn economics_billing_period_mismatch_abstains_from_bill_comparison() {
+        let case = fixture("inputs")["cases"][33].clone();
+        let actual = compute(&case).expect("tariff billing-period mismatch");
+        assert_eq!(actual["gross_system_cost_zar"], 680.0);
+        assert_eq!(actual["tariff_disposition"], "INDETERMINATE");
+        assert_eq!(actual["tariff_reason"], "TARIFF_BILLING_PERIOD_MISMATCH");
+        assert_eq!(actual["utility_bill_delta_zar"], Value::Null);
+        assert_eq!(actual["economic_comparison_disposition"], "INDETERMINATE");
+        assert_eq!(actual["affordability_disposition"], "INDETERMINATE");
+        assert_eq!(actual["economic_preference_eligible"], false);
+    }
+
+    #[test]
+    fn economics_rejects_use_profile_mismatch_for_volume_credit() {
+        let case = fixture("inputs")["cases"][31].clone();
+        let actual = compute(&case).expect("use mismatch case");
+        assert_eq!(actual["service_credit_disposition"], "NOT_CREDITABLE");
+        assert_eq!(actual["verified_useful_delivered_m3"], Value::Null);
+        assert_eq!(
+            actual["gross_system_cost_per_verified_useful_m3_zar"],
+            Value::Null
+        );
+        assert_eq!(actual["economic_comparison_disposition"], "NOT_COMPARABLE");
+    }
+
+    #[test]
+    fn economics_low_cost_does_not_override_failed_service_floor() {
+        let case = fixture("inputs")["cases"][32].clone();
+        let actual = compute(&case).expect("service-floor failure");
+        assert_eq!(actual["cost_ledger_disposition"], "ADMITTED");
+        assert_eq!(actual["service_equivalence_disposition"], "FAIL");
+        assert_eq!(
+            actual["economic_comparison_disposition"],
+            "SERVICE_FLOORS_NOT_MET"
+        );
+        assert_eq!(actual["economic_preference_eligible"], false);
     }
 
     #[test]

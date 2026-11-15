@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
   "benchmark_id": "WATERLOOP-PHYSICAL-T0",
-  "case_count": 25,
+  "case_count": 34,
   "required_case_ids": [
     "WL-T0-001-balanced-volume-closure",
     "WL-T0-002-unbalanced-volume-closure",
@@ -29,7 +29,16 @@
     "WL-T0-022-outlet-service-floor-failure",
     "WL-T0-023-unadmitted-service-measurement-abstains",
     "WL-T0-024-stored-water-use-quality-unqualified",
-    "WL-T0-025-unqualified-source-inflow-not-credited"
+    "WL-T0-025-unqualified-source-inflow-not-credited",
+    "WL-T0-026-economics-admitted-cost-and-service",
+    "WL-T0-027-economics-rising-block-bill-delta",
+    "WL-T0-028-economics-unadmitted-tariff-no-savings",
+    "WL-T0-029-economics-zero-useful-volume-undefined",
+    "WL-T0-030-economics-unadmitted-cost-ledger",
+    "WL-T0-031-economics-income-unavailable",
+    "WL-T0-032-economics-use-profile-mismatch",
+    "WL-T0-033-economics-low-cost-service-floor-failure",
+    "WL-T0-034-economics-tariff-billing-period-mismatch"
   ],
   "families": [
     "volume_closure",
@@ -38,7 +47,8 @@
     "pump_energy",
     "service_floor",
     "leak_metrics",
-    "service_continuity"
+    "service_continuity",
+    "household_economics"
   ],
   "rules": [
     "All values are synthetic known-answer vectors; this manifest grants no physical qualification.",
@@ -52,6 +62,15 @@
     "Essential service credit requires the stored-water use profile to match the intended-use profile and quality to be admitted.",
     "Source inflow lacking use-specific quality admission is excluded from storage and recorded as rejected inflow.",
     "Outlet capacity is credited only when the service measurement is admitted and the declared pressure/flow floor is met.",
-    "South African GN 6292 Regulation 4(1) is represented only as a context-specific >48-hour alternative drinking-water scenario, not as proof of product compliance."
+    "South African GN 6292 Regulation 4(1) is represented only as a context-specific >48-hour alternative drinking-water scenario, not as proof of product compliance.",
+    "Household economics uses a versioned cost ledger and tariff-bill outputs from their owning authorities; T0 does not implement a municipal tariff engine.",
+    "Fixed utility charges remain explicit; household tariff savings are computed only from admitted baseline and actual bills, not by multiplying reused volume by an average tariff.",
+    "Gross system cost includes monthly-equivalent capital/installation, maintenance, metered energy, consumables, external water delivery and residual disposal.",
+    "Cost per verified useful m3 requires admitted service evidence and exact equality of cost-use and service-use profile identities.",
+    "Missing cost, tariff or income evidence is Indeterminate and never silently converted to zero.",
+    "An architecture that does not meet the declared essential service floor is not eligible for economic preference even when its arithmetic cost is lower.",
+    "Affordability burden is reported only from resident-authorised disposable-income evidence; no universal threshold or credit decision is created.",
+    "Cost-period days and versioned utility tariff billing-period days must match exactly within the declared numeric tolerance; mismatched bills are Indeterminate and cannot be used for household savings or cost-comparison eligibility.",
+    "Cost/service efficiency comparison does not require household income evidence; income is required only for the separate resident-authorised affordability burden."
   ]
 }

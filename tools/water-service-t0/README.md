@@ -32,7 +32,7 @@ Use existing Symtropy process-closure and hydraulic component owners for shared 
 
 ## WaterLoop physical-bench T0
 
-The `waterloop-physical-t0` binary adds a separate 25-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
+The `waterloop-physical-t0` binary adds a separate 34-case synthetic known-answer evaluator for the first WaterLoop bench contract. It covers:
 - conservative water-volume closure against an additive uncertainty bound;
 - measured deliverable volume versus gross tank inventory and operating heel;
 - source-substitution credit only at a matched end-use boundary with current meter calibration and use-specific quality evidence;
@@ -54,7 +54,7 @@ WATERLOOP_T0_REVISION="$(git rev-parse HEAD)" \
   artifacts/water-service-t0/waterloop-physical-receipt.json
 ```
 
-The WaterLoop oracle is separate from the input vectors. Its receipt binds input, manifest, oracle and Cargo.lock digests plus the exact implementation revision. Qualification remains `NotRun`; the 12 cases are synthetic arithmetic/contract checks, not a physical test, water-quality assessment or savings claim. The declared additive uncertainty bound is deliberately conservative; it is not an independence-based root-sum-square estimate.
+The WaterLoop oracle is separate from the input vectors. Its receipt binds input, manifest, oracle and Cargo.lock digests plus the exact implementation revision. Qualification remains `NotRun`; all 34 cases are synthetic arithmetic/contract checks, not a physical test, water-quality assessment or savings claim. The declared additive uncertainty bound is deliberately conservative; it is not an independence-based root-sum-square estimate.
 
 
 ### Time-resolved service continuity
@@ -67,3 +67,14 @@ The regulatory profile is a reference scenario only. It does not establish Water
 
 
 The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](../../research/water-service-engineering/SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
+
+
+### Household economics — cost per verified service
+
+The 34-case WaterLoop evaluator now includes nine synthetic household-economics cases (026–034). It consumes admitted cost components and versioned baseline/actual utility bills; it does not calculate municipal tariffs. It keeps fixed charges explicit, computes gross system cost and incremental household spend separately, calculates ZAR per verified useful m³ / critical person-day, and computes a water-spend burden only when resident-authorised disposable-income evidence is admitted.
+
+The cases cover a rising-block bill delta, unadmitted tariff, zero useful volume, unadmitted cost ledger, missing income, intended-use mismatch and a lower-cost design that fails its essential service floor. A cheaper design cannot win the comparison when it fails the required service floor.
+
+Protocol: [WATER_ECONOMICS_BENCHMARK_V0_1.md](../../research/water-service-engineering/WATER_ECONOMICS_BENCHMARK_V0_1.md). All values are synthetic; no household affordability, actual tariff, savings or product performance is qualified.
+
+Cost comparison and affordability are intentionally separate: missing income leaves the resident affordability burden Indeterminate but does not suppress an otherwise admitted cost-per-service comparison. The evaluator also rejects a tariff bill whose billing-period duration differs from the declared system-cost period.
