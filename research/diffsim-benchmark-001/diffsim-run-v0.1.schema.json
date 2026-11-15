@@ -397,12 +397,26 @@
               "pattern": "^[a-f0-9]{64}$"
             },
             "state_error_metric_norm": {
-              "type": "number",
-              "minimum": 0
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "observable_error_max": {
-              "type": "number",
-              "minimum": 0
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "replay_status": {
               "enum": [
@@ -506,8 +520,15 @@
           ],
           "properties": {
             "residual_norm_max": {
-              "type": "number",
-              "minimum": 0
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "complementarity_defect": {
               "anyOf": [
@@ -717,6 +738,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "measurement_status",
         "primal_wall_ms",
         "derivative_wall_ms",
         "adjoint_wall_ms",
@@ -729,12 +751,26 @@
       ],
       "properties": {
         "primal_wall_ms": {
-          "type": "number",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "derivative_wall_ms": {
-          "type": "number",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "adjoint_wall_ms": {
           "anyOf": [
@@ -748,28 +784,76 @@
           ]
         },
         "p50_ms": {
-          "type": "number",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "p95_ms": {
-          "type": "number",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "p99_ms": {
-          "type": "number",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "peak_memory_bytes": {
-          "type": "integer",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "checkpoint_bytes": {
-          "type": "integer",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "cpu_time_ms": {
-          "type": "number",
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "measurement_status": {
+          "enum": [
+            "measured",
+            "synthetic_placeholder"
+          ]
         }
       }
     },
@@ -971,26 +1055,83 @@
         "properties": {
           "resources": {
             "properties": {
+              "measurement_status": {
+                "const": "synthetic_placeholder"
+              },
               "primal_wall_ms": {
-                "const": 0
+                "type": "null"
               },
               "derivative_wall_ms": {
-                "const": 0
+                "type": "null"
+              },
+              "adjoint_wall_ms": {
+                "type": "null"
               },
               "p50_ms": {
-                "const": 0
+                "type": "null"
               },
               "p95_ms": {
-                "const": 0
+                "type": "null"
               },
               "p99_ms": {
-                "const": 0
+                "type": "null"
               },
               "peak_memory_bytes": {
-                "const": 0
+                "type": "null"
+              },
+              "checkpoint_bytes": {
+                "type": "null"
               },
               "cpu_time_ms": {
-                "const": 0
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fixture_mode": {
+            "const": "measured_run"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "resources": {
+            "properties": {
+              "measurement_status": {
+                "const": "measured"
+              },
+              "primal_wall_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "derivative_wall_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "p50_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "p95_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "p99_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "peak_memory_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cpu_time_ms": {
+                "type": "number",
+                "minimum": 0
               }
             }
           }
