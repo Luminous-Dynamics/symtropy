@@ -118,15 +118,11 @@ pub fn evaluate_thin_ring(input: RingInput) -> Result<RingResult, ModelError> {
         return Err(ModelError::NonFiniteResult);
     }
 
-    let hoop_stress_pa =
-        input.density_kg_m3 * omega_squared * radius_squared;
+    let hoop_stress_pa = input.density_kg_m3 * omega_squared * radius_squared;
     let hoop_strain = hoop_stress_pa / input.youngs_modulus_pa;
     let radial_extension_m = hoop_strain * input.radius_m;
 
-    if !hoop_stress_pa.is_finite()
-        || !hoop_strain.is_finite()
-        || !radial_extension_m.is_finite()
-    {
+    if !hoop_stress_pa.is_finite() || !hoop_strain.is_finite() || !radial_extension_m.is_finite() {
         return Err(ModelError::NonFiniteResult);
     }
 
@@ -190,11 +186,10 @@ pub fn evaluate_radial_spoke(
 
     let root_axial_force_n =
         0.5 * input.density_kg_m3 * input.area_m2 * omega_squared * radius_squared;
-    let root_stress_pa =
-        0.5 * input.density_kg_m3 * omega_squared * radius_squared;
+    let root_stress_pa = 0.5 * input.density_kg_m3 * omega_squared * radius_squared;
     let radius_cubed = radius_squared * input.radius_m;
-    let tip_extension_m = input.density_kg_m3 * omega_squared * radius_cubed
-        / (3.0 * input.youngs_modulus_pa);
+    let tip_extension_m =
+        input.density_kg_m3 * omega_squared * radius_cubed / (3.0 * input.youngs_modulus_pa);
 
     if !root_axial_force_n.is_finite()
         || !root_stress_pa.is_finite()
@@ -208,15 +203,9 @@ pub fn evaluate_radial_spoke(
         let station_squared = station_radius_m * station_radius_m;
         let remaining_radius_squared = radius_squared - station_squared;
 
-        let axial_force_n = 0.5
-            * input.density_kg_m3
-            * input.area_m2
-            * omega_squared
-            * remaining_radius_squared;
-        let axial_stress_pa = 0.5
-            * input.density_kg_m3
-            * omega_squared
-            * remaining_radius_squared;
+        let axial_force_n =
+            0.5 * input.density_kg_m3 * input.area_m2 * omega_squared * remaining_radius_squared;
+        let axial_stress_pa = 0.5 * input.density_kg_m3 * omega_squared * remaining_radius_squared;
 
         if !axial_force_n.is_finite() || !axial_stress_pa.is_finite() {
             return Err(ModelError::NonFiniteResult);
@@ -313,8 +302,7 @@ mod tests {
 
     #[test]
     fn radial_spoke_matches_independent_force_stress_and_extension() {
-        let result =
-            evaluate_radial_spoke(spoke_input(2.0), &[0.0, 50.0, 100.0]).unwrap();
+        let result = evaluate_radial_spoke(spoke_input(2.0), &[0.0, 50.0, 100.0]).unwrap();
 
         close(result.omega_rad_s, 0.209_439_510_239_319_53);
         close(result.root_axial_force_n, 5_921.762_640_653_614);
@@ -333,30 +321,28 @@ mod tests {
     #[test]
     fn spoke_root_force_equals_integrated_centrifugal_body_force() {
         let input = spoke_input(2.0);
-        let result =
-            evaluate_radial_spoke(input, &[0.0, input.radius_m]).unwrap();
+        let result = evaluate_radial_spoke(input, &[0.0, input.radius_m]).unwrap();
         let omega = rpm_to_omega(input.rpm).unwrap();
-        let integrated_load =
-            0.5 * input.density_kg_m3 * input.area_m2 * omega * omega
-                * input.radius_m * input.radius_m;
+        let integrated_load = 0.5
+            * input.density_kg_m3
+            * input.area_m2
+            * omega
+            * omega
+            * input.radius_m
+            * input.radius_m;
         close(result.root_axial_force_n, integrated_load);
     }
 
     #[test]
     fn spoke_force_stress_and_extension_scale_with_rpm_squared() {
-        let two_rpm =
-            evaluate_radial_spoke(spoke_input(2.0), &[0.0, 100.0]).unwrap();
-        let four_rpm =
-            evaluate_radial_spoke(spoke_input(4.0), &[0.0, 100.0]).unwrap();
+        let two_rpm = evaluate_radial_spoke(spoke_input(2.0), &[0.0, 100.0]).unwrap();
+        let four_rpm = evaluate_radial_spoke(spoke_input(4.0), &[0.0, 100.0]).unwrap();
         close(
             four_rpm.root_axial_force_n / two_rpm.root_axial_force_n,
             4.0,
         );
         close(four_rpm.root_stress_pa / two_rpm.root_stress_pa, 4.0);
-        close(
-            four_rpm.tip_extension_m / two_rpm.tip_extension_m,
-            4.0,
-        );
+        close(four_rpm.tip_extension_m / two_rpm.tip_extension_m, 4.0);
     }
 
     #[test]
@@ -365,9 +351,7 @@ mod tests {
         close(ring.hoop_stress_pa, 0.0);
         close(ring.radial_extension_m, 0.0);
 
-        let spoke =
-            evaluate_radial_spoke(spoke_input(0.0), &[0.0, 50.0, 100.0])
-                .unwrap();
+        let spoke = evaluate_radial_spoke(spoke_input(0.0), &[0.0, 50.0, 100.0]).unwrap();
         close(spoke.root_axial_force_n, 0.0);
         close(spoke.root_stress_pa, 0.0);
         close(spoke.tip_extension_m, 0.0);
@@ -432,10 +416,7 @@ mod tests {
         let mut invalid_spoke = spoke_input(2.0);
         invalid_spoke.radius_m = 1.0e200;
         assert_eq!(
-            evaluate_radial_spoke(
-                invalid_spoke,
-                &[0.0, invalid_spoke.radius_m]
-            ),
+            evaluate_radial_spoke(invalid_spoke, &[0.0, invalid_spoke.radius_m]),
             Err(ModelError::NonFiniteResult)
         );
     }
