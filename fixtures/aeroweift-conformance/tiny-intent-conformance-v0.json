@@ -1369,7 +1369,7 @@
         "policy_id": "synthetic-conformance-policy-v0",
         "profile_id": "synthetic-fixed-wing-profile-v0",
         "evaluation_window": [
-          0,
+          99,
           100
         ],
         "evaluation_tick": 100,
@@ -1425,7 +1425,7 @@
         "definite_outside_ticks": 0,
         "possible_outside_ticks": 0,
         "unassessable_ticks": 0,
-        "unobserved_ticks": 99
+        "unobserved_ticks": 0
       }
     },
     {
