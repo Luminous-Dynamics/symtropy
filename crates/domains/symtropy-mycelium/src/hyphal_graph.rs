@@ -104,6 +104,14 @@ pub enum ApplyOutcome {
     AlreadyApplied,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ActiveGraphCriticality {
+    /// Active segments whose removal increases the number of connected components.
+    pub bridge_segments: Vec<SegmentId>,
+    /// Nodes whose removal increases the number of connected components.
+    pub articulation_nodes: Vec<NodeId>,
+}
+
 /// Splits an existing segment at an interior attachment point and adds a branch.
 /// The original segment is replaced by two segments whose lengths sum exactly
 /// to the original declared length. The new branch length is geometric.
@@ -663,6 +671,117 @@ impl HyphalGraph {
         components
     }
 
+    /// Find active-segment bridges and articulation nodes in O(V + E).
+    ///
+    /// This is a structural single-point-of-failure measure only. It does not
+    /// model edge capacity, measured cytoplasmic flow or resource delivery.
+    /// Parallel segments are treated as distinct edges, so one of two parallel
+    /// connections is not incorrectly classified as a bridge.
+    pub fn active_graph_criticality(&self) -> ActiveGraphCriticality {
+        let mut adjacency: BTreeMap<NodeId, Vec<(NodeId, SegmentId)>> = self
+            .nodes
+            .keys()
+            .copied()
+            .map(|node| (node, Vec::new()))
+            .collect();
+        for segment in self.segments.values() {
+            if segment.state != HyphalSegmentState::Active {
+                continue;
+            }
+            adjacency
+                .get_mut(&segment.from)
+                .expect("validated segment source exists")
+                .push((segment.to, segment.id));
+            adjacency
+                .get_mut(&segment.to)
+                .expect("validated segment target exists")
+                .push((segment.from, segment.id));
+        }
+
+        let mut discovery = BTreeMap::<NodeId, usize>::new();
+        let mut low = BTreeMap::<NodeId, usize>::new();
+        let mut parent = BTreeMap::<NodeId, (NodeId, SegmentId)>::new();
+        let mut child_count = BTreeMap::<NodeId, usize>::new();
+        let mut bridges = BTreeSet::<SegmentId>::new();
+        let mut articulation = BTreeSet::<NodeId>::new();
+        let mut clock = 0_usize;
+
+        // Iterative DFS avoids recursion-depth failures on long fungal chains.
+        for root in self.nodes.keys().copied() {
+            if discovery.contains_key(&root) {
+                continue;
+            }
+            clock += 1;
+            discovery.insert(root, clock);
+            low.insert(root, clock);
+            child_count.insert(root, 0);
+            let mut stack = vec![(root, 0_usize)];
+
+            while let Some((current, next_neighbor_index)) = stack.last().copied() {
+                let neighbors = adjacency
+                    .get(&current)
+                    .expect("all graph nodes have adjacency entries");
+                if next_neighbor_index < neighbors.len() {
+                    stack.last_mut().expect("DFS stack is non-empty").1 += 1;
+                    let (neighbor, edge_id) = neighbors[next_neighbor_index];
+
+                    if parent
+                        .get(&current)
+                        .is_some_and(|(_, parent_edge)| *parent_edge == edge_id)
+                    {
+                        continue;
+                    }
+
+                    if !discovery.contains_key(&neighbor) {
+                        parent.insert(neighbor, (current, edge_id));
+                        *child_count.entry(current).or_default() += 1;
+                        clock += 1;
+                        discovery.insert(neighbor, clock);
+                        low.insert(neighbor, clock);
+                        child_count.insert(neighbor, 0);
+                        stack.push((neighbor, 0));
+                    } else {
+                        let neighbor_discovery = *discovery
+                            .get(&neighbor)
+                            .expect("visited neighbor has discovery time");
+                        let current_low = low
+                            .get_mut(&current)
+                            .expect("visited node has low-link value");
+                        *current_low = (*current_low).min(neighbor_discovery);
+                    }
+                } else {
+                    stack.pop();
+                    if let Some((parent_node, parent_edge)) = parent.get(&current).copied() {
+                        let current_low = *low
+                            .get(&current)
+                            .expect("visited node has low-link value");
+                        let parent_discovery = *discovery
+                            .get(&parent_node)
+                            .expect("parent node has discovery time");
+                        let parent_low = low
+                            .get_mut(&parent_node)
+                            .expect("parent node has low-link value");
+                        *parent_low = (*parent_low).min(current_low);
+
+                        if current_low > parent_discovery {
+                            bridges.insert(parent_edge);
+                        }
+                        if parent.contains_key(&parent_node) && current_low >= parent_discovery {
+                            articulation.insert(parent_node);
+                        }
+                    } else if child_count.get(&current).copied().unwrap_or_default() > 1 {
+                        articulation.insert(current);
+                    }
+                }
+            }
+        }
+
+        ActiveGraphCriticality {
+            bridge_segments: bridges.into_iter().collect(),
+            articulation_nodes: articulation.into_iter().collect(),
+        }
+    }
+
     /// Whether an active-segment path connects two nodes.
     pub fn has_active_path(&self, from: NodeId, to: NodeId) -> bool {
         if !self.nodes.contains_key(&from) || !self.nodes.contains_key(&to) {
@@ -1153,6 +1272,81 @@ mod tests {
             .unwrap();
         assert!(graph.has_path(NodeId(1), NodeId(2)));
         assert!(!graph.has_active_path(NodeId(1), NodeId(2)));
+    }
+
+    #[test]
+    fn active_graph_criticality_finds_chain_bridges_and_articulation() {
+        let mut graph = HyphalGraph::new();
+        for id in 1..=3 {
+            graph
+                .add_node(node(id, HyphalNodeKind::Anchor, id as f64, 0.0, 0.0))
+                .unwrap();
+        }
+        graph.add_segment(segment(1, 1, 2, 1.0)).unwrap();
+        graph.add_segment(segment(2, 2, 3, 1.0)).unwrap();
+
+        let criticality = graph.active_graph_criticality();
+        assert_eq!(criticality.bridge_segments, vec![SegmentId(1), SegmentId(2)]);
+        assert_eq!(criticality.articulation_nodes, vec![NodeId(2)]);
+    }
+
+    #[test]
+    fn active_graph_criticality_finds_no_cut_edges_in_cycle() {
+        let mut graph = HyphalGraph::new();
+        for (id, x, y) in [(1, 0.0, 0.0), (2, 1.0, 0.0), (3, 0.5, 1.0)] {
+            graph
+                .add_node(node(id, HyphalNodeKind::Anchor, x, y, 0.0))
+                .unwrap();
+        }
+        graph.add_segment(segment(1, 1, 2, 1.0)).unwrap();
+        graph.add_segment(segment(2, 2, 3, 1.0)).unwrap();
+        graph.add_segment(segment(3, 3, 1, 1.0)).unwrap();
+
+        let criticality = graph.active_graph_criticality();
+        assert!(criticality.bridge_segments.is_empty());
+        assert!(criticality.articulation_nodes.is_empty());
+    }
+
+    #[test]
+    fn parallel_active_segments_are_not_individually_bridges() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 1.0, 0.0, 0.0))
+            .unwrap();
+        graph.add_segment(segment(1, 1, 2, 1.0)).unwrap();
+        graph.add_segment(segment(2, 1, 2, 1.0)).unwrap();
+
+        let criticality = graph.active_graph_criticality();
+        assert!(criticality.bridge_segments.is_empty());
+        assert!(criticality.articulation_nodes.is_empty());
+    }
+
+    #[test]
+    fn inactive_segments_do_not_create_active_bridges() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 1.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_segment(HyphalSegment {
+                id: SegmentId(1),
+                from: NodeId(1),
+                to: NodeId(2),
+                length_mm: 1.0,
+                diameter_mm: Some(0.02),
+                state: HyphalSegmentState::Inactive,
+            })
+            .unwrap();
+
+        let criticality = graph.active_graph_criticality();
+        assert!(criticality.bridge_segments.is_empty());
+        assert!(criticality.articulation_nodes.is_empty());
     }
 
     #[test]
