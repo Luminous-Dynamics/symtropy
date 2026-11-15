@@ -333,6 +333,6 @@ pub fn compose(input: &CompositionInput) -> CompositionResult {
         decision: Decision::ReadyForConflictScreen,
         reason: None,
         class_occupancy,
-        source_snapshot: input.clone(),
+        source_snapshot: canonical_snapshot(input),
     }
 }
