@@ -347,6 +347,41 @@ This track is owned by [AEROWEFT-SURVEILLANCE-OBSERVABILITY-001 #5275](https://g
 
 This is an observability/evidence adapter, not a DAA sensor-performance qualification or operational airspace-safety result.
 
+
+### Track N — operational-intent conformance and contingency transitions
+
+Question: does a qualified, time-stamped observation remain within the exact, current, activated 4D authorization and profile-specific deviation volume—and can the system distinguish definite deviation, possible deviation, missing evidence, contact loss, authorization supersession and dynamic-restriction invalidation?
+
+This track is owned by [AEROWEFT-INTENT-CONFORMANCE-001 #5284](https://github.com/Luminous-Dynamics/symtropy/issues/5284). It composes:
+- #2279/#2297 for 4D authorization geometry, restriction versions and numerical semantics;
+- #5163 for optional qualified reachable projections;
+- #5186 for candidate intent/schedule identities, without generating a new schedule;
+- #5270/#5275 for PNT/time and surveillance/track qualification;
+- Mycelix #435/#458/#5904 for clock, navigation-health and common-mode lineage;
+- Sol-Atlas #189/#825 for source-qualified airspace constraints.
+
+It owns only a finite conformance oracle, deviation-duration accounting, authorization revision/withdrawal and dynamic restriction checks, and contingency-state classification. It is not a UTM/U-space service, operator alerting system, flight authorization, or controller.
+
+**Metrics**
+- Definite-inside, definite-outside, possible-outside, unassessable and unobserved duration.
+- Definite-outside lower-bound fraction and possible-exposure upper-bound fraction over the full evaluation window. Unobserved/unassessable time increases the upper bound; it never becomes observed-inside time.
+- False-conforming and false-nonconforming outcomes reported separately.
+- Time to definite-deviation detection, possible-deviation escalation and contact-loss/contingency transition.
+- Expired, withdrawn, superseded authorization and dynamic-restriction revalidation outcomes.
+- Exact authorization, intent, policy, observation, clock and restriction lineage.
+
+**Initial targets**
+- 100% exact agreement with an independent integer/rational oracle on the frozen fixture.
+- Zero false-conforming results for stale, unknown, revoked, expired, superseded, definitely-outside or lost-track cases.
+- Zero definite non-conformance declarations from a boundary-straddling observation without satisfying the profile confirmation rule.
+- Definite outside duration never exceeds possible outside duration; unobserved time is never observed-inside.
+- Confirmed breaches cannot be hidden by unrelated unassessable intervals; unknown intervals cannot improve the upper exposure bound.
+- Deterministic replay and canonical input-order invariance.
+
+**Industry comparison:** EASA U-space AMC/GM describes 4D authorization volumes, uncertainty-aware deviation thresholds and a 5% time-outside confirmation rule in its specific U-space context. The EU Regulation requires continuous re-checking against dynamic restrictions. FAA UPP2 demonstrates non-conforming/contingent states and revised contingency volumes; its 30-second timeout was a pilot-demo parameter, not a universal threshold. NASA has probabilistic/simulation work on tracking performance and conformance safety. AeroWeft should treat these as matched references, not claim that this finite oracle reproduces a UTM service or certifies operation.
+
+This is a synthetic conformance-semantic result, not an operational compliance finding.
+
 ## 3. Matched baselines
 
 | Baseline | What it tests | Limitation |
@@ -363,6 +398,13 @@ This is an observability/evidence adapter, not a DAA sensor-performance qualific
 
 
 
+
+| [EASA U-space conformance monitoring guidance](https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-u-space) | Match UA to accepted/activated authorization, compare with deviation thresholds, and confirm non-conformance beyond 5% of time outside the authorized 4D volume including deviation thresholds (validated over time) | Strong scoped policy reference. 5% is not hard-coded as a universal aviation limit; uncertainty/profile applicability must be explicit |
+| [EU Regulation 2021/664 consolidated 22 February 2026](https://eur-lex.europa.eu/eli/reg_impl/2021/664/2026-02-22/eng) | Continuously re-check existing authorizations against new dynamic restrictions/limitations and relevant manned traffic information; update/withdraw as required | Revision-aware invalidation baseline; not a geometry/oracle implementation |
+| [FAA UTM Pilot Program Phase 2 Final Report](https://www.faa.gov/sites/faa.gov/files/uas/research_development/traffic_management/utm_pilot_program/FY20_UPP2_Final_Report.pdf) | Non-conforming and contingent operational-intent states; share updated contingency volumes from available position/heading/speed/wind evidence | State-transition and contingency-sharing architecture comparator. Its 30-second timeout was used in the 2021 demonstration only |
+| [NASA Safety Assessment of Conformance Monitoring for Situational Awareness in UTM Operations](https://ntrs.nasa.gov/citations/20240015613) | Safety analysis of operational-intent volumes, conformance and contingent transitions | Probabilistic/safety-analysis comparator; AeroWeft's tiny oracle is a deterministic semantic reference, not a replacement |
+| [UTM tracking-performance Monte Carlo conformance study](https://www.mdpi.com/2504-446X/7/10/597) | Hybrid SITL/Monte Carlo study of latency, update intervals, tracking and navigation uncertainty; position extrapolation can accelerate alerts but increase nuisance/missed events under latency and velocity error | Key matched sensitivity baseline for observation freshness and false-alert tradeoffs; don't optimize alert delay in isolation |
+| [ISO/TR 23310:2025 UTM system requirements study](https://www.iso.org/standard/87392.html) | Cross-jurisdictional catalogue of UTM actors, functions, data, quality, safety and security expectations | Interoperability/quality vocabulary, not a numerical benchmark |
 | [ASTM F3442-25 DAA performance specification](https://doi.org/10.1520/F3442-25) | Smaller UA/crewed-aircraft encounters in stated lower-risk scope; expects mixed cooperative and non-cooperative traffic; no tactical ATC separation; scope excludes UA-to-UA and terrain/birds | Bounded system-performance reference only; this track stops at qualified observability and does not implement the standard's end-to-end DAA system |
 | [FAA Part 107 DAA evaluation information](https://www.faa.gov/sites/faa.gov/files/uas/commercial_operators/part_107_waivers/Part-107-Waiver-Section-Specific-Evaluation-Information.pdf) | Evaluates the system end state after avoidance and requires cooperative/non-cooperative performance measured independently | Evaluation principle; AeroWeft supplies the evidence/occupancy interface and does not implement avoidance manoeuvres |
 | [EUROCAE ED-267 OSED for VLL DAA](https://www.eurocae.net/product/ed-267-osed-for-detect-and-avoid-in-very-low-level-operations/) | Operational services/environment definition for VLL DAA and external supporting-service relationships | Operational-design baseline, not a sensor-level accuracy score |
@@ -417,6 +459,13 @@ Current 2026 UAM research that should remain in the comparison matrix:
 - [FAA DAA system-level evaluation guidance](https://www.faa.gov/sites/faa.gov/files/uas/commercial_operators/part_107_waivers/Part-107-Waiver-Section-Specific-Evaluation-Information.pdf): cooperative and non-cooperative aircraft performance must be measured separately; sensor detection alone is not the end-state safety metric.
 - [EUROCAE ED-267](https://www.eurocae.net/product/ed-267-osed-for-detect-and-avoid-in-very-low-level-operations/): operational-services/environment reference for VLL DAA and supporting-service interoperability.
 - [NASA EO/IR DAA surveillance range research](https://ntrs.nasa.gov/citations/20210025061): sensor-specific surveillance range and coverage assumptions for cooperative/non-cooperative traffic; not a transferable detection-range guarantee.
+- [EASA Easy Access Rules for U-space](https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-u-space): conformance determination requires matching a UA to an activated authorization and evaluating deviation thresholds; GM describes the scoped 5%-of-time confirmation threshold and 4D deviation volumes.
+- [EU Regulation 2021/664, consolidated 22 February 2026](https://eur-lex.europa.eu/eli/reg_impl/2021/664/2026-02-22/eng): continuous checking of existing authorizations against new dynamic restrictions and relevant manned-traffic information, with updates/withdrawals as circumstances require.
+- [FAA UTM Pilot Program Phase 2 Final Report](https://www.faa.gov/sites/faa.gov/files/uas/research_development/traffic_management/utm_pilot_program/FY20_UPP2_Final_Report.pdf): operational intent non-conforming/contingent state transitions and updated contingency volume sharing; the 30-second transition timeout is demonstration-specific.
+- [NASA Safety Assessment of Conformance Monitoring for Situational Awareness in UTM Operations](https://ntrs.nasa.gov/citations/20240015613): operational intent volumes, nonconforming/contingent state semantics, and the effect of deviation on strategic deconfliction.
+- [UTM tracking-performance Monte Carlo conformance study](https://www.mdpi.com/2504-446X/7/10/597): tracking latency/update rates/navigation uncertainty can alter missed and nuisance alerts; position extrapolation trades detection speed against alert variability.
+- [ISO/TR 23310:2025](https://www.iso.org/standard/87392.html): cross-jurisdictional UTM function, actor, data and safety/security/quality requirements study.
+
 
 
 - [Nagrare & Lieb (2026), vertiport throughput with taxiing and parking levels](https://doi.org/10.3390/aerospace13010109): charging duration and parking capacity affect turnaround, schedule flexibility and throughput.
