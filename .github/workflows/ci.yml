@@ -91,8 +91,7 @@ jobs:
     - name: Protective Systems B0, VOI and lifecycle oracles
       if: runner.os == 'Linux'
       run: |
-        cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all
-        git diff -- research/protective-systems/verifier/src
+        cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
         cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
         cargo test --manifest-path research/protective-systems/verifier/Cargo.toml
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier
