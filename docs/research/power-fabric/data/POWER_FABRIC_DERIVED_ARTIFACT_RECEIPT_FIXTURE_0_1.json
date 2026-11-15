@@ -16,11 +16,12 @@
   "generator_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
   "source_mapping_profile_version": "0.1",
   "dependency_ids": [
-    "input:build-lock:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "input:service-graph-payload:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-    "input:generator-source:power-fabric-human-projection-compiler:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    "input:generator-configuration:power-fabric-human-projection-compiler:sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "input:module:inverter:R2"
+    "input:build-lock:graph:synthetic-home",
+    "input:service-graph-payload:graph:synthetic-home",
+    "input:generator-version:power-fabric-human-projection-compiler",
+    "input:generator-source:power-fabric-human-projection-compiler",
+    "input:generator-configuration:power-fabric-human-projection-compiler",
+    "input:module:inverter"
   ],
   "dependency_inventory_complete": true
 }

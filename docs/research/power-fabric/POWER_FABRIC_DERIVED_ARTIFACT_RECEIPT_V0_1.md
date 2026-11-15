@@ -46,9 +46,9 @@ The output receipt should be a derived node in the dependency graph. Its depende
 - compiler source, build configuration, toolchain and dependency lock;
 - generator version/source/configuration and the exact render inputs.
 
-A mutation in any dependency should invalidate affected artefact receipts and derived documents. The previous receipt remains historical; the newly generated output gets a new artifact revision. Do not overwrite the old receipt or claim that an obsolete diagram is current.
+A mutation in any dependency should invalidate affected artefact receipts and derived documents. Dependency IDs name stable semantic inputs; digests/versions are the values expected by `InputChange`, not embedded in the dependency ID. The previous receipt remains historical; the newly generated output gets a new artifact revision. Do not overwrite the old receipt or claim that an obsolete diagram is current.
 
-The receipt now converts directly into the existing #5218 DerivedArtifact node, using the source build's compiler version and mapping-profile version for the invalidation engine's version checks, while the renderer version is a separate dependency fingerprint. It preserves dependency IDs and inventory completeness. The receipt can supply pinned build-lock, graph-payload, generator-source and generator-configuration InputFingerprints; callers append fingerprints for all additional module, standards, evidence and source dependencies.
+The receipt now converts directly into the existing #5218 DerivedArtifact node, using the source build's compiler version and mapping-profile version for the invalidation engine's version checks. Renderer version, renderer source and renderer configuration use stable dependency IDs with separate mutable fingerprints. Build-lock and graph-payload IDs are stable per graph; their content digests are the mutable fingerprints. The receipt preserves dependency IDs and inventory completeness. Its helper emits fingerprints for mandatory build-lock, graph-payload and renderer dependencies; callers append fingerprints for module, standards, evidence and source dependencies.
 
 ## 4. Claim ceiling
 
