@@ -2271,7 +2271,7 @@ mod tests {
                 &scenarios(),
                 &[]
             ),
-            Err(OptioneeringError::StageOrderInvalid)
+            Err(OptioneeringError::MissingStageDecision(OptionTier::Switch))
         );
     }
 
