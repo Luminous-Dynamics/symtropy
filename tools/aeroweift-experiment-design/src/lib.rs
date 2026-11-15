@@ -358,6 +358,8 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
         || policy.minimum_estimate_confidence_level == 1.0
+        || policy.authorization_required_modalities.iter().collect::<BTreeSet<_>>().len()
+            != policy.authorization_required_modalities.len()
         || policy.resource_budget.setup_minutes == 0
         || policy.resource_budget.facility_minutes == 0
         || policy.resource_budget.cpu_seconds == 0
@@ -400,7 +402,8 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::QuestionOrObjectiveMismatch);
     }
     if (candidate.requires_external_authorization
-        || candidate.modality == ExperimentModality::ControlledFlight)
+        || candidate.modality == ExperimentModality::ControlledFlight
+        || policy.authorization_required_modalities.contains(&candidate.modality))
         && candidate.authorization != AuthorizationState::Authorized
     {
         reasons.insert(RejectionReason::AuthorizationNotGranted);
@@ -464,12 +467,18 @@ fn candidate_rejection_reasons(
         || !bounded_unit_interval(candidate.decision_relevance)
         || !bounded_unit_interval(candidate.probability_uninformative)
         || candidate.cost_units == 0
-        || !bounded_unit_interval(candidate.estimate_confidence_level)
+    {
+        reasons.insert(RejectionReason::InvalidUtilityVector);
+    }
+    if !bounded_unit_interval(candidate.estimate_confidence_level)
         || candidate.estimate_confidence_level == 0.0
         || candidate.estimate_confidence_level == 1.0
         || !is_sha256(&candidate.estimate_method_sha256)
         || !is_sha256(&candidate.estimator_build_sha256)
-        || !is_sha256(&candidate.campaign_sha256)
+    {
+        reasons.insert(RejectionReason::InvalidUtilityVector);
+    }
+    if !is_sha256(&candidate.campaign_sha256)
         || !is_sha256(&candidate.model_scope_sha256)
         || !is_sha256(&candidate.intended_use_profile_sha256)
         || !is_sha256(&candidate.design_sha256)
@@ -481,7 +490,7 @@ fn candidate_rejection_reasons(
         || candidate.independent_reference_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
         || candidate.semantic_equivalence_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
     {
-        reasons.insert(RejectionReason::InvalidUtilityVector);
+        reasons.insert(RejectionReason::InvalidEvidenceBinding);
     }
     if candidate.estimator_build_sha256 != policy.required_estimator_build_sha256
         || candidate.estimate_method_sha256 != policy.required_estimate_method_sha256
