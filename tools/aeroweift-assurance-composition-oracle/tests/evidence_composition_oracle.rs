@@ -85,47 +85,56 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
             }
         }
         18 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.disposition = SurveillanceDisposition::UnqualifiedTrack;
             }
         }
         19 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.coverage_qualification_ref = None;
             }
         }
         20 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.observation_ref = None;
             }
         }
         21 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.dependency_snapshot_ref = None;
             }
         }
         22 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.independence_qualified = false;
             }
         }
         23 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.identity.time_scale_id = "OTHER-TIME";
             }
         }
         24 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.identity.profile_id = "OTHER-PROFILE";
             }
         }
         25 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.identity.frame_id = "OTHER-FRAME";
             }
         }
         26 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.identity.vertical_datum_id = "OTHER-DATUM";
             }
         }
@@ -148,17 +157,20 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
         35 => input.reachability_receipt_ref = Some(" "),
         36 => input.intent_receipt_ref = Some(" "),
         37 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.coverage_qualification_ref = Some(" ");
             }
         }
         38 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.dependency_snapshot_ref = Some(" ");
             }
         }
         39 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.identity.frame_id = "";
             }
         }
