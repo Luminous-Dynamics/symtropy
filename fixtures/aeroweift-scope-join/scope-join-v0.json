@@ -136,6 +136,36 @@
       "id": "missing-owner-receipt",
       "expected": "NOT_ASSESSABLE",
       "reason": "MissingOperationReceipt(Intent)"
+    },
+    {
+      "id": "different-operator",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "different-issuing-ussp",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "different-intent-revision",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "different-authorization-artifact-digest",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "missing-issuing-provider",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "IncompleteOperationScope"
+    },
+    {
+      "id": "missing-authorization-digest",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "IncompleteOperationScope"
     }
   ]
 }
