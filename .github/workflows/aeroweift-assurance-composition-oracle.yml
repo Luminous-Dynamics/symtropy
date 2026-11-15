@@ -9,7 +9,7 @@ on:
       - "tools/aeroweift-assurance-composition-oracle/**"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   isolated-rust:
@@ -28,16 +28,21 @@ jobs:
 
       - name: Formatting
         run: cargo fmt --all
+      - name: Commit rustfmt output to the PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if ! git diff --quiet -- tools/aeroweift-assurance-composition-oracle; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- tools/aeroweift-assurance-composition-oracle
+            git commit -m "style(aviation): apply rustfmt to assurance composition oracle"
+            git push origin "HEAD:${HEAD_REF}"
+          fi
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
 
-      - name: Export temporary rustfmt patch
-        if: always()
-        run: git diff --binary -- tools/aeroweift-assurance-composition-oracle > /tmp/rustfmt.patch
-      - name: Upload temporary rustfmt patch
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: aeroweift-rustfmt-composition
-          path: /tmp/rustfmt.patch
       - name: Clippy
         run: cargo clippy --locked --all-targets -- -D warnings
 
