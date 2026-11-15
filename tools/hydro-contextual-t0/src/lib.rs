@@ -667,7 +667,7 @@ mod tests {
     #[test]
     fn attainment_is_not_clipped() {
         let out = compute_case(&fixture("inputs")["cases"][5]).expect("attainment");
-        assert_eq!(out["attainment"], 1.2);
+        assert!((out["attainment"].as_f64().expect("attainment value") - 1.2).abs() < 1.0e-12);
     }
     #[test]
     fn zero_width_attainment_abstains() {
