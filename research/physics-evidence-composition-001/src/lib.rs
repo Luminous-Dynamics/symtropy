@@ -812,7 +812,7 @@ mod tests {
 
     #[test]
     fn full_task_chain_requires_separate_task_semantics_receipt() {
-        let mut missing_task_request = request(CompositionClaimV1::TaskEquivalence);
+        let missing_task_request = request(CompositionClaimV1::TaskEquivalence);
         let missing_task_evidence = physical_receipts();
         assert_eq!(
             compose_evidence(&missing_task_request, &missing_task_evidence),
@@ -880,7 +880,7 @@ mod tests {
     #[test]
     fn coordinate_frame_and_basis_witness_mismatches_reject_composition() {
         let mut evidence = physical_receipts();
-        evidence[2].frame = source_frame();
+        evidence[2].frame_applicability = FrameApplicabilityV1::Source(source_frame());
         assert_eq!(
             compose_evidence(
                 &request(CompositionClaimV1::PhysicalStepEquivalence),
