@@ -70,6 +70,9 @@
           },
           "inputs": {
             "type": "object"
+          },
+          "context_reference": {
+            "type": "string"
           }
         }
       }
