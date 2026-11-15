@@ -634,3 +634,23 @@ feed or flight-preparation service.
 **Fixture:** `fixtures/aeroweift-assurance-composition/evidence-composition-v0.json`, synthetic-only, 32 curated cases. The isolated oracle is in `tools/aeroweift-assurance-composition-oracle/`. The profile-owned traffic-class requirement is separately receipted and cannot be weakened by the composition request. The Rust test campaign adds 44 single-fault mutations, 990 unordered two-mutator combinations, and 10,000 deterministic seeded two-fault trials; every mutated case must fail closed, while a separate positive control must pass. The fixture and tests are finite contract checks, not physical, operational, certification or safety evidence.
 
 **Research comparator:** 2026 integrated vertiport/vertipad optimization, demand/queueing and airside discrete-event simulation remain the planning/capacity comparators; AAM DAA/separation literature remains the surveillance/conflict comparator. Track O evaluates the evidence interface to such systems rather than reimplementing their optimizers or DAA algorithms.
+
+
+### Track P — subject-scoped causal receipt binding (#5337)
+
+Verifies that each composed result was derived from the exact aircraft, flight, scenario, operational-intent revision, authorization revision, model profile, coordinate/time basis and parent evidence it claims to consume. Uses typed parent roles, exact parent digest references, validity and causal-time checks, producer-sequence fork detection, graph-cycle and orphan rejection, and profile-owned traffic-class obligations. The positive result is `CAUSALLY_BOUND_ONLY`; byte integrity, signature identity, issuer authority and revocation remain explicitly not evaluated. Synthetic structural benchmark only; no flight authority or operational safety claim. Implementation: `tools/aeroweift-causal-receipt-binding/` and `docs/research/aviation/AEROWEFT_CAUSAL_RECEIPT_BINDING_001.md`.
+
+
+### Track Q — trusted evidence custody and historical/current reliance (#5351)
+
+AeroWeft-facing adapter to Mycelix's role-separated signed evidence, pinned trust roots, sensor provenance, revocation and evidence-lease owners. Verifies canonical bytes, signatures, signer identity, issuer role/predicate/subject scope, trust-policy epoch/root, key lifecycle and (where required) SCITT transparency proofs. Historical authenticity, current reliance, physical truth, source independence and operational authority remain separate facets. Reuse Mycelix #5899/#5895/#5863/#2143/#181/#2688/#1215; do not create a parallel DID registry, trust-root store, transparency service or generic currentness/lease algebra. No trust result mints flight/dispatch/control authority. Synthetic verifier only until cryptographic known-answer fixtures and independent review pass.
+
+
+### Track R — conflict-management performance evidence envelope (#5354)
+
+Builds a declared-domain performance evidence profile above planning and composition. It measures missed/late/nuisance alerts, latency tails, resolution feasibility, contingency/recovery, unresolved occupancy, exposure-normalized rates with confidence bounds, and subgroup coverage by traffic/encounter/environment/failure class. It reports a non-compensatory vector rather than a single safety score and keeps synthetic, simulation, SIL, HIL, flight-test and accepted operational evidence levels separate. NASA's 2025 Required Conflict Management Performance (RCMP) research is a motivating comparator; AeroWeft does not set separation minima, authorize operators or implement authority acceptance. See #5354.
+
+
+### Track S — multi-subject evidence scope (#5359)
+
+Separates the focal flight/operation being assessed from the external target an observation describes and from the environment/coverage cell to which a surveillance claim applies. Requires typed scope relations so an external or unknown target may contribute unresolved occupancy without becoming the focal aircraft or receiving a fabricated identity. Extends Track P's single-focal-flight causal receipt graph to multi-aircraft and unidentified-target cases; it does not implement detection, sensor fusion or target association itself.
