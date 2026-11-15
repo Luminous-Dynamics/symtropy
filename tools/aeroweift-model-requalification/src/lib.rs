@@ -531,10 +531,10 @@ pub fn evaluate_claim(
         ClaimStatus::Indeterminate
     } else if !unsupported.is_empty() {
         ClaimStatus::UnsupportedChangeType
-    } else if !historical_only.is_empty() {
-        ClaimStatus::HistoricalOnly
     } else if !requalification.is_empty() {
         ClaimStatus::RequalificationRequired
+    } else if !historical_only.is_empty() {
+        ClaimStatus::HistoricalOnly
     } else {
         ClaimStatus::StillApplicable
     };
