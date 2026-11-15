@@ -8,9 +8,11 @@ use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::{
-    env, fs::File,
+    env,
+    fs::{self, File},
     io::{self, Read},
     process,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 const REGISTRY_SCHEMA: &str = "protective-data-registry/0.1";
@@ -200,6 +202,48 @@ mod tests {
             .expect("NIST record");
         record["archive_sha256_published_by_repository"] = Value::String("not-a-digest".into());
 
+        assert!(nist_archive_metadata(&registry.to_string()).is_err());
+    }
+
+    #[test]
+    fn wrong_archive_filename_is_rejected_before_file_access() {
+        let error = run("not-the-registered-file.zip").expect_err("wrong filename must fail");
+        assert!(error.contains("expected archive file name V50.zip"));
+    }
+
+    #[test]
+    fn mismatched_archive_digest_is_reported_without_promotion() {
+        static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(0);
+        let temp_dir = env::temp_dir().join(format!(
+            "protective-data-gate-{}-{}",
+            process::id(),
+            NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::create_dir_all(&temp_dir).expect("create temporary test directory");
+        let archive = temp_dir.join("V50.zip");
+        fs::write(&archive, b"synthetic negative control; not the NIST V50 archive")
+            .expect("write synthetic negative-control bytes");
+
+        let report = run(archive.to_str().expect("UTF-8 temporary path"))
+            .expect("synthetic archive can be hashed");
+        assert!(!report.checksum_matches);
+        assert_ne!(report.actual_sha256, report.expected_sha256);
+
+        fs::remove_dir_all(&temp_dir).expect("remove temporary test directory");
+    }
+
+    #[test]
+    fn duplicate_nist_registry_entries_are_rejected() {
+        let mut registry: Value =
+            serde_json::from_str(EMBEDDED_REGISTRY).expect("embedded registry JSON");
+        let first = registry["records"]
+            .as_array()
+            .expect("records array")[0]
+            .clone();
+        registry["records"]
+            .as_array_mut()
+            .expect("records array")
+            .push(first);
         assert!(nist_archive_metadata(&registry.to_string()).is_err());
     }
 
