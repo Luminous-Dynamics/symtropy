@@ -13,40 +13,62 @@
       "feedstock": {
         "batch_id": "SYNTHETIC-FEED-A",
         "material_id": "SYNTHETIC-REGOLITH-A",
-        "dry_mass_g": 1000.0,
+        "dry_mass_g": 1000,
         "mineralogy_status": "synthetic_declared",
         "source_ref": "synthetic-fixture-only"
       },
       "feedstock_mass_balance": {
-        "input_mass_g": 1000.0,
+        "input_mass_g": 1000,
         "outputs": [
-          {"stream_id": "residual-solids", "kind": "residual_solid", "mass_g": 985.0},
-          {"stream_id": "accepted-o2", "kind": "accepted_o2_product", "mass_g": 10.0},
-          {"stream_id": "other-captured-gases", "kind": "other_captured_gas", "mass_g": 5.0}
+          {
+            "stream_id": "residual-solids",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
         ],
         "tolerance_g": 0.01
       },
       "reagent_ledger": {
-        "opening_inventory_g": 80.0,
-        "fresh_makeup_g": 20.0,
-        "ending_inventory_g": 80.0,
-        "bound_in_residue_g": 5.0,
-        "purge_and_waste_g": 15.0,
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
         "unknown_streams": [],
         "tolerance_g": 0.01
       },
       "observations": [
-        {"observation_id": "synthetic-oes-o2", "method": "synthetic_oes", "species": "O2", "evidence_class": "synthetic"},
-        {"observation_id": "synthetic-gas-analysis-o2", "method": "synthetic_quantitative_gas_analysis", "species": "O2", "evidence_class": "synthetic"}
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        }
       ],
       "product": {
         "product_id": "synthetic-accepted-o2",
         "species": "O2",
-        "mass_g": 10.0,
+        "mass_g": 10,
         "purity_fraction": 0.995,
-        "pressure_kpa": 100.0,
+        "pressure_kpa": 100,
         "delivery_contract_id": "synthetic-o2-contract-a",
-        "quantitative_measurement_ref": "synthetic-measurement-only",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
         "calibration_ref": "synthetic-calibration-only"
       },
       "coproducts": [],
@@ -54,13 +76,41 @@
         "boundary_id": "synthetic-grid-to-product-a",
         "meter_mode": "non_overlapping_branch_meters",
         "meters": [
-          {"meter_id": "m-source-pp", "role": "source_and_power_conditioning", "energy_wh": 1200.0},
-          {"meter_id": "m-vacuum", "role": "vacuum_and_pumping", "energy_wh": 800.0},
-          {"meter_id": "m-feed", "role": "feed_and_material_handling", "energy_wh": 250.0},
-          {"meter_id": "m-gas", "role": "gas_circulation_and_capture", "energy_wh": 400.0},
-          {"meter_id": "m-purification", "role": "separation_and_purification", "energy_wh": 500.0},
-          {"meter_id": "m-thermal", "role": "thermal_management", "energy_wh": 200.0},
-          {"meter_id": "m-controls", "role": "controls_instrumentation_and_standby", "energy_wh": 150.0}
+          {
+            "meter_id": "m-source-pp",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
         ],
         "required_roles": [
           "source_and_power_conditioning",
@@ -78,40 +128,145 @@
     {
       "id": "blocked-unknown-reagent-inventory",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-B", "material_id": "SYNTHETIC-REGOLITH-B", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
-      "feedstock_mass_balance": {"input_mass_g": 1000.0, "outputs": [{"stream_id": "residue-b", "kind": "residual_solid", "mass_g": 990.0}, {"stream_id": "o2-b", "kind": "accepted_o2_product", "mass_g": 10.0}], "tolerance_g": 0.01},
-      "reagent_ledger": {"opening_inventory_g": null, "fresh_makeup_g": 20.0, "ending_inventory_g": 80.0, "bound_in_residue_g": 5.0, "purge_and_waste_g": 15.0, "unknown_streams": ["opening_inventory"], "tolerance_g": 0.01},
-      "product": {"product_id": "synthetic-o2-b", "species": "O2", "mass_g": 10.0, "purity_fraction": 0.995, "pressure_kpa": 100.0, "delivery_contract_id": "synthetic-o2-contract-a", "quantitative_measurement_ref": "synthetic-only", "calibration_ref": "synthetic-only"},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-B",
+        "material_id": "SYNTHETIC-REGOLITH-B",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residue-b",
+            "kind": "residual_solid",
+            "mass_g": 990
+          },
+          {
+            "stream_id": "o2-b",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": null,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [
+          "opening_inventory"
+        ],
+        "tolerance_g": 0.01
+      },
+      "product": {
+        "product_id": "synthetic-o2-b",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-only",
+        "calibration_ref": "synthetic-only"
+      },
       "expected_disposition": "BLOCKED"
     },
     {
       "id": "blocked-qualitative-oxygen-observation-only",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-C", "material_id": "SYNTHETIC-REGOLITH-C", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
-      "observations": [{"observation_id": "oes-only-c", "method": "optical_emission", "species": "O", "evidence_class": "literature_qualitative"}],
-      "product": {"product_id": "claimed-o2-c", "species": "O2", "mass_g": null, "purity_fraction": null, "pressure_kpa": null, "delivery_contract_id": null, "quantitative_measurement_ref": null, "calibration_ref": null},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-C",
+        "material_id": "SYNTHETIC-REGOLITH-C",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "observations": [
+        {
+          "observation_id": "oes-only-c",
+          "method": "optical_emission",
+          "species": "O",
+          "evidence_class": "literature_qualitative"
+        }
+      ],
+      "product": {
+        "product_id": "claimed-o2-c",
+        "species": "O2",
+        "mass_g": null,
+        "purity_fraction": null,
+        "pressure_kpa": null,
+        "delivery_contract_id": null,
+        "quantitative_measurement_ref": null,
+        "calibration_ref": null
+      },
       "expected_disposition": "BLOCKED"
     },
     {
       "id": "rejected-co2-promoted-to-o2",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-D", "material_id": "SYNTHETIC-REGOLITH-D", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
-      "observations": [{"observation_id": "co2-d", "method": "synthetic_gas_analysis", "species": "CO2", "evidence_class": "synthetic"}],
-      "product": {"product_id": "invalid-o2-d", "species": "O2", "mass_g": 10.0, "purity_fraction": 0.99, "pressure_kpa": 100.0, "delivery_contract_id": "synthetic-o2-contract-a", "quantitative_measurement_ref": "co2-d", "calibration_ref": "synthetic-calibration-only"},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-D",
+        "material_id": "SYNTHETIC-REGOLITH-D",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "observations": [
+        {
+          "observation_id": "co2-d",
+          "method": "synthetic_gas_analysis",
+          "species": "CO2",
+          "evidence_class": "synthetic"
+        }
+      ],
+      "product": {
+        "product_id": "invalid-o2-d",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.99,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "co2-d",
+        "calibration_ref": "synthetic-calibration-only"
+      },
       "expected_disposition": "REJECTED"
     },
     {
       "id": "blocked-incomplete-grid-boundary",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-E", "material_id": "SYNTHETIC-REGOLITH-E", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-E",
+        "material_id": "SYNTHETIC-REGOLITH-E",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
       "grid_energy": {
         "boundary_id": "synthetic-grid-to-product-e",
         "meter_mode": "non_overlapping_branch_meters",
         "meters": [
-          {"meter_id": "m-source-e", "role": "source_and_power_conditioning", "energy_wh": 1000.0},
-          {"meter_id": "m-vacuum-e", "role": "vacuum_and_pumping", "energy_wh": 500.0}
+          {
+            "meter_id": "m-source-e",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1000
+          },
+          {
+            "meter_id": "m-vacuum-e",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 500
+          }
         ],
-        "required_roles": ["source_and_power_conditioning", "vacuum_and_pumping", "gas_circulation_and_capture", "separation_and_purification", "thermal_management", "controls_instrumentation_and_standby"],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
         "meter_calibration_status": "synthetic_declared"
       },
       "expected_disposition": "BLOCKED"
@@ -119,24 +274,68 @@
     {
       "id": "blocked-unqualified-coproduct-credit",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-F", "material_id": "SYNTHETIC-REGOLITH-F", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-F",
+        "material_id": "SYNTHETIC-REGOLITH-F",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
       "coproducts": [
-        {"stream_id": "silicon-bearing-residue-f", "species_or_material": "Si-bearing solid", "mass_g": 50.0, "credited_as_product": true, "product_grade_ref": null, "receiving_process_ref": null}
+        {
+          "stream_id": "silicon-bearing-residue-f",
+          "species_or_material": "Si-bearing solid",
+          "mass_g": 50,
+          "credited_as_product": true,
+          "product_grade_ref": null,
+          "receiving_process_ref": null
+        }
       ],
       "expected_disposition": "BLOCKED"
     },
     {
       "id": "not-comparable-product-contract",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-G", "material_id": "SYNTHETIC-REGOLITH-G", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
-      "comparison": {"candidate_contract_id": "synthetic-o2-contract-a", "reference_contract_id": "synthetic-oxygen-bearing-gas-contract-b", "energy_boundary_id": "synthetic-boundary-g"},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-G",
+        "material_id": "SYNTHETIC-REGOLITH-G",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "comparison": {
+        "candidate_contract_id": "synthetic-o2-contract-a",
+        "reference_contract_id": "synthetic-oxygen-bearing-gas-contract-b",
+        "energy_boundary_id": "synthetic-boundary-g"
+      },
       "expected_disposition": "NOT_COMPARABLE"
     },
     {
       "id": "rejected-feedstock-mass-nonclosure",
       "evidence_class": "synthetic",
-      "feedstock": {"batch_id": "SYNTHETIC-FEED-H", "material_id": "SYNTHETIC-REGOLITH-H", "dry_mass_g": 1000.0, "mineralogy_status": "synthetic_declared", "source_ref": "synthetic-fixture-only"},
-      "feedstock_mass_balance": {"input_mass_g": 1000.0, "outputs": [{"stream_id": "residue-h", "kind": "residual_solid", "mass_g": 970.0}, {"stream_id": "o2-h", "kind": "accepted_o2_product", "mass_g": 10.0}], "tolerance_g": 0.01},
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-H",
+        "material_id": "SYNTHETIC-REGOLITH-H",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residue-h",
+            "kind": "residual_solid",
+            "mass_g": 970
+          },
+          {
+            "stream_id": "o2-h",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          }
+        ],
+        "tolerance_g": 0.01
+      },
       "expected_disposition": "REJECTED"
     }
   ]
