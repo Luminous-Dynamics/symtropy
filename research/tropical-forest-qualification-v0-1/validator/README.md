@@ -197,3 +197,19 @@ These results are deliberately narrow:
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
 The validator currently contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+
+
+## Spatial localization and residual autocorrelation kernels
+
+Two additional library modules are intentionally **not** wired into the fixture CLI receipt dispatcher yet; they are exercised by Rust unit tests and independently checked against compact public reference corpora:
+
+- `coverage_inference_kernel` computes an assumption-labelled Hoeffding interval over held-out block-coverage indicators. The number of blocks is the effective sample size; within-block pixel/stem count is never substituted. Independence is declared, not verified.
+- `spatial_localization_kernel` computes a Gaussian distance-weighted residual quantile for one declared projected metric coordinate system, local effective sample size, maximum normalized weight and low-support abstention. Gaussian similarity is not a density ratio, so the output is explicitly diagnostic-only and has no finite-sample spatial coverage guarantee.
+- `spatial_localization_kernel::global_morans_i` reports a descriptive global Moran's I statistic using symmetric binary distance-neighbour weights on signed held-out residuals. It provides no permutation p-value, boundary correction or inferential significance.
+
+Research owners:
+- [#5319 — realized block-coverage inference](https://github.com/Luminous-Dynamics/symtropy/issues/5319)
+- [#5327 — spatial localization tournament](https://github.com/Luminous-Dynamics/symtropy/issues/5327)
+- [#5328 — sealed model-set custody](https://github.com/Luminous-Dynamics/symtropy/issues/5328)
+
+The new module/corpus artifacts are specification and unit-test-level work. They do not produce a production receipt through the CLI, run Rust in the current runtime, ingest real data, or establish ecological validity.
