@@ -7,8 +7,7 @@
 //! world coordinates at the reported common time.
 
 use crate::{
-    Capsule, CapsuleAabb3, TranslationCcdError, Vec3,
-    endpoints_only_translating_capsule_collision,
+    Capsule, CapsuleAabb3, TranslationCcdError, Vec3, endpoints_only_translating_capsule_collision,
     translating_capsule_vs_capsule,
 };
 
@@ -125,10 +124,7 @@ pub fn co_translating_capsule_swept_aabb_candidate(
     Ok(moving_swept.overlaps(obstacle_swept))
 }
 
-fn swept_bounds(
-    capsule: Capsule,
-    translation: Vec3,
-) -> Result<CapsuleAabb3, TranslationCcdError> {
+fn swept_bounds(capsule: Capsule, translation: Vec3) -> Result<CapsuleAabb3, TranslationCcdError> {
     if !is_finite(translation) {
         return Err(TranslationCcdError::NonFiniteTranslation);
     }
@@ -194,35 +190,37 @@ mod tests {
         let moving_delta = p(20.0, 0.0, 0.0);
         let obstacle_delta = p(-20.0, 0.0, 0.0);
 
-        assert!(!endpoints_only_co_translating_capsule_collision(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap());
-        assert!(co_translating_capsule_swept_aabb_candidate(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap());
-        assert!(co_translating_capsule_capsule_collision(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap());
+        assert!(
+            !endpoints_only_co_translating_capsule_collision(
+                moving,
+                moving_delta,
+                obstacle,
+                obstacle_delta,
+            )
+            .unwrap()
+        );
+        assert!(
+            co_translating_capsule_swept_aabb_candidate(
+                moving,
+                moving_delta,
+                obstacle,
+                obstacle_delta,
+            )
+            .unwrap()
+        );
+        assert!(
+            co_translating_capsule_capsule_collision(
+                moving,
+                moving_delta,
+                obstacle,
+                obstacle_delta,
+            )
+            .unwrap()
+        );
 
-        let closest = co_translating_capsule_vs_capsule(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap();
+        let closest =
+            co_translating_capsule_vs_capsule(moving, moving_delta, obstacle, obstacle_delta)
+                .unwrap();
         assert!((closest.time_parameter - 0.5).abs() < 1.0e-9);
         assert!(closest.distance_mm <= CONTACT_EPSILON_MM);
         assert!((closest.moving_point.x - closest.obstacle_point.x).abs() < 1.0e-9);
@@ -233,13 +231,9 @@ mod tests {
         let moving = capsule(p(0.0, 0.0, 0.0), p(0.0, 5.0, 0.0), 0.5);
         let obstacle = capsule(p(5.0, 0.0, 0.0), p(5.0, 5.0, 0.0), 0.5);
         let common_delta = p(100.0, -30.0, 4.0);
-        let closest = co_translating_capsule_vs_capsule(
-            moving,
-            common_delta,
-            obstacle,
-            common_delta,
-        )
-        .unwrap();
+        let closest =
+            co_translating_capsule_vs_capsule(moving, common_delta, obstacle, common_delta)
+                .unwrap();
 
         assert!((closest.distance_mm - 5.0).abs() < 1.0e-9);
         assert_eq!(closest.time_parameter, 0.0);
@@ -285,20 +279,18 @@ mod tests {
         let obstacle = capsule(p(5.0, 0.0, 0.0), p(5.0, 0.0, 0.0), 0.25);
         let shared_delta = p(10.0, 0.0, 0.0);
 
-        assert!(co_translating_capsule_swept_aabb_candidate(
-            moving,
-            shared_delta,
-            obstacle,
-            shared_delta,
-        )
-        .unwrap());
-        let closest = co_translating_capsule_vs_capsule(
-            moving,
-            shared_delta,
-            obstacle,
-            shared_delta,
-        )
-        .unwrap();
+        assert!(
+            co_translating_capsule_swept_aabb_candidate(
+                moving,
+                shared_delta,
+                obstacle,
+                shared_delta,
+            )
+            .unwrap()
+        );
+        let closest =
+            co_translating_capsule_vs_capsule(moving, shared_delta, obstacle, shared_delta)
+                .unwrap();
         assert!((closest.distance_mm - 5.0).abs() < 1.0e-9);
         assert!(!closest.is_contact(0.25, 0.25));
     }
@@ -307,13 +299,9 @@ mod tests {
     fn endpoint_clamping_and_skew_three_dimensional_axes_are_supported() {
         let moving = capsule(p(0.0, 0.0, 0.0), p(4.0, 0.0, 0.0), 0.2);
         let obstacle = capsule(p(2.0, 0.0, 3.0), p(2.0, 0.0, 7.0), 0.2);
-        let closest = co_translating_capsule_vs_capsule(
-            moving,
-            p(0.0, 0.0, 0.0),
-            obstacle,
-            p(0.0, 0.0, 0.0),
-        )
-        .unwrap();
+        let closest =
+            co_translating_capsule_vs_capsule(moving, p(0.0, 0.0, 0.0), obstacle, p(0.0, 0.0, 0.0))
+                .unwrap();
         assert!((closest.distance_mm - 3.0).abs() < 1.0e-9);
         assert!((0.0..=1.0).contains(&closest.moving_axis_parameter));
         assert!((0.0..=1.0).contains(&closest.obstacle_axis_parameter));
@@ -325,20 +313,10 @@ mod tests {
         let obstacle = capsule(p(5.0, -2.0, 1.0), p(5.0, 2.0, 1.0), 0.25);
         let moving_delta = p(12.0, 0.0, 0.0);
         let obstacle_delta = p(-2.0, 0.0, 0.0);
-        let ab = co_translating_capsule_vs_capsule(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap();
-        let ba = co_translating_capsule_vs_capsule(
-            obstacle,
-            obstacle_delta,
-            moving,
-            moving_delta,
-        )
-        .unwrap();
+        let ab = co_translating_capsule_vs_capsule(moving, moving_delta, obstacle, obstacle_delta)
+            .unwrap();
+        let ba = co_translating_capsule_vs_capsule(obstacle, obstacle_delta, moving, moving_delta)
+            .unwrap();
 
         assert!((ab.distance_mm - ba.distance_mm).abs() < 1.0e-9);
         assert!((ab.time_parameter - ba.time_parameter).abs() < 1.0e-9);
@@ -354,19 +332,23 @@ mod tests {
         let obstacle = capsule(p(0.0, -3.0, 3.0), p(0.0, 3.0, 3.0), 0.25);
         let moving_delta = p(0.0, 0.0, 2.0);
         let obstacle_delta = p(0.0, 0.0, -1.0);
-        let original = co_translating_capsule_vs_capsule(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap();
+        let original =
+            co_translating_capsule_vs_capsule(moving, moving_delta, obstacle, obstacle_delta)
+                .unwrap();
         let transform = |v: Vec3| p(100.0 - v.y, -30.0 + v.x, 25.0 + v.z);
         let rotate_delta = |v: Vec3| p(-v.y, v.x, v.z);
         let transformed = co_translating_capsule_vs_capsule(
-            capsule(transform(moving.start), transform(moving.end), moving.radius_mm),
+            capsule(
+                transform(moving.start),
+                transform(moving.end),
+                moving.radius_mm,
+            ),
             rotate_delta(moving_delta),
-            capsule(transform(obstacle.start), transform(obstacle.end), obstacle.radius_mm),
+            capsule(
+                transform(obstacle.start),
+                transform(obstacle.end),
+                obstacle.radius_mm,
+            ),
             rotate_delta(obstacle_delta),
         )
         .unwrap();
@@ -381,18 +363,22 @@ mod tests {
         let obstacle = capsule(p(5.0, 0.0, 0.0), p(5.0, 2.0, 0.0), 0.5);
         let moving_delta = p(10.0, 0.0, 0.0);
         let obstacle_delta = p(-10.0, 0.0, 0.0);
-        let base = co_translating_capsule_vs_capsule(
-            moving,
-            moving_delta,
-            obstacle,
-            obstacle_delta,
-        )
-        .unwrap();
+        let base =
+            co_translating_capsule_vs_capsule(moving, moving_delta, obstacle, obstacle_delta)
+                .unwrap();
         let scale = 8.0;
         let scaled = co_translating_capsule_vs_capsule(
-            capsule(moving.start.scale(scale), moving.end.scale(scale), moving.radius_mm * scale),
+            capsule(
+                moving.start.scale(scale),
+                moving.end.scale(scale),
+                moving.radius_mm * scale,
+            ),
             moving_delta.scale(scale),
-            capsule(obstacle.start.scale(scale), obstacle.end.scale(scale), obstacle.radius_mm * scale),
+            capsule(
+                obstacle.start.scale(scale),
+                obstacle.end.scale(scale),
+                obstacle.radius_mm * scale,
+            ),
             obstacle_delta.scale(scale),
         )
         .unwrap();
@@ -421,12 +407,7 @@ mod tests {
             ..valid
         };
         assert_eq!(
-            co_translating_capsule_vs_capsule(
-                invalid,
-                p(0.0, 0.0, 0.0),
-                valid,
-                p(0.0, 0.0, 0.0),
-            ),
+            co_translating_capsule_vs_capsule(invalid, p(0.0, 0.0, 0.0), valid, p(0.0, 0.0, 0.0),),
             Err(TranslationCcdError::InvalidRadius)
         );
     }
@@ -444,13 +425,9 @@ mod tests {
             let obstacle = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.5);
             let moving_delta = p(next(), next(), next());
             let obstacle_delta = p(next(), next(), next());
-            let exact = co_translating_capsule_vs_capsule(
-                moving,
-                moving_delta,
-                obstacle,
-                obstacle_delta,
-            )
-            .unwrap();
+            let exact =
+                co_translating_capsule_vs_capsule(moving, moving_delta, obstacle, obstacle_delta)
+                    .unwrap();
 
             let mut sampled_best = f64::INFINITY;
             for ti in 0..=16 {
