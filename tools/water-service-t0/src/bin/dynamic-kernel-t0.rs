@@ -760,9 +760,7 @@ mod tests {
     fn sub_stochastic_kernel_keeps_unresolved_mass() {
         let x = row("DK-T0-003-substochastic-kernel-open-residual");
         assert_eq!(x["operator_disposition"], "OPEN_MASS_RESIDUAL");
-        assert!(
-            (x["signed_predicted_mass_residual"].as_f64().unwrap() - 0.2).abs() < 1.0e-12
-        );
+        assert!((x["signed_predicted_mass_residual"].as_f64().unwrap() - 0.2).abs() < 1.0e-12);
     }
 
     #[test]
@@ -869,11 +867,11 @@ mod tests {
     fn positive_mass_rescaling_preserves_kernel_disposition() {
         let base = row("DK-T0-001-static-zero-delay-limit");
         let scaled = row("DK-T0-014-positive-mass-time-scale-invariance");
+        assert_eq!(base["operator_disposition"], scaled["operator_disposition"]);
         assert_eq!(
-            base["operator_disposition"],
-            scaled["operator_disposition"]
+            base["per_inlet_kernel_area"],
+            scaled["per_inlet_kernel_area"]
         );
-        assert_eq!(base["per_inlet_kernel_area"], scaled["per_inlet_kernel_area"]);
         assert!(
             (scaled["injected_mass"].as_f64().unwrap()
                 - 10.0 * base["injected_mass"].as_f64().unwrap())
