@@ -1,0 +1,17 @@
+[package]
+name = "construction-option-evidence-codesign-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+construction-observation-planning-core = { path = "../construction-observation-planning-v0-1" }
+construction-observation-portfolio-core = { path = "../construction-observation-portfolio-v0-1" }
+construction-production-optioneering-core = { path = "../construction-production-optioneering-v0-1" }
+
+[workspace]
+
+[[bench]]
+name = "joint_scale"
+path = "benches/joint_scale.rs"
+harness = false
