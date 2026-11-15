@@ -1,0 +1,9 @@
+Synthetic lunar seed-base utility benchmark design basis, version 0.1.
+Purpose: exercise a deterministic multi-interval power dispatch and batch ISRU mass-balance model.
+All numerical interval values and regolith volatile fractions in the paired case are synthetic test inputs, not lunar site measurements or hardware specifications.
+Critical service must be dispatched before deferrable resource-processing batches.
+The reserve-aware policy uses the forecast horizon to preserve energy for declared future critical demand, subject to storage capacity, charge/discharge limits, and declared conversion efficiencies.
+A batch processes its declared feed mass only if the complete batch energy demand is met; skipped batches remain unprocessed inventory.
+Every interval must independently balance source energy, delivered loads, battery state, charge/discharge losses, and curtailment.
+Every completed batch must independently balance feed mass into tailings, recovered water, and unrecovered contained water.
+References for subsystem boundaries: NASA Moon Base Systems, NASA Lunar Surface Technology, NASA Overview of In-Situ Resource Utilization.
