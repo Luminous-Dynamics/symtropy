@@ -1,0 +1,565 @@
+// Copyright (C) 2024-2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Deterministic reference state machine for distributed physical handoff.
+//!
+//! This models logical authorization, single-issue command gating, physical
+//! observations and custody acknowledgement. It does not drive hardware,
+//! prove that a sensor is truthful, authenticate a Holochain signature, or
+//! guarantee exactly-once physical actuation.
+
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PhysicalTransactionState {
+    AwaitingAuthorization,
+    Authorized,
+    Released,
+    Received,
+    Completed,
+    Rejected,
+    SafeHold,
+    ReconciliationRequired,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DispatchGate {
+    DispatchOnce,
+    DuplicateSuppressed,
+    BlockedByState(PhysicalTransactionState),
+    BlockedByUnexpectedCommand,
+    BlockedForReconciliation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EventDisposition {
+    Applied,
+    DuplicateIgnored,
+    Rejected,
+    SafeHold,
+    ReconciliationRequired,
+    Completed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TransactionContext {
+    pub transaction_id: String,
+    pub expected_command_id: String,
+    pub package_id: String,
+    pub principal_actor_id: String,
+    pub source_actor_id: String,
+    pub receiver_actor_id: String,
+    pub receiver_endpoint_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TransactionEvent {
+    pub transaction_id: String,
+    pub event_id: String,
+    pub sequence: u64,
+    pub actor_id: String,
+    pub kind: TransactionEventKind,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub enum TransactionEventKind {
+    AuthorizationGranted {
+        not_before_unix_ms: u64,
+        expires_at_unix_ms: u64,
+        checked_at_unix_ms: u64,
+        audience_matches: bool,
+        endpoint_matches: bool,
+        scope_matches: bool,
+        use_remaining: bool,
+    },
+    AuthorizationDenied,
+    PackageReleased {
+        command_id: String,
+        package_id: String,
+    },
+    PackageReceived {
+        command_id: String,
+        package_id: String,
+        endpoint_id: String,
+    },
+    CustodyAcknowledged {
+        command_id: String,
+        package_id: String,
+        evidence_digest: String,
+    },
+    ActuationTimeout,
+    NetworkPartition,
+    SensorDisagreement,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PhysicalTransaction {
+    pub context: TransactionContext,
+    pub state: PhysicalTransactionState,
+    pub dispatch_issued: bool,
+    pub release_observed: bool,
+    pub receive_observed: bool,
+    pub last_sequence: u64,
+    seen_event_ids: BTreeSet<String>,
+}
+
+impl PhysicalTransaction {
+    pub fn new(context: TransactionContext) -> Self {
+        Self {
+            context,
+            state: PhysicalTransactionState::AwaitingAuthorization,
+            dispatch_issued: false,
+            release_observed: false,
+            receive_observed: false,
+            last_sequence: 0,
+            seen_event_ids: BTreeSet::new(),
+        }
+    }
+
+    /// Authorizes one logical release command. Replaying the same command ID
+    /// never issues a second permit; a different command ID after an uncertain
+    /// dispatch moves the transaction to reconciliation.
+    pub fn request_release_command(
+        &mut self,
+        command_id: &str,
+    ) -> Result<DispatchGate, String> {
+        check_identifier("command_id", command_id)?;
+        if self.state != PhysicalTransactionState::Authorized {
+            return Ok(DispatchGate::BlockedByState(self.state));
+        }
+        if self.dispatch_issued {
+            if command_id == self.context.expected_command_id {
+                return Ok(DispatchGate::DuplicateSuppressed);
+            }
+            self.state = PhysicalTransactionState::ReconciliationRequired;
+            return Ok(DispatchGate::BlockedForReconciliation);
+        }
+        if command_id != self.context.expected_command_id {
+            return Ok(DispatchGate::BlockedByUnexpectedCommand);
+        }
+        self.dispatch_issued = true;
+        Ok(DispatchGate::DispatchOnce)
+    }
+
+    /// Applies an independently observed event. A duplicate event ID is
+    /// idempotently ignored. A gap, reordered event, mismatched party/item or
+    /// ambiguous post-dispatch outcome fails closed.
+    pub fn record_event(
+        &mut self,
+        event: TransactionEvent,
+    ) -> Result<EventDisposition, String> {
+        check_identifier("event_id", &event.event_id)?;
+        check_identifier("actor_id", &event.actor_id)?;
+        check_identifier("transaction_id", &event.transaction_id)?;
+
+        if self.seen_event_ids.contains(&event.event_id) {
+            return Ok(EventDisposition::DuplicateIgnored);
+        }
+        if event.transaction_id != self.context.transaction_id {
+            self.state = PhysicalTransactionState::ReconciliationRequired;
+            return Ok(EventDisposition::ReconciliationRequired);
+        }
+        if event.sequence != self.last_sequence.saturating_add(1) {
+            self.state = PhysicalTransactionState::ReconciliationRequired;
+            return Ok(EventDisposition::ReconciliationRequired);
+        }
+
+        self.last_sequence = event.sequence;
+        self.seen_event_ids.insert(event.event_id);
+
+        if matches!(
+            self.state,
+            PhysicalTransactionState::ReconciliationRequired
+                | PhysicalTransactionState::Rejected
+                | PhysicalTransactionState::Completed
+        ) {
+            self.state = PhysicalTransactionState::ReconciliationRequired;
+            return Ok(EventDisposition::ReconciliationRequired);
+        }
+
+        let disposition = match event.kind {
+            TransactionEventKind::AuthorizationGranted {
+                not_before_unix_ms,
+                expires_at_unix_ms,
+                checked_at_unix_ms,
+                audience_matches,
+                endpoint_matches,
+                scope_matches,
+                use_remaining,
+            } => {
+                let valid =
+                    self.state == PhysicalTransactionState::AwaitingAuthorization
+                        && event.actor_id == self.context.principal_actor_id
+                        && not_before_unix_ms <= checked_at_unix_ms
+                        && checked_at_unix_ms < expires_at_unix_ms
+                        && expires_at_unix_ms > not_before_unix_ms
+                        && audience_matches
+                        && endpoint_matches
+                        && scope_matches
+                        && use_remaining;
+                if valid {
+                    self.state = PhysicalTransactionState::Authorized;
+                    EventDisposition::Applied
+                } else {
+                    self.state = PhysicalTransactionState::Rejected;
+                    EventDisposition::Rejected
+                }
+            }
+            TransactionEventKind::AuthorizationDenied => {
+                if self.state == PhysicalTransactionState::AwaitingAuthorization
+                    && event.actor_id == self.context.principal_actor_id
+                {
+                    self.state = PhysicalTransactionState::Rejected;
+                    EventDisposition::Rejected
+                } else {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                }
+            }
+            TransactionEventKind::PackageReleased {
+                command_id,
+                package_id,
+            } => {
+                let valid = self.state == PhysicalTransactionState::Authorized
+                    && self.dispatch_issued
+                    && command_id == self.context.expected_command_id
+                    && package_id == self.context.package_id
+                    && event.actor_id == self.context.source_actor_id
+                    && !self.release_observed;
+                if valid {
+                    self.release_observed = true;
+                    self.state = PhysicalTransactionState::Released;
+                    EventDisposition::Applied
+                } else {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                }
+            }
+            TransactionEventKind::PackageReceived {
+                command_id,
+                package_id,
+                endpoint_id,
+            } => {
+                let valid = self.state == PhysicalTransactionState::Released
+                    && command_id == self.context.expected_command_id
+                    && package_id == self.context.package_id
+                    && endpoint_id == self.context.receiver_endpoint_id
+                    && event.actor_id == self.context.receiver_actor_id
+                    && !self.receive_observed;
+                if valid {
+                    self.receive_observed = true;
+                    self.state = PhysicalTransactionState::Received;
+                    EventDisposition::Applied
+                } else {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                }
+            }
+            TransactionEventKind::CustodyAcknowledged {
+                command_id,
+                package_id,
+                evidence_digest,
+            } => {
+                let valid = self.state == PhysicalTransactionState::Received
+                    && command_id == self.context.expected_command_id
+                    && package_id == self.context.package_id
+                    && event.actor_id == self.context.receiver_actor_id
+                    && valid_sha256_digest(&evidence_digest);
+                if valid {
+                    self.state = PhysicalTransactionState::Completed;
+                    EventDisposition::Completed
+                } else {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                }
+            }
+            TransactionEventKind::ActuationTimeout
+            | TransactionEventKind::NetworkPartition => {
+                if self.dispatch_issued || self.release_observed {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                } else {
+                    self.state = PhysicalTransactionState::SafeHold;
+                    EventDisposition::SafeHold
+                }
+            }
+            TransactionEventKind::SensorDisagreement => {
+                self.state = PhysicalTransactionState::SafeHold;
+                EventDisposition::SafeHold
+            }
+        };
+        Ok(disposition)
+    }
+}
+
+fn check_identifier(path: &str, value: &str) -> Result<(), String> {
+    let valid = !value.is_empty()
+        && value.len() <= 96
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b':'));
+    if valid {
+        Ok(())
+    } else {
+        Err(format!(
+            "{path}: expected a non-empty opaque ASCII identifier (max 96 bytes)"
+        ))
+    }
+}
+
+fn valid_sha256_digest(value: &str) -> bool {
+    let Some(hex) = value.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64
+        && hex
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn transaction() -> PhysicalTransaction {
+        PhysicalTransaction::new(TransactionContext {
+            transaction_id: "tx-01".into(),
+            expected_command_id: "cmd-01".into(),
+            package_id: "pkg-01".into(),
+            principal_actor_id: "household-01".into(),
+            source_actor_id: "carrier-01".into(),
+            receiver_actor_id: "receiver-01".into(),
+            receiver_endpoint_id: "nestport-01".into(),
+        })
+    }
+
+    fn event(
+        sequence: u64,
+        event_id: &str,
+        actor_id: &str,
+        kind: TransactionEventKind,
+    ) -> TransactionEvent {
+        TransactionEvent {
+            transaction_id: "tx-01".into(),
+            event_id: event_id.into(),
+            sequence,
+            actor_id: actor_id.into(),
+            kind,
+        }
+    }
+
+    fn valid_authorization() -> TransactionEventKind {
+        TransactionEventKind::AuthorizationGranted {
+            not_before_unix_ms: 1_000,
+            expires_at_unix_ms: 10_000,
+            checked_at_unix_ms: 2_000,
+            audience_matches: true,
+            endpoint_matches: true,
+            scope_matches: true,
+            use_remaining: true,
+        }
+    }
+
+    fn authorize(tx: &mut PhysicalTransaction) {
+        let disposition = tx
+            .record_event(event(
+                1,
+                "event-auth",
+                "household-01",
+                valid_authorization(),
+            ))
+            .expect("valid authorization event should be accepted");
+        assert_eq!(disposition, EventDisposition::Applied);
+    }
+
+    fn issue_release(tx: &mut PhysicalTransaction) {
+        authorize(tx);
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::DispatchOnce
+        );
+    }
+
+    fn release_event() -> TransactionEventKind {
+        TransactionEventKind::PackageReleased {
+            command_id: "cmd-01".into(),
+            package_id: "pkg-01".into(),
+        }
+    }
+
+    fn receive_event() -> TransactionEventKind {
+        TransactionEventKind::PackageReceived {
+            command_id: "cmd-01".into(),
+            package_id: "pkg-01".into(),
+            endpoint_id: "nestport-01".into(),
+        }
+    }
+
+    #[test]
+    fn release_command_is_issued_only_once() {
+        let mut tx = transaction();
+        authorize(&mut tx);
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::DispatchOnce
+        );
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::DuplicateSuppressed
+        );
+        assert!(tx.dispatch_issued);
+    }
+
+    #[test]
+    fn completion_requires_independent_receiver_acknowledgement() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(2, "event-release", "carrier-01", release_event()))
+                .unwrap(),
+            EventDisposition::Applied
+        );
+        assert_eq!(
+            tx.record_event(event(3, "event-receive", "receiver-01", receive_event()))
+                .unwrap(),
+            EventDisposition::Applied
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::Received);
+
+        let ack = TransactionEventKind::CustodyAcknowledged {
+            command_id: "cmd-01".into(),
+            package_id: "pkg-01".into(),
+            evidence_digest: format!("sha256:{}", "a".repeat(64)),
+        };
+        assert_eq!(
+            tx.record_event(event(4, "event-ack", "receiver-01", ack))
+                .unwrap(),
+            EventDisposition::Completed
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::Completed);
+    }
+
+    #[test]
+    fn repeated_event_id_is_ignored_without_reapplying_transition() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        let first = event(2, "event-release", "carrier-01", release_event());
+        assert_eq!(tx.record_event(first.clone()).unwrap(), EventDisposition::Applied);
+        assert_eq!(
+            tx.record_event(first).unwrap(),
+            EventDisposition::DuplicateIgnored
+        );
+        assert_eq!(tx.last_sequence, 2);
+        assert!(tx.release_observed);
+    }
+
+    #[test]
+    fn sequence_gap_enters_reconciliation_required() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(3, "event-release", "carrier-01", release_event()))
+                .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn timeout_after_dispatch_blocks_any_retry() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-timeout",
+                "carrier-01",
+                TransactionEventKind::ActuationTimeout
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::BlockedByState(PhysicalTransactionState::ReconciliationRequired)
+        );
+    }
+
+    #[test]
+    fn expired_or_out_of_scope_grant_is_rejected_before_dispatch() {
+        let mut tx = transaction();
+        let mut grant = match valid_authorization() {
+            TransactionEventKind::AuthorizationGranted {
+                not_before_unix_ms,
+                expires_at_unix_ms,
+                checked_at_unix_ms,
+                audience_matches,
+                endpoint_matches,
+                scope_matches,
+                use_remaining,
+            } => TransactionEventKind::AuthorizationGranted {
+                not_before_unix_ms,
+                expires_at_unix_ms: checked_at_unix_ms,
+                checked_at_unix_ms,
+                audience_matches,
+                endpoint_matches,
+                scope_matches: false,
+                use_remaining,
+            },
+            _ => unreachable!(),
+        };
+        assert_eq!(
+            tx.record_event(event(1, "event-auth", "household-01", grant.clone()))
+                .unwrap(),
+            EventDisposition::Rejected
+        );
+        assert_eq!(
+            tx.request_release_command("cmd-01").unwrap(),
+            DispatchGate::BlockedByState(PhysicalTransactionState::Rejected)
+        );
+        // Keep the enum binding mutable in this test only to make accidental
+        // reuse of a rejected grant visible to future refactors.
+        grant = valid_authorization();
+        assert_ne!(grant, TransactionEventKind::AuthorizationDenied);
+    }
+
+    #[test]
+    fn wrong_receiver_endpoint_cannot_complete_custody() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(2, "event-release", "carrier-01", release_event()))
+            .unwrap();
+        let mut receive = receive_event();
+        if let TransactionEventKind::PackageReceived { endpoint_id, .. } = &mut receive {
+            *endpoint_id = "wrong-door".into();
+        }
+        assert_eq!(
+            tx.record_event(event(3, "event-receive", "receiver-01", receive))
+                .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn network_partition_after_release_requires_reconciliation() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        tx.record_event(event(2, "event-release", "carrier-01", release_event()))
+            .unwrap();
+        assert_eq!(
+            tx.record_event(event(
+                3,
+                "event-partition",
+                "carrier-01",
+                TransactionEventKind::NetworkPartition
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+    }
+}
