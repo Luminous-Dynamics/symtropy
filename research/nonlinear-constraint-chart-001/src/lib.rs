@@ -261,10 +261,7 @@ pub fn pullback_constraint_jet(
 ) -> Result<ConstraintJetV1, ConstraintChartErrorV1> {
     validate_matrix(q_from_y)?;
     let jacobian_y = mat_vec(transpose(q_from_y), q_jet.jacobian)?;
-    let hessian_y = mat_mul(
-        &mat_mul(&transpose(q_from_y), q_jet.hessian)?,
-        &q_from_y,
-    )?;
+    let hessian_y = mat_mul(&mat_mul(&transpose(q_from_y), q_jet.hessian)?, &q_from_y)?;
     Ok(ConstraintJetV1 {
         residual: q_jet.residual,
         jacobian: jacobian_y,
@@ -333,9 +330,8 @@ fn mat_mul(left: &Matrix2, right: &Matrix2) -> Result<Matrix2, ConstraintChartEr
     let mut output = [[0.0; 2]; 2];
     for row in 0..2 {
         for column in 0..2 {
-            output[row][column] = finite(
-                left[row][0] * right[0][column] + left[row][1] * right[1][column],
-            )?;
+            output[row][column] =
+                finite(left[row][0] * right[0][column] + left[row][1] * right[1][column])?;
         }
     }
     Ok(output)
@@ -408,12 +404,7 @@ mod tests {
         let transformed = reparameterized_circle_jet(q, nonlinear_chart()).unwrap();
         let base_w = dot(base.jacobian, base.jacobian).unwrap();
         let transformed_w = dot(transformed.jacobian, transformed.jacobian).unwrap();
-        let expected = transform_delassus(
-            base_w,
-            base.residual,
-            nonlinear_chart(),
-        )
-        .unwrap();
+        let expected = transform_delassus(base_w, base.residual, nonlinear_chart()).unwrap();
         assert_close(transformed_w, expected, 1.0e-14);
     }
 
@@ -424,13 +415,10 @@ mod tests {
         let acceleration = [-0.1, 0.4];
         let chart = nonlinear_chart();
         let base = constraint_kinematics(q, velocity, acceleration, identity_chart()).unwrap();
-        let transformed =
-            constraint_kinematics(q, velocity, acceleration, chart).unwrap();
+        let transformed = constraint_kinematics(q, velocity, acceleration, chart).unwrap();
         let base_residual = circle_base_jet(q).unwrap().residual;
-        let expected = chart.first_derivative(base_residual).unwrap()
-            * base.acceleration_residual
-            + chart.second_derivative(base_residual).unwrap()
-                * base.velocity_residual.powi(2);
+        let expected = chart.first_derivative(base_residual).unwrap() * base.acceleration_residual
+            + chart.second_derivative(base_residual).unwrap() * base.velocity_residual.powi(2);
         assert_close(transformed.acceleration_residual, expected, 1.0e-14);
 
         let jet = reparameterized_circle_jet(q, chart).unwrap();
@@ -445,8 +433,7 @@ mod tests {
         let base = circle_base_jet(q).unwrap();
         let chart = nonlinear_chart();
         let lambda_base = 1.7;
-        let lambda_chart =
-            transform_multiplier(lambda_base, base.residual, chart).unwrap();
+        let lambda_chart = transform_multiplier(lambda_base, base.residual, chart).unwrap();
         let base_pairing = lambda_base * base.residual;
         let transformed_pairing = lambda_chart * chart.residual(base.residual).unwrap();
 
@@ -458,9 +445,11 @@ mod tests {
         let q = [1.5, 0.8];
         let mass = [[1.0, 0.0], [0.0, 1.0]];
         let base_step = normal_correction(mass, circle_base_jet(q).unwrap()).unwrap();
-        let chart_step =
-            normal_correction(mass, reparameterized_circle_jet(q, nonlinear_chart()).unwrap())
-                .unwrap();
+        let chart_step = normal_correction(
+            mass,
+            reparameterized_circle_jet(q, nonlinear_chart()).unwrap(),
+        )
+        .unwrap();
 
         assert!(
             (base_step.displacement[0] - chart_step.displacement[0]).abs() > 1.0e-2
@@ -474,8 +463,7 @@ mod tests {
         let mass = [[1.0, 0.0], [0.0, 1.0]];
         let exact = unit_circle_nearest_point(start).unwrap();
         let base = iterate_projection(start, mass, identity_chart(), 80, 2.0e-13).unwrap();
-        let transformed =
-            iterate_projection(start, mass, nonlinear_chart(), 80, 2.0e-13).unwrap();
+        let transformed = iterate_projection(start, mass, nonlinear_chart(), 80, 2.0e-13).unwrap();
 
         assert_vector_close(base, exact, 2.0e-12);
         assert_vector_close(transformed, exact, 2.0e-11);
