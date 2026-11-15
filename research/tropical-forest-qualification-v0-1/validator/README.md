@@ -196,7 +196,7 @@ These results are deliberately narrow:
 - Decision-value manifest validity does not measure an actual policy's EVSI performance or authorize a field visit.
 - None establishes a real forest forecast, field calibration, regional transfer, SOTA superiority or authority to intervene.
 
-The validator currently contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. These tests are authored but must still pass exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
+The original core suite contains 144 Rust unit tests: 52 in `lib.rs`, 8 in the headless canopy kernel, 20 in the rectangular support/registration kernel, 17 in the variable-aware aggregation kernel, 8 in the known-truth model-set kernel, 22 in the probabilistic/event-forecast kernel and 17 in the block-conformal kernel. Additional suites add 7 block-coverage kernel tests, 13 spatial-localization/Moran tests and 6 CLI receipt-adapter tests, for 170 authored Rust test functions in total. All remain subject to exact-head Cargo execution. The validator is a separate research workspace to keep dependency and compile scope small. It does not change production `symtropy-basin` APIs or canonical Living World ownership.
 
 
 ## Spatial localization and residual autocorrelation kernels
@@ -212,7 +212,7 @@ Research owners:
 - [#5327 — spatial localization tournament](https://github.com/Luminous-Dynamics/symtropy/issues/5327)
 - [#5328 — sealed model-set custody](https://github.com/Luminous-Dynamics/symtropy/issues/5328)
 
-The new module/corpus artifacts are specification and unit-test-level work. They do not produce a production receipt through the CLI, run Rust in the current runtime, ingest real data, or establish ecological validity.
+The spatial-localization and block-coverage corpora now produce digest-bound synthetic receipts through the CLI. The receipt adapters add mutation controls and explicit claim ceilings. They do not run Rust in the current runtime, ingest real data, or establish ecological validity.
 
 ## Block-coverage and spatial-localization CLI receipts
 
