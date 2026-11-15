@@ -570,6 +570,21 @@
       "expected_missing_page_indexes": [],
       "expected_unaccounted_record_digests": [],
       "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-025",
+      "description": "An accept-all implementation that marks every malformed inventory complete must fail the frozen negative-control oracle.",
+      "mutation_kind": "accept_all_control",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "accept_all_control_failed"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
     }
   ],
   "claim_ceiling": "Synthetic source inventory closure contract only. Digests and source receipt references are placeholders, not proof of a real provider snapshot, source completeness, physical installation, engineering correctness, electrical safety or regulatory conformity."
