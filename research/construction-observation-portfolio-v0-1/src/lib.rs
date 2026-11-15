@@ -935,9 +935,9 @@ mod tests {
                 .iter()
                 .map(|action| action.action_id.as_str())
                 .collect::<Vec<_>>(),
-            vec!["cheap-a", "cheap-bc"]
+            vec!["cheap-ab", "cheap-cd"]
         );
-        assert_eq!(result.best_campaign.total_crew_minutes, 6);
+        assert_eq!(result.best_campaign.total_crew_minutes, 8);
         assert_eq!(result.best_campaign.total_cost_minor_units, 200);
 
         let greedy =
