@@ -96,7 +96,7 @@ None of these dispositions is hardware authorization or a physical qualification
 
 ## Synthetic fixture
 
-`benchmarks/plasma/lunar-plasma-isru-process-v0.json` contains 13 synthetic scenarios: one accounting positive control; blocked cases for missing reagent inventory, qualitative-only oxygen evidence, omitted energy, unqualified coproduct, expired calibration, excessive uncertainty and unverified sampling recovery; rejected cases for CO2-to-O2 promotion, feedstock mass nonclosure, calibration species-scope mismatch and sampling-recovery-corrected mass mismatch; one rejected case for a balanced ledger that does not match the declared feedstock batch mass; and one NOT_COMPARABLE product-contract case.
+`benchmarks/plasma/lunar-plasma-isru-process-v0.json` contains 16 synthetic scenarios: one accounting positive control; blocked cases for missing reagent inventory, qualitative-only oxygen evidence, omitted energy, unqualified coproduct, expired calibration, excessive uncertainty and unverified sampling recovery; rejected cases for CO2-to-O2 promotion, feedstock mass nonclosure, calibration species-scope mismatch and sampling-recovery-corrected mass mismatch; one rejected case for a balanced ledger that does not match the declared feedstock batch mass; and one NOT_COMPARABLE product-contract case.
 
 All quantities in the positive control are invented solely to exercise arithmetic. They do not represent published plasma experiments, an operating condition, a process recipe, or expected lunar performance. The fixture sets `physical_measurements=false` and `plasma_solver_outputs=false`.
 
