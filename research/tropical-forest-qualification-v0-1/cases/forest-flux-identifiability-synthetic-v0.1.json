@@ -185,6 +185,82 @@
     "baseline_unidentifiable_estimands": [
       "mortality_transfer",
       "gross_live_inputs"
+    ],
+    "estimand_design_summaries": [
+      {
+        "estimand_id": "net_live_pool_increment",
+        "identifying_subset_count": 64,
+        "minimum_synthetic_effort_cost": 0,
+        "minimum_cost_designs": [
+          []
+        ],
+        "minimum_measurement_count": 0,
+        "minimum_count_designs": [
+          []
+        ]
+      },
+      {
+        "estimand_id": "net_deadwood_pool_increment",
+        "identifying_subset_count": 64,
+        "minimum_synthetic_effort_cost": 0,
+        "minimum_cost_designs": [
+          []
+        ],
+        "minimum_measurement_count": 0,
+        "minimum_count_designs": [
+          []
+        ]
+      },
+      {
+        "estimand_id": "net_total_pool_increment",
+        "identifying_subset_count": 64,
+        "minimum_synthetic_effort_cost": 0,
+        "minimum_cost_designs": [
+          []
+        ],
+        "minimum_measurement_count": 0,
+        "minimum_count_designs": [
+          []
+        ]
+      },
+      {
+        "estimand_id": "mortality_transfer",
+        "identifying_subset_count": 43,
+        "minimum_synthetic_effort_cost": 3,
+        "minimum_cost_designs": [
+          [
+            "mortality"
+          ]
+        ],
+        "minimum_measurement_count": 1,
+        "minimum_count_designs": [
+          [
+            "mortality"
+          ]
+        ]
+      },
+      {
+        "estimand_id": "gross_live_inputs",
+        "identifying_subset_count": 31,
+        "minimum_synthetic_effort_cost": 6,
+        "minimum_cost_designs": [
+          [
+            "growth",
+            "recruitment"
+          ]
+        ],
+        "minimum_measurement_count": 2,
+        "minimum_count_designs": [
+          [
+            "growth",
+            "recruitment"
+          ],
+          [
+            "mortality",
+            "live_export"
+          ]
+        ]
+      }
     ]
   },
   "execution": {
