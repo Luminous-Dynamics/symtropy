@@ -260,12 +260,16 @@ Follow-on issue: https://github.com/Luminous-Dynamics/symtropy/issues/5316. This
 
 - [Rotating-frame reference implementation](src/lib.rs) and [CSV design-point executable](src/main.rs): analytic kinematics, radial gravity gradient, centrifugal/Coriolis/Euler terms, and unit tests.
 - [Matched architecture comparison protocol](ARCHITECTURE_COMPARISON.md): monolithic/segmented rings, counter-rotating rings, tethered and tension-dominated topologies under one mission envelope.
+- [Coupled human–mechanics constraints and ring scaling](CODESIGN_CONSTRAINTS_AND_SCALING.md): reproduce body-gradient/RPM/Coriolis radius intersections and fixed-mass versus fixed-line-density thin-ring scaling.
+- [Exact spin-up/spin-down reference](fixtures/spin_profile_exact.csv): analytical trajectory and rotating-frame acceleration cross-check fixture.
 - [Coupled human–mechanics constraints and ring scaling](CODESIGN_CONSTRAINTS_AND_SCALING.md): independently reproduce gradient/RPM/Coriolis radius intersections and fixed-mass versus fixed-line-density thin-ring scaling.
 - [Occupied-field and movement benchmark](MOTION_AND_FIELD_BENCHMARK.md): multi-rate/multi-gravity grid, field gradients, Coriolis/Euler disturbances, human-factor evidence gates, and proposed benchmarks.
 - [Coriolis reference fixture](fixtures/coriolis_1mps.csv): independently evaluated 1 m/s motion comparison across six RPM values.
 - [Sol-Atlas habitat layout handoff](SOL_ATLAS_HABITAT_HANDOFF.md): spatial interface, coordinate conventions, mass/geometry exchange, occupancy and lifecycle constraints.
 - [ARTGRAV-KIN-001 draft PR](https://github.com/Luminous-Dynamics/symtropy/pull/5279).
 - [ARTGRAV-STRUCT-001 follow-on](https://github.com/Luminous-Dynamics/symtropy/issues/5280).
+- [ARTGRAV-CODESIGN-001](https://github.com/Luminous-Dynamics/symtropy/issues/5314).
+- [ARTGRAV-SIM-001](https://github.com/Luminous-Dynamics/symtropy/issues/5316).
 - [Symthaea settlement-system scenario owner](https://github.com/Luminous-Dynamics/symthaea/issues/7687).
 - [Mycelix evidence-profile integration](https://github.com/Luminous-Dynamics/mycelix/issues/6204).
 - [ARTGRAV-CODESIGN-001](https://github.com/Luminous-Dynamics/symtropy/issues/5314): independent preprint reproduction and ring scaling.
