@@ -414,6 +414,22 @@ The fixture `tools/material-flow-benchmark/fixtures/ten-fault-campaign.json` and
 
 **Verification status (2026-11-15):** the dedicated GitHub Actions run `43762817071` on exact PR source head `d1f40618db72d06957f08073f6b9c26c70db2ddf` completed successfully. Its exact job passed formatting, Clippy with `-D warnings`, all **31 Rust unit tests**, nominal-scenario CLI validation and the new ten-fault campaign CLI validation. The standalone tool has a committed `Cargo.lock`; Clippy, tests and both fixture commands use `--locked`. The final workflow is non-mutating and does not alter source or lock state. The corresponding pull-request-triggered run on the same head was queued at last inspection; the completed push-triggered success above is already bound to the identical source SHA. The environment itself has no Rust/Cargo toolchain, so no local compile/test claim is made. No physical simulation, HIL, guarded rig or field operation has been run; the two fixtures validate only scenario and campaign contracts.
 
+### 12.3 Distributed physical-transaction reference state machine
+
+The Rust module `tools/material-flow-benchmark/src/transaction.rs` is a deterministic, hardware-independent reference protocol for one physical handoff. It models:
+- purpose/time/audience/endpoint/scope/use-count authorization checks;
+- one logical release-command ID, with duplicate suppression and rejection of a different command after dispatch;
+- independently attributed source release, receiver receipt and receiver custody acknowledgement;
+- event-ID replay/conflict checks and monotonic event sequence;
+- **pre-dispatch** sensor disagreement as safe hold, but **post-dispatch** timeout, partition or sensor disagreement as reconciliation-required because the physical location may already have changed;
+- explicit independent-custodian reconciliation outcomes: completed, no action taken, returned or quarantined.
+
+A reconciliation resolution is accepted only from the configured reconciler actor, which must differ from the household principal, source actor and receiver actor. It must reference two distinct, well-formed evidence digests. The old transaction then becomes terminal: even a `NoActionTaken` result does not re-arm the old command. A new attempt requires a new transaction ID and a fresh authorization grant.
+
+**Claim boundary:** the pure state machine verifies only declared identifiers, states and digest shapes. It does not authenticate Holochain signatures, establish that evidence sources are truly independent, prove the physical object location, or operate hardware. Two distinct digests are a structural requirement, not proof of evidence independence.
+
+The new tests cover independent reconciliation, self-reconciliation rejection, duplicate evidence digests, pre-/post-dispatch sensor disagreement and event-sequence overflow. Exact-head CI qualification is tracked separately from physical fault-injection; the tests do not mean that a real transfer, simulator episode or HIL test has occurred.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
