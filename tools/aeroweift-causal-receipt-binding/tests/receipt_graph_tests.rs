@@ -598,3 +598,127 @@ fn cycle_is_detected_even_when_causal_timestamps_tie() {
         .push(edge(&root, ParentRole::PriorConflictAssessment));
     assert_eq!(verify_graph(&receipts), Err(VerificationError::Cycle));
 }
+
+
+#[test]
+fn surveillance_receipt_cannot_be_relabelled_as_another_traffic_class() {
+    let mut receipts = graph();
+    let cooperative = receipts
+        .iter_mut()
+        .find(|receipt| receipt.receipt_id == "surveillance-cooperative")
+        .unwrap();
+    cooperative.traffic_class = Some(TrafficClass::NonCooperativeCrewed);
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::SurveillanceEvidenceMismatch)
+    );
+}
+
+#[test]
+fn every_required_traffic_class_has_exactly_one_occupancy_parent() {
+    let mut receipts = graph();
+    let profile = receipts
+        .iter()
+        .find(|receipt| receipt.receipt_id == "profile-policy")
+        .unwrap()
+        .clone();
+    let observation = receipts
+        .iter()
+        .find(|receipt| receipt.receipt_id == "observation-cooperative-track")
+        .unwrap()
+        .clone();
+    let duplicate = surveillance_receipt(
+        "surveillance-cooperative-duplicate",
+        12,
+        ClaimDisposition::Qualified,
+        TrafficClass::CooperativeCrewed,
+        vec![
+            edge(&profile, ParentRole::CoverageProfile),
+            edge(&observation, ParentRole::SurveillanceObservation),
+        ],
+    );
+    let duplicate_edge = edge(
+        &duplicate,
+        ParentRole::TrafficOccupancy(TrafficClass::CooperativeCrewed),
+    );
+    receipts
+        .iter_mut()
+        .find(|receipt| receipt.receipt_id == root_id())
+        .unwrap()
+        .parents
+        .push(duplicate_edge);
+    receipts.push(duplicate);
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::DuplicateParentRole)
+    );
+}
+
+#[test]
+fn qualified_surveillance_track_must_bind_its_observation() {
+    let mut receipts = graph();
+    let cooperative = receipts
+        .iter_mut()
+        .find(|receipt| receipt.receipt_id == "surveillance-cooperative")
+        .unwrap();
+    cooperative
+        .parents
+        .retain(|edge| edge.role != ParentRole::SurveillanceObservation);
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::SurveillanceEvidenceMismatch)
+    );
+}
+
+#[test]
+fn no_report_coverage_cannot_claim_an_observation_parent() {
+    let mut receipts = graph();
+    let observation = receipts
+        .iter()
+        .find(|receipt| receipt.receipt_id == "observation-cooperative-track")
+        .unwrap()
+        .clone();
+    let noncooperative = receipts
+        .iter_mut()
+        .find(|receipt| receipt.receipt_id == "surveillance-noncooperative")
+        .unwrap();
+    noncooperative
+        .parents
+        .push(edge(&observation, ParentRole::SurveillanceObservation));
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::SurveillanceEvidenceMismatch)
+    );
+}
+
+#[test]
+fn conflict_screen_cannot_add_an_unrequired_traffic_class() {
+    let mut receipts = graph();
+    let profile = receipts
+        .iter()
+        .find(|receipt| receipt.receipt_id == "profile-policy")
+        .unwrap()
+        .clone();
+    let extra_class = surveillance_receipt(
+        "surveillance-uncrewed-extra",
+        13,
+        ClaimDisposition::Qualified,
+        TrafficClass::ProfileQualifiedUncrewed,
+        vec![edge(&profile, ParentRole::CoverageProfile)],
+    );
+    let extra_edge = edge(
+        &extra_class,
+        ParentRole::TrafficOccupancy(TrafficClass::ProfileQualifiedUncrewed),
+    );
+    receipts
+        .iter_mut()
+        .find(|receipt| receipt.receipt_id == root_id())
+        .unwrap()
+        .parents
+        .push(extra_edge);
+    receipts.push(extra_class);
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::ProfileClassMismatch)
+    );
+}
