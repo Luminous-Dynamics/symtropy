@@ -5,7 +5,7 @@
   "purpose": "Source-linked standards and solver applicability snapshot for research planning. This is not legal advice, a complete normative interpretation, a laboratory approval, a certification or a product performance claim.",
   "status_legend": {
     "CURRENT_WITH_AMENDMENTS": "Official issuing authority identifies a published standard and the listed addenda must be incorporated.",
-    "CURRENT_PUBLISHED": "Official issuing authority identifies a published current edition at snapshot date; applicability still needs checking.",
+    "CURRENT_PUBLISHED": "An official issuing authority has published/issued this edition; controlled-text access, amendments and applicability must still be checked for the specific decision.",
     "DRAFT_OR_ENQUIRY": "Published for public comment or enquiry; not treated as a final normative edition.",
     "VERIFY_LOCALLY": "Exact current edition, amendments, adoption, laboratory scope or jurisdictional applicability requires confirmation from the competent official catalogue/authority.",
     "PROGRAMME_REQUIREMENT": "A product conformity/compliance programme document, not itself the technical test standard.",
@@ -13,6 +13,24 @@
     "SOFTWARE_CANDIDATE": "Potential simulation software; not independently validated for this armour use case."
   },
   "entries": [
+    {
+      "id": "ISO-IEC-17025-SANAS-SCOPE",
+      "domain": "laboratory_competence",
+      "publisher": "SANAS / applicable accreditation body",
+      "edition": "Current certificate and scope schedule required",
+      "status": "VERIFY_LOCALLY",
+      "checked": "2026-11-15",
+      "scope": "Competence and scope of a testing laboratory for the exact ballistic test method and product class.",
+      "interpretation_limits": [
+        "Accreditation is scope-specific; general ISO/IEC 17025 status is not proof that the laboratory is accredited for a particular armour method.",
+        "A SANAS-accredited laboratory is not automatically an NIJ-approved Compliance Testing Program laboratory.",
+        "Verify certificate number, active status, expiry, test method, specimen/product scope, location and any relevant restrictions."
+      ],
+      "source_urls": [
+        "https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx",
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+      ]
+    },
     {
       "id": "NIJ-0101.07",
       "domain": "human_worn_torso_ballistic",
@@ -38,6 +56,22 @@
       "source_urls": [
         "https://nij.ojp.gov/topics/equipment-and-technology/ballistic-resistance-body-armor-nij-standard-010107",
         "https://nij.ojp.gov/library/publications/ballistic-resistance-body-armor-nij-standard-010107"
+      ]
+    },
+    {
+      "id": "NIJ-0115.00",
+      "domain": "human_worn_stab_resistance",
+      "publisher": "United States National Institute of Justice",
+      "edition": "0115.00",
+      "status": "VERIFY_LOCALLY",
+      "checked": "2026-11-15",
+      "scope": "Separate torso-worn stab-resistant armour standard. Not interchangeable with ballistic resistance qualification.",
+      "interpretation_limits": [
+        "Confirm the current edition, applicable programme status and exact product class before any current qualification claim.",
+        "Keep stab, slash and ballistic claims separate and bound to the exact method."
+      ],
+      "source_urls": [
+        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
       ]
     },
     {
@@ -99,74 +133,29 @@
       ]
     },
     {
-      "id": "NIJ-0115.00",
-      "domain": "human_worn_stab_resistance",
-      "publisher": "United States National Institute of Justice",
-      "edition": "0115.00",
-      "status": "VERIFY_LOCALLY",
-      "checked": "2026-11-15",
-      "scope": "Separate torso-worn stab-resistant armour standard. Not interchangeable with ballistic resistance qualification.",
-      "interpretation_limits": [
-        "Confirm the current edition, applicable programme status and exact product class before any current qualification claim.",
-        "Keep stab, slash and ballistic claims separate and bound to the exact method."
-      ],
-      "source_urls": [
-        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
-      ]
-    },
-    {
-      "id": "SANS-1658-20XX-ED3-DRAFT",
+      "id": "SANS-1658-2025-ED3",
       "domain": "human_worn_torso_ballistic_south_africa",
-      "publisher": "South African Bureau of Standards (draft public-comment notice)",
-      "edition": "20XX Edition 3",
-      "status": "DRAFT_OR_ENQUIRY",
+      "publisher": "South African Bureau of Standards (official issue listed in Government Gazette)",
+      "edition": "SANS 1658:2025 Edition 3",
+      "status": "CURRENT_PUBLISHED",
       "checked": "2026-11-15",
-      "scope": "Draft minimum ballistic-resistance performance requirements for body armour intended to protect the wearer's torso. Government Gazette Notice 3339 of 2025 lists the draft for public comment with closing date 2025-08-27.",
+      "scope": "Minimum performance requirements for the ballistic resistance of body armour intended to protect the wearer's torso against gunfire.",
+      "history": [
+        "Government Gazette Notice 3339 of 2025 (27 June 2025) listed SANS 1658:20XX Edition 3 as a draft for public comment, closing 27 August 2025.",
+        "Government Gazette Notice 3600 of 2025 (14 November 2025) lists SANS 1658:2025 Edition 3 in Schedule B.3 Revised Standards, issued under section 24(1)(a) of the Standards Act."
+      ],
       "interpretation_limits": [
-        "The Gazette notice establishes that this edition was a draft for comment; it does not establish final publication.",
-        "Do not treat the 20XX draft as a current normative edition.",
-        "Confirm the final published SABS edition, amendments, currentness and applicability in the SABS catalogue."
+        "The November 2025 Government Gazette establishes official issuance of SANS 1658:2025 Edition 3; the June 2025 draft is historical, not the final edition.",
+        "Obtain the controlled SABS normative text and verify amendments, corrigenda, withdrawal/supersession status and contractual applicability before relying on specific clauses or test procedures.",
+        "The Gazette scope is torso ballistic resistance. Do not infer that it establishes wearer fit, mobility, thermal comfort, stab resistance, multi-hit performance or other claims unless the controlled standard expressly covers them.",
+        "A standard's issuance does not establish that a particular laboratory holds current SANAS accreditation for the exact test method and scope.",
+        "Individual procurement documents may continue to specify legacy editions. Apply the actual governing tender/contract and do not silently replace its normative references."
       ],
       "source_urls": [
+        "https://www.gov.za/sites/default/files/gcis_document/202511/53662gen3600.pdf",
         "https://www.gov.za/sites/default/files/gcis_document/202506/52914gen3339.pdf",
-        "https://www.sabs.co.za/standards"
-      ]
-    },
-    {
-      "id": "SANS-1658-2025-ADVERTISED",
-      "domain": "human_worn_torso_ballistic_south_africa",
-      "publisher": "Local testing provider webpage (vendor source)",
-      "edition": "2025 (as advertised)",
-      "status": "VERIFY_LOCALLY",
-      "checked": "2026-11-15",
-      "scope": "A South African ballistic-testing provider currently advertises SANS 1658:2025 for body-armour testing.",
-      "interpretation_limits": [
-        "A vendor service webpage is not the SABS normative catalogue and does not establish the exact published edition or currentness.",
-        "Resolve the discrepancy against the official SABS catalogue and obtain the complete normative standard before relying on it.",
-        "The provider's claim of SANAS approval must be checked against the current SANAS certificate and schedule for the exact test method and scope."
-      ],
-      "source_urls": [
-        "https://www.bpt.co.za/services/ballistic-testing/",
-        "https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx",
-        "https://www.sabs.co.za/standards"
-      ]
-    },
-    {
-      "id": "ISO-IEC-17025-SANAS-SCOPE",
-      "domain": "laboratory_competence",
-      "publisher": "SANAS / applicable accreditation body",
-      "edition": "Current certificate and scope schedule required",
-      "status": "VERIFY_LOCALLY",
-      "checked": "2026-11-15",
-      "scope": "Competence and scope of a testing laboratory for the exact ballistic test method and product class.",
-      "interpretation_limits": [
-        "Accreditation is scope-specific; general ISO/IEC 17025 status is not proof that the laboratory is accredited for a particular armour method.",
-        "A SANAS-accredited laboratory is not automatically an NIJ-approved Compliance Testing Program laboratory.",
-        "Verify certificate number, active status, expiry, test method, specimen/product scope, location and any relevant restrictions."
-      ],
-      "source_urls": [
-        "https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx",
-        "https://nij.ojp.gov/topics/equipment-and-technology/body-armor/performance-standards-and-compliance-testing"
+        "https://www.sabs.co.za/standards",
+        "https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx"
       ]
     }
   ],
