@@ -634,3 +634,30 @@ feed or flight-preparation service.
 **Fixture:** `fixtures/aeroweift-assurance-composition/evidence-composition-v0.json`, synthetic-only, 32 curated cases. The isolated oracle is in `tools/aeroweift-assurance-composition-oracle/`. The profile-owned traffic-class requirement is separately receipted and cannot be weakened by the composition request. The Rust test campaign adds 44 single-fault mutations, 990 unordered two-mutator combinations, and 10,000 deterministic seeded two-fault trials; every mutated case must fail closed, while a separate positive control must pass. The fixture and tests are finite contract checks, not physical, operational, certification or safety evidence.
 
 **Research comparator:** 2026 integrated vertiport/vertipad optimization, demand/queueing and airside discrete-event simulation remain the planning/capacity comparators; AAM DAA/separation literature remains the surveillance/conflict comparator. Track O evaluates the evidence interface to such systems rather than reimplementing their optimizers or DAA algorithms.
+
+
+### Track P — exact operation, authority and temporal scope join
+
+**Tracking issue:** [AEROWEFT-SCOPE-JOIN-001 #5318](https://github.com/Luminous-Dynamics/symtropy/issues/5318).  
+**Question:** can individually plausible PNT, reachability, intent and surveillance claims be joined to the exact same flight instance, aircraft instance, intent, authorization revision, evaluation cutoff and spatial/time query?
+
+**Gap found at Track O's seam:** Track O checks owner status, receipt presence and shared profile/time/frame/datum identity. The current composition record does not itself carry the full operation/flight/aircraft/intent/authorization-revision tuple from Track N, nor does its class-level surveillance composition prove that every cell/window claim matches the exact query. This is a potential cross-flight or cross-revision false join, even when each upstream owner claim is locally plausible.
+
+**Paradigm shift:** replace status-only joins with a typed evidence-join graph. Operation claims bind to evaluation_id, operation_id, flight_instance_id, aircraft_instance_id, intent_id, authorization_id and exact revision. Surveillance remains query-scoped rather than aircraft-scoped: each claim binds to evaluation, airspace, cell, traffic class, query interval, validity interval and dependencies.
+
+**Temporal contract:** keep measurement/event time, validity interval, owner evaluation time, first-received time and decision cutoff distinct. Late-arriving earlier data cannot enter a historical as-known-at view; future events cannot leak backward; receipt time cannot replace observation time. The crate does not calculate freshness or clock conversions; it consumes already-normalized time and owner-qualified metadata from #4705/#5171/Mycelix #435.
+
+**Owned output:** SCOPE_MATCHED_FOR_COMPOSITION only. This is a prerequisite to Track O, not a safety disposition or flight authorization. The isolated Rust oracle is in tools/aeroweift-scope-join-oracle/; the synthetic fixture is fixtures/aeroweift-scope-join/scope-join-v0.json; design notes are in AEROWEFT_SCOPE_JOIN_001.md.
+
+**Hard gates:** zero cross-operation/flight/aircraft joins; zero wrong-intent or wrong-authorization-revision joins; zero future/post-cutoff evidence leakage; zero event-after-receipt ordering errors; zero wrong-cell/class/window substitutions; no missing, duplicate or extra surveillance query admitted; at least one positive control; deterministic input-order replay; complete source-snapshot retention.
+
+**Industry context:** EU Regulation 2021/664 Art. 10(10) requires continuous re-checking of active authorisations against new dynamic restrictions and relevant manned-traffic information, with updates/withdrawals as needed; Art. 10(11) provides a unique authorisation number identifying the authorised flight, operator and issuing USSP. EASA AMC/GM conformance guidance and FAA UTM Pilot Program contingent/nonconforming state models are profile/demo-specific references, not universal numerical thresholds. NASA's 2025 path-planning flight evaluation found corridor constraints can reduce manoeuvring degrees of freedom. A 2026 SACA review identifies weak interoperability across ATM/UTM/AAM. Track P targets the specific evidence-join seam, not DAA or conflict-resolution algorithms.
+
+Sources:
+- Regulation (EU) 2021/664 consolidated: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A02021R0664-20260222
+- EASA Easy Access Rules for U-space (May 2024): https://www.easa.europa.eu/en/document-library/easy-access-rules/online-publications/easy-access-rules-u-space
+- FAA UTM Pilot Program Phase 2 Final Report: https://www.faa.gov/sites/faa.gov/files/uas/research_development/traffic_management/utm_pilot_program/FY20_UPP2_Final_Report.pdf
+- NASA/TP-20250003243: https://ntrs.nasa.gov/citations/20250003243
+- 2026 SACA review: https://doi.org/10.1016/j.paerosci.2026.101241
+
+**Claim ceiling:** finite synthetic scope/temporal join only. Current upstream schemas do not yet all expose every needed key; integration requires each owner receipt or separately verified attestation to bind the keys. No live airspace, operational dispatch, DAA, separation or certification claim.

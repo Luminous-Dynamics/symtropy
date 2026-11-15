@@ -1,0 +1,171 @@
+{
+  "schema_id": "aeroweift.scope-join.synthetic-scope-boundary.v0",
+  "fixture_id": "AW-SCOPE-JOIN-V0-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Checks scope and as-known-at joins only. It does not authenticate receipt bytes, qualify upstream evidence, verify physical truth, authorize flight or establish separation.",
+  "time_model": "All integer ticks are already normalized by their owner. Event time, validity time, first-received time and decision cutoff remain distinct.",
+  "cases": [
+    {
+      "id": "fully-matched-positive-control",
+      "expected": "SCOPE_MATCHED_FOR_COMPOSITION",
+      "reason": null
+    },
+    {
+      "id": "pnt-claim-from-another-flight",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Pnt)"
+    },
+    {
+      "id": "same-aircraft-different-flight-instance",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Reachability)"
+    },
+    {
+      "id": "intent-from-different-intent-id",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "old-authorization-id",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "superseded-authorization-revision",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "old-evaluation-identity",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Pnt)"
+    },
+    {
+      "id": "profile-or-frame-mismatch",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationIdentityMismatch(Reachability)"
+    },
+    {
+      "id": "owner-evaluated-after-cutoff",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OwnerEvaluatedAfterCutoff(Pnt)"
+    },
+    {
+      "id": "late-receipt-earlier-event",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OwnerReceiptAfterCutoff(Pnt)"
+    },
+    {
+      "id": "future-observation",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OwnerEventAfterCutoff(Pnt)"
+    },
+    {
+      "id": "event-after-first-receipt",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OwnerEventAfterReceipt(Pnt)"
+    },
+    {
+      "id": "reachability-window-too-short",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OwnerValidityDoesNotCoverRequest(Reachability)"
+    },
+    {
+      "id": "intent-window-too-short",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OwnerValidityDoesNotCoverRequest(Intent)"
+    },
+    {
+      "id": "wrong-cell",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "SurveillanceQueryMismatch(Q-COOP-A)"
+    },
+    {
+      "id": "wrong-traffic-class",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "SurveillanceQueryMismatch(Q-NONCOOP-A)"
+    },
+    {
+      "id": "partial-coverage-window",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "SurveillanceQueryMismatch(Q-COOP-A)"
+    },
+    {
+      "id": "coverage-validity-too-short",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "SurveillanceValidityDoesNotCoverQuery(Q-COOP-A)"
+    },
+    {
+      "id": "coverage-received-after-cutoff",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "SurveillanceReceiptAfterCutoff(Q-COOP-A)"
+    },
+    {
+      "id": "coverage-without-dependency-snapshot",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "MissingDependencySnapshot(Q-NONCOOP-A)"
+    },
+    {
+      "id": "qualified-no-report-query",
+      "expected": "SCOPE_MATCHED_FOR_COMPOSITION",
+      "reason": null
+    },
+    {
+      "id": "missing-required-query",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "MissingSurveillanceClaim(Q-NONCOOP-A)"
+    },
+    {
+      "id": "duplicate-required-query-id",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "DuplicateCoverageRequirement"
+    },
+    {
+      "id": "extra-unrequested-query",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "UnexpectedSurveillanceClaim(Q-EXTRA)"
+    },
+    {
+      "id": "input-order-permutation",
+      "expected": "SCOPE_MATCHED_FOR_COMPOSITION",
+      "reason": null
+    },
+    {
+      "id": "missing-owner-receipt",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "MissingOperationReceipt(Intent)"
+    },
+    {
+      "id": "different-operator",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "different-issuing-ussp",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "different-intent-revision",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "different-authorization-artifact-digest",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "OperationScopeMismatch(Intent)"
+    },
+    {
+      "id": "missing-issuing-provider",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "IncompleteOperationScope"
+    },
+    {
+      "id": "missing-authorization-digest",
+      "expected": "NOT_ASSESSABLE",
+      "reason": "IncompleteOperationScope"
+    }
+  ]
+}
