@@ -1,0 +1,412 @@
+{
+  "schema_version": "myco.synthetic.v0.1",
+  "suite_id": "MYCO-SYNTH-001",
+  "evidence_class": "synthetic_known_truth",
+  "status": "fixture_only_not_biological_calibration",
+  "disclaimer": "All coordinates, dimensions, stocks, fluxes and event timings in this suite are invented exact fixtures. They are not measured biological parameters or predictions.",
+  "units": {
+    "position": "mm",
+    "time": "h",
+    "segment_length": "mm",
+    "element_stock": "g_element",
+    "element_flux": "g_element_per_interval"
+  },
+  "cases": [
+    {
+      "id": "HYPA-GRAPH-001",
+      "kind": "linear_tip_extension",
+      "description": "A single tip extends a straight hyphal segment by a declared exact distance.",
+      "initial_graph": {
+        "nodes": [
+          {
+            "id": "anchor-0",
+            "kind": "anchor",
+            "position_mm": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "tip-0",
+            "kind": "tip",
+            "position_mm": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "segments": [
+          {
+            "id": "seg-0",
+            "from": "anchor-0",
+            "to": "tip-0",
+            "length_mm": 10,
+            "diameter_mm": 0.02,
+            "state": "active"
+          }
+        ]
+      },
+      "events": [
+        {
+          "id": "evt-001",
+          "kind": "tip_extend",
+          "time_h": 1,
+          "tip_id": "tip-0",
+          "new_tip_id": "tip-1",
+          "new_segment_id": "seg-1",
+          "new_position_mm": [
+            15,
+            0,
+            0
+          ]
+        }
+      ],
+      "expected": {
+        "node_ids": [
+          "anchor-0",
+          "tip-0",
+          "tip-1"
+        ],
+        "segment_ids": [
+          "seg-0",
+          "seg-1"
+        ],
+        "connected_components": 1,
+        "total_hyphal_length_mm": 15,
+        "active_tip_ids": [
+          "tip-1"
+        ]
+      }
+    },
+    {
+      "id": "HYPA-GRAPH-002",
+      "kind": "branch_from_segment",
+      "description": "A branch event splits one segment at its midpoint and creates a lateral segment.",
+      "initial_graph": {
+        "nodes": [
+          {
+            "id": "anchor-0",
+            "kind": "anchor",
+            "position_mm": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "tip-0",
+            "kind": "tip",
+            "position_mm": [
+              10,
+              0,
+              0
+            ]
+          }
+        ],
+        "segments": [
+          {
+            "id": "seg-0",
+            "from": "anchor-0",
+            "to": "tip-0",
+            "length_mm": 10,
+            "diameter_mm": 0.02,
+            "state": "active"
+          }
+        ]
+      },
+      "events": [
+        {
+          "id": "evt-002",
+          "kind": "branch_create",
+          "time_h": 1,
+          "parent_segment_id": "seg-0",
+          "attachment_fraction": 0.5,
+          "branch_node_id": "branch-0",
+          "branch_tip_id": "branch-tip-0",
+          "replacement_segments": [
+            {
+              "id": "seg-0a",
+              "from": "anchor-0",
+              "to": "branch-0",
+              "length_mm": 5
+            },
+            {
+              "id": "seg-0b",
+              "from": "branch-0",
+              "to": "tip-0",
+              "length_mm": 5
+            }
+          ],
+          "new_segment": {
+            "id": "seg-branch-0",
+            "from": "branch-0",
+            "to": "branch-tip-0",
+            "length_mm": 5
+          }
+        }
+      ],
+      "expected": {
+        "node_ids": [
+          "anchor-0",
+          "branch-0",
+          "branch-tip-0",
+          "tip-0"
+        ],
+        "segment_ids": [
+          "seg-0a",
+          "seg-0b",
+          "seg-branch-0"
+        ],
+        "connected_components": 1,
+        "total_hyphal_length_mm": 15,
+        "branch_node_degree": 3,
+        "active_tip_ids": [
+          "branch-tip-0",
+          "tip-0"
+        ]
+      }
+    },
+    {
+      "id": "HYPA-GRAPH-003",
+      "kind": "anastomosis_connects_components",
+      "description": "A fusion event joins two previously disconnected hyphal components.",
+      "initial_graph": {
+        "nodes": [
+          {
+            "id": "anchor-a",
+            "kind": "anchor",
+            "position_mm": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "tip-a",
+            "kind": "tip",
+            "position_mm": [
+              10,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "anchor-b",
+            "kind": "anchor",
+            "position_mm": [
+              0,
+              10,
+              0
+            ]
+          },
+          {
+            "id": "tip-b",
+            "kind": "tip",
+            "position_mm": [
+              10,
+              0.1,
+              0
+            ]
+          }
+        ],
+        "segments": [
+          {
+            "id": "seg-a",
+            "from": "anchor-a",
+            "to": "tip-a",
+            "length_mm": 10,
+            "diameter_mm": 0.02,
+            "state": "active"
+          },
+          {
+            "id": "seg-b",
+            "from": "anchor-b",
+            "to": "tip-b",
+            "length_mm": 14.071,
+            "diameter_mm": 0.02,
+            "state": "active"
+          }
+        ]
+      },
+      "events": [
+        {
+          "id": "evt-003",
+          "kind": "hyphal_fusion",
+          "time_h": 2,
+          "first_tip_id": "tip-a",
+          "second_tip_id": "tip-b",
+          "connecting_segment_id": "fusion-seg-0",
+          "connecting_length_mm": 0.1
+        }
+      ],
+      "expected": {
+        "connected_components_before": 2,
+        "connected_components_after": 1,
+        "connecting_segment_ids": [
+          "fusion-seg-0"
+        ],
+        "total_hyphal_length_mm": 24.171,
+        "event_count": 1
+      }
+    },
+    {
+      "id": "HYPA-FLOW-001",
+      "kind": "disconnected_network_no_hyphal_flux",
+      "description": "A requested hyphal-mediated flux between disconnected components is rejected without mutating stocks. This says nothing about independent soil diffusion.",
+      "initial_graph": {
+        "nodes": [
+          {
+            "id": "source-tip",
+            "kind": "tip",
+            "position_mm": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "id": "sink-tip",
+            "kind": "tip",
+            "position_mm": [
+              20,
+              0,
+              0
+            ]
+          }
+        ],
+        "segments": []
+      },
+      "flux_request": {
+        "id": "flux-request-001",
+        "element": "N",
+        "source_node_id": "source-tip",
+        "sink_node_id": "sink-tip",
+        "requested_amount_g_element": 2
+      },
+      "initial_stocks": {
+        "source_g_N": 5,
+        "sink_g_N": 1
+      },
+      "expected": {
+        "accepted_hyphal_flux_g_N": 0,
+        "disposition": "rejected_no_connected_path",
+        "final_stocks": {
+          "source_g_N": 5,
+          "sink_g_N": 1
+        }
+      }
+    },
+    {
+      "id": "HYPA-LEDGER-001",
+      "kind": "element_specific_exchange_closure",
+      "description": "Exact synthetic C, N and P transfers close at organism and whole-system boundaries. No biological parameter claim is implied.",
+      "interval": {
+        "start_h": 0,
+        "end_h": 24
+      },
+      "initial_stocks_g_element": {
+        "C": {
+          "plant": 100,
+          "fungus": 20,
+          "soil": 0,
+          "environment": 0
+        },
+        "N": {
+          "plant": 10,
+          "fungus": 5,
+          "soil": 50,
+          "environment": 0
+        },
+        "P": {
+          "plant": 5,
+          "fungus": 0,
+          "soil": 20,
+          "environment": 0
+        }
+      },
+      "fluxes_g_element_per_interval": [
+        {
+          "id": "C-001",
+          "element": "C",
+          "from": "plant",
+          "to": "fungus",
+          "amount": 10,
+          "internal_transfer": true
+        },
+        {
+          "id": "C-002",
+          "element": "C",
+          "from": "fungus",
+          "to": "environment",
+          "amount": 3,
+          "internal_transfer": false,
+          "process": "respiration"
+        },
+        {
+          "id": "N-001",
+          "element": "N",
+          "from": "soil",
+          "to": "fungus",
+          "amount": 6,
+          "internal_transfer": true
+        },
+        {
+          "id": "N-002",
+          "element": "N",
+          "from": "fungus",
+          "to": "plant",
+          "amount": 4,
+          "internal_transfer": true
+        },
+        {
+          "id": "P-001",
+          "element": "P",
+          "from": "soil",
+          "to": "fungus",
+          "amount": 2,
+          "internal_transfer": true
+        },
+        {
+          "id": "P-002",
+          "element": "P",
+          "from": "fungus",
+          "to": "plant",
+          "amount": 1,
+          "internal_transfer": true
+        }
+      ],
+      "expected_final_stocks_g_element": {
+        "C": {
+          "plant": 90,
+          "fungus": 27,
+          "soil": 0,
+          "environment": 0
+        },
+        "N": {
+          "plant": 14,
+          "fungus": 7,
+          "soil": 44,
+          "environment": 0
+        },
+        "P": {
+          "plant": 6,
+          "fungus": 1,
+          "soil": 18,
+          "environment": 0
+        }
+      },
+      "expected_whole_system_external_outputs_g_element": {
+        "C": 3,
+        "N": 0,
+        "P": 0
+      },
+      "expected_residual_g_element": {
+        "C": 0,
+        "N": 0,
+        "P": 0
+      }
+    }
+  ]
+}
