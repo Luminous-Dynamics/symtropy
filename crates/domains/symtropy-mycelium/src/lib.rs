@@ -6,6 +6,11 @@
 //! This crate is deliberately CPU-first. It proves that `symtropy-lifesim-core`
 //! is not ant-specific by reusing the same dense field substrate for a sessile,
 //! graph-like living system.
+//!
+//! The explicit topology-only graph reference is available in [`hyphal_graph`].
+//! It is intentionally separate from the legacy field-growth model below.
+
+pub mod hyphal_graph;
 
 use std::collections::{HashMap, VecDeque};
 
