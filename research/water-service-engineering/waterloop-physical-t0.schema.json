@@ -43,8 +43,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 25,
+      "maxItems": 25,
       "items": {
         "type": "object",
         "required": [
@@ -64,7 +64,8 @@
               "source_substitution",
               "pump_energy",
               "service_floor",
-              "leak_metrics"
+              "leak_metrics",
+              "service_continuity"
             ]
           },
           "inputs": {
