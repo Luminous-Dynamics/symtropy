@@ -18,9 +18,9 @@
 use core::marker::PhantomData;
 use std::fmt;
 
+pub mod nonlinear_sensitivity;
 pub mod operator;
 pub mod rectangular_operator;
-pub mod nonlinear_sensitivity;
 
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
