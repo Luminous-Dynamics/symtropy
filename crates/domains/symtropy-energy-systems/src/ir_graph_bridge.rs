@@ -646,6 +646,9 @@ mod tests {
         assert!(receipt.service_graph_payload_digest().as_str().starts_with("sha256:"));
         assert!(receipt.build_lock_digest().as_str().starts_with("sha256:"));
         assert_eq!(receipt.build_lock_digest(), second.receipt().build_lock_digest());
+        assert_eq!(receipt.compiler_source_digest(), &Sha256Digest::from_bytes(b"synthetic compiler source tree"));
+        assert_eq!(receipt.build_configuration_digest(), &Sha256Digest::from_bytes(b"release;default-features;target=x86_64-unknown-linux-gnu"));
+        assert_eq!(receipt.dependency_lock_digest(), &Sha256Digest::from_bytes(b"synthetic Cargo.lock"));
         assert_eq!(receipt.standard_profiles().len(), 1);
         assert_eq!(receipt.upstream_artifacts().len(), 1);
     }

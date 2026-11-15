@@ -246,6 +246,9 @@ impl PowerFabricBuildReceipt {
     pub fn compiler_id(&self) -> &str { &self.compiler_id }
     pub fn compiler_version(&self) -> &str { &self.compiler_version }
     pub fn toolchain_fingerprint(&self) -> &str { &self.toolchain_fingerprint }
+    pub fn compiler_source_digest(&self) -> &Sha256Digest { &self.compiler_source_digest }
+    pub fn build_configuration_digest(&self) -> &Sha256Digest { &self.build_configuration_digest }
+    pub fn dependency_lock_digest(&self) -> &Sha256Digest { &self.dependency_lock_digest }
     pub fn source_document_id(&self) -> &str { &self.source_document_id }
     pub fn source_document_revision_id(&self) -> &str { &self.source_document_revision_id }
     pub const fn source_schema_version(&self) -> crate::IrSchemaVersion { self.source_schema_version }
