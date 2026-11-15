@@ -1,5 +1,5 @@
 {
-  "benchmark_id": "FOREST-BLOCK-COVERAGE-INFERENCE-001",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
   "version": "0.1.0",
   "status": "SYNTHETIC_REFERENCE_CORPUS",
   "method": "TWO_SIDED_HOEFFDING",
@@ -15,8 +15,8 @@
       "expected": {
         "observed_block_coverage": 0.3333333333333333,
         "hoeffding_radius": 0.7841002756996853,
-        "lower_bound": 0.0,
-        "upper_bound": 1.0
+        "lower_bound": 0,
+        "upper_bound": 1
       },
       "purpose": "Existing conformal toy test result; a 3-block estimate is too small to qualify 95% coverage."
     },
@@ -25,9 +25,9 @@
       "covered_blocks": 0,
       "total_blocks": 3,
       "expected": {
-        "observed_block_coverage": 0.0,
+        "observed_block_coverage": 0,
         "hoeffding_radius": 0.7841002756996853,
-        "lower_bound": 0.0,
+        "lower_bound": 0,
         "upper_bound": 0.7841002756996853
       },
       "purpose": "Boundary control with no fully covered held-out block."
@@ -37,10 +37,10 @@
       "covered_blocks": 3,
       "total_blocks": 3,
       "expected": {
-        "observed_block_coverage": 1.0,
+        "observed_block_coverage": 1,
         "hoeffding_radius": 0.7841002756996853,
         "lower_bound": 0.21589972430031468,
-        "upper_bound": 1.0
+        "upper_bound": 1
       },
       "purpose": "Boundary control showing three successes do not establish high population coverage."
     },
@@ -52,7 +52,7 @@
         "observed_block_coverage": 0.9,
         "hoeffding_radius": 0.30368073095415254,
         "lower_bound": 0.5963192690458474,
-        "upper_bound": 1.0
+        "upper_bound": 1
       },
       "purpose": "Small but nontrivial held-out block count."
     },
@@ -64,7 +64,7 @@
         "observed_block_coverage": 0.9,
         "hoeffding_radius": 0.13581015157406193,
         "lower_bound": 0.7641898484259381,
-        "upper_bound": 1.0
+        "upper_bound": 1
       },
       "purpose": "Demonstrates conservative finite-sample uncertainty with 100 independent units."
     },
@@ -76,7 +76,7 @@
         "observed_block_coverage": 0.9512195121951219,
         "hoeffding_radius": 0.049992407649266275,
         "lower_bound": 0.9012271045458556,
-        "upper_bound": 1.0
+        "upper_bound": 1
       },
       "purpose": "A conservative 95% Hoeffding radius just under five percentage points requires hundreds of independent units."
     },
@@ -89,11 +89,12 @@
         "observed_coverage": 0.9333333333333333,
         "hoeffding_radius": 0.24795427851769822,
         "lower_bound": 0.6853790548156351,
-        "upper_bound": 1.0
+        "upper_bound": 1
       },
       "expected_disposition": "REJECT_AS_BLOCK_COVERAGE_INFERENCE",
       "purpose": "Negative control: applying the block formula to 30 correlated within-block records creates false precision."
     }
   ],
-  "claim_ceiling": "Arithmetic fixtures only. The method does not verify block independence, ecological calibration, spatial or temporal dependence, transfer, or model quality."
+  "claim_ceiling": "Arithmetic fixtures only. The method does not verify block independence, ecological calibration, spatial or temporal dependence, transfer, or model quality.",
+  "corpus_id": "FOREST-BLOCK-COVERAGE-INFERENCE-001"
 }
