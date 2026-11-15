@@ -1,0 +1,75 @@
+name: ORS Dynamic Support Synthetic Reference
+
+on:
+  push:
+    branches:
+      - research/ors-dynamic-support-reference-v0-1
+    paths:
+      - "tools/ors-dynamic-support-reference/**"
+      - ".github/workflows/ors-dynamic-support-reference.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tools/ors-dynamic-support-reference/**"
+      - ".github/workflows/ors-dynamic-support-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-reference:
+    name: synthetic-transient-reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Format
+        run: cargo fmt --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Unit tests
+        run: cargo test --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked --all-targets
+
+      - name: Run receipt twice and require deterministic output
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          cargo run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-1.json
+          cargo run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-2.json
+          cmp ors-dynamic-support-receipt-1.json ors-dynamic-support-receipt-2.json
+          mv ors-dynamic-support-receipt-1.json ors-dynamic-support-receipt.json
+          rm ors-dynamic-support-receipt-2.json
+
+      - name: Fingerprint exact inputs
+        run: |
+          {
+            printf 'source_commit=%s\n' "$GITHUB_SHA"
+            sha256sum tools/ors-dynamic-support-reference/Cargo.toml
+            sha256sum tools/ors-dynamic-support-reference/Cargo.lock
+            sha256sum tools/ors-dynamic-support-reference/src/lib.rs
+            sha256sum tools/ors-dynamic-support-reference/src/main.rs
+            sha256sum tools/ors-dynamic-support-reference/cases-v0.1.csv
+            sha256sum ors-dynamic-support-receipt.json
+          } > ors-dynamic-support-fingerprints.txt
+          cat ors-dynamic-support-fingerprints.txt
+
+      - name: Retain deterministic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ors-dynamic-support-synthetic-reference-${{ github.sha }}
+          path: |
+            ors-dynamic-support-receipt.json
+            ors-dynamic-support-fingerprints.txt
+          if-no-files-found: error
+          retention-days: 90
