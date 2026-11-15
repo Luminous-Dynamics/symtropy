@@ -1,0 +1,17 @@
+{
+  "schema_version": "operator-invariants-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-PHYSICAL-OPERATOR-INVARIANTS-001",
+  "case_count": 10,
+  "case_ids": [
+    "OI-T0-001-positive-fixed-regime",
+    "OI-T0-002-negative-coefficient",
+    "OI-T0-003-negative-lag",
+    "OI-T0-004-mass-gain-above-one",
+    "OI-T0-005-static-gain-mismatch",
+    "OI-T0-006-positive-stable-realization",
+    "OI-T0-007-non-metzler",
+    "OI-T0-008-unstable-metzler",
+    "OI-T0-009-grid-refinement",
+    "OI-T0-010-grid-refinement-mismatch"
+  ]
+}
