@@ -555,13 +555,24 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         }
     }
 
-    let Some(allowed_volume) = auth.volume.expand(policy.deviation_expansion) else {
+    let Some(mut allowed_volume) = auth.volume.expand(policy.deviation_expansion) else {
         return empty(
             ConformanceStatus::NotAssessable,
             Some(ConformanceReason::ArithmeticOverflow),
             lineage,
         );
     };
+    // Deviation tolerance can widen the scheduled flight volume, but it cannot
+    // extend the authority's activation/expiry interval.
+    allowed_volume.time.start = allowed_volume.time.start.max(auth.activated_at_tick);
+    allowed_volume.time.end = allowed_volume.time.end.min(auth.expires_at_tick);
+    if allowed_volume.time.duration().is_none() {
+        return empty(
+            ConformanceStatus::NotAssessable,
+            Some(ConformanceReason::InvalidPolicyOrAuthorization),
+            lineage,
+        );
+    }
 
     let mut observations: Vec<_> = input.observations.iter().collect();
     observations.sort_by_key(|observation| {
