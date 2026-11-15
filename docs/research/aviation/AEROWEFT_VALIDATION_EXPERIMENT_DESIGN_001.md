@@ -42,7 +42,7 @@ The prototype consumes owner-supplied admissibility facts. It does not independe
 
 ## Selection contract
 
-Candidate estimates are normalized [0,1] conservative bounds produced by a pinned estimator and method at a declared confidence level. Benefits are lower bounds; uninformative probability is an upper bound. The selector does not calculate or authenticate those estimates. The exact campaign, model/sensor/control scope, intended-use profile, scenario, design and measurement-plan digests are bound to every candidate.
+Candidate estimates are normalized [0,1] conservative bounds produced by a pinned estimator and method at a declared confidence level. Benefits are lower bounds; uninformative probability is an upper bound. The selector does not calculate or authenticate those estimates. Model-discrimination candidates must also provide explicit hypothesis-pair contrast estimates; listing model families alone is not sufficient. The exact campaign, model/sensor/control scope, intended-use profile, scenario, design and measurement-plan digests are bound to every candidate.
 
 The following dimensions remain separate:
 - expected decision-relevant predictive uncertainty reduction;
@@ -63,15 +63,15 @@ Hard eligibility gates include:
 - independent reference measurement/oracle available;
 - semantic equivalence established for cross-implementation comparisons;
 - no use of sealed confirmatory or challenge outcomes to select the experiment;
-- two or more distinct model hypotheses with exact variant digests and distinct correlation/lineage groups for model-discrimination claims;
+- two or more exact model hypotheses with distinct artifact digests and correlation/lineage groups for model-discrimination claims; explicit pairwise contrasts name both hypothesis IDs, provide a conservative lower bound on predicted outcome separation, and bind a contrast-estimate digest; multiple variants from one correlated family count as one group-pair, not multiple independent distinctions;
 - probability of an uninformative result below a frozen policy maximum;
 - frozen policy thresholds and cost budget satisfied.
 
-Only after eligibility is established does Pareto ranking happen. Benefits are maximized; uninformative probability and each resource-cost dimension are minimized. Costs are never summed or exchanged: a low compute cost cannot compensate for exceeding a facility, energy or adjudication budget. The output is a set of nondominated options, not a single "winner" forced by arbitrary scalarization.
+Only after eligibility is established does Pareto ranking happen. Benefits are maximized; uninformative probability and each resource-cost dimension are minimized. Costs are never summed or exchanged: a low compute cost cannot compensate for exceeding a facility, energy or adjudication budget. The output is a set of nondominated options, not a single "winner" forced by arbitrary scalarization. The Pareto record exposes the number of distinct independent model-family pairs with qualifying contrast bounds.
 
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 40 adversarial tests:
+The dependency-free Rust suite currently contains 55 adversarial tests:
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
@@ -80,6 +80,7 @@ The dependency-free Rust suite currently contains 40 adversarial tests:
 - cross-implementation semantic mismatch and matched positive control;
 - sealed challenge/confirmatory data leakage rejection;
 - correlated model-family pseudo-diversity rejection;
+- explicit pairwise hypothesis contrasts, lower-bound separation thresholds, duplicate hypothesis IDs, same-artifact cross-family relabelling and distinct group-pair coverage;
 - explicit model-discrimination and robust-reduction thresholds;
 - cost-budget and malformed/non-finite utility rejection;
 - parameter-identification case that does not falsely require independent model families;
@@ -90,7 +91,8 @@ The dependency-free Rust suite currently contains 40 adversarial tests:
 - exact campaign/model/use-scope binding;
 - affirmative owner-receipt requirements and authorization hard-gate against candidate-flag bypass;
 - frozen estimator build/method/confidence binding;
-- non-substitutable resource budgets and multidimensional Pareto tradeoffs.
+- non-substitutable resource budgets and multidimensional Pareto tradeoffs;
+- valid zero ceilings for resource dimensions that a modality is not allowed to consume.
 
 ## SOTA comparison protocol
 
@@ -103,8 +105,6 @@ Use equal candidate sets, priors, available information, admissibility rules and
 - robust/minimax experimental design under prior/model uncertainty;
 - active learning and sequential model discrimination;
 - batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including mean-/quantile-based misclassification acquisition and input constraints;
-- model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
-- batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including its mean-/quantile-based misclassification acquisition and input constraints;
 - model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
 - the multi-fidelity admission/escalation lane in #4487.
 
@@ -141,9 +141,8 @@ A reduction in test count is not success if the resulting model is less reliable
 - ASTM F3705-25 / F3442-26: DAA test and performance comparison only for matched operating assumptions.
 - NASA NESC-RP-23-01853: cross-simulation comparison under common inputs can contribute to validation, while remaining distinct from empirical flight validation.
 - NASA 2025 strategic path management flight evaluation: two helicopters in a live-virtual-constructive environment with up to 330 virtual aircraft; a useful scale comparator, not universal safety evidence.
-- NASA NESC 6DOF check-case programme: standardized common-input multi-simulation comparisons can expose implementation defects and contribute to credibility, but remain distinct from empirical physical validation.
 - NASA NESC 6DOF check-case programme: standardized common inputs and cross-simulation comparisons can identify implementation defects and contribute to model credibility, but remain distinct from physical empirical validation.
 
 ## Claim ceiling
 
-A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, utility estimates and separate resource budgets. It does not verify those utility estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance. It does not verify those utility estimates, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
+A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, contrast/utility estimates and separate resource budgets. It does not verify those estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
