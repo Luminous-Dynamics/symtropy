@@ -58,17 +58,19 @@ Acceptance is exact source identity plus a reproducible analysis trail. The NIST
 
 ### B1-B — honest predictive evaluation
 
-Separate model fit from prediction. A model fitted to all observations may be used to reproduce the paper, but its in-sample fit is not an independent predictive score.
+Separate reproduction, interpolation, extrapolation stress testing and independent prediction. They are different evaluation questions.
 
 Before fitting any new candidate:
 
-1. Inspect and document the data structure and any available shot ordering.
-2. Freeze a deterministic, velocity-blocked validation design within each armour-system file. Hold out contiguous velocity regions rather than relying solely on random row splits.
-3. Ensure the split generator does not use outcomes to select an easier holdout. Publish the split manifest and its digest.
-4. Where sample size or outcome balance makes a blocked fold uninformative, mark the fold **not estimable**. Do not relax the split after seeing a candidate's results.
-5. Keep the six armour systems separate in reporting.
+1. Audit whether panel identities, armour-system identities, conditioning groups and shot order are present in the archive. Publish the actual schema and missing identity fields.
+2. **Primary reproduction split:** use NISTIR 7760's leave-one-panel-out procedure only if panel IDs are explicitly present and reliable. Hold out a complete panel, fit on the remaining panels, repeat for each panel and report each fold. This preserves the report's unit of independence.
+3. If panel IDs are absent, do not infer them from row order, filename, velocity or outcomes. Record panel-wise CV as **NOT_REPRODUCIBLE_FROM_RELEASED_FIELDS**. Do not silently substitute row-wise or velocity-wise folds and call that NIST reproduction.
+4. A deterministic contiguous velocity-band holdout may be run as a separately named **extrapolation stress test**, provided the split is frozen before model fitting and the test band is within the support needed for meaningful comparison. It is not a substitute for panel independence and does not estimate cross-panel generalization.
+5. If the archive only distinguishes six armour-system files, report results per file. Do not use leave-one-system-out as a substitute for leave-one-panel-out; those measure different transfer problems.
+6. Ensure split generation does not use outcomes to select an easier holdout. Publish the split manifest and its digest.
+7. Where sample size or outcome balance makes a fold uninformative, mark it **not estimable**. Do not relax the split after seeing a candidate's results.
 
-The source CSV schema exposes velocity and binary outcome, but no material/process covariates sufficient to establish transfer to a new architecture. Therefore this dataset cannot support a credible “generalises to unseen armour architectures” result. Cross-system transfer is out of scope until a separately rights-cleared source supplies relevant covariates and independent test data.
+The source catalog declares velocity and binary outcome but no material/process covariates sufficient to establish transfer to a new architecture. Therefore this dataset cannot support a credible “generalises to unseen armour architectures” result. Cross-system transfer is out of scope until a separately rights-cleared source supplies relevant covariates and independent test data.
 
 ## 5. Baselines and candidate models
 
@@ -78,7 +80,7 @@ The mandatory matched baselines are:
 2. Probit response model.
 3. Complementary log-log response model.
 
-These are the three published NISTIR 7760 model families. Implement and verify them before adding new methods.
+These are the three published NISTIR 7760 model families. Implement and verify them before adding new methods. Reproduction should include the report's maximum-likelihood estimation and Fieller V50 confidence intervals; report any software/version or interval-method differences explicitly.
 
 Candidate extensions may include monotone nonparametric calibration and Bayesian uncertainty estimates, but only when they use the same allowed inputs and the same frozen folds. A Symthaea-derived candidate must compete on the identical data, target, compute budget and split. A more complex HDC/CfC or other learned representation is not a meaningful advantage on this two-column, small-sample dataset merely because it is architecturally novel.
 
