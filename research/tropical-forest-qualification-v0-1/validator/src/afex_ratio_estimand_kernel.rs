@@ -242,6 +242,9 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
             || treatment_ids.iter().next()!=Some(&declared_treatment) {
             return Err(format!("case {case_id} must contain four plot units across four blocks in the declared treatment cell"));
         }
+        if string_at(case,"expected_disposition")?!="ESTIMAND_SUMMARY_VALID" {
+            return Err(format!("case {case_id} valid support has an incompatible expected disposition"));
+        }
         let summary=summarize(&pairs)?;
         let expected=case.get("expected_summary").ok_or_else(||format!("case {case_id} expected_summary required"))?;
         let tol=number_at(manifest.get("tolerances").ok_or_else(||"tolerances required".to_string())?,"absolute")?;
