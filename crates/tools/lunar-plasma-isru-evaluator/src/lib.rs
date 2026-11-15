@@ -453,8 +453,15 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             );
         } else {
             if let Some(feedstock) = &scenario.feedstock {
-                if !close_enough(balance.input_mass_g, feedstock.dry_mass_g, balance.tolerance_g) {
-                    rejected.push("feedstock balance input does not match the declared dry batch mass".to_owned());
+                if !close_enough(
+                    balance.input_mass_g,
+                    feedstock.dry_mass_g,
+                    balance.tolerance_g,
+                ) {
+                    rejected.push(
+                        "feedstock balance input does not match the declared dry batch mass"
+                            .to_owned(),
+                    );
                 }
             }
             let mut stream_ids = HashSet::new();
