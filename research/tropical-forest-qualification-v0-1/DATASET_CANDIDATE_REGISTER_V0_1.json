@@ -571,6 +571,21 @@
         },
         "unit_semantics_warning": "Preserve the article's exact wording. Reconcile elemental nutrient mass versus fertilizer-product mass with the original field protocol before normalization or dose aggregation.",
         "treatment_compliance": "Actual application dates, batches and plot-level deviations must be checked in original records; assignment remains the primary intention-to-treat field."
+      },
+      "identity_qualification": {
+        "issue": 5470,
+        "protocol": "AFEX_SOURCE_IDENTITY_GATE_V0_1.md",
+        "synthetic_fixture": "cases/afex-source-identity-synthetic-v0.1.json",
+        "validator": "validator/src/afex_source_identity_kernel.rs",
+        "child_datasets_listed_by_collection": 15,
+        "child_datasets_individually_registered": 15,
+        "site_description_discrepancy": {
+          "description_a": "approximately 80 km north of Manaus",
+          "description_b": "approximately 100 km north of Manaus",
+          "status": "UNRESOLVED_NOT_ADJUDICATED"
+        },
+        "raw_source_rows_joined": false,
+        "plot_aliases_admitted": false
       }
     },
     {
