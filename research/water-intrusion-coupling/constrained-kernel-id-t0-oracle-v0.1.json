@@ -1,0 +1,291 @@
+{
+  "schema_version": "constrained-kernel-id-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-CONSTRAINED-IDENTIFICATION-001",
+  "physical_operator_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "CKI-T0-001-noisy-negative-fit",
+      "expected": {
+        "identification_disposition": "IDENTIFIED_SYNTHETIC",
+        "reason": null,
+        "design_rank": 2,
+        "design_condition_number": 3.7588860994071096,
+        "observation_noise_contract": "independent_diagonal_variance",
+        "total_training_weight": 4,
+        "total_holdout_weight": 1,
+        "unconstrained_coefficients": [
+          1.4300000000000002,
+          -0.57
+        ],
+        "clipped_coefficients": [
+          1.4300000000000002,
+          0
+        ],
+        "constrained_coefficients": [
+          0.8,
+          0
+        ],
+        "unconstrained_training_mse": 0.27075,
+        "clipped_training_mse": 1.4079000000000002,
+        "constrained_training_mse": 0.7275000000000001,
+        "unconstrained_holdout_mse": 0.39690000000000014,
+        "clipped_holdout_mse": 0.39690000000000014,
+        "constrained_holdout_mse": 0,
+        "unconstrained_min_coefficient": -0.57,
+        "clipped_min_coefficient": 0,
+        "constrained_min_coefficient": 0,
+        "unconstrained_gain_by_group": [
+          0.8600000000000002
+        ],
+        "clipped_gain_by_group": [
+          1.4300000000000002
+        ],
+        "constrained_gain_by_group": [
+          0.8
+        ],
+        "constrained_gain_target_by_group": [
+          0.8
+        ],
+        "solver_iterations": 4,
+        "solver_converged": true,
+        "constraint_satisfied": true,
+        "blind_holdout_improvement_vs_clip": true,
+        "true_coefficient_rmse_unconstrained": 0.6007495318350237,
+        "true_coefficient_rmse_clipped": 0.445477272147525,
+        "true_coefficient_rmse_constrained": 0,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-002-substochastic-preserved",
+      "expected": {
+        "identification_disposition": "IDENTIFIED_SYNTHETIC",
+        "reason": null,
+        "design_rank": 2,
+        "design_condition_number": 2.1988256746932358,
+        "observation_noise_contract": "independent_diagonal_variance",
+        "total_training_weight": 2.25,
+        "total_holdout_weight": 1.25,
+        "unconstrained_coefficients": [
+          0.44999999999999996,
+          0.3500000000000001
+        ],
+        "clipped_coefficients": [
+          0.44999999999999996,
+          0.3500000000000001
+        ],
+        "constrained_coefficients": [
+          0.45000019769677024,
+          0.3499998023032298
+        ],
+        "unconstrained_training_mse": 2.7391003653507353e-33,
+        "clipped_training_mse": 2.7391003653507353e-33,
+        "constrained_training_mse": 2.1713340531025522e-14,
+        "unconstrained_holdout_mse": 4.930380657631324e-33,
+        "clipped_holdout_mse": 4.930380657631324e-33,
+        "constrained_holdout_mse": 3.908401295584594e-14,
+        "unconstrained_min_coefficient": 0.3500000000000001,
+        "clipped_min_coefficient": 0.3500000000000001,
+        "constrained_min_coefficient": 0.3499998023032298,
+        "unconstrained_gain_by_group": [
+          0.8
+        ],
+        "clipped_gain_by_group": [
+          0.8
+        ],
+        "constrained_gain_by_group": [
+          0.8
+        ],
+        "constrained_gain_target_by_group": [
+          0.8
+        ],
+        "solver_iterations": 60,
+        "solver_converged": true,
+        "constraint_satisfied": true,
+        "blind_holdout_improvement_vs_clip": false,
+        "true_coefficient_rmse_unconstrained": 8.777083671441753e-17,
+        "true_coefficient_rmse_clipped": 8.777083671441753e-17,
+        "true_coefficient_rmse_constrained": 1.9769677020442522e-7,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-003-rank-deficient",
+      "expected": {
+        "identification_disposition": "UNIDENTIFIABLE",
+        "reason": "DESIGN_MATRIX_RANK_DEFICIENT",
+        "design_rank": 1,
+        "design_condition_number": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-004-ill-conditioned",
+      "expected": {
+        "identification_disposition": "ILL_CONDITIONED",
+        "reason": "DESIGN_MATRIX_CONDITION_EXCEEDS_LIMIT",
+        "design_rank": 2,
+        "design_condition_number": 63245553.20336759,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-005-static-zero-lag",
+      "expected": {
+        "identification_disposition": "IDENTIFIED_SYNTHETIC",
+        "reason": null,
+        "design_rank": 1,
+        "design_condition_number": 1,
+        "observation_noise_contract": "independent_diagonal_variance",
+        "total_training_weight": 3,
+        "total_holdout_weight": 1,
+        "unconstrained_coefficients": [
+          0.7000000000000001
+        ],
+        "clipped_coefficients": [
+          0.7000000000000001
+        ],
+        "constrained_coefficients": [
+          0.7
+        ],
+        "unconstrained_training_mse": 2.0543252740130517e-32,
+        "clipped_training_mse": 2.0543252740130517e-32,
+        "constrained_training_mse": 6.573840876841765e-32,
+        "unconstrained_holdout_mse": 1.9721522630525295e-31,
+        "clipped_holdout_mse": 1.9721522630525295e-31,
+        "constrained_holdout_mse": 0,
+        "unconstrained_min_coefficient": 0.7000000000000001,
+        "clipped_min_coefficient": 0.7000000000000001,
+        "constrained_min_coefficient": 0.7,
+        "unconstrained_gain_by_group": [
+          0.7000000000000001
+        ],
+        "clipped_gain_by_group": [
+          0.7000000000000001
+        ],
+        "constrained_gain_by_group": [
+          0.7
+        ],
+        "constrained_gain_target_by_group": [
+          0.7
+        ],
+        "solver_iterations": 1,
+        "solver_converged": true,
+        "constraint_satisfied": true,
+        "blind_holdout_improvement_vs_clip": false,
+        "true_coefficient_rmse_unconstrained": 1.1102230246251565e-16,
+        "true_coefficient_rmse_clipped": 1.1102230246251565e-16,
+        "true_coefficient_rmse_constrained": 0,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-006-invalid-gain-target",
+      "expected": {
+        "identification_disposition": "INVALID_INPUT",
+        "reason": "STEADY_GAIN_TARGET_OUTSIDE_PASSIVE_RANGE",
+        "design_rank": null,
+        "design_condition_number": null,
+        "unconstrained_coefficients": null,
+        "clipped_coefficients": null,
+        "constrained_coefficients": null,
+        "unconstrained_training_mse": null,
+        "clipped_training_mse": null,
+        "constrained_training_mse": null,
+        "unconstrained_holdout_mse": null,
+        "clipped_holdout_mse": null,
+        "constrained_holdout_mse": null,
+        "unconstrained_min_coefficient": null,
+        "clipped_min_coefficient": null,
+        "constrained_min_coefficient": null,
+        "unconstrained_gain_by_group": null,
+        "clipped_gain_by_group": null,
+        "constrained_gain_by_group": null,
+        "constrained_gain_target_by_group": null,
+        "solver_iterations": null,
+        "solver_converged": false,
+        "constraint_satisfied": false,
+        "blind_holdout_improvement_vs_clip": false,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-007-unsupported-full-covariance",
+      "expected": {
+        "identification_disposition": "REJECTED_CONTRACT",
+        "reason": "UNSUPPORTED_OR_UNDECLARED_OBSERVATION_COVARIANCE",
+        "design_rank": null,
+        "design_condition_number": null,
+        "unconstrained_coefficients": null,
+        "clipped_coefficients": null,
+        "constrained_coefficients": null,
+        "unconstrained_training_mse": null,
+        "clipped_training_mse": null,
+        "constrained_training_mse": null,
+        "unconstrained_holdout_mse": null,
+        "clipped_holdout_mse": null,
+        "constrained_holdout_mse": null,
+        "unconstrained_min_coefficient": null,
+        "clipped_min_coefficient": null,
+        "constrained_min_coefficient": null,
+        "unconstrained_gain_by_group": null,
+        "clipped_gain_by_group": null,
+        "constrained_gain_by_group": null,
+        "constrained_gain_target_by_group": null,
+        "solver_iterations": null,
+        "solver_converged": false,
+        "constraint_satisfied": false,
+        "blind_holdout_improvement_vs_clip": false,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "CKI-T0-008-invalid-sample-weight",
+      "expected": {
+        "identification_disposition": "INVALID_INPUT",
+        "reason": "OBSERVATION_VARIANCE_AND_WEIGHTS_MUST_BE_POSITIVE",
+        "design_rank": null,
+        "design_condition_number": null,
+        "unconstrained_coefficients": null,
+        "clipped_coefficients": null,
+        "constrained_coefficients": null,
+        "unconstrained_training_mse": null,
+        "clipped_training_mse": null,
+        "constrained_training_mse": null,
+        "unconstrained_holdout_mse": null,
+        "clipped_holdout_mse": null,
+        "constrained_holdout_mse": null,
+        "unconstrained_min_coefficient": null,
+        "clipped_min_coefficient": null,
+        "constrained_min_coefficient": null,
+        "unconstrained_gain_by_group": null,
+        "clipped_gain_by_group": null,
+        "constrained_gain_by_group": null,
+        "constrained_gain_target_by_group": null,
+        "solver_iterations": null,
+        "solver_converged": false,
+        "constraint_satisfied": false,
+        "blind_holdout_improvement_vs_clip": false,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": "constrained-kernel-id-t0-manifest-v0.1",
+  "programme_id": "WATER-MIXING-CONSTRAINED-IDENTIFICATION-001",
+  "case_count": 8,
+  "case_ids": [
+    "CKI-T0-001-noisy-negative-fit",
+    "CKI-T0-002-substochastic-preserved",
+    "CKI-T0-003-rank-deficient",
+    "CKI-T0-004-ill-conditioned",
+    "CKI-T0-005-static-zero-lag",
+    "CKI-T0-006-invalid-gain-target",
+    "CKI-T0-007-unsupported-full-covariance",
+    "CKI-T0-008-invalid-sample-weight"
+  ]
+}
