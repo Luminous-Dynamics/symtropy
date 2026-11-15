@@ -105,3 +105,6 @@ jobs:
 
     - name: Run Tests
       run: cargo test --manifest-path tools/factory-matched-routes/Cargo.toml --all-targets
+
+    - name: Emit Synthetic Route Matrix
+      run: cargo run --manifest-path tools/factory-matched-routes/Cargo.toml --bin route-matrix
