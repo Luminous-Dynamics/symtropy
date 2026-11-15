@@ -1,0 +1,53 @@
+{
+  "schema_version": "textile.machine-observation/0.1",
+  "record_id": "TMO-SEW-MISSING-01",
+  "captured_at": "2026-11-15T07:30:00Z",
+  "machine": {
+    "asset_id": "ASSET-SEW-SYN-001",
+    "machine_class": "single_needle_lockstitch",
+    "manufacturer": "Synthetic OEM",
+    "model": "LS-1-SIM",
+    "configuration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "controller_firmware": "sim-1.0"
+  },
+  "job": {
+    "work_order_id": "WO-AO01-TEST-001",
+    "process_id": "SEW-LOCKSTITCH-STRAIGHT",
+    "recipe_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "material_lot_id": "LOT-COTLIN-SYN-001",
+    "product_configuration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "operation_id": "AO01-SEAM-COUPON-001"
+  },
+  "source": {
+    "kind": "external_sensor",
+    "source_id": "DAQ-SYN-01",
+    "sensor_pack_id": "TMO-PASSIVE-PACK-01",
+    "clock_id": "DAQ-MONO-01",
+    "sequence": 42,
+    "read_only": true
+  },
+  "channels": [
+    {
+      "channel_id": "head-speed",
+      "semantic_id": "machine.speed",
+      "value": 1800,
+      "unit": "rpm",
+      "observed_at": "2026-11-15T07:30:00Z",
+      "quality": "valid",
+      "uncertainty": 2,
+      "calibration_state": "calibrated",
+      "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "source_location": "non-contact optical head-speed observation"
+    },
+    {
+      "channel_id": "seam-edge-offset",
+      "semantic_id": "fabric.seam_edge_offset",
+      "value": null,
+      "unit": "mm",
+      "observed_at": "2026-11-15T07:30:00Z",
+      "quality": "missing",
+      "calibration_state": "not_applicable",
+      "source_location": "work-zone camera unavailable"
+    }
+  ]
+}
