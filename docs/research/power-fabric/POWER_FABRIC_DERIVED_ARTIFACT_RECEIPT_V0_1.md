@@ -11,7 +11,8 @@ A verified graph is not enough if the diagrams, labels, circuit directory, resid
 The DerivedArtifactReceipt binds:
 - artifact identity and revision;
 - artifact kind and output format;
-- exact generator identity/version;
+- exact generator identity/version, source digest and generator-configuration digest;
+- complete declared dependency ID set and dependency-inventory completeness state;
 - source build-lock digest;
 - source graph ID, revision and declared content digest;
 - computed ServiceGraph payload digest;
@@ -47,7 +48,7 @@ The output receipt should be a derived node in the dependency graph. Its depende
 
 A mutation in any dependency should invalidate affected artefact receipts and derived documents. The previous receipt remains historical; the newly generated output gets a new artifact revision. Do not overwrite the old receipt or claim that an obsolete diagram is current.
 
-The current PR adds receipt binding and output-byte verification. The full integration with #5218 dependency invalidation is a subsequent increment.
+The receipt now converts directly into the existing #5218 DerivedArtifact node, preserving dependency IDs and inventory completeness. The receipt can supply pinned build-lock, graph-payload, generator-source and generator-configuration InputFingerprints; callers append fingerprints for all additional module, standards, evidence and source dependencies.
 
 ## 4. Claim ceiling
 

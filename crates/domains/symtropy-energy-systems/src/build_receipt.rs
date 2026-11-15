@@ -7,8 +7,9 @@
 use crate::{
     compile_ir_to_service_graph, GraphBridgeError, GraphCompileContext, GraphMaturity,
     IrGraphCompilation, IrGraphMappingProfile, PowerFabricDocument, ServiceGraph,
-    StandardReference,
+    StandardReference, DerivedArtifact, InputFingerprint, ChangeImpactError,
 };
+use std::collections::BTreeSet;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -352,6 +353,11 @@ pub struct DerivedArtifactReceipt {
     output_format: String,
     generator_id: String,
     generator_version: String,
+    generator_source_digest: Sha256Digest,
+    generator_configuration_digest: Sha256Digest,
+    source_mapping_profile_version: String,
+    dependency_ids: Vec<String>,
+    dependency_inventory_complete: bool,
     source_build_lock_digest: Sha256Digest,
     source_graph_id: String,
     source_graph_revision_id: String,
@@ -369,6 +375,10 @@ impl DerivedArtifactReceipt {
         output_format: impl Into<String>,
         generator_id: impl Into<String>,
         generator_version: impl Into<String>,
+        generator_source_digest: Sha256Digest,
+        generator_configuration_digest: Sha256Digest,
+        mut dependency_ids: Vec<String>,
+        dependency_inventory_complete: bool,
         output_bytes: &[u8],
     ) -> Result<Self, DerivedArtifactReceiptError> {
         let artifact_id = artifact_id.into();
@@ -388,6 +398,22 @@ impl DerivedArtifactReceipt {
         if output_bytes.is_empty() {
             return Err(DerivedArtifactReceiptError::EmptyOutput);
         }
+        for dependency_id in &dependency_ids {
+            require_non_empty("derived_artifact_dependency_id", dependency_id)
+                .map_err(DerivedArtifactReceiptError::BuildReceipt)?;
+        }
+        // Build-lock, graph payload, generator source and generator config are
+        // mandatory first-class dependencies, not optional caller annotations.
+        dependency_ids.push(format!("input:build-lock:{}", build_receipt.build_lock_digest.as_str()));
+        dependency_ids.push(format!("input:service-graph-payload:{}", build_receipt.service_graph_payload_digest.as_str()));
+        dependency_ids.push(format!("input:generator-source:{generator_id}:{}", generator_source_digest.as_str()));
+        dependency_ids.push(format!("input:generator-configuration:{generator_id}:{}", generator_configuration_digest.as_str()));
+        dependency_ids.sort();
+        if let Some(pair) = dependency_ids.windows(2).find(|pair| pair[0] == pair[1]) {
+            return Err(DerivedArtifactReceiptError::DuplicateDependencyId {
+                dependency_id: pair[0].clone(),
+            });
+        }
         Ok(Self {
             receipt_version: 1,
             artifact_id,
@@ -396,6 +422,11 @@ impl DerivedArtifactReceipt {
             output_format,
             generator_id,
             generator_version,
+            generator_source_digest,
+            generator_configuration_digest,
+            source_mapping_profile_version: build_receipt.mapping_profile_version.clone(),
+            dependency_ids,
+            dependency_inventory_complete,
             source_build_lock_digest: build_receipt.build_lock_digest.clone(),
             source_graph_id: build_receipt.graph_id.clone(),
             source_graph_revision_id: build_receipt.graph_revision_id.clone(),
@@ -412,12 +443,52 @@ impl DerivedArtifactReceipt {
     pub fn output_format(&self) -> &str { &self.output_format }
     pub fn generator_id(&self) -> &str { &self.generator_id }
     pub fn generator_version(&self) -> &str { &self.generator_version }
+    pub fn generator_source_digest(&self) -> &Sha256Digest { &self.generator_source_digest }
+    pub fn generator_configuration_digest(&self) -> &Sha256Digest { &self.generator_configuration_digest }
+    pub fn source_mapping_profile_version(&self) -> &str { &self.source_mapping_profile_version }
+    pub fn dependency_ids(&self) -> &[String] { &self.dependency_ids }
+    pub const fn dependency_inventory_complete(&self) -> bool { self.dependency_inventory_complete }
     pub fn source_build_lock_digest(&self) -> &Sha256Digest { &self.source_build_lock_digest }
     pub fn source_graph_id(&self) -> &str { &self.source_graph_id }
     pub fn source_graph_revision_id(&self) -> &str { &self.source_graph_revision_id }
     pub fn source_graph_declared_content_digest(&self) -> &str { &self.source_graph_declared_content_digest }
     pub fn source_graph_payload_digest(&self) -> &Sha256Digest { &self.source_graph_payload_digest }
     pub fn output_digest(&self) -> &Sha256Digest { &self.output_digest }
+
+    /// Turn the receipt into the existing dependency-invalidation artifact node.
+    pub fn to_change_impact_artifact(&self) -> Result<DerivedArtifact, ChangeImpactError> {
+        DerivedArtifact::new(
+            self.artifact_id.clone(),
+            self.output_digest.as_str(),
+            self.generator_version.clone(),
+            self.source_mapping_profile_version.clone(),
+            self.dependency_ids.clone(),
+            self.dependency_inventory_complete,
+        )
+    }
+
+    /// Exact input fingerprints automatically carried by this receipt. Callers
+    /// append fingerprints for each additional dependency ID in dependency_ids.
+    pub fn pinned_dependency_fingerprints(&self) -> Result<Vec<InputFingerprint>, ChangeImpactError> {
+        Ok(vec![
+            InputFingerprint::new(
+                format!("input:build-lock:{}", self.source_build_lock_digest.as_str()),
+                self.source_build_lock_digest.as_str(),
+            )?,
+            InputFingerprint::new(
+                format!("input:service-graph-payload:{}", self.source_graph_payload_digest.as_str()),
+                self.source_graph_payload_digest.as_str(),
+            )?,
+            InputFingerprint::new(
+                format!("input:generator-source:{}:{}", self.generator_id, self.generator_source_digest.as_str()),
+                self.generator_source_digest.as_str(),
+            )?,
+            InputFingerprint::new(
+                format!("input:generator-configuration:{}:{}", self.generator_id, self.generator_configuration_digest.as_str()),
+                self.generator_configuration_digest.as_str(),
+            )?,
+        ])
+    }
 
     pub fn receipt_digest(&self) -> Result<Sha256Digest, BuildReceiptError> {
         digest_json(self, "derived_artifact_receipt")
@@ -439,6 +510,7 @@ impl DerivedArtifactReceipt {
 pub enum DerivedArtifactReceiptError {
     EmptyOutput,
     OutputDigestMismatch,
+    DuplicateDependencyId { dependency_id: String },
     BuildReceipt(BuildReceiptError),
 }
 

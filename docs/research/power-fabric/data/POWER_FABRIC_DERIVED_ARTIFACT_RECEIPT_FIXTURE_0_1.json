@@ -11,5 +11,16 @@
   "source_graph_revision_id": "revision:graph:1",
   "source_graph_declared_content_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "source_graph_payload_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-  "output_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  "output_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "generator_source_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "generator_configuration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "source_mapping_profile_version": "0.1",
+  "dependency_ids": [
+    "input:build-lock:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "input:service-graph-payload:sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "input:generator-source:power-fabric-human-projection-compiler:sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "input:generator-configuration:power-fabric-human-projection-compiler:sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "input:module:inverter:R2"
+  ],
+  "dependency_inventory_complete": true
 }

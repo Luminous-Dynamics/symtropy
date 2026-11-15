@@ -662,6 +662,10 @@ mod tests {
             "application/json",
             "power-fabric-view-compiler",
             "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
             output,
         ).unwrap();
 
@@ -690,6 +694,10 @@ mod tests {
             "image/svg+xml",
             "diagram-generator",
             "0.1.0",
+            Sha256Digest::from_bytes(b"diagram generator source"),
+            Sha256Digest::from_bytes(b"diagram generator configuration"),
+            vec!["input:module:inverter".into()],
+            true,
             b"<svg/>",
         ).unwrap();
         assert_eq!(
@@ -716,15 +724,94 @@ mod tests {
         let first_artifact = crate::DerivedArtifactReceipt::new(
             first.receipt(), "artifact:resident", "revision:1",
             crate::DerivedArtifactKind::ResidentView, "application/json",
-            "view-compiler", "0.1", b"same rendered bytes",
+            "view-compiler", "0.1",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()], true,
+            b"same rendered bytes",
         ).unwrap();
         let second_artifact = crate::DerivedArtifactReceipt::new(
             second.receipt(), "artifact:resident", "revision:1",
             crate::DerivedArtifactKind::ResidentView, "application/json",
-            "view-compiler", "0.1", b"same rendered bytes",
+            "view-compiler", "0.1",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()], true,
+            b"same rendered bytes",
         ).unwrap();
         assert_ne!(first_artifact.source_build_lock_digest(), second_artifact.source_build_lock_digest());
         assert_ne!(first_artifact.receipt_digest().unwrap(), second_artifact.receipt_digest().unwrap());
+    }
+
+
+
+    #[test]
+    fn derived_artifact_receipt_maps_into_existing_dependency_invalidation_graph() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter", "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let change = crate::InputChange::new(
+            "input:module:inverter", "sha256:module:old", Some("sha256:module:new".into()),
+        ).unwrap();
+        let report = graph.assess(vec![change], "0.1.0", "0.1").unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+    #[test]
+    fn incomplete_derived_artifact_dependencies_fail_closed_in_change_impact() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration"),
+            vec!["input:module:inverter".into()],
+            false,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let graph = crate::DependencyGraph::new(
+            receipt.pinned_dependency_fingerprints().unwrap(),
+            vec![artifact],
+        ).unwrap();
+        let report = graph.assess(Vec::new(), "0.1.0", "0.1").unwrap();
+        assert!(report.invalidated()["artifact:resident-view"]
+            .contains(&crate::InvalidationReason::DependencyInventoryIncomplete));
     }
 
 
