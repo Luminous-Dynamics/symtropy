@@ -107,3 +107,6 @@ Only after reproduction should the Luminous research extension test two limitati
 2. **Solar geometry:** account for solar elevation/azimuth, topographic horizon and diffuse/direct radiation in local understory illumination.
 
 These extensions need independent validation (e.g. mapped crown footprints, hemispherical photographs / understory PAR measurements or equivalent calibrated references). They are research hypotheses, not yet implemented capabilities. Use adaptive spatial fidelity: resolve crown/light detail only where it changes the recruitment or decision output, and publish the error–runtime–memory frontier.
+
+
+The extension hypothesis that addresses the paper's remaining crown-overlap and solar-geometry limitations is tracked separately in [#5331 — CANOPY-LIGHT-FIDELITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5331). Its hard prerequisite is a matched reproduction of the published revision-13221 SEC reference. Do not implement or claim the extension as a substitute for that reproduction.
