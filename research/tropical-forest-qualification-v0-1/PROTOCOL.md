@@ -270,7 +270,7 @@ The standalone validator CLI now dispatches the block-coverage and spatial-local
 - `FOREST-BLOCK-COVERAGE-INFERENCE-001` → `PASS_SYNTHETIC_BLOCK_COVERAGE_INFERENCE`
 - `FOREST-SPATIAL-LOCALIZATION-001` → `PASS_SYNTHETIC_SPATIAL_LOCALIZATION`
 
-These paths reuse the library kernels, report exact source-manifest SHA-256 and per-case checks, and include mutation tests through the top-level `evaluate()` dispatcher. The CLI receipt adapters do not add new scientific guarantees: block independence remains a declared assumption; Gaussian spatial weighting remains diagnostic-only; Moran's I remains descriptive with no p-value. The 6 adapter unit tests are authored, bringing the package total to 170 authored Rust test functions. Cargo/Clippy/formatting execution remains unverified in the current runtime.
+These paths reuse the library kernels, report exact source-manifest SHA-256 and per-case checks, and include mutation tests through the top-level `evaluate()` dispatcher. The CLI receipt adapters do not add new scientific guarantees: block independence remains a declared assumption; Gaussian spatial weighting remains diagnostic-only; Moran's I remains descriptive with no p-value. The 7 adapter unit tests are authored, bringing the package total to 173 authored Rust test functions. Cargo/Clippy/formatting execution remains unverified in the current runtime.
 
 
 ### 15 November 2026 — adaptive-neighbourhood diagnostic extension
@@ -278,3 +278,10 @@ These paths reuse the library kernels, report exact source-manifest SHA-256 and 
 The spatial localization library now supports an optional k-nearest-neighbour cap, stable distance/ID ordering, and a physical kth-neighbour radius in each local result. The public corpus includes a counterexample where a remote high-residual calibration observation drives the pooled radius to 50 while the k=12 local diagnostic returns 0.5 over an 11 m neighbourhood. This is only a toy diagnostic; it does not establish a coverage guarantee.
 
 The work is tracked in [#5332 — FOREST-LOCALIZATION-STABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5332). The proper external comparison is spconform 0.1.2's own `k_neighbors` procedure plus calibration-set resampling / StCP stability, not a claim that our diagnostic duplicates it.
+
+
+### Adaptive neighbourhood diagnostic update — 15 November 2026
+
+The spatial localization kernel and its receipt corpus now also support an optional nearest-neighbour cap. Every capped prediction reports the selected neighbour count and physical kth-neighbour radius. The public reference case demonstrates the diagnostic distinction between a pooled radius of 50 and a k=12 local radius of 0.5 over an 11 m neighbourhood. This is a designed counterexample, not evidence of coverage improvement or validity. The new work is tracked in [#5332](https://github.com/Luminous-Dynamics/symtropy/issues/5332).
+
+The spconform 0.1.2 comparator provides its own `k_neighbors` option under its published localized-conformal method. Luminous's implementation remains a diagnostic weighting baseline and must be compared head-to-head on matched splits and supports. It does not inherit spconform's local-exchangeability rationale.
