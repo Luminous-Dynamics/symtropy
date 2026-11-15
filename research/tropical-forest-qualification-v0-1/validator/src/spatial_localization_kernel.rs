@@ -16,6 +16,7 @@ pub enum SpatialLocalizationError {
     InvalidAlpha,
     InvalidBandwidth,
     InvalidEffectiveSampleThreshold,
+    InvalidNeighbourRadius,
     EmptyCalibration,
     EmptyTestSet,
     EmptyIdentity,
@@ -310,6 +311,104 @@ pub fn evaluate_spatial_localization(
     })
 }
 
+
+/// One held-out signed residual and its projected metric coordinate.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialResidualPoint {
+    pub point_id: String,
+    pub x_m: f64,
+    pub y_m: f64,
+    /// Signed residual: observation minus prediction.
+    pub residual: f64,
+}
+
+/// Calculate global Moran's I with symmetric binary distance-neighbour weights.
+///
+/// Points at distance <= neighbour_radius_m are neighbours. Self-weights are excluded.
+/// Returns None when fewer than two points, no neighbour pairs, or zero residual variance
+/// make the statistic undefined. This is a descriptive statistic only: it does not
+/// calculate a permutation p-value, account for boundary geometry, or correct for
+/// sampling-design dependence. Use the same frozen projected metric coordinate system
+/// as the spatial-localization scenario.
+pub fn global_morans_i(
+    points: &[SpatialResidualPoint],
+    neighbour_radius_m: f64,
+) -> Result<Option<f64>, SpatialLocalizationError> {
+    if !neighbour_radius_m.is_finite() || neighbour_radius_m <= 0.0 {
+        return Err(SpatialLocalizationError::InvalidNeighbourRadius);
+    }
+    if points.len() < 2 {
+        return Ok(None);
+    }
+
+    let mut identities = BTreeSet::new();
+    for point in points {
+        if point.point_id.trim().is_empty() {
+            return Err(SpatialLocalizationError::EmptyIdentity);
+        }
+        if !identities.insert(point.point_id.as_str()) {
+            return Err(SpatialLocalizationError::DuplicateIdentity);
+        }
+        validate_coordinate(point.x_m, point.y_m)?;
+        if !point.residual.is_finite() {
+            return Err(SpatialLocalizationError::NonFinitePredictionOrObservation);
+        }
+    }
+
+    let count = u32::try_from(points.len())
+        .map_err(|_| SpatialLocalizationError::NumericOverflow)?;
+    let n = f64::from(count);
+    let mean = points.iter().map(|point| point.residual).sum::<f64>() / n;
+    if !mean.is_finite() {
+        return Err(SpatialLocalizationError::NumericOverflow);
+    }
+
+    let centered: Vec<f64> = points
+        .iter()
+        .map(|point| point.residual - mean)
+        .collect();
+    let denominator = centered.iter().map(|value| value * value).sum::<f64>();
+    if !denominator.is_finite() {
+        return Err(SpatialLocalizationError::NumericOverflow);
+    }
+    if denominator <= f64::EPSILON {
+        return Ok(None);
+    }
+
+    let mut spatial_lag_product = 0.0;
+    let mut weight_sum = 0.0;
+    for left_index in 0..points.len() {
+        for right_index in 0..points.len() {
+            if left_index == right_index {
+                continue;
+            }
+            let dx = points[left_index].x_m - points[right_index].x_m;
+            let dy = points[left_index].y_m - points[right_index].y_m;
+            let distance = dx.hypot(dy);
+            if !distance.is_finite() {
+                return Err(SpatialLocalizationError::NumericOverflow);
+            }
+            if distance <= neighbour_radius_m {
+                spatial_lag_product += centered[left_index] * centered[right_index];
+                weight_sum += 1.0;
+            }
+        }
+    }
+
+    if !spatial_lag_product.is_finite() || !weight_sum.is_finite() {
+        return Err(SpatialLocalizationError::NumericOverflow);
+    }
+    if weight_sum <= 0.0 {
+        return Ok(None);
+    }
+
+    let statistic = (n / weight_sum) * (spatial_lag_product / denominator);
+    if !statistic.is_finite() {
+        return Err(SpatialLocalizationError::NumericOverflow);
+    }
+    Ok(Some(statistic))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -476,4 +575,83 @@ mod tests {
             Err(SpatialLocalizationError::InvalidResidual)
         );
     }
+    fn residual_point(id: &str, x_m: f64, residual: f64) -> SpatialResidualPoint {
+        SpatialResidualPoint {
+            point_id: id.to_string(),
+            x_m,
+            y_m: 0.0,
+            residual,
+        }
+    }
+
+    #[test]
+    fn morans_i_is_positive_for_clustered_residuals() {
+        let points = vec![
+            residual_point("a", 0.0, 1.0),
+            residual_point("b", 1.0, 1.0),
+            residual_point("c", 10.0, 10.0),
+            residual_point("d", 11.0, 10.0),
+        ];
+        let result = global_morans_i(&points, 1.1).expect("Moran statistic");
+        assert!((result.unwrap() - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn morans_i_is_negative_for_alternating_neighbour_residuals() {
+        let points = vec![
+            residual_point("a", 0.0, 1.0),
+            residual_point("b", 1.0, -1.0),
+            residual_point("c", 2.0, 1.0),
+            residual_point("d", 3.0, -1.0),
+        ];
+        let result = global_morans_i(&points, 1.1).expect("Moran statistic");
+        assert!((result.unwrap() + 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn morans_i_is_undefined_without_neighbours_or_residual_variance() {
+        let isolated = vec![
+            residual_point("a", 0.0, 1.0),
+            residual_point("b", 10.0, 2.0),
+        ];
+        assert_eq!(global_morans_i(&isolated, 1.0), Ok(None));
+        let constant = vec![
+            residual_point("c", 0.0, 2.0),
+            residual_point("d", 1.0, 2.0),
+        ];
+        assert_eq!(global_morans_i(&constant, 2.0), Ok(None));
+    }
+
+    #[test]
+    fn morans_i_rejects_invalid_neighbour_radius_and_duplicate_identity() {
+        let points = vec![
+            residual_point("a", 0.0, 1.0),
+            residual_point("b", 1.0, -1.0),
+        ];
+        assert_eq!(
+            global_morans_i(&points, 0.0),
+            Err(SpatialLocalizationError::InvalidNeighbourRadius)
+        );
+        let duplicate = vec![
+            residual_point("same", 0.0, 1.0),
+            residual_point("same", 1.0, -1.0),
+        ];
+        assert_eq!(
+            global_morans_i(&duplicate, 2.0),
+            Err(SpatialLocalizationError::DuplicateIdentity)
+        );
+    }
+
+    #[test]
+    fn morans_i_rejects_non_finite_residuals() {
+        let points = vec![
+            residual_point("a", 0.0, 1.0),
+            residual_point("b", 1.0, f64::NAN),
+        ];
+        assert_eq!(
+            global_morans_i(&points, 2.0),
+            Err(SpatialLocalizationError::NonFinitePredictionOrObservation)
+        );
+    }
+
 }
