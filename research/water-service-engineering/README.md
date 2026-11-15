@@ -141,3 +141,10 @@ The full time-resolved service semantics, scenario families, South African regul
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+## WaterLoop reference architecture
+
+[WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md](WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md) and the matching machine-readable [architecture graph](waterloop-reference-architecture-v0.1.json) define separate potable, shower/bath greywater and roof-rainwater circuits, source/use profiles, treatment-core candidate interfaces, storage/pump sizing contracts, reject paths, safe controller states and a functional manufacturing interface schedule.
+
+The graph is audited by the Rust binary `waterloop-architecture-t0`. It rejects cross-circuit edges, non-potable use classes on potable fixtures, reuse paths that bypass quality gates, circuits with no reject path and fault transitions that can release reuse. This proves only the static design contract, not a plumbing installation, water quality or field result.
