@@ -203,7 +203,7 @@ pub struct DiscreteStepInput {
 ///
 /// ΔT + ΔV + h v_nextᵀ D v_next
 ///   + 1/2 Δvᵀ M Δv + 1/2 Δqᵀ K Δq
-///   = h fᵀ v_next + pᵀ J v_next.
+///     = h fᵀ v_next + pᵀ J v_next.
 ///
 /// The impulse-work term is split into the contact-target contribution
 /// pᵀ(-gap/h) and the complementarity product pᵀ slack. The latter should
