@@ -261,7 +261,7 @@ pub fn pullback_constraint_jet(
 ) -> Result<ConstraintJetV1, ConstraintChartErrorV1> {
     validate_matrix(q_from_y)?;
     let jacobian_y = mat_vec(transpose(q_from_y), q_jet.jacobian)?;
-    let hessian_y = mat_mul(&mat_mul(&transpose(q_from_y), q_jet.hessian)?, &q_from_y)?;
+    let hessian_y = mat_mul(&mat_mul(&transpose(q_from_y), &q_jet.hessian)?, &q_from_y)?;
     Ok(ConstraintJetV1 {
         residual: q_jet.residual,
         jacobian: jacobian_y,
@@ -474,6 +474,7 @@ mod tests {
         let q = [1.5, 0.8];
         let s = [[1.0, 2.0], [0.0, 1.0]];
         let y = [q[0] - 2.0 * q[1], q[1]];
+        assert_vector_close(dense_coordinate_map(s, y).unwrap(), q, 1.0e-14);
         let mass_q = [[1.0, 0.0], [0.0, 1.0]];
         let mass_y = [[1.0, 2.0], [2.0, 5.0]];
 
