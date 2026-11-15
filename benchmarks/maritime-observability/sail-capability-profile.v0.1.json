@@ -1,0 +1,300 @@
+{
+  "schema_version": "maritime-sail-capability-profile-v0.1",
+  "profile_id": "MARITIME-SAIL-CAPABILITY-GRAPH-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "as_of_utc": "2026-11-14T00:00:00Z",
+  "asset_configuration": {
+    "asset_id": "synthetic-sailcraft-01",
+    "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "component_identity_policy": "Any hull, keel, rig, sail-plan, rudder, loading, sensor, actuator, software or calibration change must change the relevant configuration/component identity and trigger the linked capability review."
+  },
+  "capability_graph": [
+    {
+      "capability_id": "sail.monitor_wind",
+      "depends_on": [],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-monitor_wind",
+      "operating_regime": "moderate-upwind",
+      "configuration_component_ids": [
+        "wind_sensor",
+        "mast_mount",
+        "calibration_record",
+        "time_source"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    },
+    {
+      "capability_id": "sail.estimate_navigation",
+      "depends_on": [],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-estimate_navigation",
+      "operating_regime": "moderate-upwind",
+      "configuration_component_ids": [
+        "gnss_receiver",
+        "heading_sensor",
+        "speed_log",
+        "current_source",
+        "time_source"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    },
+    {
+      "capability_id": "sail.hold_course",
+      "depends_on": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation"
+      ],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-hold_course",
+      "operating_regime": "moderate-upwind",
+      "configuration_component_ids": [
+        "rudder_actuator",
+        "rudder_feedback",
+        "heading_sensor",
+        "wind_sensor",
+        "hull_rig_loading"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    },
+    {
+      "capability_id": "sail.tack",
+      "depends_on": [
+        "sail.hold_course"
+      ],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "source_payload",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-tack",
+      "operating_regime": "moderate-upwind",
+      "configuration_component_ids": [
+        "rudder_actuator",
+        "sheet_actuator",
+        "sail_plan",
+        "polar_surface",
+        "hull_rig_loading"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    },
+    {
+      "capability_id": "sail.gybe",
+      "depends_on": [
+        "sail.hold_course"
+      ],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "source_payload",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-gybe",
+      "operating_regime": "moderate-downwind",
+      "configuration_component_ids": [
+        "rudder_actuator",
+        "sheet_actuator",
+        "sail_plan",
+        "polar_surface",
+        "hull_rig_loading"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    },
+    {
+      "capability_id": "sail.plan_route_vmg",
+      "depends_on": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.tack"
+      ],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "source_payload",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-plan_route_vmg",
+      "operating_regime": "moderate-upwind",
+      "configuration_component_ids": [
+        "wind_sensor",
+        "navigation_stack",
+        "polar_surface",
+        "forecast_source",
+        "hull_rig_loading"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    },
+    {
+      "capability_id": "sail.reef_furl",
+      "depends_on": [
+        "sail.monitor_wind",
+        "sail.hold_course"
+      ],
+      "required_dependency_ids": [
+        "sensor_topology",
+        "calibration",
+        "timebase",
+        "diagnostic_model",
+        "evaluator",
+        "validation_profile"
+      ],
+      "qualification_case_id": "nominal-sail-reef_furl",
+      "operating_regime": "moderate-upwind",
+      "configuration_component_ids": [
+        "reef_actuator",
+        "furl_feedback",
+        "rig_configuration",
+        "load_sensor",
+        "hull_rig_loading"
+      ],
+      "claim_ceiling": "Synthetic scope-calculus conformance only; no physical sailcraft capability is established."
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "mutation_performed": false,
+    "authorization_granted": false,
+    "actuator_commands_emitted": false
+  },
+  "claim_ceiling": "Profile structure and synthetic exact-scope disposition only. No physical vessel, autonomous sailing, COLREG, seaworthiness, stability, class/flag or operational authority is established.",
+  "change_scenarios": [
+    {
+      "scenario_id": "wind_sensor_lost",
+      "trigger_component_ids": [
+        "wind_sensor",
+        "calibration_record"
+      ],
+      "directly_invalidated_capability_ids": [
+        "sail.monitor_wind"
+      ],
+      "expected_invalidated_capability_ids": [
+        "sail.monitor_wind",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_preserved_capability_ids": [
+        "sail.estimate_navigation"
+      ],
+      "claim_ceiling": "Synthetic dependency-closure conformance only."
+    },
+    {
+      "scenario_id": "rudder_feedback_lost",
+      "trigger_component_ids": [
+        "rudder_feedback",
+        "rudder_actuator"
+      ],
+      "directly_invalidated_capability_ids": [
+        "sail.hold_course"
+      ],
+      "expected_invalidated_capability_ids": [
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_preserved_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation"
+      ],
+      "claim_ceiling": "Synthetic dependency-closure conformance only."
+    },
+    {
+      "scenario_id": "sheet_actuator_feedback_lost",
+      "trigger_component_ids": [
+        "sheet_actuator"
+      ],
+      "directly_invalidated_capability_ids": [
+        "sail.tack",
+        "sail.gybe"
+      ],
+      "expected_invalidated_capability_ids": [
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg"
+      ],
+      "expected_preserved_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.reef_furl"
+      ],
+      "claim_ceiling": "Synthetic dependency-closure conformance only."
+    },
+    {
+      "scenario_id": "forecast_payload_expired",
+      "trigger_component_ids": [
+        "forecast_source"
+      ],
+      "directly_invalidated_capability_ids": [
+        "sail.plan_route_vmg"
+      ],
+      "expected_invalidated_capability_ids": [
+        "sail.plan_route_vmg"
+      ],
+      "expected_preserved_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.reef_furl"
+      ],
+      "claim_ceiling": "Synthetic dependency-closure conformance only."
+    },
+    {
+      "scenario_id": "wind_restored_rudder_fault_remains",
+      "trigger_component_ids": [
+        "wind_sensor",
+        "rudder_feedback"
+      ],
+      "directly_invalidated_capability_ids": [
+        "sail.hold_course"
+      ],
+      "expected_invalidated_capability_ids": [
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_preserved_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation"
+      ],
+      "claim_ceiling": "Synthetic partial-recovery and dependency-closure conformance only."
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "schema_version": "maritime-sail-capability-impact-v0.1",
+  "profile_id": "MARITIME-SAIL-CAPABILITY-GRAPH-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "as_of_utc": "2026-11-14T00:00:00Z",
+  "events": [
+    {
+      "event_id": "wind-sensor-lost",
+      "changed_component_ids": [
+        "wind_sensor"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.monitor_wind",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.estimate_navigation"
+      ]
+    },
+    {
+      "event_id": "polar-surface-revision",
+      "changed_component_ids": [
+        "polar_surface"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.reef_furl"
+      ]
+    },
+    {
+      "event_id": "rudder-actuator-unverified",
+      "changed_component_ids": [
+        "rudder_actuator"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation"
+      ]
+    },
+    {
+      "event_id": "forecast-source-revoked",
+      "changed_component_ids": [
+        "forecast_source"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.plan_route_vmg"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.reef_furl"
+      ]
+    },
+    {
+      "event_id": "gnss-receiver-failed",
+      "changed_component_ids": [
+        "gnss_receiver"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.monitor_wind"
+      ]
+    },
+    {
+      "event_id": "shared-timebase-revoked",
+      "changed_component_ids": [],
+      "changed_dependency_ids": [
+        "timebase"
+      ],
+      "expected_impacted_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_unaffected_capability_ids": []
+    },
+    {
+      "event_id": "reef-actuator-failed",
+      "changed_component_ids": [
+        "reef_actuator"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.reef_furl"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.monitor_wind",
+        "sail.estimate_navigation",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg"
+      ]
+    },
+    {
+      "event_id": "wind-calibration-expired",
+      "changed_component_ids": [
+        "calibration_record"
+      ],
+      "changed_dependency_ids": [],
+      "expected_impacted_capability_ids": [
+        "sail.monitor_wind",
+        "sail.hold_course",
+        "sail.tack",
+        "sail.gybe",
+        "sail.plan_route_vmg",
+        "sail.reef_furl"
+      ],
+      "expected_unaffected_capability_ids": [
+        "sail.estimate_navigation"
+      ]
+    }
+  ]
+}

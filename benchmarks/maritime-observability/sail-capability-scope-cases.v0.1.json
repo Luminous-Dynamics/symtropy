@@ -1,0 +1,1682 @@
+{
+  "schema_version": "maritime-qualification-scope-v0.1",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "as_of_utc": "2026-11-14T00:00:00Z",
+  "cases": [
+    {
+      "case_id": "nominal-sail-monitor_wind",
+      "qualification": {
+        "qualification_id": "Q-SAIL-MONITOR-WIND",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.monitor_wind"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-monitor_wind",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "nominal-sail-estimate_navigation",
+      "qualification": {
+        "qualification_id": "Q-SAIL-ESTIMATE-NAVIGATION",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.estimate_navigation"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-estimate_navigation",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "nominal-sail-hold_course",
+      "qualification": {
+        "qualification_id": "Q-SAIL-HOLD-COURSE",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.hold_course"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-hold_course",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "nominal-sail-tack",
+      "qualification": {
+        "qualification_id": "Q-SAIL-TACK",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.tack"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-tack",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "nominal-sail-gybe",
+      "qualification": {
+        "qualification_id": "Q-SAIL-GYBE",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.gybe"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-gybe",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-downwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "nominal-sail-plan_route_vmg",
+      "qualification": {
+        "qualification_id": "Q-SAIL-PLAN-ROUTE-VMG",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.plan_route_vmg"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-plan_route_vmg",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "nominal-sail-reef_furl",
+      "qualification": {
+        "qualification_id": "Q-SAIL-REEF-FURL",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.reef_furl"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "nominal-sail-reef_furl",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "SUPPORTED"
+    },
+    {
+      "case_id": "wind-sensor-evidence-missing",
+      "qualification": {
+        "qualification_id": "Q-SAIL-MONITOR-WIND",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.monitor_wind"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "wind-sensor-evidence-missing",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "wind-sensor-conflicted",
+      "qualification": {
+        "qualification_id": "Q-SAIL-MONITOR-WIND",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.monitor_wind"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "wind-sensor-conflicted",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "CONFLICTED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "CONFLICTED"
+    },
+    {
+      "case_id": "wind-sensor-revoked",
+      "qualification": {
+        "qualification_id": "Q-SAIL-MONITOR-WIND",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.monitor_wind"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "wind-sensor-revoked",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "REVOKED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "wind-calibration-expired",
+      "qualification": {
+        "qualification_id": "Q-SAIL-MONITOR-WIND",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.monitor_wind"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "wind-calibration-expired",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "STALE",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "EXPIRED"
+    },
+    {
+      "case_id": "rig-configuration-changed",
+      "qualification": {
+        "qualification_id": "Q-SAIL-TACK",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.tack"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "rig-configuration-changed",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "polar-model-changed-without-retention",
+      "qualification": {
+        "qualification_id": "Q-SAIL-PLAN-ROUTE-VMG",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.plan_route_vmg"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "polar-model-changed-without-retention",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "forecast-payload-stale",
+      "qualification": {
+        "qualification_id": "Q-SAIL-PLAN-ROUTE-VMG",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.plan_route_vmg"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "forecast-payload-stale",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-upwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "STALE",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "EXPIRED"
+    },
+    {
+      "case_id": "heavy-weather-out-of-scope",
+      "qualification": {
+        "qualification_id": "Q-SAIL-PLAN-ROUTE-VMG",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.plan_route_vmg"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "heavy-weather-out-of-scope",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "heavy-weather",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "OUT_OF_SCOPE"
+    },
+    {
+      "case_id": "qualification-expired",
+      "qualification": {
+        "qualification_id": "Q-SAIL-GYBE",
+        "state": "QUALIFIED",
+        "claim_class": "SYNTHETIC_CONTRACT",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "scope_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2026-11-13T23:59:59Z",
+        "operating_regimes": [
+          "moderate-upwind",
+          "moderate-downwind",
+          "light-air"
+        ],
+        "capability_ids": [
+          "sail.gybe"
+        ],
+        "retention_suite_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "max_worst_case_regression_pp": 2,
+        "dependencies": [
+          {
+            "dependency_id": "sensor_topology",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "dependency_id": "calibration",
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "dependency_id": "timebase",
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "dependency_id": "source_payload",
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "dependency_id": "diagnostic_model",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          {
+            "dependency_id": "evaluator",
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "dependency_id": "validation_profile",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ],
+        "required_dependency_ids": [
+          "sensor_topology",
+          "calibration",
+          "timebase",
+          "source_payload",
+          "diagnostic_model",
+          "evaluator",
+          "validation_profile"
+        ]
+      },
+      "request": {
+        "request_id": "qualification-expired",
+        "asset_id": "synthetic-sailcraft-01",
+        "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "requested_regime": "moderate-downwind",
+        "dependency_evidence": {
+          "sensor_topology": {
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "calibration": {
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "timebase": {
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "source_payload": {
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "diagnostic_model": {
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "evaluator": {
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          },
+          "validation_profile": {
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "evidence_state": "QUALIFIED",
+            "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+            "valid_until_utc": null
+          }
+        },
+        "model_update_retention_receipt": null
+      },
+      "expected_disposition": "EXPIRED"
+    }
+  ]
+}

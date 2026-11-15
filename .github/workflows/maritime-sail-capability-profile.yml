@@ -1,0 +1,160 @@
+name: Maritime sail capability profile and impact evaluators
+
+on:
+  push:
+    branches: ["research/maritime-sail-capability-profile-v0-1"]
+    paths:
+      - "tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs"
+      - "tools/maritime-observability-evidence-validator/src/bin/sail_capability_impact.rs"
+      - "benchmarks/maritime-observability/sail-capability-profile.v0.1.json"
+      - "benchmarks/maritime-observability/sail-capability-scope-cases.v0.1.json"
+      - "benchmarks/maritime-observability/sail-capability-impact-cases.v0.1.json"
+      - "docs/tech/MARITIME_SAIL_CAPABILITY_*.json"
+      - ".github/workflows/maritime-sail-capability-profile.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs"
+      - "tools/maritime-observability-evidence-validator/src/bin/sail_capability_impact.rs"
+      - "benchmarks/maritime-observability/sail-capability-profile.v0.1.json"
+      - "benchmarks/maritime-observability/sail-capability-scope-cases.v0.1.json"
+      - "benchmarks/maritime-observability/sail-capability-impact-cases.v0.1.json"
+      - "docs/tech/MARITIME_SAIL_CAPABILITY_*.json"
+      - ".github/workflows/maritime-sail-capability-profile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: maritime-sail-capability-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: true
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$actual" = "$expected"
+          echo "source_commit=$actual"
+
+      - name: Normalize capability evaluator sources
+        run: rustfmt --edition 2024 tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs tools/maritime-observability-evidence-validator/src/bin/sail_capability_impact.rs
+
+      - name: Verify capability evaluator formatting
+        run: rustfmt --edition 2024 --check tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs tools/maritime-observability-evidence-validator/src/bin/sail_capability_impact.rs
+
+      - name: Run frozen capability graph and impact tests
+        run: cargo test --locked --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin sail_capability_profile --bin sail_capability_impact
+
+      - name: Run strict Clippy for capability graph and impact evaluators
+        run: cargo clippy --locked --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin sail_capability_profile --bin sail_capability_impact -- -D warnings
+
+      - name: Execute sail capability profile and bind receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          profile="benchmarks/maritime-observability/sail-capability-profile.v0.1.json"
+          cases="benchmarks/maritime-observability/sail-capability-scope-cases.v0.1.json"
+          profile_digest="$(sha256sum "$profile" | awk '{print $1}')"
+          cases_digest="$(sha256sum "$cases" | awk '{print $1}')"
+          cargo run --quiet --locked \
+            --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml \
+            --bin sail_capability_profile -- "$profile" "$cases" \
+            --source-commit "$source_commit" --profile-sha256 "$profile_digest" \
+            --cases-sha256 "$cases_digest" > sail-capability-profile-receipt.json
+          jq -e --arg source "$source_commit" --arg profile "$profile_digest" --arg cases "$cases_digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .profile_sha256 == $profile
+            and .qualification_cases_sha256 == $cases
+            and .capability_count == 7
+            and .dependency_edge_count == 9
+            and .qualification_case_count == 16
+            and .capabilities_with_nominal_scope_cases == 7
+            and .change_scenario_count == 8
+            and .acyclic == true
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .actuator_commands_emitted == false
+          ' sail-capability-profile-receipt.json
+
+      - name: Execute minimal capability withdrawal impact and bind receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          profile="benchmarks/maritime-observability/sail-capability-profile.v0.1.json"
+          events="benchmarks/maritime-observability/sail-capability-impact-cases.v0.1.json"
+          profile_digest="$(sha256sum "$profile" | awk '{print $1}')"
+          events_digest="$(sha256sum "$events" | awk '{print $1}')"
+          cargo run --quiet --locked \
+            --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml \
+            --bin sail_capability_impact -- "$profile" "$events" \
+            --source-commit "$source_commit" --profile-sha256 "$profile_digest" \
+            --events-sha256 "$events_digest" > sail-capability-impact-receipt.json
+          jq -e --arg source "$source_commit" --arg profile "$profile_digest" --arg events "$events_digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .profile_sha256 == $profile
+            and .impact_cases_sha256 == $events
+            and .capability_count == 7
+            and .event_count == 8
+            and .all_expected_impact_closures_matched == true
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .actuator_commands_emitted == false
+          ' sail-capability-impact-receipt.json
+
+      - name: Commit only the capability evaluator source tree that passed tests
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs tools/maritime-observability-evidence-validator/src/bin/sail_capability_impact.rs
+          tested_tree="$(git write-tree)"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(maritime): normalize sail capability evaluator sources"
+            commit_sha="$(git rev-parse HEAD)"
+            committed_tree="$(git rev-parse HEAD^{tree})"
+            test "$tested_tree" = "$committed_tree"
+            git push origin "HEAD:$TARGET_BRANCH"
+            {
+              echo "### Verified sail capability evaluator source normalization"
+              echo "- Tested source tree: `$tested_tree`"
+              echo "- Commit pushed: `$commit_sha`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Sail capability evaluator sources were already normalized." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload exact-head profile and impact receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sail-capability-evidence-${{ github.run_id }}
+          path: |
+            sail-capability-profile-receipt.json
+            sail-capability-impact-receipt.json
+          if-no-files-found: error
+          retention-days: 90
