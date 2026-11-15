@@ -40,6 +40,7 @@ Use EPANET 2.2/OWA-EPANET as the established complete instantaneous junction-mix
 
 - Yousefian & Duchesne (2024/2025), *Improving incomplete mixing modeling for junctions of water distribution networks*, DOI https://doi.org/10.2166/hydro.2024.041. Published work covers six cross-junction configurations including unequal pipe sizes and larger 150 mm pipes. Its supported configurations and input domain must be respected; do not silently generalize to tees or other topologies.
 - AZRED / AZRED variants and other published cross-junction closures should be compared only where geometry, flow ratio, pipe size and output definition match the benchmark.
+- EPANET-ZJU (Shao, 2019) is a documented EPANET-based junction mixing/water-quality extension. Mendeley records its distribution under CC BY 4.0; the public record's file list did not expose downloadable source files in this inspection, so it remains a code-retrieval/reproducibility target rather than a currently reproduced baseline.
 - The 2023 EPANET INP polynomial-equation workaround uses bypass pipes and setpoint boosters to place outlet-specific concentrations into a standard EPANET input file; the paper reports relative concentration differences up to 14% in its tested cases. This is an important practical industry comparator, but its altered network representation and booster semantics must be accounted for.
 
 ### 3.3 CFD + ANN surrogate
