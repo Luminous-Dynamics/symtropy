@@ -902,3 +902,21 @@ fn future_recorded_duplicate_does_not_poison_earlier_knowledge_snapshot() {
     );
     assert_eq!(later, Err(EvaluationError::DuplicateEventId));
 }
+
+
+#[test]
+fn unrelated_dependency_feed_does_not_poison_claim_coverage() {
+    let mut feeds = complete_coverage();
+    let mut unrelated = coverage(
+        DependencyKind::ControlStack,
+        "unrelated-registry",
+        CoverageCompleteness::Complete,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    unrelated.manifest_sha256 = digest('7');
+    feeds.push(unrelated.clone());
+    feeds.push(unrelated);
+
+    let result = assess(&claim(), &[], &feeds, cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::StillApplicable);
+}
