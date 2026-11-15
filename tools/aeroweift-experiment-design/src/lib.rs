@@ -258,6 +258,8 @@ pub struct ExperimentDesignPolicy {
     pub required_estimator_build_sha256: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
+    /// Additional modalities that require owner-supplied external authorization.
+    pub authorization_required_modalities: Vec<ExperimentModality>,
     /// Per-dimension non-substitutable resource budget.
     pub resource_budget: ResourceBudget,
 }
