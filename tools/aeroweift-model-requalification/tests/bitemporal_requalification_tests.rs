@@ -40,6 +40,7 @@ fn coverage(
         source_id: source.into(),
         effective_from: 0,
         effective_through: 100,
+        knowledge_from: 0,
         knowledge_through: 100,
         first_sequence: 1,
         last_sequence: 100,
@@ -815,4 +816,53 @@ fn source_sequence_not_effective_time_orders_causal_digest_succession() {
         ]
     );
     assert_eq!(result.evaluated_dependencies[1].digest, digest('8'));
+}
+
+
+#[test]
+fn sequence_outside_declared_coverage_frontier_is_indeterminate() {
+    let change = event!(
+        "sensor-outside-sequence-window",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '7',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let mut feeds = complete_coverage();
+    feeds[1].last_sequence = 1;
+    let result = assess(&claim(), &[change], &feeds, cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::Indeterminate);
+    assert_eq!(
+        result.indeterminate_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
+}
+
+#[test]
+fn effective_coverage_must_include_claim_validation_time() {
+    let mut feeds = complete_coverage();
+    feeds[0].effective_from = 11;
+    let result = assess(&claim(), &[], &feeds, cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::Indeterminate);
+    assert_eq!(
+        result.indeterminate_dimensions,
+        vec![DependencyKind::ModelArtifact]
+    );
+}
+
+#[test]
+fn knowledge_coverage_must_include_claim_recorded_time() {
+    let mut feeds = complete_coverage();
+    feeds[1].knowledge_from = 11;
+    let result = assess(&claim(), &[], &feeds, cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::Indeterminate);
+    assert_eq!(
+        result.indeterminate_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
 }
