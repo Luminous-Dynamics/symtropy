@@ -104,7 +104,7 @@ impl CandidateDisposition {
             Self::AbstainObservationalEquivalence => "abstain_observational_equivalence",
             Self::RequestIndependentPhysicalMeasurement => {
                 "request_independent_physical_measurement"
-            },
+            }
             Self::IntegrityInvestigation => "integrity_investigation",
             Self::EvidenceConflict => "evidence_conflict",
             Self::RejectEvidence => "reject_evidence",
@@ -148,11 +148,31 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
         || record.source_id.trim().is_empty()
         || record.gateway_id.trim().is_empty()
         || record.trust_root_id.trim().is_empty()
-        || record.dependencies.observation_root_id.as_ref().is_some_and(|v| v.trim().is_empty())
-        || record.dependencies.upstream_dataset_id.as_ref().is_some_and(|v| v.trim().is_empty())
-        || record.dependencies.processing_lineage_id.as_ref().is_some_and(|v| v.trim().is_empty())
-        || record.dependencies.operator_domain_id.as_ref().is_some_and(|v| v.trim().is_empty())
-        || record.dependencies.instrument_lineage_id.as_ref().is_some_and(|v| v.trim().is_empty())
+        || record
+            .dependencies
+            .observation_root_id
+            .as_ref()
+            .is_some_and(|v| v.trim().is_empty())
+        || record
+            .dependencies
+            .upstream_dataset_id
+            .as_ref()
+            .is_some_and(|v| v.trim().is_empty())
+        || record
+            .dependencies
+            .processing_lineage_id
+            .as_ref()
+            .is_some_and(|v| v.trim().is_empty())
+        || record
+            .dependencies
+            .operator_domain_id
+            .as_ref()
+            .is_some_and(|v| v.trim().is_empty())
+        || record
+            .dependencies
+            .instrument_lineage_id
+            .as_ref()
+            .is_some_and(|v| v.trim().is_empty())
         || record.calibration_revision.trim().is_empty()
         || record.configuration_revision.trim().is_empty()
     {
@@ -195,10 +215,7 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
     Ok(())
 }
 
-fn freshness_failure(
-    record: &EvidenceRecord,
-    policy: &AdmissionPolicy,
-) -> Option<&'static str> {
+fn freshness_failure(record: &EvidenceRecord, policy: &AdmissionPolicy) -> Option<&'static str> {
     if record.event_tick > policy.decision_cutoff_tick {
         return Some("event_after_decision_cutoff");
     }
@@ -212,10 +229,7 @@ fn freshness_failure(
     {
         return Some("observation_stale_at_decision_cutoff");
     }
-    if record
-        .ingestion_tick
-        .saturating_sub(record.event_tick)
-        > policy.maximum_transport_lag_ticks
+    if record.ingestion_tick.saturating_sub(record.event_tick) > policy.maximum_transport_lag_ticks
     {
         return Some("event_to_ingestion_lag_exceeded");
     }
@@ -416,7 +430,10 @@ pub fn triage_observation_integrity(
             EvidenceKind::ForensicIntegrityReview => {
                 if side.class != EvidenceClass::Attested {
                     rejected.push(side.evidence_id.clone());
-                    reasons.push(format!("{}:forensic_receipt_not_attested", side.evidence_id));
+                    reasons.push(format!(
+                        "{}:forensic_receipt_not_attested",
+                        side.evidence_id
+                    ));
                 } else {
                     match dependency_relation(primary, side) {
                         DependencyRelation::Correlated => {
@@ -644,7 +661,12 @@ mod tests {
             decision.disposition,
             CandidateDisposition::AbstainObservationalEquivalence
         );
-        assert!(decision.reason_codes.iter().any(|code| code == "broker-b-copy:shared_dependency"));
+        assert!(
+            decision
+                .reason_codes
+                .iter()
+                .any(|code| code == "broker-b-copy:shared_dependency")
+        );
     }
 
     #[test]
@@ -667,10 +689,12 @@ mod tests {
             decision.disposition,
             CandidateDisposition::AbstainObservationalEquivalence
         );
-        assert!(decision
-            .reason_codes
-            .iter()
-            .any(|code| code == "national-gateway-copy:shared_dependency"));
+        assert!(
+            decision
+                .reason_codes
+                .iter()
+                .any(|code| code == "national-gateway-copy:shared_dependency")
+        );
     }
 
     #[test]
@@ -692,10 +716,12 @@ mod tests {
             decision.disposition,
             CandidateDisposition::AbstainObservationalEquivalence
         );
-        assert!(decision
-            .reason_codes
-            .iter()
-            .any(|code| code == "unknown-upstream:dependency_unknown"));
+        assert!(
+            decision
+                .reason_codes
+                .iter()
+                .any(|code| code == "unknown-upstream:dependency_unknown")
+        );
     }
 
     #[test]
@@ -718,10 +744,12 @@ mod tests {
             decision.disposition,
             CandidateDisposition::AbstainObservationalEquivalence
         );
-        assert!(decision
-            .reason_codes
-            .iter()
-            .any(|code| code == "model-b:shared_dependency"));
+        assert!(
+            decision
+                .reason_codes
+                .iter()
+                .any(|code| code == "model-b:shared_dependency")
+        );
     }
 
     #[test]
@@ -866,18 +894,17 @@ mod tests {
             forward_decision.disposition,
             CandidateDisposition::EvidenceConflict
         );
-        assert_eq!(
-            forward_decision.reason_codes,
-            reverse_decision.reason_codes
-        );
+        assert_eq!(forward_decision.reason_codes, reverse_decision.reason_codes);
         assert_eq!(
             forward_decision.admitted_evidence_ids,
             reverse_decision.admitted_evidence_ids
         );
         assert_eq!(forward_decision, reverse_decision);
-        assert!(forward_decision
-            .reason_codes
-            .contains(&"independent_physical_measurements_disagree_pairwise".to_owned()));
+        assert!(
+            forward_decision
+                .reason_codes
+                .contains(&"independent_physical_measurements_disagree_pairwise".to_owned())
+        );
     }
 
     #[test]
@@ -887,25 +914,30 @@ mod tests {
         stale_at_cutoff.ingestion_tick = 10;
         let stale = triage_observation_integrity(&policy(), &[stale_at_cutoff]).unwrap();
         assert_eq!(stale.disposition, CandidateDisposition::RejectEvidence);
-        assert!(stale
-            .reason_codes
-            .contains(&"observation_stale_at_decision_cutoff".to_owned()));
+        assert!(
+            stale
+                .reason_codes
+                .contains(&"observation_stale_at_decision_cutoff".to_owned())
+        );
 
         let mut high_transport_lag = primary();
         high_transport_lag.ingestion_tick = 13;
         let delayed = triage_observation_integrity(&policy(), &[high_transport_lag]).unwrap();
         assert_eq!(delayed.disposition, CandidateDisposition::RejectEvidence);
-        assert!(delayed
-            .reason_codes
-            .contains(&"event_to_ingestion_lag_exceeded".to_owned()));
+        assert!(
+            delayed
+                .reason_codes
+                .contains(&"event_to_ingestion_lag_exceeded".to_owned())
+        );
 
         let mut late_arrival = primary();
         late_arrival.ingestion_tick = 21;
         let late = triage_observation_integrity(&policy(), &[late_arrival]).unwrap();
         assert_eq!(late.disposition, CandidateDisposition::RejectEvidence);
-        assert!(late
-            .reason_codes
-            .contains(&"arrived_after_decision_cutoff".to_owned()));
+        assert!(
+            late.reason_codes
+                .contains(&"arrived_after_decision_cutoff".to_owned())
+        );
     }
 
     #[test]
