@@ -224,7 +224,6 @@ pub enum NotAssessableReason {
     InvalidTimeScaleIdentity,
 }
 
-
 /// Evidence lineage retained by every accepted initial-position receipt.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AcceptedClaimLineage {
@@ -507,11 +506,9 @@ fn evaluate_claim(
         return Err(NotAssessableReason::SampleAgeExceedsProfileLimit);
     }
 
-    let elapsed_min_ms =
-        input.assessment_time_lower_utc_ms - claim.sample_time_upper_utc_ms;
+    let elapsed_min_ms = input.assessment_time_lower_utc_ms - claim.sample_time_upper_utc_ms;
     let elapsed_max_ms = oldest_possible_age_ms;
-    let Some(elapsed_seconds) = elapsed_interval_seconds(elapsed_min_ms, elapsed_max_ms)
-    else {
+    let Some(elapsed_seconds) = elapsed_interval_seconds(elapsed_min_ms, elapsed_max_ms) else {
         return Err(NotAssessableReason::ArithmeticFailure);
     };
 
@@ -556,10 +553,7 @@ fn evaluate_claim(
 
 const MAX_EXACT_INTEGER_MS: u64 = 9_007_199_254_740_991;
 
-fn elapsed_interval_seconds(
-    lower_ms: u64,
-    upper_ms: u64,
-) -> Option<Interval> {
+fn elapsed_interval_seconds(lower_ms: u64, upper_ms: u64) -> Option<Interval> {
     if lower_ms > upper_ms || upper_ms > MAX_EXACT_INTEGER_MS {
         return None;
     }

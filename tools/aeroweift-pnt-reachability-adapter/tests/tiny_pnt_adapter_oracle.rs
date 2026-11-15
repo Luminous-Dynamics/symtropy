@@ -1,13 +1,12 @@
 use aeroweift_pnt_reachability_adapter::{
-    evaluate, AdapterInput, AdapterOutcome, AdapterPolicy, BoundKind, ClockQualification,
-    IndependenceAssessment, NavigationClaim, NotAssessableReason, PntServiceState,
-    PositionBounds, VelocityBounds,
+    AdapterInput, AdapterOutcome, AdapterPolicy, BoundKind, ClockQualification,
+    IndependenceAssessment, NavigationClaim, NotAssessableReason, PntServiceState, PositionBounds,
+    VelocityBounds, evaluate,
 };
 use aeroweift_reachability_core::Interval;
 
-const GOLDEN_FIXTURE: &str = include_str!(
-    "../../../fixtures/aeroweift-pnt-reachability/tiny-pnt-time-envelope-v0.json"
-);
+const GOLDEN_FIXTURE: &str =
+    include_str!("../../../fixtures/aeroweift-pnt-reachability/tiny-pnt-time-envelope-v0.json");
 
 fn iv(lower: f64, upper: f64) -> Interval {
     Interval::new(lower, upper).expect("valid test interval")
@@ -101,10 +100,7 @@ fn assert_contains(value: Interval, lower: f64, upper: f64) {
 }
 
 fn assert_rejected(outcome: AdapterOutcome, expected: NotAssessableReason) {
-    assert_eq!(
-        outcome,
-        AdapterOutcome::NotAssessable { reason: expected }
-    );
+    assert_eq!(outcome, AdapterOutcome::NotAssessable { reason: expected });
 }
 
 #[test]
@@ -113,9 +109,11 @@ fn golden_fixture_identity_and_claim_ceiling_are_bound() {
     assert!(GOLDEN_FIXTURE.contains("normal-fresh-clock-interval"));
     assert!(GOLDEN_FIXTURE.contains("statistical-95-percent-envelope-only"));
     assert!(GOLDEN_FIXTURE.contains("contradictory-independent-witnesses"));
-    assert!(GOLDEN_FIXTURE.contains("NOT_ASSESSABLE_FOR_HARD_BOUND") || GOLDEN_FIXTURE.contains("STATISTICAL_ENVELOPE_NOT_HARD_BOUND"));
+    assert!(
+        GOLDEN_FIXTURE.contains("NOT_ASSESSABLE_FOR_HARD_BOUND")
+            || GOLDEN_FIXTURE.contains("STATISTICAL_ENVELOPE_NOT_HARD_BOUND")
+    );
 }
-
 
 #[test]
 fn accepted_receipt_preserves_source_profile_clock_and_dependency_lineage() {
@@ -164,8 +162,7 @@ fn normal_claim_expands_position_by_full_clock_interval_and_velocity_bounds() {
 
 #[test]
 fn exact_sample_time_produces_no_wider_enclosure_than_uncertain_sample_time() {
-    let (uncertain_elapsed, uncertain) =
-        accepted(evaluate(&input(PntServiceState::Normal)));
+    let (uncertain_elapsed, uncertain) = accepted(evaluate(&input(PntServiceState::Normal)));
 
     let mut exact_input = input(PntServiceState::Normal);
     let exact_claim = exact_input.primary.as_mut().expect("primary claim");
@@ -204,9 +201,7 @@ fn degraded_state_uses_only_qualified_fallback_claim() {
 
     match evaluate(&degraded) {
         AdapterOutcome::AcceptedFallback {
-            lineage,
-            position,
-            ..
+            lineage, position, ..
         } => {
             assert_eq!(lineage.source_id, "synthetic-independent-fallback");
             assert_contains(position.east_m, 195.78, 207.33);
@@ -290,7 +285,6 @@ fn unknown_clock_or_dependency_evidence_is_not_independence() {
     );
 }
 
-
 #[test]
 fn unknown_evaluation_clock_and_incompatible_time_scales_are_rejected() {
     let mut sample = input(PntServiceState::Normal);
@@ -302,17 +296,13 @@ fn unknown_evaluation_clock_and_incompatible_time_scales_are_rejected() {
 
     let mut sample = input(PntServiceState::Normal);
     sample.assessment_time_scale_id = "OTHER-SCALE".to_owned();
-    assert_rejected(
-        evaluate(&sample),
-        NotAssessableReason::TimeScaleMismatch,
-    );
+    assert_rejected(evaluate(&sample), NotAssessableReason::TimeScaleMismatch);
 }
 
 #[test]
 fn contradictory_independent_evidence_is_not_majority_voted_into_a_bound() {
     let mut sample = input(PntServiceState::Normal);
-    sample.primary.as_mut().unwrap().independence =
-        IndependenceAssessment::Contradictory;
+    sample.primary.as_mut().unwrap().independence = IndependenceAssessment::Contradictory;
     assert_rejected(
         evaluate(&sample),
         NotAssessableReason::IndependenceNotQualified,
@@ -323,24 +313,15 @@ fn contradictory_independent_evidence_is_not_majority_voted_into_a_bound() {
 fn frame_datum_profile_and_digest_mismatches_fail_closed() {
     let mut sample = input(PntServiceState::Normal);
     sample.primary.as_mut().unwrap().horizontal_frame_id = "OTHER-FRAME".to_owned();
-    assert_rejected(
-        evaluate(&sample),
-        NotAssessableReason::FrameOrDatumMismatch,
-    );
+    assert_rejected(evaluate(&sample), NotAssessableReason::FrameOrDatumMismatch);
 
     let mut sample = input(PntServiceState::Normal);
     sample.primary.as_mut().unwrap().profile_id = "other-profile".to_owned();
-    assert_rejected(
-        evaluate(&sample),
-        NotAssessableReason::ProfileMismatch,
-    );
+    assert_rejected(evaluate(&sample), NotAssessableReason::ProfileMismatch);
 
     let mut sample = input(PntServiceState::Normal);
     sample.primary.as_mut().unwrap().source_claim_sha256 = "not-a-digest".to_owned();
-    assert_rejected(
-        evaluate(&sample),
-        NotAssessableReason::InvalidDigest,
-    );
+    assert_rejected(evaluate(&sample), NotAssessableReason::InvalidDigest);
 }
 
 #[test]
@@ -363,8 +344,6 @@ fn widening_sample_time_interval_cannot_shrink_the_position_enclosure() {
     assert!(wide.north_m.upper() >= narrow.north_m.upper());
 }
 
-
-
 #[test]
 fn elapsed_time_beyond_core_exact_integer_domain_is_rejected() {
     let mut sample = input(PntServiceState::Normal);
@@ -373,10 +352,7 @@ fn elapsed_time_beyond_core_exact_integer_domain_is_rejected() {
     sample.primary.as_mut().unwrap().sample_time_lower_utc_ms = 0;
     sample.primary.as_mut().unwrap().sample_time_upper_utc_ms = 0;
     sample.policy.maximum_sample_age_ms = u64::MAX;
-    assert_rejected(
-        evaluate(&sample),
-        NotAssessableReason::ArithmeticFailure,
-    );
+    assert_rejected(evaluate(&sample), NotAssessableReason::ArithmeticFailure);
 }
 
 #[test]
