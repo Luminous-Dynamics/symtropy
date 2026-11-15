@@ -171,6 +171,7 @@ pub enum GraphError {
     InvalidAttachmentFraction,
     NotActiveTip(NodeId),
     InactiveTargetSegment(SegmentId),
+    InactiveParentSegment(SegmentId),
     SameFusionTip,
     EventIdConflict(EventId),
 }
@@ -198,6 +199,9 @@ impl fmt::Display for GraphError {
             Self::NotActiveTip(id) => write!(f, "node {:?} is not an active tip", id),
             Self::InactiveTargetSegment(id) => {
                 write!(f, "target segment {:?} is inactive", id)
+            }
+            Self::InactiveParentSegment(id) => {
+                write!(f, "parent segment {:?} is inactive", id)
             }
             Self::SameFusionTip => write!(f, "fusion requires two distinct tips"),
             Self::EventIdConflict(id) => {
@@ -323,6 +327,9 @@ impl HyphalGraph {
             .get(&event.parent_segment)
             .cloned()
             .ok_or(GraphError::MissingSegment(event.parent_segment))?;
+        if parent.state != HyphalSegmentState::Active {
+            return Err(GraphError::InactiveParentSegment(event.parent_segment));
+        }
         let from = self
             .nodes
             .get(&parent.from)
@@ -812,6 +819,43 @@ mod tests {
             Err(GraphError::EventIdConflict(EventId(13)))
         );
         assert_eq!(graph, snapshot);
+    }
+
+    #[test]
+    fn inactive_parent_rejects_branch_without_mutation() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 10.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_segment(HyphalSegment {
+                id: SegmentId(1),
+                from: NodeId(1),
+                to: NodeId(2),
+                length_mm: 10.0,
+                diameter_mm: Some(0.02),
+                state: HyphalSegmentState::Inactive,
+            })
+            .unwrap();
+        let before = graph.clone();
+        assert_eq!(
+            graph.apply_branch(BranchEvent {
+                id: EventId(42),
+                parent_segment: SegmentId(1),
+                attachment_fraction: 0.5,
+                branch_node: NodeId(3),
+                branch_tip: NodeId(4),
+                proximal_segment: SegmentId(2),
+                distal_segment: SegmentId(3),
+                branch_segment: SegmentId(4),
+                branch_tip_position: Position3Mm::new(5.0, 5.0, 0.0),
+            }),
+            Err(GraphError::InactiveParentSegment(SegmentId(1)))
+        );
+        assert_eq!(graph, before);
     }
 
     #[test]
