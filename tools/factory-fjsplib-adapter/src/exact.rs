@@ -476,3 +476,69 @@ pub fn verify_schedule(instance: &FlexibleInstance, schedule: &FlexibleSchedule)
         .max().unwrap_or(0);
     makespan == schedule.makespan
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{parse_fajsp, parse_fjsp};
+
+    const FJSP_FATTAHI1: &str = "2 2 2
+2 2 1 25 2 37 2 1 32 2 24
+2 2 1 45 2 65 2 1 21 2 65
+";
+
+    const FAJSP_FATTAHI1: &str = "4 2 2
+0 1 0
+2 3 1
+2 0 25 1 37
+2 0 32 1 24
+2 0 45 1 65
+2 0 21 1 65
+";
+
+    #[test]
+    fn fattahi1_fjsp_exact_optimum_and_search_accounting() {
+        let instance = parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1).unwrap();
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::Exact);
+        assert!(result.optimality_proven);
+        let schedule = result.schedule.unwrap();
+        assert_eq!(schedule.makespan, 66);
+        assert_eq!(schedule.selected_machines, vec![1, 1, 0, 0]);
+        assert_eq!(result.stats.assignment_combinations, 16);
+        assert_eq!(result.stats.machine_order_combinations, 120);
+        assert_eq!(result.stats.cyclic_combinations, 68);
+        assert_eq!(result.stats.feasible_combinations, 52);
+        assert!(verify_schedule(&instance, &schedule));
+    }
+
+    #[test]
+    fn equivalent_fajsp_precedence_graph_has_same_exact_makespan() {
+        let instance = parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1).unwrap();
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::Exact);
+        assert_eq!(result.schedule.unwrap().makespan, 66);
+        assert_eq!(result.stats.assignment_combinations, 16);
+        assert_eq!(result.stats.machine_order_combinations, 120);
+    }
+
+    #[test]
+    fn exact_solver_returns_inconclusive_before_exceeding_operation_bound() {
+        let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        instance.operations.push(instance.operations[0].clone());
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::Inconclusive);
+        assert!(!result.optimality_proven);
+        assert_eq!(result.inconclusive_reason, Some(InconclusiveReason::TooManyOperations));
+        assert!(result.schedule.is_none());
+    }
+
+    #[test]
+    fn schedule_certificate_tampering_is_rejected() {
+        let instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        let result = solve_exact(&instance);
+        let mut schedule = result.schedule.unwrap();
+        schedule.operations[0].end_ticks += 1;
+        assert!(!verify_schedule(&instance, &schedule));
+    }
+}
