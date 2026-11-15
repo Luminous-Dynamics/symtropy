@@ -1,0 +1,1593 @@
+{
+  "schema_id": "aeroweift.intent-conformance.synthetic-4d.v0",
+  "fixture_id": "AW-INTENT-CONFORMANCE-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Finite 4D authorization/observation conformance and duration accounting only; not a UTM service, flight authorization, operational alerting, separation assurance, aircraft control, or proof of safe recovery.",
+  "timebase": {
+    "unit": "integer synthetic ticks",
+    "time_intervals": "half-open",
+    "clocks_pre_normalized_by": "Mycelix #435",
+    "clock_conversion_performed_by_oracle": false
+  },
+  "units": {
+    "space": "synthetic integer metres on a fictional local frame"
+  },
+  "default_authorized_volume": {
+    "east": [
+      0,
+      10
+    ],
+    "north": [
+      0,
+      10
+    ],
+    "up": [
+      0,
+      10
+    ],
+    "time": [
+      0,
+      100
+    ]
+  },
+  "default_policy": {
+    "policy_id": "synthetic-conformance-policy-v0",
+    "profile_id": "synthetic-fixed-wing-profile-v0",
+    "evaluation_window": [
+      0,
+      100
+    ],
+    "evaluation_tick": 100,
+    "maximum_observation_age_ticks": 200,
+    "contact_loss_timeout_ticks": 10,
+    "deviation_expansion": {
+      "east": 1,
+      "north": 1,
+      "up": 1,
+      "time": 2
+    },
+    "maximum_definite_outside_ppm": 50000
+  },
+  "scenarios": [
+    {
+      "id": "nominal-volume-fully-conforming",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-inside",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "CONFORMING",
+        "definite_inside_ticks": 100,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "outside-nominal-inside-deviation-expansion",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-edge",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              -1,
+              0
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "CONFORMING",
+        "definite_inside_ticks": 100,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "observation-straddles-deviation-boundary",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-ambiguous",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              -2,
+              0
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "POTENTIALLY_NONCONFORMING",
+        "definite_inside_ticks": 0,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 100,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "definite-outside-exceeds-profile-confirmation",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-out",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            6
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 6,
+          "position_bounds": {
+            "east": [
+              12,
+              13
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        },
+        {
+          "observation_id": "o-in",
+          "source_id": "rx-1",
+          "support_window": [
+            6,
+            100
+          ],
+          "observed_at_interval": [
+            6,
+            6
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "NONCONFORMING",
+        "definite_inside_ticks": 94,
+        "definite_outside_ticks": 6,
+        "possible_outside_ticks": 6,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "isolated-outside-below-profile-threshold",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-out-short",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            1
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 1,
+          "position_bounds": {
+            "east": [
+              12,
+              13
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        },
+        {
+          "observation_id": "o-in-long",
+          "source_id": "rx-1",
+          "support_window": [
+            1,
+            100
+          ],
+          "observed_at_interval": [
+            1,
+            1
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "POTENTIALLY_NONCONFORMING",
+        "definite_inside_ticks": 99,
+        "definite_outside_ticks": 1,
+        "possible_outside_ticks": 1,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "stale-observation-fresh-receipt-does-not-refresh-it",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 20,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-stale",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            1
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "NOT_ASSESSABLE",
+        "reason": "STALE_OBSERVATION",
+        "definite_inside_ticks": 0,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 100,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "last-qualified-track-beyond-contact-timeout",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 50,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-last",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            20
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 20,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "CONTINGENT",
+        "reason": "CONTACT_TIMEOUT",
+        "definite_inside_ticks": 20,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 80
+      }
+    },
+    {
+      "id": "pnt-time-integrity-loss",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-pnt-bad",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": false,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "NOT_ASSESSABLE",
+        "reason": "PNT_TIME_UNQUALIFIED",
+        "definite_inside_ticks": 0,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 100,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "intent-revision-superseded",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 2,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-old-intent",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "REAUTHORIZATION_REQUIRED",
+        "reason": "INTENT_REVISION_SUPERSEDED"
+      }
+    },
+    {
+      "id": "authorization-expired-or-withdrawn",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 100,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-expired",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "REAUTHORIZATION_REQUIRED",
+        "reason": "AUTHORIZATION_EXPIRED"
+      }
+    },
+    {
+      "id": "dynamic-restriction-intersects-active-intent",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": {
+        "restriction_id": "restriction-intersects",
+        "effective_window": [
+          50,
+          60
+        ],
+        "volume": {
+          "east": [
+            5,
+            6
+          ],
+          "north": [
+            5,
+            6
+          ],
+          "up": [
+            5,
+            6
+          ],
+          "time": [
+            50,
+            60
+          ]
+        }
+      },
+      "observations": [
+        {
+          "observation_id": "o-restricted",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "REAUTHORIZATION_REQUIRED",
+        "reason": "DYNAMIC_RESTRICTION_INTERSECTION"
+      }
+    },
+    {
+      "id": "dynamic-restriction-outside-active-intent-positive-control",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": {
+        "restriction_id": "restriction-outside",
+        "effective_window": [
+          50,
+          60
+        ],
+        "volume": {
+          "east": [
+            20,
+            30
+          ],
+          "north": [
+            20,
+            30
+          ],
+          "up": [
+            20,
+            30
+          ],
+          "time": [
+            50,
+            60
+          ]
+        }
+      },
+      "observations": [
+        {
+          "observation_id": "o-not-restricted",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            100
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "CONFORMING",
+        "definite_inside_ticks": 100,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "half-open-authorized-time-edge",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 0,
+          "north": 0,
+          "up": 0,
+          "time": 0
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-edge-time",
+          "source_id": "rx-1",
+          "support_window": [
+            99,
+            100
+          ],
+          "observed_at_interval": [
+            99,
+            99
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "CONFORMING",
+        "definite_inside_ticks": 1,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 99
+      }
+    },
+    {
+      "id": "permuted-nonoverlapping-observation-windows",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          0,
+          100
+        ],
+        "evaluation_tick": 100,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 1,
+          "north": 1,
+          "up": 1,
+          "time": 2
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-second",
+          "source_id": "rx-1",
+          "support_window": [
+            50,
+            100
+          ],
+          "observed_at_interval": [
+            50,
+            50
+          ],
+          "receipt_tick": 100,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        },
+        {
+          "observation_id": "o-first",
+          "source_id": "rx-1",
+          "support_window": [
+            0,
+            50
+          ],
+          "observed_at_interval": [
+            0,
+            0
+          ],
+          "receipt_tick": 50,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "CONFORMING",
+        "definite_inside_ticks": 100,
+        "definite_outside_ticks": 0,
+        "possible_outside_ticks": 0,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    },
+    {
+      "id": "half-open-volume-end-is-outside",
+      "authorization": {
+        "authorization_id": "auth-syn-001",
+        "intent_id": "intent-syn-001",
+        "intent_revision": 1,
+        "current_intent_revision": 1,
+        "activated_at_tick": 0,
+        "expires_at_tick": 200,
+        "withdrawn": false,
+        "horizontal_frame_id": "SYNTHETIC-ENU-01",
+        "vertical_datum_id": "SYNTHETIC-UP-01",
+        "volume": {
+          "east": [
+            0,
+            10
+          ],
+          "north": [
+            0,
+            10
+          ],
+          "up": [
+            0,
+            10
+          ],
+          "time": [
+            0,
+            100
+          ]
+        }
+      },
+      "policy": {
+        "policy_id": "synthetic-conformance-policy-v0",
+        "profile_id": "synthetic-fixed-wing-profile-v0",
+        "evaluation_window": [
+          100,
+          101
+        ],
+        "evaluation_tick": 101,
+        "maximum_observation_age_ticks": 200,
+        "contact_loss_timeout_ticks": 10,
+        "deviation_expansion": {
+          "east": 0,
+          "north": 0,
+          "up": 0,
+          "time": 0
+        },
+        "maximum_definite_outside_ppm": 50000
+      },
+      "dynamic_restriction": null,
+      "observations": [
+        {
+          "observation_id": "o-after-end",
+          "source_id": "rx-1",
+          "support_window": [
+            100,
+            101
+          ],
+          "observed_at_interval": [
+            100,
+            100
+          ],
+          "receipt_tick": 101,
+          "position_bounds": {
+            "east": [
+              1,
+              2
+            ],
+            "north": [
+              1,
+              2
+            ],
+            "up": [
+              1,
+              2
+            ]
+          },
+          "pnt_time_qualified": true,
+          "surveillance_qualified": true,
+          "horizontal_frame_id": "SYNTHETIC-ENU-01",
+          "vertical_datum_id": "SYNTHETIC-UP-01"
+        }
+      ],
+      "expected": {
+        "status": "NONCONFORMING",
+        "definite_inside_ticks": 0,
+        "definite_outside_ticks": 1,
+        "possible_outside_ticks": 1,
+        "unassessable_ticks": 0,
+        "unobserved_ticks": 0
+      }
+    }
+  ],
+  "invariants": [
+    "Authorization identity and revision are checked before a conformance decision is admitted.",
+    "A sample's age is computed from observed-at, not receipt/authoring time.",
+    "An observation interval wholly inside the expanded 4D authorization is definitely inside.",
+    "An observation interval wholly disjoint from the expanded 4D authorization is definitely outside.",
+    "An observation interval that overlaps but is not contained is possible outside, never definitely inside.",
+    "Definite outside duration is less than or equal to possible outside duration.",
+    "Unassessable and unobserved duration are never counted as observed-inside duration.",
+    "Only definite outside exposure can trigger confirmed NONCONFORMING; possible exposure yields POTENTIALLY_NONCONFORMING.",
+    "Contact loss beyond an explicit profile timeout yields CONTINGENT, never CONFORMING.",
+    "Expired, withdrawn or superseded authorization yields REAUTHORIZATION_REQUIRED.",
+    "An effective dynamic restriction intersecting the intent requires reauthorization/revalidation.",
+    "A non-intersecting dynamic restriction does not invalidate an otherwise valid authorization.",
+    "The deviation exposure fraction is supplied by the profile; the oracle does not hard-code a universal 5 percent threshold.",
+    "No status authorizes flight, provides tactical advice or controls an aircraft."
+  ],
+  "required_mutations": [
+    "Widen a position interval until it straddles the allowed boundary; it cannot remain definitely inside.",
+    "Replace an old observed-at interval with a later receipt tick; the sample stays stale.",
+    "Increase contact timeout; only the contact-loss state may change, never conformance of old observations.",
+    "Change the authorization revision without changing the observation; an old receipt cannot remain current.",
+    "Move a dynamic restriction from intersecting to non-intersecting geometry; only reauthorization status may clear.",
+    "Permute non-overlapping observation windows; aggregate conformance result and durations remain identical.",
+    "Create overlapping support windows; reject rather than double-count duration.",
+    "Move a support window start to the authorized half-open time end; it becomes outside when no temporal deviation margin exists."
+  ]
+}
