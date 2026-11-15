@@ -80,6 +80,8 @@ pub struct AssetBinding {
     pub asset_id: String,
     pub kind: AssetKind,
     pub capability_digest: String,
+    pub maximum_payload_mass_g: u64,
+    pub maximum_payload_dimensions_mm: DimensionsMm,
     pub supported_modes: Vec<TransportMode>,
 }
 
@@ -187,6 +189,7 @@ pub struct TemperatureBandMilliC {
 pub struct ContainerSummary {
     pub container_id: String,
     pub internal_dimensions_mm: DimensionsMm,
+    pub external_dimensions_mm: DimensionsMm,
     pub tare_mass_g: u64,
     pub maximum_gross_mass_g: u64,
     pub capability_digest: String,
@@ -390,6 +393,16 @@ impl ScenarioManifest {
                 &format!("assets[{index}].capability_digest"),
                 &asset.capability_digest,
             );
+            if asset.maximum_payload_mass_g == 0 {
+                errors.push(format!(
+                    "assets[{index}].maximum_payload_mass_g: must be greater than zero"
+                ));
+            }
+            if !asset.maximum_payload_dimensions_mm.is_valid() {
+                errors.push(format!(
+                    "assets[{index}].maximum_payload_dimensions_mm: all dimensions must be greater than zero"
+                ));
+            }
             check_nonempty(
                 &mut errors,
                 &format!("assets[{index}].supported_modes"),
@@ -439,6 +452,21 @@ impl ScenarioManifest {
         {
             errors.push(
                 "container.internal_dimensions_mm: package does not fit using the declared conservative axis-aligned check"
+                    .into(),
+            );
+        }
+        if !self.container.external_dimensions_mm.is_valid() {
+            errors.push(
+                "container.external_dimensions_mm: all dimensions must be greater than zero".into(),
+            );
+        } else if self.container.internal_dimensions_mm.is_valid()
+            && !self
+                .container
+                .internal_dimensions_mm
+                .fits_within(&self.container.external_dimensions_mm)
+        {
+            errors.push(
+                "container.external_dimensions_mm: external dimensions must contain the declared internal envelope"
                     .into(),
             );
         }
@@ -563,6 +591,23 @@ impl ScenarioManifest {
                     }
                     if !asset_kind_supports_mode(asset.kind, segment.mode) {
                         errors.push(format!("{path}.mode: asset kind is incompatible with mode"));
+                    }
+                    if !self
+                        .container
+                        .external_dimensions_mm
+                        .fits_within(&asset.maximum_payload_dimensions_mm)
+                    {
+                        errors.push(format!(
+                            "{path}.asset_id: container external envelope exceeds asset payload dimensions"
+                        ));
+                    }
+                    if let Some(gross_mass) =
+                        self.container.tare_mass_g.checked_add(self.package.mass_g)
+                        && gross_mass > asset.maximum_payload_mass_g
+                    {
+                        errors.push(format!(
+                            "{path}.asset_id: package plus container tare exceeds asset payload mass"
+                        ));
                     }
                 }
             }
@@ -1016,6 +1061,36 @@ mod tests {
         let mut manifest = valid_manifest();
         manifest.package.dimensions_mm.length_mm = 301;
         assert_has_error(manifest.validate(), "package does not fit");
+    }
+
+    #[test]
+    fn rejects_asset_payload_mass_limit() {
+        let mut manifest = valid_manifest();
+        manifest.assets[0].maximum_payload_mass_g = 1_800;
+        assert_has_error(
+            manifest.validate(),
+            "package plus container tare exceeds asset payload mass",
+        );
+    }
+
+    #[test]
+    fn rejects_container_exceeding_asset_dimension_envelope() {
+        let mut manifest = valid_manifest();
+        manifest.assets[1].maximum_payload_dimensions_mm.length_mm = 300;
+        assert_has_error(
+            manifest.validate(),
+            "container external envelope exceeds asset payload dimensions",
+        );
+    }
+
+    #[test]
+    fn rejects_external_container_dimensions_smaller_than_internal() {
+        let mut manifest = valid_manifest();
+        manifest.container.external_dimensions_mm.length_mm = 250;
+        assert_has_error(
+            manifest.validate(),
+            "external dimensions must contain the declared internal envelope",
+        );
     }
 
     #[test]
