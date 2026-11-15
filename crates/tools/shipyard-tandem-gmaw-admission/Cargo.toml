@@ -1,0 +1,16 @@
+[package]
+name = "shipyard-tandem-gmaw-admission"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Rights-aware metadata admission verifier for BAM Tandem-GMAW dataset"
+
+[dependencies]
+serde_json = "1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[workspace]

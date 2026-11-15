@@ -1,0 +1,48 @@
+name: Shipyard Tandem-GMAW Dataset Admission
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-tandem-gmaw-admission/**"
+      - "crates/tools/shipyard-tandem-gmaw-admission/Cargo.lock"
+      - "benchmarks/shipyard/tandem-gmaw/**"
+      - "docs/tech/SHIPYARD_TANDEM_GMAW_DATA_ADMISSION_V0_1*"
+      - "rust-toolchain.toml"
+      - ".github/workflows/shipyard-tandem-gmaw-admission.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-tandem-gmaw-admission-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify rights-aware Tandem-GMAW metadata manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all -- --check
+
+      - name: Run metadata admission verifier tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all-targets -- -D warnings
+
+      - name: Verify metadata-only source topology and rights gate
+        run: cargo run --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
