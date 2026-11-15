@@ -156,7 +156,10 @@ fn summarize(pairs:&[PlotPair]) -> Result<Summary,String> {
     let ratio_delta=if ratio_delta.abs()<1e-12 {0.0} else {ratio_delta.max(0.0)};
     let turnover_se=(sample_variance(&turnover,mean_turnover)?/n as f64).sqrt();
     let mean_life=if life.len()==n {Some(mean(&life)?)} else {None};
-    let life_se=if life.len()==n {Some((sample_variance(&life,mean_life.unwrap())?/n as f64).sqrt())} else {None};
+    let life_se=if life.len()==n {
+        let lifespan_mean=mean(&life)?;
+        Some((sample_variance(&life,lifespan_mean)?/n as f64).sqrt())
+    } else {None};
     let inverse_mean=if mean_turnover>0.0 {Some(365.25/mean_turnover)} else {None};
     Ok(Summary{
         n,mean_stock,mean_productivity,
@@ -262,8 +265,9 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
         }
         let summary=summarize(&pairs)?;
         let expected=case.get("expected_summary").ok_or_else(||format!("case {case_id} expected_summary required"))?;
-        let tol=number_at(manifest.get("tolerances").ok_or_else(||"tolerances required".to_string())?,"absolute")?;
-        let var_tol=number_at(manifest.get("tolerances").unwrap(),"variance_absolute")?;
+        let tolerances=manifest.get("tolerances").ok_or_else(||"tolerances required".to_string())?;
+        let tol=number_at(tolerances,"absolute")?;
+        let var_tol=number_at(tolerances,"variance_absolute")?;
         let checks=[
             ("mean_stock",summary.mean_stock),
             ("mean_productivity",summary.mean_productivity),
