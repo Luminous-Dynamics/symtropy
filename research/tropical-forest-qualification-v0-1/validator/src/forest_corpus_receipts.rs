@@ -320,12 +320,19 @@ fn expand_case(
         ranges.push((start, test_points.len()));
     }
 
+    let nearest_neighbor_count = if case.get("nearest_neighbor_count").is_some() {
+        Some(usize_at(case, "nearest_neighbor_count")?)
+    } else {
+        None
+    };
+
     Ok((
         spatial_localization_kernel::SpatialLocalizationScenario {
             coordinate_system_id: coordinate_system_id.to_string(),
             bandwidth_m,
             alpha,
             minimum_effective_sample_size: minimum_ess,
+            nearest_neighbor_count,
             calibration_points: calibration,
             test_points,
         },
@@ -412,6 +419,8 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                     "weighted_calibration_mass": prediction.weighted_calibration_mass,
                     "effective_sample_size": prediction.effective_sample_size,
                     "radius": prediction.radius,
+                    "selected_neighbor_count": prediction.selected_neighbor_count,
+                    "selected_neighborhood_radius_m": prediction.selected_neighborhood_radius_m,
                     "status": prediction.status,
                     "matches_reference": passed
                 }));
@@ -459,6 +468,8 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                 "count": predictions.len(),
                 "coverage": coverage,
                 "radius": first.radius,
+                "selected_neighbor_count": first.selected_neighbor_count,
+                "selected_neighborhood_radius_m": first.selected_neighborhood_radius_m,
                 "effective_sample_size": first.effective_sample_size,
                 "weighted_calibration_mass": first.weighted_calibration_mass,
                 "status": first.status
@@ -477,6 +488,16 @@ pub fn validate_spatial_localization(raw: &[u8], manifest: &Value) -> Result<Val
                     && first.radius.is_some_and(|value| close_enough(value, wanted_radius, 1e-12))
                     && close_enough(first.effective_sample_size, wanted_ess, 1e-10);
             } else if ranges.len() == 1 {
+                if expected.get("selected_neighbor_count").is_some() {
+                    passed &= first.selected_neighbor_count
+                        == usize_at(expected, "selected_neighbor_count")?;
+                }
+                if expected.get("selected_neighborhood_radius_m").is_some() {
+                    passed &= first.selected_neighborhood_radius_m.is_some_and(|actual| {
+                        number_at(expected, "selected_neighborhood_radius_m")
+                            .is_ok_and(|wanted| close_enough(actual, wanted, 1e-12))
+                    });
+                }
                 if let Some(wanted_value) = expected.get("local_radius") {
                     let wanted = if wanted_value.is_null() {
                         None
