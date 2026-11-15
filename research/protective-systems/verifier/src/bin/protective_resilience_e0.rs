@@ -19,7 +19,6 @@ const SCHEMA: &str = "protective-resilience-e0/0.1";
 #[derive(Clone, Debug, Default)]
 struct ServiceAggregate {
     deficit_milli_beneficiary_minutes: u64,
-    all_strata_recovered: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -222,7 +221,6 @@ fn evaluate_outcomes(
             .deficit_milli_beneficiary_minutes
             .checked_add(deficit)
             .ok_or_else(|| format!("{path}: service aggregate overflow"))?;
-        aggregate.all_strata_recovered &= recovery_minutes.is_some();
         metrics.push(OutcomeMetric {
             outcome_id,
             service_id,
@@ -231,17 +229,6 @@ fn evaluate_outcomes(
             intervals_below_floor: below,
             sustained_recovery_start_minutes: recovery_minutes,
         });
-    }
-
-    for aggregate in aggregates.values_mut() {
-        aggregate.all_strata_recovered = metrics
-            .iter()
-            .filter(|metric| {
-                aggregates
-                    .keys()
-                    .any(|service_id| service_id == &metric.service_id)
-            })
-            .all(|metric| metric.sustained_recovery_start_minutes.is_some());
     }
 
     Ok((metrics, aggregates))
@@ -331,7 +318,7 @@ fn lifecycle_cost(portfolio: &Value) -> Result<u64, String> {
     Ok(total)
 }
 
-fn validate_status(value: &Value, label: &str) -> Result<&str, String> {
+fn validate_status<'a>(value: &'a Value, label: &str) -> Result<&'a str, String> {
     let status = required_text(value, "status", label)?;
     if !["PASS", "FAIL", "VIOLATED", "UNKNOWN"].contains(&status) {
         return Err(format!("{label}.status is unsupported: {status}"));
@@ -434,9 +421,7 @@ fn metrics_to_json(metrics: &[OutcomeMetric]) -> Vec<Value> {
 
 fn evaluate_portfolio(
     portfolio: &Value,
-    baseline_scope: &Value,
     baseline_contracts: &BTreeMap<(String, String), (String, u64, u64)>,
-    baseline_metrics: &[OutcomeMetric],
     baseline_aggregates: &BTreeMap<String, ServiceAggregate>,
     scope: &Value,
     horizon: usize,
@@ -446,7 +431,7 @@ fn evaluate_portfolio(
     family_ids: &BTreeSet<String>,
 ) -> Result<Value, String> {
     let portfolio_id = required_text(portfolio, "portfolio_id", "portfolio")?;
-    if portfolio.get("scope") != Some(scope) || Some(scope) != Some(baseline_scope) {
+    if portfolio.get("scope") != Some(scope) {
         return Err(format!(
             "ABSTAIN_INCOMPARABLE_SCOPE: {portfolio_id} differs from the frozen baseline context"
         ));
@@ -527,7 +512,6 @@ fn evaluate_portfolio(
         ));
     }
 
-    let _baseline_metric_count = baseline_metrics.len();
     Ok(computed)
 }
 
@@ -637,11 +621,9 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
         }
         reports.push(evaluate_portfolio(
             portfolio,
-            &scope_digest(scope)?,
             &baseline_contracts,
-            &baseline_metrics,
             &baseline_aggregates,
-            &scope_digest(scope)?,
+            scope,
             horizon,
             interval_minutes,
             sustained_intervals,
@@ -666,6 +648,7 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
         "scope_sha256": scope_digest(scope)?,
         "baseline_portfolio_id": baseline_id,
         "baseline_service_totals": baseline_totals,
+        "baseline_service_outcomes": metrics_to_json(&baseline_metrics),
         "portfolio_reports": reports,
         "all_expected_reports_match": true,
         "claim_ceiling": "exact synthetic E0 evidence-accounting conformance only; no physical protection or real-world resilience claim"
