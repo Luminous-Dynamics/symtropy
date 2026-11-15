@@ -28,7 +28,7 @@ Elapsed ticks are the sum of processing, setup and synthetic transfer ticks for 
 6. PRESSURE_TEST_SKILL_UNKNOWN
 7. POWER_UTILITY_INTERRUPTION
 
-The scenario profiles are deliberately diagnostic. For example, the job shop's backup machining capability can preserve the pump route when its primary machine is unavailable, whereas the hybrid network cannot use its partner's precision operations during a partner-node outage.
+The scenario profiles are deliberately diagnostic and matched across architecture types. The primary-machining outage names the architecture-specific primary cell in each profile; only the job shop preserves the route through a separately identified backup machine. The hybrid partner-node outage removes every operation assigned to that common partner dependency.
 
 ## Claim ceiling and exclusions
 
