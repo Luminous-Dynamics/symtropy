@@ -120,3 +120,30 @@ non-compensatory human-safety floors, null service benefit from observations
 that do not change a decision, and abstention when event frequency is unknown.
 Its digest is a canonical JSON-fixture digest, not a physical-evidence receipt.
 The positive result is synthetic contract conformance only.
+
+
+## E0 exact resilience reference oracle
+
+The `protective-resilience-e0` binary independently checks a frozen,
+synthetic portfolio comparison. It consumes declared service trajectories; it
+does not simulate hazards, networks, physical systems or recovery dynamics.
+It checks matched scope and beneficiary strata, recomputes per-service deficit
+and sustained recovery, verifies unique cost/benefit identities, and enforces
+non-compensatory safety and separate buffer-recovery states.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-e0
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-e0
+```
+
+The reference case is in
+`research/protective-systems/fixtures/protective-resilience-e0-reference-v0.1.json`.
+It is synthetic and bounded-deterministic, with no event probabilities. The
+service-deficit units are milli-beneficiary-minutes and remain separate by
+service ID; water, energy, healthcare, money and other unlike outcomes are not
+summed into a universal score. The exact expected reports are frozen in the
+fixture. Passing means deterministic evidence-accounting conformance only, not
+physical protection, field performance, legal compliance or certification.
