@@ -1,0 +1,230 @@
+name: Marine Engine Dataset Archive Audit
+
+on:
+  pull_request:
+    branches: [research/maritime-control-response-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/maritime-control-response/src/csv_audit.rs"
+      - "benchmarks/maritime-control-response/src/bin/marine_dataset_audit.rs"
+      - "benchmarks/maritime-control-response/Cargo.toml"
+      - "benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json"
+      - "benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json"
+      - ".github/workflows/marine-dataset-archive-audit.yml"
+  push:
+    branches: [research/maritime-liu-ice-response-evaluator-v0-1]
+    paths:
+      - "benchmarks/maritime-control-response/src/csv_audit.rs"
+      - "benchmarks/maritime-control-response/src/bin/marine_dataset_audit.rs"
+      - "benchmarks/maritime-control-response/Cargo.toml"
+      - "benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json"
+      - "benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json"
+      - ".github/workflows/marine-dataset-archive-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: marine-dataset-audit-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  archive-audit:
+    name: Verify and audit public marine-engine archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: 1
+      DATASET_URL: https://zenodo.org/records/19857425/files/Marine_Engine_Fault_Data_v1.zip?download=1
+      DATASET_EXPECTED_SIZE: "26538633"
+      DATASET_PUBLISHER_MD5: f4d246c1bb46e05b26e56221acc2606c
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Retrieve and verify publisher archive
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/Marine_Engine_Fault_Data_v1.zip"
+          curl --fail --location --retry 4 --retry-delay 3 --connect-timeout 30 --max-time 300 \
+            --output "$archive" "$DATASET_URL"
+          actual_size="$(stat -c '%s' "$archive")"
+          test "$actual_size" = "$DATASET_EXPECTED_SIZE"
+          printf '%s  %s\n' "$DATASET_PUBLISHER_MD5" "$archive" | md5sum --check --status
+          archive_sha256="$(sha256sum "$archive" | awk '{print $1}')"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "archive_sha256=$archive_sha256" >> "$GITHUB_OUTPUT"
+          echo "archive_size=$actual_size" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Marine Engine Fault archive"
+            echo ""
+            echo "- Download source: [Zenodo 10.5281/zenodo.19857425]($DATASET_URL)"
+            echo "- Publisher byte size: $actual_size"
+            echo "- Publisher MD5: verified"
+            echo "- Downloaded SHA-256: \`$archive_sha256\`"
+            echo "- Licence declared by Zenodo: CC BY 4.0"
+            echo ""
+            echo "The ZIP is audited in the runner and is not committed to this repository."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Extract archive without executing publisher scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/marine-engine-fault-extracted"
+          archive="$RUNNER_TEMP/Marine_Engine_Fault_Data_v1.zip"
+          members="$RUNNER_TEMP/marine-engine-zip-members.txt"
+          listing="$RUNNER_TEMP/marine-engine-zipinfo-long.txt"
+
+          # Reject absolute, traversal and Windows-style paths before extraction.
+          unzip -Z1 "$archive" > "$members"
+          if ! awk '
+            {
+              if (substr($0, 1, 1) == "/" || $0 ~ /^[A-Za-z]:/ || index($0, "\\\\") > 0) {
+                print "Rejected absolute or Windows-style member path: " $0
+                rejected = 1
+              }
+              n = split($0, component, "/")
+              for (i = 1; i <= n; i++) {
+                if (component[i] == "..") {
+                  print "Rejected traversal member path: " $0
+                  rejected = 1
+                }
+              }
+            }
+            END { exit rejected }
+          ' "$members"; then
+            echo "Unsafe ZIP member names:"
+            cat "$members"
+            exit 1
+          fi
+
+          # Refuse symlinks before extraction; print any detected member.
+          zipinfo -l "$archive" > "$listing"
+          if ! awk '
+            NR > 3 && substr($1, 1, 1) == "l" {
+              print "Rejected symbolic-link ZIP member: " $0
+              rejected = 1
+            }
+            END { exit rejected }
+          ' "$listing"; then
+            cat "$listing"
+            exit 1
+          fi
+
+          unzip -tqq "$archive"
+          mkdir -p "$root"
+          unzip -q -o "$archive" -d "$root"
+          symlinks="$(find "$root" -type l -print)"
+          if test -n "$symlinks"; then
+            printf 'Unexpected extracted symbolic links:\n%s\n' "$symlinks"
+            exit 1
+          fi
+          csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
+          echo "Extracted CSV count: $csv_count"
+          test "$csv_count" = "18"
+          echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
+
+      - name: Capture published header semantics before validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$DATASET_ROOT" <<'PY'
+          import csv
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          names = ["Reference_Data.csv"]
+          names.extend(path.name for path in sorted(root.rglob("*.csv"))
+                       if path.name != "Reference_Data.csv"
+                       and "dataset_index" not in path.name.lower()
+                       and "variable_dictionary" not in path.name.lower()
+                       and "normaliz" not in path.name.lower()
+                       and "normalis" not in path.name.lower())
+          for name in names[:2]:
+              matches = list(root.rglob(name))
+              if not matches:
+                  print(json.dumps({"file": name, "error": "not found"}))
+                  continue
+              with matches[0].open("r", encoding="utf-8-sig", newline="") as handle:
+                  rows = list(csv.reader(handle))[:3]
+              print(json.dumps({
+                  "relative_path": matches[0].relative_to(root).as_posix(),
+                  "header_row_count": len(rows),
+                  "column_counts": [len(row) for row in rows],
+                  "first_three_header_cells": [row[:3] for row in rows],
+                  "first_row_full": rows[0] if rows else [],
+              }, ensure_ascii=False))
+          dictionary = next(iter(root.rglob("*variable_dictionary*")), None)
+          if dictionary and dictionary.suffix.lower() == ".csv":
+              with dictionary.open("r", encoding="utf-8-sig", newline="") as handle:
+                  rows = list(csv.reader(handle))[:6]
+              print(json.dumps({
+                  "metadata_file": dictionary.relative_to(root).as_posix(),
+                  "metadata_preview": rows,
+              }, ensure_ascii=False))
+          PY
+
+      - name: Run raw CSV payload audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="benchmarks/maritime-control-response/Cargo.toml"
+          cargo test --manifest-path "$manifest" --locked --all-targets
+          report="$RUNNER_TEMP/marine-engine-fault-audit.json"
+          cargo run --release --manifest-path "$manifest" --locked \
+            --bin marine-dataset-audit -- "$DATASET_ROOT" "${{ steps.archive.outputs.archive_sha256 }}" \
+            > "$report"
+          jq -e '
+            .schema_version == "symtropy-marine-csv-audit-v0.2" and
+            .dataset_doi == "10.5281/zenodo.19857425" and
+            .archive_sha256 == "${{ steps.archive.outputs.archive_sha256 }}" and
+            .csv_file_count == 16 and
+            .baseline_file_count == 1 and
+            .scenario_file_count == 15 and
+            (.total_data_rows > 0) and
+            (.files | length == 16) and
+            ([.files[].time_strictly_increasing] | all) and
+            ([.files[] | select(.role == "baseline_reference") | .time_column_name] == ["Time"]) and
+            ([.files[] | select(.role == "baseline_reference") | .time_column_index] == [0]) and
+            ([.files[] | select(.role == "fault_scenario") | .time_column_name] | all(. == "Time_rel")) and
+            ([.files[] | select(.role == "fault_scenario") | .time_column_index] | all(. == 1)) and
+            ([.files[].time_column_unit] | all(. == "sec")) and
+            (.metadata_artifact_sha256.dataset_index != null) and
+            (.metadata_artifact_sha256.variable_dictionary != null) and
+            (.metadata_artifact_sha256.normalization_script != null) and
+            (.claim_ceiling | contains("not independent verification"))
+          ' "$report" >/dev/null
+          echo "AUDIT_REPORT=$report" >> "$GITHUB_ENV"
+          echo "### CSV payload checks" >> "$GITHUB_STEP_SUMMARY"
+          jq -r '
+            "- CSV files: \(.csv_file_count)",
+            "- Baseline/scenario files: \(.baseline_file_count)/\(.scenario_file_count)",
+            "- Data rows: \(.total_data_rows)",
+            "- Event-latency-eligible scenario files: \(.event_latency_eligible_scenario_files | length)",
+            "- Anomaly-only scenario files: \(.anomaly_only_scenario_files | length)",
+            "- Fully missing channel file counts: \(.fully_missing_channel_file_counts | tojson)"
+          ' "$report" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Preserve machine-readable audit receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: marine-engine-fault-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/marine-engine-fault-audit.json
+          if-no-files-found: error
+          retention-days: 90
