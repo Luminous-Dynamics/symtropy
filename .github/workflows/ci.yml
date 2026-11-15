@@ -100,6 +100,7 @@ jobs:
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-threat-portfolio
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-e0
+        cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-evidence
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
