@@ -20,11 +20,11 @@ The reference has three jobs and three machines, nine operations total, and zero
 - 128 cyclic/infeasible combinations;
 - 88 acyclic/feasible combinations.
 
-The exact makespan is 26 synthetic ticks. The SPT baseline makespan is 34 synthetic ticks, an eight-tick gap (307,692 parts per million relative to the exact optimum). This is a small illustrative fixture, not a general performance result.
+The exact makespan is 26 synthetic ticks. The SPT baseline makespan is 34 synthetic ticks, an eight-tick gap (307,692 parts per million relative to the exact optimum). The intended certificate includes 216 enumerated machine-order combinations, 128 cyclic combinations and 88 feasible combinations. CI asserts the summary values and the full 26-record schedule certificate (plus header). This is a small illustrative fixture, not a general performance result.
 
 ## Verification
 
-Schedule certificates include machine orders and per-operation setup/processing intervals. The verifier checks complete operation coverage, job precedence, machine sequence, transition setup, operation durations and makespan. Unit tests exercise release times, sequence-dependent setup, malformed/ambiguous inputs, reproducibility and checked arithmetic.
+Schedule certificates include machine orders and per-operation setup/processing intervals. The verifier checks complete operation coverage, job precedence, machine sequence, transition setup, operation durations and makespan. 18 unit tests exercise release times, sequence-dependent setup, malformed/ambiguous inputs, reproducibility, schedule-certificate tampering and checked arithmetic. The exact bound is nine operations; larger flexible-job-shop instances are intentionally deferred.
 
 Run:
 
