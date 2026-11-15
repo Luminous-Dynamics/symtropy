@@ -70,7 +70,7 @@ fn check_state_space(case:&Value,tol:f64)->Result<String,String>{
     let n=a_raw.len();
     if n==0{return Ok("INVALID_STATE_SPACE_DIMENSION".into());}
     let a=parse_matrix(ss,"A",n,n)?;
-    for i in 0..n{for j in 0..n{if i!=j&&a[i][j]<-tol{return Ok("INVALID_STATE_SPACE_NOT_METZLER".into());}}}
+    for i in 0..n{for j in 0..n{if i!=j&&a[i][j] < -tol{return Ok("INVALID_STATE_SPACE_NOT_METZLER".into());}}}
     let b_rows=array(ss,"B")?;let nb=b_rows.first().and_then(Value::as_array).map(Vec::len).unwrap_or(0);
     if nb==0{return Ok("INVALID_STATE_SPACE_DIMENSION".into());}
     let b=parse_matrix(ss,"B",n,nb)?;
@@ -186,7 +186,7 @@ fn compute(case:&Value)->Result<Value,String>{
         "positive_output_minimum":min_output,
         "predicted_total_output_mass":output_mass,
         "input_mass_across_two_histories":input_mass,
-        "mass_not_in_outputs_or_declared_residual":(input_mass-output_mass).max(0.0),
+        "synthetic_input_mass_not_returned_by_kernel":(input_mass-output_mass).max(0.0),
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     }))
 }
