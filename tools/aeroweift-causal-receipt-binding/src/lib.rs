@@ -243,6 +243,8 @@ pub struct Receipt {
     pub parents: Vec<ParentEdge>,
     /// Required traffic classes, present only on a profile-policy receipt.
     pub required_traffic_classes: Option<Vec<TrafficClass>>,
+    /// Traffic class represented by a surveillance-assessment receipt.
+    pub traffic_class: Option<TrafficClass>,
 }
 
 /// Trust facets intentionally outside this structural verifier.
@@ -307,6 +309,10 @@ pub enum VerificationError {
     ParentNotQualified,
     /// Profile class obligations are absent, duplicated or changed.
     ProfileClassMismatch,
+    /// A required or optional semantic parent role occurs with invalid cardinality.
+    DuplicateParentRole,
+    /// A surveillance receipt's class or report/no-report evidence does not match its claim.
+    SurveillanceEvidenceMismatch,
     /// Receipt graph contains a directed cycle.
     Cycle,
     /// A supplied receipt is not an ancestor of the declared root.
@@ -328,6 +334,8 @@ pub struct VerificationPolicy {
     pub expected_subject: SubjectScope,
     /// Required traffic classes from the independently frozen benchmark profile.
     pub required_traffic_classes: Vec<TrafficClass>,
+    /// Traffic class of the subject aircraft's own surveillance track.
+    pub subject_traffic_class: TrafficClass,
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -493,6 +501,13 @@ pub fn verify(
             return Err(VerificationError::ForkedSequence);
         }
 
+        if receipt.stage == Stage::SurveillanceAssessment {
+            if receipt.traffic_class.is_none() {
+                return Err(VerificationError::SurveillanceEvidenceMismatch);
+            }
+        } else if receipt.traffic_class.is_some() {
+            return Err(VerificationError::SurveillanceEvidenceMismatch);
+        }
         if receipt.stage == Stage::ProfilePolicy {
             let Some(classes) = receipt.required_traffic_classes.as_ref() else {
                 return Err(VerificationError::ProfileClassMismatch);
@@ -544,6 +559,17 @@ pub fn verify(
             if !validate_disposition(parent, edge.role) {
                 return Err(VerificationError::ParentNotQualified);
             }
+            match edge.role {
+                ParentRole::TrafficOccupancy(class) if parent.traffic_class != Some(class) => {
+                    return Err(VerificationError::SurveillanceEvidenceMismatch);
+                }
+                ParentRole::SubjectTrack
+                    if parent.traffic_class != Some(policy.subject_traffic_class) =>
+                {
+                    return Err(VerificationError::SurveillanceEvidenceMismatch);
+                }
+                _ => {}
+            }
             if parent.time.produced_at > receipt.time.evaluated_at {
                 return Err(VerificationError::CausalTimeViolation);
             }
@@ -555,15 +581,45 @@ pub fn verify(
         }
 
         for role in required_roles(receipt.stage) {
-            if !has_role(receipt, role) {
+            let count = receipt.parents.iter().filter(|edge| edge.role == role).count();
+            if count == 0 {
                 return Err(VerificationError::MissingRequiredParent);
+            }
+            if count > 1 {
+                return Err(VerificationError::DuplicateParentRole);
+            }
+        }
+        for role in optional_roles(receipt.stage) {
+            let count = receipt.parents.iter().filter(|edge| edge.role == role).count();
+            if count > 1 {
+                return Err(VerificationError::DuplicateParentRole);
+            }
+        }
+        if receipt.stage == Stage::SurveillanceAssessment {
+            let has_observation = has_role(receipt, ParentRole::SurveillanceObservation);
+            match receipt.disposition {
+                ClaimDisposition::Qualified if !has_observation => {
+                    return Err(VerificationError::SurveillanceEvidenceMismatch);
+                }
+                ClaimDisposition::NoReportQualifiedCoverage if has_observation => {
+                    return Err(VerificationError::SurveillanceEvidenceMismatch);
+                }
+                _ => {}
             }
         }
 
         if receipt.stage == Stage::ConflictScreening {
             for class in &required {
-                if !has_role(receipt, ParentRole::TrafficOccupancy(*class)) {
+                let count = receipt
+                    .parents
+                    .iter()
+                    .filter(|edge| edge.role == ParentRole::TrafficOccupancy(*class))
+                    .count();
+                if count == 0 {
                     return Err(VerificationError::MissingRequiredParent);
+                }
+                if count > 1 {
+                    return Err(VerificationError::DuplicateParentRole);
                 }
             }
             let profile = receipt
