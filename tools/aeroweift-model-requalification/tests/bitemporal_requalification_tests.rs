@@ -775,7 +775,6 @@ fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matche
     );
 }
 
-
 #[test]
 fn source_sequence_not_effective_time_orders_causal_digest_succession() {
     let events = vec![
