@@ -1627,6 +1627,18 @@ mod tests {
     const D2: &str = "2222222222222222222222222222222222222222222222222222222222222222";
     const D3: &str = "3333333333333333333333333333333333333333333333333333333333333333";
 
+    struct TestEvidenceVerifier;
+
+    impl EvidenceAdmissionVerifier for TestEvidenceVerifier {
+        fn verify(
+            &self,
+            _evidence: &EvidenceRecord,
+            _as_known_at_ms: i64,
+        ) -> EvidenceAdmission {
+            EvidenceAdmission::Accepted
+        }
+    }
+
     struct TestVerifier(ReviewVerification);
 
     impl IndependentReviewVerifier for TestVerifier {
@@ -1676,9 +1688,10 @@ mod tests {
             "product-a".to_owned(),
             ["A".to_owned()].into_iter().collect(),
         );
-        let slot = DesignSlot::new("slot-1", "cabinet-east", accepted, 1)?;
+        let slot = DesignSlot::new("slot-1", "node-1", "contract-inverter-v1", "cabinet-east", accepted, 1)?;
         let instance = PhysicalInstance::new(
             "instance-1",
+            "manufacturer-a",
             "manufacturer-a",
             "serial-1",
             "product-a",
@@ -1718,9 +1731,10 @@ mod tests {
         events.push(
             event("label", PhysicalEventKind::IdentityObserved, "slot-1", 30, &["evidence-1"])
                 .with_instance("instance-1")
+                .with_observed_identity("manufacturer-a", "serial-1")
                 .with_predecessors(vec!["deliver".to_owned()]),
         );
-        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Valid));
+        let projection = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::DeliveredUnreconciled
@@ -1736,7 +1750,7 @@ mod tests {
                 .with_location("cabinet-east")
                 .with_predecessors(vec!["deliver".to_owned()]),
         );
-        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Valid));
+        let projection = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
@@ -1809,7 +1823,7 @@ mod tests {
             .project(100, &TestVerifier(ReviewVerification::Valid));
         assert_eq!(valid.slots["slot-1"].status, SlotStatus::Reconciled);
 
-        let unknown = ledger(events).project(100, &TestVerifier(ReviewVerification::Unknown));
+        let unknown = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Unknown));
         assert_eq!(unknown.slots["slot-1"].status, SlotStatus::Unknown);
     }
 
@@ -1845,8 +1859,8 @@ mod tests {
         let mut ledger = ledger(events);
         assert_eq!(ledger.evidence["evidence-2"].received_at_ms, 60);
         let verifier = TestVerifier(ReviewVerification::Valid);
-        let before = ledger.project(55, &verifier);
-        let after = ledger.project(70, &verifier);
+        let before = ledger.project(55, &TestEvidenceVerifier, &verifier);
+        let after = ledger.project(70, &TestEvidenceVerifier, &verifier);
         assert_eq!(
             before.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
@@ -1858,6 +1872,7 @@ mod tests {
     fn replacement_resets_inspection_and_review_state() {
         let replacement = PhysicalInstance::new(
             "instance-2",
+            "manufacturer-a",
             "manufacturer-a",
             "serial-2",
             "product-a",
@@ -1935,9 +1950,9 @@ mod tests {
             .unwrap();
         let mut accepted = BTreeMap::new();
         accepted.insert("product-a".to_owned(), ["A".to_owned()].into_iter().collect());
-        let slot = DesignSlot::new("slot-1", "cabinet-east", accepted, 1).unwrap();
-        let one = PhysicalInstance::new("instance-1", "issuer-a", "serial-1", "product-a", "A", D3).unwrap();
-        let two = PhysicalInstance::new("instance-2", "issuer-a", "serial-1", "product-a", "A", D3).unwrap();
+        let slot = DesignSlot::new("slot-1", "node-1", "contract-inverter-v1", "cabinet-east", accepted, 1).unwrap();
+        let one = PhysicalInstance::new("instance-1", "manufacturer-a", "issuer-a", "serial-1", "product-a", "A", D3).unwrap();
+        let two = PhysicalInstance::new("instance-2", "manufacturer-a", "issuer-a", "serial-1", "product-a", "A", D3).unwrap();
         let result = PhysicalIdentityLedger::new(
             snapshot, vec![product], vec![slot], vec![one, two],
             vec![EvidenceRecord::new("evidence-1", D1, "receipt-1", 1, 1).unwrap()], vec![],
@@ -1948,7 +1963,7 @@ mod tests {
     #[test]
     fn unknown_predecessor_and_bad_digest_fail_closed() {
         let bad = PhysicalInstance::new(
-            "instance-1", "issuer-a", "serial-1", "product-a", "A", "not-a-digest",
+            "instance-1", "manufacturer-a", "issuer-a", "serial-1", "product-a", "A", "not-a-digest",
         );
         assert!(matches!(bad, Err(PhysicalIdentityError::InvalidSha256 { .. })));
 
@@ -1986,7 +2001,7 @@ mod tests {
                 .with_review_attestation("attestation-rejected")
                 .with_predecessors(vec!["inspect".to_owned()]),
         );
-        let projection = ledger(events).project(100, &TestVerifier(ReviewVerification::Invalid));
+        let projection = ledger(events).project(100, &TestEvidenceVerifier, &TestVerifier(ReviewVerification::Invalid));
         assert_eq!(
             projection.slots["slot-1"].status,
             SlotStatus::InstalledUnreconciled
