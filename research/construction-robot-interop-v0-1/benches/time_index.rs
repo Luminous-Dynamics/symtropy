@@ -359,7 +359,7 @@ fn epoch_invalidation_run(size: u64, active_after_release: u64) {
         invalidate_elapsed.as_secs_f64() * 1_000.0
     );
     assert_eq!(remaining, 0);
-    assert_eq!(book.reservations.len(), size as usize);
+    assert_eq!(book.historical_reservation_count(), size as usize);
     black_box(book);
 }
 
