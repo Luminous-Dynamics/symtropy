@@ -52,23 +52,16 @@ fn main() -> Result<(), String> {
                         let motion_fraction = frame.motion_disturbance_magnitude_m_s2
                             / (target_g * STANDARD_GRAVITY_M_S2);
 
+                        let gradient = body_profile.head_to_feet_gradient_fraction;
+                        let [cx, cy, cz] = frame.centrifugal_m_s2;
+                        let [corx, cory, corz] = frame.coriolis_m_s2;
+                        let [ex, ey, ez] = frame.euler_m_s2;
+                        let [tx, ty, tz] = frame.apparent_total_m_s2;
+                        let motion_magnitude = frame.motion_disturbance_magnitude_m_s2;
+                        let total_magnitude = frame.apparent_total_magnitude_m_s2;
+
                         println!(
-                            "{target_g:.2},{rpm:.1},{radius:.6},{body_length_m:.3},{:.9},{alpha_z:.9},{speed:.2},{direction},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{motion_fraction:.9},{:.9}",
-                            body_profile.head_to_feet_gradient_fraction,
-                            frame.centrifugal_m_s2[0],
-                            frame.centrifugal_m_s2[1],
-                            frame.centrifugal_m_s2[2],
-                            frame.coriolis_m_s2[0],
-                            frame.coriolis_m_s2[1],
-                            frame.coriolis_m_s2[2],
-                            frame.euler_m_s2[0],
-                            frame.euler_m_s2[1],
-                            frame.euler_m_s2[2],
-                            frame.apparent_total_m_s2[0],
-                            frame.apparent_total_m_s2[1],
-                            frame.apparent_total_m_s2[2],
-                            frame.motion_disturbance_magnitude_m_s2,
-                            frame.apparent_total_magnitude_m_s2
+                            "{target_g:.2},{rpm:.1},{radius:.6},{body_length_m:.3},{gradient:.9},{alpha_z:.9},{speed:.2},{direction},{cx:.9},{cy:.9},{cz:.9},{corx:.9},{cory:.9},{corz:.9},{ex:.9},{ey:.9},{ez:.9},{tx:.9},{ty:.9},{tz:.9},{motion_magnitude:.9},{motion_fraction:.9},{total_magnitude:.9}"
                         );
                     }
                 }
