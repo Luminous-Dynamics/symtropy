@@ -359,12 +359,15 @@ fn generate() -> (String, usize, usize, usize, usize, usize) {
 }
 
 fn main() -> io::Result<()> {
-    let (output, count, collisions, endpoint_misses, chord_misses, broad_phase_false_positives) = generate();
+    let (output, count, collisions, endpoint_misses, chord_misses, broad_phase_false_positives) =
+        generate();
     if let Some(path) = std::env::args_os().nth(1) {
         std::fs::write(path, output)
     } else {
         io::stdout().write_all(output.as_bytes())?;
-        eprintln!("generated_cases={count} analytic_contacts={collisions} endpoint_misses={endpoint_misses} chord_misses={chord_misses} broad_phase_false_positives={broad_phase_false_positives} broad_phase_false_negatives=0");
+        eprintln!(
+            "generated_cases={count} analytic_contacts={collisions} endpoint_misses={endpoint_misses} chord_misses={chord_misses} broad_phase_false_positives={broad_phase_false_positives} broad_phase_false_negatives=0"
+        );
         Ok(())
     }
 }
@@ -375,7 +378,8 @@ mod tests {
 
     #[test]
     fn seed_generates_fixed_partition_cardinalities_and_no_aabb_false_negative() {
-        let (json, count, collisions, endpoint_misses, chord_misses, broad_phase_false_positives) = generate();
+        let (json, count, collisions, endpoint_misses, chord_misses, broad_phase_false_positives) =
+            generate();
         assert_eq!(count, 260);
         assert_eq!(json.matches("\"partition\":\"development\"").count(), 200);
         assert_eq!(json.matches("\"partition\":\"holdout\"").count(), 60);
