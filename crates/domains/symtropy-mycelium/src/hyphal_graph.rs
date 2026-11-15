@@ -671,12 +671,14 @@ impl HyphalGraph {
         components
     }
 
-    /// Find active-segment bridges and articulation nodes in O(V + E).
+    /// Find active-segment bridges and articulation nodes with iterative DFS.
     ///
-    /// This is a structural single-point-of-failure measure only. It does not
-    /// model edge capacity, measured cytoplasmic flow or resource delivery.
-    /// Parallel segments are treated as distinct edges, so one of two parallel
-    /// connections is not incorrectly classified as a bridge.
+    /// Ordered map/set lookups add logarithmic overhead to the Tarjan traversal;
+    /// measure scaling on representative large graphs before claiming a runtime
+    /// bound. This is structural criticality only: it does not model edge
+    /// capacity, measured cytoplasmic flow or resource delivery. Parallel
+    /// segments remain distinct, so one of two parallel connections is not
+    /// incorrectly classified as a bridge.
     pub fn active_graph_criticality(&self) -> ActiveGraphCriticality {
         let mut adjacency: BTreeMap<NodeId, Vec<(NodeId, SegmentId)>> = self
             .nodes
