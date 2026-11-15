@@ -262,7 +262,7 @@ fn make_case(
             "{{",
             "\"case_id\":\"{}\",",
             "\"partition\":\"{}\",",
-            "\"path\":{{\"family\":\"{}\",\"start_mm\":{},\"end_mm\":{}, {}}},",
+            "\"path\":{{\"family\":\"{}\",\"start_mm\":{},\"end_mm\":{},{}}},",
             "\"moving_radius_mm\":{},",
             "\"obstacle\":{{\"center_mm\":{},\"radius_mm\":{}}},",
             "\"margins_mm\":{},",
@@ -395,6 +395,22 @@ mod tests {
         };
         let expected = 2_010_000.0_f64.sqrt();
         assert!((semicircle_distance(point, 1_000) - expected).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn checked_in_generated_supplement_is_byte_identical() {
+        const CHECKED_IN: &str = include_str!("../../fixtures/generated-cases-v0.2.json");
+        let (generated, _, _, _, _, _) = generate();
+        assert_eq!(generated, CHECKED_IN);
+    }
+
+    #[test]
+    fn combined_v0_2_manifest_has_exact_case_and_partition_counts() {
+        const COMBINED: &str = include_str!("../../fixtures/construction-motion-oracle-v0.2.json");
+        assert_eq!(COMBINED.matches("\"case_id\":").count(), 272);
+        assert_eq!(COMBINED.matches("\"partition\": \"development\"").count(), 212);
+        assert_eq!(COMBINED.matches("\"partition\": \"holdout\"").count(), 60);
+        assert_eq!(COMBINED.matches("\"case_id\": \"GEN-").count(), 260);
     }
 
     #[test]
