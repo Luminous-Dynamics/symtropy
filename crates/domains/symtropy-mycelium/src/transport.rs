@@ -263,17 +263,8 @@ pub fn apply_passive_transport(
         });
     }
 
-    for (index, total_conductance) in incident_conductance.iter().copied().enumerate() {
-        let courant = dt_hours * total_conductance / compartments[index].volume_ml;
-        if !courant.is_finite() || courant > MAX_EXPLICIT_TRANSPORT_COURANT {
-            return Err(TransportError::ExplicitStepUnstable {
-                node: compartments[index].node,
-                courant,
-                max_courant: MAX_EXPLICIT_TRANSPORT_COURANT,
-            });
-        }
-    }
-
+    // Report a donor-budget violation before the stricter time-step stability
+    // guard so the diagnostic identifies the immediate physical constraint.
     for (index, outgoing) in proposed_outgoing.iter().copied().enumerate() {
         let available = compartments[index].mass_mg;
         if outgoing > available {
@@ -281,6 +272,17 @@ pub fn apply_passive_transport(
                 node: compartments[index].node,
                 requested_mg: outgoing,
                 available_mg: available,
+            });
+        }
+    }
+
+    for (index, total_conductance) in incident_conductance.iter().copied().enumerate() {
+        let courant = dt_hours * total_conductance / compartments[index].volume_ml;
+        if !courant.is_finite() || courant > MAX_EXPLICIT_TRANSPORT_COURANT {
+            return Err(TransportError::ExplicitStepUnstable {
+                node: compartments[index].node,
+                courant,
+                max_courant: MAX_EXPLICIT_TRANSPORT_COURANT,
             });
         }
     }
