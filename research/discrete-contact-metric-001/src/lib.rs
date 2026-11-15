@@ -1213,7 +1213,7 @@ mod tests {
             stiffness: Matrix::new(2, 2, vec![4.0, -1.0, -1.0, 2.0]).unwrap(),
             position_error: vec![0.1, -0.2],
             velocity: vec![-1.0, -0.2],
-            external_force: vec![0.0, 0.0],
+            external_force: vec![0.5, -0.25],
             contact_jacobian: Matrix::new(1, 2, vec![1.0, 0.0]).unwrap(),
             contact_gap: vec![0.005],
             dt: 0.1,
