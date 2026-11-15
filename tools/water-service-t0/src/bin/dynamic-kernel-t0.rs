@@ -832,7 +832,7 @@ mod tests {
 
     #[test]
     fn same_integrated_gain_can_have_distinguishable_transient_responses() {
-        let x = row("DK-T0-011-same_steady_gain_different_delay");
+        let x = row("DK-T0-011-same-steady-gain-different-delay");
         assert_eq!(x["model_discrimination_state"], "SEPARATED");
         assert!(x["competing_model_separation"].as_f64().unwrap() > 1.0);
     }
@@ -914,7 +914,7 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .iter_mut()
-            .find(|v| v["case_id"] == "DK-T0-011-same_steady_gain_different_delay")
+            .find(|v| v["case_id"] == "DK-T0-011-same-steady-gain-different-delay")
             .unwrap();
         c["inputs"]
             .as_object_mut()
