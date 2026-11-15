@@ -55,7 +55,8 @@ The following dimensions remain separate:
 
 Hard eligibility gates include:
 - decision question and objective identity match;
-- explicit external authorization where required; ControlledFlight is always authorization-gated, and the frozen policy can additionally require authorization for HIL/other modalities;
+- explicit external authorization where required; ControlledFlight is always authorization-gated, and the frozen policy can require authorization for HIL/other modalities;
+- owner receipts for affirmative safety, envelope, reference, semantic-equivalence and authorization gates; ControlledFlight is always authorization-gated, and the frozen policy can additionally require authorization for HIL/other modalities;
 - positive owner receipts for safety, envelope, independent-reference, semantic-equivalence and authorization gates;
 - safety constraints clear;
 - within declared test envelope;
@@ -101,6 +102,8 @@ Use equal candidate sets, priors, available information, admissibility rules and
 - Bayesian optimal experimental design;
 - robust/minimax experimental design under prior/model uncertainty;
 - active learning and sequential model discrimination;
+- batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including mean-/quantile-based misclassification acquisition and input constraints;
+- model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
 - batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including its mean-/quantile-based misclassification acquisition and input constraints;
 - model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
 - the multi-fidelity admission/escalation lane in #4487.
@@ -137,7 +140,8 @@ A reduction in test count is not success if the resulting model is less reliable
 - AIAA R-154-2021: model-based reduction of flight testing and six engineering tasks.
 - ASTM F3705-25 / F3442-26: DAA test and performance comparison only for matched operating assumptions.
 - NASA NESC-RP-23-01853: cross-simulation comparison under common inputs can contribute to validation, while remaining distinct from empirical flight validation.
-- NASA 2025 strategic path management flight evaluation: two helicopters in a live-virtual-constructive environment with up to 330 virtual aircraft; a useful planning scale comparator, not universal safety evidence.
+- NASA 2025 strategic path management flight evaluation: two helicopters in a live-virtual-constructive environment with up to 330 virtual aircraft; a useful scale comparator, not universal safety evidence.
+- NASA NESC 6DOF check-case programme: standardized common-input multi-simulation comparisons can expose implementation defects and contribute to credibility, but remain distinct from empirical physical validation.
 - NASA NESC 6DOF check-case programme: standardized common inputs and cross-simulation comparisons can identify implementation defects and contribute to model credibility, but remain distinct from physical empirical validation.
 
 ## Claim ceiling
