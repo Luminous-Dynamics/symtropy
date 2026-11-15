@@ -1,0 +1,9 @@
+[package]
+name = "artgrav-prestress-reference"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Analytical rotating-ring and radial-spoke centrifugal prestress reference cases"
+
+[workspace]
+members = []

@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/artgrav-prestress-cases-v0.1.schema.json",
+  "title": "ARTGRAV-PRESTRESS-MODAL v0.1 analytical case set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_set_id",
+    "claim_ceiling",
+    "units",
+    "rpm_to_rad_s",
+    "warning",
+    "common_assumptions",
+    "cases",
+    "metamorphic_relations",
+    "negative_controls"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "artgrav-prestress-cases/0.1"
+    },
+    "case_set_id": {
+      "const": "ARTGRAV-PRESTRESS-MODAL-v0.1"
+    },
+    "claim_ceiling": {
+      "const": "ANALYTIC_SYNTHETIC_VERIFICATION_ONLY"
+    },
+    "units": {
+      "const": "SI"
+    },
+    "rpm_to_rad_s": {
+      "const": "omega = 2*pi*rpm/60"
+    },
+    "warning": {
+      "type": "string",
+      "minLength": 40
+    },
+    "common_assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "metamorphic_relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/negativeControl"
+      }
+    }
+  },
+  "$defs": {
+    "positiveNumber": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "finiteNumber": {
+      "type": "number"
+    },
+    "ringInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "density_kg_m3",
+        "youngs_modulus_pa",
+        "radius_m",
+        "rpm"
+      ],
+      "properties": {
+        "density_kg_m3": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "youngs_modulus_pa": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "radius_m": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rpm": {
+          "$ref": "#/$defs/finiteNumber"
+        }
+      }
+    },
+    "spokeInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "density_kg_m3",
+        "youngs_modulus_pa",
+        "radius_m",
+        "rpm",
+        "area_m2",
+        "sample_radii_m"
+      ],
+      "properties": {
+        "density_kg_m3": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "youngs_modulus_pa": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "radius_m": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "rpm": {
+          "$ref": "#/$defs/finiteNumber"
+        },
+        "area_m2": {
+          "$ref": "#/$defs/positiveNumber"
+        },
+        "sample_radii_m": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "ringExpected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "omega_rad_s",
+        "hoop_stress_pa",
+        "hoop_strain",
+        "radial_extension_m"
+      ],
+      "properties": {
+        "omega_rad_s": {
+          "type": "number"
+        },
+        "hoop_stress_pa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hoop_strain": {
+          "type": "number",
+          "minimum": 0
+        },
+        "radial_extension_m": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "spokeSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius_m",
+        "axial_force_n",
+        "axial_stress_pa"
+      ],
+      "properties": {
+        "radius_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "axial_force_n": {
+          "type": "number",
+          "minimum": 0
+        },
+        "axial_stress_pa": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "spokeExpected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "omega_rad_s",
+        "root_axial_force_n",
+        "root_stress_pa",
+        "tip_extension_m",
+        "samples"
+      ],
+      "properties": {
+        "omega_rad_s": {
+          "type": "number"
+        },
+        "root_axial_force_n": {
+          "type": "number",
+          "minimum": 0
+        },
+        "root_stress_pa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tip_extension_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/spokeSample"
+          }
+        }
+      }
+    },
+    "case": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "case_id",
+            "model",
+            "description",
+            "input",
+            "expected"
+          ],
+          "properties": {
+            "case_id": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+            },
+            "model": {
+              "const": "THIN_UNIFORM_RING"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 5
+            },
+            "input": {
+              "$ref": "#/$defs/ringInput"
+            },
+            "expected": {
+              "$ref": "#/$defs/ringExpected"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "case_id",
+            "model",
+            "description",
+            "input",
+            "expected"
+          ],
+          "properties": {
+            "case_id": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]*$"
+            },
+            "model": {
+              "const": "UNIFORM_RADIAL_SPOKE"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 5
+            },
+            "input": {
+              "$ref": "#/$defs/spokeInput"
+            },
+            "expected": {
+              "$ref": "#/$defs/spokeExpected"
+            }
+          }
+        }
+      ]
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "left_case",
+        "right_case",
+        "observable",
+        "expected_ratio"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "left_case": {
+          "type": "string",
+          "minLength": 1
+        },
+        "right_case": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observable": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "negativeControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "model",
+        "mutation",
+        "expected_disposition",
+        "reason"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "enum": [
+            "THIN_UNIFORM_RING",
+            "UNIFORM_RADIAL_SPOKE"
+          ]
+        },
+        "mutation": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "density_kg_m3": {
+              "type": [
+                "number",
+                "string"
+              ]
+            },
+            "youngs_modulus_pa": {
+              "type": [
+                "number",
+                "string"
+              ]
+            },
+            "radius_m": {
+              "type": [
+                "number",
+                "string"
+              ]
+            },
+            "rpm": {
+              "type": [
+                "number",
+                "string"
+              ]
+            },
+            "area_m2": {
+              "type": [
+                "number",
+                "string"
+              ]
+            },
+            "sample_radii_m": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "enabled_physics": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "expected_disposition": {
+          "enum": [
+            "REJECT",
+            "UNRESOLVED"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
