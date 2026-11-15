@@ -1,0 +1,70 @@
+name: Exact-rational operator spectrum oracle
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "research/metric-induced-error-envelope-001/**"
+      - "research/operator-spectrum-oracle-001/**"
+      - ".github/workflows/operator-spectrum-exact-oracle.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/metric-induced-error-envelope-001/**"
+      - "research/operator-spectrum-oracle-001/**"
+      - ".github/workflows/operator-spectrum-exact-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operator-spectrum-exact-oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-rational-calibration:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Record checked-out source identity
+        run: echo "OPERATOR_ORACLE_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Install pinned exact-rational oracle
+        run: python3 -m pip install --disable-pip-version-check sympy==1.14.0
+      - name: Verify frozen fixture against exact rational root isolation
+        run: python3 research/operator-spectrum-oracle-001/operator_spectrum_oracle.py --input research/operator-spectrum-oracle-001/operator-spectrum-inputs-v0.1.json --check-fixture
+      - name: Format
+        run: cargo fmt --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all -- --check
+      - name: Test all metric and operator contracts
+        run: cargo test --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --all-targets -- -D warnings
+      - name: Emit candidate square and rectangular SVD receipts
+        run: cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --bin operator-spectrum-probe -- "$RUNNER_TEMP/operator-spectrum-candidate.json"
+      - name: Compare Rust receipts with exact-rational oracle
+        run: |
+          python3 research/operator-spectrum-oracle-001/operator_spectrum_oracle.py \
+            --input research/operator-spectrum-oracle-001/operator-spectrum-inputs-v0.1.json \
+            --candidate "$RUNNER_TEMP/operator-spectrum-candidate.json" \
+            --oracle-output "$RUNNER_TEMP/operator-spectrum-oracle.json" \
+            --validation-output "$RUNNER_TEMP/operator-spectrum-validation.json" \
+            --source-commit "$OPERATOR_ORACLE_SOURCE_SHA"
+      - name: Upload exact oracle and candidate receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-spectrum-exact-oracle-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/operator-spectrum-candidate.json
+            ${{ runner.temp }}/operator-spectrum-oracle.json
+            ${{ runner.temp }}/operator-spectrum-validation.json
+          if-no-files-found: error

@@ -14,4 +14,8 @@ path = "src/lib.rs"
 name = "metric-induced-microbenchmark"
 path = "src/bin/metric_microbenchmark.rs"
 
+[[bin]]
+name = "operator-spectrum-probe"
+path = "src/bin/operator_spectrum_probe.rs"
+
 [workspace]
