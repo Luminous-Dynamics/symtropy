@@ -190,6 +190,8 @@
         "robust_comparison": "PROTECT-ROBUST-001 #5317"
       },
       "synthetic_state": {
+        "mandatory_human_safety_floor": "PASS",
+        "service_floor_status": "PASS",
         "epistemic_uncertainty": "REDUCED",
         "feasible_set_changed": false,
         "selected_portfolio_changed": false,
