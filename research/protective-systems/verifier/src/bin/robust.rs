@@ -1,8 +1,7 @@
 use protective_systems_verifier::robust::{parse_problem, run};
 use std::{env, fs, process};
 
-const EMBEDDED: &str =
-    include_str!("../../../robust/fixtures/finite-ambiguity-v0.1.json");
+const EMBEDDED: &str = include_str!("../../../robust/fixtures/finite-ambiguity-v0.1.json");
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
@@ -34,7 +33,10 @@ fn main() {
             process::exit(2);
         }
     };
-    println!("{}", serde_json::to_string_pretty(&report).expect("serialize report"));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report).expect("serialize report")
+    );
     if !report.oracle_matches_fixture {
         process::exit(1);
     }
