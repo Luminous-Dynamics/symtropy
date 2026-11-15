@@ -1,0 +1,352 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-RATIO-ESTIMAND-001",
+  "evidence_class": "synthetic_known_truth",
+  "claim_ceiling": "This corpus tests plot-paired ratio arithmetic, aggregation estimands and a first-order delta-method uncertainty approximation. It is synthetic known-truth evidence only. It does not reproduce AFEX raw plot-level data, the 2026 paper's mixed models, a Fieller interval, exact coverage, or empirical treatment effects.",
+  "source": {
+    "paper_doi": "10.1007/s11104-026-08303-2",
+    "paper_url": "https://link.springer.com/article/10.1007/s11104-026-08303-2",
+    "turnover_definition": "plot-level annual productivity divided by plot-level stock",
+    "stock_data_access": "AVAILABLE_FROM_CORRESPONDING_AUTHOR_ON_REASONABLE_REQUEST",
+    "raw_plot_data_ingested": false
+  },
+  "estimand_contract": {
+    "period": "year2",
+    "stock_date": "2019-09",
+    "productivity_start": "2018-09",
+    "productivity_end": "2019-09",
+    "depth_cm": [
+      0,
+      30
+    ],
+    "stock_unit": "Mg C ha-1",
+    "productivity_unit": "Mg C ha-1 yr-1",
+    "treatment_assignment_unit": "plot",
+    "independent_sample_unit": "plot",
+    "mean_plot_turnover": "arithmetic mean of each matched plot productivity / stock",
+    "pooled_ratio_of_sums": "sum(productivity across plots) / sum(stock across plots)",
+    "mean_plot_lifespan_days": "arithmetic mean of 365.25 / each positive plot turnover",
+    "inverse_mean_turnover_days": "365.25 / arithmetic mean of plot turnover",
+    "ratio_of_means_uncertainty": "first-order delta method using sample stock variance, productivity variance and paired covariance; approximate only"
+  },
+  "tolerances": {
+    "absolute": 1e-9,
+    "variance_absolute": 1e-9
+  },
+  "expected_case_count": 3,
+  "cases": [
+    {
+      "case_id": "PERFECT_POSITIVE_PAIRING",
+      "comparison_group": "SAME_MARGINALS_DIFFERENT_PLOT_PAIRING",
+      "period": "year2",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "treatment_id": "N0-P0-C0",
+      "observations": [
+        {
+          "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+          "block_id": "B1",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 1,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 2,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        },
+        {
+          "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+          "block_id": "B2",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 2,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 4,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        },
+        {
+          "plot_id": "AFEX-RATIO-B3-N0-P0-C0",
+          "block_id": "B3",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B3-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 3,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B3-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 6,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        },
+        {
+          "plot_id": "AFEX-RATIO-B4-N0-P0-C0",
+          "block_id": "B4",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B4-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 4,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B4-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 8,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        }
+      ],
+      "expected_disposition": "ESTIMAND_SUMMARY_VALID",
+      "expected_summary": {
+        "mean_stock": 2.5,
+        "mean_productivity": 5,
+        "stock_sample_variance": 1.6666666666666667,
+        "productivity_sample_variance": 6.666666666666667,
+        "sample_covariance": 3.3333333333333335,
+        "mean_plot_turnover": 2,
+        "pooled_ratio_of_sums": 2,
+        "mean_plot_lifespan_days": 182.625,
+        "inverse_mean_turnover_days": 182.625,
+        "mean_plot_turnover_standard_error": 0,
+        "mean_plot_lifespan_standard_error": 0,
+        "ratio_of_means_delta_variance": 0,
+        "ratio_of_means_delta_standard_error": 0
+      }
+    },
+    {
+      "case_id": "SAME_MARGINALS_OPPOSITE_PAIRING",
+      "comparison_group": "SAME_MARGINALS_DIFFERENT_PLOT_PAIRING",
+      "period": "year2",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "treatment_id": "N0-P0-C0",
+      "observations": [
+        {
+          "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+          "block_id": "B1",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 1,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 8,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        },
+        {
+          "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+          "block_id": "B2",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 2,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 6,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        },
+        {
+          "plot_id": "AFEX-RATIO-B3-N0-P0-C0",
+          "block_id": "B3",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B3-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 3,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B3-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 4,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        },
+        {
+          "plot_id": "AFEX-RATIO-B4-N0-P0-C0",
+          "block_id": "B4",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B4-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 4,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B4-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 2,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        }
+      ],
+      "expected_disposition": "ESTIMAND_SUMMARY_VALID",
+      "expected_summary": {
+        "mean_stock": 2.5,
+        "mean_productivity": 5,
+        "stock_sample_variance": 1.6666666666666667,
+        "productivity_sample_variance": 6.666666666666667,
+        "sample_covariance": -3.3333333333333335,
+        "mean_plot_turnover": 3.2083333333333335,
+        "pooled_ratio_of_sums": 2,
+        "mean_plot_lifespan_days": 292.9609375,
+        "inverse_mean_turnover_days": 113.84415584415584,
+        "mean_plot_turnover_standard_error": 1.679637030895531,
+        "mean_plot_lifespan_standard_error": 153.37185638364818,
+        "ratio_of_means_delta_variance": 1.0666666666666669,
+        "ratio_of_means_delta_standard_error": 1.0327955589886446
+      }
+    },
+    {
+      "case_id": "UNMATCHED_NUMERATOR_DENOMINATOR_REFUSED",
+      "comparison_group": "INVALID_SUPPORT",
+      "period": "year2",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "treatment_id": "N0-P0-C0",
+      "observations": [
+        {
+          "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+          "block_id": "B1",
+          "treatment_id": "N0-P0-C0",
+          "stock": {
+            "plot_id": "AFEX-RATIO-B1-N0-P0-C0",
+            "date": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 1,
+            "unit": "Mg C ha-1"
+          },
+          "productivity": {
+            "plot_id": "AFEX-RATIO-B2-N0-P0-C0",
+            "start": "2018-09",
+            "end": "2019-09",
+            "depth_cm": [
+              0,
+              30
+            ],
+            "value": 2,
+            "unit": "Mg C ha-1 yr-1"
+          }
+        }
+      ],
+      "expected_disposition": "SUPPORT_MISMATCH_REFUSED"
+    }
+  ],
+  "comparison_oracle": {
+    "case_a": "PERFECT_POSITIVE_PAIRING",
+    "case_b": "SAME_MARGINALS_OPPOSITE_PAIRING",
+    "expected_equal_marginal_means_and_variances": true,
+    "expected_opposite_covariance_signs": true,
+    "expected_different_mean_plot_turnover": true,
+    "expected_equal_pooled_ratio_of_sums": true,
+    "expected_different_delta_variance": true
+  }
+}
