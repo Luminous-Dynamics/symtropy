@@ -182,7 +182,7 @@ impl fmt::Display for GraphError {
             Self::NonFinitePosition => write!(f, "node position must be finite"),
             Self::NonPositiveSegmentLength => {
                 write!(f, "segment length must be finite and positive")
-            },
+            }
             Self::InvalidDiameter => write!(f, "diameter must be finite and positive when present"),
             Self::ZeroLengthGeometry => write!(f, "event would create zero-length geometry"),
             Self::SegmentEndpointsEqual => write!(f, "segment endpoints must be distinct"),
@@ -195,7 +195,7 @@ impl fmt::Display for GraphError {
             Self::MissingSegment(id) => write!(f, "segment {:?} does not exist", id),
             Self::InvalidAttachmentFraction => {
                 write!(f, "branch attachment fraction must be inside (0, 1)")
-            },
+            }
             Self::NotActiveTip(id) => write!(f, "node {:?} is not an active tip", id),
             Self::InactiveTargetSegment(id) => {
                 write!(f, "target segment {:?} is inactive", id)
@@ -206,7 +206,7 @@ impl fmt::Display for GraphError {
             Self::SameFusionTip => write!(f, "fusion requires two distinct tips"),
             Self::EventIdConflict(id) => {
                 write!(f, "event ID {:?} was reused with a different payload", id)
-            },
+            }
         }
     }
 }
@@ -993,10 +993,7 @@ mod tests {
             graph.node(NodeId(3)).unwrap().kind,
             HyphalNodeKind::Junction
         );
-        assert_eq!(
-            graph.node(NodeId(4)).unwrap().kind,
-            HyphalNodeKind::Fusion
-        );
+        assert_eq!(graph.node(NodeId(4)).unwrap().kind, HyphalNodeKind::Fusion);
         assert_eq!(graph.segment(SegmentId(2)).unwrap().length_mm, 5.0);
         assert_eq!(graph.segment(SegmentId(3)).unwrap().length_mm, 5.0);
         assert_eq!(graph.segment(SegmentId(4)).unwrap().diameter_mm, None);
