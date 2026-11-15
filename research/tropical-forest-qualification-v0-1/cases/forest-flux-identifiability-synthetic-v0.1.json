@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-FLUX-IDENTIFIABILITY-001",
+  "status": "PUBLIC_SYNTHETIC_STRUCTURAL_IDENTIFIABILITY_NOT_FIELD_VALIDATION",
+  "claim_ceiling": "Exact rational rank and measurement-design enumeration for the declared two-pool observation operator only. This does not establish practical identifiability, noise robustness, empirical field measurement quality, or ecological validity.",
+  "unknown_fluxes": [
+    "growth",
+    "recruitment",
+    "mortality_to_deadwood",
+    "live_export",
+    "decomposition",
+    "deadwood_export"
+  ],
+  "base_observation_operator": [
+    [1, 1, -1, -1, 0, 0],
+    [0, 0, 1, 0, -1, -1]
+  ],
+  "base_observations": [
+    "live_pool_stock_increment",
+    "deadwood_pool_stock_increment"
+  ],
+  "nullspace_witnesses": [
+    [-1, 1, 0, 0, 0, 0],
+    [1, 0, 1, 0, 1, 0],
+    [1, 0, 0, 1, 0, 0],
+    [0, 0, 0, 0, -1, 1]
+  ],
+  "measurement_options": [
+    {
+      "measurement_id": "growth",
+      "synthetic_effort_cost": 2,
+      "row": [1, 0, 0, 0, 0, 0]
+    },
+    {
+      "measurement_id": "recruitment",
+      "synthetic_effort_cost": 4,
+      "row": [0, 1, 0, 0, 0, 0]
+    },
+    {
+      "measurement_id": "mortality",
+      "synthetic_effort_cost": 3,
+      "row": [0, 0, 1, 0, 0, 0]
+    },
+    {
+      "measurement_id": "live_export",
+      "synthetic_effort_cost": 6,
+      "row": [0, 0, 0, 1, 0, 0]
+    },
+    {
+      "measurement_id": "decomposition",
+      "synthetic_effort_cost": 5,
+      "row": [0, 0, 0, 0, 1, 0]
+    },
+    {
+      "measurement_id": "deadwood_export",
+      "synthetic_effort_cost": 5,
+      "row": [0, 0, 0, 0, 0, 1]
+    }
+  ],
+  "cost_semantics": "Synthetic effort units only; not dollars, labour hours, ecological priority, or a real survey budget.",
+  "expected": {
+    "baseline_rank": 2,
+    "baseline_nullity": 4,
+    "independent_nullspace_witness_count": 4,
+    "subset_count": 64,
+    "full_rank_design_count": 18,
+    "minimum_synthetic_effort_cost": 14,
+    "minimum_measurement_count": 4,
+    "optimal_designs": [
+      {
+        "measurement_ids": [
+          "growth",
+          "recruitment",
+          "mortality",
+          "decomposition"
+        ],
+        "measurement_count": 4,
+        "synthetic_effort_cost": 14,
+        "rank": 6,
+        "nullity": 0
+      },
+      {
+        "measurement_ids": [
+          "growth",
+          "recruitment",
+          "mortality",
+          "deadwood_export"
+        ],
+        "measurement_count": 4,
+        "synthetic_effort_cost": 14,
+        "rank": 6,
+        "nullity": 0
+      }
+    ]
+  },
+  "execution": {
+    "runner": "EXACT_RATIONAL_STRUCTURAL_IDENTIFIABILITY",
+    "enumeration": "ALL_OPTIONAL_MEASUREMENT_SUBSETS",
+    "measurement_noise": "NOT_MODELLED",
+    "external_data_ingested": false,
+    "field_design_recommendation": "NOT_ESTABLISHED"
+  }
+}
