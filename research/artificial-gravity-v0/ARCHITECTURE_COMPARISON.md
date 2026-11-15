@@ -98,6 +98,46 @@ First release: exact geometry, units, load-case definitions, source data and bas
 
 Later stretch target: at least 20% lower lifecycle cost or structural/maintenance burden per usable m³-year than the best matched baseline, with no regression in gravity-field quality, reliability, safety margins, repairability or service life. Freeze the metric and target only after baseline uncertainty is quantified. This is a programme target, not a result or industry SOTA claim.
 
+## Historical counter-rotation reference and stability trade
+
+NASA Contractor Report 181617 (June 1988), *Some Operational Aspects of a Rotating Advanced-Technology Space Station for the Year 2025*, is a useful historical engineering comparator:
+
+- The reference design used a 229 m diameter rotating torus and reported 1 g at 2.8 RPM.
+- Its torus/ring cross-section was 15.3 m and the report's mass table listed about 2.27 × 10^6 kg total torus mass.
+- It considered counter-rotating water-storage tanks to reduce the station's net angular momentum and gyroscopic torquing requirements.
+- The report also notes that reducing gyroscopic properties reduced inertial stability, making the station more responsive to gravity-gradient and aerodynamic torques.
+
+NASA source: https://ntrs.nasa.gov/api/citations/19880017013/downloads/19880017013.pdf (NASA-CR-181617).
+
+This is a 1988 concept study, not modern flight-qualified hardware or a current SOTA design. Its enduring lesson is methodological: net angular momentum, gyroscopic stability, attitude-control authority, response to environmental torques, and stored rotational energy are separate quantities. Counter-rotation can reduce net angular momentum while increasing stored energy, adding bearings/interfaces, and changing passive stability.
+
+The axial scalar reference oracle in this programme covers only same-axis signed momentum and kinetic energy. It is not a substitute for 3D anisotropic inertia, SO(3) dynamics, environmental torque, nutation/precession, wobble damping or spacecraft attitude control. Those must reuse and pass the existing Symtropy rotational-dynamics owners before an architecture-level claim is made.
+
+## Axial momentum reference fixture
+
+The Rust reference functions and matrix executable implement:
+
+\[
+H_z = \sum_i I_i \omega_i,\qquad
+E_{rot} = \frac{1}{2}\sum_i I_i\omega_i^2
+\]
+
+with signed omega for direction. For two coaxial modules, ideal zero-net-momentum cancellation requires:
+
+\[
+\omega_2 = -\frac{I_1}{I_2}\omega_1
+\]
+
+The fixture at fixtures/rotor_balance_matrix.csv varies counter-rotor inertia ratio and 90%, 100%, and 110% of the ideal cancellation speed. It intentionally shows that zero net momentum does not imply zero stored rotational energy. The values are independent analytic reference values, not output captured from a compiled Rust binary.
+
+Run the generator with:
+
+~~~bash
+cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --bin rotor_balance_matrix
+~~~
+
+Follow-on owner: ARTGRAV-ATTITUDE-001 (#5291), which consumes the existing frame-aware inertia and momentum-map work instead of duplicating a generic rigid-body solver.
+
 ## Evidence gate and handoff
 
 - Symtropy owns physical simulation, numerical qualification and model-to-test comparisons.
