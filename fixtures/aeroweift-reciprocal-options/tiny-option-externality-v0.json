@@ -1,0 +1,313 @@
+{
+  "schema_id": "aeroweift.reciprocal-options.synthetic-fixture.v0",
+  "fixture_id": "AW-RO-TRAP-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Finite discrete allocation and observation-equivalence fixture; not an aircraft model, physical reachability result, separation result, authorization, or continuous-time viability certificate.",
+  "timebase": {
+    "kind": "synthetic-integer-ticks",
+    "unit": "tick",
+    "epoch": "fixture-local-zero",
+    "intervals": "half-open"
+  },
+  "scenario": {
+    "decision_tick": 0,
+    "horizon_end_tick": 30,
+    "weather_branch_family_id": "AW-RO-WEATHER-PAIR-001",
+    "world_branches": [
+      {
+        "id": "clear",
+        "admissible": true,
+        "probability": null,
+        "weather": "synthetic-clear"
+      },
+      {
+        "id": "gust",
+        "admissible": true,
+        "probability": null,
+        "weather": "synthetic-gust"
+      }
+    ],
+    "delivered_observations": [
+      {
+        "id": "obs-initial-wind-unknown",
+        "delivered_at_tick": 0,
+        "recipients": [
+          "aircraft-a",
+          "aircraft-b"
+        ],
+        "payload": {
+          "wind_state": "unknown"
+        },
+        "same_payload_in_world_branches": [
+          "clear",
+          "gust"
+        ]
+      }
+    ],
+    "nonanticipativity": {
+      "branch_selection_by_hidden_world_id": false,
+      "policies_must_be_identical_for_same_delivered_observation_history": true
+    }
+  },
+  "resources": [
+    {
+      "id": "shared-crossing",
+      "kind": "synthetic-4d-resource",
+      "capacity": 1,
+      "reserved_window": {
+        "start_tick": 10,
+        "end_tick": 12
+      },
+      "applies_in_world_branches": [
+        "clear",
+        "gust"
+      ]
+    },
+    {
+      "id": "wide-bypass",
+      "kind": "synthetic-4d-resource",
+      "capacity": 1,
+      "reserved_window": {
+        "start_tick": 12,
+        "end_tick": 18
+      },
+      "applies_in_world_branches": [
+        "clear",
+        "gust"
+      ]
+    },
+    {
+      "id": "destination-pad",
+      "kind": "synthetic-landing-resource",
+      "capacity": 1,
+      "available_window": {
+        "start_tick": 20,
+        "end_tick": 28
+      },
+      "note": "Capacity is checked on each exact half-open claim interval."
+    }
+  ],
+  "aircraft": [
+    {
+      "id": "aircraft-a",
+      "profile_id": "synthetic-flexible-profile-a",
+      "model_applicability": "synthetic-fixture-only",
+      "mission_deadline_tick": 28,
+      "continuation_domain": [
+        "route-a-crossing",
+        "route-a-bypass"
+      ],
+      "allowed_world_branches": [
+        "clear",
+        "gust"
+      ]
+    },
+    {
+      "id": "aircraft-b",
+      "profile_id": "synthetic-constrained-profile-b",
+      "model_applicability": "synthetic-fixture-only",
+      "mission_deadline_tick": 23,
+      "continuation_domain": [
+        "route-b-crossing"
+      ],
+      "allowed_world_branches": [
+        "clear",
+        "gust"
+      ]
+    }
+  ],
+  "route_options": [
+    {
+      "id": "route-a-crossing",
+      "aircraft_id": "aircraft-a",
+      "resource_claims": [
+        {
+          "resource_id": "shared-crossing",
+          "start_tick": 10,
+          "end_tick": 12
+        },
+        {
+          "resource_id": "destination-pad",
+          "start_tick": 20,
+          "end_tick": 21
+        }
+      ],
+      "arrival_tick_by_world_branch": {
+        "clear": 20,
+        "gust": 20
+      },
+      "feasible_in_world_branches": [
+        "clear",
+        "gust"
+      ]
+    },
+    {
+      "id": "route-a-bypass",
+      "aircraft_id": "aircraft-a",
+      "resource_claims": [
+        {
+          "resource_id": "wide-bypass",
+          "start_tick": 12,
+          "end_tick": 18
+        },
+        {
+          "resource_id": "destination-pad",
+          "start_tick": 24,
+          "end_tick": 27
+        }
+      ],
+      "arrival_tick_by_world_branch": {
+        "clear": 24,
+        "gust": 26
+      },
+      "feasible_in_world_branches": [
+        "clear",
+        "gust"
+      ],
+      "note": "Arrival varies by branch but remains before the mission deadline in both."
+    },
+    {
+      "id": "route-b-crossing",
+      "aircraft_id": "aircraft-b",
+      "resource_claims": [
+        {
+          "resource_id": "shared-crossing",
+          "start_tick": 10,
+          "end_tick": 12
+        },
+        {
+          "resource_id": "destination-pad",
+          "start_tick": 22,
+          "end_tick": 23
+        }
+      ],
+      "arrival_tick_by_world_branch": {
+        "clear": 22,
+        "gust": 22
+      },
+      "feasible_in_world_branches": [
+        "clear",
+        "gust"
+      ]
+    }
+  ],
+  "candidate_schedules": [
+    {
+      "id": "fifo-greedy",
+      "policy_class": "first-come-first-served-reference",
+      "decisions_by_agent": {
+        "aircraft-a": {
+          "action_id": "route-a-crossing"
+        },
+        "aircraft-b": {
+          "action_id": "unserved-before-deadline"
+        }
+      },
+      "expected": {
+        "robust_options_by_agent": {
+          "aircraft-a": [
+            "route-a-crossing"
+          ],
+          "aircraft-b": []
+        },
+        "joint_mission_completion": false,
+        "hard_resource_violations": 0,
+        "explanation": "The first request consumes aircraft-b's only crossing resource-time option."
+      }
+    },
+    {
+      "id": "reciprocal-option-preserving",
+      "policy_class": "matched-counterfactual-alternative",
+      "decisions_by_agent": {
+        "aircraft-a": {
+          "action_id": "route-a-bypass"
+        },
+        "aircraft-b": {
+          "action_id": "route-b-crossing"
+        }
+      },
+      "expected": {
+        "robust_options_by_agent": {
+          "aircraft-a": [
+            "route-a-bypass"
+          ],
+          "aircraft-b": [
+            "route-b-crossing"
+          ]
+        },
+        "joint_mission_completion": true,
+        "hard_resource_violations": 0,
+        "explanation": "Aircraft-a uses its bypass so aircraft-b retains its only feasible crossing allocation."
+      }
+    },
+    {
+      "id": "clairvoyant-negative-control",
+      "policy_class": "invalid-hidden-state-conditioned-reference",
+      "decisions_by_agent_by_world_branch": {
+        "clear": {
+          "aircraft-a": "route-a-crossing"
+        },
+        "gust": {
+          "aircraft-a": "route-a-bypass"
+        }
+      },
+      "expected": {
+        "admissible": false,
+        "rejection": "clairvoyant-policy",
+        "explanation": "The two world branches share the same delivered observation history at the decision point; choosing different actions using hidden branch identity is forbidden."
+      },
+      "scope_aircraft_ids": [
+        "aircraft-a"
+      ]
+    }
+  ],
+  "paired_counterfactual": {
+    "intervention": "replace-aircraft-a-crossing-with-aircraft-a-bypass",
+    "unchanged": [
+      "world-branch-family",
+      "delivered-observation-history",
+      "aircraft-profiles",
+      "mission-deadlines",
+      "resource-capacities",
+      "aircraft-b-request"
+    ],
+    "option_measure": {
+      "aircraft_id": "aircraft-b",
+      "kind": "cardinality-over-frozen-route-domain",
+      "baseline_count": 0,
+      "counterfactual_count": 1,
+      "delta": 1,
+      "units": "route-options"
+    },
+    "causal_label": "single-allocation-controlled-contrast",
+    "note": "This is a synthetic finite-domain count, not a physical safety margin or universal measure of maneuverability."
+  },
+  "oracle_expectations": {
+    "enumeration_required": true,
+    "implementation_must_not_call_oracle": true,
+    "expected_weather_branches": [
+      "clear",
+      "gust"
+    ],
+    "expected_aircraft": [
+      "aircraft-a",
+      "aircraft-b"
+    ],
+    "expected_route_options": [
+      "route-a-crossing",
+      "route-a-bypass",
+      "route-b-crossing"
+    ],
+    "expected_invariants": [
+      "No resource claim exceeds declared capacity over any time slice.",
+      "No route option outside an aircraft's frozen continuation domain is admitted.",
+      "The FIFO candidate cannot complete both missions.",
+      "The reciprocal candidate completes both missions in every declared world branch.",
+      "Aircraft-b gains exactly one robust route option in the paired counterfactual.",
+      "The clairvoyant negative control is rejected.",
+      "Renaming IDs or permuting array order does not change semantic outcomes."
+    ]
+  }
+}
