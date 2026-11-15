@@ -106,6 +106,8 @@ pub struct ServiceObservation {
     pub source_sequence: u64,
     /// Provider/service epoch.
     pub epoch: u64,
+    /// Exact service/configuration identity to which this observation applies.
+    pub service_scope_sha256: String,
     /// Exact recovery/configuration snapshot digest.
     pub snapshot_sha256: String,
     /// Whether source-feed coverage is complete for this observation.
@@ -118,6 +120,8 @@ pub struct ServiceObservation {
     pub failure_domain_ids: Vec<String>,
     /// Owner receipt qualifying the failure-domain declaration.
     pub failure_domain_receipt_sha256: Option<String>,
+    /// Service-scope digest bound by the failure-domain receipt.
+    pub failure_domain_scope_sha256: Option<String>,
 }
 
 /// Minimum qualified provider and failure-domain diversity for a capability.
@@ -291,6 +295,8 @@ pub struct ProviderAssessment {
     pub state: ServiceEvidenceState,
     /// Declared failure-domain identities.
     pub failure_domain_ids: Vec<String>,
+    /// Whether failure-domain identities are receipt-bound to this exact service scope.
+    pub failure_domain_identity_qualified: bool,
 }
 
 /// One capability's status for a flight.
@@ -339,6 +345,8 @@ pub struct ResiliencePolicy {
 pub enum ResilienceError {
     /// Policy identity is malformed.
     InvalidPolicy,
+    /// Effective or knowledge cutoff is invalid.
+    InvalidCutoff,
     /// Flight scope, digest, requirements or IDs are malformed.
     InvalidFlightScope,
     /// A requirement is duplicated or has impossible redundancy floors.
@@ -401,6 +409,7 @@ fn validate_flight_scope(scope: &FlightScope) -> Result<(), ResilienceError> {
                 .required_neighbor_flight_ids
                 .contains(&notification.neighbor_flight_id)
             || notification.flight_scope_sha256 != scope.flight_scope_sha256
+            || notification.recorded_at < 0
             || !is_sha256(&notification.receipt_sha256)
             || !notified.insert(notification.neighbor_flight_id.as_str())
         {
@@ -419,9 +428,13 @@ fn validate_observation(observation: &ServiceObservation) -> Result<(), Resilien
         || observation.valid_from > observation.valid_until
         || observation.source_sequence == 0
         || observation.epoch == 0
+        || !is_sha256(&observation.service_scope_sha256)
         || !is_sha256(&observation.snapshot_sha256)
         || !unique_nonempty(&observation.failure_domain_ids)
         || observation.failure_domain_receipt_sha256
+            .as_ref()
+            .is_some_and(|digest| !is_sha256(digest))
+        || observation.failure_domain_scope_sha256
             .as_ref()
             .is_some_and(|digest| !is_sha256(digest))
     {
@@ -481,7 +494,8 @@ fn independent_provider_subset(providers: &[ProviderAssessment]) -> Vec<String> 
         .iter()
         .filter(|provider| {
             provider.state == ServiceEvidenceState::AvailableQualified
-                && !provider.failure_domain_ids.is_empty()
+                && provider.failure_domain_identity_qualified
+            && !provider.failure_domain_ids.is_empty()
         })
         .collect();
     candidates.sort_by(|left, right| left.provider_id.cmp(&right.provider_id));
@@ -523,13 +537,13 @@ fn aggregate_capability(
     let enough_independent =
         independent_provider_ids.len() >= requirement.minimum_independent_providers;
 
-    let status = if enough_qualified && enough_independent {
-        CapabilityStatus::AvailableQualified
-    } else if providers
+    let status = if providers
         .iter()
         .any(|provider| provider.state == ServiceEvidenceState::Conflicting)
     {
         CapabilityStatus::Conflicting
+    } else if enough_qualified && enough_independent {
+        CapabilityStatus::AvailableQualified
     } else if providers
         .iter()
         .any(|provider| provider.state == ServiceEvidenceState::Indeterminate)
@@ -617,6 +631,9 @@ pub fn evaluate_flight(
     if !is_sha256(&policy.policy_sha256) {
         return Err(ResilienceError::InvalidPolicy);
     }
+    if cutoff.effective_at < 0 || cutoff.known_at < 0 {
+        return Err(ResilienceError::InvalidCutoff);
+    }
 
     let relevant_capabilities: BTreeSet<Capability> =
         scope.requirements.iter().map(|item| item.capability).collect();
@@ -668,6 +685,12 @@ pub fn evaluate_flight(
                 provider_id: observation.provider_id.clone(),
                 state: derive_service_state(observation, cutoff),
                 failure_domain_ids: observation.failure_domain_ids.clone(),
+                failure_domain_identity_qualified: observation
+                    .failure_domain_receipt_sha256
+                    .as_ref()
+                    .is_some_and(|digest| is_sha256(digest))
+                    && observation.failure_domain_scope_sha256.as_deref()
+                        == Some(observation.service_scope_sha256.as_str()),
             })
             .collect();
 
