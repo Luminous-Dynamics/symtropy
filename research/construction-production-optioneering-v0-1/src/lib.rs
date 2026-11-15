@@ -47,8 +47,9 @@ impl PerformanceRequirement {
                 self.metric_id.clone(),
             ));
         }
-        if let (Some(minimum), Some(maximum)) = (self.minimum_value, self.maximum_value) {
-            if minimum > maximum {
+        if let (Some(minimum), Some(maximum)) = (self.minimum_value, self.maximum_value)
+            && minimum > maximum
+        {
                 return Err(OptioneeringError::InvalidPerformanceRange(
                     self.metric_id.clone(),
                 ));
@@ -621,8 +622,9 @@ impl OptioneeringError {
                     requirement.metric_id.clone(),
                 )),
                 Some(actual) => {
-                    if let Some(minimum) = requirement.minimum_value {
-                        if actual < &minimum {
+                    if let Some(minimum) = requirement.minimum_value
+                        && actual < &minimum
+                    {
                             failures.push(ScenarioFailure::PerformanceBelowMinimum {
                                 metric_id: requirement.metric_id.clone(),
                                 minimum,
@@ -630,8 +632,9 @@ impl OptioneeringError {
                             });
                         }
                     }
-                    if let Some(maximum) = requirement.maximum_value {
-                        if actual > &maximum {
+                    if let Some(maximum) = requirement.maximum_value
+                        && actual > &maximum
+                    {
                             failures.push(ScenarioFailure::PerformanceAboveMaximum {
                                 metric_id: requirement.metric_id.clone(),
                                 maximum,
