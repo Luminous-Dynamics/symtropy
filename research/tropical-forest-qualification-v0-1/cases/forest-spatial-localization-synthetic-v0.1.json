@@ -182,6 +182,113 @@
         }
       ],
       "purpose": "Expose the bandwidth-versus-local-support trade-off; do not select bandwidth on the test set."
+    },
+    {
+      "case_id": "K_NEAREST_CAP_EXCLUDES_REMOTE_HIGH_RESIDUAL",
+      "bandwidth_m": 50,
+      "alpha": 0.1,
+      "nearest_neighbor_count": 12,
+      "calibration": [
+        {
+          "x_m": 0,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 1,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 2,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 3,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 4,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 5,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 6,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 7,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 8,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 9,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 10,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 11,
+          "y_m": 0,
+          "residual": 0.5,
+          "count": 1
+        },
+        {
+          "x_m": 50,
+          "y_m": 0,
+          "residual": 50,
+          "count": 1
+        }
+      ],
+      "test": [
+        {
+          "x_m": 0,
+          "y_m": 0,
+          "prediction": 100,
+          "observation": 100.5,
+          "count": 1
+        }
+      ],
+      "expected": {
+        "pooled_radius": 50,
+        "local_radius": 0.5,
+        "weighted_calibration_mass": 11.899594505409476,
+        "effective_sample_size": 11.999258479822384,
+        "maximum_normalized_weight": 0.08403647700309508,
+        "selected_neighbor_count": 12,
+        "selected_neighborhood_radius_m": 11,
+        "interval_width": 1,
+        "covered": true
+      },
+      "purpose": "A local k-neighbour cap prevents a distant high-residual calibration record from dominating the local diagnostic; this remains not a validity guarantee."
     }
   ],
   "claim_ceiling": "Synthetic weighting and support diagnostics only. Gaussian proximity is not a density ratio; no finite-sample spatial coverage, conditional validity, field transfer or superiority claim is established.",
