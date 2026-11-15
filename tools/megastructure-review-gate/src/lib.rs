@@ -227,9 +227,9 @@ pub struct ReviewDecision {
 
 fn valid_token(value: &str) -> bool {
     !value.is_empty()
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
 }
 
 fn parse_date(value: &str) -> Option<(u32, u32, u32)> {
@@ -603,7 +603,6 @@ mod tests {
         assert_eq!(result.disposition, Disposition::BlockedHardGate);
         assert_eq!(result.gate_findings.len(), 2);
     }
-
 
     #[test]
     fn deferred_review_without_a_record_is_incomplete() {
