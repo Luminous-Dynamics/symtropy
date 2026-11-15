@@ -872,6 +872,76 @@ mod tests {
         assert!(report.invalidated().contains_key("artifact:resident-view"));
     }
 
+
+    #[test]
+    fn renderer_configuration_change_invalidates_derived_artifact_via_stable_dependency_id() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            Sha256Digest::from_bytes(b"view compiler source"),
+            Sha256Digest::from_bytes(b"view compiler configuration A"),
+            vec!["input:module:inverter".into()],
+            true,
+            b"resident output",
+        ).unwrap();
+        let artifact = receipt.to_change_impact_artifact().unwrap();
+        let mut inputs = receipt.pinned_dependency_fingerprints().unwrap();
+        inputs.push(crate::InputFingerprint::new(
+            "input:module:inverter", "sha256:module:old",
+        ).unwrap());
+        let graph = crate::DependencyGraph::new(inputs, vec![artifact]).unwrap();
+        let change = crate::InputChange::new(
+            "input:generator-configuration:power-fabric-view-compiler",
+            Sha256Digest::from_bytes(b"view compiler configuration A").as_str(),
+            Some(Sha256Digest::from_bytes(b"view compiler configuration B").as_str().into()),
+        ).unwrap();
+        let report = graph.assess(
+            vec![change],
+            built.receipt().compiler_version(),
+            built.receipt().mapping_profile_version(),
+        ).unwrap();
+        assert!(report.invalidated().contains_key("artifact:resident-view"));
+    }
+
+    #[test]
+    fn duplicate_derived_dependency_ids_are_rejected() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        assert!(matches!(
+            crate::DerivedArtifactReceipt::new(
+                built.receipt(),
+                "artifact:resident-view",
+                "revision:resident-view:1",
+                crate::DerivedArtifactKind::ResidentView,
+                "application/json",
+                "power-fabric-view-compiler",
+                "0.1.0",
+                Sha256Digest::from_bytes(b"view compiler source"),
+                Sha256Digest::from_bytes(b"view compiler configuration"),
+                vec!["input:generator-version:power-fabric-view-compiler".into()],
+                true,
+                b"resident output",
+            ),
+            Err(crate::DerivedArtifactReceiptError::DuplicateDependencyId { .. })
+        ));
+    }
+
+
     #[test]
     fn incomplete_derived_artifact_dependencies_fail_closed_in_change_impact() {
         let document = doc(RelationshipDirection::Directed);
