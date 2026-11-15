@@ -1,0 +1,123 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-ROOT-DISTRIBUTION-UQ-001",
+  "evidence_class": "synthetic_analytic_known_truth",
+  "claim_ceiling": "All distributions and dependence coefficients are synthetic. They are not estimated from AFEX raw plot-level observations. The fixture verifies analytic ratio-of-correlated-lognormal formulas only; it does not run Monte Carlo or establish empirical root-turnover uncertainty, ecological treatment effects, causal mechanisms or model calibration.",
+  "measurement_model": {
+    "numerator": {
+      "variable_id": "annual_root_productivity",
+      "distribution": "LOGNORMAL",
+      "median_normalized": 1.2,
+      "log_standard_deviation": 0.15,
+      "reference_unit": "one declared productivity reference unit"
+    },
+    "denominator": {
+      "variable_id": "root_standing_stock",
+      "distribution": "LOGNORMAL",
+      "median_normalized": 1,
+      "log_standard_deviation": 0.1,
+      "reference_unit": "one declared stock reference unit"
+    },
+    "dependence_model": "GAUSSIAN_COPULA_EQUIVALENT_LOGSPACE_CORRELATION",
+    "correlation_is_between": "log(productivity) and log(stock)",
+    "turnover": "productivity / stock",
+    "lifespan_days": "365.25 / turnover",
+    "normalized_coordinate_note": "The MCM and first-order covariance engines require compatible canonical coordinates within a transform. The physical productivity and stock inputs must first pass distinct source/scale transforms to these dimensionless normalized reference coordinates; the physical turnover scale is restored separately as yr-1."
+  },
+  "equations": {
+    "log_turnover_mean": "mu_P - mu_S",
+    "log_turnover_variance": "sigma_P^2 + sigma_S^2 - 2*rho*sigma_P*sigma_S",
+    "turnover_mean": "exp(mu_T + 0.5*variance_T)",
+    "turnover_standard_deviation": "sqrt((exp(variance_T)-1)*exp(2*mu_T+variance_T))",
+    "turnover_quantile": "exp(mu_T + z_q*sqrt(variance_T))",
+    "lifespan_distribution": "365.25 / turnover; lognormal with log-mean log(365.25)-mu_T and same log-variance"
+  },
+  "z_quantiles": {
+    "central_95_lower": -1.959963984540054,
+    "central_95_upper": 1.959963984540054
+  },
+  "cases": [
+    {
+      "scenario_id": "POSITIVE_NUMERATOR_DENOMINATOR_DEPENDENCE",
+      "log_space_correlation": 0.6,
+      "log_turnover_mean": 0.1823215567939546,
+      "log_turnover_variance": 0.0145,
+      "turnover": {
+        "median": 1.2,
+        "mean": 1.2087316138539663,
+        "standard_deviation": 0.1460797785943495,
+        "central_95_interval": [
+          0.9477264624196668,
+          1.5194257595419418
+        ]
+      },
+      "lifespan_days": {
+        "median": 304.375,
+        "mean": 306.58973747233415,
+        "standard_deviation": 37.0525271747126,
+        "central_95_interval": [
+          240.38686833248843,
+          385.3960129671488
+        ]
+      }
+    },
+    {
+      "scenario_id": "EXPLICIT_ZERO_COVARIANCE_ABLATION",
+      "log_space_correlation": 0,
+      "log_turnover_mean": 0.1823215567939546,
+      "log_turnover_variance": 0.0325,
+      "turnover": {
+        "median": 1.2,
+        "mean": 1.2196592992009367,
+        "standard_deviation": 0.22167586468967898,
+        "central_95_interval": [
+          0.8428081091487452,
+          1.7085739735637235
+        ]
+      },
+      "lifespan_days": {
+        "median": 304.375,
+        "mean": 309.36149932857097,
+        "standard_deviation": 56.22715942910087,
+        "central_95_interval": [
+          213.77476518512444,
+          433.3726693362153
+        ]
+      }
+    },
+    {
+      "scenario_id": "NEGATIVE_NUMERATOR_DENOMINATOR_DEPENDENCE",
+      "log_space_correlation": -0.6,
+      "log_turnover_mean": 0.1823215567939546,
+      "log_turnover_variance": 0.0505,
+      "turnover": {
+        "median": 1.2,
+        "mean": 1.2306857776179931,
+        "standard_deviation": 0.2800908440276564,
+        "central_95_interval": [
+          0.7724982243405044,
+          1.8640819546599654
+        ]
+      },
+      "lifespan_days": {
+        "median": 304.375,
+        "mean": 312.1583196353972,
+        "standard_deviation": 71.04387554243156,
+        "central_95_interval": [
+          195.94095586136754,
+          472.81662079135583
+        ]
+      }
+    }
+  ],
+  "execution": {
+    "analytic_reference_calculated_independently": true,
+    "monte_carlo_engine_invoked": false,
+    "monte_carlo_engine_owner_issue": 3973,
+    "first_order_covariance_engine_owner_issue": 4652,
+    "first_order_covariance_engine_pr": 4654,
+    "empirical_marginals_admitted": false,
+    "empirical_covariance_admitted": false
+  }
+}
