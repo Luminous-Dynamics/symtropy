@@ -1,0 +1,310 @@
+{
+  "schema_version": "sensor-observation-contract-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-SENSOR-OBSERVATION-CONTRACT-001",
+  "physical_mass_closure_claim_permitted": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "SOC-T0-001-complete-measured",
+      "expected": {
+        "observation_contract_disposition": "COMPLETE_MEASURED_BOUNDARY",
+        "reason": "ALL_REQUIRED_CHANNELS_MEASURED_CALIBRATED_AND_COMPLETE",
+        "total_channel_count": 4,
+        "measured_channel_count": 4,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "COMPLETE_MEASURED_BOUNDARY",
+        "mass_closure_evidence_permitted": true,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-001-complete-measured"
+      }
+    },
+    {
+      "case_id": "SOC-T0-002-reconstructed-outlet",
+      "expected": {
+        "observation_contract_disposition": "INFERRED_MEASUREMENTS_PRESENT",
+        "reason": "RECONSTRUCTED_OR_IMPUTED_VALUE_CANNOT_CLOSE_PHYSICAL_MASS",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 1,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [
+          "outlet-B"
+        ],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "INFERRED_MEASUREMENTS_PRESENT",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-002-reconstructed-outlet"
+      }
+    },
+    {
+      "case_id": "SOC-T0-003-missing-outlet",
+      "expected": {
+        "observation_contract_disposition": "COMPLETE_MEASURED_BOUNDARY",
+        "reason": "ALL_REQUIRED_CHANNELS_MEASURED_CALIBRATED_AND_COMPLETE",
+        "total_channel_count": 3,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "COMPLETE_MEASURED_BOUNDARY",
+        "mass_closure_evidence_permitted": true,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-003-missing-outlet"
+      }
+    },
+    {
+      "case_id": "SOC-T0-004-confirmed-fault",
+      "expected": {
+        "observation_contract_disposition": "SENSOR_FAULT_UNRESOLVED",
+        "reason": "FAULTED_OR_UNHEALTHY_CHANNEL_CANNOT_CLOSE_PHYSICAL_MASS",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 1,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [
+          "outlet-A"
+        ],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "SENSOR_FAULT_UNRESOLVED",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-004-confirmed-fault"
+      }
+    },
+    {
+      "case_id": "SOC-T0-005-suspected-drift",
+      "expected": {
+        "observation_contract_disposition": "SENSOR_FAULT_UNRESOLVED",
+        "reason": "FAULTED_OR_UNHEALTHY_CHANNEL_CANNOT_CLOSE_PHYSICAL_MASS",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 1,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [
+          "outlet-B"
+        ],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "SENSOR_FAULT_UNRESOLVED",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-005-suspected-drift"
+      }
+    },
+    {
+      "case_id": "SOC-T0-006-expired-calibration",
+      "expected": {
+        "observation_contract_disposition": "CALIBRATION_UNRESOLVED",
+        "reason": "CALIBRATION_NOT_CURRENT",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 1,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "CALIBRATION_UNRESOLVED",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-006-expired-calibration"
+      }
+    },
+    {
+      "case_id": "SOC-T0-007-clock-uncertain",
+      "expected": {
+        "observation_contract_disposition": "CLOCK_UNRESOLVED",
+        "reason": "CHANNEL_CLOCK_NOT_SYNCHRONIZED",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 1,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "CLOCK_UNRESOLVED",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-007-clock-uncertain"
+      }
+    },
+    {
+      "case_id": "SOC-T0-008-truncated-tail",
+      "expected": {
+        "observation_contract_disposition": "TEMPORAL_WINDOW_INCOMPLETE",
+        "reason": "ONE_OR_MORE_CHANNEL_WINDOWS_OR_TAILS_INCOMPLETE",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 1,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "TEMPORAL_WINDOW_INCOMPLETE",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-008-truncated-tail"
+      }
+    },
+    {
+      "case_id": "SOC-T0-009-stuck-sensor",
+      "expected": {
+        "observation_contract_disposition": "SENSOR_FAULT_UNRESOLVED",
+        "reason": "FAULTED_OR_UNHEALTHY_CHANNEL_CANNOT_CLOSE_PHYSICAL_MASS",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 1,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [
+          "outlet-A"
+        ],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "SENSOR_FAULT_UNRESOLVED",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-009-stuck-sensor"
+      }
+    },
+    {
+      "case_id": "SOC-T0-010-invalid-digest",
+      "expected": {
+        "observation_contract_disposition": "PROVENANCE_INVALID",
+        "reason": "RAW_CALIBRATION_OR_CLOCK_DIGEST_INVALID",
+        "total_channel_count": 4,
+        "measured_channel_count": 3,
+        "inferred_channel_count": 0,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [
+          "outlet-B"
+        ],
+        "mass_closure_evidence_state": "PROVENANCE_INVALID",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-010-invalid-digest"
+      }
+    },
+    {
+      "case_id": "SOC-T0-011-all-inferred",
+      "expected": {
+        "observation_contract_disposition": "INFERRED_MEASUREMENTS_PRESENT",
+        "reason": "RECONSTRUCTED_OR_IMPUTED_VALUE_CANNOT_CLOSE_PHYSICAL_MASS",
+        "total_channel_count": 4,
+        "measured_channel_count": 0,
+        "inferred_channel_count": 4,
+        "missing_channel_count": 0,
+        "faulted_channel_count": 0,
+        "unresolved_calibration_count": 0,
+        "unresolved_clock_count": 0,
+        "incomplete_window_count": 0,
+        "inferred_channel_ids": [
+          "inlet-A",
+          "inlet-B",
+          "outlet-A",
+          "outlet-B"
+        ],
+        "missing_channel_ids": [],
+        "faulted_channel_ids": [],
+        "invalid_provenance_channel_ids": [],
+        "mass_closure_evidence_state": "INFERRED_MEASUREMENTS_PRESENT",
+        "mass_closure_evidence_permitted": false,
+        "physical_mass_closure_claim_permitted": false,
+        "imputation_counted_as_observed": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "source_case_id": "SOC-T0-011-all-inferred"
+      }
+    }
+  ]
+}
