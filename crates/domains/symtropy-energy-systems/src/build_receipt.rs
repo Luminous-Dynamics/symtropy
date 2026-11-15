@@ -104,6 +104,8 @@ pub struct BuildMetadata {
     compiler_id: String,
     compiler_version: String,
     toolchain_fingerprint: String,
+    compiler_source_digest: Sha256Digest,
+    build_configuration_digest: Sha256Digest,
     dependency_lock_digest: Sha256Digest,
     standard_profiles: Vec<StandardProfilePin>,
     upstream_artifacts: Vec<UpstreamArtifactPin>,
@@ -113,6 +115,8 @@ impl BuildMetadata {
         compiler_id: impl Into<String>,
         compiler_version: impl Into<String>,
         toolchain_fingerprint: impl Into<String>,
+        compiler_source_digest: Sha256Digest,
+        build_configuration_digest: Sha256Digest,
         dependency_lock_digest: Sha256Digest,
         mut standard_profiles: Vec<StandardProfilePin>,
         mut upstream_artifacts: Vec<UpstreamArtifactPin>,
@@ -133,11 +137,13 @@ impl BuildMetadata {
         if upstream_artifacts.windows(2).any(|pair| pair[0].artifact_id == pair[1].artifact_id && pair[0].revision_id == pair[1].revision_id) {
             return Err(BuildReceiptError::DuplicateUpstreamArtifactPin);
         }
-        Ok(Self { compiler_id, compiler_version, toolchain_fingerprint, dependency_lock_digest, standard_profiles, upstream_artifacts })
+        Ok(Self { compiler_id, compiler_version, toolchain_fingerprint, compiler_source_digest, build_configuration_digest, dependency_lock_digest, standard_profiles, upstream_artifacts })
     }
     pub fn compiler_id(&self) -> &str { &self.compiler_id }
     pub fn compiler_version(&self) -> &str { &self.compiler_version }
     pub fn toolchain_fingerprint(&self) -> &str { &self.toolchain_fingerprint }
+    pub fn compiler_source_digest(&self) -> &Sha256Digest { &self.compiler_source_digest }
+    pub fn build_configuration_digest(&self) -> &Sha256Digest { &self.build_configuration_digest }
     pub fn dependency_lock_digest(&self) -> &Sha256Digest { &self.dependency_lock_digest }
     pub fn standard_profiles(&self) -> &[StandardProfilePin] { &self.standard_profiles }
     pub fn upstream_artifacts(&self) -> &[UpstreamArtifactPin] { &self.upstream_artifacts }
@@ -151,6 +157,8 @@ pub struct PowerFabricBuildReceipt {
     compiler_id: String,
     compiler_version: String,
     toolchain_fingerprint: String,
+    compiler_source_digest: Sha256Digest,
+    build_configuration_digest: Sha256Digest,
     dependency_lock_digest: Sha256Digest,
     source_document_id: String,
     source_document_revision_id: String,
@@ -186,6 +194,8 @@ impl PowerFabricBuildReceipt {
             compiler_id: &metadata.compiler_id,
             compiler_version: &metadata.compiler_version,
             toolchain_fingerprint: &metadata.toolchain_fingerprint,
+            compiler_source_digest: &metadata.compiler_source_digest,
+            build_configuration_digest: &metadata.build_configuration_digest,
             dependency_lock_digest: &metadata.dependency_lock_digest,
             source_document_id: document.document_id(),
             source_document_revision_id: document.revision_id(),
@@ -210,6 +220,8 @@ impl PowerFabricBuildReceipt {
             compiler_id: metadata.compiler_id,
             compiler_version: metadata.compiler_version,
             toolchain_fingerprint: metadata.toolchain_fingerprint,
+            compiler_source_digest: metadata.compiler_source_digest,
+            build_configuration_digest: metadata.build_configuration_digest,
             dependency_lock_digest: metadata.dependency_lock_digest,
             source_document_id: document.document_id().to_owned(),
             source_document_revision_id: document.revision_id().to_owned(),
@@ -259,6 +271,8 @@ struct BuildLockMaterial<'a> {
     compiler_id: &'a str,
     compiler_version: &'a str,
     toolchain_fingerprint: &'a str,
+    compiler_source_digest: &'a Sha256Digest,
+    build_configuration_digest: &'a Sha256Digest,
     dependency_lock_digest: &'a Sha256Digest,
     source_document_id: &'a str,
     source_document_revision_id: &'a str,
@@ -346,6 +360,8 @@ mod tests {
         assert_eq!(
             BuildMetadata::new(
                 "compiler", "0.1", "rustc+target",
+                Sha256Digest::from_bytes(b"compiler source"),
+                Sha256Digest::from_bytes(b"release feature-set"),
                 Sha256Digest::from_bytes(b"Cargo.lock"),
                 Vec::new(), Vec::new(),
             ),

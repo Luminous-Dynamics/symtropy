@@ -545,16 +545,41 @@ mod tests {
 
 
     fn build_metadata(include_amd1: bool) -> BuildMetadata {
-        build_metadata_with_correction(include_amd1, true, b"synthetic Cargo.lock")
+        build_metadata_with_provenance(
+            include_amd1, true,
+            b"synthetic compiler source tree",
+            b"release;default-features;target=x86_64-unknown-linux-gnu",
+            b"synthetic Cargo.lock",
+        )
     }
 
     fn build_metadata_with_lock(include_amd1: bool, lock_contents: &[u8]) -> BuildMetadata {
-        build_metadata_with_correction(include_amd1, true, lock_contents)
+        build_metadata_with_provenance(
+            include_amd1, true,
+            b"synthetic compiler source tree",
+            b"release;default-features;target=x86_64-unknown-linux-gnu",
+            lock_contents,
+        )
     }
 
     fn build_metadata_with_correction(
         include_amd1: bool,
         include_correction: bool,
+        lock_contents: &[u8],
+    ) -> BuildMetadata {
+        build_metadata_with_provenance(
+            include_amd1, include_correction,
+            b"synthetic compiler source tree",
+            b"release;default-features;target=x86_64-unknown-linux-gnu",
+            lock_contents,
+        )
+    }
+
+    fn build_metadata_with_provenance(
+        include_amd1: bool,
+        include_correction: bool,
+        compiler_source: &[u8],
+        build_configuration: &[u8],
         lock_contents: &[u8],
     ) -> BuildMetadata {
         let standard = StandardReference::new(
@@ -579,6 +604,8 @@ mod tests {
         BuildMetadata::new(
             "symtropy-energy-systems", "0.1.0",
             "rustc:1.96.0;target:x86_64-unknown-linux-gnu",
+            Sha256Digest::from_bytes(compiler_source),
+            Sha256Digest::from_bytes(build_configuration),
             Sha256Digest::from_bytes(lock_contents),
             vec![standard_pin], vec![upstream],
         ).unwrap()
@@ -742,6 +769,50 @@ mod tests {
             "sha256:replacement-configuration"
         );
     }
+
+
+    #[test]
+    fn changed_compiler_source_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source A", b"release features", b"lock",
+            ),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source B", b"release features", b"lock",
+            ),
+        ).unwrap();
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
+    #[test]
+    fn changed_build_configuration_digest_changes_build_lock_digest() {
+        let document = doc(RelationshipDirection::Directed);
+        let mapping_profile = profile();
+        let original = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source", b"release features", b"lock",
+            ),
+        ).unwrap();
+        let changed = compile_ir_to_service_graph_reproducibly(
+            &document, &mapping_profile,
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source", b"debug features", b"lock",
+            ),
+        ).unwrap();
+        assert_ne!(original.receipt().build_lock_digest(), changed.receipt().build_lock_digest());
+    }
+
 
     #[test]
     fn changed_dependency_lock_digest_changes_build_lock_digest() {

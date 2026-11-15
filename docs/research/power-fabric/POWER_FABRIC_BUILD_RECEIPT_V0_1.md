@@ -21,6 +21,8 @@ These digests answer different questions. The caller-provided GraphRevision.cont
 Every receipt requires:
 - source IR document ID, revision and schema version;
 - exact compiler ID and version;
+- SHA-256 digest of the exact compiler source tree/commit;
+- build-configuration digest covering Cargo features, build profile, target flags and the relevant Nix/CI configuration;
 - toolchain fingerprint (at minimum Rust compiler version and compilation target);
 - SHA-256 digest of the workspace dependency lockfile (Cargo.lock);
 - mapping profile ID/version, explicit namespaced maps and per-object exact module/configuration identities;
@@ -51,7 +53,7 @@ This is a declared serde serialization profile, not a claim of RFC 8785 JSON Can
 
 The lock digest covers:
 - receipt and canonicalization profile versions;
-- compiler ID/version and toolchain fingerprint;
+- compiler ID/version, compiler-source digest, build-configuration digest and toolchain fingerprint;
 - dependency-lock digest;
 - source document ID/revision/schema and source digest;
 - mapping profile ID/version and profile digest;
@@ -80,3 +82,8 @@ The receipt demonstrates only that specified serialized inputs and outputs are b
 ## Correction-state discipline (2026-11)
 
 The IEC Webstore identifies the consolidated IEC 60364-8-82:2022+AMD1:2026 CSV as **CORRECTED VERSION 2026-11**, while the same page reports Edition 1.1 and publication date 2026-04-16. Power Fabric stores this correction label in `StandardReference.corrections`, not as a new edition or amendment. A different correction label therefore changes the build-lock digest without falsifying the edition history. Source: https://webstore.iec.ch/en/publication/113148
+
+
+## Compiler identity and build configuration
+
+Compiler version strings are not sufficient to identify executable code. The receipt therefore requires a SHA-256 digest of the exact compiler source tree and a separate build-configuration digest. The configuration digest should cover enabled Cargo features, release/debug profile, target triple/flags, linker settings and relevant Nix/CI environment declarations. These digests are supplied by the build orchestrator and must be computed from the actual immutable source/configuration inputs, not typed as descriptive labels.
