@@ -94,7 +94,9 @@ pub struct FrameBindingV1 {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoordinateRelationV1 {
     pub source_frame_sha256: String,
+    pub source_metric_sha256: String,
     pub target_frame_sha256: String,
+    pub target_metric_sha256: String,
     pub basis_transform_sha256: String,
     pub covariance_receipt_sha256: String,
 }
@@ -311,8 +313,16 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
                     relation.source_frame_sha256.as_str(),
                 ),
                 (
+                    "source_metric_sha256",
+                    relation.source_metric_sha256.as_str(),
+                ),
+                (
                     "target_frame_sha256",
                     relation.target_frame_sha256.as_str(),
+                ),
+                (
+                    "target_metric_sha256",
+                    relation.target_metric_sha256.as_str(),
                 ),
                 (
                     "basis_transform_sha256",
@@ -412,7 +422,9 @@ pub fn compose_evidence(
                 .as_ref()
                 .ok_or(CompositionErrorV1::MissingCoordinateRelation)?;
             if relation.source_frame_sha256 != request.source_frame.coordinate_frame_sha256
+                || relation.source_metric_sha256 != request.source_frame.metric_sha256
                 || relation.target_frame_sha256 != request.target_frame.coordinate_frame_sha256
+                || relation.target_metric_sha256 != request.target_frame.metric_sha256
                 || relation.basis_transform_sha256 != request.basis_transform_sha256
                 || relation.covariance_receipt_sha256 != receipt.artifact_sha256
                 || receipt.frame != request.target_frame
@@ -558,7 +570,9 @@ mod tests {
         let coordinate_relation = (kind == EvidenceKindV1::CoordinateCovariance).then(|| {
             CoordinateRelationV1 {
                 source_frame_sha256: source_frame().coordinate_frame_sha256,
+                source_metric_sha256: source_frame().metric_sha256,
                 target_frame_sha256: target_frame().coordinate_frame_sha256,
+                target_metric_sha256: target_frame().metric_sha256,
                 basis_transform_sha256: digest('b'),
                 covariance_receipt_sha256: digest('c'),
             }
