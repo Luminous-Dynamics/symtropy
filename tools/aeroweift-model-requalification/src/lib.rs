@@ -123,6 +123,8 @@ pub struct ChangeFeedCoverage {
     pub effective_from: i64,
     /// Inclusive end of the covered effective-time interval.
     pub effective_through: i64,
+    /// Earliest recorded/knowledge time for which the feed retains complete history.
+    pub knowledge_from: i64,
     /// Latest recorded/knowledge time for which the feed asserts completeness.
     pub knowledge_through: i64,
     /// First source sequence included in this coverage statement.
@@ -289,6 +291,7 @@ fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationEr
     let mut keys = BTreeSet::new();
     for item in coverage {
         if item.source_id.trim().is_empty()
+            || item.knowledge_from > item.knowledge_through
             || !is_sha256(&item.manifest_sha256)
             || item.effective_from > item.effective_through
             || item.first_sequence > item.last_sequence
@@ -312,8 +315,9 @@ fn coverage_is_complete(
             && item.source_id == dependency.change_source_id
             && item.completeness == CoverageCompleteness::Complete
             && item.evidence_state == ChangeEvidenceState::OwnerQualified
-            && item.effective_from <= cutoff.effective_at
+            && item.effective_from <= claim_validated_at
             && item.effective_through >= cutoff.effective_at
+            && item.knowledge_from <= claim_recorded_at
             && item.knowledge_through >= cutoff.known_at
     })
 }
@@ -370,7 +374,13 @@ pub fn evaluate_claim(
     });
 
     for dependency in &claim.dependencies {
-        if !coverage_is_complete(coverage, dependency, cutoff) {
+        if !coverage_is_complete(
+            coverage,
+            dependency,
+            cutoff,
+            claim.validated_at_effective,
+            claim.recorded_at,
+        ) {
             indeterminate.insert(dependency.kind);
         }
 
@@ -385,6 +395,17 @@ pub fn evaluate_claim(
         for event in dimension_events.drain(..) {
             if event.source_id != dependency.change_source_id {
                 return Err(EvaluationError::ChangeSourceMismatch);
+            }
+            let event_is_covered = coverage.iter().any(|item| {
+                item.dependency == dependency.kind
+                    && item.source_id == dependency.change_source_id
+                    && item.first_sequence <= event.source_sequence
+                    && item.last_sequence >= event.source_sequence
+            });
+            if !event_is_covered {
+                indeterminate.insert(dependency.kind);
+                affected.insert(dependency.kind);
+                event_ids.insert(event.event_id.clone());
             }
             if event.evidence_state != ChangeEvidenceState::OwnerQualified {
                 indeterminate.insert(dependency.kind);
