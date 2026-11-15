@@ -155,3 +155,35 @@ Run it with:
 The JSON records the fixture ID, crate version, target architecture/OS, available parallelism, iteration count, sample count and raw timing summary. Record the CPU model, OS image, compiler commit and machine configuration alongside each retained report; the program intentionally does not guess those facts from portable runtime APIs.
 
 These timings are **only the reference-layer microbenchmark**. They are not comparable to Drake, MuJoCo or Pinocchio solver timings, do not establish a general overhead bound, and do not measure physical integration. Matched solver comparisons are tracked separately in Symtropy #4805.
+
+## Nonlinear output-error sensitivity
+
+The `nonlinear_sensitivity` module extends the local metric-induced Jacobian norm with a separate nonlinear remainder contract. It deliberately keeps five items distinct:
+
+1. the metric-induced local derivative/operator norm;
+2. the input perturbation radius;
+3. the second-derivative remainder evidence and its declared validity radius;
+4. an observable-specific adjoint pullback into the input cotangent space;
+5. the evidence class and resulting claim status.
+
+For a twice-differentiable map with a declared bound `||D²F|| <= H_F` throughout the entire perturbation ball of radius `delta`, the reference reports the conditional Taylor envelope
+
+    ||F(x + dx) - F(x)|| <= ||DF(x)|| * delta + 0.5 * H_F * delta^2.
+
+The `AnalyticUpperBound` and `IntervalUpperBound` variants are caller-supplied evidence declarations. The code checks their shape, finiteness, identity and validity radius; it does **not** prove that the declared theorem or interval artifact is valid. `EmpiricalEstimateOnly` never populates a total upper-bound field, and missing curvature evidence yields `FirstOrderOnly`.
+
+Observable sensitivity is calculated separately by pulling the observable gradient back through the Jacobian adjoint and measuring that input cotangent with the input dual metric. An operator may be non-injective yet retain a meaningful forward norm; that fact is not silently promoted into an inverse or reconstruction guarantee.
+
+### Deterministic coverage ladder
+
+`examples/nonlinear_sensitivity_ladder.rs` exercises five synthetic scalar maps over six radii, with 2,001 evenly spaced samples per radius. It prints sampled state and observable maxima, declared upper estimates, coverage flags and tightness ratios. This is a deterministic regression/coverage experiment over the chosen synthetic maps, **not** proof of global coverage between samples or independent validation of the caller-declared curvature bounds.
+
+Run it with:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example nonlinear_sensitivity_ladder
+
+The exact-head workflow runs this ladder before the coordinate and microbenchmark ladders. It keeps state-error and observable-error coverage separate.
+
+### Limits
+
+v0.1 remains local and chart-based. It does not yet qualify nonlinear manifolds with connection/transport terms, active-set/contact discontinuities, friction, stochastic distributions, full-horizon chaotic growth, or safety-critical decisions. The Jacobian norm is a numerical one-sided-Jacobi estimate and the curvature evidence is a caller declaration; the resulting total is conditional on both.
