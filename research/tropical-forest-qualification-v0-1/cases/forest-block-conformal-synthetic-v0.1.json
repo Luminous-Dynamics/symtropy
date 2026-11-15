@@ -3,7 +3,7 @@
   "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
   "corpus_id": "FOREST-BLOCK-CONFORMAL-001",
   "status": "PUBLIC_SYNTHETIC_BLOCK_CONFORMAL_NOT_STATISTICAL_VALIDATION",
-  "claim_ceiling": "Nine equal-sized synthetic calibration blocks produce a finite-sample 90% split-conformal rank. The corpus compares pooled observation residual calibration with block-maximum calibration, evaluates two declared in-domain test blocks and one known-shift negative control, and keeps observation coverage distinct from all-in-block coverage. Group separation is checked but exchangeability is designer-declared and not statistically established.",
+  "claim_ceiling": "Nine equal-sized synthetic calibration blocks produce a finite-sample 90% split-conformal rank. The corpus compares naïve pooled observation residual calibration with block-maximum calibration, evaluates two declared in-domain test blocks and one known-shift negative control, and keeps observation coverage distinct from all-observations-in-block coverage. It also reports 90% Winkler interval scores to expose the width/coverage trade-off. Group separation is checked but exchangeability is designer-declared and not statistically established.",
   "scenario": {
     "alpha": 0.1,
     "training_group_ids": [
@@ -269,7 +269,9 @@
         "covered_observation_count": 10,
         "observation_coverage_fraction": 1,
         "block_fully_covered": true,
-        "regime_is_declared_shift": false
+        "regime_is_declared_shift": false,
+        "pooled_mean_interval_score": 16,
+        "block_mean_interval_score": 18
       },
       {
         "block_id": "in-domain-b",
@@ -277,7 +279,9 @@
         "covered_observation_count": 9,
         "observation_coverage_fraction": 0.9,
         "block_fully_covered": false,
-        "regime_is_declared_shift": false
+        "regime_is_declared_shift": false,
+        "pooled_mean_interval_score": 19,
+        "block_mean_interval_score": 19
       },
       {
         "block_id": "shifted-c",
@@ -285,9 +289,13 @@
         "covered_observation_count": 9,
         "observation_coverage_fraction": 0.9,
         "block_fully_covered": false,
-        "regime_is_declared_shift": true
+        "regime_is_declared_shift": true,
+        "pooled_mean_interval_score": 20,
+        "block_mean_interval_score": 20
       }
-    ]
+    ],
+    "pooled_mean_interval_score": 18.333333333333332,
+    "block_mean_interval_score": 19
   },
   "execution": {
     "runner": "BLOCK_MAXIMUM_SPLIT_CONFORMAL_SYNTHETIC",
