@@ -22,3 +22,8 @@ expired-authorization-parent|expired-auth|OUTSIDE_PARENT_VALIDITY
 profile-requirement-weakened|class-omission|PROFILE_CLASS_MISMATCH
 duplicate-parent-edge|duplicate-edge|DUPLICATE_PARENT_EDGE
 receipt-created-before-observation-arrival|receipt-time|RECEIPT_TIME_INVERSION
+cross-class-surveillance-relabel|traffic-class|SURVEILLANCE_EVIDENCE_MISMATCH
+duplicate-class-occupancy|duplicate-occupancy|DUPLICATE_PARENT_ROLE
+qualified-track-without-observation|missing-track-observation|SURVEILLANCE_EVIDENCE_MISMATCH
+no-report-with-observation|contradictory-no-report|SURVEILLANCE_EVIDENCE_MISMATCH
+unrequired-extra-traffic-class|extra-class|PROFILE_CLASS_MISMATCH
