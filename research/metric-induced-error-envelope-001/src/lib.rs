@@ -1313,6 +1313,127 @@ mod tests {
     }
 
     #[test]
+    fn metric_operator_envelope_is_invariant_under_independent_dense_rebases() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct DomainY;
+        impl CoordinateFrame for DomainY {}
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct CodomainQ;
+        impl CoordinateFrame for CodomainQ {}
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct CodomainY;
+        impl CoordinateFrame for CodomainY {}
+
+        let domain_q = cartesian_metric();
+        let codomain_q = Metric::<CodomainQ, 3>::admit(
+            [[4.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 7.0]],
+            profile(),
+        )
+        .unwrap();
+        let operator_q = [[2.0, 1.0, 0.0], [0.0, 3.0, 1.0], [1.0, 0.0, 2.0]];
+        let envelope_q = MetricLinearIsomorphism::<CartesianQ, CodomainQ, 3>::admit(
+            operator_q,
+            &domain_q,
+            &codomain_q,
+            profile(),
+        )
+        .unwrap();
+
+        for shear in [1.0, 3.0, 5.0] {
+            let domain_change = Rebasis::<CartesianQ, DomainY, 3>::new(
+                [[1.0, shear, -0.5 * shear], [0.0, 1.0, shear], [0.0, 0.0, 1.0]],
+                profile(),
+            )
+            .unwrap();
+            let codomain_change = Rebasis::<CodomainQ, CodomainY, 3>::new(
+                [[1.0, -shear, 0.5 * shear], [0.0, 1.0, 2.0 * shear], [0.0, 0.0, 1.0]],
+                profile(),
+            )
+            .unwrap();
+            let domain_y = domain_change.metric_to_to(&domain_q, profile()).unwrap();
+            let codomain_y = codomain_change.metric_to_to(&codomain_q, profile()).unwrap();
+
+            // A_y = S_c^-1 A_q S_d, assembled using typed tangent maps.
+            let mut operator_y = [[0.0; 3]; 3];
+            for column in 0..3 {
+                let mut basis_components = [0.0; 3];
+                basis_components[column] = 1.0;
+                let basis_y = Tangent::<DomainY, 3>::new(basis_components).unwrap();
+                let basis_q = domain_change.tangent_to_from(&basis_y).unwrap();
+                let image_q = Tangent::<CodomainQ, 3>::new(
+                    apply(&operator_q, basis_q.components()),
+                )
+                .unwrap();
+                let image_y = codomain_change.tangent_to_to(&image_q).unwrap();
+                for row in 0..3 {
+                    operator_y[row][column] = image_y.components()[row];
+                }
+            }
+
+            let envelope_y = MetricLinearIsomorphism::<DomainY, CodomainY, 3>::admit(
+                operator_y,
+                &domain_y,
+                &codomain_y,
+                profile(),
+            )
+            .unwrap();
+
+            close(
+                envelope_q.envelope().forward_operator_norm_upper_bound,
+                envelope_y.envelope().forward_operator_norm_upper_bound,
+                2.0e-10,
+            );
+            close(
+                envelope_q.envelope().inverse_operator_norm_upper_bound,
+                envelope_y.envelope().inverse_operator_norm_upper_bound,
+                2.0e-10,
+            );
+            close(
+                envelope_q.envelope().condition_number_upper_bound,
+                envelope_y.envelope().condition_number_upper_bound,
+                5.0e-10,
+            );
+
+            for seed in 1..=7 {
+                let vector = Tangent::<CartesianQ, 3>::new([
+                    seed as f64 * 0.1,
+                    (seed as f64 * 0.37).sin(),
+                    (seed as f64 * 0.23).cos(),
+                ])
+                .unwrap();
+                let image = envelope_q.apply(&vector).unwrap();
+                let ratio = codomain_q.tangent_norm(&image).unwrap()
+                    / domain_q.tangent_norm(&vector).unwrap();
+                assert!(
+                    ratio
+                        <= envelope_q.envelope().forward_operator_norm_upper_bound
+                            * (1.0 + 1.0e-12)
+                );
+
+                let recovered = envelope_q.apply_inverse(&image).unwrap();
+                for index in 0..3 {
+                    close(recovered.components[index], vector.components[index], 2.0e-12);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn singular_metric_linear_isomorphism_fails_closed() {
+        let metric_q = cartesian_metric();
+        let singular = [[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [0.0, 0.0, 1.0]];
+        assert!(matches!(
+            MetricLinearIsomorphism::<CartesianQ, CartesianQ, 3>::admit(
+                singular,
+                &metric_q,
+                &metric_q,
+                profile(),
+            ),
+            Err(MetricErrorV1::SingularCoordinateTransform { .. })
+        ));
+    }
+
+    #[test]
     fn admitted_roundoff_asymmetry_is_recorded_not_silently_hidden() {
         let admitted = Metric::<CartesianQ, 2>::admit(
             [[2.0, 1.0], [1.0 + 1.0e-15, 3.0]],
