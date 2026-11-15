@@ -999,6 +999,16 @@ fn validate_block_conformal_corpus(
             1e-12,
         )
         && optional_number_matches(
+            result.pooled_mean_interval_score,
+            expected.get("pooled_mean_interval_score").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            result.block_mean_interval_score,
+            expected.get("block_mean_interval_score").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
             result.pooled_observation_coverage,
             expected.get("pooled_observation_coverage").unwrap_or(&Value::Null),
             1e-12,
@@ -1053,6 +1063,16 @@ fn validate_block_conformal_corpus(
             == at(declared, &["regime_is_declared_shift"])?
                 .as_bool()
                 .ok_or_else(|| "regime_is_declared_shift must be boolean".to_string())?;
+        matches &= optional_number_matches(
+            actual.pooled_mean_interval_score,
+            declared.get("pooled_mean_interval_score").unwrap_or(&Value::Null),
+            1e-9,
+        );
+        matches &= optional_number_matches(
+            actual.block_mean_interval_score,
+            declared.get("block_mean_interval_score").unwrap_or(&Value::Null),
+            1e-9,
+        );
     }
 
     let mut checks = Vec::new();
@@ -1072,10 +1092,12 @@ fn validate_block_conformal_corpus(
         "BLOCK-CONFORMAL-QUANTILE-AND-COVERAGE-001",
         matches,
         format!(
-            "calibration_blocks={}; pooled_radius={:?}; block_maximum_radius={:?}; pooled_point_coverage={:?}; block_point_coverage={:?}; block_simultaneous_coverage={:?}; in_domain_blocks={:?}; shifted_blocks={:?}",
+            "calibration_blocks={}; pooled_radius={:?}; block_maximum_radius={:?}; pooled_winkler={:?}; block_winkler={:?}; pooled_point_coverage={:?}; block_point_coverage={:?}; block_simultaneous_coverage={:?}; in_domain_blocks={:?}; shifted_blocks={:?}",
             result.calibration_block_count,
             result.pooled_observation_radius,
             result.block_maximum_radius,
+            result.pooled_mean_interval_score,
+            result.block_mean_interval_score,
             result.pooled_observation_coverage,
             result.block_observation_coverage,
             result.block_full_block_coverage,
@@ -1113,6 +1135,8 @@ fn validate_block_conformal_corpus(
                 "covered_observation_count": block.covered_observation_count,
                 "observation_coverage_fraction": block.observation_coverage_fraction,
                 "block_fully_covered": block.block_fully_covered,
+                "pooled_mean_interval_score": block.pooled_mean_interval_score,
+                "block_mean_interval_score": block.block_mean_interval_score,
                 "regime_is_declared_shift": block.regime_is_declared_shift
             })
         })
@@ -1143,6 +1167,8 @@ fn validate_block_conformal_corpus(
         "block_maximum_radius": result.block_maximum_radius,
         "pooled_interval_width": result.pooled_interval_width,
         "block_interval_width": result.block_interval_width,
+        "pooled_mean_interval_score": result.pooled_mean_interval_score,
+        "block_mean_interval_score": result.block_mean_interval_score,
         "test_block_count": result.test_block_count,
         "test_observation_count": result.test_observation_count,
         "pooled_observation_coverage": result.pooled_observation_coverage,
@@ -3982,6 +4008,27 @@ mod tests {
         assert_eq!(receipt["block_maximum_radius"], 9.0);
         assert_eq!(receipt["block_full_block_coverage"], 1.0 / 3.0);
         assert_eq!(receipt["exchangeability_status"], "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED");
+    }
+
+
+    #[test]
+    fn block_conformal_corpus_matches_pooled_and_block_winkler_scores() {
+        let receipt = evaluate(BLOCK_CONFORMAL_FIXTURE.as_bytes())
+            .expect("block conformal corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_BLOCK_CONFORMAL");
+        assert!((receipt["pooled_mean_interval_score"].as_f64().unwrap() - (55.0 / 3.0)).abs() < 1e-9);
+        assert!((receipt["block_mean_interval_score"].as_f64().unwrap() - 19.0).abs() < 1e-9);
+        assert!((receipt["test_block_results"][0]["block_mean_interval_score"].as_f64().unwrap() - 18.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn block_conformal_corpus_rejects_interval_score_oracle_mutation() {
+        let mut manifest: Value = serde_json::from_str(BLOCK_CONFORMAL_FIXTURE)
+            .expect("valid block conformal corpus");
+        manifest["expected"]["block_mean_interval_score"] = json!(1.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated Winkler corpus");
+        let receipt = evaluate(&bytes).expect("well-formed conformal corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
     }
 
     #[test]
