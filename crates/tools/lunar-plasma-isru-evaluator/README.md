@@ -42,7 +42,7 @@ The measurement receipt is intentionally local to the synthetic plasma process f
 - cross-sensitivity qualification passed for the declared species;
 - a sampling interval and raw trace artifact are identified.
 
-The expanded fixture contains 16 scenarios: 1 synthetic pass, 8 blocked, 6 rejected and 1 not comparable. UTC timestamps are checked for normalized form and real calendar/time ranges; impossible dates are refused. No calibration or measurement values in the fixture represent an actual instrument or experiment.
+The expanded fixture contains 16 scenarios and 27 Rust tests: 1 synthetic pass, 8 blocked, 6 rejected and 1 not comparable. UTC timestamps are checked for normalized form and real calendar/time ranges; impossible dates are refused. No calibration or measurement values in the fixture represent an actual instrument or experiment.
 
 
 ## Evidence-reference boundary
