@@ -239,10 +239,7 @@ impl AdmissionResult {
 /// No code path in this function can launch a solver. The most favorable
 /// disposition is ADMISSIBLE_RESTRICTED; execution and design authority remain
 /// separate system boundaries.
-pub fn admit(
-    request: &StructuralAnalysisRequest,
-    context: &AdmissionContext,
-) -> AdmissionResult {
+pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) -> AdmissionResult {
     let mut reject = Vec::new();
     let mut out_of_domain = Vec::new();
     let mut needs_evidence = Vec::new();
@@ -283,7 +280,10 @@ pub fn admit(
         references.push(reference);
     }
 
-    if references.iter().any(|reference| !reference.is_well_formed()) {
+    if references
+        .iter()
+        .any(|reference| !reference.is_well_formed())
+    {
         reject.push(ReasonCode::RequestIdentityMalformed);
     }
 
@@ -341,11 +341,12 @@ pub fn admit(
     {
         out_of_domain.push(ReasonCode::PhysicsOutOfDomain);
     }
-    if request
-        .requested_observables
-        .iter()
-        .any(|observable| !context.model_profile.supported_observables.contains(observable))
-    {
+    if request.requested_observables.iter().any(|observable| {
+        !context
+            .model_profile
+            .supported_observables
+            .contains(observable)
+    }) {
         out_of_domain.push(ReasonCode::ObservableOutOfDomain);
     }
 
@@ -405,10 +406,7 @@ pub fn admit(
     } else if !not_comparable.is_empty() {
         (AdmissionDisposition::NotComparable, not_comparable)
     } else {
-        (
-            AdmissionDisposition::AdmissibleRestricted,
-            informational,
-        )
+        (AdmissionDisposition::AdmissibleRestricted, informational)
     };
 
     reasons.sort();
@@ -508,12 +506,18 @@ mod tests {
         let context = base_context(profile);
         let result = admit(&request, &context);
 
-        assert_eq!(result.disposition, AdmissionDisposition::AdmissibleRestricted);
+        assert_eq!(
+            result.disposition,
+            AdmissionDisposition::AdmissibleRestricted
+        );
         assert_reason(&result, ReasonCode::DraftProfileRestricted);
         assert!(!result.solver_dispatch_started);
         assert!(!result.execution_authorized);
         assert!(!result.decision_eligible);
-        assert_eq!(result.physical_validation, PhysicalValidationState::Unresolved);
+        assert_eq!(
+            result.physical_validation,
+            PhysicalValidationState::Unresolved
+        );
     }
 
     #[test]
@@ -569,8 +573,12 @@ mod tests {
     fn unsupported_gyroscopic_physics_and_frequency_are_out_of_domain() {
         let profile = ring_profile();
         let mut request = base_request(&profile);
-        request.requested_physics.push(PhysicsTerm::GyroscopicDynamics);
-        request.requested_observables.push(Observable::NaturalFrequency);
+        request
+            .requested_physics
+            .push(PhysicsTerm::GyroscopicDynamics);
+        request
+            .requested_observables
+            .push(Observable::NaturalFrequency);
         let result = admit(&request, &base_context(profile));
 
         assert_eq!(result.disposition, AdmissionDisposition::OutOfDomain);
