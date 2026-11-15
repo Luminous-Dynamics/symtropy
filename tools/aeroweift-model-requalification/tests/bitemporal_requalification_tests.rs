@@ -141,7 +141,10 @@ fn sensor_calibration_change_invalidates_sensor_claim_not_model_artifact() {
     );
     let result = assess(&claim(), &[change], &complete_coverage(), cutoff(50, 50)).unwrap();
     assert_eq!(result.status, ClaimStatus::RequalificationRequired);
-    assert_eq!(result.affected_dimensions, vec![DependencyKind::SensorStack]);
+    assert_eq!(
+        result.affected_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
     assert_eq!(
         result.requalification_dimensions,
         vec![DependencyKind::SensorStack]
@@ -166,7 +169,10 @@ fn unrelated_model_change_does_not_mark_sensor_dimension_as_changed() {
     );
     let result = assess(&claim(), &[change], &complete_coverage(), cutoff(50, 50)).unwrap();
     assert_eq!(result.status, ClaimStatus::RequalificationRequired);
-    assert_eq!(result.affected_dimensions, vec![DependencyKind::ModelArtifact]);
+    assert_eq!(
+        result.affected_dimensions,
+        vec![DependencyKind::ModelArtifact]
+    );
     assert_eq!(
         result.requalification_dimensions,
         vec![DependencyKind::ModelArtifact]
@@ -188,7 +194,13 @@ fn late_recorded_event_does_not_rewrite_earlier_knowledge_cutoff() {
         ChangeClass::MaterialChange,
         ChangeEvidenceState::OwnerQualified,
     );
-    let historical = assess(&claim(), &[late.clone()], &complete_coverage(), cutoff(25, 25)).unwrap();
+    let historical = assess(
+        &claim(),
+        &[late.clone()],
+        &complete_coverage(),
+        cutoff(25, 25),
+    )
+    .unwrap();
     let later = assess(&claim(), &[late], &complete_coverage(), cutoff(25, 35)).unwrap();
 
     assert_eq!(historical.status, ClaimStatus::StillApplicable);
@@ -283,7 +295,10 @@ fn owner_unqualified_change_event_is_indeterminate_not_ignored() {
         result.indeterminate_dimensions,
         vec![DependencyKind::SensorStack]
     );
-    assert_eq!(result.affected_dimensions, vec![DependencyKind::SensorStack]);
+    assert_eq!(
+        result.affected_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
 }
 
 #[test]
@@ -300,7 +315,13 @@ fn corrective_reference_event_contradicts_dependent_claim() {
         ChangeClass::CorrectiveChange,
         ChangeEvidenceState::OwnerQualified,
     );
-    let result = assess(&claim(), &[correction], &complete_coverage(), cutoff(50, 50)).unwrap();
+    let result = assess(
+        &claim(),
+        &[correction],
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
     assert_eq!(result.status, ClaimStatus::Contradicted);
 }
 
@@ -337,7 +358,13 @@ fn unsupported_change_class_does_not_receive_automatic_pass() {
         ChangeClass::Unsupported,
         ChangeEvidenceState::OwnerQualified,
     );
-    let result = assess(&claim(), &[unsupported], &complete_coverage(), cutoff(50, 50)).unwrap();
+    let result = assess(
+        &claim(),
+        &[unsupported],
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
     assert_eq!(result.status, ClaimStatus::UnsupportedChangeType);
 }
 
@@ -412,7 +439,13 @@ fn events_already_known_at_claim_creation_are_part_of_its_baseline() {
         ChangeClass::MaterialChange,
         ChangeEvidenceState::OwnerQualified,
     );
-    let result = assess(&baseline_claim, &[baseline], &complete_coverage(), cutoff(50, 50)).unwrap();
+    let result = assess(
+        &baseline_claim,
+        &[baseline],
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
     assert_eq!(result.status, ClaimStatus::StillApplicable);
     assert_eq!(result.event_ids, Vec::<String>::new());
 }
@@ -431,8 +464,20 @@ fn late_recorded_correction_changes_later_view_but_not_earlier_view() {
         ChangeClass::CorrectiveChange,
         ChangeEvidenceState::OwnerQualified,
     );
-    let before = assess(&claim(), &[correction.clone()], &complete_coverage(), cutoff(50, 25)).unwrap();
-    let after = assess(&claim(), &[correction], &complete_coverage(), cutoff(50, 35)).unwrap();
+    let before = assess(
+        &claim(),
+        &[correction.clone()],
+        &complete_coverage(),
+        cutoff(50, 25),
+    )
+    .unwrap();
+    let after = assess(
+        &claim(),
+        &[correction],
+        &complete_coverage(),
+        cutoff(50, 35),
+    )
+    .unwrap();
     assert_eq!(before.status, ClaimStatus::StillApplicable);
     assert_eq!(after.status, ClaimStatus::Contradicted);
 }
@@ -452,7 +497,12 @@ fn duplicate_event_id_is_rejected() {
         ChangeEvidenceState::OwnerQualified,
     );
     assert_eq!(
-        assess(&claim(), &[e.clone(), e], &complete_coverage(), cutoff(50, 50)),
+        assess(
+            &claim(),
+            &[e.clone(), e],
+            &complete_coverage(),
+            cutoff(50, 50)
+        ),
         Err(EvaluationError::DuplicateEventId)
     );
 }
@@ -600,7 +650,6 @@ fn material_change_plus_incomplete_other_feed_remains_indeterminate_but_explains
     );
 }
 
-
 #[test]
 fn known_contradiction_is_not_hidden_by_an_unrelated_coverage_gap() {
     let correction = event(
@@ -669,13 +718,18 @@ fn unsupported_change_dimension_is_reported_explicitly() {
         ChangeClass::Unsupported,
         ChangeEvidenceState::OwnerQualified,
     );
-    let result = assess(&claim(), &[unsupported], &complete_coverage(), cutoff(50, 50)).unwrap();
+    let result = assess(
+        &claim(),
+        &[unsupported],
+        &complete_coverage(),
+        cutoff(50, 50),
+    )
+    .unwrap();
     assert_eq!(
         result.unsupported_dimensions,
         vec![DependencyKind::SensorStack]
     );
 }
-
 
 #[test]
 fn broken_preclaim_baseline_chain_is_indeterminate_even_when_final_digest_matches() {
