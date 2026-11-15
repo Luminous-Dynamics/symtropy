@@ -1,7 +1,10 @@
 use metric_induced_error_envelope_reference::{
-    ConstraintMapRankStatusV1, ConstraintSpaceProfileV1, ConstraintSpaceReceiptV1, CoordinateFrame,
-    Cotangent, Metric, MetricProfileV1, OperatorConditionProfileV1, Rebasis, Tangent,
-    constraint_space_receipt::rebase_constraint_jacobian_both,
+    CoordinateFrame, Cotangent, Metric, MetricProfileV1, Rebasis, Tangent,
+    constraint_space_receipt::{
+        ConstraintMapRankStatusV1, ConstraintSpaceProfileV1, ConstraintSpaceReceiptV1,
+        rebase_constraint_jacobian_both,
+    },
+    operator::OperatorConditionProfileV1,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
