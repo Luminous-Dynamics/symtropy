@@ -435,3 +435,23 @@ New work:
 The tournament treats root morphology, biochemical P mining, AM colonisation and tissue concentrations as different dimensions—not a forced one-dimensional conservative/acquisitive axis—and includes a no-mediation model and an omitted-mechanism model. This aligns with the 2026 data–model integration review's emphasis on nutrient and microbial process gaps in manipulative experiments (DOI 10.1093/jpe/rtag033) and the 2026 ecosystem-ensemble review's call for model-intercomparison diagnostics to drive model selection and weighting (DOI 10.1111/gcb.70987).
 
 A November 2026 *Journal of Ecology* study on a Scots pine chronosequence further develops the root-based “do-it-yourself” and mycorrhizal “outsourcing” distinction, finding both root and fungal acquisition traits shift with stand development (DOI 10.1111/1365-2745.70474). It is a conceptual comparator only: a different tree, forest type and ectomycorrhizal setting, not a matched Amazon AFEX baseline.
+
+
+### November 2026 — explicit belowground pathway modelling comparators
+
+Three recent model families change what an honest root-strategy SOTA comparison must include.
+
+**ELM-MYCI / ELMv2-SPRUCE (Geoscientific Model Development 2026).** This modification represents direct inorganic nutrient uptake by uncolonised roots, mycorrhizal uptake of inorganic nutrients, and mycorrhizal uptake from organic sources. It includes host carbohydrate availability and a carbon-allocation cap on mycorrhizal acquisition. It was developed/evaluated in a boreal peatland with spruce, tamarack and shrubs—not the Amazon or AFEX. The study adds 37 parameters and explicitly calls for direct constraints on key uptake rates and half-saturation constants. This is the closest current architectural comparator for a multi-pathway uptake model, not a model result we can claim to beat: https://gmd.copernicus.org/articles/19/5827/2026/; code release https://doi.org/10.5281/zenodo.17582789.
+
+**Myco-CORPSE.** This extends CORPSE to represent mycorrhizal effects on soil C/N decomposition and fungal carbon costs. A 2025/2026 temperate-forest application covers more than 1,800 eastern US inventory plots and reports modelled fungal C allocation of 16.0% NPP in ECM plots versus 5.8% in AM plots. This is a soil C/N and fungal carbon-cost comparator, not a direct match for AM-dominated AFEX root turnover: https://doi.org/10.1016/j.soilbio.2023.109073; https://doi.org/10.1029/2025JG009198.
+
+**Mycorrhizal-type hierarchical trait model (Plant, Cell & Environment 2026).** An in-situ 15N tracer study across 63 subtropical tree species reports a mycorrhizal-type hierarchical trait model R²=0.37 versus R²=0.19 for a root-only model. It supports the hypothesis that symbiotic type changes trait–function relationships. Its species-level inorganic N uptake endpoint and subtropical site are not directly comparable to AFEX plot-level root turnover: https://doi.org/10.1111/pce.70522.
+
+A 2026 review further cautions that the fast–slow and direct-root–outsourcing root economics axes vary across AM, ECM, ericoid, dual and non-mycorrhizal strategies and nutrient limitation contexts: https://doi.org/10.1016/j.tree.2026.02.003.
+
+The AFEX programme now records an eight-model tournament (treatment-only, direct-root, root+AM inorganic, three-pathway root+AM inorganic+AM organic, mycorrhizal carbon-cost/soil C-N coupling, hierarchical trait model, no-mediation, and omitted-mechanism challenge). Its machine-readable matrix and Rust qualification kernel are:
+- [AFEX_ROOT_PATHWAY_MODEL_TOURNAMENT_V0_1.md](AFEX_ROOT_PATHWAY_MODEL_TOURNAMENT_V0_1.md);
+- [model comparator matrix](cases/afex-root-pathway-model-tournament-v0.1.json);
+- [Rust tournament specification validator](validator/src/afex_root_pathway_tournament_kernel.rs).
+
+The organic nutrient and fungal carbon-cost pathways are explicitly marked unidentifiable from the current AFEX register. These comparators inform the benchmark design; none has yet been calibrated or run on AFEX data.
