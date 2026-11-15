@@ -434,7 +434,9 @@ fn compute(case: &Value, minimum_separation: f64) -> Result<Value, String> {
             ));
         };
         let alternate_measured = convolve_sensor(&alternate, response)?;
-        if text(case, "observation_noise_contract")? != "independent_equal_sigma" {
+        if case.get("observation_noise_contract").and_then(Value::as_str)
+            != Some("independent_equal_sigma")
+        {
             return Ok(base(
                 "REJECTED_CONTRACT",
                 "MODEL_SEPARATION_REQUIRES_DECLARED_IID_NOISE",
