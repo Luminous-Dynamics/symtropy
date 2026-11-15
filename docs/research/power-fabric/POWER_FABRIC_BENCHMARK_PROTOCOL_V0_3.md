@@ -81,6 +81,8 @@ Do not claim superiority until tasks, files, participants, tools, versions, and 
 
 Treat the logical design slot, product model, individual physical unit and time-bounded installed assignment as different identity types. Freeze append-only delivery/install/remove/replace/relocate/reconcile events and replay them at explicit as-known-at cutoffs.
 
+Every lifecycle event must first pass the upstream evidence-admission verifier at the frozen decision cutoff. A serial-label observation must carry the observed identity namespace and serial value; exact matching is necessary but not sufficient for authenticity or installation.
+
 Compare:
 - model/catalogue matching only;
 - supplier/delivery records;
@@ -95,6 +97,7 @@ Targets:
 - zero reconciled installations from design-only, catalogue-only or label-only evidence;
 - 100% correct as-known-at replay under late-arriving evidence;
 - 100% expected disposition for replacement, relocation, identity collision and hardware-revision mutation;
+- 100% rejection/abstention on evidence-admission unknown or rejected and exact serial-namespace mismatch;
 - 100% invalidation recall for affected outputs and zero invalidation outside the declared closure in complete fixtures;
 - 100% deterministic projection across permutations of the same causally equivalent event set.
 
