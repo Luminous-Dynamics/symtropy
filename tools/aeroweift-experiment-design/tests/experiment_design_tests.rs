@@ -526,3 +526,138 @@ fn duplicate_authorization_modalities_in_policy_fail_closed() {
         Err(aeroweift_experiment_design::DesignError::InvalidPolicy)
     );
 }
+
+
+fn reference_dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
+    let l = &left.resource_cost;
+    let r = &right.resource_cost;
+    let no_worse =
+        left.expected_uncertainty_reduction >= right.expected_uncertainty_reduction
+            && left.expected_model_discrimination >= right.expected_model_discrimination
+            && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
+            && left.decision_relevance >= right.decision_relevance
+            && left.probability_uninformative <= right.probability_uninformative
+            && l.setup_minutes <= r.setup_minutes
+            && l.facility_minutes <= r.facility_minutes
+            && l.cpu_seconds <= r.cpu_seconds
+            && l.accelerator_seconds <= r.accelerator_seconds
+            && l.energy_joules <= r.energy_joules
+            && l.adjudication_person_minutes <= r.adjudication_person_minutes;
+    let strict =
+        left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
+            || left.expected_model_discrimination > right.expected_model_discrimination
+            || left.worst_case_robust_reduction > right.worst_case_robust_reduction
+            || left.decision_relevance > right.decision_relevance
+            || left.probability_uninformative < right.probability_uninformative
+            || l.setup_minutes < r.setup_minutes
+            || l.facility_minutes < r.facility_minutes
+            || l.cpu_seconds < r.cpu_seconds
+            || l.accelerator_seconds < r.accelerator_seconds
+            || l.energy_joules < r.energy_joules
+            || l.adjudication_person_minutes < r.adjudication_person_minutes;
+    no_worse && strict
+}
+
+#[test]
+fn independent_finite_pareto_oracle_matches_selector_on_generated_tradeoff_matrix() {
+    let mut candidates = Vec::new();
+    for index in 0..32_u64 {
+        let mut item = candidate(&format!("oracle-{index:02}"));
+        item.expected_uncertainty_reduction = 0.45 + ((index * 17) % 45) as f64 / 100.0;
+        item.expected_model_discrimination = 0.45 + ((index * 23) % 45) as f64 / 100.0;
+        item.worst_case_robust_reduction = 0.25 + ((index * 13) % 60) as f64 / 100.0;
+        item.decision_relevance = 0.45 + ((index * 11) % 50) as f64 / 100.0;
+        item.probability_uninformative = 0.05 + ((index * 19) % 50) as f64 / 100.0;
+        item.cost_units = 1 + (index * 7) % 90;
+        item.resource_cost = ResourceCost {
+            setup_minutes: 1 + (index * 5) % 90,
+            facility_minutes: 1 + (index * 11) % 90,
+            cpu_seconds: 1 + (index * 101) % 9_000,
+            accelerator_seconds: 1 + (index * 149) % 9_000,
+            energy_joules: 1 + (index * 997) % 90_000,
+            adjudication_person_minutes: 1 + (index * 3) % 90,
+        };
+        candidates.push(item);
+    }
+
+    let mut expected: Vec<String> = candidates
+        .iter()
+        .filter(|candidate| {
+            !candidates.iter().any(|other| {
+                other.candidate_id != candidate.candidate_id
+                    && reference_dominates(other, candidate)
+            })
+        })
+        .map(|candidate| candidate.candidate_id.clone())
+        .collect();
+    expected.sort();
+
+    let actual = select_experiments(&candidates, &policy()).unwrap();
+    let actual_ids: Vec<String> = actual
+        .pareto_front
+        .iter()
+        .map(|candidate| candidate.candidate_id.clone())
+        .collect();
+    assert_eq!(actual_ids, expected);
+}
+
+#[test]
+fn lower_worst_case_bound_cannot_restore_admissibility() {
+    for step in 0..101 {
+        let mut candidate = candidate("robust-monotonic");
+        candidate.worst_case_robust_reduction = 0.20 - (step as f64 * 0.001);
+        let result = select_experiments(&[candidate], &policy()).unwrap();
+        if step == 0 {
+            assert_eq!(result.pareto_front.len(), 1);
+        } else {
+            assert!(reason(&result, "robust-monotonic").contains(&RejectionReason::InsufficientRobustReduction));
+        }
+    }
+}
+
+#[test]
+fn increasing_uninformative_probability_cannot_restore_admissibility() {
+    for step in 0..101 {
+        let mut candidate = candidate("uninformative-monotonic");
+        candidate.probability_uninformative = 0.80 + (step as f64 * 0.001);
+        let result = select_experiments(&[candidate], &policy()).unwrap();
+        if step == 0 {
+            assert_eq!(result.pareto_front.len(), 1);
+        } else {
+            assert!(reason(&result, "uninformative-monotonic").contains(&RejectionReason::TooLikelyUninformative));
+        }
+    }
+}
+
+#[test]
+fn increasing_each_resource_dimension_past_budget_never_admits_candidate() {
+    let mut mutations = Vec::new();
+    for dimension in 0..6 {
+        let mut candidate = candidate(&format!("resource-{dimension}"));
+        match dimension {
+            0 => candidate.resource_cost.setup_minutes = 101,
+            1 => candidate.resource_cost.facility_minutes = 101,
+            2 => candidate.resource_cost.cpu_seconds = 10_001,
+            3 => candidate.resource_cost.accelerator_seconds = 10_001,
+            4 => candidate.resource_cost.energy_joules = 100_001,
+            _ => candidate.resource_cost.adjudication_person_minutes = 101,
+        }
+        mutations.push(candidate);
+    }
+    let result = select_experiments(&mutations, &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert_eq!(
+        result.rejected.iter().filter(|item| item.reasons.contains(&RejectionReason::OverBudget)).count(),
+        6
+    );
+}
+
+#[test]
+fn removing_an_affirmative_gate_receipt_cannot_improve_admissibility() {
+    let mut candidate = candidate("receipt-deletion");
+    assert_eq!(select_experiments(std::slice::from_ref(&candidate), &policy()).unwrap().pareto_front.len(), 1);
+    candidate.envelope_receipt_sha256 = None;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "receipt-deletion").contains(&RejectionReason::MissingEvidenceReceipt));
+}
