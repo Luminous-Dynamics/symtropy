@@ -52,10 +52,10 @@ jobs:
           echo "source_commit=$actual"
 
       - name: Normalize qualification compiler source
-        run: cargo fmt --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin qualification_scope
+        run: rustfmt --edition 2024 tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs
 
       - name: Verify qualification compiler formatting
-        run: cargo fmt --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin qualification_scope -- --check
+        run: rustfmt --edition 2024 --check tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs
 
       - name: Run frozen qualification-scope tests
         run: cargo test --locked --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml --bin qualification_scope
