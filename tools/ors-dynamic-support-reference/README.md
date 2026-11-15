@@ -84,7 +84,7 @@ The total linear momentum is also checked. These are the ledgers of this synthet
 
 The golden end states are derived from the reduced-mass closed-form solution, not fitted to the RK4 output. The reference evaluator checks final separation and relative velocity against the frozen values, then separately checks linear-momentum and energy-ledger residuals.
 
-The Rust test suite also includes negative controls for zero mass, zero stiffness, negative damping, negative preload, non-finite inputs, unknown force-law identity, attempted physical-claim promotion, off-grid release event, release after the simulation end, excessive step count, non-finite derived state, malformed/duplicate corpus rows and malformed case IDs.
+The separate `tests/closed_form_oracle.rs` integration-test target consumes the public API and uses a reduced-mass state-space matrix-exponential oracle, independently of the implementation's RK4 stages and the library's unit-test helpers. It also checks mass/force scaling and inertia-swap metamorphic relations. The Rust test suite also includes negative controls for zero mass, zero stiffness, negative damping, negative preload, non-finite inputs, unknown force-law identity, attempted physical-claim promotion, off-grid release event, release after the simulation end, excessive step count, non-finite derived state, malformed/duplicate corpus rows and malformed case IDs.
 
 ## Run
 
