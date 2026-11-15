@@ -472,3 +472,44 @@ fn empty_coverage_obligations_are_not_a_positive_control() {
     input.request.required_coverage.clear();
     assert_rejected(input, Reason::MissingRequiredCoverage);
 }
+
+#[test]
+fn frozen_fixture_registers_all_scope_join_scenarios() {
+    let fixture = include_str!("../../../fixtures/aeroweift-scope-join/scope-join-v0.json");
+    let case_ids = [
+        "fully-matched-positive-control",
+        "pnt-claim-from-another-flight",
+        "same-aircraft-different-flight-instance",
+        "intent-from-different-intent-id",
+        "old-authorization-id",
+        "superseded-authorization-revision",
+        "old-evaluation-identity",
+        "profile-or-frame-mismatch",
+        "owner-evaluated-after-cutoff",
+        "late-receipt-earlier-event",
+        "future-observation",
+        "event-after-first-receipt",
+        "reachability-window-too-short",
+        "intent-window-too-short",
+        "wrong-cell",
+        "wrong-traffic-class",
+        "partial-coverage-window",
+        "coverage-validity-too-short",
+        "coverage-received-after-cutoff",
+        "coverage-without-dependency-snapshot",
+        "qualified-no-report-query",
+        "missing-required-query",
+        "duplicate-required-query-id",
+        "extra-unrequested-query",
+        "input-order-permutation",
+        "missing-owner-receipt",
+    ];
+
+    assert_eq!(fixture.matches("\"id\":").count(), case_ids.len());
+    for case_id in case_ids {
+        assert!(
+            fixture.contains(&format!("\"id\": \"{case_id}\"")),
+            "fixture is missing scenario {case_id}"
+        );
+    }
+}
