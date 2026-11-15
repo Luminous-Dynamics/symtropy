@@ -44,7 +44,7 @@ PNT, reachability and intent owner claims must match:
 - flight-instance ID;
 - aircraft-instance ID;
 - intent ID;
-- authorization ID and exact revision;
+- operator and issuing-USSP identity, intent ID/revision, authorization ID/revision and exact authorization-artifact digest;
 - profile revision;
 - time-scale ID;
 - horizontal frame;
@@ -98,7 +98,7 @@ Freshness limits and clock normalization remain with Track L/Mycelix #435 and th
 
 Fixture: `fixtures/aeroweift-scope-join/scope-join-v0.json`.
 
-It contains 26 expected decisions: one fully matched positive control; cross-flight, cross-intent and cross-revision negatives; mismatched profile/frame; future, late and reversed event/receipt times; incomplete validity; wrong cell/class/window; missing/duplicate/extra query; missing lineage; qualified no-report; and input-permutation replay.
+It contains 32 expected decisions: one fully matched positive control; cross-flight, cross-intent and cross-revision negatives; mismatched profile/frame; future, late and reversed event/receipt times; incomplete validity; wrong cell/class/window; missing/duplicate/extra query; missing lineage; qualified no-report; and input-permutation replay.
 
 The dependency-free Rust test campaign contains direct constructor-level adversarial tests. Fixture and test inputs are fictional; no sensor, aircraft, authorization or operational result is represented.
 
