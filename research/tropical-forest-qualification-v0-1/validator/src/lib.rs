@@ -14,6 +14,7 @@ pub mod forest_corpus_receipts;
 pub mod model_set_kernel;
 pub mod support_kernel;
 pub mod spatial_localization_kernel;
+pub mod trajectory_budget_kernel;
 
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -3833,6 +3834,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         == Some("FOREST-SPATIAL-LOCALIZATION-001")
     {
         return forest_corpus_receipts::validate_spatial_localization(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-PROCESS-TRAJECTORY-001")
+    {
+        return trajectory_budget_kernel::validate_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
