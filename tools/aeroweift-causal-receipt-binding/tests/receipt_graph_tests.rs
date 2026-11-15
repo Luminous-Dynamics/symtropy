@@ -105,6 +105,11 @@ fn receipt(
     parents: Vec<ParentEdge>,
     required_traffic_classes: Option<Vec<TrafficClass>>,
 ) -> Receipt {
+    let digest_char = if sequence < 10 {
+        char::from_u32(0x30 + sequence as u32).unwrap()
+    } else {
+        char::from_u32(0x61 + (sequence as u32 % 6)).unwrap()
+    };
     Receipt {
         receipt_id: id.into(),
         stage,
@@ -114,7 +119,7 @@ fn receipt(
         producer_revision: "rev-1".into(),
         producer_stream_id: "stream-main".into(),
         producer_sequence: sequence,
-        payload_sha256: digest(char::from_u32(0x30 + sequence as u32).unwrap_or('d')),
+        payload_sha256: digest(digest_char),
         subject: scope(),
         disposition,
         time: time(stage),
