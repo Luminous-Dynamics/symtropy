@@ -237,8 +237,10 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
             rows.push(json!({"case_id":case_id,"disposition":"SUPPORT_MISMATCH_REFUSED","summary":null}));
             continue;
         }
-        if pairs.len()!=4 || blocks.len()!=4 || treatment_ids.len()!=1 {
-            return Err(format!("case {case_id} must contain four plot units across four blocks in one treatment cell"));
+        let declared_treatment=string_at(case,"treatment_id")?;
+        if pairs.len()!=4 || blocks.len()!=4 || treatment_ids.len()!=1
+            || treatment_ids.iter().next()!=Some(&declared_treatment) {
+            return Err(format!("case {case_id} must contain four plot units across four blocks in the declared treatment cell"));
         }
         let summary=summarize(&pairs)?;
         let expected=case.get("expected_summary").ok_or_else(||format!("case {case_id} expected_summary required"))?;
@@ -255,6 +257,7 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
             ("mean_plot_lifespan_days",summary.mean_plot_lifespan_days.unwrap_or(f64::NAN)),
             ("inverse_mean_turnover_days",summary.inverse_mean_turnover_days.unwrap_or(f64::NAN)),
             ("mean_plot_turnover_standard_error",summary.mean_plot_turnover_standard_error),
+            ("mean_plot_lifespan_standard_error",summary.mean_plot_lifespan_standard_error.unwrap_or(f64::NAN)),
             ("ratio_of_means_delta_variance",summary.ratio_of_means_delta_variance),
             ("ratio_of_means_delta_standard_error",summary.ratio_of_means_delta_standard_error)
         ];
@@ -281,8 +284,11 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
     let different_plot_ratio=(a.mean_plot_turnover-b.mean_plot_turnover).abs()>1e-9;
     let same_pooled_ratio=(a.pooled_ratio_of_sums-b.pooled_ratio_of_sums).abs()<=1e-9;
     let different_delta=(a.ratio_of_means_delta_variance-b.ratio_of_means_delta_variance).abs()>1e-9;
-    if !same_marginals||!opposite_covariance||!different_plot_ratio||!same_pooled_ratio||!different_delta {
-        return Err("paired-marginal/covariance comparison oracle failed".to_string());
+    let different_lifespan_estimands=b.mean_plot_lifespan_days.zip(b.inverse_mean_turnover_days)
+        .map(|(mean_life,inverse_mean)| (mean_life-inverse_mean).abs()>1e-9).unwrap_or(false);
+    if !same_marginals||!opposite_covariance||!different_plot_ratio||!same_pooled_ratio
+        ||!different_delta||!different_lifespan_estimands {
+        return Err("paired-marginal/covariance/ratio-inversion comparison oracle failed".to_string());
     }
     Ok(json!({
         "schema_version":"0.1.0",
@@ -298,7 +304,8 @@ pub fn validate_corpus(raw:&[u8],manifest:&Value)->Result<Value,String>{
             "opposite_stock_productivity_covariance":opposite_covariance,
             "mean_plot_turnover_changes_with_pairing":different_plot_ratio,
             "pooled_ratio_stays_equal":same_pooled_ratio,
-            "delta_method_uncertainty_changes_with_covariance":different_delta
+            "delta_method_uncertainty_changes_with_covariance":different_delta,
+            "mean_plot_lifespan_differs_from_inverse_mean_turnover":different_lifespan_estimands
         },
         "case_results":rows,
         "delta_method_claim_ceiling":"FIRST_ORDER_APPROXIMATION_ONLY; NOT FIELLER; NOT A COVERAGE GUARANTEE",
@@ -322,6 +329,11 @@ mod tests {
         assert_eq!(r["comparison_oracle"]["same_stock_and_productivity_marginals"],true);
         assert_eq!(r["comparison_oracle"]["opposite_stock_productivity_covariance"],true);
         assert_eq!(r["comparison_oracle"]["mean_plot_turnover_changes_with_pairing"],true);
+        assert_eq!(r["comparison_oracle"]["mean_plot_lifespan_differs_from_inverse_mean_turnover"],true);
+        let reverse=&r["case_results"][1]["summary"];
+        assert!((reverse["mean_of_plot_level_turnover"].as_f64().unwrap()-3.2083333333333335).abs()<1e-9);
+        assert!((reverse["mean_plot_lifespan_days"].as_f64().unwrap()-292.9609375).abs()<1e-9);
+        assert!((reverse["inverse_mean_turnover_days"].as_f64().unwrap()-113.84415584415584).abs()<1e-9);
     }
     #[test]
     fn unmatched_plot_pair_is_refused(){
@@ -347,6 +359,13 @@ mod tests {
     fn unknown_units_are_rejected(){
         let mut m:Value=serde_json::from_str(FIXTURE).expect("fixture");
         m["cases"][0]["observations"][0]["stock"]["unit"]=json!("kg m-2");
+        let raw=serde_json::to_vec(&m).expect("serialize");
+        assert!(validate_corpus(&raw,&m).is_err());
+    }
+    #[test]
+    fn undeclared_treatment_cell_is_rejected(){
+        let mut m:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        m["cases"][0]["treatment_id"]=json!("N1-P1-C1");
         let raw=serde_json::to_vec(&m).expect("serialize");
         assert!(validate_corpus(&raw,&m).is_err());
     }
