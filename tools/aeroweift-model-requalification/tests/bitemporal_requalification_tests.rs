@@ -1040,3 +1040,44 @@ fn future_recorded_coverage_duplicate_does_not_poison_earlier_knowledge_snapshot
     let later = assess(&claim(), &[], &feeds, cutoff(50, 70));
     assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
 }
+
+
+#[test]
+fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
+    let events = vec![
+        event!(
+            "model-material-change",
+            "model-registry",
+            2,
+            DependencyKind::ModelArtifact,
+            'b',
+            '8',
+            40,
+            42,
+            ChangeClass::MaterialChange,
+            ChangeEvidenceState::OwnerQualified,
+        ),
+        event!(
+            "sensor-retirement",
+            "sensor-registry",
+            2,
+            DependencyKind::SensorStack,
+            'c',
+            '7',
+            40,
+            42,
+            ChangeClass::Retirement,
+            ChangeEvidenceState::OwnerQualified,
+        ),
+    ];
+    let result = assess(&claim(), &events, &complete_coverage(), cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::RequalificationRequired);
+    assert_eq!(
+        result.requalification_dimensions,
+        vec![DependencyKind::ModelArtifact]
+    );
+    assert_eq!(
+        result.historical_only_dimensions,
+        vec![DependencyKind::SensorStack]
+    );
+}
