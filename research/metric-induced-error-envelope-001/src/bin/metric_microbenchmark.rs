@@ -387,14 +387,12 @@ fn main() {
             ITERATIONS / 10,
             SAMPLES,
             || {
-                let constraint_rhs = ConstraintResidualV1::<ConstraintSpace, CONSTRAINTS>::new(
-                    [0.1, -0.2, 0.15],
-                )
-                .unwrap();
-                let multiplier = ConstraintMultiplierV1::<ConstraintSpace, CONSTRAINTS>::new(
-                    [0.5, -1.0, 0.75],
-                )
-                .unwrap();
+                let constraint_rhs =
+                    ConstraintResidualV1::<ConstraintSpace, CONSTRAINTS>::new([0.1, -0.2, 0.15])
+                        .unwrap();
+                let multiplier =
+                    ConstraintMultiplierV1::<ConstraintSpace, CONSTRAINTS>::new([0.5, -1.0, 0.75])
+                        .unwrap();
                 let receipt = evaluate_constrained_kkt_residual(
                     black_box(&delassus),
                     black_box(&covector_q),
