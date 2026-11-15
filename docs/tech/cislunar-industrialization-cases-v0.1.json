@@ -1,0 +1,830 @@
+{
+  "schema_version": "cislunar-industrialization-cases/0.1",
+  "case_set_id": "CISLUNAR-INDUSTRIALIZATION-GATE-v0.1",
+  "claim_ceiling": "SYNTHETIC_CONTRACT_ONLY",
+  "currency_unit": "SCU",
+  "warning": "All quantities, costs, yields, capacities and dispositions are synthetic test inputs. They are not lunar/asteroid resource estimates, market forecasts, mission costs, hardware performance or qualification evidence.",
+  "comparison_rule": "Compare candidates only to the baseline with the same functional_unit, product_spec_id, destination_node and service_horizon_months. Gate failures precede economic ranking.",
+  "gate_order": [
+    "off_earth_product_gate",
+    "supply_gate",
+    "economic_gate"
+  ],
+  "cases": [
+    {
+      "id": "E0-BASELINE-001",
+      "name": "Earth-supplied reference wins before local supply matures",
+      "market": "CISLUNAR",
+      "architecture": "E0_EARTH_SUPPLIED",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "SHIELD-AGGREGATE-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 0,
+        "earth_import_mass_kg": 10000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 1000,
+        "process_energy_kwh": 0,
+        "firm_energy_available_kwh": 0,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource": "NOT_APPLICABLE",
+          "process": "EARTH_SUPPLY",
+          "product": "ACCEPTED"
+        },
+        "dependencies": [
+          {
+            "id": "earth_factory",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 24
+          }
+        ],
+        "stressors": []
+      },
+      "expected": {
+        "off_earth_product_gate": "NOT_APPLICABLE",
+        "supply_gate": "PASS",
+        "economic_gate": "BASELINE",
+        "disposition": "EARTH_REFERENCE"
+      }
+    },
+    {
+      "id": "L1-BULK-LOCAL-001",
+      "name": "Qualified lunar bulk shielding substitution",
+      "market": "CISLUNAR",
+      "architecture": "L1_LUNAR_BULK",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "SHIELD-AGGREGATE-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 8000,
+        "earth_import_mass_kg": 2000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 850,
+        "process_energy_kwh": 500,
+        "firm_energy_available_kwh": 600,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH"
+        },
+        "dependencies": [
+          {
+            "id": "lunar_excavator",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          },
+          {
+            "id": "surface_power",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          },
+          {
+            "id": "precision_metrology",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": false,
+            "recurring": true,
+            "inventory_months": 24
+          }
+        ],
+        "stressors": []
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "PASS",
+        "economic_gate": "PASS_SYNTHETIC_ONLY",
+        "disposition": "HYBRID_LOCAL_BULK_ELIGIBLE"
+      }
+    },
+    {
+      "id": "L1-DELAY-SHOCK-001",
+      "name": "Delayed resupply defeats an otherwise attractive bulk pathway",
+      "market": "CISLUNAR",
+      "architecture": "L1_LUNAR_BULK",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "SHIELD-AGGREGATE-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 8000,
+        "earth_import_mass_kg": 2000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 820,
+        "process_energy_kwh": 500,
+        "firm_energy_available_kwh": 600,
+        "service_months": 9,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH"
+        },
+        "dependencies": [
+          {
+            "id": "replacement_seal",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 2
+          }
+        ],
+        "stressors": [
+          "DELAYED_RESUPPLY",
+          "CRITICAL_SPARE_STOCKOUT"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "FAIL",
+        "economic_gate": "NOT_EVALUATED",
+        "disposition": "REJECT_SERVICE_SHORTFALL"
+      }
+    },
+    {
+      "id": "L2-QUALITY-REJECT-001",
+      "name": "Local glass ceramic batch fails product acceptance",
+      "market": "CISLUNAR",
+      "architecture": "L2_LUNAR_CONSTRUCTION_PRODUCTS",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "GLASS_CERAMIC_BLOCK-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1200,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 0,
+        "earth_import_mass_kg": 10000,
+        "rejected_mass_kg": 2000,
+        "lifecycle_cost_scu": 1350,
+        "process_energy_kwh": 800,
+        "firm_energy_available_kwh": 1000,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "REJECTED_STRENGTH_POROSITY",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "SIMULANT_PROTOTYPE",
+          "product_evidence": "FAILED_ACCEPTANCE",
+          "source": "LUNAR_REGOLITH"
+        },
+        "dependencies": [
+          {
+            "id": "ceramic_process_line",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "PRODUCT_QUALITY_REJECTION"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "FAIL",
+        "supply_gate": "NOT_EVALUATED",
+        "economic_gate": "NOT_EVALUATED",
+        "disposition": "REJECT_PRODUCT_QUALITY"
+      }
+    },
+    {
+      "id": "L2-ENERGY-LIMIT-001",
+      "name": "Local manufacturing cannot meet firm process-energy demand",
+      "market": "CISLUNAR",
+      "architecture": "L2_LUNAR_CONSTRUCTION_PRODUCTS",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "GLASS_CERAMIC_BLOCK-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1200,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 3000,
+        "earth_import_mass_kg": 7000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 900,
+        "process_energy_kwh": 900,
+        "firm_energy_available_kwh": 500,
+        "service_months": 7,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED_WHEN_ENERGIZED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH"
+        },
+        "dependencies": [
+          {
+            "id": "process_power_bus",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "FIRM_POWER_SHORTFALL"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS_CONDITIONAL",
+        "supply_gate": "FAIL",
+        "economic_gate": "NOT_EVALUATED",
+        "disposition": "REJECT_ENERGY_INSUFFICIENT"
+      }
+    },
+    {
+      "id": "L3-REPAIR-RECYCLE-001",
+      "name": "Cislunar manufacturing with qualified repair and recycling",
+      "market": "CISLUNAR",
+      "architecture": "L3_CISLUNAR_INDUSTRIAL_NETWORK",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "NONPRESSURE_TRUSS-AL-QUAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 7000,
+        "earth_import_mass_kg": 3000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 950,
+        "process_energy_kwh": 900,
+        "firm_energy_available_kwh": 1000,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH_TO_ALUMINUM_ROUTE"
+        },
+        "dependencies": [
+          {
+            "id": "local_machine_tool_maintenance",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          },
+          {
+            "id": "control_electronics",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 24
+          },
+          {
+            "id": "recycling_sorting",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "ONE_MACHINE_FAILURE",
+          "REPAIR_AND_REUSE"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "PASS",
+        "economic_gate": "PASS_SYNTHETIC_ONLY",
+        "disposition": "CISLUNAR_HYBRID_ELIGIBLE"
+      }
+    },
+    {
+      "id": "L3-HIGH-LOCAL-UNVERIFIED-001",
+      "name": "High local mass share hides an unverified recurring critical import",
+      "market": "CISLUNAR",
+      "architecture": "L3_CISLUNAR_INDUSTRIAL_NETWORK",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "NONPRESSURE_TRUSS-AL-QUAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 9500,
+        "earth_import_mass_kg": 500,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 700,
+        "process_energy_kwh": 900,
+        "firm_energy_available_kwh": 1000,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH_TO_ALUMINUM_ROUTE"
+        },
+        "dependencies": [
+          {
+            "id": "critical_controller_revision_x",
+            "origin": "EARTH",
+            "evidence_status": "UNVERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 1
+          }
+        ],
+        "stressors": []
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "FAIL",
+        "economic_gate": "NOT_EVALUATED",
+        "disposition": "REJECT_UNVERIFIED_CRITICAL_DEPENDENCY"
+      }
+    },
+    {
+      "id": "L3-COMMON-CAUSE-001",
+      "name": "Nominally redundant supply shares one critical power controller",
+      "market": "CISLUNAR",
+      "architecture": "L3_CISLUNAR_INDUSTRIAL_NETWORK",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "NONPRESSURE_TRUSS-AL-QUAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 8000,
+        "earth_import_mass_kg": 2000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 900,
+        "process_energy_kwh": 900,
+        "firm_energy_available_kwh": 1000,
+        "service_months": 5,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH_TO_ALUMINUM_ROUTE"
+        },
+        "dependencies": [
+          {
+            "id": "power_bus_a",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          },
+          {
+            "id": "power_bus_b",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          },
+          {
+            "id": "shared_power_controller",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "SHARED_POWER_CONTROLLER_FAILURE"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "FAIL",
+        "economic_gate": "NOT_EVALUATED",
+        "disposition": "REJECT_COMMON_CAUSE_OUTAGE"
+      }
+    },
+    {
+      "id": "L2-LOW-YIELD-COST-001",
+      "name": "Qualified local product loses on lifecycle cost after lower yield and maintenance",
+      "market": "CISLUNAR",
+      "architecture": "L2_LUNAR_CONSTRUCTION_PRODUCTS",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "GLASS_CERAMIC_BLOCK-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 5000,
+        "earth_import_mass_kg": 5000,
+        "rejected_mass_kg": 1000,
+        "lifecycle_cost_scu": 1300,
+        "process_energy_kwh": 1200,
+        "firm_energy_available_kwh": 1400,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "ACCEPTED_WITH_REDUCED_YIELD",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH"
+        },
+        "dependencies": [
+          {
+            "id": "wear_parts",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 6
+          }
+        ],
+        "stressors": [
+          "LOW_PROCESS_YIELD",
+          "ELEVATED_MAINTENANCE"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "PASS",
+        "economic_gate": "FAIL_SYNTHETIC_ONLY",
+        "disposition": "EARTH_BASELINE_ECONOMICALLY_PREFERRED"
+      }
+    },
+    {
+      "id": "L3-LOW-UTILIZATION-001",
+      "name": "Overbuilt local foundry loses while demand is below capacity",
+      "market": "CISLUNAR",
+      "architecture": "L3_CISLUNAR_INDUSTRIAL_NETWORK",
+      "functional_unit": {
+        "kind": "ACCEPTED_STRUCTURAL_THROUGHPUT",
+        "quantity": 1000,
+        "unit": "kg_per_year",
+        "product_spec_id": "NONPRESSURE_TRUSS-AL-QUAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 36
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 3000,
+        "earth_import_mass_kg": 30000,
+        "service_months": 36
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 7000,
+        "earth_import_mass_kg": 3000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 4100,
+        "process_energy_kwh": 5000,
+        "firm_energy_available_kwh": 6000,
+        "service_months": 36,
+        "service_floor_months": 34,
+        "product_status": "ACCEPTED",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "LUNAR_REGOLITH_TO_ALUMINUM_ROUTE"
+        },
+        "dependencies": [
+          {
+            "id": "foundry_machine_tools",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "LOW_CAPACITY_UTILIZATION",
+          "DEMAND_BELOW_DESIGN_RATE"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PASS",
+        "supply_gate": "PASS",
+        "economic_gate": "FAIL_SYNTHETIC_ONLY",
+        "disposition": "DEFER_CAPACITY_EXPANSION"
+      }
+    },
+    {
+      "id": "HAB-HYBRID-001",
+      "name": "Habitat structure uses local bulk mass but imports pressure boundary",
+      "market": "CISLUNAR",
+      "architecture": "HABITAT_HYBRID",
+      "functional_unit": {
+        "kind": "HABITABLE_VOLUME_SERVICE",
+        "quantity": 1000,
+        "unit": "m3_year",
+        "product_spec_id": "HABITAT-SERVICE-BUNDLE-01",
+        "destination_node": "CISLUNAR_HABITAT_ASSEMBLY_NODE",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 5000,
+        "earth_import_mass_kg": 70000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 50000,
+        "earth_import_mass_kg": 20000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": 4700,
+        "process_energy_kwh": 4000,
+        "firm_energy_available_kwh": 4500,
+        "service_months": 12,
+        "service_floor_months": 11,
+        "product_status": "MIXED_QUALIFIED_BULK_AND_IMPORTED_PRESSURE_SYSTEM",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "BULK_ACCEPTED_PRESSURE_BOUNDARY_IMPORTED_AND_QUALIFIED",
+          "source": "LUNAR_REGOLITH"
+        },
+        "dependencies": [
+          {
+            "id": "pressure_vessel",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 24
+          },
+          {
+            "id": "life_support_controls",
+            "origin": "EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": true,
+            "inventory_months": 18
+          }
+        ],
+        "stressors": [
+          "HUMAN_RATING_OUT_OF_SCOPE"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "PARTIAL_PASS",
+        "supply_gate": "PASS_FOR_MATERIAL_SCOPE_ONLY",
+        "economic_gate": "INDETERMINATE_HUMAN_QUALIFICATION_OUT_OF_SCOPE",
+        "disposition": "PARTIAL_SUBSTITUTION_ONLY"
+      }
+    },
+    {
+      "id": "A1-ASTEROID-UNKNOWN-001",
+      "name": "Asteroid feedstock is not comparable without access and delivery evidence",
+      "market": "CISLUNAR",
+      "architecture": "A1_ASTEROID_EXTENSION",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "METAL_FEEDSTOCK-QUAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 0,
+        "earth_import_mass_kg": 10000,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": null,
+        "process_energy_kwh": null,
+        "firm_energy_available_kwh": null,
+        "service_months": null,
+        "service_floor_months": 11,
+        "product_status": "NOT_DEMONSTRATED",
+        "evidence": {
+          "resource_evidence": "REMOTE_ONLY",
+          "process_evidence": "UNQUALIFIED",
+          "product_evidence": "NOT_QUALIFIED",
+          "source": "NEAR_EARTH_ASTEROID"
+        },
+        "dependencies": [
+          {
+            "id": "target_access_and_transfer",
+            "origin": "UNKNOWN",
+            "evidence_status": "UNKNOWN",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "TARGET_ACCESS_UNKNOWN",
+          "TRANSFER_ENERGY_UNKNOWN",
+          "DELIVERY_WINDOW_UNKNOWN"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "UNKNOWN",
+        "supply_gate": "UNKNOWN",
+        "economic_gate": "NOT_COMPARABLE",
+        "disposition": "HOLD_NEEDS_EVIDENCE"
+      }
+    },
+    {
+      "id": "M1-MARS-BOUNDARY-001",
+      "name": "Mars-local industry is outside the cislunar supply boundary",
+      "market": "MARS_LOCAL",
+      "architecture": "M1_MARS_LOCAL",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "MARS_CONSTRUCTION_MATERIAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": null,
+        "earth_import_mass_kg": null,
+        "service_months": null
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 0,
+        "earth_import_mass_kg": 0,
+        "rejected_mass_kg": 0,
+        "lifecycle_cost_scu": null,
+        "process_energy_kwh": null,
+        "firm_energy_available_kwh": null,
+        "service_months": null,
+        "service_floor_months": null,
+        "product_status": "OUT_OF_CISLUNAR_SCOPE",
+        "evidence": {
+          "resource_evidence": "NOT_ASSESSED",
+          "process_evidence": "NOT_ASSESSED",
+          "product_evidence": "NOT_ASSESSED",
+          "source": "MARS"
+        },
+        "dependencies": [],
+        "stressors": []
+      },
+      "expected": {
+        "off_earth_product_gate": "NOT_COMPARABLE",
+        "supply_gate": "NOT_COMPARABLE",
+        "economic_gate": "NOT_COMPARABLE",
+        "disposition": "EXCLUDED_FROM_CISLUNAR_CREDITS"
+      }
+    },
+    {
+      "id": "L3-RECYCLE-DEGRADATION-001",
+      "name": "Repeated recycling degrades product below acceptance specification",
+      "market": "CISLUNAR",
+      "architecture": "L3_CISLUNAR_INDUSTRIAL_NETWORK",
+      "functional_unit": {
+        "kind": "ACCEPTED_PRODUCT_MASS",
+        "quantity": 10000,
+        "unit": "kg",
+        "product_spec_id": "NONPRESSURE_TRUSS-AL-QUAL-01",
+        "destination_node": "CISLUNAR_ASSEMBLY_NODE_01",
+        "service_horizon_months": 12
+      },
+      "baseline": {
+        "lifecycle_cost_scu": 1000,
+        "earth_import_mass_kg": 10000,
+        "service_months": 12
+      },
+      "candidate": {
+        "off_earth_accepted_mass_kg": 4000,
+        "earth_import_mass_kg": 6000,
+        "rejected_mass_kg": 1500,
+        "lifecycle_cost_scu": 980,
+        "process_energy_kwh": 1100,
+        "firm_energy_available_kwh": 1300,
+        "service_months": 10,
+        "service_floor_months": 11,
+        "product_status": "FAILED_AFTER_RECYCLE_LOOP_3",
+        "evidence": {
+          "resource_evidence": "SITE_CHARACTERIZED",
+          "process_evidence": "REPEATED_RELEVANT_ENVIRONMENT_DEMONSTRATION",
+          "product_evidence": "ACCEPTED_TO_DECLARED_SPECIFICATION",
+          "source": "RECYCLED_LUNAR_MATERIAL"
+        },
+        "dependencies": [
+          {
+            "id": "contamination_control",
+            "origin": "OFF_EARTH",
+            "evidence_status": "VERIFIED",
+            "critical": true,
+            "recurring": false,
+            "inventory_months": 0
+          }
+        ],
+        "stressors": [
+          "THREE_RECYCLING_LOOPS",
+          "GRADE_DEGRADATION"
+        ]
+      },
+      "expected": {
+        "off_earth_product_gate": "FAIL",
+        "supply_gate": "FAIL",
+        "economic_gate": "NOT_EVALUATED",
+        "disposition": "REJECT_QUALITY_DEGRADATION"
+      }
+    }
+  ]
+}
