@@ -1,0 +1,487 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-ir-graph-bridge-0.1.schema.json",
+  "title": "Power Fabric IR to Service Graph Bridge Fixture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "document",
+    "mapping_profile",
+    "graph_context",
+    "expected",
+    "negative_controls"
+  ],
+  "properties": {
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "document_id",
+        "revision_id",
+        "objects",
+        "relationships"
+      ],
+      "properties": {
+        "document_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/object"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationship"
+          }
+        }
+      }
+    },
+    "mapping_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_version",
+        "object_kind_map",
+        "relationship_kind_map",
+        "domain_evidence_map",
+        "object_evidence_claim_ids",
+        "object_module_identities"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "object_kind_map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source",
+              "target"
+            ],
+            "properties": {
+              "source": {
+                "$ref": "#/$defs/namespaced_type"
+              },
+              "target": {
+                "enum": [
+                  "UtilitySource",
+                  "RenewableSource",
+                  "GeneratorSource",
+                  "Storage",
+                  "Converter",
+                  "AcBus",
+                  "DcBus",
+                  "DistributionBoard",
+                  "Feeder",
+                  "Circuit",
+                  "Load",
+                  "ProtectiveDevice",
+                  "IsolationPoint",
+                  "Meter",
+                  "ThermalModule",
+                  "Controller"
+                ]
+              }
+            }
+          }
+        },
+        "relationship_kind_map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source",
+              "target"
+            ],
+            "properties": {
+              "source": {
+                "$ref": "#/$defs/namespaced_type"
+              },
+              "target": {
+                "enum": [
+                  "PowerPath",
+                  "ProtectionAssociation",
+                  "MeasurementAssociation",
+                  "ControlAssociation",
+                  "ThermalAssociation",
+                  "PhysicalAssociation",
+                  "AuthorityAssociation"
+                ]
+              }
+            }
+          }
+        },
+        "domain_evidence_map": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source",
+              "target"
+            ],
+            "properties": {
+              "source": {
+                "enum": [
+                  "design_intent",
+                  "declared",
+                  "observed",
+                  "verified"
+                ]
+              },
+              "target": {
+                "enum": [
+                  "DesignDeclared",
+                  "FieldObserved",
+                  "IndependentlyReviewed"
+                ]
+              }
+            }
+          }
+        },
+        "object_evidence_claim_ids": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "object_module_identities": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "module_id",
+              "hardware_revision",
+              "configuration_digest",
+              "configuration_current"
+            ],
+            "properties": {
+              "module_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hardware_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_current": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    },
+    "graph_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_id",
+        "graph_revision_id",
+        "graph_content_digest",
+        "scope_statement",
+        "maturity",
+        "maturity_evidence_state",
+        "maturity_evidence_id",
+        "current"
+      ],
+      "properties": {
+        "graph_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_content_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maturity": {
+          "enum": [
+            "DesignOnly",
+            "FieldReconciled",
+            "IndependentlyReviewed"
+          ]
+        },
+        "maturity_evidence_state": {
+          "enum": [
+            "DesignDeclared",
+            "FieldObserved",
+            "IndependentlyReviewed"
+          ]
+        },
+        "maturity_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current": {
+          "type": "boolean"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_nodes",
+        "graph_edges",
+        "object_mapping_count",
+        "relationship_mapping_count",
+        "evidence_gap_count",
+        "topology_status",
+        "claim_ceiling",
+        "stale_module_ids"
+      ],
+      "properties": {
+        "graph_nodes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "graph_edges": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "object_mapping_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "relationship_mapping_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topology_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_ceiling": {
+          "enum": [
+            "design_only",
+            "field_reconciled",
+            "independently_reviewed"
+          ]
+        },
+        "stale_module_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "expected"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "namespaced_type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "local_name"
+      ],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1
+        },
+        "local_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "evidence_id",
+        "recorded_at"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recorded_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "property_id",
+        "domain",
+        "state",
+        "provenance"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "property_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "enum": [
+            "design_intent",
+            "declared",
+            "observed",
+            "verified"
+          ]
+        },
+        "state": {
+          "type": "object"
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_id",
+        "kind",
+        "evidence_claim_id",
+        "claim"
+      ],
+      "properties": {
+        "stable_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/namespaced_type"
+        },
+        "evidence_claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim": {
+          "$ref": "#/$defs/claim"
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationship_id",
+        "from_object_id",
+        "to_object_id",
+        "kind",
+        "direction",
+        "domain",
+        "provenance"
+      ],
+      "properties": {
+        "relationship_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_object_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/namespaced_type"
+        },
+        "direction": {
+          "enum": [
+            "directed",
+            "undirected"
+          ]
+        },
+        "domain": {
+          "enum": [
+            "design_intent",
+            "declared",
+            "observed",
+            "verified"
+          ]
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        }
+      }
+    }
+  }
+}
