@@ -436,21 +436,20 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
         } else {
             "ADMITTED"
         };
-    let affordability_disposition =
-        if !income_admitted
-            || !cost_admitted
-            || !tariff_admitted
-            || !tariff_period_matches
-            || !service_admitted
-        {
-            "INDETERMINATE"
-        } else if !service_use_matches {
-            "NOT_COMPARABLE"
-        } else if !service_floors_met {
-            "NOT_SERVICE_EQUIVALENT"
-        } else {
-            "COMPUTED_NO_UNIVERSAL_THRESHOLD_APPLIED"
-        };
+    let affordability_disposition = if !income_admitted
+        || !cost_admitted
+        || !tariff_admitted
+        || !tariff_period_matches
+        || !service_admitted
+    {
+        "INDETERMINATE"
+    } else if !service_use_matches {
+        "NOT_COMPARABLE"
+    } else if !service_floors_met {
+        "NOT_SERVICE_EQUIVALENT"
+    } else {
+        "COMPUTED_NO_UNIVERSAL_THRESHOLD_APPLIED"
+    };
 
     Ok(json!({
         "cost_ledger_disposition": if cost_admitted { "ADMITTED" } else { "INDETERMINATE" },
