@@ -460,12 +460,12 @@ pub fn evaluate_claim(
                     event.event_id.as_str(),
                 )
             });
-        if let Some(event) = latest_baseline {
-            if event.successor_digest != dependency.digest {
-                contradicted.insert(dependency.kind);
-                affected.insert(dependency.kind);
-                event_ids.insert(event.event_id.clone());
-            }
+        if let Some(event) = latest_baseline
+            && event.successor_digest != dependency.digest
+        {
+            contradicted.insert(dependency.kind);
+            affected.insert(dependency.kind);
+            event_ids.insert(event.event_id.clone());
         }
 
         if let Some(current) = evaluated_dependencies
