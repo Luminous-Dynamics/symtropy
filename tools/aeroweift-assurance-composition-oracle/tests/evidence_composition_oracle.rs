@@ -140,13 +140,22 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
         }
         27 => input.expected_identity.vertical_datum_id = "",
         28 => {
+            let class_was_present = input
+                .surveillance
+                .iter()
+                .any(|item| item.traffic_class == traffic_class);
             let copy = input
                 .surveillance
                 .iter()
                 .find(|item| item.traffic_class == traffic_class)
                 .cloned()
                 .unwrap_or_else(|| crate::evidence(traffic_class));
-            input.surveillance.push(copy);
+            input.surveillance.push(copy.clone());
+            if !class_was_present {
+                // When another fault removed the class, add two copies so this
+                // mutator cannot accidentally repair the missing-class fault.
+                input.surveillance.push(copy);
+            }
         }
         29 => input.required_traffic_classes.push(traffic_class),
         30 => input.required_traffic_classes.clear(),
