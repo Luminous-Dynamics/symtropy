@@ -50,7 +50,15 @@
       "admission_status": "RIGHTS_CLEARED_CANDIDATE_METADATA_REVIEW_PENDING",
       "downloaded": false,
       "data_ingested": false,
-      "next_gate": "Inspect downloadable CSV and supporting docs, identify plot/year support, stem inclusion rules, field-level quality and exact repeated-census lineage before creating train/holdout manifests."
+      "next_gate": "Retrieve the ZIP from the official EIDC endpoint in a network-enabled environment; verify archive checksum and licence/supporting documents; inspect per-plot census years, stem identities, DBH thresholds, units, missingness and field-level QA before generating train/holdout manifests.",
+      "download": {
+        "download_page_url": "https://catalogue.ceh.ac.uk/documents/63d4b774-4e03-4db2-95ad-dcca18f0d681",
+        "direct_zip_url": "https://data-package.ceh.ac.uk/data/63d4b774-4e03-4db2-95ad-dcca18f0d681.zip",
+        "access_page_observed": "EIDC download page returned 'Your data is ready to download' and exposed the direct ZIP endpoint.",
+        "binary_retrieval_status": "NOT_RETRIEVED_IN_CURRENT_RUNTIME",
+        "retrieval_blocker": "The current execution container could not resolve data-package.ceh.ac.uk; no bytes were downloaded.",
+        "licence_confirmation": "Landing record explicitly states Open Government Licence; attribution and dataset citation remain required."
+      }
     },
     {
       "source_id": "AMAZON-ORNLDAAC-SUSTAINABLE-LANDSCAPES-BRAZIL-2009-2018",
