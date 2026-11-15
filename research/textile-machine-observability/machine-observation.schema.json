@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/textile-machine-observability/machine-observation.schema.json",
+  "title": "Textile Machine Read-only Observation Record",
+  "description": "A passive machine observation. This schema intentionally has no machine command, setpoint-write or actuation fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_id",
+    "captured_at",
+    "machine",
+    "job",
+    "source",
+    "channels"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "textile.machine-observation/0.1"
+    },
+    "record_id": {
+      "type": "string",
+      "pattern": "^TMO-[A-Z0-9-]{6,40}$"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "machine_class",
+        "manufacturer",
+        "model",
+        "configuration_digest",
+        "controller_firmware"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "machine_class": {
+          "enum": [
+            "single_needle_lockstitch",
+            "overlock",
+            "coverstitch",
+            "programmable_pattern_sewing",
+            "flat_knitting",
+            "fabric_cutting",
+            "weaving",
+            "finishing"
+          ]
+        },
+        "manufacturer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "configuration_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "controller_firmware": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_order_id",
+        "process_id",
+        "recipe_digest",
+        "material_lot_id",
+        "product_configuration_digest",
+        "operation_id"
+      ],
+      "properties": {
+        "work_order_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "process_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "recipe_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "product_configuration_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_id",
+        "sensor_pack_id",
+        "clock_id",
+        "sequence",
+        "read_only"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "native_oem_read",
+            "opc_ua_read",
+            "mtconnect_read",
+            "external_sensor",
+            "manual_inspection"
+          ]
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sensor_pack_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "read_only": {
+          "const": true
+        }
+      }
+    },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/channel"
+      }
+    }
+  },
+  "$defs": {
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_id",
+        "semantic_id",
+        "value",
+        "unit",
+        "observed_at",
+        "quality",
+        "calibration_state"
+      ],
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "semantic_id": {
+          "enum": [
+            "machine.speed",
+            "machine.shaft_phase",
+            "machine.stitch_count",
+            "machine.main_power",
+            "machine.vibration_rms",
+            "fabric.seam_edge_offset",
+            "fabric.feed_displacement",
+            "textile.thread_tension",
+            "machine.state"
+          ]
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "quality": {
+          "enum": [
+            "valid",
+            "degraded",
+            "stale",
+            "missing",
+            "out_of_range",
+            "uncalibrated"
+          ]
+        },
+        "uncertainty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_state": {
+          "enum": [
+            "calibrated",
+            "uncalibrated",
+            "not_applicable"
+          ]
+        },
+        "calibration_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "source_location": {
+          "type": "string",
+          "maxLength": 160
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "calibration_state": {
+                "const": "calibrated"
+              }
+            },
+            "required": [
+              "calibration_state"
+            ]
+          },
+          "then": {
+            "required": [
+              "calibration_digest"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
