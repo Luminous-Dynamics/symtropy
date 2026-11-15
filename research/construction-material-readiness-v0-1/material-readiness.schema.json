@@ -100,7 +100,7 @@
     },
     "inventoryReservationReceipt": {
       "type": "object",
-      "required": ["receipt_ref", "source_profile_id", "source_schema_version", "project_id", "lot_id", "work_package_id", "design_revision_digest", "location_id", "disposition", "reserved_quantity_milli", "window_start_ms", "window_end_ms", "observed_at_ms", "valid_until_ms"],
+      "required": ["receipt_ref", "source_profile_id", "source_schema_version", "project_id", "lot_id", "work_package_id", "design_revision_digest", "site_epoch", "location_id", "disposition", "reserved_quantity_milli", "window_start_ms", "window_end_ms", "observed_at_ms", "valid_until_ms"],
       "properties": {
         "receipt_ref": {"$ref": "#/$defs/nonEmpty"},
         "source_profile_id": {"$ref": "#/$defs/nonEmpty"},
@@ -109,6 +109,7 @@
         "lot_id": {"$ref": "#/$defs/nonEmpty"},
         "work_package_id": {"$ref": "#/$defs/nonEmpty"},
         "design_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "site_epoch": {"$ref": "#/$defs/nonEmpty"},
         "location_id": {"$ref": "#/$defs/nonEmpty"},
         "disposition": {"enum": ["ReservedForWorkPackage", "AvailableNotReserved", "Stale", "Conflict", "DamagedOrQuarantined", "Unknown"]},
         "reserved_quantity_milli": {"type": "integer", "minimum": 0},
