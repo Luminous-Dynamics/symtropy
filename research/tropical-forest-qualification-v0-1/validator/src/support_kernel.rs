@@ -22,10 +22,7 @@ pub struct Rect {
 impl Rect {
     pub fn new(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Result<Self, SupportError> {
         let values = [min_x, min_y, max_x, max_y];
-        if !values.iter().all(|value| value.is_finite())
-            || max_x <= min_x
-            || max_y <= min_y
-        {
+        if !values.iter().all(|value| value.is_finite()) || max_x <= min_x || max_y <= min_y {
             return Err(SupportError::InvalidGeometry);
         }
         let rect = Self {
@@ -116,7 +113,6 @@ pub struct SupportReport {
     pub valid_data_coverage_fraction: f64,
     pub disposition: CoverageDisposition,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RegistrationShiftBounds {
@@ -219,9 +215,8 @@ fn axis_overlap_bounds(
         if shift < min_shift || shift > max_shift {
             continue;
         }
-        let overlap = (target_max.min(source_max + shift)
-            - target_min.max(source_min + shift))
-        .max(0.0);
+        let overlap =
+            (target_max.min(source_max + shift) - target_min.max(source_min + shift)).max(0.0);
         minimum = minimum.min(overlap);
         maximum = maximum.max(overlap);
     }
@@ -281,8 +276,7 @@ pub fn qualify_rectangular_support(
         return Err(SupportError::CoverageExceedsTarget);
     }
 
-    let geometric_coverage_fraction =
-        (geometric_overlap_area / target_area).clamp(0.0, 1.0);
+    let geometric_coverage_fraction = (geometric_overlap_area / target_area).clamp(0.0, 1.0);
     let valid_data_coverage_fraction = (valid_data_area / target_area).clamp(0.0, 1.0);
     let disposition = if geometric_overlap_area <= tolerance {
         CoverageDisposition::OutOfSupport
@@ -324,15 +318,15 @@ mod tests {
     #[test]
     fn identical_support_is_complete() {
         let target = rect(0.0, 0.0, 10.0, 10.0);
-        let report = qualify_rectangular_support(
-            "LOCAL_METRE_GRID_A",
-            target,
-            &[sample("a", target, true)],
-        )
-        .expect("same support qualifies");
+        let report =
+            qualify_rectangular_support("LOCAL_METRE_GRID_A", target, &[sample("a", target, true)])
+                .expect("same support qualifies");
         assert_eq!(report.geometric_coverage_fraction, 1.0);
         assert_eq!(report.valid_data_coverage_fraction, 1.0);
-        assert_eq!(report.disposition, CoverageDisposition::CompleteValidCoverage);
+        assert_eq!(
+            report.disposition,
+            CoverageDisposition::CompleteValidCoverage
+        );
     }
 
     #[test]
@@ -358,7 +352,10 @@ mod tests {
         .expect("partial overlap qualifies as partial");
         assert_eq!(report.geometric_overlap_area, 50.0);
         assert_eq!(report.geometric_coverage_fraction, 0.5);
-        assert_eq!(report.disposition, CoverageDisposition::PartialGeometricCoverage);
+        assert_eq!(
+            report.disposition,
+            CoverageDisposition::PartialGeometricCoverage
+        );
     }
 
     #[test]
@@ -401,7 +398,10 @@ mod tests {
         .expect("fragmented supports qualify");
         assert_eq!(report.geometric_overlap_area, 50.0);
         assert_eq!(report.geometric_coverage_fraction, 0.5);
-        assert_eq!(report.disposition, CoverageDisposition::PartialGeometricCoverage);
+        assert_eq!(
+            report.disposition,
+            CoverageDisposition::PartialGeometricCoverage
+        );
     }
 
     #[test]
@@ -506,7 +506,6 @@ mod tests {
         assert_eq!(report.geometric_coverage_fraction, 1.0);
     }
 
-
     #[test]
     fn registration_uncertainty_zero_shift_matches_exact_overlap() {
         let result = bound_rect_overlap_under_translation(
@@ -609,12 +608,9 @@ mod tests {
 
     #[test]
     fn empty_sample_list_is_unobserved_not_zero() {
-        let report = qualify_rectangular_support(
-            "LOCAL_METRE_GRID_A",
-            rect(0.0, 0.0, 10.0, 10.0),
-            &[],
-        )
-        .expect("empty coverage is an explicit report");
+        let report =
+            qualify_rectangular_support("LOCAL_METRE_GRID_A", rect(0.0, 0.0, 10.0, 10.0), &[])
+                .expect("empty coverage is an explicit report");
         assert_eq!(report.valid_data_coverage_fraction, 0.0);
         assert_eq!(report.disposition, CoverageDisposition::OutOfSupport);
     }
