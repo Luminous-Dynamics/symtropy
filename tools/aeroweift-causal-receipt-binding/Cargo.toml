@@ -8,3 +8,5 @@ description = "Synthetic structural verifier for subject-scoped AeroWeft evidenc
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
