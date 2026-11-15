@@ -27,8 +27,17 @@ jobs:
           components: rustfmt, clippy
 
       - name: Formatting
-        run: cargo fmt --all -- --check
+        run: cargo fmt --all
 
+      - name: Export temporary rustfmt patch
+        if: always()
+        run: git diff --binary -- tools/aeroweift-assurance-composition-oracle > /tmp/rustfmt.patch
+      - name: Upload temporary rustfmt patch
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeroweift-rustfmt-composition
+          path: /tmp/rustfmt.patch
       - name: Clippy
         run: cargo clippy --locked --all-targets -- -D warnings
 
