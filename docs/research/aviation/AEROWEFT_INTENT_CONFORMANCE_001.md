@@ -107,7 +107,7 @@ For each non-overlapping observation support interval:
 - a set that overlaps but is not contained contributes to possible outside time only;
 - uncovered intervals remain unobserved.
 
-The profile's maximum definite-outside fraction is an explicit integer ratio/ppm field. The evaluator never hard-codes 5%. A deployment profile may bind EASA U-space guidance only within its legal scope and version.
+The profile's maximum definite-outside fraction is an explicit integer ratio/ppm field. The definite-outside fraction is a lower bound over the full evaluation window; the possible-outside fraction is an upper bound over that same window and adds all unobserved and unassessable time. The evaluator never hard-codes 5%. A deployment profile may bind EASA U-space guidance only within its legal scope and version. A missing-data interval can therefore never make the upper-bound exposure look better.
 
 ## 7. Golden fixture
 
