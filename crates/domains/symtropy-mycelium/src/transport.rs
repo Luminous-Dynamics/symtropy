@@ -314,7 +314,7 @@ pub fn apply_passive_transport(
     if !residual.is_finite() {
         return Err(TransportError::NonFiniteTotalMass);
     }
-    *compartments = next;
+    compartments.copy_from_slice(&next);
 
     Ok(TransportReport {
         solute,
