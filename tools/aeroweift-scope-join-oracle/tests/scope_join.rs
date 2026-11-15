@@ -513,3 +513,83 @@ fn frozen_fixture_registers_all_scope_join_scenarios() {
         );
     }
 }
+
+#[test]
+fn invalid_pnt_support_window_is_rejected() {
+    let mut input = valid_input();
+    input.request.pnt_support_window = window(100, 100);
+    assert_rejected(input, Reason::InvalidPntSupportWindow);
+}
+
+#[test]
+fn pnt_support_window_must_contain_the_evaluation_tick() {
+    let mut input = valid_input();
+    input.request.pnt_support_window = window(90, 100);
+    assert_rejected(input, Reason::PntSupportWindowMissesEvaluation);
+}
+
+#[test]
+fn invalid_operation_window_is_rejected() {
+    let mut input = valid_input();
+    input.request.operation_window = window(100, 100);
+    assert_rejected(input, Reason::InvalidOperationWindow);
+}
+
+#[test]
+fn owner_claim_with_invalid_validity_window_is_rejected() {
+    let mut input = valid_input();
+    input.operation_claims[2].validity_window = window(100, 100);
+    assert_rejected(
+        input,
+        Reason::InvalidOwnerValidityWindow(EvidenceOwner::Intent),
+    );
+}
+
+#[test]
+fn surveillance_observation_after_first_receipt_is_rejected() {
+    let mut input = valid_input();
+    input.surveillance_claims[0].observed_at = Some(99);
+    input.surveillance_claims[0].received_at = 98;
+    assert_rejected(
+        input,
+        Reason::SurveillanceObservationAfterReceipt("Q-COOP-A"),
+    );
+}
+
+#[test]
+fn surveillance_identity_must_match_profile_time_frame_and_datum() {
+    let mut input = valid_input();
+    input.surveillance_claims[1].identity.vertical_datum_id = "DATUM-OTHER";
+    assert_rejected(
+        input,
+        Reason::SurveillanceIdentityMismatch("Q-NONCOOP-A"),
+    );
+}
+
+#[test]
+fn coverage_query_must_stay_inside_the_operation_window() {
+    let mut input = valid_input();
+    input.request.required_coverage[0].window = window(190, 210);
+    assert_rejected(input, Reason::InvalidCoverageRequirement);
+}
+
+#[test]
+fn duplicate_surveillance_claim_is_not_silently_selected() {
+    let mut input = valid_input();
+    let duplicate = input.surveillance_claims[0];
+    input.surveillance_claims.push(duplicate);
+    assert_rejected(
+        input,
+        Reason::DuplicateSurveillanceClaim("Q-COOP-A"),
+    );
+}
+
+#[test]
+fn blank_dependency_snapshot_reference_is_not_accepted() {
+    let mut input = valid_input();
+    input.surveillance_claims[1].dependency_snapshot_ref = Some("  ");
+    assert_rejected(
+        input,
+        Reason::MissingDependencySnapshot("Q-NONCOOP-A"),
+    );
+}
