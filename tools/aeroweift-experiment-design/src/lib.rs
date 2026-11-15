@@ -433,9 +433,9 @@ fn independent_group_pair_count(candidate: &ExperimentCandidate, minimum_separat
             continue;
         }
         let pair = if left_group < right_group {
-            (**left_group, **right_group)
+            (*left_group, *right_group)
         } else {
-            (**right_group, **left_group)
+            (*right_group, *left_group)
         };
         pairs.insert(pair);
     }
