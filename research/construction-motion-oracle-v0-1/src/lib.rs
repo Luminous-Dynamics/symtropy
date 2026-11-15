@@ -12,7 +12,7 @@ pub use capsule::{
     moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
 };
 pub use translation_ccd::{
-    TranslationCcdError, TranslatingCapsuleClosestApproach,
+    TranslatingCapsuleClosestApproach, TranslationCcdError,
     endpoints_only_translating_capsule_collision, translating_capsule_aabb_candidate,
     translating_capsule_capsule_collision, translating_capsule_vs_capsule,
 };
