@@ -8,11 +8,11 @@
 pub mod aggregation_kernel;
 pub mod canopy_kernel;
 pub mod conformal_kernel;
+pub mod coverage_inference_kernel;
 pub mod forecast_kernel;
 pub mod model_set_kernel;
 pub mod support_kernel;
 
-use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write as FmtWrite;
