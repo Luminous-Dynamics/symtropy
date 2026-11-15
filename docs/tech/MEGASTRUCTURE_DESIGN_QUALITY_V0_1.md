@@ -186,3 +186,15 @@ Luminous's competitive opportunity is not to claim superior taste. It is to conn
 ## 10. Claim ceiling
 
 This document defines a pluralistic design obligation and a synthetic review benchmark. It does not certify an architectural design, establish a universal standard of beauty, replace professional architecture/engineering/human-factors review, prove community consent, or establish safety, sustainability or feasibility of any megastructure.
+
+## 11. Source and standards anchors
+
+These references inform process and applicable constraints; none defines universal beauty or substitutes for project-specific engineering and community review.
+
+- NASA Center for Design and Space Architecture (CDSA): describes iterative human-centred space-architecture practice using CAD, virtual reality, full-scale mockups, prototyping, task simulation and crewed human-in-the-loop evaluation. https://www.nasa.gov/reference/jsc-human-factors-performance/
+- NASA-STD-3001 Volume 2, Revision F, *Human Factors, Habitability, and Environmental Health*: active revision approved 2026-07-14. Determine mission applicability and tailoring; this is not an aesthetic standard. https://standards.nasa.gov/node/237
+- ISO 23312:2026, *Space systems — Detailed space debris mitigation requirements for unmanned spacecraft in Earth orbit*: published 2026-10; apply within its stated unmanned-spacecraft/Earth-orbit scope, not as a complete megastructure standard. https://www.iso.org/standard/92666.html
+- NASA-STD-7009B, *Standard for Models and Simulations*: use for model/simulation credibility and lifecycle assurance where applicable. https://standards.nasa.gov/node/263
+- NASA JSC 65829 Rev B, *Loads and Structural Dynamics Requirements for Spaceflight Hardware*: applicable reference for dynamic load events, structural-dynamics analysis and modal-model correlation where the hardware and mission fall within scope. https://standards.nasa.gov/standard/JSC/JSC-65829
+
+The benchmark should borrow the iterative, human-in-the-loop seriousness of the CDSA practice while making the exact design identity, engineering evidence, physical deltas, review protocol, stakeholder distribution and dissent reproducible.
