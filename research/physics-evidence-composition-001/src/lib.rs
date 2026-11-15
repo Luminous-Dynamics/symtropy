@@ -1030,6 +1030,26 @@ mod tests {
     }
 
     #[test]
+    fn task_semantics_receipt_is_representation_independent() {
+        let mut task_request = request(CompositionClaimV1::TaskEquivalence);
+        task_request.binding = task_binding();
+        let mut evidence = physical_receipts();
+        for item in &mut evidence {
+            item.binding = task_binding();
+        }
+        let mut semantics = receipt(EvidenceKindV1::TaskSemantics);
+        semantics.binding = task_binding();
+        semantics.frame_applicability = FrameApplicabilityV1::Target(target_frame());
+        evidence.push(semantics);
+        assert_eq!(
+            compose_evidence(&task_request, &evidence),
+            Err(CompositionErrorV1::FrameMismatch(
+                EvidenceKindV1::TaskSemantics
+            ))
+        );
+    }
+
+    #[test]
     fn missing_evidence_never_becomes_a_pass() {
         let mut evidence = physical_receipts();
         evidence.pop();
