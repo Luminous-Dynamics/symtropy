@@ -90,6 +90,12 @@ impl IrGraphMappingProfile {
             if *state == GraphEvidenceState::Unknown {
                 return Err(GraphBridgeError::UnknownEvidenceStateMapping { domain: *domain });
             }
+            if !domain_evidence_mapping_allowed(*domain, *state) {
+                return Err(GraphBridgeError::EvidenceDomainPromotionForbidden {
+                    domain: *domain,
+                    requested_state: *state,
+                });
+            }
         }
         for (object_id, claim_id) in &object_evidence_claim_ids {
             require_non_empty("evidence_selection_object_id", object_id)?;
@@ -452,6 +458,23 @@ fn require_graph_maturity(
     Ok(())
 }
 
+
+/// v0.1 maps evidence domains only to their conservative matching graph
+/// evidence class. Verified is deliberately not mapped: a Verified claim is
+/// not, by itself, an independent-review attestation. A later profile can add
+/// a separate, typed review attestation rather than promoting this enum.
+fn domain_evidence_mapping_allowed(
+    domain: ClaimDomain,
+    state: GraphEvidenceState,
+) -> bool {
+    matches!(
+        (domain, state),
+        (ClaimDomain::DesignIntent, GraphEvidenceState::DesignDeclared)
+            | (ClaimDomain::Declared, GraphEvidenceState::DesignDeclared)
+            | (ClaimDomain::Observed, GraphEvidenceState::FieldObserved)
+    )
+}
+
 fn require_non_empty(field: &'static str, value: &str) -> Result<(), GraphBridgeError> {
     if value.trim().is_empty() { Err(GraphBridgeError::EmptyField { field }) } else { Ok(()) }
 }
@@ -462,6 +485,7 @@ pub enum GraphBridgeError {
     EmptyObjectKindMap,
     EmptyRelationshipKindMap,
     UnknownEvidenceStateMapping { domain: ClaimDomain },
+    EvidenceDomainPromotionForbidden { domain: ClaimDomain, requested_state: GraphEvidenceState },
     EvidenceSelectionObjectUnknown { object_id: String },
     EvidenceSelectionClaimUnknown { object_id: String, claim_id: String },
     ModuleBindingObjectUnknown { object_id: String },
