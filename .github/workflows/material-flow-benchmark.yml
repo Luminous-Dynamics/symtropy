@@ -42,6 +42,13 @@ jobs:
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
       - name: Validate ten-fault campaign fixture
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+      - name: Run analytical four-timestep free-fall convergence
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-convergence > mfb-l1-evidence/free-fall-convergence.json
+          grep -q '"position_error_monotonic": true' mfb-l1-evidence/free-fall-convergence.json
+          grep -q '"all_cases_numerically_healthy": true' mfb-l1-evidence/free-fall-convergence.json
+          cat mfb-l1-evidence/free-fall-convergence.json
       - name: Run nominal L1 Symtropy physics episode and replay check
         run: |
           mkdir -p mfb-l1-evidence
