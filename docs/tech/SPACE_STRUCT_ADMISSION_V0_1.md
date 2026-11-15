@@ -40,9 +40,11 @@ A digest-shaped identifier is not proof the referenced bytes exist, are authenti
 
 The receiver accepts a typed request equivalent to StructuralAnalysisRequestV1 with:
 - schema and request identity;
+- mission ID, generation and digest;
 - candidate ID, generation and digest;
 - geometry/configuration ID, generation and digest;
 - material-state ID, generation and digest plus evidence class;
+- optional exact manufacturing process/batch ID, generation and digest;
 - load/support case ID, generation and digest;
 - coordinate frame/sign convention reference;
 - model-profile ID, version and digest;
@@ -58,8 +60,9 @@ Every field is semantically meaningful. An omitted field cannot be inferred from
 ## 4. Admission context
 
 The receiving side needs an independently supplied admission context containing:
-- the current candidate, geometry, load and frame identities expected for the request;
+- the current mission, candidate, geometry, load and frame identities expected for the request;
 - the material reference and its evidence state;
+- the accepted process/batch reference when the declared material state requires one;
 - the exact selected model profile and backend identity;
 - backend allowlist state;
 - profile maturity/qualification state;
@@ -84,6 +87,7 @@ Reason codes are stable machine-readable values. V0.1 uses:
 - CANDIDATE_IDENTITY_MISMATCH
 - GEOMETRY_IDENTITY_MISMATCH
 - MATERIAL_IDENTITY_MISMATCH
+- PROCESS_BATCH_IDENTITY_MISMATCH
 - LOAD_CASE_IDENTITY_MISMATCH
 - FRAME_IDENTITY_MISMATCH
 - MODEL_PROFILE_IDENTITY_MISMATCH
@@ -150,6 +154,7 @@ The machine-readable companion files are:
 - `space-struct-admission-cases-v0.1.schema.json`
 
 The case set covers:
+- stale mission identity and manufacturing process/batch references;
 - valid restricted thin-ring and radial-spoke reference requests;
 - stale candidate/geometry/load/frame/profile/backend identities;
 - unallowlisted backend;
