@@ -762,3 +762,16 @@ fn observation_must_arrive_before_its_evaluation() {
         Err(VerificationError::ObservationReceivedAfterEvaluation)
     );
 }
+
+
+#[test]
+fn profile_class_order_permutation_preserves_semantic_result() {
+    let mut receipts = graph();
+    let expected = verify_graph(&receipts).unwrap();
+    receipt_mut(&mut receipts, "profile-policy")
+        .required_traffic_classes
+        .as_mut()
+        .unwrap()
+        .reverse();
+    assert_eq!(verify_graph(&receipts).unwrap(), expected);
+}
