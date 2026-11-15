@@ -1,7 +1,7 @@
 use metric_induced_error_envelope_reference::{
-    ConstraintMapRankStatusV1, ConstraintSpaceProfileV1, ConstraintSpaceReceiptV1,
-    CoordinateFrame, Cotangent, Metric, MetricProfileV1, OperatorConditionProfileV1, Rebasis,
-    Tangent, constraint_space_receipt::rebase_constraint_jacobian_both,
+    ConstraintMapRankStatusV1, ConstraintSpaceProfileV1, ConstraintSpaceReceiptV1, CoordinateFrame,
+    Cotangent, Metric, MetricProfileV1, OperatorConditionProfileV1, Rebasis, Tangent,
+    constraint_space_receipt::rebase_constraint_jacobian_both,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,10 +103,9 @@ fn assert_close(
     let scale = 1.0_f64.max(left.abs()).max(right.abs());
     let defect = (left - right).abs();
     if defect > tolerance * scale {
-        return Err(format!(
-            "{label}: left={left:.17e}, right={right:.17e}, defect={defect:.3e}"
-        )
-        .into());
+        return Err(
+            format!("{label}: left={left:.17e}, right={right:.17e}, defect={defect:.3e}").into(),
+        );
     }
     Ok(())
 }
@@ -118,10 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
         profile,
     )?;
-    let constraint_c = Metric::<ConstraintSpace, 2>::admit(
-        [[2.0, 0.25], [0.25, 1.5]],
-        profile,
-    )?;
+    let constraint_c = Metric::<ConstraintSpace, 2>::admit([[2.0, 0.25], [0.25, 1.5]], profile)?;
     let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
     let receipt_q = ConstraintSpaceReceiptV1::<CartesianQ, ConstraintSpace, 3, 2>::new(
         mass_q,
@@ -130,7 +126,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         profile,
         solver_profile,
     )?;
-    assert_eq!(receipt_q.rank_status(), ConstraintMapRankStatusV1::FullRowRank);
+    assert_eq!(
+        receipt_q.rank_status(),
+        ConstraintMapRankStatusV1::FullRowRank
+    );
 
     let velocity_q = Tangent::<CartesianQ, 3>::new([0.2, -0.3, 0.8])?;
     let multiplier_q = Cotangent::<ConstraintSpace, 2>::new([0.75, -0.2])?;
@@ -159,11 +158,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let mass_y = domain_rebasis.metric_to_to(&mass_q, profile)?;
         let constraint_d = constraint_rebasis.metric_to_to(&constraint_c, profile)?;
-        let jacobian_d = rebase_constraint_jacobian_both(
-            &jacobian_q,
-            &domain_rebasis,
-            &constraint_rebasis,
-        )?;
+        let jacobian_d =
+            rebase_constraint_jacobian_both(&jacobian_q, &domain_rebasis, &constraint_rebasis)?;
         let receipt_d = ConstraintSpaceReceiptV1::<DenseY, DenseConstraint, 3, 2>::new(
             mass_y,
             constraint_d,
@@ -202,8 +198,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &multiply(&inverse_t, delassus_q.matrix()),
             &transpose(&inverse_t),
         );
-        let delassus_defect =
-            max_abs_matrix_difference(delassus_d.matrix(), &expected_w_d);
+        let delassus_defect = max_abs_matrix_difference(delassus_d.matrix(), &expected_w_d);
         if delassus_defect > 5.0e-9 {
             return Err(format!(
                 "Delassus congruence failed at shear {shear}: {delassus_defect:e}"
@@ -220,11 +215,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .iter()
             .zip(expected_rate_d.components().iter())
         {
-            assert_close(*actual, *expected, 2.0e-10, "constraint-rate coordinate map")?;
+            assert_close(
+                *actual,
+                *expected,
+                2.0e-10,
+                "constraint-rate coordinate map",
+            )?;
         }
         let rate_norm_q = receipt_q.constraint_rate_norm(&rate_q)?;
         let rate_norm_d = receipt_d.constraint_rate_norm(&rate_d)?;
-        assert_close(rate_norm_q, rate_norm_d, 2.0e-9, "constraint-rate metric norm")?;
+        assert_close(
+            rate_norm_q,
+            rate_norm_d,
+            2.0e-9,
+            "constraint-rate metric norm",
+        )?;
 
         let multiplier_d = constraint_rebasis.cotangent_to_to(&multiplier_q)?;
         let covector_norm_q = receipt_q.constraint_covector_dual_norm(&multiplier_q)?;
