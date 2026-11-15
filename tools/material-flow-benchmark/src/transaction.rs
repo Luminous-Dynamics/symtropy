@@ -4,9 +4,12 @@
 //! Deterministic reference state machine for distributed physical handoff.
 //!
 //! This models logical authorization, single-issue command gating, physical
-//! observations and custody acknowledgement. It does not drive hardware,
-//! prove that a sensor is truthful, authenticate a Holochain signature, or
-//! guarantee exactly-once physical actuation.
+//! observations, custody acknowledgement and explicit reconciliation closure.
+//! Reconciliation requires a distinct configured custodian and two distinct
+//! evidence digests, but this pure state machine does not authenticate the
+//! underlying signatures or prove that evidence sources are truly independent.
+//! It does not drive hardware, prove that a sensor is truthful, or guarantee
+//! exactly-once physical actuation.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -202,7 +205,7 @@ impl PhysicalTransaction {
 
         if self.state == PhysicalTransactionState::ReconciliationRequired
             && !matches!(
-                event.kind,
+                &event.kind,
                 TransactionEventKind::ReconciliationResolved { .. }
             )
         {
