@@ -667,7 +667,7 @@ mod tests {
     }
 
     #[test]
-    fn 17_value_dense_shear_ladder_preserves_the_complete_discrete_map() {
+    fn seventeen_value_dense_shear_ladder_preserves_the_complete_discrete_map() {
         let profile = EffectiveMetricProfileV1::default();
         for time_step in [0.01, 0.05, 0.2, 0.5, 1.0] {
             let problem = fixture(time_step);
