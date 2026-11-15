@@ -572,8 +572,5 @@ fn cycle_is_detected_even_when_causal_timestamps_tie() {
     receipts[root_index]
         .parents
         .push(edge(&root, ParentRole::PriorConflictAssessment));
-    assert_eq!(
-        verify_graph(&receipts),
-        Err(VerificationError::Cycle)
-    );
+    assert_eq!(verify_graph(&receipts), Err(VerificationError::Cycle));
 }
