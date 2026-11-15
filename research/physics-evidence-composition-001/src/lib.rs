@@ -804,7 +804,10 @@ mod tests {
         assert!(request.binding.task_semantics_sha256.is_none());
         let output = compose_evidence(&request, &physical_receipts()).unwrap();
         assert_eq!(output.physical_step_status, CompositionStatusV1::Pass);
-        assert_eq!(output.task_equivalence_status, CompositionStatusV1::Inconclusive);
+        assert_eq!(
+            output.task_equivalence_status,
+            CompositionStatusV1::Inconclusive
+        );
     }
 
     #[test]
@@ -952,7 +955,10 @@ mod tests {
             &evidence,
         )
         .unwrap();
-        assert_eq!(output.physical_step_status, CompositionStatusV1::Inconclusive);
+        assert_eq!(
+            output.physical_step_status,
+            CompositionStatusV1::Inconclusive
+        );
         assert_eq!(output.physical_authority, ClaimAuthorityV1::None);
 
         let mut evidence = physical_receipts();
