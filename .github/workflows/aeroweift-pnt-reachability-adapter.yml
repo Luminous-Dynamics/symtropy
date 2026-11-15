@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: aeroweift-pnt-reachability-adapter-${{ github.ref }}
@@ -36,15 +36,20 @@ jobs:
           components: clippy, rustfmt
       - name: Formatting
         run: cargo fmt --manifest-path tools/aeroweift-pnt-reachability-adapter/Cargo.toml
-      - name: Export temporary rustfmt patch
-        if: always()
-        run: git diff --binary -- tools/aeroweift-pnt-reachability-adapter > /tmp/rustfmt.patch
-      - name: Upload temporary rustfmt patch
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: aeroweift-rustfmt-pnt
-          path: /tmp/rustfmt.patch
+      - name: Commit rustfmt output to the PR branch
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if ! git diff --quiet -- tools/aeroweift-pnt-reachability-adapter; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- tools/aeroweift-pnt-reachability-adapter
+            git commit -m "style(aviation): apply rustfmt to PNT adapter"
+            git push origin "HEAD:${HEAD_REF}"
+          fi
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/aeroweift-pnt-reachability-adapter/Cargo.toml -- --check
       - name: Clippy
         run: cargo clippy --locked --manifest-path tools/aeroweift-pnt-reachability-adapter/Cargo.toml --all-targets -- -D warnings
       - name: Tests
