@@ -18,6 +18,8 @@ Luminous should not claim to be ahead of NASA, Texas A&M, Vast or other aerospac
 | Vast Artificial Gravity Station roadmap | Commercial roadmap target | 2035 target; 3.5 RPM; 950 m³ habitable volume, 2,160 m³ pressurized volume, 40-person crew | Built station, measured gravity field, in-orbit human tolerance |
 | Aegis Station Gradient One Rev C | Public architecture proposal | 1.6 RPM; approximately 350 m 1 g band, 132 m Mars band, 58 m lunar band, rotating zero-g hub; author-described 10-person and 180-day campaign | Independently verified mass, structure, operations, long-duration human exposure |
 | Tensentric habitat architecture (2026) | Published concept | Tension-dominated structural concept with habitat modules distinct from tensile framework | Qualified structure, manufacturing yield, mass advantage or flight demonstration |
+| Zhang (2026) human–mechanics co-design | Research Square preprint | Analytic human-gradient / RPM intersection and thin-ring scaling claims; independent reproduction work begun in #5314 | Peer review, validated human limits, or qualification of the paper's multiphysics outputs |
+| Beverly et al. (13 Nov 2026) in-flight mouse study | Peer-reviewed animal experiment | 30-day ISS centrifuge exposure at 0.33, 0.67 and 1 g; 1 g restored most measured bone endpoints to ground-control-like levels in young adult male mice | Human dose-response, other sexes/ages, long-term clinical efficacy or proof that 0.16/0.38 g is insufficient for humans |
 
 Primary references:
 - NASA CR-181617: https://ntrs.nasa.gov/api/citations/19880017013/downloads/19880017013.pdf
@@ -26,9 +28,17 @@ Primary references:
 - Gradient One Rev C: https://aegisstation.com/gradientone.html
 - AGRE: https://aegisstation.com/artificial-gravity-requirements-evaluation.html
 - Tensentric paper: https://doi.org/10.1016/j.actaastro.2026.04.071
+- Zhang (8 Sep 2026), Research Square preprint: https://doi.org/10.21203/rs.3.rs-10933822/v1
+- Beverly et al. (13 Nov 2026), npj Microgravity: https://doi.org/10.1038/s41526-026-00670-5
 - 2026 artificial-gravity research review: https://doi.org/10.3389/frspt.2026.1967384
 
 Treat the Vast and Gradient One entries as their authors' published roadmap/proposal values, not independent results. Texas A&M is a terrestrial analogue research capability. NASA CR-181617 is a historical concept study. Tensentric is a published design concept.
+
+## New evidence that changes our research priorities
+
+Beverly et al. (published 13 November 2026) exposed young adult male C57BL/6J mice to microgravity or 0.33, 0.67 and 1 g centrifugation during a 30-day ISS mission. The flight groups were small (n=5–6/group); ground habitat controls were n=12. The authors report that 1 g artificial gravity restored measured bone mass, microarchitecture and strength to ground-control levels, while lower levels only partially mitigated several deficits. The result is peer-reviewed in-flight animal evidence, not a human tolerance result. It cautions against assuming that a partial-gravity band that is useful for one physiological endpoint is adequate for bone health or all other systems.
+
+Zhang's September 2026 Research Square manuscript is a preprint that explicitly couples human gradient constraints to structural scaling. Symtropy #5314 independently reproduces its simple radius-intersection example and ideal thin-ring scaling equations. The preprint's electromagnetic and multiphysics outputs remain unverified by this work package.
 
 ## Matched kinematic comparison
 
@@ -127,6 +137,7 @@ Report infeasible candidates and missing evidence. Do not rank a naked ring agai
 - Symtropy occupied-field and motion benchmark: #5289.
 - Symtropy counter-rotation and attitude benchmark: #5291.
 - Symtropy inert-payload demonstrator: #5292.
+- Symtropy coupled human–mechanics and ring scaling reproduction: #5314.
 - Symthaea human-factors experiment design: https://github.com/Luminous-Dynamics/symthaea/issues/12222.
 - Symthaea settlement profile: https://github.com/Luminous-Dynamics/symthaea/issues/7687.
 - Mycelix evidence integration: https://github.com/Luminous-Dynamics/mycelix/issues/6204.
