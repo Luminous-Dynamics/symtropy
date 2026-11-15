@@ -179,7 +179,12 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
         }
         let reported=if let Some(p)=item.get("reported_change_percent").and_then(Value::as_f64) {Some(p)} else {None};
         let interpretation=string_at(item,"interpretation")?;
-        if interpretation=="NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT" && string_at(item,"direction")?!="NO_SIGNIFICANT_DIFFERENCE" {
+        let direction=string_at(item,"direction")?;
+        if direction=="NO_SIGNIFICANT_DIFFERENCE"
+            && interpretation!="NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT" {
+            return Err(format!("published summary {id} must preserve non-significance without claiming zero effect"));
+        }
+        if interpretation=="NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT" && direction!="NO_SIGNIFICANT_DIFFERENCE" {
             return Err(format!("published summary {id} mislabels non-significance"));
         }
         if let Some(reported)=reported {
