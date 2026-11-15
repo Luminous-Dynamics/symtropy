@@ -37,6 +37,8 @@ jobs:
         run: cargo metadata --manifest-path research/construction-material-readiness-v0-1/Cargo.toml --locked --format-version 1
       - name: Formatting
         run: cargo fmt --manifest-path research/construction-material-readiness-v0-1/Cargo.toml -- --check
+      - name: Validate machine-readable schema and frozen corpus JSON
+        run: python -c "import json; from pathlib import Path; [json.loads(Path(p).read_text()) for p in ['research/construction-material-readiness-v0-1/material-readiness.schema.json', 'research/construction-material-readiness-v0-1/fixtures/material-readiness-cases-v0.1.json']]"
       - name: Tests
         run: cargo test --manifest-path research/construction-material-readiness-v0-1/Cargo.toml --locked
       - name: Strict Clippy
