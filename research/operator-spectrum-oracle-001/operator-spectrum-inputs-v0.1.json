@@ -1,0 +1,184 @@
+{
+  "schema_version": "luminous.operator_spectrum_input.v0.1",
+  "arithmetic_domain": "integer matrices interpreted exactly over the rationals",
+  "root_isolation_epsilon": "1/10^70",
+  "singular_value_decimal_digits": 60,
+  "fixtures": [
+    {
+      "fixture_id": "weighted_diagonal_2x2",
+      "matrix": [
+        [
+          3,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "expected_rank": 2,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-25",
+        "144"
+      ]
+    },
+    {
+      "fixture_id": "dense_exact_2x2",
+      "matrix": [
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "expected_rank": 2,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-30",
+        "4"
+      ]
+    },
+    {
+      "fixture_id": "repeated_spectrum_3x3",
+      "matrix": [
+        [
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_rank": 3,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-51",
+        "675",
+        "-625"
+      ]
+    },
+    {
+      "fixture_id": "rank_deficient_square_2x2",
+      "matrix": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "expected_rank": 1,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-25",
+        "0"
+      ]
+    },
+    {
+      "fixture_id": "scaled_full_rank_3x3",
+      "matrix": [
+        [
+          1000000000000,
+          0,
+          0
+        ],
+        [
+          0,
+          1000000,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_rank": 3,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-1000000000001000000000001",
+        "1000000000001000000000001000000000000",
+        "-1000000000000000000000000000000000000"
+      ]
+    },
+    {
+      "fixture_id": "full_row_rank_wide_2x3",
+      "matrix": [
+        [
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ]
+      ],
+      "expected_rank": 2,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-4",
+        "3"
+      ]
+    },
+    {
+      "fixture_id": "full_column_rank_tall_3x2",
+      "matrix": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "expected_rank": 2,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-5",
+        "4"
+      ]
+    },
+    {
+      "fixture_id": "rank_deficient_wide_2x3",
+      "matrix": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          2,
+          4,
+          6
+        ]
+      ],
+      "expected_rank": 1,
+      "expected_characteristic_polynomial_coefficients": [
+        "1",
+        "-70",
+        "0"
+      ]
+    }
+  ]
+}
