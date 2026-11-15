@@ -123,6 +123,7 @@ A reduction in test count is not success if the resulting model is less reliable
 
 - NASA-STD-7009B: modeling/simulation lifecycle credibility and intended-use assessment.
 - NASA-HDBK-7009B (2026-02-03): current implementation guidance accompanying NASA-STD-7009B.
+- Wang et al. (August 2026), hierarchical Bayesian integration of segmented flight-test data and adaptive cost-aware test policy: https://doi.org/10.1016/j.ress.2026.112630.
 - AIAA R-154-2021: model-based reduction of flight testing and six engineering tasks.
 - ASTM F3705-25 / F3442-26: DAA test and performance comparison only for matched operating assumptions.
 - NASA NESC-RP-23-01853: cross-simulation comparison under common inputs can contribute to validation, while remaining distinct from empirical flight validation.
