@@ -1,0 +1,117 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "DISTRIBUTION-INTRUSION-TRANSIENT-QUAL-001",
+  "evidence_class": "synthetic_expected_outputs_only",
+  "evidence_ceiling": "expected_contract_dispositions_not_physical_or_health_evidence",
+  "input_profile_id": "LUMINOUS-DISTRIBUTION-INTRUSION-T0-SYNTHETIC",
+  "cases": [
+    {
+      "case_id": "DI-T0-001-positive-tracer-with-valid-pressure-and-pathway",
+      "expected": {
+        "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
+        "tracer_mass_recomputed_mg": 5,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "tracer_mass_arithmetic": "MATCHED_WITHIN_DECLARED_SYNTHETIC_TOLERANCE"
+      }
+    },
+    {
+      "case_id": "DI-T0-002-transient-with-no-defect-and-complete-negative-samples",
+      "expected": {
+        "ingress_disposition": "INGRESS_NOT_DEMONSTRATED",
+        "negative_claim_scope": "THIS_SYNTHETIC_TEST_WINDOW_ONLY",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-003-defect-and-tracer-but-no-external-head-exceedance",
+      "expected": {
+        "ingress_disposition": "INGRESS_NOT_DEMONSTRATED",
+        "negative_claim_scope": "THIS_SYNTHETIC_TEST_WINDOW_ONLY",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-004-pressure-deficit-with-unknown-pathway",
+      "expected": {
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "PATHWAY_OBSERVABILITY_INSUFFICIENT",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-005-missing-downstream-sample",
+      "expected": {
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "DOWNSTREAM_SAMPLE_COVERAGE_INCOMPLETE",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-006-expired-pressure-or-sample-calibration",
+      "expected": {
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "CRITICAL_CALIBRATION_INVALID",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-007-detection-limit-insufficient",
+      "expected": {
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "DETECTION_LIMIT_TOO_HIGH_FOR_NEGATIVE_CONCLUSION",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-008-tracer-source-ambiguous",
+      "expected": {
+        "ingress_disposition": "INDETERMINATE",
+        "reason": "TRACER_SOURCE_NOT_UNIQUELY_ATTRIBUTABLE",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-009-ingress-known-but-mass-balance-incomplete",
+      "expected": {
+        "ingress_disposition": "INGRESS_CONFIRMED_IN_TEST",
+        "mass_balance_disposition": "MASS_BALANCE_UNRESOLVED",
+        "reason": "DECLARED_RESIDUAL_STREAM_UNMEASURED",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-010-downstream-tracer-arrival",
+      "expected": {
+        "transport_disposition": "DOWNSTREAM_TRACER_DETECTED",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-011-pressure-restored-ticket-closed-no-water-quality-evidence",
+      "expected": {
+        "recommissioning_disposition": "RECOMMISSIONING_NOT_VERIFIED",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DI-T0-012-similar-pressure-event-no-ingress-pathway",
+      "expected": {
+        "ingress_disposition": "INGRESS_NOT_DEMONSTRATED",
+        "negative_claim_scope": "THIS_SYNTHETIC_TEST_WINDOW_ONLY",
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    }
+  ]
+}
