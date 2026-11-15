@@ -790,3 +790,25 @@ fn parameter_identification_does_not_receive_model_pair_diversity_credit() {
     let result = select_experiments(&[candidate], &frozen).unwrap();
     assert_eq!(result.pareto_front[0].independent_hypothesis_group_pair_count, 0);
 }
+
+
+#[test]
+fn model_form_discrimination_uses_common_experiment_contract_not_output_equivalence() {
+    let mut comparison = candidate("model-form-comparison");
+    comparison.modality = ExperimentModality::Simulation;
+    comparison.semantic_equivalence = SemanticEquivalence::NotRequired;
+    comparison.semantic_equivalence_receipt_sha256 = None;
+    let result = select_experiments(&[comparison], &policy()).unwrap();
+    assert_eq!(result.pareto_front[0].candidate_id, "model-form-comparison");
+}
+
+#[test]
+fn cross_implementation_comparison_still_requires_semantic_equivalence() {
+    let mut comparison = candidate("cross-implementation-no-equivalence");
+    comparison.modality = ExperimentModality::CrossImplementation;
+    comparison.semantic_equivalence = SemanticEquivalence::NotRequired;
+    comparison.semantic_equivalence_receipt_sha256 = None;
+    let result = select_experiments(&[comparison], &policy()).unwrap();
+    assert!(reason(&result, "cross-implementation-no-equivalence")
+        .contains(&RejectionReason::SemanticEquivalenceNotEstablished));
+}
