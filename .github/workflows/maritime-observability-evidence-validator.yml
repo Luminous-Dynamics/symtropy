@@ -8,6 +8,8 @@ on:
       - "docs/tech/MARITIME_VALIDATION_EVIDENCE_PROFILE_V0_1.schema.json"
       - "benchmarks/maritime-observability/**"
       - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
+      - "docs/tech/MARITIME_SAIL_CAPABILITY_PROFILE_V0_1.schema.json"
+      - "docs/tech/MARITIME_SAIL_CAPABILITY_GRAPH_V0_1.md"
       - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
       - "docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json"
@@ -23,6 +25,8 @@ on:
       - "docs/tech/MARITIME_VALIDATION_EVIDENCE_PROFILE_V0_1.schema.json"
       - "benchmarks/maritime-observability/**"
       - "docs/tech/MARITIME_QUALIFICATION_IMPACT_CHANGE_SET_V0_1.schema.json"
+      - "docs/tech/MARITIME_SAIL_CAPABILITY_PROFILE_V0_1.schema.json"
+      - "docs/tech/MARITIME_SAIL_CAPABILITY_GRAPH_V0_1.md"
       - "docs/tech/MARITIME_OBSERVATION_VALUE_CASE_V0_1.schema.json"
       - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
       - "docs/tech/MARITIME_OBSERVABILITY_PAIR_CASE_V0_1.schema.json"
@@ -187,6 +191,89 @@ jobs:
             and (.ranked_candidates[0].robust_net_evsi_min > 0)
             and .ranked_candidates[1].status == "NOT_ROBUST_POSITIVE_NET_VALUE"
           ' maritime-observation-value-receipt.json
+      - name: Execute generic qualification scope compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/qualification-scope-cases.v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification_scope -- \
+            "$input" --source-commit "$source_commit" --case-sha256 "$digest" > maritime-qualification-scope-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .case_sha256 == $digest
+            and .case_count == 20
+            and .disposition_counts.SUPPORTED == 1
+            and .disposition_counts.REQUALIFIED == 1
+            and .disposition_counts.REQUALIFICATION_REQUIRED == 7
+            and .disposition_counts.OUT_OF_SCOPE == 2
+            and .disposition_counts.NOT_EVALUATED == 5
+            and .disposition_counts.CONFLICTED == 1
+            and .disposition_counts.EXPIRED == 3
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .physical_qualification_established == false
+          ' maritime-qualification-scope-receipt.json
+
+      - name: Execute sail capability qualification and graph profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "\${{ github.event.pull_request.head.sha || github.sha }}"
+
+          profile="benchmarks/maritime-observability/sail-capability-profile.v0.1.json"
+          cases="benchmarks/maritime-observability/sail-capability-scope-cases.v0.1.json"
+          schema="docs/tech/MARITIME_SAIL_CAPABILITY_PROFILE_V0_1.schema.json"
+
+          jq -e '.schema_version == "maritime-sail-capability-profile-v0.1" and (.capability_graph | length == 7)' "$profile" > /dev/null
+          jq -e '.schema_version == "maritime-qualification-scope-v0.1" and .evidence_class == "SYNTHETIC_KNOWN_TRUTH" and (.cases | length == 16)' "$cases" > /dev/null
+          jq -e '."$schema" == "https://json-schema.org/draft/2020-12/schema" and .additionalProperties == false' "$schema" > /dev/null
+
+          cases_digest="$(sha256sum "$cases" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin qualification_scope -- \
+            "$cases" --source-commit "$source_commit" --case-sha256 "$cases_digest" > sail-capability-qualification-scope-receipt.json
+
+          jq -e --arg source "$source_commit" --arg digest "$cases_digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .case_sha256 == $digest
+            and .case_count == 16
+            and .disposition_counts.SUPPORTED == 7
+            and .disposition_counts.REQUALIFICATION_REQUIRED == 3
+            and .disposition_counts.OUT_OF_SCOPE == 1
+            and .disposition_counts.EXPIRED == 3
+            and .disposition_counts.NOT_EVALUATED == 1
+            and .disposition_counts.CONFLICTED == 1
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .physical_qualification_established == false
+          ' sail-capability-qualification-scope-receipt.json
+
+          profile_digest="$(sha256sum "$profile" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin sail_capability_profile -- \
+            "$profile" "$cases" --source-commit "$source_commit" \
+            --profile-sha256 "$profile_digest" --cases-sha256 "$cases_digest" > sail-capability-profile-receipt.json
+
+          jq -e --arg source "$source_commit" --arg profile "$profile_digest" --arg cases "$cases_digest" '
+            .result == "pass"
+            and .source_commit == $source
+            and .profile_sha256 == $profile
+            and .qualification_cases_sha256 == $cases
+            and .capability_count == 7
+            and .dependency_edge_count == 9
+            and .qualification_case_count == 16
+            and .capabilities_with_nominal_scope_cases == 7
+            and (.unreferenced_validation_case_ids | length == 9)
+            and .acyclic == true
+            and .mutation_performed == false
+            and .authorization_granted == false
+            and .actuator_commands_emitted == false
+          ' sail-capability-profile-receipt.json
+
       - name: Archive rustfmt-normalized maritime sources
         if: always()
         run: |
@@ -196,6 +283,8 @@ jobs:
           cp tools/maritime-observability-evidence-validator/src/bin/maritime_validation_evidence_profile.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/observation_value.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/bin/qualification_impact.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/qualification_scope.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
+          cp tools/maritime-observability-evidence-validator/src/bin/sail_capability_profile.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/bin/
           cp tools/maritime-observability-evidence-validator/src/main.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
           cp tools/maritime-observability-evidence-validator/src/lib.rs /tmp/maritime-rustfmt/tools/maritime-observability-evidence-validator/src/
           tar -czf maritime-rustfmt-sources.tar.gz -C /tmp/maritime-rustfmt .
@@ -215,5 +304,8 @@ jobs:
             maritime-qualification-impact-receipt.json
             maritime-observation-value-receipt.json
             maritime-validation-evidence-profile-receipt.json
+            maritime-qualification-scope-receipt.json
+            sail-capability-qualification-scope-receipt.json
+            sail-capability-profile-receipt.json
           if-no-files-found: error
           retention-days: 90
