@@ -445,7 +445,8 @@ mod tests {
             stiffness_n_m: 1_000_000.0,
             damping_n_s_m: 2_000.0,
             preload_n: 100_000.0,
-            release_time_s: 0.0,
+            release_stream_time_s: 0.0,
+            release_support_time_s: 0.0,
             duration_s: 0.4,
             dt_s: 0.0001,
         }
@@ -486,7 +487,7 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_independent_closed_form_cases() {
         let cases = parse_corpus(include_str!("../cases-v0.1.csv")).expect("valid corpus");
-        assert_eq!(cases.len(), 7);
+        assert_eq!(cases.len(), 9);
         for case in &cases {
             let report = evaluate(&case.scenario).expect("simulation");
             assert!(
@@ -494,8 +495,10 @@ mod tests {
                 "case {}",
                 case.scenario.case_id
             );
-            let elapsed = case.scenario.duration_s - case.scenario.release_time_s;
-            if case.scenario.preload_n > 0.0 && elapsed > 0.0 {
+            let synchronized = case.scenario.release_stream_time_s
+                == case.scenario.release_support_time_s;
+            let elapsed = case.scenario.duration_s - case.scenario.release_stream_time_s;
+            if synchronized && case.scenario.preload_n > 0.0 && elapsed > 0.0 {
                 let (expected_y, expected_v) = exact_underdamped(
                     case.scenario.mass_stream_kg,
                     case.scenario.mass_support_kg,
@@ -524,7 +527,7 @@ mod tests {
     }
 
     #[test]
-    fn equal_and_opposite_port_preserves_linear_momentum() {
+    fn total_momentum_matches_integrated_external_impulse() {
         for case in parse_corpus(include_str!("../cases-v0.1.csv")).expect("valid corpus") {
             let report = evaluate(&case.scenario).expect("simulation");
             assert!(report.max_abs_linear_momentum_residual_kg_mps < 1.0e-7);
@@ -570,7 +573,8 @@ mod tests {
     fn release_at_duration_is_a_preloaded_equilibrium_control() {
         let mut input = scenario();
         input.case_id = "NO_RELEASE".to_owned();
-        input.release_time_s = input.duration_s;
+        input.release_stream_time_s = input.duration_s;
+        input.release_support_time_s = input.duration_s;
         let report = evaluate(&input).expect("simulation");
         assert!((report.final_separation_m - 0.1).abs() < 1.0e-12);
         assert!(report.final_relative_velocity_mps.abs() < 1.0e-12);
@@ -651,14 +655,14 @@ mod tests {
     #[test]
     fn rejects_non_aligned_release_event() {
         let mut input = scenario();
-        input.release_time_s = 0.00015;
+        input.release_stream_time_s = 0.00015;
         expect_error(input, ModelError::NonIntegralTimeGrid);
     }
 
     #[test]
     fn rejects_release_after_duration() {
         let mut input = scenario();
-        input.release_time_s = input.duration_s + input.dt_s;
+        input.release_stream_time_s = input.duration_s + input.dt_s;
         expect_error(input, ModelError::ReleaseOutsideDuration);
     }
 
