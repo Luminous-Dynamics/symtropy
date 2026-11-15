@@ -84,6 +84,10 @@ pub enum SelectionEvidenceRole {
 /// Independent candidate model-family/correlation group.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct HypothesisGroup {
+    /// Stable exact hypothesis identity.
+    pub hypothesis_id: String,
+    /// Digest of the exact model variant/parameterization being tested.
+    pub hypothesis_sha256: String,
     /// Stable model-family or genuinely independent hypothesis-group identity.
     pub group_id: String,
 }
@@ -93,6 +97,18 @@ pub struct HypothesisGroup {
 pub struct ExperimentCandidate {
     /// Stable candidate identity.
     pub candidate_id: String,
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
+    /// Exact experiment design digest.
+    pub design_sha256: String,
+    /// Exact scenario/initial-condition manifest digest.
+    pub scenario_manifest_sha256: String,
+    /// Exact measurement/reference protocol digest.
+    pub measurement_plan_sha256: String,
     /// Engineering decision/question this experiment is intended to resolve.
     pub decision_question_id: String,
     /// Type of epistemic objective.
@@ -103,35 +119,104 @@ pub struct ExperimentCandidate {
     pub requires_external_authorization: bool,
     /// Owner-supplied authorization state.
     pub authorization: AuthorizationState,
+    /// Owner receipt for affirmative authorization, where required.
+    pub authorization_receipt_sha256: Option<String>,
     /// Whether all physical and procedural constraints are clear for this candidate.
     pub safety_constraints_clear: bool,
+    /// Receipt proving the affirmative safety/procedure gate.
+    pub safety_gate_receipt_sha256: Option<String>,
     /// Whether the candidate lies within the currently approved test envelope.
     pub within_declared_envelope: bool,
+    /// Receipt proving the affirmative envelope gate.
+    pub envelope_receipt_sha256: Option<String>,
     /// Whether a genuinely independent reference measurement/oracle is available.
     pub independent_reference_available: bool,
+    /// Receipt proving reference availability and qualification.
+    pub independent_reference_receipt_sha256: Option<String>,
     /// Semantic-equivalence status when implementations are compared.
     pub semantic_equivalence: SemanticEquivalence,
+    /// Receipt proving semantic equivalence when required.
+    pub semantic_equivalence_receipt_sha256: Option<String>,
     /// Which data partition was inspected to select this experiment.
     pub selection_evidence_role: SelectionEvidenceRole,
     /// Independent model-family groups actually distinguished by this experiment.
     pub hypothesis_groups: Vec<HypothesisGroup>,
-    /// Expected decision-relevant predictive uncertainty reduction, normalized [0,1].
+    /// Conservative lower bound on decision-relevant predictive uncertainty reduction, normalized [0,1].
     pub expected_uncertainty_reduction: f64,
-    /// Expected discrimination among the declared model hypotheses, normalized [0,1].
+    /// Conservative lower bound on discrimination among the declared model hypotheses, normalized [0,1].
     pub expected_model_discrimination: f64,
-    /// Worst-case reduction under the frozen robust uncertainty set, normalized [0,1].
+    /// Conservative lower bound under the frozen robust uncertainty set, normalized [0,1].
     pub worst_case_robust_reduction: f64,
-    /// Relevance to the declared engineering decision, normalized [0,1].
+    /// Conservative lower bound on decision relevance, normalized [0,1].
     pub decision_relevance: f64,
-    /// Probability the result is expected to be uninformative, normalized [0,1].
+    /// Upper bound on probability the result is uninformative, normalized [0,1].
     pub probability_uninformative: f64,
-    /// Cost in the policy's declared integer cost units.
+    /// Confidence level supporting conservative utility estimates.
+    pub estimate_confidence_level: f64,
+    /// Frozen estimation-method digest.
+    pub estimate_method_sha256: String,
+    /// Exact utility-estimator build digest.
+    pub estimator_build_sha256: String,
+    /// Wall-clock elapsed minutes in the declared planning environment.
     pub cost_units: u64,
+    /// Non-aggregated resource costs; units remain separate.
+    pub resource_cost: ResourceCost,
+}
+
+/// Independent resource dimensions. Values are not added or exchanged.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResourceCost {
+    /// Setup/preparation minutes.
+    pub setup_minutes: u64,
+    /// Facility/operator minutes.
+    pub facility_minutes: u64,
+    /// CPU compute seconds.
+    pub cpu_seconds: u64,
+    /// Accelerator/GPU compute seconds.
+    pub accelerator_seconds: u64,
+    /// Energy joules.
+    pub energy_joules: u64,
+    /// Adjudication/review person-minutes.
+    pub adjudication_person_minutes: u64,
+}
+
+/// Independent resource budgets; dimensions cannot compensate for one another.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResourceBudget {
+    /// Maximum setup/preparation minutes.
+    pub setup_minutes: u64,
+    /// Maximum facility/operator minutes.
+    pub facility_minutes: u64,
+    /// Maximum CPU compute seconds.
+    pub cpu_seconds: u64,
+    /// Maximum accelerator/GPU compute seconds.
+    pub accelerator_seconds: u64,
+    /// Maximum energy joules.
+    pub energy_joules: u64,
+    /// Maximum adjudication/review person-minutes.
+    pub adjudication_person_minutes: u64,
+}
+
+impl ResourceCost {
+    fn within(self, budget: ResourceBudget) -> bool {
+        self.setup_minutes <= budget.setup_minutes
+            && self.facility_minutes <= budget.facility_minutes
+            && self.cpu_seconds <= budget.cpu_seconds
+            && self.accelerator_seconds <= budget.accelerator_seconds
+            && self.energy_joules <= budget.energy_joules
+            && self.adjudication_person_minutes <= budget.adjudication_person_minutes
+    }
 }
 
 /// Frozen selection policy, including domain-owned thresholds and resource budget.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExperimentDesignPolicy {
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
     /// Stable question identity.
     pub decision_question_id: String,
     /// Objective to be resolved.
@@ -146,8 +231,16 @@ pub struct ExperimentDesignPolicy {
     pub minimum_worst_case_robust_reduction: f64,
     /// Minimum model discrimination required for ModelDiscrimination objectives.
     pub minimum_model_discrimination: f64,
-    /// Maximum acceptable probability that the experiment is uninformative.
+    /// Maximum acceptable upper bound on an uninformative result.
     pub maximum_probability_uninformative: f64,
+    /// Minimum confidence level for utility bounds.
+    pub minimum_estimate_confidence_level: f64,
+    /// Exact estimator build required by the frozen policy.
+    pub required_estimator_build_sha256: String,
+    /// Exact estimate method required by the frozen policy.
+    pub required_estimate_method_sha256: String,
+    /// Per-dimension non-substitutable resource budget.
+    pub resource_budget: ResourceBudget,
 }
 
 /// Why a candidate was excluded before Pareto ranking.
@@ -171,6 +264,12 @@ pub enum RejectionReason {
     InsufficientIndependentHypothesisGroups,
     /// Candidate utility estimate is malformed or non-finite.
     InvalidUtilityVector,
+    /// A positive gate is missing its owner evidence receipt.
+    MissingEvidenceReceipt,
+    /// Scope/design/manifest identity is malformed or mismatched.
+    InvalidEvidenceBinding,
+    /// Estimator build or confidence method differs from the frozen policy.
+    ConfidenceContractMismatch,
     /// Decision relevance is below the frozen policy threshold.
     InsufficientDecisionRelevance,
     /// Robust uncertainty reduction is below the frozen policy threshold.
@@ -207,8 +306,10 @@ pub struct ParetoCandidate {
     pub decision_relevance: f64,
     /// Probability of an uninformative outcome.
     pub probability_uninformative: f64,
-    /// Resource cost.
+    /// Wall-clock elapsed minutes.
     pub cost_units: u64,
+    /// Non-aggregated resource-cost vector.
+    pub resource_cost: ResourceCost,
 }
 
 /// Deterministic Pareto selection result.
@@ -253,6 +354,22 @@ fn bounded_unit_interval(value: f64) -> bool {
 
 fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
     if policy.decision_question_id.trim().is_empty()
+        || !is_sha256(&policy.campaign_sha256)
+        || !is_sha256(&policy.model_scope_sha256)
+        || !is_sha256(&policy.intended_use_profile_sha256)
+        || !is_sha256(&policy.required_estimator_build_sha256)
+        || !is_sha256(&policy.required_estimate_method_sha256)
+        || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
+        || policy.minimum_estimate_confidence_level == 0.0
+        || policy.minimum_estimate_confidence_level == 1.0
+        || policy.authorization_required_modalities.iter().collect::<BTreeSet<_>>().len()
+            != policy.authorization_required_modalities.len()
+        || policy.resource_budget.setup_minutes == 0
+        || policy.resource_budget.facility_minutes == 0
+        || policy.resource_budget.cpu_seconds == 0
+        || policy.resource_budget.accelerator_seconds == 0
+        || policy.resource_budget.energy_joules == 0
+        || policy.resource_budget.adjudication_person_minutes == 0
         || !is_sha256(&policy.policy_sha256)
         || policy.maximum_cost_units == 0
         || !bounded_unit_interval(policy.minimum_decision_relevance)
@@ -280,25 +397,54 @@ fn candidate_rejection_reasons(
 ) -> Vec<RejectionReason> {
     let mut reasons = BTreeSet::new();
 
-    if candidate.candidate_id.trim().is_empty()
+    if candidate.campaign_sha256 != policy.campaign_sha256
+        || candidate.model_scope_sha256 != policy.model_scope_sha256
+        || candidate.intended_use_profile_sha256 != policy.intended_use_profile_sha256
         || candidate.decision_question_id != policy.decision_question_id
         || candidate.objective != policy.objective
     {
         reasons.insert(RejectionReason::QuestionOrObjectiveMismatch);
     }
-    if candidate.requires_external_authorization
+    if (candidate.requires_external_authorization
+        || candidate.modality == ExperimentModality::ControlledFlight
+        || policy.authorization_required_modalities.contains(&candidate.modality))
         && candidate.authorization != AuthorizationState::Authorized
     {
         reasons.insert(RejectionReason::AuthorizationNotGranted);
     }
+    if candidate.safety_constraints_clear
+        && candidate.safety_gate_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
     if !candidate.safety_constraints_clear {
         reasons.insert(RejectionReason::SafetyConstraintNotClear);
+    }
+    if candidate.within_declared_envelope
+        && candidate.envelope_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     if !candidate.within_declared_envelope {
         reasons.insert(RejectionReason::OutsideDeclaredEnvelope);
     }
+    if candidate.independent_reference_available
+        && candidate.independent_reference_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
     if !candidate.independent_reference_available {
         reasons.insert(RejectionReason::MissingIndependentReference);
+    }
+    if candidate.semantic_equivalence == SemanticEquivalence::Established
+        && candidate.semantic_equivalence_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
+    }
+    if candidate.authorization == AuthorizationState::Authorized
+        && candidate.authorization_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     if candidate.modality == ExperimentModality::CrossImplementation
         && candidate.semantic_equivalence != SemanticEquivalence::Established
@@ -328,6 +474,34 @@ fn candidate_rejection_reasons(
     {
         reasons.insert(RejectionReason::InvalidUtilityVector);
     }
+    if !bounded_unit_interval(candidate.estimate_confidence_level)
+        || candidate.estimate_confidence_level == 0.0
+        || candidate.estimate_confidence_level == 1.0
+        || !is_sha256(&candidate.estimate_method_sha256)
+        || !is_sha256(&candidate.estimator_build_sha256)
+    {
+        reasons.insert(RejectionReason::InvalidUtilityVector);
+    }
+    if !is_sha256(&candidate.campaign_sha256)
+        || !is_sha256(&candidate.model_scope_sha256)
+        || !is_sha256(&candidate.intended_use_profile_sha256)
+        || !is_sha256(&candidate.design_sha256)
+        || !is_sha256(&candidate.scenario_manifest_sha256)
+        || !is_sha256(&candidate.measurement_plan_sha256)
+        || candidate.authorization_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.safety_gate_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.envelope_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.independent_reference_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate.semantic_equivalence_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+    {
+        reasons.insert(RejectionReason::InvalidEvidenceBinding);
+    }
+    if candidate.estimator_build_sha256 != policy.required_estimator_build_sha256
+        || candidate.estimate_method_sha256 != policy.required_estimate_method_sha256
+        || candidate.estimate_confidence_level < policy.minimum_estimate_confidence_level
+    {
+        reasons.insert(RejectionReason::ConfidenceContractMismatch);
+    }
     if candidate.decision_relevance < policy.minimum_decision_relevance {
         reasons.insert(RejectionReason::InsufficientDecisionRelevance);
     }
@@ -339,13 +513,19 @@ fn candidate_rejection_reasons(
     {
         reasons.insert(RejectionReason::InsufficientModelDiscrimination);
     }
-    if candidate.cost_units > policy.maximum_cost_units {
+    if candidate.cost_units > policy.maximum_cost_units
+        || !candidate.resource_cost.within(policy.resource_budget)
+    {
         reasons.insert(RejectionReason::OverBudget);
     }
     if candidate.probability_uninformative > policy.maximum_probability_uninformative {
         reasons.insert(RejectionReason::TooLikelyUninformative);
     }
-    if candidate.hypothesis_groups.iter().any(|group| group.group_id.trim().is_empty()) {
+    if candidate.hypothesis_groups.iter().any(|group| {
+        group.group_id.trim().is_empty()
+            || group.hypothesis_id.trim().is_empty()
+            || !is_sha256(&group.hypothesis_sha256)
+    }) {
         reasons.insert(RejectionReason::InvalidUtilityVector);
     }
 
@@ -362,14 +542,26 @@ fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
         && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
         && left.decision_relevance >= right.decision_relevance
         && left.probability_uninformative <= right.probability_uninformative
-        && left.cost_units <= right.cost_units;
+        && left.cost_units <= right.cost_units
+        && left.resource_cost.setup_minutes <= right.resource_cost.setup_minutes
+        && left.resource_cost.facility_minutes <= right.resource_cost.facility_minutes
+        && left.resource_cost.cpu_seconds <= right.resource_cost.cpu_seconds
+        && left.resource_cost.accelerator_seconds <= right.resource_cost.accelerator_seconds
+        && left.resource_cost.energy_joules <= right.resource_cost.energy_joules
+        && left.resource_cost.adjudication_person_minutes <= right.resource_cost.adjudication_person_minutes;
 
     let strictly_better = left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
         || left.expected_model_discrimination > right.expected_model_discrimination
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
         || left.decision_relevance > right.decision_relevance
         || left.probability_uninformative < right.probability_uninformative
-        || left.cost_units < right.cost_units;
+        || left.cost_units < right.cost_units
+        || left.resource_cost.setup_minutes < right.resource_cost.setup_minutes
+        || left.resource_cost.facility_minutes < right.resource_cost.facility_minutes
+        || left.resource_cost.cpu_seconds < right.resource_cost.cpu_seconds
+        || left.resource_cost.accelerator_seconds < right.resource_cost.accelerator_seconds
+        || left.resource_cost.energy_joules < right.resource_cost.energy_joules
+        || left.resource_cost.adjudication_person_minutes < right.resource_cost.adjudication_person_minutes;
 
     no_worse && strictly_better
 }
@@ -383,6 +575,7 @@ fn to_pareto(candidate: &ExperimentCandidate) -> ParetoCandidate {
         decision_relevance: candidate.decision_relevance,
         probability_uninformative: candidate.probability_uninformative,
         cost_units: candidate.cost_units,
+        resource_cost: candidate.resource_cost,
     }
 }
 
