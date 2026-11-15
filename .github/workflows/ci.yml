@@ -112,5 +112,5 @@ jobs:
       run: |
         cargo run --quiet --manifest-path tools/factory-exact-schedule/Cargo.toml --bin schedule-oracle | tee /tmp/factory-exact-schedule.tsv
         test "$(wc -l < /tmp/factory-exact-schedule.tsv)" -eq 27
-        grep -F SUMMARY\tEXACT_ORACLE\tJSSP-3X3-SPT-GAP-001\t-\t-\t-\t-\t-\t-\t-\t-\t26\tstatus=EXACT;proven=true;gap_ticks=8;orders=216;cyclic=128;feasible=88' /tmp/factory-exact-schedule.tsv
-        grep -F SUMMARY\tSPT_BASELINE\tJSSP-3X3-SPT-GAP-001\t-\t-\t-\t-\t-\t-\t-\t-\t34\tgap_ticks=8' /tmp/factory-exact-schedule.tsv
+        awk -F '\t' '$1 == "SUMMARY" && $2 == "EXACT_ORACLE" && $12 == "26" && $13 == "status=EXACT;proven=true;gap_ticks=8;orders=216;cyclic=128;feasible=88" { found=1 } END { exit !found }' /tmp/factory-exact-schedule.tsv
+        awk -F '\t' '$1 == "SUMMARY" && $2 == "SPT_BASELINE" && $12 == "34" && $13 == "gap_ticks=8" { found=1 } END { exit !found }' /tmp/factory-exact-schedule.tsv
