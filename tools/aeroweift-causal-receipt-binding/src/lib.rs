@@ -336,28 +336,55 @@ fn is_sha256(value: &str) -> bool {
 
 fn stage_for_role(role: ParentRole) -> Stage {
     match role {
-        ParentRole::PositionObservation | ParentRole::SurveillanceObservation => Stage::SourceObservation,
-        ParentRole::SampleClockCorrelation | ParentRole::AssessmentClockCorrelation => Stage::ClockCorrelation,
+        ParentRole::PositionObservation | ParentRole::SurveillanceObservation => {
+            Stage::SourceObservation
+        }
+        ParentRole::SampleClockCorrelation | ParentRole::AssessmentClockCorrelation => {
+            Stage::ClockCorrelation
+        }
         ParentRole::CoverageProfile | ParentRole::RequiredTrafficClasses => Stage::ProfilePolicy,
         ParentRole::PntInitialPosition | ParentRole::SubjectPosition => Stage::PntQualification,
         ParentRole::ReachableOccupancy => Stage::Reachability,
         ParentRole::TrafficOccupancy(_) | ParentRole::SubjectTrack => Stage::SurveillanceAssessment,
         ParentRole::ActiveRestrictions => Stage::RestrictionSnapshot,
         ParentRole::CurrentAuthorization => Stage::Authorization,
-        ParentRole::ConflictAssessment | ParentRole::PriorConflictAssessment => Stage::ConflictScreening,
+        ParentRole::ConflictAssessment | ParentRole::PriorConflictAssessment => {
+            Stage::ConflictScreening
+        }
         ParentRole::ExecutionConformance => Stage::IntentConformance,
     }
 }
 
 fn required_roles(stage: Stage) -> Vec<ParentRole> {
     match stage {
-        Stage::SourceObservation | Stage::ClockCorrelation | Stage::ProfilePolicy | Stage::RestrictionSnapshot | Stage::Authorization => Vec::new(),
-        Stage::PntQualification => vec![ParentRole::PositionObservation, ParentRole::SampleClockCorrelation, ParentRole::AssessmentClockCorrelation],
+        Stage::SourceObservation
+        | Stage::ClockCorrelation
+        | Stage::ProfilePolicy
+        | Stage::RestrictionSnapshot
+        | Stage::Authorization => Vec::new(),
+        Stage::PntQualification => vec![
+            ParentRole::PositionObservation,
+            ParentRole::SampleClockCorrelation,
+            ParentRole::AssessmentClockCorrelation,
+        ],
         Stage::SurveillanceAssessment => vec![ParentRole::CoverageProfile],
         Stage::Reachability => vec![ParentRole::PntInitialPosition],
-        Stage::IntentConformance => vec![ParentRole::CurrentAuthorization, ParentRole::SubjectPosition, ParentRole::SubjectTrack, ParentRole::ActiveRestrictions],
-        Stage::ConflictScreening => vec![ParentRole::ReachableOccupancy, ParentRole::RequiredTrafficClasses, ParentRole::ActiveRestrictions],
-        Stage::Schedule => vec![ParentRole::ConflictAssessment, ParentRole::ExecutionConformance, ParentRole::CurrentAuthorization],
+        Stage::IntentConformance => vec![
+            ParentRole::CurrentAuthorization,
+            ParentRole::SubjectPosition,
+            ParentRole::SubjectTrack,
+            ParentRole::ActiveRestrictions,
+        ],
+        Stage::ConflictScreening => vec![
+            ParentRole::ReachableOccupancy,
+            ParentRole::RequiredTrafficClasses,
+            ParentRole::ActiveRestrictions,
+        ],
+        Stage::Schedule => vec![
+            ParentRole::ConflictAssessment,
+            ParentRole::ExecutionConformance,
+            ParentRole::CurrentAuthorization,
+        ],
     }
 }
 
@@ -390,8 +417,7 @@ fn validate_observation_time(receipt: &Receipt) -> Result<(), VerificationError>
         }
         return Ok(());
     }
-    let (Some(observed), Some(received)) =
-        (receipt.time.observed_at, receipt.time.received_at)
+    let (Some(observed), Some(received)) = (receipt.time.observed_at, receipt.time.received_at)
     else {
         return Err(VerificationError::ObservationTimeInvalid);
     };
@@ -436,7 +462,10 @@ pub fn verify(
             || !receipt.subject.is_complete()
             || receipt.time.evaluated_at > receipt.time.produced_at
             || receipt.time.valid_from >= receipt.time.valid_until
-            || !receipt.subject.evaluation_window.contains(receipt.time.evaluated_at)
+            || !receipt
+                .subject
+                .evaluation_window
+                .contains(receipt.time.evaluated_at)
         {
             return Err(VerificationError::ReceiptMalformed);
         }
@@ -567,7 +596,10 @@ pub fn verify(
         reached.insert(id.clone());
         stack.push((id.clone(), true));
 
-        let receipt = by_id.get(&id).copied().ok_or(VerificationError::ParentMissing)?;
+        let receipt = by_id
+            .get(&id)
+            .copied()
+            .ok_or(VerificationError::ParentMissing)?;
         let mut parents: Vec<String> = receipt
             .parents
             .iter()
