@@ -1,0 +1,278 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-ROOT-STRATEGY-HYPOTHESES-001",
+  "evidence_class": "source_grounded_hypothesis_register",
+  "claim_ceiling": "This machine-readable matrix registers competing mechanism hypotheses and exact observation support. Published 2021 and 2026 treatment results are literature evidence. No child CSV files have been ingested or joined, and no mediation effect or causal mechanism has been estimated.",
+  "source_evidence": [
+    {
+      "id": "AFEX_2021_ROOT_TRAITS",
+      "doi": "10.1111/nph.17154",
+      "url": "https://doi.org/10.1111/nph.17154",
+      "finding": "P increased annual root productivity and diameter and decreased potential root phosphatase activity; cations increased root productivity in some periods, diameter and AM colonisation; P and cations increased corresponding tissue concentrations; no N responses reported."
+    },
+    {
+      "id": "AFEX_2026_ROOT_TURNOVER",
+      "doi": "10.1007/s11104-026-08303-2",
+      "url": "https://doi.org/10.1007/s11104-026-08303-2",
+      "finding": "Fine-root stock showed no significant treatment effect; P increased turnover by 23% and 48% in years 1 and 2; cations reduced year-two turnover by 24%; P×cation and N×cation interactions were reported."
+    }
+  ],
+  "datasets": [
+    {
+      "id": "AM_COLONISATION",
+      "doi": "10.5285/52f756a1-a0f6-4991-b21b-4042018a451f",
+      "campaign": "2018-02",
+      "depth_cm": [
+        0,
+        10
+      ],
+      "sample_support": "five within-plot points; plant-community plot mean",
+      "unit": "percentage root length colonised",
+      "dimensions": [
+        "hyphae",
+        "arbuscules",
+        "vesicles"
+      ],
+      "license": "OGL"
+    },
+    {
+      "id": "ROOT_MORPHOLOGY",
+      "doi": "10.5285/4ccaab66-2818-41b8-8b31-1a710766c5d6",
+      "campaign": "2018-02",
+      "depths_cm": [
+        [
+          0,
+          10
+        ],
+        [
+          10,
+          30
+        ]
+      ],
+      "sample_support": "five within-plot points; plant-community plot mean by depth",
+      "unit": "source-variable-specific; retain length/area/volume and derived SRL/SRA/RTD/diameter",
+      "license": "OGL"
+    },
+    {
+      "id": "ROOT_PHOSPHATASE",
+      "doi": "10.5285/6529004d-b6e8-429d-ac68-0f5324d7e5d0",
+      "campaign": "2018-02",
+      "depths_cm": [
+        [
+          0,
+          10
+        ],
+        [
+          10,
+          30
+        ]
+      ],
+      "sample_support": "five within-plot points; plant-community plot mean by depth; root tips measured within three days",
+      "unit": "μmol MUF g-1 dry mass h-1",
+      "license": "OGL"
+    },
+    {
+      "id": "ROOT_NUTRIENT_CONCENTRATION",
+      "doi": "10.5285/ba190356-1731-4558-be7a-3fedc570663a",
+      "campaign": "2017-11 to 2018-08 composite over four intervals",
+      "depths_cm": [
+        [
+          0,
+          10
+        ],
+        [
+          10,
+          30
+        ]
+      ],
+      "sample_support": "five within-plot points; plot/depth bulked community sample",
+      "unit": "analyte-specific concentration; preserve each native unit",
+      "license": "OGL"
+    },
+    {
+      "id": "ROOT_PRODUCTIVITY",
+      "doi": "10.5285/b3a55011-bf46-40f5-8850-86dc8bc4c85d",
+      "campaign": "ingrowth cores repeated 2017-08 to 2019-12",
+      "depths_cm": [
+        [
+          0,
+          10
+        ],
+        [
+          10,
+          30
+        ]
+      ],
+      "sample_support": "five plot cores, depth separated; check archive's core/campaign aggregation",
+      "unit": "Mg C ha-1 yr-1 when derived per year",
+      "license": "OGL"
+    },
+    {
+      "id": "ROOT_STOCK",
+      "doi": "10.1007/s11104-026-08303-2",
+      "campaign": "2017-08 and 2019-09 stock campaigns",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "sample_support": "stock data used in 2026 paper; available from corresponding author on reasonable request",
+      "unit": "Mg C ha-1",
+      "license": "not public raw values in EIDC record"
+    }
+  ],
+  "hypotheses": [
+    {
+      "hypothesis_id": "H_DIRECT_FORAGING_P",
+      "description": "P addition increases direct fine-root exploration and biochemical P mining.",
+      "expected_treatment_effects": {
+        "P": {
+          "root_productivity": "INCREASE",
+          "root_diameter": "INCREASE",
+          "root_phosphatase_activity": "DECREASE",
+          "root_tissue_P": "INCREASE"
+        },
+        "CAT": {
+          "root_productivity": "CONTEXT_DEPENDENT",
+          "root_diameter": "INCREASE_PUBLISHED_2021",
+          "AM_colonisation": "NO_ASSUMED_EFFECT"
+        },
+        "N": {
+          "status": "NO_SIGNIFICANT_EFFECT_REPORTED_2021"
+        }
+      },
+      "predictions_for_2026": {
+        "P_turnover": "INCREASE",
+        "P_stock": "NO_SIGNIFICANT_CHANGE_REPORTED"
+      },
+      "distinguishing_observations": [
+        "depth-resolved root morphology",
+        "potential root phosphatase activity",
+        "root tissue P concentration",
+        "plot-paired root productivity and stock"
+      ],
+      "alternatives": [
+        "soil microbial phosphatase contribution",
+        "changes in root age/diameter distribution",
+        "soil P mobility and adsorption",
+        "sampling/compositing artefacts"
+      ],
+      "causal_status": "TREATMENT_EFFECTS_CAN_BE_ESTIMATED_ON_EACH_RANDOMIZED_PLOT_TRAIT_AFTER_ARCHIVE_ADMISSION; NO_MEDIATION_CLAIM"
+    },
+    {
+      "hypothesis_id": "H_MYCO_OUTSOURCING_C",
+      "description": "Base cations increase AM association and alter nutrient acquisition per unit root, potentially extending root lifespan without increasing root stock.",
+      "expected_treatment_effects": {
+        "CAT": {
+          "AM_colonisation": "INCREASE_PUBLISHED_2021_0_10CM",
+          "root_diameter": "INCREASE_PUBLISHED_2021",
+          "root_tissue_Ca_Mg_K": "INCREASE",
+          "year2_turnover": "DECREASE_PUBLISHED_2026"
+        },
+        "P": {
+          "AM_colonisation": "NO_SIGNIFICANT_EFFECT_REPORTED_2021"
+        }
+      },
+      "predictions_for_2026": {
+        "CAT_turnover_year2": "DECREASE",
+        "P_CAT_turnover_interaction": "CAT_COUNTERACTS_P_ASSOCIATED_TURNOVER_INCREASE"
+      },
+      "distinguishing_observations": [
+        "plot-level AM colonisation percent root length",
+        "depth-matched root morphology",
+        "root tissue nutrient concentration",
+        "root productivity and stock by the same plot and depth"
+      ],
+      "alternatives": [
+        "cation effects on soil pH or toxicity",
+        "unmeasured root anatomy or mycorrhizal fungal function",
+        "species/community composition shift",
+        "non-mycorrhizal nutrient uptake pathway"
+      ],
+      "causal_status": "AM_COLONISATION_TREATMENT_RESPONSE_IS_A_RANDOMIZED_PLOT_TRAIT_CONTRAST_IF_DESIGN_ADMITTED; ITS_MEDIATION_OF_LATER_TURNOVER_IS_NOT_IDENTIFIED"
+    },
+    {
+      "hypothesis_id": "H_COMBINED_STRATEGY",
+      "description": "Root morphology, biochemical mining and AM partnerships operate together, with nutrient-specific interactions and no single scalar acquisition axis.",
+      "expected_treatment_effects": {
+        "P": {
+          "root_productivity": "INCREASE",
+          "root_diameter": "INCREASE",
+          "root_phosphatase_activity": "DECREASE"
+        },
+        "CAT": {
+          "AM_colonisation": "INCREASE",
+          "root_diameter": "INCREASE"
+        },
+        "P_CAT": {
+          "turnover_interaction": "NON_ADDITIVE"
+        }
+      },
+      "distinguishing_observations": [
+        "all four root trait streams",
+        "treatment interaction contrasts",
+        "future repeated trait and flux observations",
+        "soil nutrient availability and pH"
+      ],
+      "alternatives": [
+        "parallel independent responses without mediation",
+        "shared unmeasured soil driver",
+        "model-set omitted process"
+      ],
+      "causal_status": "MULTI-TRAIT_PREDICTIVE_HYPOTHESIS_ONLY_UNTIL_TEMPORAL_AND_CONFOUNDING_ASSUMPTIONS_ARE_QUALIFIED"
+    },
+    {
+      "hypothesis_id": "H_NO_MEDIATION",
+      "description": "Treatment assignment affects traits and root turnover through separate or unmeasured pathways; measured AMF/morphology/phosphatase traits do not mediate turnover.",
+      "expected_treatment_effects": {
+        "observed_traits": "MAY_RESPOND",
+        "later_turnover": "MAY_RESPOND",
+        "trait_to_turnover_causal_link": "NOT_REQUIRED"
+      },
+      "distinguishing_observations": [
+        "out-of-sample turnover prediction with versus without trait mediators",
+        "negative controls",
+        "leave-block prediction",
+        "measurements of soil pH, nutrient availability and plant community composition"
+      ],
+      "alternatives": [
+        "direct root mechanisms",
+        "mycorrhizal outsourcing",
+        "unobserved microbial/pathogen/water pathways"
+      ],
+      "causal_status": "REQUIRED_NULL_COMPARATOR"
+    },
+    {
+      "hypothesis_id": "H_OMITTED_MECHANISM",
+      "description": "All registered process models share an omitted common cause (e.g., soil acidity, P sorption/mobility, water status, fungal community composition or species turnover).",
+      "expected_treatment_effects": {
+        "model_ensemble": "SHARED_RESIDUAL_PATTERN_OR_MIS-CALIBRATION"
+      },
+      "distinguishing_observations": [
+        "soil pH and exchangeable cations",
+        "available P by depth",
+        "fungal community/function",
+        "soil water and redox",
+        "species-level/root community composition"
+      ],
+      "alternatives": [
+        "mis-specified observation operators",
+        "treatment non-compliance",
+        "shared data processing or allometry"
+      ],
+      "causal_status": "MODEL_SET_ADEQUACY_CHALLENGE_NOT_A_SINGLE_PRESELECTED_MECHANISM"
+    }
+  ],
+  "support_and_causal_rules": [
+    "The treatment assignment unit is plot; five points, root tips and repeated campaigns are nested observations, not randomized replicates.",
+    "AM colonisation is 0-10 cm only; it must not be used as a 0-30 cm mediator without a justified support mapping.",
+    "Morphology and phosphatase retain 0-10 and 10-30 cm strata.",
+    "Root nutrient concentration is a Nov 2017-Aug 2018 composite over four intervals; do not assign it a single February measurement date.",
+    "AM percent root length is not fungal transfer flux or carbon cost.",
+    "Potential ex-situ phosphatase activity is not in-situ phosphorus uptake flux.",
+    "The 2018 traits are post-treatment observations and may precede year-two turnover; treatment randomization does not randomize mediator levels.",
+    "A treatment effect on a mediator and a later mediator-outcome association do not establish causal mediation.",
+    "A 0-10 cm trait and a 0-30 cm turnover target are different estimands; request depth-resolved stock data before testing a depth-matched response.",
+    "The fine-root standing-stock data used in the 2026 turnover paper are available from the corresponding author on reasonable request; public EIDC productivity files alone do not reproduce turnover."
+  ]
+}
