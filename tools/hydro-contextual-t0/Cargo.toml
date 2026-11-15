@@ -1,0 +1,11 @@
+[package]
+name = "hydro-contextual-t0"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Synthetic-first catchment-conditioned hydrology benchmark and split-integrity evaluator"
+
+[dependencies]
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
