@@ -670,11 +670,9 @@ pub fn solve_exact(instance: &Instance) -> OracleResult {
 
     let spt = solve_spt(instance, &operations, &job_sequences);
     let gap_ticks = spt.makespan.saturating_sub(optimal.makespan);
-    let gap_parts_per_million = if optimal.makespan == 0 {
-        None
-    } else {
-        Some(gap_ticks.saturating_mul(1_000_000) / optimal.makespan)
-    };
+    let gap_parts_per_million = (optimal.makespan != 0)
+        .then_some(optimal.makespan)
+        .and_then(|denominator| gap_ticks.saturating_mul(1_000_000).checked_div(denominator));
 
     OracleResult {
         status: OracleStatus::Exact,
@@ -713,9 +711,7 @@ fn solve_spt(
             .enumerate()
             .filter_map(|(job_index, sequence)| {
                 let position = next_position[job_index];
-                sequence
-                    .get(position)
-                    .map(|operation_index| *operation_index)
+                sequence.get(position).copied()
             })
             .min_by_key(|operation_index| {
                 let operation = &operations[*operation_index];
