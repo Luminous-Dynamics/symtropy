@@ -1,0 +1,74 @@
+name: Power Fabric Research Qualification
+
+on:
+  push:
+    branches:
+      - research/power-fabric-physical-identity-v0.1
+      - research/power-fabric-source-inventory-closure-v0.1
+    paths:
+      - "crates/domains/symtropy-energy-systems/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/power-fabric-research.yml"
+  pull_request:
+    branches:
+      - main
+      - research/power-fabric-physical-identity-v0.1
+      - research/power-fabric-source-inventory-closure-v0.1
+    paths:
+      - "crates/domains/symtropy-energy-systems/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/power-fabric-research.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: power-fabric-research-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  energy-systems:
+    name: Power Fabric exact-head Rust qualification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      # The stacked parent branches include older, unchanged Rust files that do
+      # not satisfy current rustfmt. Check only the two new modules in this PR;
+      # the crate-wide Clippy/test/check steps below still compile the full crate.
+      - name: Format new Power Fabric modules
+        run: rustfmt --edition 2024 crates/domains/symtropy-energy-systems/src/physical_identity.rs crates/domains/symtropy-energy-systems/src/source_inventory.rs
+
+      - name: Upload formatter output for source reconciliation
+        uses: actions/upload-artifact@v4
+        with:
+          name: power-fabric-rustfmt-source
+          path: |
+            crates/domains/symtropy-energy-systems/src/physical_identity.rs
+            crates/domains/symtropy-energy-systems/src/source_inventory.rs
+          if-no-files-found: error
+
+      - name: Clippy energy systems
+        run: cargo clippy -p symtropy-energy-systems --all-targets --all-features -- -D warnings
+
+      - name: Test energy systems
+        run: cargo test -p symtropy-energy-systems --lib
+
+      - name: Check energy systems
+        run: cargo check -p symtropy-energy-systems --all-targets

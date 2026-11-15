@@ -1,0 +1,553 @@
+{
+  "corpus_id": "power-fabric-benchmark-corpus",
+  "corpus_version": "0.3.0",
+  "snapshot_date": "2026-11-15",
+  "source_policy": "Synthetic contract fixtures only in this initial registry. Concrete standards source artifacts must be rights-cleared and independently hashed before adapter scoring. Physical-identity cases are synthetic event histories only; their digest fields are placeholders and do not represent commitments to real equipment or evidence bytes. Source-inventory closure cases are synthetic pagination/snapshot fixtures; digest and receipt values are placeholders, not provider-authenticated commitments.",
+  "cases": [
+    {
+      "id": "IR-001",
+      "family": "ir_contract",
+      "input": "duplicate stable object ID",
+      "expected": "reject",
+      "oracle": "DuplicateObjectId"
+    },
+    {
+      "id": "IR-002",
+      "family": "ir_contract",
+      "input": "dangling relationship endpoint",
+      "expected": "reject",
+      "oracle": "DanglingRelationshipEndpoint"
+    },
+    {
+      "id": "IR-003",
+      "family": "ir_contract",
+      "input": "unknown claim includes evidence identifier",
+      "expected": "reject",
+      "oracle": "UnexpectedEvidenceForUnknownClaim"
+    },
+    {
+      "id": "IR-004",
+      "family": "ir_contract",
+      "input": "observed claim lacks evidence reference",
+      "expected": "reject",
+      "oracle": "EvidenceRequiredForDomain"
+    },
+    {
+      "id": "IR-005",
+      "family": "ir_contract",
+      "input": "contradiction references missing or wrong-property claim IDs",
+      "expected": "reject",
+      "oracle": "InvalidContradictionReference"
+    },
+    {
+      "id": "ADAPT-001",
+      "family": "adapter",
+      "input": "unsupported source semantic marked unsupported with no target",
+      "expected": "incomplete",
+      "oracle": "IncompleteUnsupportedOrAmbiguous"
+    },
+    {
+      "id": "ADAPT-002",
+      "family": "adapter",
+      "input": "unknown standard publication status",
+      "expected": "incomplete",
+      "oracle": "IncompleteUnknownStandardStatus"
+    },
+    {
+      "id": "ADAPT-003",
+      "family": "adapter",
+      "input": "complete inventory declared with missing mapping record",
+      "expected": "reject",
+      "oracle": "SourceInventoryCountMismatch"
+    },
+    {
+      "id": "ADAPT-004",
+      "family": "adapter",
+      "input": "round trip changes a unit-bearing voltage lexical value",
+      "expected": "not_equivalent",
+      "oracle": "OneMissingOneUnexpectedSemanticAtom"
+    },
+    {
+      "id": "ADAPT-005",
+      "family": "adapter",
+      "input": "opaque extension source/target digests differ",
+      "expected": "reject",
+      "oracle": "ExtensionDispositionShapeMismatch"
+    },
+    {
+      "id": "CHANGE-001",
+      "family": "change_impact",
+      "input": "expected old digest does not match dependency snapshot",
+      "expected": "reject",
+      "oracle": "StaleExpectedInputDigest"
+    },
+    {
+      "id": "CHANGE-002",
+      "family": "change_impact",
+      "input": "unknown new digest after topology change",
+      "expected": "invalidate_and_reconcile",
+      "oracle": "DependentsInvalidatedAndReconciliationRequired"
+    },
+    {
+      "id": "CHANGE-003",
+      "family": "change_impact",
+      "input": "dependency inventory incomplete",
+      "expected": "invalidate",
+      "oracle": "DependencyInventoryIncomplete"
+    },
+    {
+      "id": "CHANGE-004",
+      "family": "change_impact",
+      "input": "compiler version changes",
+      "expected": "invalidate",
+      "oracle": "CompilerVersionChanged"
+    },
+    {
+      "id": "CHANGE-005",
+      "family": "change_impact",
+      "input": "unrelated carbon input changes",
+      "expected": "retain_unrelated_artifact",
+      "oracle": "UnrelatedArtifactRetained"
+    },
+    {
+      "id": "RES-001",
+      "family": "resilience",
+      "input": "diamond topology with distinct edge routes and one shared source",
+      "expected": "two_edge_disjoint_paths_with_shared_source",
+      "oracle": "IndependentEnumeratedDiamond"
+    },
+    {
+      "id": "RES-002",
+      "family": "resilience",
+      "input": "parallel distinct edges share an intermediate bus",
+      "expected": "shared_intermediate_node_reported",
+      "oracle": "SharedIntermediateBus"
+    },
+    {
+      "id": "RES-003",
+      "family": "resilience",
+      "input": "unknown failure-domain evidence",
+      "expected": "inventory_incomplete",
+      "oracle": "FailureDomainInventoryIncomplete"
+    },
+    {
+      "id": "RES-004",
+      "family": "resilience",
+      "input": "only measurement/control associations connect source to load",
+      "expected": "zero_power_paths",
+      "oracle": "TypedEdgeIsolation"
+    },
+    {
+      "id": "RES-005",
+      "family": "resilience",
+      "input": "single source route chain",
+      "expected": "one_path_and_structural_bridges",
+      "oracle": "SingleRouteCutTopology"
+    },
+    {
+      "id": "VIEW-001",
+      "family": "human_projection",
+      "input": "no declared source path for a load",
+      "expected": "not_isolation_notice",
+      "oracle": "NoDeclaredPathIsNotIsolation"
+    },
+    {
+      "id": "VIEW-002",
+      "family": "human_projection",
+      "input": "graph revision is stale",
+      "expected": "all_roles_mark_stale",
+      "oracle": "ProjectionRevisionStatusStale"
+    },
+    {
+      "id": "VIEW-003",
+      "family": "human_projection",
+      "input": "resident projection with declared supply path",
+      "expected": "no_internal_path_or_source_ids",
+      "oracle": "ResidentDetailPolicy"
+    },
+    {
+      "id": "VIEW-004",
+      "family": "human_projection",
+      "input": "all role projections",
+      "expected": "no_safe_to_touch_and_not_approval_notices",
+      "oracle": "RoleSafetyNoticeCoverage"
+    },
+    {
+      "id": "BUILD-001",
+      "family": "build_receipt",
+      "input": "identical validated IR, mapping profile, standard pins, toolchain, compiler source, build configuration and dependency lock",
+      "expected": "identical build-lock digest",
+      "oracle": "RepeatBuildLockDigestEquality"
+    },
+    {
+      "id": "BUILD-002",
+      "family": "build_receipt",
+      "input": "change compiler source-tree digest only",
+      "expected": "build-lock digest changes",
+      "oracle": "CompilerSourceDigestMutation"
+    },
+    {
+      "id": "BUILD-003",
+      "family": "build_receipt",
+      "input": "change build-configuration digest only",
+      "expected": "build-lock digest changes",
+      "oracle": "BuildConfigurationDigestMutation"
+    },
+    {
+      "id": "BUILD-004",
+      "family": "build_receipt",
+      "input": "change Cargo.lock digest only",
+      "expected": "build-lock digest changes",
+      "oracle": "DependencyLockDigestMutation"
+    },
+    {
+      "id": "BUILD-005",
+      "family": "build_receipt",
+      "input": "change standard correction label but retain edition/amendment",
+      "expected": "build-lock digest changes without standard edition mutation",
+      "oracle": "StandardCorrectionPinMutation"
+    },
+    {
+      "id": "BUILD-006",
+      "family": "build_receipt",
+      "input": "change one module hardware/configuration identity only",
+      "expected": "mapping profile, ServiceGraph payload and build-lock digests change; source IR digest remains equal",
+      "oracle": "ModuleConfigurationDigestMutation"
+    },
+    {
+      "id": "BUILD-007",
+      "family": "build_receipt",
+      "input": "verify canonical receipt bytes then append whitespace or mutate a field",
+      "expected": "canonical bytes pass; modified/noncanonical bytes rejected",
+      "oracle": "CanonicalBuildReceiptByteVerification"
+    },
+    {
+      "id": "DERIVED-001",
+      "family": "derived_artifact",
+      "input": "verify exact rendered artifact bytes against DerivedArtifactReceipt",
+      "expected": "output digest matches",
+      "oracle": "DerivedArtifactOutputDigestMatch"
+    },
+    {
+      "id": "DERIVED-002",
+      "family": "derived_artifact",
+      "input": "change one rendered output byte",
+      "expected": "verification rejects output",
+      "oracle": "DerivedArtifactOutputDigestMismatch"
+    },
+    {
+      "id": "DERIVED-003",
+      "family": "derived_artifact",
+      "input": "change source build-lock digest while output bytes remain the same",
+      "expected": "derived-artifact receipt digest changes",
+      "oracle": "DerivedArtifactBuildLockBinding"
+    },
+    {
+      "id": "DERIVED-004",
+      "family": "derived_artifact",
+      "input": "change renderer identity/version while output bytes remain the same",
+      "expected": "derived-artifact receipt metadata and digest change",
+      "oracle": "DerivedArtifactGeneratorVersionBinding"
+    },
+    {
+      "id": "DERIVED-005",
+      "family": "derived_artifact",
+      "input": "change upstream graph/module/standard dependency after artifact generation",
+      "expected": "dependent artifact becomes stale pending regeneration",
+      "oracle": "DerivedArtifactDependencyInvalidation"
+    },
+    {
+      "id": "PHYSID-001",
+      "family": "physical_identity",
+      "input": "design slot exists without a physical instance",
+      "expected": "declared_only",
+      "oracle": "physical_instance_absent"
+    },
+    {
+      "id": "PHYSID-002",
+      "family": "physical_identity",
+      "input": "supplier delivery record names a unit but no installation assignment exists",
+      "expected": "delivered_unreconciled",
+      "oracle": "delivery_not_installation"
+    },
+    {
+      "id": "PHYSID-003",
+      "family": "physical_identity",
+      "input": "serial label observed without qualified installation reconciliation",
+      "expected": "delivered_unreconciled",
+      "oracle": "label_observation_not_installation"
+    },
+    {
+      "id": "PHYSID-004",
+      "family": "physical_identity",
+      "input": "installation assignment exists without independent reconciliation",
+      "expected": "installed_unreconciled",
+      "oracle": "independent_reconciliation_missing"
+    },
+    {
+      "id": "PHYSID-005",
+      "family": "physical_identity",
+      "input": "exact physical instance, slot and installation are reconciled under a scoped attestation",
+      "expected": "reconciled",
+      "oracle": "review_attestation_scope_satisfied"
+    },
+    {
+      "id": "PHYSID-006",
+      "family": "physical_identity",
+      "input": "replacement unit installed but the replacement has not been reconciled",
+      "expected": "installed_unreconciled",
+      "oracle": "replacement_requires_new_reconciliation"
+    },
+    {
+      "id": "PHYSID-007",
+      "family": "physical_identity",
+      "input": "reconciliation arrived after the historical decision cutoff and is invisible to that replay",
+      "expected": "installed_unreconciled",
+      "oracle": "review_evidence_received_after_cutoff"
+    },
+    {
+      "id": "PHYSID-008",
+      "family": "physical_identity",
+      "input": "late reconciliation is visible in a later as-known-at projection",
+      "expected": "reconciled",
+      "oracle": "late_evidence_admitted_at_later_cutoff"
+    },
+    {
+      "id": "PHYSID-009",
+      "family": "physical_identity",
+      "input": "installed product model is not accepted by the design slot",
+      "expected": "conflicted",
+      "oracle": "product_model_not_accepted_by_slot"
+    },
+    {
+      "id": "PHYSID-010",
+      "family": "physical_identity",
+      "input": "one physical instance is actively assigned to two incompatible design slots",
+      "expected": "conflicted",
+      "oracle": "physical_instance_active_assignment_collision"
+    },
+    {
+      "id": "PHYSID-011",
+      "family": "physical_identity",
+      "input": "permutation of a causally equivalent event set produces the same projection",
+      "expected": "reconciled",
+      "oracle": "event_order_invariance"
+    },
+    {
+      "id": "PHYSID-012",
+      "family": "physical_identity",
+      "input": "relocation stales location-dependent outputs but retains intrinsic product claims",
+      "expected": "reconciled_with_location_outputs_invalidated",
+      "oracle": "installation_location_changed"
+    },
+    {
+      "id": "PHYSID-013",
+      "family": "physical_identity",
+      "input": "two physical-instance records reuse the same issuer namespace and serial",
+      "expected": "conflicted",
+      "oracle": "physical_identity_namespace_collision"
+    },
+    {
+      "id": "PHYSID-014",
+      "family": "physical_identity",
+      "input": "product model matches but hardware revision is not accepted by the slot",
+      "expected": "conflicted",
+      "oracle": "hardware_revision_not_accepted_by_slot"
+    },
+    {
+      "id": "INV-001",
+      "family": "source_inventory_closure",
+      "input": "All pages, cursor links, source revision, counts and record dispositions reconcile.",
+      "expected": "complete_within_declared_scope",
+      "oracle": "ClosureStateAndSemanticStateMatch"
+    },
+    {
+      "id": "INV-002",
+      "family": "source_inventory_closure",
+      "input": "Immutable manifest export with a complete stable file list.",
+      "expected": "complete_within_declared_scope",
+      "oracle": "ClosureStateAndSemanticStateMatch"
+    },
+    {
+      "id": "INV-003",
+      "family": "source_inventory_closure",
+      "input": "First page is absent from an otherwise valid pagination chain.",
+      "expected": "incomplete",
+      "oracle": "missing_first_page,cursor_chain_incomplete"
+    },
+    {
+      "id": "INV-004",
+      "family": "source_inventory_closure",
+      "input": "Middle page is absent; cursor continuity and source counts no longer close.",
+      "expected": "incomplete",
+      "oracle": "missing_page,cursor_chain_incomplete,record_count_mismatch"
+    },
+    {
+      "id": "INV-005",
+      "family": "source_inventory_closure",
+      "input": "Terminal page is omitted so traversal closure cannot be established.",
+      "expected": "incomplete",
+      "oracle": "terminal_boundary_missing,page_count_mismatch"
+    },
+    {
+      "id": "INV-006",
+      "family": "source_inventory_closure",
+      "input": "Repeated continuation cursor creates a loop.",
+      "expected": "conflicted",
+      "oracle": "cursor_cycle"
+    },
+    {
+      "id": "INV-007",
+      "family": "source_inventory_closure",
+      "input": "Continuation cursor skips the expected next page.",
+      "expected": "incomplete",
+      "oracle": "cursor_chain_discontinuity"
+    },
+    {
+      "id": "INV-008",
+      "family": "source_inventory_closure",
+      "input": "Source revision changes between pages in a supposedly stable snapshot.",
+      "expected": "conflicted",
+      "oracle": "source_revision_changed_during_traversal"
+    },
+    {
+      "id": "INV-009",
+      "family": "source_inventory_closure",
+      "input": "Same page/cursor yields contradictory page content digests.",
+      "expected": "conflicted",
+      "oracle": "replayed_cursor_payload_mismatch"
+    },
+    {
+      "id": "INV-010",
+      "family": "source_inventory_closure",
+      "input": "Source-declared page count differs from the enumerated chain.",
+      "expected": "incomplete",
+      "oracle": "page_count_mismatch"
+    },
+    {
+      "id": "INV-011",
+      "family": "source_inventory_closure",
+      "input": "Source-declared total record count differs from page records.",
+      "expected": "incomplete",
+      "oracle": "record_count_mismatch"
+    },
+    {
+      "id": "INV-012",
+      "family": "source_inventory_closure",
+      "input": "A record identity is duplicated within the same namespace.",
+      "expected": "conflicted",
+      "oracle": "duplicate_namespaced_source_identity"
+    },
+    {
+      "id": "INV-013",
+      "family": "source_inventory_closure",
+      "input": "The same local source identifier under two distinct namespaces remains two distinct identities.",
+      "expected": "complete_within_declared_scope",
+      "oracle": "ClosureStateAndSemanticStateMatch"
+    },
+    {
+      "id": "INV-014",
+      "family": "source_inventory_closure",
+      "input": "Query/filter manifest digest is absent or unbound.",
+      "expected": "unknown",
+      "oracle": "filter_scope_unpinned"
+    },
+    {
+      "id": "INV-015",
+      "family": "source_inventory_closure",
+      "input": "Permission scope is unknown, so inaccessible partitions may be silently omitted.",
+      "expected": "unknown",
+      "oracle": "permission_scope_unknown"
+    },
+    {
+      "id": "INV-016",
+      "family": "source_inventory_closure",
+      "input": "A known archive partition is explicitly excluded and included in the scope commitment.",
+      "expected": "complete_within_declared_scope",
+      "oracle": "scope_has_declared_exclusions"
+    },
+    {
+      "id": "INV-017",
+      "family": "source_inventory_closure",
+      "input": "Unsupported semantics are fully enumerated and explicitly accounted for.",
+      "expected": "complete_within_declared_scope",
+      "oracle": "semantic_inventory_contains_unsupported"
+    },
+    {
+      "id": "INV-018",
+      "family": "source_inventory_closure",
+      "input": "One enumerated source record has no mapping or semantic disposition.",
+      "expected": "incomplete",
+      "oracle": "source_record_disposition_missing"
+    },
+    {
+      "id": "INV-019",
+      "family": "source_inventory_closure",
+      "input": "One source record receives two distinct dispositions.",
+      "expected": "conflicted",
+      "oracle": "duplicate_source_record_disposition"
+    },
+    {
+      "id": "INV-020",
+      "family": "source_inventory_closure",
+      "input": "Terminal page is received after the historical decision cutoff.",
+      "expected": "incomplete",
+      "oracle": "page_received_after_cutoff,terminal_boundary_missing_at_cutoff"
+    },
+    {
+      "id": "INV-021",
+      "family": "source_inventory_closure",
+      "input": "Best-effort mutable pagination does not offer a stable snapshot or closure proof.",
+      "expected": "unknown",
+      "oracle": "stable_snapshot_unavailable"
+    },
+    {
+      "id": "INV-022",
+      "family": "source_inventory_closure",
+      "input": "Equivalent page inventory supplied in a different order produces the same canonical closure receipt.",
+      "expected": "complete_within_declared_scope",
+      "oracle": "ClosureStateAndSemanticStateMatch"
+    },
+    {
+      "id": "INV-023",
+      "family": "source_inventory_closure",
+      "input": "Source snapshot token changes after the first page was captured.",
+      "expected": "conflicted",
+      "oracle": "source_snapshot_token_mismatch"
+    },
+    {
+      "id": "INV-024",
+      "family": "source_inventory_closure",
+      "input": "Reject-all and accept-all controls are required to fail the corpus oracle.",
+      "expected": "conflicted",
+      "oracle": "accept_all_or_reject_all_control_failed"
+    },
+    {
+      "id": "INV-025",
+      "family": "source_inventory_closure",
+      "input": "An accept-all implementation that marks every malformed inventory complete must fail the frozen negative-control oracle.",
+      "expected": "conflicted",
+      "oracle": "accept_all_control_failed"
+    }
+  ],
+  "performance_sizes": [
+    100,
+    1000,
+    10000,
+    100000
+  ],
+  "target_metrics": {
+    "frozen_contract_acceptance_rate": 1,
+    "silent_in_scope_semantic_loss_rate": 0,
+    "change_invalidation_recall": 1,
+    "false_positive_invalidation_rate": 0,
+    "incremental_vs_full_semantic_equivalence_rate": 1,
+    "human_non_hazardous_task_accuracy_target": 0.95,
+    "critical_false_safe_interpretations_target": 0,
+    "comparative_integration_effort_reduction_hypothesis": 0.3,
+    "build_lock_reproducibility_rate": 1,
+    "derived_output_digest_match_rate": 1,
+    "derived_artifact_invalidation_recall": 1
+  },
+  "measurement_status": "scenario_registry_authored_not_executed"
+}

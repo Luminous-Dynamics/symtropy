@@ -1,0 +1,591 @@
+{
+  "schema_version": "0.1",
+  "fixture_id": "power-fabric-source-inventory-closure-synthetic-v0.1",
+  "as_known_at": "2026-11-15T08:00:00Z",
+  "scope": {
+    "source_system_id": "synthetic-source-grid-model",
+    "source_namespace": "urn:synthetic:power-fabric:test",
+    "adapter_profile_id": "synthetic-scl-cim-import",
+    "adapter_profile_version": "0.1",
+    "query_scope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "filter_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "included_record_classes": [
+      "iec-61850-ied",
+      "cim-equipment"
+    ],
+    "scope_start": "2026-11-01T00:00:00Z",
+    "scope_end": "2026-11-15T00:00:00Z",
+    "permission_scope_receipt_ref": "receipt-permissions-synthetic-01",
+    "explicit_exclusion_ids": [
+      "exclude-stale-archive"
+    ]
+  },
+  "snapshot": {
+    "snapshot_id": "snapshot-source-r7",
+    "source_revision": "source-revision-r7",
+    "consistency_model": "snapshot_paginated_api",
+    "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "captured_from": "2026-11-15T07:00:00Z",
+    "captured_until": "2026-11-15T07:02:00Z",
+    "source_snapshot_receipt_ref": "receipt-source-snapshot-r7"
+  },
+  "traversal": {
+    "kind": "cursor_paginated_api",
+    "contract_version": "cursor-contract-1",
+    "expected_page_count": 3,
+    "expected_record_count": 6,
+    "terminal_boundary_required": true,
+    "terminal_boundary_digest": null,
+    "closure_evidence_ref": "receipt-traversal-r7",
+    "terminal_boundary_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "pages": [
+    {
+      "page_id": "page-001",
+      "page_index": 0,
+      "request_cursor_sha256": null,
+      "next_cursor_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "terminal": false,
+      "source_revision": "source-revision-r7",
+      "page_payload_sha256": "1212121212121212121212121212121212121212121212121212121212121212",
+      "received_at": "2026-11-15T07:00:10Z",
+      "evidence_ref": "receipt-page-001",
+      "record_identity_digests": [
+        "2111111111111111111111111111111111111111111111111111111111111111",
+        "2211111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "page_id": "page-002",
+      "page_index": 1,
+      "request_cursor_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "next_cursor_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "terminal": false,
+      "source_revision": "source-revision-r7",
+      "page_payload_sha256": "1313131313131313131313131313131313131313131313131313131313131313",
+      "received_at": "2026-11-15T07:00:40Z",
+      "evidence_ref": "receipt-page-002",
+      "record_identity_digests": [
+        "2311111111111111111111111111111111111111111111111111111111111111",
+        "2411111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "page_id": "page-003",
+      "page_index": 2,
+      "request_cursor_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "next_cursor_sha256": null,
+      "terminal": true,
+      "source_revision": "source-revision-r7",
+      "page_payload_sha256": "1414141414141414141414141414141414141414141414141414141414141414",
+      "received_at": "2026-11-15T07:01:10Z",
+      "evidence_ref": "receipt-page-003",
+      "record_identity_digests": [
+        "2511111111111111111111111111111111111111111111111111111111111111",
+        "2611111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "snapshot_token_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "records": [
+    {
+      "record_identity_sha256": "2111111111111111111111111111111111111111111111111111111111111111",
+      "source_namespace": "urn:synthetic:iec61850",
+      "source_record_class": "iec-61850-ied",
+      "page_id": "page-001",
+      "source_revision": "source-revision-r7",
+      "payload_sha256": "3111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "record_identity_sha256": "2211111111111111111111111111111111111111111111111111111111111111",
+      "source_namespace": "urn:synthetic:cim",
+      "source_record_class": "cim-equipment",
+      "page_id": "page-001",
+      "source_revision": "source-revision-r7",
+      "payload_sha256": "3222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "record_identity_sha256": "2311111111111111111111111111111111111111111111111111111111111111",
+      "source_namespace": "urn:synthetic:iec61850",
+      "source_record_class": "iec-61850-ied",
+      "page_id": "page-002",
+      "source_revision": "source-revision-r7",
+      "payload_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "record_identity_sha256": "2411111111111111111111111111111111111111111111111111111111111111",
+      "source_namespace": "urn:synthetic:cim",
+      "source_record_class": "cim-equipment",
+      "page_id": "page-002",
+      "source_revision": "source-revision-r7",
+      "payload_sha256": "3444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "record_identity_sha256": "2511111111111111111111111111111111111111111111111111111111111111",
+      "source_namespace": "urn:synthetic:iec61850",
+      "source_record_class": "iec-61850-ied",
+      "page_id": "page-003",
+      "source_revision": "source-revision-r7",
+      "payload_sha256": "3555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "record_identity_sha256": "2611111111111111111111111111111111111111111111111111111111111111",
+      "source_namespace": "urn:synthetic:cim",
+      "source_record_class": "cim-equipment",
+      "page_id": "page-003",
+      "source_revision": "source-revision-r7",
+      "payload_sha256": "3666666666666666666666666666666666666666666666666666666666666666"
+    }
+  ],
+  "dispositions": [
+    {
+      "record_identity_sha256": "2111111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "mapped",
+      "mapping_record_ref": "mapping-001",
+      "explanation": "Mapped to the synthetic IED target object"
+    },
+    {
+      "record_identity_sha256": "2211111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "mapped",
+      "mapping_record_ref": "mapping-002",
+      "explanation": "Mapped to the synthetic CIM equipment target object"
+    },
+    {
+      "record_identity_sha256": "2311111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "mapped",
+      "mapping_record_ref": "mapping-003",
+      "explanation": "Mapped to the synthetic IED target object"
+    },
+    {
+      "record_identity_sha256": "2411111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "loss_explicit",
+      "mapping_record_ref": "mapping-004",
+      "explanation": "Mapped with a declared source qualifier loss"
+    },
+    {
+      "record_identity_sha256": "2511111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "unsupported",
+      "explanation": "Unsupported source semantic is retained in the inventory accounting"
+    },
+    {
+      "record_identity_sha256": "2611111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "mapped",
+      "mapping_record_ref": "mapping-006",
+      "explanation": "Mapped to the synthetic CIM equipment target object"
+    }
+  ],
+  "exclusions": [
+    {
+      "exclusion_id": "exclude-stale-archive",
+      "boundary_kind": "partition",
+      "boundary_ref": "archive-before-2026-01",
+      "reason": "Out-of-scope archived records are explicitly excluded by the pinned query contract",
+      "evidence_ref": "receipt-permissions-synthetic-01"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "INV-001",
+      "description": "All pages, cursor links, source revision, counts and record dispositions reconcile.",
+      "mutation_kind": "none",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "complete_within_declared_scope",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-002",
+      "description": "Immutable manifest export with a complete stable file list.",
+      "mutation_kind": "none",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "complete_within_declared_scope",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": [],
+      "snapshot_consistency_model_override": "immutable_export",
+      "traversal_kind_override": "immutable_manifest"
+    },
+    {
+      "scenario_id": "INV-003",
+      "description": "First page is absent from an otherwise valid pagination chain.",
+      "mutation_kind": "omit_page",
+      "target_page_id": "page-001",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "missing_first_page",
+        "cursor_chain_incomplete"
+      ],
+      "expected_missing_page_indexes": [
+        0
+      ],
+      "expected_unaccounted_record_digests": [
+        "2111111111111111111111111111111111111111111111111111111111111111",
+        "2211111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-004",
+      "description": "Middle page is absent; cursor continuity and source counts no longer close.",
+      "mutation_kind": "omit_page",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "missing_page",
+        "cursor_chain_incomplete",
+        "record_count_mismatch"
+      ],
+      "expected_missing_page_indexes": [
+        1
+      ],
+      "expected_unaccounted_record_digests": [
+        "2311111111111111111111111111111111111111111111111111111111111111",
+        "2411111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-005",
+      "description": "Terminal page is omitted so traversal closure cannot be established.",
+      "mutation_kind": "omit_terminal_page",
+      "target_page_id": "page-003",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "terminal_boundary_missing",
+        "page_count_mismatch"
+      ],
+      "expected_missing_page_indexes": [
+        2
+      ],
+      "expected_unaccounted_record_digests": [
+        "2511111111111111111111111111111111111111111111111111111111111111",
+        "2611111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-006",
+      "description": "Repeated continuation cursor creates a loop.",
+      "mutation_kind": "repeat_cursor",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "cursor_cycle"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-007",
+      "description": "Continuation cursor skips the expected next page.",
+      "mutation_kind": "skip_cursor",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "cursor_chain_discontinuity"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-008",
+      "description": "Source revision changes between pages in a supposedly stable snapshot.",
+      "mutation_kind": "source_revision_drift",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "source_revision_changed_during_traversal"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-009",
+      "description": "Same page/cursor yields contradictory page content digests.",
+      "mutation_kind": "same_cursor_changed_payload",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "replayed_cursor_payload_mismatch"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-010",
+      "description": "Source-declared page count differs from the enumerated chain.",
+      "mutation_kind": "page_count_mismatch",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "page_count_mismatch"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-011",
+      "description": "Source-declared total record count differs from page records.",
+      "mutation_kind": "record_count_mismatch",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "record_count_mismatch"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-012",
+      "description": "A record identity is duplicated within the same namespace.",
+      "mutation_kind": "duplicate_identity_same_namespace",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "duplicate_namespaced_source_identity"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": [
+        "2311111111111111111111111111111111111111111111111111111111111111"
+      ]
+    },
+    {
+      "scenario_id": "INV-013",
+      "description": "The same local source identifier under two distinct namespaces remains two distinct identities.",
+      "mutation_kind": "same_id_different_namespace",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "complete_within_declared_scope",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-014",
+      "description": "Query/filter manifest digest is absent or unbound.",
+      "mutation_kind": "missing_filter_pin",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "unknown",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "filter_scope_unpinned"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-015",
+      "description": "Permission scope is unknown, so inaccessible partitions may be silently omitted.",
+      "mutation_kind": "permission_scope_unknown",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "unknown",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "permission_scope_unknown"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-016",
+      "description": "A known archive partition is explicitly excluded and included in the scope commitment.",
+      "mutation_kind": "explicit_exclusion",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "complete_within_declared_scope",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [
+        "scope_has_declared_exclusions"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-017",
+      "description": "Unsupported semantics are fully enumerated and explicitly accounted for.",
+      "mutation_kind": "unsupported_but_accounted",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "complete_within_declared_scope",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [
+        "semantic_inventory_contains_unsupported"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-018",
+      "description": "One enumerated source record has no mapping or semantic disposition.",
+      "mutation_kind": "missing_disposition",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [
+        "source_record_disposition_missing"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [
+        "2511111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-019",
+      "description": "One source record receives two distinct dispositions.",
+      "mutation_kind": "duplicate_disposition",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "duplicate_source_record_disposition"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": [
+        "2511111111111111111111111111111111111111111111111111111111111111"
+      ]
+    },
+    {
+      "scenario_id": "INV-020",
+      "description": "Terminal page is received after the historical decision cutoff.",
+      "mutation_kind": "late_page_after_cutoff",
+      "target_page_id": "page-003",
+      "as_known_at": "2026-11-15T07:01:00Z",
+      "expected_closure_state": "incomplete",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "page_received_after_cutoff",
+        "terminal_boundary_missing_at_cutoff"
+      ],
+      "expected_missing_page_indexes": [
+        2
+      ],
+      "expected_unaccounted_record_digests": [
+        "2511111111111111111111111111111111111111111111111111111111111111",
+        "2611111111111111111111111111111111111111111111111111111111111111"
+      ],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-021",
+      "description": "Best-effort mutable pagination does not offer a stable snapshot or closure proof.",
+      "mutation_kind": "best_effort_mutable",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "unknown",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "stable_snapshot_unavailable"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-022",
+      "description": "Equivalent page inventory supplied in a different order produces the same canonical closure receipt.",
+      "mutation_kind": "page_reorder",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "complete_within_declared_scope",
+      "expected_semantic_state": "incomplete_unsupported_or_ambiguous",
+      "expected_diagnostic_codes": [],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-023",
+      "description": "A page reports a snapshot token different from the pinned source snapshot token.",
+      "mutation_kind": "snapshot_token_changed",
+      "target_page_id": "page-002",
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "source_snapshot_token_mismatch"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-024",
+      "description": "Reject-all and accept-all controls are required to fail the corpus oracle.",
+      "mutation_kind": "reject_all_control",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "accept_all_or_reject_all_control_failed"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    },
+    {
+      "scenario_id": "INV-025",
+      "description": "An accept-all implementation that marks every malformed inventory complete must fail the frozen negative-control oracle.",
+      "mutation_kind": "accept_all_control",
+      "target_page_id": null,
+      "as_known_at": "2026-11-15T08:00:00Z",
+      "expected_closure_state": "conflicted",
+      "expected_semantic_state": "unknown",
+      "expected_diagnostic_codes": [
+        "accept_all_control_failed"
+      ],
+      "expected_missing_page_indexes": [],
+      "expected_unaccounted_record_digests": [],
+      "expected_conflict_record_digests": []
+    }
+  ],
+  "claim_ceiling": "Synthetic source inventory closure contract only. Digests and source receipt references are placeholders, not proof of a real provider snapshot, source completeness, physical installation, engineering correctness, electrical safety or regulatory conformity."
+}
