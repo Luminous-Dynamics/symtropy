@@ -755,7 +755,7 @@ mod tests {
     }
 
     #[test]
-    fn missing_constraint_coordinate_rebasis_is_detected() {
+    fn domain_only_coordinate_rebasis_preserves_the_constraint_spectrum() {
         let mass_q = mass_q();
         let constraint_metric_c = constraint_metric();
         let jacobian_q = jacobian_q();
@@ -776,7 +776,7 @@ mod tests {
             .metric_to_to(&mass_q, metric_profile())
             .unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &domain_rebasis).unwrap();
-        let wrong = ConstraintSpaceReceiptV1::<DenseY, ConstraintSpace, 3, 2>::new(
+        let rebased = ConstraintSpaceReceiptV1::<DenseY, ConstraintSpace, 3, 2>::new(
             mass_y,
             constraint_metric_c,
             jacobian_y,
@@ -784,7 +784,53 @@ mod tests {
             constraint_profile(),
         )
         .unwrap();
-        assert!((baseline.singular_values()[0] - wrong.singular_values()[0]).abs() > 1.0e-3);
+
+        for (expected, actual) in baseline
+            .singular_values()
+            .iter()
+            .zip(rebased.singular_values().iter())
+        {
+            close(*expected, *actual, 2.0e-10);
+        }
+    }
+
+    #[test]
+    fn missing_constraint_metric_rebasis_is_detected() {
+        let mass = mass_q();
+        let constraint_metric_c = constraint_metric();
+        let jacobian_q = jacobian_q();
+        let baseline = ConstraintSpaceReceiptV1::<CartesianQ, ConstraintSpace, 3, 2>::new(
+            mass,
+            constraint_metric_c,
+            jacobian_q,
+            metric_profile(),
+            constraint_profile(),
+        )
+        .unwrap();
+
+        // Re-describe the constraint equations by r_new = T r_old and
+        // J_new = T J_old, but deliberately keep C's old component matrix.
+        // The correct transformed metric is C_new = T^-T C_old T^-1.
+        let jacobian_new = [
+            std::array::from_fn(|dof| jacobian_q[0][dof] + 2.0 * jacobian_q[1][dof]),
+            jacobian_q[1],
+        ];
+        let missing_metric_transform =
+            Metric::<DenseConstraint, 2>::admit(*constraint_metric_c.matrix(), metric_profile())
+                .unwrap();
+        let wrong = ConstraintSpaceReceiptV1::<CartesianQ, DenseConstraint, 3, 2>::new(
+            mass,
+            missing_metric_transform,
+            jacobian_new,
+            metric_profile(),
+            constraint_profile(),
+        )
+        .unwrap();
+
+        assert!(
+            (baseline.singular_values()[0] - wrong.singular_values()[0]).abs() > 1.0e-3,
+            "omitting C_new = T^-T C_old T^-1 must change the physical constraint spectrum"
+        );
     }
 
     #[test]
