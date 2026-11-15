@@ -25,7 +25,7 @@ JSON report and exits:
 - `2`: input, JSON, or corpus structure is invalid.
 
 The programme's NASA B2 reproduction protocol is documented at
-[\`NASA_BO_BENCHMARK_CROSSWALK_V0_1.md\`](../voi/NASA_BO_BENCHMARK_CROSSWALK_V0_1.md).
+[`NASA_BO_BENCHMARK_CROSSWALK_V0_1.md`](../voi/NASA_BO_BENCHMARK_CROSSWALK_V0_1.md).
 It pins the source benchmark families and 100-evaluation / five-seed comparison
 before any Luminous optimizer superiority claim.
 
