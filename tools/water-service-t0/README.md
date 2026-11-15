@@ -78,3 +78,21 @@ The cases cover a rising-block bill delta, unadmitted tariff, zero useful volume
 Protocol: [WATER_ECONOMICS_BENCHMARK_V0_1.md](../../research/water-service-engineering/WATER_ECONOMICS_BENCHMARK_V0_1.md). All values are synthetic; no household affordability, actual tariff, savings or product performance is qualified.
 
 Cost comparison and affordability are intentionally separate: missing income leaves the resident affordability burden Indeterminate but does not suppress an otherwise admitted cost-per-service comparison. The evaluator also rejects a tariff bill whose billing-period duration differs from the declared system-cost period.
+
+
+### Source-separated reference architecture — design contract
+
+The WaterLoop reference architecture is tracked by [#5457](https://github.com/Luminous-Dynamics/symtropy/issues/5457) and documented in [WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md](../../research/water-service-engineering/WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md).
+
+Run its static graph audit from repository root:
+
+```sh
+cargo fmt --package water-service-t0 -- --check
+cargo test --locked --package water-service-t0
+cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
+cargo run --locked --package water-service-t0 --bin waterloop-architecture-t0 -- \
+  research/water-service-engineering/waterloop-reference-architecture-v0.1.json \
+  artifacts/waterloop-architecture-t0/receipt.json
+```
+
+The audit checks three-circuit identity, same-circuit graph edges, source-to-outlet reachability through quality gates, a reject route for each circuit and fail-safe controller transitions. It does not establish local plumbing compliance, potable or reuse quality, component suitability or physical operation.

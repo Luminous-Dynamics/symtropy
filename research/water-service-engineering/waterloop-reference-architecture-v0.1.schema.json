@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-reference-architecture-v0.1.schema.json",
+  "title": "WaterLoop Reference Architecture v0.1",
+  "description": "Source-separated design-only contract for potable, shower/bath greywater and roof-rainwater household circuits.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "architecture_id",
+    "revision",
+    "status",
+    "evidence_class",
+    "claim_ceiling",
+    "circuits",
+    "nodes",
+    "edges",
+    "controller",
+    "sizing_contract",
+    "measurement_contract",
+    "manufacturing_interfaces",
+    "qualification_gates",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-reference-architecture-v0.1"
+    },
+    "architecture_id": {
+      "const": "WATERLOOP-REFERENCE-ARCHITECTURE"
+    },
+    "revision": {
+      "const": "0.1"
+    },
+    "status": {
+      "const": "design_candidate_not_site_approved"
+    },
+    "evidence_class": {
+      "const": "design_contract_only"
+    },
+    "claim_ceiling": {
+      "const": "source_separation_interfaces_and_safe_state_contract_only"
+    },
+    "design_principles": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    },
+    "circuits": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "circuit_id",
+          "fluid_class",
+          "source_node_ids",
+          "quality_gate_node_ids",
+          "reuse_outlet_node_ids",
+          "reject_node_id",
+          "permitted_use_classes",
+          "forbidden_use_classes"
+        ],
+        "properties": {
+          "circuit_id": {
+            "type": "string"
+          },
+          "fluid_class": {
+            "type": "string"
+          },
+          "source_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "quality_gate_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reuse_outlet_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reject_node_id": {
+            "type": "string"
+          },
+          "permitted_use_classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "forbidden_use_classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "node_id",
+          "circuit_id",
+          "role",
+          "fluid_class"
+        ],
+        "properties": {
+          "node_id": {
+            "type": "string"
+          },
+          "circuit_id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "fluid_class": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "edge_id",
+          "circuit_id",
+          "from",
+          "to"
+        ],
+        "properties": {
+          "edge_id": {
+            "type": "string"
+          },
+          "circuit_id": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "required": [
+        "initial_state",
+        "safe_states",
+        "states",
+        "transitions"
+      ],
+      "properties": {
+        "initial_state": {
+          "type": "string"
+        },
+        "safe_states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "trigger"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sizing_contract": {
+      "type": "object"
+    },
+    "measurement_contract": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    },
+    "manufacturing_interfaces": {
+      "type": "object"
+    },
+    "qualification_gates": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
