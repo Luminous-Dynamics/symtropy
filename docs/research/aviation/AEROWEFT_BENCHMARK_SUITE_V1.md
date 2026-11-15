@@ -654,9 +654,3 @@ Builds a declared-domain performance evidence profile above planning and composi
 ### Track S — multi-subject evidence scope (#5359)
 
 Separates the focal flight/operation being assessed from the external target an observation describes and from the environment/coverage cell to which a surveillance claim applies. Requires typed scope relations so an external or unknown target may contribute unresolved occupancy without becoming the focal aircraft or receiving a fabricated identity. Extends Track P's single-focal-flight causal receipt graph to multi-aircraft and unidentified-target cases; it does not implement detection, sensor fusion or target association itself.
-
-
-
-### Track T — model credibility and simulation-to-flight transfer (#5362)
-
-Qualifies the exact aircraft/model/control/sensor/solver/time/frame/datum configuration and operating-domain envelope for which modelled results may receive evidence credit. Separates calibration, development and confirmatory data by flight/scenario groups; binds datasets to exact aircraft/control/sensor and reference-measurement profiles; and requires per-stratum metrics with preregistered sample floors and conservative confidence bounds. Error gates use the upper confidence bound; coverage/recall gates use the lower bound. The structural evaluator pins the exact evaluator build and validation-policy manifest. Positive state is `ADMISSIBLE_FOR_DECLARED_DOMAIN_REVIEW_ONLY`, not physical validation, certification, safety or regulatory compliance. It does not run the simulator, authenticate data or prove calibration. Research comparators: ASTM F3705-25/F3442-26/F3201-26, NASA's 2025 flight evaluation of strategic path planning and NASA's 2024 CMSA safety assessment.
