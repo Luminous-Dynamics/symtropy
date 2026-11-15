@@ -1,6 +1,7 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
+use construction_observation_planning_core::ObservationAction;
 use construction_observation_planning_core::WorkNeed;
 use construction_observation_portfolio_core::{
     plan_greedy_observation_campaign, plan_observation_campaign,
@@ -9,7 +10,6 @@ use construction_robot_interop_core::resources::{ReservationBook, ReservationReq
 use construction_spacetime_occupancy_core::{
     Bounds3Mm, OccupancyKind, SiteBinding, SpatialOccupancy, SpatialOccupancyBook,
 };
-use construction_observation_planning_core::ObservationAction;
 
 fn binding() -> SiteBinding {
     SiteBinding {
@@ -72,8 +72,7 @@ fn percentile(samples: &mut [Duration], percentile: usize) -> Duration {
 
 fn main() {
     for action_count in [8_usize, 12, 16, 20] {
-        let actions: Vec<ObservationAction> =
-            (0..action_count).map(action).collect();
+        let actions: Vec<ObservationAction> = (0..action_count).map(action).collect();
         let need_count = action_count / 2;
         let needs: Vec<WorkNeed> = (0..need_count)
             .map(|index| WorkNeed {
