@@ -401,4 +401,23 @@ mod tests{
         assert!((scaled["injected_mass"].as_f64().unwrap()-10.0*base["injected_mass"].as_f64().unwrap()).abs()<1.0e-9);
         assert!((scaled["mass_residual_standard_uncertainty"].as_f64().unwrap()-10.0*base["mass_residual_standard_uncertainty"].as_f64().unwrap()).abs()<1.0e-9);
     }
+    #[test]fn temporal_resolution_is_derived_from_declared_sensor_limits(){
+        let x=load("input");
+        let c=x["cases"].as_array().unwrap().iter().find(|v|v["case_id"]=="DK-T0-012-temporal-resolution-inadequate").unwrap();
+        let result=compute(&c["inputs"],1.0).unwrap();
+        assert_eq!(result["operator_disposition"],"TEMPORAL_RESOLUTION_INADEQUATE");
+    }
+    #[test]fn transient_model_separation_requires_an_explicit_noise_contract(){
+        let mut x=load("input");
+        let c=x["cases"].as_array_mut().unwrap().iter_mut().find(|v|v["case_id"]=="DK-T0-011-same-steady-gain-different-delay").unwrap();
+        c["inputs"].as_object_mut().unwrap().remove("observation_noise_contract");
+        let result=compute(&c["inputs"],1.0).unwrap();
+        assert_eq!(result["operator_disposition"],"REJECTED_CONTRACT");
+    }
+    #[test]fn inconsistent_kernel_lag_lengths_are_refused(){
+        let mut x=load("input");
+        x["cases"][0]["inputs"]["kernel"][1][0]=json!([0.3,0.0]);
+        let result=compute(&x["cases"][0]["inputs"],1.0).unwrap();
+        assert_eq!(result["operator_disposition"],"INVALID_KERNEL");
+    }
 }
