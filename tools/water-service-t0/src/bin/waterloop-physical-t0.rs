@@ -4,7 +4,7 @@
 //! This binary evaluates arithmetic and evidence-admission semantics only. It is
 //! not a hydraulic solver, water-quality authority, or physical qualification.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -112,7 +112,10 @@ fn compute(case: &Value) -> Result<Value, String> {
             let overflow = nonnegative(number(input, "overflow_l")?, "overflow_l")?;
             let drain = nonnegative(number(input, "drain_l")?, "drain_l")?;
             let final_storage = nonnegative(number(input, "final_storage_l")?, "final_storage_l")?;
-            let bound = nonnegative(number(input, "conservative_u95_bound_l")?, "conservative_u95_bound_l")?;
+            let bound = nonnegative(
+                number(input, "conservative_u95_bound_l")?,
+                "conservative_u95_bound_l",
+            )?;
             let residual = initial + source - delivered - overflow - drain - final_storage;
             Ok(json!({
                 "signed_residual_l": residual,
@@ -121,17 +124,32 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "closure_pass": residual.abs() <= bound
             }))
         }
-        "WL-T0-003-deliverable-storage-sufficient" | "WL-T0-004-deliverable-storage-insufficient" => {
-            let gross = nonnegative(number(input, "measured_tank_volume_l")?, "measured_tank_volume_l")?;
-            let heel = nonnegative(number(input, "minimum_operating_heel_l")?, "minimum_operating_heel_l")?;
-            let deliverable = nonnegative(number(input, "measured_deliverable_l")?, "measured_deliverable_l")?;
-            let required = nonnegative(number(input, "required_service_volume_l")?, "required_service_volume_l")?;
+        "WL-T0-003-deliverable-storage-sufficient"
+        | "WL-T0-004-deliverable-storage-insufficient" => {
+            let gross = nonnegative(
+                number(input, "measured_tank_volume_l")?,
+                "measured_tank_volume_l",
+            )?;
+            let heel = nonnegative(
+                number(input, "minimum_operating_heel_l")?,
+                "minimum_operating_heel_l",
+            )?;
+            let deliverable = nonnegative(
+                number(input, "measured_deliverable_l")?,
+                "measured_deliverable_l",
+            )?;
+            let required = nonnegative(
+                number(input, "required_service_volume_l")?,
+                "required_service_volume_l",
+            )?;
             if heel > gross {
                 return Err("minimum operating heel exceeds measured tank volume".to_owned());
             }
             let inventory_ceiling = gross - heel;
             if deliverable > inventory_ceiling + 1.0e-9 {
-                return Err("measured deliverable exceeds gross inventory minus operating heel".to_owned());
+                return Err(
+                    "measured deliverable exceeds gross inventory minus operating heel".to_owned(),
+                );
             }
             let sufficient = deliverable >= required;
             Ok(json!({
@@ -143,9 +161,17 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "service_credit_eligible": sufficient
             }))
         }
-        "WL-T0-005-qualified-source-substitution" | "WL-T0-006-unqualified-source-no-credit" | "WL-T0-013-source-quality-without-evidence-no-credit" => {
-            let recovered = nonnegative(number(input, "recovered_outlet_delivery_l")?, "recovered_outlet_delivery_l")?;
-            let demand = nonnegative(number(input, "matched_end_use_demand_l")?, "matched_end_use_demand_l")?;
+        "WL-T0-005-qualified-source-substitution"
+        | "WL-T0-006-unqualified-source-no-credit"
+        | "WL-T0-013-source-quality-without-evidence-no-credit" => {
+            let recovered = nonnegative(
+                number(input, "recovered_outlet_delivery_l")?,
+                "recovered_outlet_delivery_l",
+            )?;
+            let demand = nonnegative(
+                number(input, "matched_end_use_demand_l")?,
+                "matched_end_use_demand_l",
+            )?;
             let source_confirmed = boolean(input, "source_identity_confirmed")?;
             let meter_calibrated = boolean(input, "meter_calibration_current")?;
             let same_window = boolean(input, "same_comparison_window")?;
@@ -192,16 +218,28 @@ fn compute(case: &Value) -> Result<Value, String> {
             let density = positive(number(input, "water_density_kg_m3")?, "water_density_kg_m3")?;
             let gravity = positive(number(input, "gravity_m_s2")?, "gravity_m_s2")?;
             let flow = nonnegative(number(input, "flow_m3_s")?, "flow_m3_s")?;
-            let head = nonnegative(number(input, "total_dynamic_head_m")?, "total_dynamic_head_m")?;
+            let head = nonnegative(
+                number(input, "total_dynamic_head_m")?,
+                "total_dynamic_head_m",
+            )?;
             let hydraulic_power = density * gravity * flow * head;
             Ok(json!({
                 "hydraulic_power_w": hydraulic_power
             }))
         }
         "WL-T0-008-wire-to-water-energy" => {
-            let hydraulic_energy = nonnegative(number(input, "hydraulic_output_energy_kwh")?, "hydraulic_output_energy_kwh")?;
-            let electrical_energy = positive(number(input, "electrical_input_energy_kwh")?, "electrical_input_energy_kwh")?;
-            let delivered_volume = positive(number(input, "measured_delivered_volume_m3")?, "measured_delivered_volume_m3")?;
+            let hydraulic_energy = nonnegative(
+                number(input, "hydraulic_output_energy_kwh")?,
+                "hydraulic_output_energy_kwh",
+            )?;
+            let electrical_energy = positive(
+                number(input, "electrical_input_energy_kwh")?,
+                "electrical_input_energy_kwh",
+            )?;
+            let delivered_volume = positive(
+                number(input, "measured_delivered_volume_m3")?,
+                "measured_delivered_volume_m3",
+            )?;
             let windows_aligned = boolean(input, "hydraulic_and_electrical_windows_aligned")?;
             let delivery_boundary_matched = boolean(input, "delivered_volume_boundary_matched")?;
             let auxiliary_loads_included = boolean(input, "auxiliary_loads_included")?;
@@ -222,7 +260,10 @@ fn compute(case: &Value) -> Result<Value, String> {
             }
             let efficiency = hydraulic_energy / electrical_energy;
             if efficiency > 1.0 + 1.0e-9 {
-                return Err("wire-to-water efficiency exceeds unity; reject evidence/model boundary".to_owned());
+                return Err(
+                    "wire-to-water efficiency exceeds unity; reject evidence/model boundary"
+                        .to_owned(),
+                );
             }
             Ok(json!({
                 "measurement_disposition": "ADMITTED",
@@ -231,11 +272,25 @@ fn compute(case: &Value) -> Result<Value, String> {
                 "electrical_specific_energy_kwh_m3": electrical_energy / delivered_volume
             }))
         }
-        "WL-T0-009-service-floor-met" | "WL-T0-010-service-floor-not-met" | "WL-T0-014-service-floor-missing-pressure-evidence" => {
-            let pressure = nonnegative(number(input, "measured_outlet_pressure_pa")?, "measured_outlet_pressure_pa")?;
-            let minimum_pressure = nonnegative(number(input, "minimum_service_pressure_pa")?, "minimum_service_pressure_pa")?;
-            let flow = nonnegative(number(input, "measured_outlet_flow_m3_s")?, "measured_outlet_flow_m3_s")?;
-            let minimum_flow = nonnegative(number(input, "minimum_service_flow_m3_s")?, "minimum_service_flow_m3_s")?;
+        "WL-T0-009-service-floor-met"
+        | "WL-T0-010-service-floor-not-met"
+        | "WL-T0-014-service-floor-missing-pressure-evidence" => {
+            let pressure = nonnegative(
+                number(input, "measured_outlet_pressure_pa")?,
+                "measured_outlet_pressure_pa",
+            )?;
+            let minimum_pressure = nonnegative(
+                number(input, "minimum_service_pressure_pa")?,
+                "minimum_service_pressure_pa",
+            )?;
+            let flow = nonnegative(
+                number(input, "measured_outlet_flow_m3_s")?,
+                "measured_outlet_flow_m3_s",
+            )?;
+            let minimum_flow = nonnegative(
+                number(input, "minimum_service_flow_m3_s")?,
+                "minimum_service_flow_m3_s",
+            )?;
             let pressure_admitted = boolean(input, "pressure_measurement_admitted")?;
             let flow_admitted = boolean(input, "flow_measurement_admitted")?;
             let pressure_met = pressure >= minimum_pressure;
@@ -264,7 +319,11 @@ fn compute(case: &Value) -> Result<Value, String> {
             let fp = number(input, "false_positive_events")?;
             let fn_count = number(input, "false_negative_events")?;
             let sensor_days = positive(number(input, "valid_sensor_days")?, "valid_sensor_days")?;
-            for (name, value) in [("true_positive_events", tp), ("false_positive_events", fp), ("false_negative_events", fn_count)] {
+            for (name, value) in [
+                ("true_positive_events", tp),
+                ("false_positive_events", fp),
+                ("false_negative_events", fn_count),
+            ] {
                 if value < 0.0 || value.fract() != 0.0 {
                     return Err(format!("{name}: expected non-negative integer count"));
                 }
@@ -272,7 +331,9 @@ fn compute(case: &Value) -> Result<Value, String> {
             let precision_denominator = tp + fp;
             let recall_denominator = tp + fn_count;
             if precision_denominator == 0.0 || recall_denominator == 0.0 {
-                return Err("precision or recall denominator is zero; result is undefined".to_owned());
+                return Err(
+                    "precision or recall denominator is zero; result is undefined".to_owned(),
+                );
             }
             Ok(json!({
                 "event_precision": tp / precision_denominator,
@@ -281,9 +342,16 @@ fn compute(case: &Value) -> Result<Value, String> {
             }))
         }
         "WL-T0-012-missed-leak-volume" => {
-            let rate = nonnegative(number(input, "reference_leak_rate_l_min")?, "reference_leak_rate_l_min")?;
-            let latency = nonnegative(number(input, "detection_latency_min")?, "detection_latency_min")?;
-            let rate_bound = nonnegative(number(input, "leak_rate_u95_l_min")?, "leak_rate_u95_l_min")?;
+            let rate = nonnegative(
+                number(input, "reference_leak_rate_l_min")?,
+                "reference_leak_rate_l_min",
+            )?;
+            let latency = nonnegative(
+                number(input, "detection_latency_min")?,
+                "detection_latency_min",
+            )?;
+            let rate_bound =
+                nonnegative(number(input, "leak_rate_u95_l_min")?, "leak_rate_u95_l_min")?;
             let latency_bound = nonnegative(number(input, "latency_u95_min")?, "latency_u95_min")?;
             let point = rate * latency;
             let upper = (rate + rate_bound) * (latency + latency_bound);
@@ -336,12 +404,12 @@ fn compare_json(actual: &Value, expected: &Value) -> bool {
             _ => false,
         },
         (Value::Array(a), Value::Array(b)) => {
-            a.len() == b.len()
-                && a.iter().zip(b.iter()).all(|(x, y)| compare_json(x, y))
+            a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| compare_json(x, y))
         }
         (Value::Object(a), Value::Object(b)) => {
             a.len() == b.len()
-                && a.iter().all(|(key, value)| b.get(key).is_some_and(|other| compare_json(value, other)))
+                && a.iter()
+                    .all(|(key, value)| b.get(key).is_some_and(|other| compare_json(value, other)))
         }
         _ => actual == expected,
     }
@@ -359,10 +427,14 @@ fn collect_unique_ids(rows: &[Value], name: &str) -> Result<BTreeSet<String>, St
 }
 
 fn string_id_set(value: &Value, name: &str) -> Result<BTreeSet<String>, String> {
-    let rows = value.as_array().ok_or_else(|| format!("{name}: expected array"))?;
+    let rows = value
+        .as_array()
+        .ok_or_else(|| format!("{name}: expected array"))?;
     let mut ids = BTreeSet::new();
     for row in rows {
-        let id = row.as_str().ok_or_else(|| format!("{name}: expected string IDs"))?;
+        let id = row
+            .as_str()
+            .ok_or_else(|| format!("{name}: expected string IDs"))?;
         if !ids.insert(id.to_owned()) {
             return Err(format!("duplicate ID in {name}: {id}"));
         }
@@ -377,7 +449,11 @@ fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Value, S
     {
         return Err("schema version mismatch".to_owned());
     }
-    for (name, value) in [("inputs", inputs), ("manifest", manifest), ("oracle", oracle)] {
+    for (name, value) in [
+        ("inputs", inputs),
+        ("manifest", manifest),
+        ("oracle", oracle),
+    ] {
         if text(value, "evidence_class")? != "synthetic_only"
             || text(value, "claim_ceiling")? != CLAIM_CEILING
         {
@@ -448,7 +524,9 @@ fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Value, S
     }
 
     results.sort_by(|a, b| {
-        a.get("case_id").and_then(Value::as_str).cmp(&b.get("case_id").and_then(Value::as_str))
+        a.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&b.get("case_id").and_then(Value::as_str))
     });
     let matched = results.len().saturating_sub(mismatches.len());
     Ok(json!({
@@ -471,7 +549,10 @@ fn evaluate(inputs: &Value, manifest: &Value, oracle: &Value) -> Result<Value, S
 }
 
 fn sha256(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect()
+    Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
@@ -483,26 +564,38 @@ fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
 
 fn valid_revision(value: &str) -> bool {
     value.len() == 40
-        && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn run() -> Result<i32, String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() > 4 {
-        return Err("usage: waterloop-physical-t0 [INPUTS] [MANIFEST] [ORACLE] [RECEIPT]".to_owned());
+        return Err(
+            "usage: waterloop-physical-t0 [INPUTS] [MANIFEST] [ORACLE] [RECEIPT]".to_owned(),
+        );
     }
-    let input_path = PathBuf::from(args.first().map(String::as_str).unwrap_or(
-        "research/water-service-engineering/waterloop-physical-t0-v0.1.json",
-    ));
-    let manifest_path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
-        "research/water-service-engineering/waterloop-physical-manifest-v0.1.json",
-    ));
-    let oracle_path = PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
-        "research/water-service-engineering/waterloop-physical-oracle-v0.1.json",
-    ));
-    let receipt_path = PathBuf::from(args.get(3).map(String::as_str).unwrap_or(
-        "artifacts/water-service-t0/waterloop-physical-receipt.json",
-    ));
+    let input_path = PathBuf::from(
+        args.first()
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/waterloop-physical-t0-v0.1.json"),
+    );
+    let manifest_path = PathBuf::from(
+        args.get(1)
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/waterloop-physical-manifest-v0.1.json"),
+    );
+    let oracle_path = PathBuf::from(
+        args.get(2)
+            .map(String::as_str)
+            .unwrap_or("research/water-service-engineering/waterloop-physical-oracle-v0.1.json"),
+    );
+    let receipt_path = PathBuf::from(
+        args.get(3)
+            .map(String::as_str)
+            .unwrap_or("artifacts/water-service-t0/waterloop-physical-receipt.json"),
+    );
 
     let (input_bytes, inputs) = read_json(&input_path)?;
     let (manifest_bytes, manifest) = read_json(&manifest_path)?;
@@ -510,7 +603,9 @@ fn run() -> Result<i32, String> {
     let evaluation = evaluate(&inputs, &manifest, &oracle)?;
     let total = evaluation["result_count"].as_u64().unwrap_or(0);
     let matched = evaluation["matched_case_count"].as_u64().unwrap_or(0);
-    let no_mismatches = evaluation["mismatches"].as_array().is_some_and(Vec::is_empty);
+    let no_mismatches = evaluation["mismatches"]
+        .as_array()
+        .is_some_and(Vec::is_empty);
     let success = total == CASE_COUNT as u64 && matched == CASE_COUNT as u64 && no_mismatches;
 
     let raw_revision = env::var("WATERLOOP_T0_REVISION")
@@ -518,8 +613,8 @@ fn run() -> Result<i32, String> {
         .ok();
     let revision = raw_revision.filter(|value| valid_revision(value));
     let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
 
     let receipt = json!({
         "schema_version": "waterloop-physical-t0-run-v0.1",
@@ -576,9 +671,15 @@ mod tests {
 
     fn fixture(name: &str) -> Value {
         let raw = match name {
-            "inputs" => include_str!("../../../../research/water-service-engineering/waterloop-physical-t0-v0.1.json"),
-            "manifest" => include_str!("../../../../research/water-service-engineering/waterloop-physical-manifest-v0.1.json"),
-            "oracle" => include_str!("../../../../research/water-service-engineering/waterloop-physical-oracle-v0.1.json"),
+            "inputs" => include_str!(
+                "../../../../research/water-service-engineering/waterloop-physical-t0-v0.1.json"
+            ),
+            "manifest" => include_str!(
+                "../../../../research/water-service-engineering/waterloop-physical-manifest-v0.1.json"
+            ),
+            "oracle" => include_str!(
+                "../../../../research/water-service-engineering/waterloop-physical-oracle-v0.1.json"
+            ),
             _ => panic!("unknown fixture"),
         };
         serde_json::from_str(raw).expect("frozen fixture JSON parses")
@@ -598,14 +699,20 @@ mod tests {
     fn duplicate_input_id_is_rejected() {
         let mut inputs = fixture("inputs");
         let first = inputs["cases"][0].clone();
-        inputs["cases"].as_array_mut().expect("cases array").push(first);
+        inputs["cases"]
+            .as_array_mut()
+            .expect("cases array")
+            .push(first);
         assert!(evaluate(&inputs, &fixture("manifest"), &fixture("oracle")).is_err());
     }
 
     #[test]
     fn incomplete_manifest_case_set_is_rejected() {
         let mut manifest = fixture("manifest");
-        manifest["required_case_ids"].as_array_mut().expect("ID array").pop();
+        manifest["required_case_ids"]
+            .as_array_mut()
+            .expect("ID array")
+            .pop();
         assert!(evaluate(&fixture("inputs"), &manifest, &fixture("oracle")).is_err());
     }
 
@@ -654,7 +761,11 @@ mod tests {
         let case = fixture("inputs")["cases"][13].clone();
         let actual = compute(&case).expect("synthetic service-floor case");
         assert_eq!(actual["service_disposition"], "INDETERMINATE");
-        assert!(!actual["service_credit_eligible"].as_bool().expect("service credit boolean"));
+        assert!(
+            !actual["service_credit_eligible"]
+                .as_bool()
+                .expect("service credit boolean")
+        );
         assert_eq!(actual["pressure_floor_met"], Value::Null);
     }
 
@@ -681,7 +792,10 @@ mod tests {
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
         assert_eq!(result["matched_case_count"], 11);
-        assert_eq!(result["mismatches"].as_array().expect("mismatches").len(), 1);
+        assert_eq!(
+            result["mismatches"].as_array().expect("mismatches").len(),
+            1
+        );
     }
 
     #[test]
