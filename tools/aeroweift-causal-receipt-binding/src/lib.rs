@@ -596,7 +596,11 @@ pub fn verify(
             }
         }
         for role in optional_roles(receipt.stage) {
-            let count = receipt.parents.iter().filter(|edge| edge.role == role).count();
+            let count = receipt
+                .parents
+                .iter()
+                .filter(|edge| edge.role == role)
+                .count();
             if count > 1 {
                 return Err(VerificationError::DuplicateParentRole);
             }
