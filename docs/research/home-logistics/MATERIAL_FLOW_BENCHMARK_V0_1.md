@@ -8,7 +8,7 @@
 
 ## 1. Thesis and benchmark boundary
 
-Most robotics benchmarks isolate a robot, task or planning problem. Real residential logistics is a chain of constrained transfers across organizations, vehicles, containers, robots, buildings and people.
+Most robotics benchmarks isolate a robot, task or planning problem. Real residential logistics is a chain of constrained transfers across organizations, vehicles, containers, robots, buildings and people. It is also a distributed physical transaction: a physical action may occur even when its acknowledgement is lost, so software cannot safely assume that retrying an operation is equivalent to retrying a database write.
 
 The Material Flow Benchmark (MFB) evaluates whether a system can move a known object from an authorized source to an authorized destination while preserving identity, handling conditions, custody, privacy, safety and recoverability.
 
@@ -33,6 +33,7 @@ MFB is an evaluation protocol, not a new robot stack, control system, standards 
 - Planning against a coupled physical model reduces energy and makespan only when handoff, launch/recovery, reserve, charging, queueing and failure costs are included.
 - Local household inventory and explicit, revocable consent can coexist with useful shared delivery services.
 - Reverse logistics and reusable containers can lower system-wide resource use when returns, cleaning, loss, repair and empty backhaul are measured.
+- Append-only, independently authored mission and custody events can preserve accountability through concurrency and network partitions without pretending that physical actuation is exactly-once or rollbackable.
 
 ## 3. Unit of evaluation
 
@@ -153,6 +154,33 @@ Evaluate:
 
 GS1 EPCIS 2.0.1 is a candidate external event vocabulary for interoperable business visibility. The MFB event profile must map only the necessary WHAT/WHEN/WHERE/WHY/HOW facts and must not copy private household context into shared events.
 
+### T8 — Distributed physical-transaction correctness
+
+Exercise the coordination protocol across independent household, provider, carrier, robot and receiving-device agents. The benchmark must distinguish:
+- **logical intent:** a request or reservation that has not yet authorized motion;
+- **physical action:** a non-transactional release, movement, grasp, transfer or placement;
+- **observation:** sensor/device evidence that the physical action occurred;
+- **custody acknowledgement:** independently authored evidence from the receiving party;
+- **reconciliation:** an explicit resolution of contradictory, missing or late evidence.
+
+Do not promise exactly-once physical execution. Require idempotent logical command identities, bounded/consume-once authorization where the underlying authority model can support it, independent receiver acknowledgement, and a reconciliation state for unknown outcomes. A timeout after actuation must not trigger a blind second transfer.
+
+Inject concurrent reservations, duplicate and replayed commands, reordered events, conflicting party responses, clock skew/uncertainty, stale or revoked grants, network partitions before and after physical action, conductor restarts and one-sided acknowledgement. Evaluate both safety and convergence after the partition heals.
+
+A system may converge to a safe **held/unresolved** state. It must never converge to false delivery, unauthorized movement or over-capacity acceptance. If global no-overbooking cannot be proven for the chosen Holochain/DHT authority design, the implementation must narrow the guarantee to a single reservation authority or fail closed; benchmark documentation must disclose the scope.
+
+Report:
+- over-capacity reservation attempts accepted;
+- duplicate physical actions accepted;
+- false-delivery and false-custody assertions;
+- unauthorized mutations under expiry/revocation races;
+- replay and duplicate-event detection;
+- divergent state duration and reconciliation latency;
+- unresolved custody age and successful safe-hold recovery;
+- event convergence under the declared network and clock model.
+
+These are hard correctness gates, not weighted metrics.
+
 ## 5. Reference architecture under test
 
 | Plane | Responsible system | Benchmark contract |
@@ -238,6 +266,7 @@ Zero observed events is not proof of zero risk. Report exposure counts, hazard a
 - correct storage-class routing;
 - required custody-field completeness and bilateral acknowledgement;
 - unresolved-custody and false-delivery rate;
+- accepted over-capacity reservations, duplicate physical actions, unauthorized retries and unresolved reconciliation age;
 - cold-chain excursion probability, magnitude and duration;
 - package damage and seal exceptions;
 - held-out task and layout generalization;
@@ -253,7 +282,8 @@ Zero observed events is not proof of zero risk. Report exposure counts, hazard a
 - empty-return distance and reverse-logistics cost;
 - tote reuse cycles, loss, damage, cleaning and repair;
 - human interventions per 100 deliveries, intervention time and recovery time;
-- degraded-mode performance under service, power and network loss.
+- degraded-mode performance under service, power and network loss;
+- event convergence and time to safe reconciliation after distributed partitions.
 
 ## 9. Initial targets — research goals, not achieved results
 
@@ -266,6 +296,7 @@ Zero observed events is not proof of zero risk. Report exposure counts, hazard a
 | Accepted critical safety violations | 0 | Hard gate; do not average away failures |
 | Human intervention after stabilization | <5 per 100 deliveries | Report by intervention type and task difficulty |
 | Improvement over strongest matched baseline | ≥5 percentage points | Pre-register test, report confidence intervals and per-family deltas |
+| Accepted over-capacity reservations / false deliveries / unauthorized retries | 0 | Hard correctness gates under the declared concurrency and fault model |
 | Truck + air system makespan | ≥15% better initially | Matched truck-only comparison |
 | Truck + air total operational energy | ≥10% better initially | Include aircraft and all supporting energy |
 
