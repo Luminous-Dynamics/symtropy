@@ -1,0 +1,24 @@
+{
+  "profile_id": "CONSTRUCTION-MATERIAL-READINESS-001",
+  "profile_version": "0.1",
+  "corpus_id": "material-readiness-adversarial-16",
+  "cases": [
+    {"id":"exact-lot-current-reservation","expected":"ReadyForWorkPackage","matching_test":"exact_qualified_lot_with_current_reservation_is_ready"},
+    {"id":"dispatch-in-transit","expected":"AwaitingDelivery","matching_test":"dispatch_or_in_transit_is_not_recipient_delivery"},
+    {"id":"delivered-no-recipient-acceptance","expected":"ReceivingReviewRequired","matching_test":"delivered_but_not_recipient_accepted_requires_receiving_review"},
+    {"id":"supplier-assertion-only","expected":"HeldUnknown","matching_test":"supplier_assertion_without_qualified_evidence_stays_unknown"},
+    {"id":"revoked-quality-evidence","expected":"Rejected","matching_test":"revoked_quality_evidence_rejects_lot_readiness"},
+    {"id":"stale-design-revision","expected":"Superseded","matching_test":"stale_design_or_requirement_revision_is_superseded"},
+    {"id":"available-not-reserved","expected":"HeldUnknown","matching_test":"available_but_not_reserved_stock_is_not_ready"},
+    {"id":"insufficient-reserved-quantity","expected":"InsufficientQuantity","matching_test":"insufficient_reserved_quantity_blocks_complete_kit"},
+    {"id":"approved-substitution-current-scope","expected":"ReadyForWorkPackage","matching_test":"exact_revision_approved_substitute_can_be_eligible"},
+    {"id":"approved-substitution-stale-design","expected":"SubstitutionApprovalRequired","matching_test":"substitute_approval_for_old_design_revision_is_not_current"},
+    {"id":"approved-substitution-wrong-project","expected":"SubstitutionApprovalRequired","matching_test":"substitution_approval_must_match_project_and_requirement_revision"},
+    {"id":"inventory-reservation-previous-site-epoch","expected":"Superseded","matching_test":"inventory_reservation_from_previous_site_epoch_is_superseded"},
+    {"id":"lot-quantity-double-counted-across-lines","expected":"InsufficientQuantity","matching_test":"same_lot_quantity_cannot_be_double_counted_across_kit_lines"},
+    {"id":"damaged-or-quarantined-lot","expected":"Rejected","matching_test":"damaged_or_quarantined_material_is_rejected"},
+    {"id":"unit-mismatch-no-conversion","expected":"HeldUnknown","matching_test":"unit_mismatch_is_held_without_implicit_conversion"},
+    {"id":"duplicate-line-lot-allocation","expected":"InvalidInput","matching_test":"duplicate_lot_line_allocation_identity_is_rejected"},
+    {"id":"one-missing-kit-line","expected":"HeldUnknown","matching_test":"multi_line_kit_with_one_missing_line_is_not_ready"}
+  ]
+}
