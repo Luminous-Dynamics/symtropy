@@ -260,6 +260,51 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         .filter(|(key, _)| key.as_str() != "warning")
         .all(|(_, value)| value.as_str().is_some_and(|item| !item.trim().is_empty()));
 
+    let transformation_rows = array_at(manifest, &["unit_transformations_in_helpers"])?;
+    let annual_conversion = transformation_rows
+        .iter()
+        .find(|row| row.get("transformation").and_then(Value::as_str) == Some("change_unit_stoy"))
+        .ok_or_else(|| "change_unit_stoy transformation is required".to_string())?;
+    let model_applications = annual_conversion
+        .get("model_applications")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "change_unit_stoy.model_applications must be an array".to_string())?;
+    let expected_annual_models: BTreeSet<&str> =
+        ["CABLE-POP", "JULES-RED", "FATES", "SEIB-DGVM", "BiomeE-Standalone"]
+            .into_iter()
+            .collect();
+    let mut actual_annual_models = BTreeSet::new();
+    let mut annual_applications_valid = true;
+    for (index, application) in model_applications.iter().enumerate() {
+        let model = application.get("model").and_then(Value::as_str)
+            .ok_or_else(|| format!("model_applications[{index}].model must be a string"))?;
+        let variables = string_array(application, &["variables"])?;
+        let adapter = application.get("source_adapter").and_then(Value::as_str).unwrap_or("");
+        annual_applications_valid &= !variables.is_empty() && !adapter.trim().is_empty();
+        actual_annual_models.insert(model);
+    }
+    let no_double_conversion = transformation_rows.iter().any(|row| {
+        row.get("model").and_then(Value::as_str) == Some("JULES-RED")
+            && row.get("variables").and_then(Value::as_array).is_some_and(|values| {
+                values.iter().any(|value| value.as_str() == Some("cmort"))
+            })
+            && row.get("operation").and_then(Value::as_str)
+                .is_some_and(|operation| operation.contains("without multiplying"))
+    });
+    let per_area_scaling = transformation_rows.iter().any(|row| {
+        row.get("model").and_then(Value::as_str) == Some("FATES")
+            && row.get("variables").and_then(Value::as_array).is_some_and(|values| {
+                values.iter().any(|value| value.as_str() == Some("stemmort"))
+            })
+            && row.get("operation").and_then(Value::as_str)
+                .is_some_and(|operation| operation.contains("10000"))
+    });
+    let model_specific_units_valid =
+        actual_annual_models == expected_annual_models
+            && annual_applications_valid
+            && no_double_conversion
+            && per_area_scaling;
+
     let dataset_doi = string_at(manifest, &["benchmark", "dataset_record_doi"])?;
     let code_doi = string_at(manifest, &["benchmark", "code_archive", "doi"])?;
     let rmd_doi = string_at(manifest, &["benchmark", "rmd_setup_doi"])?;
@@ -310,6 +355,11 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             "MODEL-FORCING-IDENTITY-001",
             model_set_matches && forcing_values_valid,
             "each model ID has a non-empty source forcing identifier",
+        ),
+        check(
+            "MODEL-SPECIFIC-UNIT-PATHS-001",
+            model_specific_units_valid,
+            "annual conversions, relabel-only annual fields, and per-hectare stem scaling remain model-specific",
         ),
         check(
             "DATA-CODE-DOI-SEPARATION-001",
@@ -422,6 +472,15 @@ mod tests {
         let raw = serde_json::to_vec(&value).expect("serialize size class mutation");
         let receipt = validate_corpus(&raw, &value).expect("well-formed fixture returns receipt");
         assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn source_crosswalk_rejects_removing_model_specific_unit_applications() {
+        let mut value = manifest();
+        value["unit_transformations_in_helpers"][0]
+            .as_object_mut().unwrap().remove("model_applications");
+        let raw = serde_json::to_vec(&value).expect("serialize missing model unit paths");
+        assert!(validate_corpus(&raw, &value).is_err());
     }
 
     #[test]
