@@ -1,0 +1,299 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-BLOCK-CONFORMAL-001",
+  "status": "PUBLIC_SYNTHETIC_BLOCK_CONFORMAL_NOT_STATISTICAL_VALIDATION",
+  "claim_ceiling": "Nine equal-sized synthetic calibration blocks produce a finite-sample 90% split-conformal rank. The corpus compares pooled observation residual calibration with block-maximum calibration, evaluates two declared in-domain test blocks and one known-shift negative control, and keeps observation coverage distinct from all-in-block coverage. Group separation is checked but exchangeability is designer-declared and not statistically established.",
+  "scenario": {
+    "alpha": 0.1,
+    "training_group_ids": [
+      "train-region-1"
+    ],
+    "calibration_blocks": [
+      {
+        "block_id": "cal-block-1",
+        "group_id": "cal-group-1",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          1
+        ]
+      },
+      {
+        "block_id": "cal-block-2",
+        "group_id": "cal-group-2",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          2
+        ]
+      },
+      {
+        "block_id": "cal-block-3",
+        "group_id": "cal-group-3",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          3
+        ]
+      },
+      {
+        "block_id": "cal-block-4",
+        "group_id": "cal-group-4",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          4
+        ]
+      },
+      {
+        "block_id": "cal-block-5",
+        "group_id": "cal-group-5",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          5
+        ]
+      },
+      {
+        "block_id": "cal-block-6",
+        "group_id": "cal-group-6",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          6
+        ]
+      },
+      {
+        "block_id": "cal-block-7",
+        "group_id": "cal-group-7",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          7
+        ]
+      },
+      {
+        "block_id": "cal-block-8",
+        "group_id": "cal-group-8",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          8
+        ]
+      },
+      {
+        "block_id": "cal-block-9",
+        "group_id": "cal-group-9",
+        "absolute_residuals": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          9
+        ]
+      }
+    ],
+    "test_blocks": [
+      {
+        "block_id": "in-domain-a",
+        "group_id": "test-group-in-domain-a",
+        "regime": "DECLARED_IN_DOMAIN",
+        "point_predictions": [
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "observations": [
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          108
+        ]
+      },
+      {
+        "block_id": "in-domain-b",
+        "group_id": "test-group-in-domain-b",
+        "regime": "DECLARED_IN_DOMAIN",
+        "point_predictions": [
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "observations": [
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          109.5
+        ]
+      },
+      {
+        "block_id": "shifted-c",
+        "group_id": "test-group-shifted-c",
+        "regime": "KNOWN_SHIFT_NEGATIVE_CONTROL",
+        "point_predictions": [
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100,
+          100
+        ],
+        "observations": [
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          100.5,
+          110
+        ]
+      }
+    ],
+    "exchangeability_basis": "SYNTHETIC_EQUAL_SIZED_BLOCKS_DECLARED_EXCHANGEABLE"
+  },
+  "expected": {
+    "calibration_block_count": 9,
+    "observations_per_block": 10,
+    "pooled_observation_radius": 1,
+    "block_maximum_radius": 9,
+    "pooled_interval_width": 2,
+    "block_interval_width": 18,
+    "test_block_count": 3,
+    "test_observation_count": 30,
+    "pooled_observation_coverage": 0.9,
+    "pooled_full_block_coverage": 0,
+    "block_observation_coverage": 0.9333333333333333,
+    "block_full_block_coverage": 0.3333333333333333,
+    "declared_in_domain_block_coverage": 0.5,
+    "declared_shift_block_coverage": 0,
+    "exchangeability_status": "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED",
+    "test_block_results": [
+      {
+        "block_id": "in-domain-a",
+        "observation_count": 10,
+        "covered_observation_count": 10,
+        "observation_coverage_fraction": 1,
+        "block_fully_covered": true,
+        "regime_is_declared_shift": false
+      },
+      {
+        "block_id": "in-domain-b",
+        "observation_count": 10,
+        "covered_observation_count": 9,
+        "observation_coverage_fraction": 0.9,
+        "block_fully_covered": false,
+        "regime_is_declared_shift": false
+      },
+      {
+        "block_id": "shifted-c",
+        "observation_count": 10,
+        "covered_observation_count": 9,
+        "observation_coverage_fraction": 0.9,
+        "block_fully_covered": false,
+        "regime_is_declared_shift": true
+      }
+    ]
+  },
+  "execution": {
+    "runner": "BLOCK_MAXIMUM_SPLIT_CONFORMAL_SYNTHETIC",
+    "external_data_ingested": false,
+    "exchangeability": "DESIGNER_DECLARED_NOT_VERIFIED",
+    "real_forest_coverage": "NOT_ESTABLISHED",
+    "distribution_shift_guarantee": "NOT_ESTABLISHED"
+  }
+}
