@@ -137,13 +137,13 @@ pub struct ExperimentCandidate {
     pub selection_evidence_role: SelectionEvidenceRole,
     /// Independent model-family groups actually distinguished by this experiment.
     pub hypothesis_groups: Vec<HypothesisGroup>,
-    /// Expected decision-relevant predictive uncertainty reduction, normalized [0,1].
+    /// Conservative lower bound on decision-relevant predictive uncertainty reduction, normalized [0,1].
     pub expected_uncertainty_reduction: f64,
-    /// Expected discrimination among the declared model hypotheses, normalized [0,1].
+    /// Conservative lower bound on discrimination among the declared model hypotheses, normalized [0,1].
     pub expected_model_discrimination: f64,
-    /// Worst-case reduction under the frozen robust uncertainty set, normalized [0,1].
+    /// Conservative lower bound under the frozen robust uncertainty set, normalized [0,1].
     pub worst_case_robust_reduction: f64,
-    /// Relevance to the declared engineering decision, normalized [0,1].
+    /// Conservative lower bound on decision relevance, normalized [0,1].
     pub decision_relevance: f64,
     /// Upper bound on probability the result is uninformative, normalized [0,1].
     pub probability_uninformative: f64,
@@ -265,12 +265,6 @@ pub enum RejectionReason {
     /// Scope/design/manifest identity is malformed or mismatched.
     InvalidEvidenceBinding,
     /// Estimator build or confidence method differs from the frozen policy.
-    ConfidenceContractMismatch,
-    /// A required owner evidence receipt is missing or malformed.
-    MissingEvidenceReceipt,
-    /// Candidate evidence/scope digest is malformed.
-    InvalidEvidenceBinding,
-    /// Utility estimator or confidence contract does not match the frozen policy.
     ConfidenceContractMismatch,
     /// Decision relevance is below the frozen policy threshold.
     InsufficientDecisionRelevance,
