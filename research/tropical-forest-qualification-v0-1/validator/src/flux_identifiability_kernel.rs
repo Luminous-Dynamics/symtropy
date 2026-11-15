@@ -490,6 +490,50 @@ fn enumerate_designs(
     Ok(designs)
 }
 
+fn summarize_target_estimand_designs(
+    designs: &[Value],
+    estimands: &[TargetEstimand],
+) -> Result<Vec<Value>, String> {
+    let mut summaries = Vec::with_capacity(estimands.len());
+    for estimand in estimands {
+        let eligible: Vec<&Value> = designs.iter()
+            .filter(|design| {
+                design["identifiable_estimands"].as_array().is_some_and(|values| {
+                    values.iter().any(|value| value.as_str() == Some(estimand.id.as_str()))
+                })
+            })
+            .collect();
+        if eligible.is_empty() {
+            return Err(format!("no measurement subset identifies estimand {}", estimand.id));
+        }
+        let minimum_cost = eligible.iter()
+            .filter_map(|design| design["synthetic_effort_cost"].as_u64())
+            .min()
+            .ok_or_else(|| format!("estimand {} has no valid design cost", estimand.id))?;
+        let minimum_measurement_count = eligible.iter()
+            .filter_map(|design| design["measurement_count"].as_u64())
+            .min()
+            .ok_or_else(|| format!("estimand {} has no valid measurement count", estimand.id))?;
+        let minimum_cost_designs: Vec<Value> = eligible.iter()
+            .filter(|design| design["synthetic_effort_cost"].as_u64() == Some(minimum_cost))
+            .map(|design| design["measurement_ids"].clone())
+            .collect();
+        let minimum_count_designs: Vec<Value> = eligible.iter()
+            .filter(|design| design["measurement_count"].as_u64() == Some(minimum_measurement_count))
+            .map(|design| design["measurement_ids"].clone())
+            .collect();
+        summaries.push(json!({
+            "estimand_id": estimand.id,
+            "identifying_subset_count": eligible.len(),
+            "minimum_synthetic_effort_cost": minimum_cost,
+            "minimum_cost_designs": minimum_cost_designs,
+            "minimum_measurement_count": minimum_measurement_count,
+            "minimum_count_designs": minimum_count_designs
+        }));
+    }
+    Ok(summaries)
+}
+
 fn summarize_designs(designs: &[Value], variable_count: usize) -> Result<Value, String> {
     let full_rank: Vec<&Value> = designs
         .iter()
@@ -616,6 +660,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         evaluate_estimand_identifiability(&base_matrix, &target_estimands, variable_count)?;
     let designs = enumerate_designs(&base_matrix, &options, &target_estimands, variable_count)?;
     let design_summary = summarize_designs(&designs, variable_count)?;
+    let estimand_design_summary = summarize_target_estimand_designs(&designs, &target_estimands)?;
     let baseline_identifiable_estimands: Vec<String> = baseline_estimand_results.iter()
         .filter(|result| result["identifiable"].as_bool() == Some(true))
         .filter_map(|result| result["estimand_id"].as_str().map(ToOwned::to_owned))
@@ -642,6 +687,8 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         .ok_or_else(|| "expected.baseline_identifiable_estimands is required".to_string())?;
     let expected_baseline_unidentifiable = expected.get("baseline_unidentifiable_estimands")
         .ok_or_else(|| "expected.baseline_unidentifiable_estimands is required".to_string())?;
+    let expected_estimand_design_summary = expected.get("estimand_design_summaries")
+        .ok_or_else(|| "expected.estimand_design_summaries is required".to_string())?;
 
     let actual_subset_count = designs.len();
     let actual_optimal_designs = design_summary["optimal_designs"].clone();
@@ -666,6 +713,12 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
             "expected_identifiable_estimands": expected_baseline_identifiable,
             "actual_unidentifiable_estimands": baseline_unidentifiable_estimands.clone(),
             "expected_unidentifiable_estimands": expected_baseline_unidentifiable
+        }),
+        json!({
+            "id": "TARGET-ESTIMAND-MEASUREMENT-DESIGN-001",
+            "passed": json!(estimand_design_summary) == *expected_estimand_design_summary,
+            "actual": estimand_design_summary,
+            "expected": expected_estimand_design_summary
         }),
         json!({
             "id": "NULLSPACE-WITNESSES-001",
@@ -732,6 +785,7 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         },
         "measurement_design": design_summary,
         "baseline_estimand_results": baseline_estimand_results,
+        "estimand_design_summary": estimand_design_summary,
         "designs": designs,
         "structural_identifiability": if baseline_nullity == 0 { "STRUCTURALLY_IDENTIFIABLE" } else { "STRUCTURALLY_NON_IDENTIFIABLE" },
         "practical_identifiability": "NOT_EVALUATED",
@@ -852,6 +906,46 @@ mod tests {
             5
         );
         assert_eq!(full["unidentifiable_estimands"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn target_estimand_summary_finds_low_cost_measurements_without_full_flux_rank() {
+        let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest()).expect("valid corpus");
+        let summaries = receipt["estimand_design_summary"].as_array().unwrap();
+        let mortality = summaries.iter()
+            .find(|item| item["estimand_id"] == "mortality_transfer")
+            .unwrap();
+        assert_eq!(mortality["identifying_subset_count"], 43);
+        assert_eq!(mortality["minimum_synthetic_effort_cost"], 3);
+        assert_eq!(mortality["minimum_cost_designs"][0], json!(["mortality"]));
+        let gross_inputs = summaries.iter()
+            .find(|item| item["estimand_id"] == "gross_live_inputs")
+            .unwrap();
+        assert_eq!(gross_inputs["identifying_subset_count"], 31);
+        assert_eq!(gross_inputs["minimum_synthetic_effort_cost"], 6);
+        assert_eq!(gross_inputs["minimum_measurement_count"], 2);
+        assert_eq!(gross_inputs["minimum_cost_designs"][0], json!(["growth", "recruitment"]));
+    }
+
+    #[test]
+    fn net_stock_estimands_need_no_optional_measurement() {
+        let receipt = validate_corpus(FIXTURE.as_bytes(), &manifest()).expect("valid corpus");
+        for id in ["net_live_pool_increment", "net_deadwood_pool_increment", "net_total_pool_increment"] {
+            let summary = receipt["estimand_design_summary"].as_array().unwrap().iter()
+                .find(|item| item["estimand_id"] == id).unwrap();
+            assert_eq!(summary["minimum_synthetic_effort_cost"], 0);
+            assert_eq!(summary["minimum_measurement_count"], 0);
+            assert_eq!(summary["identifying_subset_count"], 64);
+        }
+    }
+
+    #[test]
+    fn target_estimand_design_summary_mutation_is_rejected() {
+        let mut value = manifest();
+        value["expected"]["estimand_design_summaries"][3]["minimum_synthetic_effort_cost"] = json!(0);
+        let raw = serde_json::to_vec(&value).expect("serialize target-estimand design mutation");
+        let receipt = validate_corpus(&raw, &value).expect("well-formed mutation returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
     }
 
     #[test]
