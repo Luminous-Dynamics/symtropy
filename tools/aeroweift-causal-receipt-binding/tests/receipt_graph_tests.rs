@@ -133,7 +133,25 @@ fn receipt(
         parents,
         required_traffic_classes,
         traffic_class: None,
+        observation_traffic_class: None,
     }
+}
+
+fn source_observation_for_traffic(
+    id: &str,
+    sequence: u64,
+    traffic_class: TrafficClass,
+) -> Receipt {
+    let mut result = receipt(
+        id,
+        Stage::SourceObservation,
+        sequence,
+        ClaimDisposition::Qualified,
+        vec![],
+        None,
+    );
+    result.observation_traffic_class = Some(traffic_class);
+    result
 }
 
 fn surveillance_receipt(
@@ -208,13 +226,10 @@ fn graph() -> Vec<Receipt> {
         vec![edge(&pnt, R::PntInitialPosition)],
         None,
     );
-    let cooperative_observation = receipt(
+    let cooperative_observation = source_observation_for_traffic(
         "observation-cooperative-track",
-        S::SourceObservation,
         8,
-        Q,
-        vec![],
-        None,
+        Coop,
     );
     let cooperative = surveillance_receipt(
         "surveillance-cooperative",
@@ -845,5 +860,27 @@ fn revoked_authorization_cannot_underwrite_intent_conformance() {
     assert_eq!(
         verify_graph(&receipts),
         Err(VerificationError::ParentNotQualified)
+    );
+}
+
+
+#[test]
+fn surveillance_observation_must_be_bound_to_the_same_traffic_class() {
+    let mut receipts = graph();
+    receipt_mut(&mut receipts, "observation-cooperative-track").observation_traffic_class =
+        Some(TrafficClass::NonCooperativeCrewed);
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::SurveillanceEvidenceMismatch)
+    );
+}
+
+#[test]
+fn surveillance_observation_without_a_traffic_class_is_not_admissible() {
+    let mut receipts = graph();
+    receipt_mut(&mut receipts, "observation-cooperative-track").observation_traffic_class = None;
+    assert_eq!(
+        verify_graph(&receipts),
+        Err(VerificationError::SurveillanceEvidenceMismatch)
     );
 }
