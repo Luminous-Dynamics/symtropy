@@ -1,0 +1,1038 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "water-cyber-physical-causal-pairs-v0.1",
+  "protocol_revision": "WATER-CYBER-PHYSICAL-CAUSAL-0.1",
+  "evidence_class": "synthetic_design_fixture",
+  "claim_ceiling": "synthetic_contract_semantics_only_no_detector_control_hydraulic_or_field_claim",
+  "design": {
+    "factors": [
+      "integrity_condition",
+      "protection_policy"
+    ],
+    "arms": [
+      {
+        "arm_id": "A",
+        "integrity_condition": "nominal",
+        "protection_policy": "baseline"
+      },
+      {
+        "arm_id": "B",
+        "integrity_condition": "disturbed",
+        "protection_policy": "baseline"
+      },
+      {
+        "arm_id": "C",
+        "integrity_condition": "nominal",
+        "protection_policy": "evidence_gated"
+      },
+      {
+        "arm_id": "D",
+        "integrity_condition": "disturbed",
+        "protection_policy": "evidence_gated"
+      }
+    ],
+    "contrasts": [
+      {
+        "contrast_id": "C-AB",
+        "left_arm": "A",
+        "right_arm": "B",
+        "only_factor_changed": "integrity_condition"
+      },
+      {
+        "contrast_id": "C-CD",
+        "left_arm": "C",
+        "right_arm": "D",
+        "only_factor_changed": "integrity_condition"
+      },
+      {
+        "contrast_id": "C-BD",
+        "left_arm": "B",
+        "right_arm": "D",
+        "only_factor_changed": "protection_policy"
+      },
+      {
+        "contrast_id": "C-AC",
+        "left_arm": "A",
+        "right_arm": "C",
+        "only_factor_changed": "protection_policy"
+      }
+    ],
+    "parity_rule": "same_shared_deployment_inputs_within_each_case; one_registered_factor_changes_within_each_contrast"
+  },
+  "dataset_lanes": [
+    {
+      "lane_id": "AQUASENSE-ICS-2026",
+      "population_class": "hybrid_data_level",
+      "permitted_task": "chronological data-level integrity/fault and temporal-leakage research",
+      "exclusions": [
+        "not_physically_coupled",
+        "not_closed_loop_control",
+        "no_laboratory_validated_potability",
+        "TDS_unit_and_calibration_unresolved",
+        "limited_attack_segments"
+      ],
+      "admission_state": "verify_exact_release_hashes_and_per_file_rights_before_use"
+    },
+    {
+      "lane_id": "NET1-NET3-SIM",
+      "population_class": "synthetic_hydraulic",
+      "permitted_task": "matched synthetic control and modelled physical consequence",
+      "exclusions": [
+        "not_real_utility_operation",
+        "not_measured_service",
+        "not_field_generalization"
+      ],
+      "admission_state": "pin_network_solver_calibration_and_sensor_layout"
+    },
+    {
+      "lane_id": "BATADAL-CTOWN",
+      "population_class": "historical_simulated_scada",
+      "permitted_task": "chronological simulated-SCADA detection and transfer",
+      "exclusions": [
+        "not_physical_testbed_equivalence",
+        "not_utility_field_performance",
+        "no_unmatched_pooling"
+      ],
+      "admission_state": "preserve_source_specific_label_and_split_semantics"
+    },
+    {
+      "lane_id": "WDSEVENTDB-ACG",
+      "population_class": "controlled_testbed",
+      "permitted_task": "controlled sensor fault and cyber-to-physical HIL evaluation",
+      "exclusions": [
+        "not_utility_scale_transfer",
+        "no_unapproved_live_network_activity"
+      ],
+      "admission_state": "requires_access_rights_configuration_and_event_truth_review"
+    },
+    {
+      "lane_id": "BABELA-SLOVAK-2026",
+      "population_class": "retrospective_real_utility_weak_label",
+      "permitted_task": "hourly anomaly/fault-context temporal robustness",
+      "exclusions": [
+        "not_attack_ground_truth",
+        "not_pipe_localization",
+        "not_prospective_field_validation"
+      ],
+      "admission_state": "requires_data_level_license_and_event_adjudication_review"
+    }
+  ],
+  "scenarios": [
+    {
+      "case_id": "WCP-001",
+      "scenario_family": "same_received_trace_distinct_causes",
+      "integrity_profile": "equivalent_same_received_trace",
+      "pair_id": "PAIR-WCP-001",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261114,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "instrument_fault",
+          "in_path_alteration"
+        ],
+        "independent_side_evidence": "none",
+        "physical_propagation": "unknown",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "abstain_observational_equivalence",
+        "cause_disposition": "no_cyber_attribution",
+        "protection_disposition": "hold_critical_proposal",
+        "restoration_disposition": "indeterminate",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-002",
+      "scenario_family": "authenticated_stale_replay",
+      "integrity_profile": "stale_authenticated",
+      "pair_id": "PAIR-WCP-002",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261115,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "replay_or_clock_fault"
+        ],
+        "independent_side_evidence": "none",
+        "physical_propagation": "unknown",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "reject_stale_observation",
+        "cause_disposition": "cause_unknown",
+        "protection_disposition": "hold_critical_proposal",
+        "restoration_disposition": "indeterminate",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-003",
+      "scenario_family": "plausible_multichannel_integrity_disturbance",
+      "integrity_profile": "plausible_multi_channel",
+      "pair_id": "PAIR-WCP-003",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261116,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "integrity_disturbance"
+        ],
+        "independent_side_evidence": "independent_integrity_indicator",
+        "physical_propagation": "service_floor_breach",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "reject_or_corroborate",
+        "cause_disposition": "investigate_without_actor_claim",
+        "protection_disposition": "block_unsafe_proposal",
+        "restoration_disposition": "not_restored",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-004",
+      "scenario_family": "communications_partition",
+      "integrity_profile": "availability_loss",
+      "pair_id": "PAIR-WCP-004",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261117,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "communications_fault_or_attack"
+        ],
+        "independent_side_evidence": "none",
+        "physical_propagation": "service_degradation",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "reject_missing_path",
+        "cause_disposition": "abstain_cause",
+        "protection_disposition": "local_safe_degraded",
+        "restoration_disposition": "indeterminate",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-005",
+      "scenario_family": "shared_dependency_false_redundancy",
+      "integrity_profile": "shared_common_root",
+      "pair_id": "PAIR-WCP-005",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261118,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "shared_gateway_or_time_root_compromise"
+        ],
+        "independent_side_evidence": "none",
+        "physical_propagation": "unknown",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "reject_common_cause",
+        "cause_disposition": "abstain_cause",
+        "protection_disposition": "hold_critical_proposal",
+        "restoration_disposition": "indeterminate",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-006",
+      "scenario_family": "command_acknowledgement_actuator_mismatch",
+      "integrity_profile": "command_actuator_mismatch",
+      "pair_id": "PAIR-WCP-006",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261119,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "actuator_or_feedback_failure"
+        ],
+        "independent_side_evidence": "independent_physical_measurement",
+        "physical_propagation": "service_degradation",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "require_physical_confirmation",
+        "cause_disposition": "physical_or_unknown_not_cyber",
+        "protection_disposition": "block_restoration_credit",
+        "restoration_disposition": "not_restored",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-007",
+      "scenario_family": "physical_only_source_or_demand_shock",
+      "integrity_profile": "physical_source_or_demand_shock",
+      "pair_id": "PAIR-WCP-007",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261120,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "physical_process_event"
+        ],
+        "independent_side_evidence": "independent_physical_measurement",
+        "physical_propagation": "service_degradation",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "accept_physical_evidence",
+        "cause_disposition": "no_cyber_attribution",
+        "protection_disposition": "bounded_response_only",
+        "restoration_disposition": "indeterminate",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-008",
+      "scenario_family": "incident_plus_nuisance_alarms",
+      "integrity_profile": "mixed_event_and_nuisance",
+      "pair_id": "PAIR-WCP-008",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261121,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "physical_process_event",
+          "nuisance_alarm"
+        ],
+        "independent_side_evidence": "independent_event_truth",
+        "physical_propagation": "service_degradation",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "event_level_one_to_one",
+        "cause_disposition": "classify_only_with_source_truth",
+        "protection_disposition": "bounded_response_only",
+        "restoration_disposition": "candidate_restored",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-009",
+      "scenario_family": "repair_ticket_closed_but_service_floor_breached",
+      "integrity_profile": "service_floor_breach",
+      "pair_id": "PAIR-WCP-009",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261122,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "repair_ticket_closed",
+          "service_area_below_floor"
+        ],
+        "independent_side_evidence": "independent_event_truth",
+        "physical_propagation": "service_floor_breach",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "preserve_area_breach",
+        "cause_disposition": "no_attack_claim",
+        "protection_disposition": "deny_restoration_credit",
+        "restoration_disposition": "not_restored",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-010",
+      "scenario_family": "integrity_event_without_physical_propagation",
+      "integrity_profile": "integrity_event_no_consequence",
+      "pair_id": "PAIR-WCP-010",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261123,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "integrity_disturbance"
+        ],
+        "independent_side_evidence": "independent_integrity_indicator",
+        "physical_propagation": "none",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "separate_detection_from_impact",
+        "cause_disposition": "investigate_without_actor_claim",
+        "protection_disposition": "no_physical_action",
+        "restoration_disposition": "not_applicable",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "no_service_impact"
+      }
+    },
+    {
+      "case_id": "WCP-011",
+      "scenario_family": "physical_impact_without_attack_evidence",
+      "integrity_profile": "physical_impact_unattributed",
+      "pair_id": "PAIR-WCP-011",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261124,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "physical_process_event",
+          "instrument_fault"
+        ],
+        "independent_side_evidence": "none",
+        "physical_propagation": "service_degradation",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "preserve_impact_unknown_cause",
+        "cause_disposition": "abstain_cyber_attribution",
+        "protection_disposition": "bounded_response_only",
+        "restoration_disposition": "indeterminate",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    },
+    {
+      "case_id": "WCP-012",
+      "scenario_family": "apparent_recovery_then_recurrence",
+      "integrity_profile": "recurrence_before_stable_dwell",
+      "pair_id": "PAIR-WCP-012",
+      "shared_deployment_inputs": {
+        "network_id": "SYN-NET3-ABSTRACT",
+        "topology_revision": "SYN-TOPOLOGY-V0",
+        "topology_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_revision": "SYN-GEOMETRY-V0",
+        "geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "demand_trace_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "physical_disturbance_trace_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "random_seed": 20261125,
+        "sensor_set": [
+          "pressure-01",
+          "pressure-02",
+          "flow-01",
+          "tank-level-01",
+          "clock-01"
+        ],
+        "sampling_period_seconds": 60,
+        "missingness_profile_ref": "SYN-MISSINGNESS-V0",
+        "time_grid_ref": "SYN-TIME-GRID-V0",
+        "unit_system": "SI",
+        "scoring_horizon_seconds": 86400,
+        "service_floor_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "required_service_area_ids": [
+          "DMA-A",
+          "DMA-B",
+          "DMA-C"
+        ],
+        "actuator_envelope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "local_protection_contract_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "decision_deadline_ms": 1000,
+        "future_covariates_available": false
+      },
+      "arms": [
+        {
+          "arm_id": "A",
+          "integrity_condition": "nominal",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "B",
+          "integrity_condition": "disturbed",
+          "protection_policy": "baseline"
+        },
+        {
+          "arm_id": "C",
+          "integrity_condition": "nominal",
+          "protection_policy": "evidence_gated"
+        },
+        {
+          "arm_id": "D",
+          "integrity_condition": "disturbed",
+          "protection_policy": "evidence_gated"
+        }
+      ],
+      "evaluator_truth": {
+        "latent_cause_set": [
+          "recurring_physical_or_integrity_event"
+        ],
+        "independent_side_evidence": "independent_physical_measurement",
+        "physical_propagation": "service_floor_breach",
+        "visibility": "evaluator_only"
+      },
+      "expected_semantics": {
+        "integrity_disposition": "reopen_recovery_assessment",
+        "cause_disposition": "no_cause_inference_without_evidence",
+        "protection_disposition": "deny_restoration_promotion",
+        "restoration_disposition": "not_restored",
+        "physical_trajectory_source": "external_solver_or_testbed_required",
+        "service_outcome": "external_per_area_trajectory_required"
+      }
+    }
+  ]
+}
