@@ -126,6 +126,24 @@ fn main() {
         )
         .expect("valid capsule query")
     );
+    measure("linear-sphere-capsule-narrow-phase", || {
+        moving_sphere_capsule_collision(
+            black_box(capsule_start),
+            black_box(capsule_end),
+            black_box(10.0),
+            black_box(capsule),
+        )
+        .expect("valid capsule narrow-phase query");
+    });
+    measure("linear-sphere-capsule-aabb-broad-phase", || {
+        swept_sphere_capsule_aabb_candidate(
+            black_box(capsule_start),
+            black_box(capsule_end),
+            black_box(10.0),
+            black_box(capsule),
+        )
+        .expect("valid capsule broad-phase query");
+    });
     measure("semicircle-chord-ccd", || {
         chord_collision(
             black_box(arc),
