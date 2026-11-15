@@ -232,6 +232,20 @@ Only freeze numeric superiority targets after reproducing the comparator and its
 
 No SOTA claim may be made from synthetic verification, morphology resemblance, segmentation alone, one species, one field study, or runtime alone.
 
+## 8. Symthaea reasoning integration
+
+Compose with existing Symthaea research and experiment-selection owners rather than building a second hypothesis engine:
+
+- [OLI-EXPERIMENT-001 #11446](https://github.com/Luminous-Dynamics/symthaea/issues/11446): substrate-agnostic property hypotheses and robust experiment selection.
+- [OLI-OOD-ATTACK-001 #11451](https://github.com/Luminous-Dynamics/symthaea/issues/11451): adversarial confidence-surface search for false life/agency/intelligence claims.
+- [FEP open-world model adequacy #11181](https://github.com/Luminous-Dynamics/symthaea/issues/11181): residual/OTHER mechanisms and adequacy-gated conclusions.
+- [SCI-EXP-001 #6226](https://github.com/Luminous-Dynamics/symthaea/issues/6226): experimental-unit, replication, blocking and inference-validity semantics.
+- [RQ-043 #2579](https://github.com/Luminous-Dynamics/symthaea/issues/2579): epistemic action selection and value-of-information qualification.
+
+The biological adapter should expose source-bound observation and simulation receipts, explicit rival explanations (e.g. hyphal transport, soil diffusion, microbial mediation, contamination, no transfer), predicted discriminating outcomes and costs. Symthaea compares those hypotheses and proposes the next measurement under the existing budget/adequacy contracts. It does not access evaluator-only truth, invent biological priors or parameters, authorize wet-lab work, or treat a high information score as proof.
+
+The Symthaea benchmark should separately measure proper predictive score/calibration, model-inadequacy detection, false causal attribution under adversarial controls, abstention/coverage, and realized decision value at equal experiment budgets. A benchmark pass in hypothesis selection does not qualify Symtropy's physical model.
+
 ## 8. Ownership and claim boundaries
 
 - **Symtropy:** canonical hyphal graph, field coupling, transport, ledgers, replay and benchmark execution.
