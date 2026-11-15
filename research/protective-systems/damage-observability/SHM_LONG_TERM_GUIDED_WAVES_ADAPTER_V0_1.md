@@ -21,7 +21,50 @@ Licence/version references:
 - Figshare versioning rules: https://info.figshare.com/user-guide/how-versioning-works/
 - Version-aware citation targets: https://doi.org/10.6084/m9.figshare.28112504 and https://doi.org/10.6084/m9.figshare.28112504.v1
 
-## 2. A recent published baseline—and why its number is not SOTA
+## 2. Source-integrity audit: the public descriptions disagree
+
+Before treating the dataset as an immutable benchmark, reconcile its official DOI record, paper, loading code, and the SmartDATA Lab landing page. They do not currently agree on several operational details.
+
+| Source | Description | Benchmark treatment |
+|---|---|---|
+| Yang et al. *Scientific Data* (2025), Data Records | 56 monthly `.pickle` files; 8 guided-wave paths per acquisition; example monthly matrix 14,997 × 8 × 2,000 | Primary published data-layout claim; verify each file and timestamp range |
+| Same paper, abstract/summary | ~6.4 million guided waves over ~4.5 years; summary says acquisitions about every 170 seconds | Use as paper-reported count only; disambiguate acquisition rows vs per-path waveforms |
+| Same paper, Methods | says measurements were taken about every 8.6 seconds | Conflicts with the summary and monthly example; do not hard-code either interval |
+| SmartDATA Lab landing page (updated 7 April 2026) | says >7.6 million signals, 30-second cadence, 14 PZT sensors and HDF5 | Conflicts with the paper's 56-pickle/eight-path layout; treat as a separate/unreconciled description until DOI files prove otherwise |
+| OpenAIRE/DataCite metadata aggregator | lists DOI `10.6084/m9.figshare.28112504`, version `.v1`, and CC BY | Useful metadata lead, not a substitute for reading the current Figshare version/terms directly |
+
+Primary sources:
+- Paper and data-layout description: https://pmc.ncbi.nlm.nih.gov/articles/PMC12162875/
+- DOI: https://doi.org/10.6084/m9.figshare.28112504
+- Versioned DOI reported by OpenAIRE: https://doi.org/10.6084/m9.figshare.28112504.v1
+- SmartDATA Lab landing page: https://smartdata.ece.ufl.edu/index.php/2025/07/23/long-term-guided-wave-dataset-under-real-world-conditions-dataset/
+- Data loader: https://github.com/SmartDATA-Lab/Long_Term_Guided_Waves
+- OpenAIRE metadata view: https://oamonitor.ireland.openaire.eu/national/search/dataset?pid=10.6084%2Fm9.figshare.28112504
+
+### Canonical count vocabulary
+
+Never use a single unqualified "number of measurements". The manifest must independently count:
+1. acquisition rows / timestamps;
+2. guided-wave path records (acquisition rows × valid paths, allowing missing paths);
+3. samples per waveform;
+4. monthly source-file counts and byte sizes.
+
+The paper's example month has 14,997 acquisition rows and eight paths per row, which is about 119,976 path waveforms before missingness. The monthly example is compatible with the paper's 170-second summary cadence more closely than its 8.6-second Methods statement, but the corpus timestamps—not arithmetic from one example—must decide the actual interval distribution. The SmartDATA Lab page's 30-second / HDF5 / 14-sensor description must not be blended into the paper's eight-path pickle schema.
+
+### Rights gate refinement
+
+OpenAIRE's DataCite-linked record reports CC BY for two dataset versions, including DOI `.v1`. This is a useful indication that the dataset may be reusable with attribution. However, the current Figshare landing record returned HTTP 403 during this audit, so the exact version-level licence, version date, file manifest, and any file-specific terms remain **not directly verified**. Do not redistribute, mirror, or adapt files until the authoritative Figshare record has been checked. The paper's CC BY-NC-ND article licence is separate from the dataset licence.
+
+### D0 acceptance additions
+
+- Pin the versioned dataset DOI, current Figshare record, licence statement and file manifest.
+- Record the discrepancy table above as resolved / unresolved with source and reviewer.
+- Assert the expected container format from actual downloaded file signatures, not a landing-page paragraph.
+- Reconcile counts using the actual number of timestamp rows, path matrices and waveform dimensions.
+- Compute timestamp-difference distributions and report min/median/p95/max; never encode 8.6 s, 30 s or 170 s as a constant until measured.
+- Treat unexplained format/count/schema differences as a new dataset version or a failed source-integrity gate, not as a silent preprocessing choice.
+
+## 3. A recent published baseline—and why its number is not SOTA
 
 Gao et al., *Structural Durability & Health Monitoring*, published online 5 November 2026, compare five supervised classifiers for adjacent damage-severity classification in this long-term guided-wave setting (DOI: https://doi.org/10.32604/sdhm.2026.088197).
 
@@ -50,7 +93,7 @@ Dataset details from the source description include eight transmitter–receiver
 
 Source-paper evaluation is a benchmark of adjacent-pair classification accuracy. The Protective Systems adapter adds operational evaluation: false alarms per asset-day, detection delay, calibration, open-set abstention and inspection burden. Do not claim that these measures were assessed in the published 84.2% result.
 
-## 3. Adapter contract: metadata first, bounded streaming later
+## 4. Adapter contract: metadata first, bounded streaming later
 
 The adapter must not require a 100-GB-class eager load or duplicate the owner dataset. It should initially emit a small manifest with:
 - dataset DOI, source URL, source version, retrieval date and rights status;
@@ -65,7 +108,7 @@ Read data lazily by file / time range / propagation path. Preserve raw waveforms
 
 The source description reports measurements about every 170 seconds and eight channels / propagation paths. The loading-code repository describes monthly `.pickle` files and example waveform arrays with 2,000 samples per channel; treat these as discovery metadata and verify the exact item version/file inventory before ingest. Do not assume that the entire corpus must be loaded in memory. Use bounded, file/time/path streaming. Pickle is executable serialization: do not load untrusted pickle files in a privileged or network-connected process. Use an isolated, least-privilege conversion step only after inspecting the source, with resource limits and no outbound network; persist a safer, typed interchange format with provenance and hashes.
 
-## 4. Evaluation tracks—keep them separate
+## 5. Evaluation tracks—keep them separate
 
 ### Track A: source reproduction
 
@@ -91,7 +134,7 @@ Inject only declared software-side corruption into copies of the data: dropout, 
 
 Withhold one damage class or environmental regime at a time. Measure whether the system reports UNKNOWN / OUT_OF_DOMAIN instead of forcing a known class. The held-out class is evaluator-only during training and model selection.
 
-## 5. Leakage-resistant split rules
+## 6. Leakage-resistant split rules
 
 - Group all windows from the same contiguous acquisition event and overlapping source samples; they remain in one partition.
 - Fit normalization, dimensionality reduction, feature selection, imputation, threshold selection, calibration and learned denoisers on training data only.
@@ -103,7 +146,7 @@ Withhold one damage class or environmental regime at a time. Measure whether the
 - Report uncertainty intervals and asset/event-level sample counts, not only window counts.
 - Reproduce the paper-faithful autoencoder preprocessing separately from a strict training-only preprocessing variant; disclose the difference and do not tune on the sealed test windows.
 
-## 6. Baselines to reproduce and improve upon
+## 7. Baselines to reproduce and improve upon
 
 At minimum:
 1. Source-paper LDA, SVM, Random Forest, MLP and 1D CNN baselines.
@@ -117,7 +160,7 @@ At minimum:
 
 No Transformer, temporal CNN, state-space or custom architecture should be assumed superior. Add them only as versioned candidate baselines with parameter counts, training budget, tuning budget and model-selection rules matched to the alternatives.
 
-## 7. Metrics that matter operationally
+## 8. Metrics that matter operationally
 
 Report separately:
 - adjacent-state macro-F1 / balanced accuracy and per-state recall;
@@ -134,7 +177,7 @@ Report separately:
 
 Window accuracy is not the primary operational endpoint. A safety-monitoring comparison should include an explicitly costed false-alarm / missed-detection policy and preserve a hard, independently defined inspection/engineering authority boundary.
 
-## 8. Proposed gates
+## 9. Proposed gates
 
 **D0 — rights and manifest**
 - current dataset version and licence verified directly at the dataset repository;
@@ -158,12 +201,12 @@ Window accuracy is not the primary operational endpoint. A safety-monitoring com
 - separate engineering review, safe specimen and sensor installation plan, calibrated independent reference measurements and human authorization;
 - no structure safety or protective-product claim from this dataset alone.
 
-## 9. What would constitute a meaningful improvement
+## 10. What would constitute a meaningful improvement
 
 A meaningful result is not merely >84.2% window accuracy. A credible improvement would hold or improve damage sensitivity while reducing false alarms per asset-day and maintaining calibration under genuinely later temporal periods, held-out propagation paths and sensor/environment shift—using repeated seeds and identical information access.
 
 The stronger target is **earlier reliable detection at lower total inspection burden, without increased missed-damage risk**. It must be evaluated on held-out temporal/event data and then prospectively confirmed on an independently instrumented specimen before any physical-performance claim.
 
-## 10. Non-goals
+## 11. Non-goals
 
 No damage inference on occupied/critical assets, no automatic safety declaration, no autonomous shutdown/actuation, no certification, no physical repair authorization, no hidden modification of the source data, no claim of cross-asset transfer from a single plate, and no claim that classifier accuracy proves structural integrity.
