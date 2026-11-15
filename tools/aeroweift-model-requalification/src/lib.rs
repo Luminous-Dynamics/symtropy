@@ -362,7 +362,17 @@ pub fn evaluate_claim(
     validate_events(&eligible_events)?;
     let eligible_coverage: Vec<ChangeFeedCoverage> = coverage
         .iter()
-        .filter(|item| item.recorded_at <= cutoff.known_at)
+        .filter(|item| {
+            item.recorded_at <= cutoff.known_at
+                && item.effective_from <= cutoff.effective_at
+                && item.effective_through >= claim.validated_at_effective
+                && item.knowledge_from <= cutoff.known_at
+                && item.knowledge_through >= claim.recorded_at
+                && claim.dependencies.iter().any(|dependency| {
+                    dependency.kind == item.dependency
+                        && dependency.change_source_id == item.source_id
+                })
+        })
         .cloned()
         .collect();
     // A future-recorded coverage correction cannot change an earlier as-known view.
