@@ -255,6 +255,8 @@ fn insufficient_independent_units_fail_the_gate() {
 fn pooled_average_cannot_hide_position_error_tail_breach() {
     let mut candidate = package();
     candidate.metrics[0].value = 5.1;
+    candidate.metrics[0].lower_confidence_bound = 5.1;
+    candidate.metrics[0].upper_confidence_bound = 5.1;
     assert_eq!(
         evaluate(&candidate, &policy()),
         Err(ValidationError::MetricOutsideGate)
@@ -265,6 +267,8 @@ fn pooled_average_cannot_hide_position_error_tail_breach() {
 fn uncertainty_interval_undercoverage_fails_even_with_good_rmse() {
     let mut candidate = package();
     candidate.metrics[1].value = 0.91;
+    candidate.metrics[1].lower_confidence_bound = 0.91;
+    candidate.metrics[1].upper_confidence_bound = 0.91;
     assert_eq!(
         evaluate(&candidate, &policy()),
         Err(ValidationError::MetricOutsideGate)
