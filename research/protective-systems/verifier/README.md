@@ -147,3 +147,33 @@ service ID; water, energy, healthcare, money and other unlike outcomes are not
 summed into a universal score. The exact expected reports are frozen in the
 fixture. Passing means deterministic evidence-accounting conformance only, not
 physical protection, field performance, legal compliance or certification.
+
+
+## E1 external model evidence envelope
+
+The `protective-model-evidence` binary validates the v0.1 evidence envelope,
+its dataset input/output lineage, rights-state fields and local artifact bytes.
+The synthetic fixture uses an IN-CORE-shaped dataset graph but is not an
+IN-CORE run. Each artifact length and SHA-256 is checked against the exact
+embedded payload bytes.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-evidence
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-evidence
+```
+
+A synthetic or not-executed envelope returns
+`ABSTAIN_SYNTHETIC_NOT_EXECUTED`. A completed external run with missing
+software version, dataset revision, rights, coordinate reference or uncertainty
+metadata abstains. A fully populated envelope is labelled only
+`ENVELOPE_METADATA_COMPLETE_SOURCE_AUTHENTICITY_UNVERIFIED`: a byte digest
+proves local byte identity, not provider authenticity, model validity or
+physical truth.
+
+The v0.1 executable deliberately uses a tiny JSON-only artifact allow-list.
+It is a contract/negative-control tranche, not a live pyIncore/IN-CORE adapter,
+a generic raster/vector/Parquet importer or an authorization to retrieve
+external/private datasets.
