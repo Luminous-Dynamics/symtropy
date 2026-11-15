@@ -73,6 +73,14 @@ Test at least:
 - textile gentleness and crease outcomes;
 - vibration, noise, imbalance events and service-life proxies.
 
+### 4.1.1 First-principles spin-to-dryer leverage (illustrative bound)
+
+A useful early calculation gives this coupling a concrete experimental value. If residual moisture is expressed on a dry-mass basis, an 8 kg dry-equivalent load falling from 53.9% to 45.0% residual moisture carries about 0.712 kg less water into the dryer. Using approximately 2.3 MJ/kg (0.639 kWh/kg) as a first-order latent-heat value, that represents roughly 0.455 kWh of latent thermal duty. At an illustrative whole-system heat-pump COP of 2–3, the idealized electrical equivalent is approximately **0.15–0.23 kWh**.
+
+That is an order-of-magnitude screening calculation, not a predicted product saving. It assumes the residual-moisture basis is confirmed and that the incremental water would otherwise be evaporated; it omits real dryer heat losses, sensible heating, fan/compressor controls, condensate and load-specific COP. The 10 kg washer reference and 8 kg dryer reference are not a matched pair. This calculation is only a reason to measure the coupling carefully.
+
+The experiment must measure the washer's incremental spin energy and fabric/vibration penalties together with the dryer energy/time reduction at the same final-moisture endpoint. Optimize **net paired-system energy and textile outcome**, not dryer energy in isolation.
+
 ### 4.2 Commanded cycle -> measured accepted output
 
 A completed programme is not evidence that textiles were cleaned or dried correctly. Use load, water, temperature, motor, moisture, vibration and airflow measurements to qualify the process result. Sensor estimates must be calibrated against gravimetric or other reference measurements.
