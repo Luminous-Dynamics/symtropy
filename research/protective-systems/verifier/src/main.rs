@@ -1,8 +1,7 @@
 use protective_systems_verifier::{evaluate_corpus, parse_corpus};
 use std::{env, fs, process};
 
-const EMBEDDED_FIXTURES: &str =
-    include_str!("../../fixtures/benchmark-cases-v0.1.json");
+const EMBEDDED_FIXTURES: &str = include_str!("../../fixtures/benchmark-cases-v0.1.json");
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
