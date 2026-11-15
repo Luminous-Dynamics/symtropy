@@ -177,6 +177,7 @@ fn weighted_mse(actual: &Vector, predicted: &Vector, weights: &Vector) -> Result
         .sum::<f64>()
         / total)
 }
+#[allow(clippy::needless_range_loop)]
 fn solve_linear(mut a: Matrix, mut b: Vector, tol: f64) -> Result<Vector, String> {
     let n = b.len();
     if a.len() != n || a.iter().any(|r| r.len() != n) {
@@ -838,10 +839,10 @@ fn run() -> Result<i32, String> {
         "evidence_class":"synthetic_only","evidence_ceiling":EVIDENCE_CEILING,
         "physical_operator_qualified":false,"potability_claim_permitted":false,"release_authorized":false
     });
-    if let Some(parent) = rp.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
-        }
+    if let Some(parent) = rp.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
     }
     let bytes = serde_json::to_string_pretty(&receipt)
         .map_err(|e| format!("serialize receipt: {e}"))?
