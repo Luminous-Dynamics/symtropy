@@ -23,6 +23,13 @@ pub enum AggregationError {
     InvalidSamplingFrame,
     NonProbabilityDesign,
     EmptyCategory,
+    MissingJointInclusionProbability,
+    DuplicateJointInclusionProbability,
+    InvalidJointInclusionProbability,
+    UnknownSampleUnit,
+    SelfJointInclusionPair,
+    CountValueExceedsExactFloat,
+    NumericOverflow,
 }
 
 impl fmt::Display for AggregationError {
@@ -298,6 +305,179 @@ pub fn estimate_probability_sample_count_total(
         population_unit_count,
         sampled_unit_count: samples.len(),
         uncertainty_status: "NOT_ESTIMATED_REQUIRES_SECOND_ORDER_INCLUSION_PROBABILITIES",
+    })
+}
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PairInclusionProbability {
+    pub left_sample_unit_id: String,
+    pub right_sample_unit_id: String,
+    pub joint_inclusion_probability: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CountVarianceEstimate {
+    /// Unbiased Horvitz–Thompson design variance estimator. A realised estimate may be negative.
+    pub variance_estimate: f64,
+    /// A standard error exists only for a non-negative realised variance estimate.
+    pub standard_error: Option<f64>,
+    pub status: &'static str,
+    pub sample_pair_count: usize,
+}
+
+/// Estimate the design variance of a Horvitz–Thompson total from explicit pair
+/// inclusion probabilities. No pair probability is inferred from first-order values.
+///
+/// This is the general HT variance estimator:
+/// sum_i ((1-pi_i)/pi_i^2) y_i^2
+/// + 2 sum_{i<j} ((pi_ij - pi_i*pi_j)/pi_ij)
+///     (y_i/pi_i)(y_j/pi_j).
+///
+/// A negative realised estimate is retained and has no standard error; it is never
+/// clamped to zero. Local probability consistency does not authenticate the real design.
+pub fn estimate_ht_count_variance(
+    samples: &[CountSample],
+    pair_inclusions: &[PairInclusionProbability],
+) -> Result<CountVarianceEstimate, AggregationError> {
+    if samples.is_empty() || samples.len() > 1_000_000 {
+        return Err(AggregationError::InvalidSamplingFrame);
+    }
+
+    let mut sample_by_id: BTreeMap<&str, &CountSample> = BTreeMap::new();
+    for sample in samples {
+        if sample.sample_unit_id.trim().is_empty() {
+            return Err(AggregationError::EmptyUnit);
+        }
+        if sample.design_kind != "probability_sample" {
+            return Err(AggregationError::NonProbabilityDesign);
+        }
+        if !sample.inclusion_probability.is_finite()
+            || sample.inclusion_probability <= 0.0
+            || sample.inclusion_probability > 1.0
+        {
+            return Err(AggregationError::InvalidInclusionProbability);
+        }
+        if sample.observed_count > 9_007_199_254_740_992 {
+            return Err(AggregationError::CountValueExceedsExactFloat);
+        }
+        if sample_by_id
+            .insert(sample.sample_unit_id.as_str(), sample)
+            .is_some()
+        {
+            return Err(AggregationError::DuplicateSampleIdentity);
+        }
+    }
+
+    let expected_pair_count = samples
+        .len()
+        .checked_mul(samples.len().saturating_sub(1))
+        .ok_or(AggregationError::NumericOverflow)?
+        / 2;
+    let mut pair_map: BTreeMap<(String, String), f64> = BTreeMap::new();
+
+    for pair in pair_inclusions {
+        let left_id = pair.left_sample_unit_id.trim();
+        let right_id = pair.right_sample_unit_id.trim();
+        if left_id.is_empty() || right_id.is_empty() {
+            return Err(AggregationError::EmptyUnit);
+        }
+        if left_id == right_id {
+            return Err(AggregationError::SelfJointInclusionPair);
+        }
+        let left = sample_by_id
+            .get(left_id)
+            .ok_or(AggregationError::UnknownSampleUnit)?;
+        let right = sample_by_id
+            .get(right_id)
+            .ok_or(AggregationError::UnknownSampleUnit)?;
+
+        let joint = pair.joint_inclusion_probability;
+        let upper_bound = left
+            .inclusion_probability
+            .min(right.inclusion_probability);
+        let lower_bound =
+            (left.inclusion_probability + right.inclusion_probability - 1.0).max(0.0);
+        if !joint.is_finite()
+            || joint <= 0.0
+            || joint > upper_bound
+            || joint < lower_bound
+        {
+            return Err(AggregationError::InvalidJointInclusionProbability);
+        }
+
+        let key = if left_id < right_id {
+            (left_id.to_string(), right_id.to_string())
+        } else {
+            (right_id.to_string(), left_id.to_string())
+        };
+        if pair_map.insert(key, joint).is_some() {
+            return Err(AggregationError::DuplicateJointInclusionProbability);
+        }
+    }
+
+    if pair_map.len() != expected_pair_count {
+        return Err(AggregationError::MissingJointInclusionProbability);
+    }
+
+    let mut ordered: Vec<&CountSample> = samples.iter().collect();
+    ordered.sort_by(|left, right| left.sample_unit_id.cmp(&right.sample_unit_id));
+    let mut variance = 0.0;
+    let mut compensation = 0.0;
+
+    let mut add_term = |term: f64| -> Result<(), AggregationError> {
+        if !term.is_finite() {
+            return Err(AggregationError::NumericOverflow);
+        }
+        let adjusted = term - compensation;
+        let next = variance + adjusted;
+        compensation = (next - variance) - adjusted;
+        variance = next;
+        Ok(())
+    };
+
+    for sample in &ordered {
+        let pi = sample.inclusion_probability;
+        let y = sample.observed_count as f64;
+        let diagonal = ((1.0 - pi) / (pi * pi)) * y * y;
+        add_term(diagonal)?;
+    }
+
+    for left_index in 0..ordered.len() {
+        let left = ordered[left_index];
+        let left_id = left.sample_unit_id.as_str();
+        let left_pi = left.inclusion_probability;
+        let left_y_over_pi = (left.observed_count as f64) / left_pi;
+        for right in ordered.iter().skip(left_index + 1) {
+            let right_id = right.sample_unit_id.as_str();
+            let right_pi = right.inclusion_probability;
+            let right_y_over_pi = (right.observed_count as f64) / right_pi;
+            let joint = pair_map
+                .get(&(left_id.to_string(), right_id.to_string()))
+                .copied()
+                .ok_or(AggregationError::MissingJointInclusionProbability)?;
+            let covariance_factor = (joint - left_pi * right_pi) / joint;
+            add_term(2.0 * covariance_factor * left_y_over_pi * right_y_over_pi)?;
+        }
+    }
+
+    let (standard_error, status) = if variance >= 0.0 {
+        (
+            Some(variance.sqrt()),
+            "HT_VARIANCE_ESTIMATE_NONNEGATIVE_STANDARD_ERROR_AVAILABLE",
+        )
+    } else {
+        (
+            None,
+            "HT_VARIANCE_ESTIMATE_NEGATIVE_STANDARD_ERROR_UNAVAILABLE",
+        )
+    };
+
+    Ok(CountVarianceEstimate {
+        variance_estimate: variance,
+        standard_error,
+        status,
+        sample_pair_count: expected_pair_count,
     })
 }
 
@@ -715,6 +895,158 @@ mod tests {
         assert_eq!(result.classes.len(), 1);
         assert_eq!(result.classes[0].class_id, "forest");
         assert_eq!(result.classes[0].fraction_of_valid_observed_area, 1.0);
+    }
+
+
+    fn count_sample(
+        id: &str,
+        observed_count: u64,
+        inclusion_probability: f64,
+    ) -> CountSample {
+        CountSample {
+            sample_unit_id: id.to_string(),
+            sampling_frame_id: "frame".to_string(),
+            sampling_design_id: "design".to_string(),
+            design_kind: "probability_sample".to_string(),
+            observed_count,
+            inclusion_probability,
+        }
+    }
+
+    #[test]
+    fn ht_variance_uses_supplied_joint_inclusion_probability() {
+        let samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        let pairs = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: 0.1,
+        }];
+        let result = estimate_ht_count_variance(&samples, &pairs).expect("HT variance");
+        assert!((result.variance_estimate - 252.0).abs() < 1e-12);
+        assert!((result.standard_error.expect("non-negative variance") - 252.0_f64.sqrt()).abs() < 1e-12);
+        assert_eq!(result.sample_pair_count, 1);
+        assert_eq!(
+            result.status,
+            "HT_VARIANCE_ESTIMATE_NONNEGATIVE_STANDARD_ERROR_AVAILABLE"
+        );
+    }
+
+    #[test]
+    fn independent_poisson_pair_has_zero_covariance_contribution() {
+        let samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        let pairs = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: 0.125,
+        }];
+        let result = estimate_ht_count_variance(&samples, &pairs).expect("Poisson HT variance");
+        assert!((result.variance_estimate - 332.0).abs() < 1e-12);
+        assert!((result.standard_error.expect("standard error") - 332.0_f64.sqrt()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn negative_realized_ht_variance_is_preserved_without_standard_error() {
+        let samples = [
+            count_sample("a", 1_000, 0.5),
+            count_sample("b", 1_000, 0.5),
+        ];
+        let pairs = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: 0.01,
+        }];
+        let result = estimate_ht_count_variance(&samples, &pairs).expect("negative HT variance");
+        assert!((result.variance_estimate - (-188_000_000.0)).abs() < 1e-6);
+        assert_eq!(result.standard_error, None);
+        assert_eq!(
+            result.status,
+            "HT_VARIANCE_ESTIMATE_NEGATIVE_STANDARD_ERROR_UNAVAILABLE"
+        );
+    }
+
+    #[test]
+    fn ht_variance_rejects_missing_joint_probability() {
+        let samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        assert_eq!(
+            estimate_ht_count_variance(&samples, &[]),
+            Err(AggregationError::MissingJointInclusionProbability)
+        );
+    }
+
+    #[test]
+    fn ht_variance_rejects_duplicate_pair_in_both_orientations() {
+        let samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        let pairs = [
+            PairInclusionProbability {
+                left_sample_unit_id: "a".to_string(),
+                right_sample_unit_id: "b".to_string(),
+                joint_inclusion_probability: 0.1,
+            },
+            PairInclusionProbability {
+                left_sample_unit_id: "b".to_string(),
+                right_sample_unit_id: "a".to_string(),
+                joint_inclusion_probability: 0.1,
+            },
+        ];
+        assert_eq!(
+            estimate_ht_count_variance(&samples, &pairs),
+            Err(AggregationError::DuplicateJointInclusionProbability)
+        );
+    }
+
+    #[test]
+    fn ht_variance_rejects_impossible_joint_inclusion_probability() {
+        let samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        let pairs = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: 0.3,
+        }];
+        assert_eq!(
+            estimate_ht_count_variance(&samples, &pairs),
+            Err(AggregationError::InvalidJointInclusionProbability)
+        );
+    }
+
+    #[test]
+    fn ht_variance_rejects_unknown_pair_unit_and_non_finite_probability() {
+        let samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        let unknown = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "unknown".to_string(),
+            joint_inclusion_probability: 0.1,
+        }];
+        assert_eq!(
+            estimate_ht_count_variance(&samples, &unknown),
+            Err(AggregationError::UnknownSampleUnit)
+        );
+        let non_finite = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: f64::NAN,
+        }];
+        assert_eq!(
+            estimate_ht_count_variance(&samples, &non_finite),
+            Err(AggregationError::InvalidJointInclusionProbability)
+        );
     }
 
     #[test]
