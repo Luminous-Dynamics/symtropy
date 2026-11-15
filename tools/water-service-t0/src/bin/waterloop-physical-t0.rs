@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CASE_COUNT: usize = 33;
+const CASE_COUNT: usize = 34;
 const SCHEMA_VERSION: &str = "waterloop-physical-t0-v0.1";
 const CLAIM_CEILING: &str = "synthetic_water_service_arithmetic_and_contract_semantics_only";
 
@@ -1264,6 +1264,18 @@ mod tests {
         assert_eq!(actual["monthly_water_spend_burden"], Value::Null);
         assert_eq!(actual["affordability_disposition"], "INDETERMINATE");
         assert_eq!(actual["economic_preference_eligible"], false);
+    }
+
+
+    #[test]
+    fn economics_billing_period_mismatch_abstains_from_bill_comparison() {
+        let case = fixture("inputs")["cases"][33].clone();
+        let actual = compute(&case).expect("tariff billing-period mismatch");
+        assert_eq!(actual["gross_system_cost_zar"], 680.0);
+        assert_eq!(actual["tariff_disposition"], "INDETERMINATE");
+        assert_eq!(actual["tariff_reason"], "TARIFF_BILLING_PERIOD_MISMATCH");
+        assert_eq!(actual["utility_bill_delta_zar"], Value::Null);
+        assert_eq!(actual["economic_comparison_disposition"], "INDETERMINATE");
     }
 
     #[test]
