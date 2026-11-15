@@ -361,6 +361,74 @@ pub fn vector_magnitude(value: Vec3) -> f64 {
     value[0].hypot(value[1]).hypot(value[2])
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ConstantAxisSpinState {
+    pub time_s: f64,
+    pub angle_rad: f64,
+    pub angular_velocity_rad_s: f64,
+    pub position_m: Vec3,
+    pub velocity_m_s: Vec3,
+    pub acceleration_m_s2: Vec3,
+}
+
+/// Exact inertial state of a point fixed in a body rotating about +z with
+/// constant signed angular acceleration.
+///
+/// The initial position is expressed in the inertial frame at t=0.
+/// This closed-form reference is useful for checking numerical spin-up and
+/// spin-down integrations; it does not model a flexible or extended body.
+pub fn constant_axis_spin_state(
+    initial_position_m: Vec3,
+    initial_omega_rad_s: f64,
+    angular_acceleration_rad_s2: f64,
+    time_s: f64,
+) -> Result<ConstantAxisSpinState, ModelError> {
+    require_finite_vec3(initial_position_m, "initial_position_m")?;
+    require_finite(initial_omega_rad_s, "initial_omega_rad_s")?;
+    require_finite(angular_acceleration_rad_s2, "angular_acceleration_rad_s2")?;
+    require_non_negative(time_s, "time_s")?;
+
+    let angle_rad =
+        initial_omega_rad_s * time_s
+            + 0.5 * angular_acceleration_rad_s2 * time_s * time_s;
+    let angular_velocity_rad_s =
+        initial_omega_rad_s + angular_acceleration_rad_s2 * time_s;
+    require_finite_result(angle_rad, "spin.angle_rad")?;
+    require_finite_result(angular_velocity_rad_s, "spin.angular_velocity_rad_s")?;
+
+    let (sin_angle, cos_angle) = angle_rad.sin_cos();
+    let position_m = [
+        cos_angle * initial_position_m[0] - sin_angle * initial_position_m[1],
+        sin_angle * initial_position_m[0] + cos_angle * initial_position_m[1],
+        initial_position_m[2],
+    ];
+    let velocity_m_s = [
+        -angular_velocity_rad_s * position_m[1],
+        angular_velocity_rad_s * position_m[0],
+        0.0,
+    ];
+    let omega_squared = angular_velocity_rad_s * angular_velocity_rad_s;
+    let acceleration_m_s2 = [
+        -angular_acceleration_rad_s2 * position_m[1] - omega_squared * position_m[0],
+        angular_acceleration_rad_s2 * position_m[0] - omega_squared * position_m[1],
+        0.0,
+    ];
+
+    require_finite_result_vec3(position_m, "spin.position_m")?;
+    require_finite_result_vec3(velocity_m_s, "spin.velocity_m_s")?;
+    require_finite_result_vec3(acceleration_m_s2, "spin.acceleration_m_s2")?;
+
+    Ok(ConstantAxisSpinState {
+        time_s,
+        angle_rad,
+        angular_velocity_rad_s,
+        position_m,
+        velocity_m_s,
+        acceleration_m_s2,
+    })
+}
+
 /// Euler apparent acceleration during angular acceleration: `-α × r`.
 pub fn euler_apparent_acceleration(
     alpha_rad_s2: Vec3,
@@ -785,6 +853,62 @@ mod tests {
         close(result[0], 0.0, 1e-12);
         close(result[1], 0.0, 1e-12);
         close(result[2], -STANDARD_GRAVITY_M_S2, 1e-12);
+    }
+
+
+    #[test]
+    fn constant_axis_spin_state_matches_spin_up_reference() {
+        let state = constant_axis_spin_state([50.0, 3.0, 2.0], 0.1, 0.002, 5.0).unwrap();
+        close(state.angle_rad, 0.525, 1e-12);
+        close(state.angular_velocity_rad_s, 0.11, 1e-12);
+        close(state.position_m[0], 41.762558067126, 1e-9);
+        close(state.position_m[1], 27.656622058559, 1e-9);
+        close(state.position_m[2], 2.0, 1e-12);
+        close(state.velocity_m_s[0], -3.042228426441, 1e-9);
+        close(state.velocity_m_s[1], 4.593881387384, 1e-9);
+        close(state.acceleration_m_s2[0], -0.560640196729, 1e-9);
+        close(state.acceleration_m_s2[1], -0.251120010774, 1e-9);
+    }
+
+    #[test]
+    fn constant_axis_spin_state_cross_checks_rotating_frame_pseudo_acceleration() {
+        let alpha = -0.01;
+        let state = constant_axis_spin_state([20.0, 0.0, 1.0], 0.3, alpha, 20.0).unwrap();
+        let apparent = rotating_frame_apparent_acceleration(
+            [0.0, 0.0, state.angular_velocity_rad_s],
+            [0.0, 0.0, alpha],
+            state.position_m,
+            [0.0, 0.0, 0.0],
+        )
+        .unwrap();
+
+        for axis in 0..3 {
+            close(
+                state.acceleration_m_s2[axis] + apparent.apparent_total_m_s2[axis],
+                0.0,
+                1e-11,
+            );
+        }
+        close(state.angle_rad, 4.0, 1e-12);
+        close(state.angular_velocity_rad_s, 0.1, 1e-12);
+    }
+
+    #[test]
+    fn constant_axis_spin_state_preserves_initial_state_at_zero_time() {
+        let initial_position = [4.0, -3.0, 7.0];
+        let state = constant_axis_spin_state(initial_position, -0.2, 0.03, 0.0).unwrap();
+        assert_eq!(state.position_m, initial_position);
+        close(state.angle_rad, 0.0, 1e-12);
+        close(state.angular_velocity_rad_s, -0.2, 1e-12);
+        close(state.velocity_m_s[0], -0.6, 1e-12);
+        close(state.velocity_m_s[1], -0.8, 1e-12);
+    }
+
+    #[test]
+    fn constant_axis_spin_state_rejects_invalid_and_overflowed_inputs() {
+        assert!(constant_axis_spin_state([0.0; 3], 0.0, 0.0, -1.0).is_err());
+        assert!(constant_axis_spin_state([f64::NAN, 0.0, 0.0], 0.0, 0.0, 1.0).is_err());
+        assert!(constant_axis_spin_state([1.0, 0.0, 0.0], 1e308, 1e308, 1e308).is_err());
     }
 
     #[test]
