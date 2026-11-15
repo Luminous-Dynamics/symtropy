@@ -46,7 +46,7 @@ pub enum StepOutcome { Completed, Failed, Unknown }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArticleState { NotApplicable, Accepted, Rejected, Held }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Evidence {
     pub wip_and_lots_disposed: bool,
     pub genealogy_complete: bool,
@@ -230,10 +230,30 @@ pub fn replay(plan: &Plan, context: &Context) -> Receipt {
         if step.id.trim().is_empty() || !ids.insert(step.id.as_str()) { reasons.push(Reason::DuplicateStepId); }
         phases.push(step.phase);
     }
-    if phases.windows(2).any(|w| w[0].index() >= w[1].index()) { reasons.push(Reason::InvalidStepOrder); }
-    if phases.len() != PHASES.len() || PHASES.iter().any(|p| !phases.contains(p)) { reasons.push(Reason::MissingPhase); }
+    if phases.iter().enumerate().any(|(index, phase)| PHASES.get(index) != Some(phase)) {
+        reasons.push(Reason::InvalidStepOrder);
+    }
+    let terminal_index = plan.steps.iter().position(|step| step.outcome != StepOutcome::Completed);
+    if let Some(index) = terminal_index {
+        if index + 1 < plan.steps.len() {
+            reasons.push(if plan.steps[index].outcome == StepOutcome::Unknown {
+                Reason::MutationAfterUnknown
+            } else {
+                Reason::InvalidStepOrder
+            });
+        }
+    } else if plan.steps.len() != PHASES.len() {
+        reasons.push(Reason::MissingPhase);
+    }
 
-    let mut disposition = if reasons.is_empty() { Disposition::AcceptedSynthetic } else { Disposition::Reject };
+    let structural_block_only = reasons.len() == 1 && reasons[0] == Reason::MissingPhase;
+    let mut disposition = if reasons.is_empty() {
+        Disposition::AcceptedSynthetic
+    } else if structural_block_only {
+        Disposition::Blocked
+    } else {
+        Disposition::Reject
+    };
     let mut elapsed_ticks = 0_u64;
     let mut completed_steps = 0;
     if reasons.is_empty() {
@@ -471,7 +491,7 @@ mod tests {
 
     #[test]
     fn failed_commissioning_cannot_reach_first_article() {
-        let mut p = plan(); p.steps[6].outcome = StepOutcome::Failed;
+        let mut p = plan(); p.steps[6].outcome = StepOutcome::Failed; p.steps.truncate(7);
         let out = replay(&p, &context());
         assert_eq!(out.disposition, Disposition::CommissioningFailed); has(&out, Reason::CommissioningFailed);
         assert!(!out.first_article_accepted);
@@ -509,14 +529,14 @@ mod tests {
 
     #[test]
     fn failed_step_requires_rollback_or_returns_rollback_required() {
-        let mut p = plan(); p.steps[3].outcome = StepOutcome::Failed;
+        let mut p = plan(); p.steps[3].outcome = StepOutcome::Failed; p.steps.truncate(4);
         let out = replay(&p, &context());
         assert_eq!(out.disposition, Disposition::RollbackRequired); has(&out, Reason::RollbackNotVerified);
     }
 
     #[test]
     fn verified_rollback_marks_transition_aborted() {
-        let mut p = plan(); p.steps[3].outcome = StepOutcome::Failed; p.steps[3].evidence.rollback_verified = true;
+        let mut p = plan(); p.steps[3].outcome = StepOutcome::Failed; p.steps[3].evidence.rollback_verified = true; p.steps.truncate(4);
         let out = replay(&p, &context());
         assert_eq!(out.disposition, Disposition::Aborted); has(&out, Reason::RollbackVerified);
     }
