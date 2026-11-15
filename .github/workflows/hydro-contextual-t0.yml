@@ -1,0 +1,69 @@
+name: Hydro contextual T0 evaluator
+
+on:
+  push:
+    paths:
+      - "tools/hydro-contextual-t0/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "research/hydrology/hydro-contextual-*"
+      - ".github/workflows/hydro-contextual-t0.yml"
+  pull_request:
+    paths:
+      - "tools/hydro-contextual-t0/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "research/hydrology/hydro-contextual-*"
+      - ".github/workflows/hydro-contextual-t0.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hydro-contextual-t0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frozen-corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust, rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --package hydro-contextual-t0 -- --check
+      - name: Run locked unit and frozen-oracle tests
+        run: cargo test --locked --package hydro-contextual-t0
+      - name: Run strict Clippy
+        run: cargo clippy --locked --package hydro-contextual-t0 --all-targets -- -D warnings
+      - name: Evaluate exact checked-out revision
+        id: evaluate
+        env:
+          HYDRO_CONTEXTUAL_T0_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package hydro-contextual-t0 -- \
+            research/hydrology/hydro-contextual-t0-v0.1.json \
+            research/hydrology/hydro-contextual-manifest-v0.1.json \
+            research/hydrology/hydro-contextual-oracle-v0.1.json \
+            artifacts/hydro-contextual-t0/receipt.json
+      - name: Upload exact inputs, manifest, oracle, schema and receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hydro-contextual-t0-exact-head-evidence
+          path: |
+            research/hydrology/hydro-contextual-t0-v0.1.json
+            research/hydrology/hydro-contextual-manifest-v0.1.json
+            research/hydrology/hydro-contextual-oracle-v0.1.json
+            research/hydrology/hydro-contextual-t0.schema.json
+            artifacts/hydro-contextual-t0/receipt.json
+          if-no-files-found: warn
+      - name: Require an exact successful evaluator receipt
+        if: always()
+        env:
+          EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
+        run: test "$EVALUATE_OUTCOME" = "success"
