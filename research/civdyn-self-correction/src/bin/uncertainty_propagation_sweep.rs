@@ -289,11 +289,104 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
         ),
     )?;
 
+    // AFEX root turnover is a nonlinear ratio. This is its first-order
+    // Taylor linearization at P=1.2, S=1.0 in dimensionless reference
+    // coordinates. The third deterministic offset input makes the affine
+    // linearization represent the ratio mean while the shared covariance
+    // engine propagates only the declared full covariance through its Jacobian.
+    let afex_root_correlated = state(
+        "input-afex-root-turnover-correlated",
+        &["root-productivity-normalized", "root-stock-normalized", "ratio-linearization-offset"],
+        &[1.2, 1.0, 1.0],
+        vec![
+            vec![0.04, 0.005, 0.0],
+            vec![0.005, 0.01, 0.0],
+            vec![0.0, 0.0, 0.0],
+        ],
+        vec![
+            source(
+                "afex-root-productivity",
+                NumericUncertaintyKind::Measurement,
+                "sha256-afex-root-productivity-synthetic",
+                &["root-productivity-normalized"],
+                Some("afex-plot-campaign-synthetic"),
+            ),
+            source(
+                "afex-root-stock",
+                NumericUncertaintyKind::SamplingDesign,
+                "sha256-afex-root-stock-synthetic",
+                &["root-stock-normalized"],
+                Some("afex-plot-campaign-synthetic"),
+            ),
+            source(
+                "afex-root-ratio-linearization",
+                NumericUncertaintyKind::OtherRegisteredNumeric,
+                "sha256-afex-root-ratio-linearization-v1",
+                &["ratio-linearization-offset"],
+                None,
+            ),
+        ],
+    );
+    let afex_root_correlated_result = propagate_linear_uncertainty(
+        &afex_root_correlated,
+        &transform(
+            &afex_root_correlated,
+            &["fine-root-turnover-normalized"],
+            vec![vec![1.0, -1.2, 1.2]],
+            "afex-fine-root-turnover-delta-method-correlated",
+        ),
+    )?;
+
+    let afex_root_independent = state(
+        "input-afex-root-turnover-explicit-zero-covariance",
+        &["root-productivity-normalized", "root-stock-normalized", "ratio-linearization-offset"],
+        &[1.2, 1.0, 1.0],
+        vec![
+            vec![0.04, 0.0, 0.0],
+            vec![0.0, 0.01, 0.0],
+            vec![0.0, 0.0, 0.0],
+        ],
+        vec![
+            source(
+                "afex-root-productivity",
+                NumericUncertaintyKind::Measurement,
+                "sha256-afex-root-productivity-synthetic",
+                &["root-productivity-normalized"],
+                None,
+            ),
+            source(
+                "afex-root-stock",
+                NumericUncertaintyKind::SamplingDesign,
+                "sha256-afex-root-stock-synthetic",
+                &["root-stock-normalized"],
+                None,
+            ),
+            source(
+                "afex-root-ratio-linearization",
+                NumericUncertaintyKind::OtherRegisteredNumeric,
+                "sha256-afex-root-ratio-linearization-v1",
+                &["ratio-linearization-offset"],
+                None,
+            ),
+        ],
+    );
+    let afex_root_independent_result = propagate_linear_uncertainty(
+        &afex_root_independent,
+        &transform(
+            &afex_root_independent,
+            &["fine-root-turnover-normalized"],
+            vec![vec![1.0, -1.2, 1.2]],
+            "afex-fine-root-turnover-delta-method-zero-covariance-ablation",
+        ),
+    )?;
+
     Ok(vec![
         ("correlated_sum_difference", correlated_result),
         ("independent_covariance_ablation", independent_result),
         ("shared_common_cause", common_cause_result),
         ("explicit_crosswalk_uncertainty", crosswalk_result),
+        ("afex_root_turnover_correlated", afex_root_correlated_result),
+        ("afex_root_turnover_zero_covariance_ablation", afex_root_independent_result),
     ])
 }
 
