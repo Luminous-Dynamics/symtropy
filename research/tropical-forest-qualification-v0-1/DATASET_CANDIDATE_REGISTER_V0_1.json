@@ -803,7 +803,12 @@
         "issue": 5431,
         "protocol": "AFEX_ROOT_TURNOVER_V0_1.md",
         "synthetic_fixture": "cases/afex-root-turnover-synthetic-v0.1.json",
-        "validator": "validator/src/afex_root_turnover_kernel.rs"
+        "validator": "validator/src/afex_root_turnover_kernel.rs",
+        "ratio_estimand_issue": 5443,
+        "ratio_estimand_protocol": "AFEX_RATIO_ESTIMAND_V0_1.md",
+        "ratio_estimand_fixture": "cases/afex-ratio-estimand-synthetic-v0.1.json",
+        "ratio_estimand_validator": "validator/src/afex_ratio_estimand_kernel.rs",
+        "claim_ceiling": "Synthetic estimand/covariance benchmark only; not raw plot-pair reproduction or empirical uncertainty calibration."
       }
     }
   ],
