@@ -230,7 +230,7 @@ pub fn replay(plan: &Plan, context: &Context) -> Receipt {
         if step.id.trim().is_empty() || !ids.insert(step.id.as_str()) { reasons.push(Reason::DuplicateStepId); }
         phases.push(step.phase);
     }
-    if phases.iter().enumerate().any(|(index, phase)| PHASES.get(index) != Some(phase)) {
+    if phases.windows(2).any(|window| window[0].index() >= window[1].index()) {
         reasons.push(Reason::InvalidStepOrder);
     }
     let terminal_index = plan.steps.iter().position(|step| step.outcome != StepOutcome::Completed);
