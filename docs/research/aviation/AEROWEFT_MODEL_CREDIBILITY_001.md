@@ -106,12 +106,13 @@ The frozen fixture catalogue covers biased but low-RMSE calibration, high-tail e
 
 - **ASTM F3705-25** is a testing guide aligned with F3442. It describes test methodologies/data collection and use of physical testing and statistical modelling; its scope notes that flight tests may be needed to validate fast-time simulation models, and describes verifying simulation models against flight-test efforts. It is limited to its stated small-UA/lower-risk crewed-traffic DAA applicability; it is not a universal standard for UA-to-UA, terrain, weather or all autonomous aviation.
 - **ASTM F3442-26** is the DAA performance specification. Its operational scope and encounter assumptions must be checked before using it as a comparator.
-- **ASTM F3201-26** addresses software development, validation and verification practices for UAS and associated/third-party service-provider software, including UTM. It is a lifecycle process baseline, not a claim that this crate or a green CI run is compliant.
+- **ASTM F3201-26** is a software-dependability practice for UAS software and associated elements, and may also be used by third-party providers including UTM service providers and ADSPs. It expects lifecycle-wide configuration management and verification/validation; examples of methods include Monte Carlo, SIL, HIL and flight testing. It expressly does not establish technical or performance requirements for software components or third-party services. Use it as a lifecycle dependability/process comparator, not as a DAA threshold source or a claim that this crate or a green CI run is compliant.
 - **NASA/TP-20250003243 (July 2025)** reports a strategic flight-path-management evaluation with two helicopters and up to 330 virtual aircraft. The report describes successful core intent-based conflict functions but less successful flow-corridor maneuvers where tighter volumes reduced maneuvering degrees of freedom; it also reports an initial simulation validation using flight data.
 - **NASA/TM-20240015613 (October 2024)** uses Monte Carlo scenarios and modeled collision probability per flight hour to evaluate strategic deconfliction and CMSA. It is a safety-model methodology comparator, not physical ground truth for AeroWeft.
 - **ISO/TR 23310:2025** surveys UTM actors, services, functions, data and system-level functional/performance requirements. It is an ecosystem baseline, not a DAA model-validation standard.
 
 References:
+- ASTM F3201-26 (scope, significance/use and current edition): https://store.astm.org/f3201-26.html
 - ASTM F3705-25: https://store.astm.org/f3705-25.html
 - ASTM F3442-26: https://store.astm.org/f3442-26.html
 - ASTM F3201-26: https://store.astm.org/f3201-26.html
