@@ -88,13 +88,14 @@ jobs:
     # workspace, so the repository-root --workspace commands above do not
     # discover it. Qualify it explicitly on Linux rather than silently
     # counting the main workspace's tests as evidence for this crate.
-    - name: Protective Systems B0, VOI and lifecycle oracles
+    - name: Protective Systems B0, VOI, lifecycle and dataset integrity gates
       if: runner.os == 'Linux'
       run: |
         cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
         cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
         cargo test --manifest-path research/protective-systems/verifier/Cargo.toml
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier
+        cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier -- research/protective-systems/fixtures/body-armor-cases-v0.1.json
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
         cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
 

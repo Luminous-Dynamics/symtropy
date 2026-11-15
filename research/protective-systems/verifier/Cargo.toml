@@ -3,7 +3,7 @@ name = "protective-systems-verifier"
 version = "0.1.0"
 edition = "2024"
 publish = false
-description = "Synthetic-only evidence record conformance verifier for PROTECTIVE-SYSTEMS-001"
+description = "Synthetic evidence and public-data integrity gates for PROTECTIVE-SYSTEMS-001"
 
 [workspace]
 
@@ -19,3 +19,7 @@ path = "src/bin/voi.rs"
 [[bin]]
 name = "protective-robust"
 path = "src/bin/robust.rs"
+
+[[bin]]
+name = "protective-data-gate"
+path = "src/bin/data_gate.rs"

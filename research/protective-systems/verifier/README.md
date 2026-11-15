@@ -13,8 +13,18 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml -- path/to/fixture-corpus.json
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-voi
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-robust
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-systems-verifier -- research/protective-systems/fixtures/body-armor-cases-v0.1.json
 
 ```
+
+The separate `body-armor-cases-v0.1.json` corpus is a synthetic extension of
+the parent record-conformance fixtures. It checks torso-scope and addenda
+handling, prevents NIJ 0123.00 threat-level specifications from being promoted
+to product test methods, makes unresolved SANS currentness abstain, requires
+independent review after a configuration/lot change, and requires separate
+wearer-assessment references for fit/mobility/thermal usability claims.
+`ACCEPT_RECORD_ONLY` still means record completeness only; it is never a
+physical-performance PASS.
 
 With no argument, the binary evaluates the frozen v0.1 corpus embedded at compile
 time. With a path argument, it evaluates that JSON file. It emits a deterministic
@@ -70,3 +80,35 @@ serialization, so inconsequential whitespace does not change the digest.
 This crate is intentionally an isolated workspace so it can be tested without
 adding dependencies to Symtropy's main workspace. It uses Rust, serde, serde_json
 and sha2; no Python runtime or network access is needed at evaluation time.
+
+## Public dataset integrity gate
+
+The `protective-data-gate` binary is a separate integrity step for the B1
+public-data benchmark. It does not change the B0 record verifier's semantics.
+It validates the NIST registry entry and checks a local archive against the
+SHA-256 published by the NIST Public Data Repository.
+
+From the repository root:
+
+```sh
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-data-gate -- /path/to/V50.zip
+```
+
+Exit behavior:
+
+- `0`: the compile-time registry entry passes its local NIST allowlist checks and the archive digest matches;
+- `1`: input is valid but the archive digest does not match;
+- `2`: usage, registry, rights metadata, file access or hashing error.
+
+The gate embeds the reviewed, version-controlled registry at compile time and
+prints the expected and observed digest and byte count. It does not download,
+extract, parse, train on or score the archive. A digest mismatch must
+stop the pipeline. The registry's Zenodo CFRP candidate remains excluded while
+its item-specific licence and permitted-use scope are unresolved.
+
+The gate tests include a SHA-256 known-answer vector, exact registry identity,
+malformed digest rejection, duplicate-record rejection, wrong filename rejection,
+a synthetic checksum-mismatch negative control and the excluded Zenodo status.
+A passing digest proves byte identity only; it does not validate the dataset's
+experimental design, statistics, current relevance, armour performance or
+product conformity.
