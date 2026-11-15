@@ -40,38 +40,9 @@ These are floating-point numerical checks, not formally verified bounds. The Cho
 
 The dependency-free Rust test suite covers dense non-orthogonal rebasing invariance for tangent and cotangent norms; dual pairing and coordinate-map round trips; equality of tangent mass norm and the dual norm of its Riesz-lowered covector; a deterministic shear family with 17 parameter values; explicit changes in raw Euclidean/infinity component norms while the metric norm stays invariant; wrong tensor-variance and metric-congruence negative controls; singular transforms and invalid metrics; and explicit recording of admitted roundoff asymmetry.
 
-## Metric-induced linear-operator conditioning
+## Operator conditioning follow-on
 
-The reference also supports a frame-typed square isomorphism
-`MetricLinearIsomorphism<Domain, Codomain, N>`. For domain metric
-(M_d=L_dL_d^T), codomain metric (M_c=L_cL_c^T), and component matrix
-(A), it forms the whitened operator
-
-[
-B=L_c^T A L_d^{-T}.
-]
-
-Its Euclidean spectral norm is exactly the operator norm induced by the two
-metrics. The implementation reports (|B|_F) as a conservative upper bound
-on that spectral norm, and does the same for (B^{-1}). Their product is a
-conservative upper bound on the metric-induced 2-norm condition number.
-
-This is intentionally **not** reported as the exact spectral condition number:
-the Frobenius upper bound can be loose by a dimension-dependent factor.
-The benefit is that the bound is invariant under independent domain and
-codomain coordinate re-bases, because the correctly whitened representations
-differ only by left/right orthogonal factors. A deterministic test exercises
-three different dense changes in each frame, checks forward/inverse bounds
-and their product, and verifies sampled induced-norm ratios are dominated.
-
-This is the first operator-level step beyond invariant vector norms. The next
-step is an independent spectral-norm / singular-value reference with
-a-posteriori residuals or interval bounds, followed by applying the same
-operator contract to the mass solve, Delassus solve, and midpoint Newton
-linearization.
-
-The microbenchmark includes `metric_operator_envelope_construct` as a
-reference-layer timing. It is not a solver benchmark.
+Square and rectangular metric-induced singular spectra and condition receipts are developed separately in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https://github.com/Luminous-Dynamics/symtropy/issues/4818), implementation [#4820](https://github.com/Luminous-Dynamics/symtropy/pull/4820) and rectangular extension [#4866](https://github.com/Luminous-Dynamics/symtropy/pull/4866). That programme uses one-sided Jacobi singular values rather than the conservative Frobenius upper bound prototyped in an intermediate branch experiment. The operator PRs are the authoritative implementation path; this base reference remains focused on typed metric and Delassus norms.
 
 ## Constraint-space extension: Delassus metric
 
