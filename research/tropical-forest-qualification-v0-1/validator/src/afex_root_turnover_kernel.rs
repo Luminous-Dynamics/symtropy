@@ -77,6 +77,20 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
         || number_at(process,"root_diameter_max_mm")? != 2.0 {
         return Err("AFEX root process semantics invalid".to_string());
     }
+    let process_depth=process.get("root_depth_cm").and_then(Value::as_array)
+        .ok_or_else(||"process_definition.root_depth_cm must be an array".to_string())?;
+    if process_depth.len()!=2 || process_depth[0].as_u64()!=Some(0)
+        || process_depth[1].as_u64()!=Some(30) {
+        return Err("AFEX root process depth must be 0-30 cm".to_string());
+    }
+    let source=manifest.get("source").ok_or_else(||"source metadata required".to_string())?;
+    if string_at(source,"doi")?!="10.1007/s11104-026-08303-2"
+        || string_at(source,"dataset_doi")?!="10.5285/b3a55011-bf46-40f5-8850-86dc8bc4c85d"
+        || string_at(source,"root_stock_data_access")?!="AVAILABLE_FROM_CORRESPONDING_AUTHOR_ON_REASONABLE_REQUEST"
+        || source.get("raw_data_ingested").and_then(Value::as_bool)!=Some(false)
+        || string_at(manifest,"published_summary_status")?!="TRANSCRIBED_FROM_PAPER_NOT_RECOMPUTED_FROM_RAW_DATA" {
+        return Err("AFEX root-turnover source or claim-ceiling metadata invalid".to_string());
+    }
     let tol=manifest.get("tolerances").ok_or_else(||"tolerances required".to_string())?;
     let stock_tol=number_at(tol,"stock_absolute")?;
     let prod_tol=number_at(tol,"productivity_absolute")?;
@@ -95,6 +109,9 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
         let id=string_at(case,"case_id")?;
         if id.trim().is_empty()||!ids.insert(id.clone()) { return Err("case IDs must be non-empty and unique".to_string()); }
         let period=string_at(case,"period")?;
+        if number_at(case,"root_diameter_max_mm")? != 2.0 {
+            return Err(format!("case {id} root diameter threshold mismatch"));
+        }
         let plot_id=string_at(case.get("reference").ok_or_else(||"reference required".to_string())?,"plot_id")?;
         let depthv=case.get("depth_cm").and_then(Value::as_array).ok_or_else(||"case depth_cm must be array".to_string())?;
         if depthv.len()!=2 { return Err("case depth_cm must have two entries".to_string()); }
@@ -150,6 +167,16 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
         let id=string_at(item,"effect_id")?;
         let minus=number_at(item,"minus_mean")?;
         let plus=number_at(item,"plus_mean")?;
+        let minus_se=number_at(item,"minus_se")?;
+        let plus_se=number_at(item,"plus_se")?;
+        if minus<=0.0 || plus<=0.0 || minus_se<=0.0 || plus_se<=0.0 {
+            return Err(format!("published summary {id} requires positive means and standard errors"));
+        }
+        for p_key in ["p_value","reported_p_value","p_value_less_than"] {
+            if let Some(p)=item.get(p_key).and_then(Value::as_f64) {
+                if !(0.0..=1.0).contains(&p) { return Err(format!("published summary {id} has invalid {p_key}")); }
+            }
+        }
         let reported=if let Some(p)=item.get("reported_change_percent").and_then(Value::as_f64) {Some(p)} else {None};
         let interpretation=string_at(item,"interpretation")?;
         if interpretation=="NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT" && string_at(item,"direction")?!="NO_SIGNIFICANT_DIFFERENCE" {
@@ -258,6 +285,27 @@ mod tests {
     fn unsupported_stock_date_is_rejected(){
         let mut m:Value=serde_json::from_str(FIXTURE).expect("fixture");
         m["cases"][0]["candidate"]["stock"]["date"]=json!("2018-08");
+        let raw=serde_json::to_vec(&m).expect("serialize");
+        assert!(validate_corpus(&raw,&m).is_err());
+    }
+    #[test]
+    fn root_stock_depth_cannot_be_silently_relabelled(){
+        let mut m:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        m["cases"][0]["candidate"]["depth_cm"]=json!([0,10]);
+        let raw=serde_json::to_vec(&m).expect("serialize");
+        assert!(validate_corpus(&raw,&m).is_err());
+    }
+    #[test]
+    fn false_raw_data_ingestion_claim_is_rejected(){
+        let mut m:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        m["source"]["raw_data_ingested"]=json!(true);
+        let raw=serde_json::to_vec(&m).expect("serialize");
+        assert!(validate_corpus(&raw,&m).is_err());
+    }
+    #[test]
+    fn non_significance_cannot_be_relabelled_as_zero_effect(){
+        let mut m:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        m["published_summary_effects"][4]["interpretation"]=json!("ZERO_EFFECT_ESTABLISHED");
         let raw=serde_json::to_vec(&m).expect("serialize");
         assert!(validate_corpus(&raw,&m).is_err());
     }
