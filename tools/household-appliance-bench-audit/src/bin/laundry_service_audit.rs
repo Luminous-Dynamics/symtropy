@@ -320,7 +320,7 @@ mod tests {
         assert!(is_valid(&schema, &profile));
         assert_eq!(
             profile["metrics"].as_array().expect("metrics array").len(),
-            24
+            25
         );
         assert_eq!(
             profile["baselines"]
