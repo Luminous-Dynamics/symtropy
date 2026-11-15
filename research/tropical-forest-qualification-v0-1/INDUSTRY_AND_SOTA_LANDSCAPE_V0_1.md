@@ -478,3 +478,19 @@ The AFEX collection includes additional observations that help guard against a r
 - The record titled litterfall herbivory (DOI 10.5285/58b66cdf-451c-42e7-8153-c24ec30631fd) is described in its catalogue summary as including realized leaf area and LMA in August 2017/2018/2019. A direct herbivory rate is not established by that summary.
 
 These streams are now included in the dataset register and AFEX support crosswalk. They support a better open-world challenger: a model may explain root trait and turnover responses but miss microbial enzyme or litter-return changes. The five-point subsamples, trap repeats and dates remain nested within the plot treatment unit.
+
+
+### AFEX practical-identifiability and measurement-design benchmark
+
+The AFEX pathway programme now has a bounded practical-design increment [#5464](https://github.com/Luminous-Dynamics/symtropy/issues/5464), alongside exact structural rank [#5449](https://github.com/Luminous-Dynamics/symtropy/issues/5449).
+
+The new synthetic kernel:
+- distinguishes data-only Fisher information/rank from prior-regularized posterior precision;
+- changes tracer noise while holding structural rank constant, exposing practical weakness;
+- shows repeated total-uptake measurements can improve precision without removing the fungal inorganic/organic alias;
+- gives a covariate-only AM-colonisation remeasurement no direct pathway-flux sensitivity row in the fixed-`f` model;
+- enumerates 31 feasible candidate portfolios under a synthetic budget of 24 and emits the cost–weighted-uncertainty Pareto frontier.
+
+This aligns with 2026 optimal-design work that separates practical parameter identifiability from model discrimination (Liu, Maini & Baker, DOI 10.1016/j.mbs.2026.109710), and 2026 ecological sampling research that shows replication versus coverage depends on response-shape knowledge and sampling task (Schweiger et al., DOI 10.1038/s41598-026-38541-4). These are methodological comparators, not AFEX benchmarks or prescriptions for the randomized block design.
+
+The conditional synthetic minimum-risk portfolio adds a mycorrhizal inorganic tracer and a host-to-fungal carbon-allocation tracer. Cost, noise, parameter prior and decision weights are invented in the fixture. No real assay recommendation or AFEX parameter precision is claimed.
