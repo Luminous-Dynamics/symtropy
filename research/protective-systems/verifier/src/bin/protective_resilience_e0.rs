@@ -609,6 +609,24 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
     let baseline_contracts = outcome_contracts(baseline_outcomes, horizon)?;
     let (baseline_metrics, baseline_aggregates) =
         evaluate_outcomes(baseline_outcomes, horizon, interval_minutes, sustained_intervals)?;
+    let baseline_totals: Vec<Value> = baseline_aggregates
+        .iter()
+        .map(|(service_id, aggregate)| {
+            json!({
+                "service_id": service_id,
+                "deficit_milli_beneficiary_minutes": aggregate.deficit_milli_beneficiary_minutes
+            })
+        })
+        .collect();
+    let baseline_report = json!({
+        "portfolio_id": baseline_id,
+        "lifecycle_cost_minor_units": baseline_cost,
+        "service_totals": baseline_totals,
+        "service_outcomes": metrics_to_json(&baseline_metrics)
+    });
+    if root.get("expected_baseline_report") != Some(&baseline_report) {
+        return Err("baseline: computed metrics differ from the frozen exact reference".to_owned());
+    }
 
     let portfolios = root
         .get("portfolios")
@@ -635,16 +653,6 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
         };
         reports.push(evaluate_portfolio(portfolio, &evaluation_context)?);
     }
-
-    let baseline_totals: Vec<Value> = baseline_aggregates
-        .iter()
-        .map(|(service_id, aggregate)| {
-            json!({
-                "service_id": service_id,
-                "deficit_milli_beneficiary_minutes": aggregate.deficit_milli_beneficiary_minutes
-            })
-        })
-        .collect();
 
     Ok(json!({
         "schema_version": SCHEMA,
@@ -690,6 +698,24 @@ mod tests {
         assert_eq!(report["all_expected_reports_match"], Value::Bool(true));
         assert_eq!(report["baseline_service_totals"][0]["deficit_milli_beneficiary_minutes"], 6_240_000);
         assert_eq!(report["portfolio_reports"].as_array().expect("reports").len(), 3);
+    }
+
+    #[test]
+    fn baseline_golden_metrics_reject_trajectory_drift() {
+        let mut root = fixture_value();
+        root["baseline"]["service_outcomes"][0]["delivered_service_permille"] =
+            json!([400, 500, 800, 800]);
+        let error = evaluate_fixture(&root.to_string(), REGISTRY).expect_err("baseline drift");
+        assert!(error.contains("baseline: computed metrics differ"));
+    }
+
+    #[test]
+    fn safety_floor_remains_non_compensatory_even_at_zero_cost() {
+        let mut root = fixture_value();
+        root["portfolios"][2]["cost_items"][0]["present_value_minor_units"] = json!(0);
+        root["portfolios"][2]["expected_report"]["lifecycle_cost_minor_units"] = json!(0);
+        let report = evaluate_fixture(&root.to_string(), REGISTRY).expect("updated exact cost");
+        assert_eq!(report["portfolio_reports"][2]["disposition"], "INFEASIBLE");
     }
 
     #[test]
