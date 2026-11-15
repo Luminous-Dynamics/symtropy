@@ -71,7 +71,7 @@ Only after eligibility is established does Pareto ranking happen. Benefits are m
 
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 55 adversarial tests:
+The dependency-free Rust suite currently contains 57 adversarial tests:
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
@@ -146,3 +146,8 @@ A reduction in test count is not success if the resulting model is less reliable
 ## Claim ceiling
 
 A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, contrast/utility estimates and separate resource budgets. It does not verify those estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
+
+
+### Semantic boundary clarification
+
+Controlled flight always requires external authorization; the frozen campaign policy has an explicit `authorization_required_modalities` set and can require it for HIL or other modalities too. For model-form discrimination, the common scenario/measurement contract and explicit pairwise prediction contrasts must match, but competing model outputs are expected to differ; implementation-equivalence receipts are required specifically for cross-implementation comparisons, not as a blanket requirement for physical model hypotheses.
