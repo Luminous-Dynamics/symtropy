@@ -1,0 +1,658 @@
+{
+  "schema_version": "operator-invariants-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-PHYSICAL-OPERATOR-INVARIANTS-001",
+  "cases": [
+    {
+      "case_id": "OI-T0-001-positive-fixed-regime",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7,
+              0
+            ]
+          ],
+          [
+            [
+              0.3,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.7
+          ],
+          [
+            0.3
+          ]
+        ],
+        "state_space": {
+          "A": [
+            [
+              -2,
+              1
+            ],
+            [
+              1,
+              -2
+            ]
+          ],
+          "B": [
+            [
+              1
+            ],
+            [
+              0
+            ]
+          ],
+          "C": [
+            [
+              0.5,
+              0.5
+            ]
+          ],
+          "D": [
+            [
+              0
+            ]
+          ],
+          "stability_witness": [
+            1,
+            1
+          ],
+          "stability_margin": 0.5
+        }
+      }
+    },
+    {
+      "case_id": "OI-T0-002-negative-coefficient",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              1.1,
+              -0.1
+            ]
+          ],
+          [
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            1
+          ],
+          [
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "OI-T0-003-negative-lag",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [
+          -0.05
+        ],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7,
+              0
+            ]
+          ],
+          [
+            [
+              0.3,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.7
+          ],
+          [
+            0.3
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "OI-T0-004-mass-gain-above-one",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.8
+            ]
+          ],
+          [
+            [
+              0.4
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.8
+          ],
+          [
+            0.4
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "OI-T0-005-static-gain-mismatch",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7,
+              0
+            ]
+          ],
+          [
+            [
+              0.3,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.5
+          ],
+          [
+            0.5
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "OI-T0-006-positive-stable-realization",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7,
+              0
+            ]
+          ],
+          [
+            [
+              0.3,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.7
+          ],
+          [
+            0.3
+          ]
+        ],
+        "state_space": {
+          "A": [
+            [
+              -2,
+              1
+            ],
+            [
+              1,
+              -2
+            ]
+          ],
+          "B": [
+            [
+              1
+            ],
+            [
+              0
+            ]
+          ],
+          "C": [
+            [
+              0.5,
+              0.5
+            ]
+          ],
+          "D": [
+            [
+              0
+            ]
+          ],
+          "stability_witness": [
+            1,
+            1
+          ],
+          "stability_margin": 0.5
+        }
+      }
+    },
+    {
+      "case_id": "OI-T0-007-non-metzler",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7,
+              0
+            ]
+          ],
+          [
+            [
+              0.3,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.7
+          ],
+          [
+            0.3
+          ]
+        ],
+        "state_space": {
+          "A": [
+            [
+              -2,
+              -0.1
+            ],
+            [
+              1,
+              -2
+            ]
+          ],
+          "B": [
+            [
+              1
+            ],
+            [
+              0
+            ]
+          ],
+          "C": [
+            [
+              1,
+              1
+            ]
+          ],
+          "D": [
+            [
+              0
+            ]
+          ],
+          "stability_witness": [
+            1,
+            1
+          ],
+          "stability_margin": 0.1
+        }
+      }
+    },
+    {
+      "case_id": "OI-T0-008-unstable-metzler",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7,
+              0
+            ]
+          ],
+          [
+            [
+              0.3,
+              0
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            0.7
+          ],
+          [
+            0.3
+          ]
+        ],
+        "state_space": {
+          "A": [
+            [
+              -1,
+              2
+            ],
+            [
+              2,
+              -1
+            ]
+          ],
+          "B": [
+            [
+              1
+            ],
+            [
+              0
+            ]
+          ],
+          "C": [
+            [
+              1,
+              1
+            ]
+          ],
+          "D": [
+            [
+              0
+            ]
+          ],
+          "stability_witness": [
+            1,
+            1
+          ],
+          "stability_margin": 0.1
+        }
+      }
+    },
+    {
+      "case_id": "OI-T0-009-grid-refinement",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.4,
+              0.6
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            1
+          ]
+        ],
+        "grid_refinement": {
+          "coarse_dt_seconds": 1,
+          "fine_dt_seconds": 0.5,
+          "coarse_kernel": [
+            [
+              [
+                0.4,
+                0.6
+              ]
+            ]
+          ],
+          "fine_kernel": [
+            [
+              [
+                0.2,
+                0.2,
+                0.3,
+                0.3
+              ]
+            ]
+          ],
+          "maximum_centroid_difference_seconds": 0.1
+        }
+      }
+    },
+    {
+      "case_id": "OI-T0-010-grid-refinement-mismatch",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "invariant_tolerance": 1e-9,
+        "steady_gain_tolerance": 1e-9,
+        "scale_factor": 10,
+        "negative_lag_coefficients": [],
+        "input_a": [
+          [
+            1,
+            0,
+            0,
+            0
+          ]
+        ],
+        "input_b": [
+          [
+            0,
+            1,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.4,
+              0.6
+            ]
+          ]
+        ],
+        "steady_gain": [
+          [
+            1
+          ]
+        ],
+        "grid_refinement": {
+          "coarse_dt_seconds": 1,
+          "fine_dt_seconds": 0.5,
+          "coarse_kernel": [
+            [
+              [
+                0.4,
+                0.6
+              ]
+            ]
+          ],
+          "fine_kernel": [
+            [
+              [
+                0.1,
+                0.1,
+                0.3,
+                0.3
+              ]
+            ]
+          ],
+          "maximum_centroid_difference_seconds": 0.1
+        }
+      }
+    }
+  ]
+}
