@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 20;
+pub const CASE_COUNT: usize = 21;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -484,6 +484,13 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
             }
             Ok(split_result("ADMITTED", "EVENT_WINDOWS_NONOVERLAPPING"))
         }
+        "HC-T0-021-final-test-model-selection-reject" => {
+            if boolean(input, "model_selected_using_test_scores")? {
+                Ok(split_result("REJECT", "FINAL_TEST_USED_FOR_MODEL_SELECTION"))
+            } else {
+                Ok(split_result("ADMITTED", "FINAL_TEST_NOT_USED_FOR_MODEL_SELECTION"))
+            }
+        }
         _ => Err(format!("unsupported split-control case: {case_id}")),
     }
 }
@@ -643,7 +650,7 @@ mod tests {
     }
 
     #[test]
-    fn all_twenty_cases_match_separate_oracle() {
+    fn all_twenty_one_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -683,6 +690,13 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][14]).expect("physical gate");
         assert_eq!(out["split_disposition"], "REJECT_PHYSICAL_GATE");
     }
+    #[test]
+    fn final_test_cannot_select_the_model() {
+        let out = compute_case(&fixture("inputs")["cases"][20]).expect("final-test selection control");
+        assert_eq!(out["split_disposition"], "REJECT");
+        assert_eq!(out["reason"], "FINAL_TEST_USED_FOR_MODEL_SELECTION");
+    }
+
     #[test]
     fn degenerate_observations_make_efficiency_metrics_undefined() {
         let out = compute_case(&fixture("inputs")["cases"][19]).expect("degenerate observations");
