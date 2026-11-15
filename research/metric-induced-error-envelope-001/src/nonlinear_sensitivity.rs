@@ -661,6 +661,21 @@ mod tests {
         let metric_y_y = sy.metric_to_to(&metric_y_q, profile).unwrap();
         let operator_q = [[1.0, 2.0], [-1.0, 3.0]];
         let operator_y = transform_rectangular_operator(&operator_q, &sx, &sy);
+        assert_eq!(
+            operator_y,
+            [[0.0, 5.0], [-1.0, 1.0]],
+            "the represented Jacobian must be S_y^-1 * A_q * S_x"
+        );
+        assert_eq!(
+            *metric_x_y.matrix(),
+            [[2.0, 4.0], [4.0, 11.0]],
+            "the input metric must be S_x^T * G_x * S_x"
+        );
+        assert_eq!(
+            *metric_y_y.matrix(),
+            [[4.0, -4.0], [-4.0, 6.0]],
+            "the output metric must be S_y^T * G_y * S_y"
+        );
         let jacobian_q =
             RectangularTangentToTangentOperator::<CartesianQ, CartesianQ, 2, 2>::new(operator_q)
                 .unwrap();
@@ -691,15 +706,23 @@ mod tests {
         )
         .unwrap();
 
-        close(
+        assert!(
+            (output_q.derivative_operator_norm_estimate
+                - output_y.derivative_operator_norm_estimate)
+                .abs()
+                <= 1.0e-10,
+            "forward operator norm changed under dense rebasing: q={:.16e}, y={:.16e}",
             output_q.derivative_operator_norm_estimate,
-            output_y.derivative_operator_norm_estimate,
-            1.0e-10,
+            output_y.derivative_operator_norm_estimate
         );
-        close(
+        assert!(
+            (output_q.total_output_error_upper_estimate.unwrap()
+                - output_y.total_output_error_upper_estimate.unwrap())
+                .abs()
+                <= 1.0e-10,
+            "state output envelope changed under dense rebasing: q={:.16e}, y={:.16e}",
             output_q.total_output_error_upper_estimate.unwrap(),
-            output_y.total_output_error_upper_estimate.unwrap(),
-            1.0e-10,
+            output_y.total_output_error_upper_estimate.unwrap()
         );
 
         let gradient_q = Cotangent::<CartesianQ, 2>::new([0.75, -1.25]).unwrap();
@@ -733,15 +756,23 @@ mod tests {
         )
         .unwrap();
 
-        close(
+        assert!(
+            (observable_q.input_gradient_dual_norm
+                - observable_y.input_gradient_dual_norm)
+                .abs()
+                <= 1.0e-10,
+            "adjoint pullback dual norm changed under dense rebasing: q={:.16e}, y={:.16e}",
             observable_q.input_gradient_dual_norm,
-            observable_y.input_gradient_dual_norm,
-            1.0e-10,
+            observable_y.input_gradient_dual_norm
         );
-        close(
+        assert!(
+            (observable_q.total_observable_change_upper_estimate.unwrap()
+                - observable_y.total_observable_change_upper_estimate.unwrap())
+                .abs()
+                <= 1.0e-10,
+            "observable sensitivity envelope changed under dense rebasing: q={:.16e}, y={:.16e}",
             observable_q.total_observable_change_upper_estimate.unwrap(),
-            observable_y.total_observable_change_upper_estimate.unwrap(),
-            1.0e-10,
+            observable_y.total_observable_change_upper_estimate.unwrap()
         );
     }
 
