@@ -204,19 +204,11 @@
           ]
         },
         "value": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "integer"
-            },
-            {
-              "type": "string"
-            },
-            {
-              "type": "boolean"
-            }
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "null"
           ]
         },
         "unit": {
@@ -274,6 +266,27 @@
             "required": [
               "calibration_digest"
             ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "quality": {
+                "const": "valid"
+              }
+            },
+            "required": [
+              "quality"
+            ]
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
           }
         }
       ]
