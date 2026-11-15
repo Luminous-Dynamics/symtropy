@@ -10,6 +10,7 @@ pub mod support_kernel;
 pub mod aggregation_kernel;
 pub mod model_set_kernel;
 pub mod forecast_kernel;
+pub mod conformal_kernel;
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -911,6 +912,235 @@ fn optional_number_matches(actual: Option<f64>, expected: &Value, tolerance: f64
     }
 }
 
+
+
+fn validate_block_conformal_corpus(
+    raw: &[u8],
+    manifest: &Value,
+) -> Result<Value, String> {
+    let version = string_at(manifest, &["schema_version"])?;
+    let benchmark = string_at(manifest, &["benchmark_id"])?;
+    let corpus_id = string_at(manifest, &["corpus_id"])?;
+    let status = string_at(manifest, &["status"])?;
+    let claim_ceiling = string_at(manifest, &["claim_ceiling"])?;
+    let scenario_value = at(manifest, &["scenario"])?;
+
+    let training_group_ids = string_array_at(scenario_value, &["training_group_ids"])?;
+    let calibration_values = at(scenario_value, &["calibration_blocks"])?
+        .as_array()
+        .ok_or_else(|| "scenario.calibration_blocks must be an array".to_string())?;
+    let test_values = at(scenario_value, &["test_blocks"])?
+        .as_array()
+        .ok_or_else(|| "scenario.test_blocks must be an array".to_string())?;
+
+    let calibration_blocks = calibration_values
+        .iter()
+        .map(|block| {
+            Ok(conformal_kernel::CalibrationBlock {
+                block_id: string_at(block, &["block_id"])?,
+                group_id: string_at(block, &["group_id"])?,
+                absolute_residuals: finite_array_at(block, &["absolute_residuals"])?,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let test_blocks = test_values
+        .iter()
+        .map(|block| {
+            Ok(conformal_kernel::TestBlock {
+                block_id: string_at(block, &["block_id"])?,
+                group_id: string_at(block, &["group_id"])?,
+                regime: string_at(block, &["regime"])?,
+                point_predictions: finite_array_at(block, &["point_predictions"])?,
+                observations: finite_array_at(block, &["observations"])?,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+
+    let alpha = number_at(scenario_value, &["alpha"])?;
+    let exchangeability_basis = string_at(scenario_value, &["exchangeability_basis"])?;
+    let scenario = conformal_kernel::BlockConformalScenario {
+        alpha,
+        training_group_ids,
+        calibration_blocks,
+        test_blocks,
+        exchangeability_basis,
+    };
+    let result = conformal_kernel::evaluate_block_conformal(&scenario)
+        .map_err(|error| format!("block conformal evaluation failed: {error}"))?;
+
+    let expected = at(manifest, &["expected"])?;
+    let mut matches = result.calibration_block_count
+        == usize_at(expected, &["calibration_block_count"])?
+        && result.observations_per_block
+            == usize_at(expected, &["observations_per_block"])?
+        && result.test_block_count == usize_at(expected, &["test_block_count"])?
+        && result.test_observation_count == usize_at(expected, &["test_observation_count"])?
+        && optional_number_matches(
+            result.pooled_observation_radius,
+            expected.get("pooled_observation_radius").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.block_maximum_radius,
+            expected.get("block_maximum_radius").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.pooled_interval_width,
+            expected.get("pooled_interval_width").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.block_interval_width,
+            expected.get("block_interval_width").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.pooled_observation_coverage,
+            expected.get("pooled_observation_coverage").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.pooled_full_block_coverage,
+            expected.get("pooled_full_block_coverage").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.block_observation_coverage,
+            expected.get("block_observation_coverage").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.block_full_block_coverage,
+            expected.get("block_full_block_coverage").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.declared_in_domain_block_coverage,
+            expected.get("declared_in_domain_block_coverage").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && optional_number_matches(
+            result.declared_shift_block_coverage,
+            expected.get("declared_shift_block_coverage").unwrap_or(&Value::Null),
+            1e-12,
+        )
+        && result.exchangeability_status
+            == string_at(expected, &["exchangeability_status"])?.as_str();
+
+    let expected_blocks = at(expected, &["test_block_results"])?
+        .as_array()
+        .ok_or_else(|| "expected.test_block_results must be an array".to_string())?;
+    matches &= result.test_block_results.len() == expected_blocks.len();
+    for (actual, declared) in result.test_block_results.iter().zip(expected_blocks) {
+        matches &= actual.block_id == string_at(declared, &["block_id"])?;
+        matches &= actual.observation_count == usize_at(declared, &["observation_count"])?;
+        matches &= actual.covered_observation_count
+            == usize_at(declared, &["covered_observation_count"])?;
+        matches &= close_enough(
+            actual.observation_coverage_fraction,
+            number_at(declared, &["observation_coverage_fraction"])?,
+            1e-12,
+        );
+        matches &= actual.block_fully_covered
+            == at(declared, &["block_fully_covered"])?
+                .as_bool()
+                .ok_or_else(|| "block_fully_covered must be boolean".to_string())?;
+        matches &= actual.regime_is_declared_shift
+            == at(declared, &["regime_is_declared_shift"])?
+                .as_bool()
+                .ok_or_else(|| "regime_is_declared_shift must be boolean".to_string())?;
+    }
+
+    let mut checks = Vec::new();
+    push_check(
+        &mut checks,
+        "BLOCK-CONFORMAL-CORPUS-IDENTITY-001",
+        version == "0.1.0"
+            && benchmark == "LUMINOUS-TROPICAL-FOREST-ECO-QUAL"
+            && corpus_id == "FOREST-BLOCK-CONFORMAL-001"
+            && status == "PUBLIC_SYNTHETIC_BLOCK_CONFORMAL_NOT_STATISTICAL_VALIDATION"
+            && claim_ceiling.contains("Nine equal-sized synthetic calibration blocks")
+            && claim_ceiling.contains("not statistically established"),
+        format!("version={version}; benchmark={benchmark}; corpus={corpus_id}"),
+    );
+    push_check(
+        &mut checks,
+        "BLOCK-CONFORMAL-QUANTILE-AND-COVERAGE-001",
+        matches,
+        format!(
+            "calibration_blocks={}; pooled_radius={:?}; block_maximum_radius={:?}; pooled_point_coverage={:?}; block_point_coverage={:?}; block_simultaneous_coverage={:?}; in_domain_blocks={:?}; shifted_blocks={:?}",
+            result.calibration_block_count,
+            result.pooled_observation_radius,
+            result.block_maximum_radius,
+            result.pooled_observation_coverage,
+            result.block_observation_coverage,
+            result.block_full_block_coverage,
+            result.declared_in_domain_block_coverage,
+            result.declared_shift_block_coverage
+        ),
+    );
+
+    let execution = at(manifest, &["execution"])?;
+    let runner = string_at(execution, &["runner"])?;
+    let external = at(execution, &["external_data_ingested"])?
+        .as_bool()
+        .ok_or_else(|| "execution.external_data_ingested must be boolean".to_string())?;
+    let exchangeability = string_at(execution, &["exchangeability"])?;
+    let ecological_coverage = string_at(execution, &["real_forest_coverage"])?;
+    let shift_guarantee = string_at(execution, &["distribution_shift_guarantee"])?;
+    push_check(
+        &mut checks,
+        "BLOCK-CONFORMAL-CLAIM-BOUNDARY-001",
+        runner == "BLOCK_MAXIMUM_SPLIT_CONFORMAL_SYNTHETIC"
+            && !external
+            && exchangeability == "DESIGNER_DECLARED_NOT_VERIFIED"
+            && ecological_coverage == "NOT_ESTABLISHED"
+            && shift_guarantee == "NOT_ESTABLISHED",
+        "synthetic block-calibration arithmetic only; group separation does not verify exchangeability or shift validity",
+    );
+
+    let passed = checks.iter().all(|check| check.passed);
+    let check_values: Vec<Value> = checks
+        .iter()
+        .map(|check| json!({
+            "id": check.id,
+            "passed": check.passed,
+            "detail": check.detail
+        }))
+        .collect();
+    Ok(json!({
+        "receipt_version": "0.1.0",
+        "validator": "symtropy-tropical-forest-qualifier",
+        "benchmark_id": benchmark,
+        "corpus_id": corpus_id,
+        "source_manifest_sha256": sha256_hex(raw),
+        "result": if passed { "PASS_SYNTHETIC_BLOCK_CONFORMAL" } else { "FAIL" },
+        "checks_passed": checks.iter().filter(|check| check.passed).count(),
+        "checks_total": checks.len(),
+        "checks": check_values,
+        "calibration_block_count": result.calibration_block_count,
+        "observations_per_block": result.observations_per_block,
+        "pooled_observation_radius": result.pooled_observation_radius,
+        "block_maximum_radius": result.block_maximum_radius,
+        "pooled_interval_width": result.pooled_interval_width,
+        "block_interval_width": result.block_interval_width,
+        "test_block_count": result.test_block_count,
+        "test_observation_count": result.test_observation_count,
+        "pooled_observation_coverage": result.pooled_observation_coverage,
+        "pooled_full_block_coverage": result.pooled_full_block_coverage,
+        "block_observation_coverage": result.block_observation_coverage,
+        "block_full_block_coverage": result.block_full_block_coverage,
+        "declared_in_domain_block_coverage": result.declared_in_domain_block_coverage,
+        "declared_shift_block_coverage": result.declared_shift_block_coverage,
+        "test_block_results": result.test_block_results,
+        "exchangeability_status": result.exchangeability_status,
+        "real_forest_coverage": "NOT_ESTABLISHED",
+        "distribution_shift_guarantee": "NOT_ESTABLISHED",
+        "external_data_ingested": false
+    }))
+}
 
 fn validate_binary_event_brier_corpus(
     raw: &[u8],
@@ -3013,6 +3243,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return validate_consilience_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-BLOCK-CONFORMAL-001")
+    {
+        return validate_block_conformal_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-BINARY-EVENT-BRIER-001")
     {
         return validate_binary_event_brier_corpus(raw, &manifest);
@@ -3370,6 +3605,8 @@ mod tests {
         include_str!("../../cases/forest-probabilistic-forecast-scoring-synthetic-v0.1.json");
     const BINARY_EVENT_BRIER_FIXTURE: &str =
         include_str!("../../cases/forest-binary-event-brier-synthetic-v0.1.json");
+    const BLOCK_CONFORMAL_FIXTURE: &str =
+        include_str!("../../cases/forest-block-conformal-synthetic-v0.1.json");
     const DECISION_VALUE_FIXTURE: &str =
         include_str!("../../cases/forest-decision-value-development-v0.1.json");
     const OBSERVATION_ADMISSION_FIXTURE: &str =
@@ -3626,6 +3863,39 @@ mod tests {
 
 
 
+
+
+    #[test]
+    fn block_conformal_corpus_matches_pooled_and_block_level_coverage() {
+        let receipt = evaluate(BLOCK_CONFORMAL_FIXTURE.as_bytes())
+            .expect("block conformal corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_BLOCK_CONFORMAL");
+        assert_eq!(receipt["calibration_block_count"], 9);
+        assert_eq!(receipt["pooled_observation_radius"], 1.0);
+        assert_eq!(receipt["block_maximum_radius"], 9.0);
+        assert_eq!(receipt["block_full_block_coverage"], 1.0 / 3.0);
+        assert_eq!(receipt["exchangeability_status"], "DESIGNER_DECLARED_NOT_STATISTICALLY_VERIFIED");
+    }
+
+    #[test]
+    fn block_conformal_corpus_rejects_radius_oracle_mutation() {
+        let mut manifest: Value = serde_json::from_str(BLOCK_CONFORMAL_FIXTURE)
+            .expect("valid block conformal corpus");
+        manifest["expected"]["block_maximum_radius"] = json!(1.0);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated conformal corpus");
+        let receipt = evaluate(&bytes).expect("well-formed conformal corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
+
+    #[test]
+    fn block_conformal_corpus_rejects_calibration_test_group_leakage() {
+        let mut manifest: Value = serde_json::from_str(BLOCK_CONFORMAL_FIXTURE)
+            .expect("valid block conformal corpus");
+        manifest["scenario"]["test_blocks"][0]["group_id"] =
+            manifest["scenario"]["calibration_blocks"][0]["group_id"].clone();
+        let bytes = serde_json::to_vec(&manifest).expect("serialize leaked conformal corpus");
+        assert!(evaluate(&bytes).is_err());
+    }
 
     #[test]
     fn binary_event_brier_corpus_matches_case_scores_reliability_and_abstention() {
