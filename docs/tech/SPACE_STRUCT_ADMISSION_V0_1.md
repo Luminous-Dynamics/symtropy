@@ -186,4 +186,4 @@ A PASS establishes deterministic request-admission semantics for the supplied id
 
 ---
 
-**First deliverable:** a dry-run-only Rust request-admission evaluator and a frozen synthetic conformance corpus. No solver execution is permitted by this crate.
+**Initial implementation:** `tools/space-struct-admission/` contains a dependency-free Rust request-admission evaluator with 16 unit tests. `.github/workflows/space-struct-admission.yml` runs formatting, Clippy with warnings denied, and tests under Rust 1.96.0. The validator has no solver-execution API and always reports execution unauthorized, decision-ineligible and physical validation unresolved. CI status is determined only from the exact tested head.
