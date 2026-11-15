@@ -15,7 +15,7 @@
 use crate::{Capsule, CapsuleAabb3, Vec3};
 
 const PARAMETER_EPSILON: f64 = 1.0e-10;
-const PIVOT_RELATIVE_EPSILON: f64 = 1.0e-14;
+const PIVOT_RELATIVE_EPSILON: f64 = 1.0e-12;
 const CONTACT_EPSILON_MM: f64 = 1.0e-9;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,6 +24,9 @@ pub enum TranslationCcdError {
     NonFiniteCoordinate,
     NonFiniteTranslation,
     NumericalOverflow,
+    /// A nonzero but ill-conditioned free face cannot support a reliable clear verdict.
+    /// Callers must preserve this as UNRESOLVED rather than treating it as no collision.
+    NumericallyUnresolved,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -236,7 +239,7 @@ fn minimize_box_quadratic(
                 }
             }
 
-            let Some(solution) = solve_small_system(normal, right, free_count) else {
+            let Some(solution) = solve_small_system(normal, right, free_count)? else {
                 // A singular face has a minimizing point on a lower-dimensional
                 // boundary face, which is enumerated separately.
                 continue;
@@ -287,7 +290,7 @@ fn minimize_box_quadratic(
     }
 
     best.map(|(_, parameters)| parameters)
-        .ok_or(TranslationCcdError::NumericalOverflow)
+        .ok_or(TranslationCcdError::NumericallyUnresolved)
 }
 
 /// Gaussian elimination with partial pivoting for at most a 3x3 system.
@@ -297,12 +300,15 @@ fn solve_small_system(
     mut matrix: [[f64; 3]; 3],
     mut right: [f64; 3],
     size: usize,
-) -> Option<[f64; 3]> {
+) -> Result<Option<[f64; 3]>, TranslationCcdError> {
     let scale = (0..size)
         .flat_map(|row| (0..size).map(move |col| matrix[row][col].abs()))
         .fold(0.0_f64, f64::max);
-    if !scale.is_finite() || scale == 0.0 {
-        return None;
+    if !scale.is_finite() {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
+    if scale == 0.0 {
+        return Ok(None);
     }
     let pivot_threshold = scale * PIVOT_RELATIVE_EPSILON;
 
@@ -314,8 +320,17 @@ fn solve_small_system(
             }
         }
 
-        if matrix[pivot_row][pivot_col].abs() <= pivot_threshold {
-            return None;
+        let pivot_magnitude = matrix[pivot_row][pivot_col].abs();
+        if !pivot_magnitude.is_finite() {
+            return Err(TranslationCcdError::NumericalOverflow);
+        }
+        if pivot_magnitude == 0.0 {
+            // Exactly singular free faces have a minimizer on a lower-dimensional
+            // boundary face, which is enumerated separately.
+            return Ok(None);
+        }
+        if pivot_magnitude <= pivot_threshold {
+            return Err(TranslationCcdError::NumericallyUnresolved);
         }
         if pivot_row != pivot_col {
             matrix.swap(pivot_row, pivot_col);
@@ -341,9 +356,9 @@ fn solve_small_system(
     }
 
     if (0..size).any(|index| !right[index].is_finite()) {
-        return None;
+        return Err(TranslationCcdError::NumericalOverflow);
     }
-    Some(right)
+    Ok(Some(right))
 }
 
 fn validate_capsule(capsule: Capsule) -> Result<(), TranslationCcdError> {
@@ -518,6 +533,16 @@ mod tests {
         assert_eq!(
             translating_capsule_vs_capsule(invalid_point, p(0.0, 0.0, 0.0), valid),
             Err(TranslationCcdError::NonFiniteCoordinate)
+        );
+    }
+
+    #[test]
+    fn near_parallel_free_face_is_explicitly_unresolved() {
+        let moving = capsule(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 0.5);
+        let obstacle = capsule(p(0.0, 10.0, 0.0), p(1_000.0, 10.000_001, 0.0), 0.5);
+        assert_eq!(
+            translating_capsule_vs_capsule(moving, p(0.0, 0.0, 0.0), obstacle),
+            Err(TranslationCcdError::NumericallyUnresolved)
         );
     }
 
