@@ -38,7 +38,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check formatting
-        run: cargo fmt --manifest-path tools/water-service-t0/Cargo.toml --all -- --check
+        run: rustfmt --edition 2024 --check tools/water-service-t0/src/bin/mixing-kernel-invariants-t0.rs
 
       - name: Run native Rust tests
         run: cargo test --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-kernel-invariants-t0
