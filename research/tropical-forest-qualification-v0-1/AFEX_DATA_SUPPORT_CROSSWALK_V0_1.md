@@ -54,6 +54,15 @@ Therefore:
 - published aggregate summaries can be checked for arithmetic, but no raw plot-level stock/productivity reanalysis is possible until the stock data are obtained;
 - the synthetic stock/flow benchmark [#5431](https://github.com/Luminous-Dynamics/symtropy/issues/5431) is a counterexample and summary crosscheck, not an independent reproduction of the 2026 study.
 
+## 2.1 Soil microbial and above-ground litter streams
+
+Three further companion records have now been individually registered:
+- [Soil microbial potential enzyme activities](https://doi.org/10.5285/b9a2523e-09ba-43c7-acfa-a894a231b133): January 2018, soil at 0–5 and 5–10 cm, five within-plot points averaged by plot/depth; potential BG, NAG and PHOS activities in nmol MUF g soil dry weight⁻¹ h⁻¹. This is an ex-situ potential enzyme assay, not an in-situ nutrient flux.
+- [Fine litterfall production and nutrient composition](https://doi.org/10.5285/c0294ec9-45d6-464c-b543-ce9ece9fd968): repeated July 2017–July 2019 collection with five 50 cm × 50 cm traps per plot, 1 m above ground; preserve plot, trap, collection date, category and the 1.25 m² total trap area.
+- [Litterfall herbivory / leaf-trait record](https://doi.org/10.5285/58b66cdf-451c-42e7-8153-c24ec30631fd): August campaigns in 2017, 2018 and 2019; the catalogue summary describes realized leaf area and LMA from leaves sampled across all litter traps in each plot. Do not infer that a direct herbivory rate is present until the archive schema confirms it.
+
+These streams improve the opportunity to test a microbial C/N/P acquisition alternative and connect root traits with above-ground litter return. They also add more support types: microbial soil depth is 0–5/5–10 cm, fine-root trait data are 0–10/10–30 cm, and litter trap samples are plot × trap × collection-date. No cross-layer or cross-stream joins are admitted solely because these records belong to AFEX.
+
 ## 3. Non-negotiable support rules
 
 ### 3.1 Treatment and replication
