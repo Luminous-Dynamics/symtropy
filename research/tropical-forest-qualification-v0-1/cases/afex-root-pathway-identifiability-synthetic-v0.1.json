@@ -1,0 +1,283 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-ROOT-PATHWAY-IDENTIFIABILITY-001",
+  "evidence_class": "synthetic_structural_identifiability",
+  "claim_ceiling": "This is an exact-rank benchmark for a deliberately simplified common-rate pathway model. AFEX raw data remain un-ingested. AM colonisation, root morphology, phosphatase and tissue nutrient concentration are proxies/traits, not source-specific nutrient-transfer fluxes. No AFEX pathway partition or fungal carbon cost is established.",
+  "unknown_parameters": [
+    {
+      "id": "k_root_inorganic",
+      "meaning": "direct inorganic nutrient uptake rate per uncolonised root fraction",
+      "unit": "synthetic uptake units per plot-period"
+    },
+    {
+      "id": "k_myc_inorganic",
+      "meaning": "mycorrhizal inorganic nutrient uptake rate per colonised root fraction",
+      "unit": "synthetic uptake units per plot-period"
+    },
+    {
+      "id": "k_myc_organic",
+      "meaning": "mycorrhizal organic nutrient acquisition rate per colonised root fraction",
+      "unit": "synthetic uptake units per plot-period"
+    },
+    {
+      "id": "c_host_to_fungal",
+      "meaning": "host carbon allocation cost associated with fungal symbiosis",
+      "unit": "synthetic carbon cost units per plot-period"
+    }
+  ],
+  "observation_operator": {
+    "model_assumption": "constant pathway coefficients shared across synthetic plots; AM colonisation fraction is treated as known covariate; total uptake is observed as a sum of the three nutrient pathways",
+    "equation": "total_uptake_i = (1-f_i)*k_root_inorganic + f_i*k_myc_inorganic + f_i*k_myc_organic",
+    "carbon_cost_column": "The total nutrient-uptake measurement contains no direct observation of host-to-fungal carbon allocation; coefficient is zero.",
+    "colonisation_semantics": "AM colonisation fraction is a covariate in the observation operator, not itself an equation measuring pathway flux.",
+    "fraction_rows_scaled_by": 4
+  },
+  "afex_current_observations": [
+    {
+      "id": "AM_COLONISATION",
+      "source_doi": "10.5285/52f756a1-a0f6-4991-b21b-4042018a451f",
+      "support": "0-10 cm; February 2018; plot/community mean",
+      "role": "colonisation fraction covariate only",
+      "direct_pathway_flux": false
+    },
+    {
+      "id": "ROOT_MORPHOLOGY",
+      "source_doi": "10.5285/4ccaab66-2818-41b8-8b31-1a710766c5d6",
+      "support": "0-10 and 10-30 cm; February 2018; plot/depth community means",
+      "role": "root trait proxy",
+      "direct_pathway_flux": false
+    },
+    {
+      "id": "ROOT_PHOSPHATASE",
+      "source_doi": "10.5285/6529004d-b6e8-429d-ac68-0f5324d7e5d0",
+      "support": "0-10 and 10-30 cm; February 2018; potential enzyme assay",
+      "role": "biochemical acquisition proxy, not realized P flux",
+      "direct_pathway_flux": false
+    },
+    {
+      "id": "ROOT_NUTRIENT_CONCENTRATION",
+      "source_doi": "10.5285/ba190356-1731-4558-be7a-3fedc570663a",
+      "support": "0-10 and 10-30 cm; four-interval composite Nov 2017-Aug 2018",
+      "role": "tissue concentration, not uptake rate",
+      "direct_pathway_flux": false
+    }
+  ],
+  "expected_case_count": 4,
+  "cases": [
+    {
+      "case_id": "CURRENT_AFEX_PROXY_ONLY",
+      "evidence_status": "CURRENT_AFEX_REGISTERED_TRAITS_ONLY",
+      "observed_channels": [
+        "AM colonisation fraction",
+        "root morphology",
+        "potential phosphatase",
+        "root tissue nutrient concentration"
+      ],
+      "observation_matrix": [],
+      "expected_rank": 0,
+      "expected_nullity": 4,
+      "expected_nullspace_basis": [
+        [
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_conclusion": "No direct pathway rate is structurally identified from the current trait-only observation set."
+    },
+    {
+      "case_id": "TOTAL_UPTAKE_WITH_VARIATION_IN_COLONISATION",
+      "evidence_status": "HYPOTHETICAL_TOTAL_UPTAKE_MEASUREMENT_NOT_CURRENT_AFEX",
+      "observed_channels": [
+        "plot-level total inorganic+organic nutrient uptake",
+        "AM colonisation fraction as covariate"
+      ],
+      "colonisation_fractions": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "observation_matrix": [
+        [
+          3,
+          1,
+          1,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          1,
+          3,
+          3,
+          0
+        ]
+      ],
+      "expected_rank": 2,
+      "expected_nullity": 2,
+      "expected_nullspace_basis": [
+        [
+          0,
+          1,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_conclusion": "Direct-root rate and aggregate fungal contribution can be separated under the shared-rate assumption, but fungal inorganic and organic contributions remain aliased; carbon cost is unobserved."
+    },
+    {
+      "case_id": "ADD_SOURCE_SPECIFIC_MYCORRHIZAL_INORGANIC_TRACER",
+      "evidence_status": "HYPOTHETICAL_PATHWAY_SPECIFIC_TRACER_NOT_CURRENT_AFEX",
+      "observed_channels": [
+        "plot-level total uptake",
+        "AM colonisation fraction",
+        "mycorrhizal inorganic source-specific uptake tracer"
+      ],
+      "colonisation_fractions": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "observation_matrix": [
+        [
+          3,
+          1,
+          1,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          1,
+          3,
+          3,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0
+        ]
+      ],
+      "expected_rank": 3,
+      "expected_nullity": 1,
+      "expected_nullspace_basis": [
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_conclusion": "The inorganic fungal component is source-resolved; carbon allocation cost remains unobserved."
+    },
+    {
+      "case_id": "ADD_HOST_TO_FUNGAL_CARBON_ALLOCATION_TRACER",
+      "evidence_status": "HYPOTHETICAL_CARBON_ALLOCATION_TRACER_NOT_CURRENT_AFEX",
+      "observed_channels": [
+        "plot-level total uptake",
+        "AM colonisation fraction",
+        "mycorrhizal inorganic source-specific tracer",
+        "host-to-fungal carbon allocation tracer"
+      ],
+      "colonisation_fractions": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "observation_matrix": [
+        [
+          3,
+          1,
+          1,
+          0
+        ],
+        [
+          2,
+          2,
+          2,
+          0
+        ],
+        [
+          1,
+          3,
+          3,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1
+        ]
+      ],
+      "expected_rank": 4,
+      "expected_nullity": 0,
+      "expected_nullspace_basis": [],
+      "expected_conclusion": "All four parameters are structurally identified within the simplified shared-rate model; practical identifiability and ecological validity still require independent assessment."
+    }
+  ],
+  "design_recommendations": [
+    {
+      "measurement": "source-specific inorganic fungal nutrient uptake",
+      "purpose": "break the mycorrhizal inorganic vs organic alias",
+      "priority": "high"
+    },
+    {
+      "measurement": "source-specific organic nutrient acquisition or labeled organic substrate uptake",
+      "purpose": "directly constrain the organic pathway and test the model's shared-rate assumption",
+      "priority": "high"
+    },
+    {
+      "measurement": "host-to-fungal carbon allocation tracer",
+      "purpose": "identify fungal carbon cost separately from nutrient acquisition",
+      "priority": "high"
+    },
+    {
+      "measurement": "depth-resolved plot-paired total root uptake and stock/productivity",
+      "purpose": "preserve plot, year and depth support for process calibration",
+      "priority": "high"
+    }
+  ]
+}
