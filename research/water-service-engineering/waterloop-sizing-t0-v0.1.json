@@ -429,6 +429,49 @@
           0.1
         ]
       }
+    },
+    {
+      "case_id": "WLS-T0-015-negative-inflow-reject",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0,
+        "freeboard_m3": 0,
+        "measurement_uncertainty_allowance_m3": 0,
+        "contingency_allowance_m3": 0,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          -0.01
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-016-pump-efficiency-unadmitted",
+      "family": "pump_power",
+      "inputs": {
+        "design_flow_m3_per_hour": 1.2,
+        "total_dynamic_head_m": 18,
+        "water_density_kg_per_m3": 1000,
+        "gravity_m_per_s2": 9.80665,
+        "pump_efficiency": 0.55,
+        "pump_efficiency_evidence_admitted": false
+      }
     }
   ]
 }
