@@ -488,6 +488,65 @@
       "spatial": {
         "catalogue_resolution": "50 metres as listed in EIDC record; this does not substitute for verified plot polygons or field coordinate support."
       }
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-COLLECTION-2017-2020",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Amazon Fertilization Experiment (AFEX) in Central Amazon, Brazil (2017-2020)",
+      "record_id": "79c9df71-af3b-4ca8-8df8-330fc5fc3507",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/79c9df71-af3b-4ca8-8df8-330fc5fc3507",
+      "record_last_updated": "2026-07-25",
+      "region": {
+        "country": "Brazil",
+        "region": "Central Amazon near Manaus, Amazonas",
+        "site": "plateau plots",
+        "biome": "Amazon tropical forest"
+      },
+      "design_metadata": {
+        "design": "fully factorial randomized complete-block soil nutrient manipulation",
+        "factors": [
+          "nitrogen (N)",
+          "phosphorus (P)",
+          "cations (K, Ca, Mg)"
+        ],
+        "treatment_combinations": 8,
+        "replicates_or_blocks": 4,
+        "all_treatments_represented_in_each_block": true,
+        "plot_assignment_units_expected": 32,
+        "status": "COLLECTION_METADATA_ONLY_RECONCILE_INDIVIDUAL_CHILD_DATASETS"
+      },
+      "companion_resources_listed": [
+        "Litterfall nutrient content (2017-2019)",
+        "Litterfall herbivory (2017-2019)",
+        "Fine root biomass (2017-2019)",
+        "Leaf area index (2017-2018)",
+        "Stem and soil respiration (2017-2019)",
+        "Tree census and diameter increment (2017-2020)",
+        "Litterfall ant genus and abundance (2018-2019)",
+        "Seedlings growth (2019-2020)",
+        "Seedlings leaf loss by herbivory (2019-2020)",
+        "Fine root arbuscular mycorrhizal colonisation (2018)",
+        "Fine root nutrient concentration (2018)",
+        "Fine root phosphatase enzyme activity (2018)",
+        "Fine root morphological properties (2018)",
+        "Soil microbial potential enzyme activities (2018)",
+        "Fine litterfall production and nutrient composition"
+      ],
+      "admission_status": "COLLECTION_METADATA_ONLY_CHILD_DATASET_RIGHTS_SUPPORT_AND_IDENTITIES_PENDING",
+      "downloaded": false,
+      "data_ingested": false,
+      "rights": {
+        "collection_record_license_status": "CHILD_RECORDS_MUST_BE_CHECKED_INDIVIDUALLY",
+        "do_not_infer_child_dataset_redistribution_rights_from_collection_summary": true
+      },
+      "intended_use": "Authoritative collection-level design and discovery index for cross-stream AFEX intervention evidence; not an analysis-ready joined dataset",
+      "admission_gates": [
+        "Resolve each child resource to its own record, file list, licence and citation",
+        "Confirm plot/block/treatment identity across child resources",
+        "Preserve variable-specific time windows, units, measurement operators and spatial support",
+        "Identify shared plot and campaign dependencies before any evidence fusion",
+        "Do not treat all 15 streams as independent observations or as interchangeable process fluxes"
+      ]
     }
   ],
   "cross_source_admission_gates": [
