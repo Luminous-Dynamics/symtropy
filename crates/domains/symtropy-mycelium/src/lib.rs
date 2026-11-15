@@ -10,8 +10,8 @@
 //! The explicit topology-only graph reference is available in [`hyphal_graph`].
 //! It is intentionally separate from the legacy field-growth model below.
 
-pub mod hyphal_graph;
 pub mod bmx_exchange_reference;
+pub mod hyphal_graph;
 pub mod transport;
 
 use std::collections::{HashMap, VecDeque};
