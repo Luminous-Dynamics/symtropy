@@ -239,8 +239,12 @@ pub struct ObservationWindow {
     pub position: PositionBox,
     /// Whether upstream PNT/time qualification succeeded.
     pub pnt_time_qualified: bool,
+    /// Exact upstream PNT/time qualification receipt identity.
+    pub pnt_qualification_reference: String,
     /// Whether upstream surveillance/track qualification succeeded.
     pub surveillance_qualified: bool,
+    /// Exact upstream surveillance/track qualification receipt identity.
+    pub surveillance_qualification_reference: String,
     /// Horizontal coordinate frame identity.
     pub horizontal_frame_id: String,
     /// Vertical datum identity.
@@ -252,6 +256,14 @@ pub struct ObservationWindow {
 pub struct DynamicRestriction {
     /// Restriction snapshot identity.
     pub restriction_id: String,
+    /// Issuing authority reference for the restriction snapshot.
+    pub issuer_reference: String,
+    /// Monotonic restriction snapshot revision.
+    pub snapshot_revision: u64,
+    /// Restriction artifact digest syntax.
+    pub restriction_sha256: String,
+    /// Declared time-scale identity; no conversion is performed here.
+    pub time_scale_id: String,
     /// Effective interval of the restriction.
     pub effective_window: TimeInterval,
     /// Restricted 4D volume.
@@ -307,6 +319,12 @@ pub enum ConformanceReason {
     TimeScaleMismatch,
     /// Dynamic-restriction evidence is invalid.
     InvalidDynamicRestriction,
+    /// Dynamic restriction uses a different time scale from the policy.
+    DynamicRestrictionTimeScaleMismatch,
+    /// PNT qualification reference is missing.
+    MissingPntQualificationReference,
+    /// Surveillance qualification reference is missing.
+    MissingSurveillanceQualificationReference,
     /// Observation support window is invalid or outside the evaluation window.
     InvalidObservationWindow,
     /// Observation windows overlap and would double-count duration.
@@ -489,12 +507,22 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
 
     if let Some(restriction) = input.dynamic_restriction.as_ref() {
         if restriction.restriction_id.trim().is_empty()
+            || restriction.issuer_reference.trim().is_empty()
+            || restriction.snapshot_revision == 0
+            || !is_sha256(&restriction.restriction_sha256)
             || restriction.effective_window.duration().is_none()
             || !restriction.volume.is_valid()
         {
             return empty(
                 ConformanceStatus::NotAssessable,
                 Some(ConformanceReason::InvalidDynamicRestriction),
+                lineage,
+            );
+        }
+        if restriction.time_scale_id != policy.time_scale_id {
+            return empty(
+                ConformanceStatus::NotAssessable,
+                Some(ConformanceReason::DynamicRestrictionTimeScaleMismatch),
                 lineage,
             );
         }
@@ -613,8 +641,12 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             Some(ConformanceReason::TimeScaleMismatch)
         } else if !observation.pnt_time_qualified {
             Some(ConformanceReason::PntTimeUnqualified)
+        } else if observation.pnt_qualification_reference.trim().is_empty() {
+            Some(ConformanceReason::MissingPntQualificationReference)
         } else if !observation.surveillance_qualified {
             Some(ConformanceReason::SurveillanceUnqualified)
+        } else if observation.surveillance_qualification_reference.trim().is_empty() {
+            Some(ConformanceReason::MissingSurveillanceQualificationReference)
         } else if observation.horizontal_frame_id != auth.horizontal_frame_id
             || observation.vertical_datum_id != auth.vertical_datum_id
         {
