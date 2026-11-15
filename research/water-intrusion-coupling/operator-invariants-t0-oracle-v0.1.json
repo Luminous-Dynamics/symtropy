@@ -24,10 +24,10 @@
         "positive_output_minimum": 0,
         "predicted_total_output_mass": 2,
         "input_mass_across_two_histories": 2,
-        "mass_not_in_outputs_or_declared_residual": 0,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "synthetic_input_mass_not_returned_by_kernel": 0
       }
     },
     {
@@ -133,10 +133,10 @@
         "positive_output_minimum": 0,
         "predicted_total_output_mass": 2,
         "input_mass_across_two_histories": 2,
-        "mass_not_in_outputs_or_declared_residual": 0,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "synthetic_input_mass_not_returned_by_kernel": 0
       }
     },
     {
@@ -200,10 +200,10 @@
         "positive_output_minimum": 0,
         "predicted_total_output_mass": 2,
         "input_mass_across_two_histories": 2,
-        "mass_not_in_outputs_or_declared_residual": 0,
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "synthetic_input_mass_not_returned_by_kernel": 0
       }
     },
     {
