@@ -126,10 +126,11 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if baselines.is_none_or(|items| items.len() < 2) {
         errors.push("at least one washer and one dryer desk baseline are required".to_owned());
     } else {
-        let washer = baselines
+        let items = baselines.expect("baseline array checked above");
+        let washer = items
             .iter()
             .any(|item| text_at(item, "appliance_class") == Some("front_load_washer"));
-        let dryer = baselines
+        let dryer = items
             .iter()
             .any(|item| text_at(item, "appliance_class") == Some("heat_pump_tumble_dryer"));
         if !washer || !dryer {
@@ -138,7 +139,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                     .to_owned(),
             );
         }
-        for (index, baseline) in baselines.iter().enumerate() {
+        for (index, baseline) in items.iter().enumerate() {
             if text_at(baseline, "status") != Some("desk_reference_not_selected_control") {
                 errors.push(format!(
                     "baselines[{index}] cannot be promoted to a selected control"
