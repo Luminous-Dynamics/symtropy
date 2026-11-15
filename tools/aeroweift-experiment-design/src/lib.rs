@@ -93,6 +93,18 @@ pub struct HypothesisGroup {
 pub struct ExperimentCandidate {
     /// Stable candidate identity.
     pub candidate_id: String,
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
+    /// Exact experiment design digest.
+    pub design_sha256: String,
+    /// Exact scenario/initial-condition manifest digest.
+    pub scenario_manifest_sha256: String,
+    /// Exact measurement/reference protocol digest.
+    pub measurement_plan_sha256: String,
     /// Engineering decision/question this experiment is intended to resolve.
     pub decision_question_id: String,
     /// Type of epistemic objective.
@@ -103,14 +115,24 @@ pub struct ExperimentCandidate {
     pub requires_external_authorization: bool,
     /// Owner-supplied authorization state.
     pub authorization: AuthorizationState,
+    /// Owner receipt for affirmative authorization, where required.
+    pub authorization_receipt_sha256: Option<String>,
     /// Whether all physical and procedural constraints are clear for this candidate.
     pub safety_constraints_clear: bool,
+    /// Receipt proving the affirmative safety/procedure gate.
+    pub safety_gate_receipt_sha256: Option<String>,
     /// Whether the candidate lies within the currently approved test envelope.
     pub within_declared_envelope: bool,
+    /// Receipt proving the affirmative envelope gate.
+    pub envelope_receipt_sha256: Option<String>,
     /// Whether a genuinely independent reference measurement/oracle is available.
     pub independent_reference_available: bool,
+    /// Receipt proving reference availability and qualification.
+    pub independent_reference_receipt_sha256: Option<String>,
     /// Semantic-equivalence status when implementations are compared.
     pub semantic_equivalence: SemanticEquivalence,
+    /// Receipt proving semantic equivalence when required.
+    pub semantic_equivalence_receipt_sha256: Option<String>,
     /// Which data partition was inspected to select this experiment.
     pub selection_evidence_role: SelectionEvidenceRole,
     /// Independent model-family groups actually distinguished by this experiment.
@@ -123,15 +145,74 @@ pub struct ExperimentCandidate {
     pub worst_case_robust_reduction: f64,
     /// Relevance to the declared engineering decision, normalized [0,1].
     pub decision_relevance: f64,
-    /// Probability the result is expected to be uninformative, normalized [0,1].
+    /// Upper bound on probability the result is uninformative, normalized [0,1].
     pub probability_uninformative: f64,
-    /// Cost in the policy's declared integer cost units.
+    /// Confidence level supporting conservative utility estimates.
+    pub estimate_confidence_level: f64,
+    /// Frozen estimation-method digest.
+    pub estimate_method_sha256: String,
+    /// Exact utility-estimator build digest.
+    pub estimator_build_sha256: String,
+    /// Wall-clock elapsed minutes in the declared planning environment.
     pub cost_units: u64,
+    /// Non-aggregated resource costs; units remain separate.
+    pub resource_cost: ResourceCost,
+}
+
+/// Independent resource dimensions. Values are not added or exchanged.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResourceCost {
+    /// Setup/preparation minutes.
+    pub setup_minutes: u64,
+    /// Facility/operator minutes.
+    pub facility_minutes: u64,
+    /// CPU compute seconds.
+    pub cpu_seconds: u64,
+    /// Accelerator/GPU compute seconds.
+    pub accelerator_seconds: u64,
+    /// Energy joules.
+    pub energy_joules: u64,
+    /// Adjudication/review person-minutes.
+    pub adjudication_person_minutes: u64,
+}
+
+/// Independent resource budgets; dimensions cannot compensate for one another.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResourceBudget {
+    /// Maximum setup/preparation minutes.
+    pub setup_minutes: u64,
+    /// Maximum facility/operator minutes.
+    pub facility_minutes: u64,
+    /// Maximum CPU compute seconds.
+    pub cpu_seconds: u64,
+    /// Maximum accelerator/GPU compute seconds.
+    pub accelerator_seconds: u64,
+    /// Maximum energy joules.
+    pub energy_joules: u64,
+    /// Maximum adjudication/review person-minutes.
+    pub adjudication_person_minutes: u64,
+}
+
+impl ResourceCost {
+    fn within(self, budget: ResourceBudget) -> bool {
+        self.setup_minutes <= budget.setup_minutes
+            && self.facility_minutes <= budget.facility_minutes
+            && self.cpu_seconds <= budget.cpu_seconds
+            && self.accelerator_seconds <= budget.accelerator_seconds
+            && self.energy_joules <= budget.energy_joules
+            && self.adjudication_person_minutes <= budget.adjudication_person_minutes
+    }
 }
 
 /// Frozen selection policy, including domain-owned thresholds and resource budget.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExperimentDesignPolicy {
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
     /// Stable question identity.
     pub decision_question_id: String,
     /// Objective to be resolved.
@@ -146,8 +227,16 @@ pub struct ExperimentDesignPolicy {
     pub minimum_worst_case_robust_reduction: f64,
     /// Minimum model discrimination required for ModelDiscrimination objectives.
     pub minimum_model_discrimination: f64,
-    /// Maximum acceptable probability that the experiment is uninformative.
+    /// Maximum acceptable upper bound on an uninformative result.
     pub maximum_probability_uninformative: f64,
+    /// Minimum confidence level for utility bounds.
+    pub minimum_estimate_confidence_level: f64,
+    /// Exact estimator build required by the frozen policy.
+    pub required_estimator_build_sha256: String,
+    /// Exact estimate method required by the frozen policy.
+    pub required_estimate_method_sha256: String,
+    /// Per-dimension non-substitutable resource budget.
+    pub resource_budget: ResourceBudget,
 }
 
 /// Why a candidate was excluded before Pareto ranking.
@@ -171,6 +260,12 @@ pub enum RejectionReason {
     InsufficientIndependentHypothesisGroups,
     /// Candidate utility estimate is malformed or non-finite.
     InvalidUtilityVector,
+    /// A required owner evidence receipt is missing or malformed.
+    MissingEvidenceReceipt,
+    /// Candidate evidence/scope digest is malformed.
+    InvalidEvidenceBinding,
+    /// Utility estimator or confidence contract does not match the frozen policy.
+    ConfidenceContractMismatch,
     /// Decision relevance is below the frozen policy threshold.
     InsufficientDecisionRelevance,
     /// Robust uncertainty reduction is below the frozen policy threshold.
@@ -207,8 +302,10 @@ pub struct ParetoCandidate {
     pub decision_relevance: f64,
     /// Probability of an uninformative outcome.
     pub probability_uninformative: f64,
-    /// Resource cost.
+    /// Wall-clock elapsed minutes.
     pub cost_units: u64,
+    /// Non-aggregated resource-cost vector.
+    pub resource_cost: ResourceCost,
 }
 
 /// Deterministic Pareto selection result.
