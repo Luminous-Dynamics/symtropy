@@ -12,6 +12,12 @@ use std::fmt;
 
 pub const PARSER_VERSION: &str = "fjsplib-text-adapter/0.1";
 pub const FJSPLIB_SOURCE: &str = "https://scheduleopt.github.io/benchmarks/fjsplib";
+pub const MAX_INPUT_BYTES: usize = 64 * 1024 * 1024;
+pub const MAX_MACHINES: usize = 4_096;
+pub const MAX_JOBS: usize = 100_000;
+pub const MAX_OPERATIONS: usize = 100_000;
+pub const MAX_PRECEDENCES: usize = 100_000;
+pub const MAX_OPTIONS_PER_OPERATION: usize = 1_024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceFormat {
@@ -88,6 +94,7 @@ pub enum ParseErrorKind {
     SelfPrecedence,
     DuplicatePrecedence,
     PrecedenceCycle,
+    ResourceLimitExceeded,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,6 +173,10 @@ fn parse_options(
 ) -> Result<(Vec<MachineAlternative>, usize), ParseError> {
     let option_count = parse_usize(tokens.get(cursor), line, "alternative-machine count")?;
     cursor += 1;
+    if option_count > MAX_OPTIONS_PER_OPERATION {
+        return Err(ParseError::new(Some(line), ParseErrorKind::ResourceLimitExceeded,
+            format!("alternative count {option_count} exceeds configured limit {MAX_OPTIONS_PER_OPERATION}")));
+    }
     if option_count == 0 {
         return Err(ParseError::new(Some(line), ParseErrorKind::ZeroOptions, "an operation must have at least one eligible machine"));
     }
@@ -365,6 +376,10 @@ pub fn parse_fjsp(
     source_family: Option<&str>,
     input: &str,
 ) -> Result<FlexibleInstance, ParseError> {
+    if input.len() > MAX_INPUT_BYTES {
+        return Err(ParseError::new(None, ParseErrorKind::ResourceLimitExceeded,
+            format!("input size {} exceeds configured limit {MAX_INPUT_BYTES}", input.len())));
+    }
     let lines = data_lines(input);
     let header = lines.first().ok_or_else(|| ParseError::new(None, ParseErrorKind::EmptyInput, "no data lines"))?;
     let header_tokens: Vec<&str> = header.content.split_whitespace().collect();
@@ -380,6 +395,9 @@ pub fn parse_fjsp(
     }
     if machine_count == 0 {
         return Err(ParseError::new(Some(header.number), ParseErrorKind::ZeroMachines, "machine count must be positive"));
+    }
+    if job_count > MAX_JOBS || machine_count > MAX_MACHINES {
+        return Err(ParseError::new(Some(header.number), ParseErrorKind::ResourceLimitExceeded, "declared job or machine count exceeds configured parser limit"));
     }
     if !average_flexibility.is_finite() {
         return Err(ParseError::new(Some(header.number), ParseErrorKind::NonFiniteAverageFlexibility, "average flexibility must be finite"));
@@ -399,6 +417,9 @@ pub fn parse_fjsp(
         let operation_count = parse_usize(tokens.get(0), line.number, "operation count")?;
         if operation_count == 0 {
             return Err(ParseError::new(Some(line.number), ParseErrorKind::ZeroOperations, "job must contain at least one operation"));
+        }
+        if operation_count > MAX_OPERATIONS || operations.len().checked_add(operation_count).is_none_or(|count| count > MAX_OPERATIONS) {
+            return Err(ParseError::new(Some(line.number), ParseErrorKind::ResourceLimitExceeded, "operation count exceeds configured parser limit"));
         }
         let mut cursor = 1usize;
         let mut job_operation_ids = Vec::with_capacity(operation_count);
@@ -445,6 +466,10 @@ pub fn parse_fajsp(
     source_family: Option<&str>,
     input: &str,
 ) -> Result<FlexibleInstance, ParseError> {
+    if input.len() > MAX_INPUT_BYTES {
+        return Err(ParseError::new(None, ParseErrorKind::ResourceLimitExceeded,
+            format!("input size {} exceeds configured limit {MAX_INPUT_BYTES}", input.len())));
+    }
     let lines = data_lines(input);
     let header = lines.first().ok_or_else(|| ParseError::new(None, ParseErrorKind::EmptyInput, "no data lines"))?;
     let header_tokens: Vec<&str> = header.content.split_whitespace().collect();
@@ -460,6 +485,9 @@ pub fn parse_fajsp(
     }
     if machine_count == 0 {
         return Err(ParseError::new(Some(header.number), ParseErrorKind::ZeroMachines, "machine count must be positive"));
+    }
+    if machine_count > MAX_MACHINES || operation_count > MAX_OPERATIONS || precedence_count > MAX_PRECEDENCES {
+        return Err(ParseError::new(Some(header.number), ParseErrorKind::ResourceLimitExceeded, "declared machine, operation or precedence count exceeds configured parser limit"));
     }
     if lines.len() != 1 + precedence_count + operation_count {
         return Err(ParseError::new(None, ParseErrorKind::RecordTokenCountMismatch,
@@ -694,6 +722,13 @@ mod tests {
 ";
         assert_eq!(parse_fjsp("nan", None, nan).unwrap_err().kind, ParseErrorKind::NonFiniteAverageFlexibility);
         assert_eq!(parse_fjsp("negative", None, neg).unwrap_err().kind, ParseErrorKind::NegativeAverageFlexibility);
+    }
+
+
+    #[test]
+    fn resource_limits_reject_pathological_declared_counts() {
+        let input = format!("1 {} 1\\n1 1 1 5\\n", MAX_MACHINES + 1);
+        assert_eq!(parse_fjsp("large", None, &input).unwrap_err().kind, ParseErrorKind::ResourceLimitExceeded);
     }
 
     #[test]
