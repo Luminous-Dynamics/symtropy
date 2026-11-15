@@ -666,3 +666,9 @@ Qualifies the exact aircraft/model/control/sensor/solver/time/frame/datum config
 ### Track U — model-evidence change impact and targeted requalification (#5371)
 
 Consumes Track T's exact model-validation claims and Mycelix #6219/#1087/#2631/#1207/#181 to determine which claim dimensions remain applicable after a bitemporal change event. It distinguishes still-applicable, historical-only, requalification-required, contradicted, indeterminate and unsupported-change outcomes per claim. A sensor calibration change should invalidate only sensor-dependent claims; an aircraft/control/model/solver/reference/domain change follows explicit versioned dependency rules. Effective time and recorded/knowledge time remain separate, and incomplete change-stream coverage never means “no change.” Track U does not implement a generic event store, lease algebra or universal currentness service. Hard gates: zero stale dependent claims remain applicable, zero unrelated claims invalidated under complete dependency evidence, zero coverage gaps treated as no-change, exact bitemporal replay and deterministic event permutation.
+
+
+
+### Track X — heterogeneous sensor temporal evidence (#5398)
+
+Admits the temporal relationship behind multi-sensor surveillance evidence without mistaking a common file index for a calibrated timestamp. Distinguishes independent hardware-bounded timing, qualified shared-clock timing, software acquisition-cycle association and order-only/unknown. Keeps sensor calibration/preprocessing provenance separate from temporal qualification; preserves modality-specific evidence when cross-modal fusion is not time-qualified. Uses Han & Jung's TSMS-Drone (Scientific Data, 10 Feb 2026; CC BY 4.0 dataset) as a controlled short-range multi-modal sensor testbed, not as airborne detection/coverage or flight evidence. Composes Track M/L/P/Q/T/U and Mycelix #435/#5899/#5904; no new sensor driver, fusion engine or clock service.
