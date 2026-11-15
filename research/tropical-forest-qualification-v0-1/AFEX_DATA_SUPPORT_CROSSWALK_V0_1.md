@@ -63,6 +63,14 @@ Three further companion records have now been individually registered:
 
 These streams improve the opportunity to test a microbial C/N/P acquisition alternative and connect root traits with above-ground litter return. They also add more support types: microbial soil depth is 0–5/5–10 cm, fine-root trait data are 0–10/10–30 cm, and litter trap samples are plot × trap × collection-date. No cross-layer or cross-stream joins are admitted solely because these records belong to AFEX.
 
+### Biotic community and seedling damage streams
+
+Two remaining child records from the AFEX parent collection have now been registered:
+- [Litterfall ant genus and abundance](https://doi.org/10.5285/60e77fd4-7a24-4545-8d90-08e9dfcbd16a): October 2018 and September 2019; five 1×1 m subplots inside each 50×50 m plot (20 subplots per treatment, 160 total); Winkler extraction. This is a biotic-community observation, not a decomposition or nutrient-mineralization flux.
+- [Seedling leaf loss by herbivory](https://doi.org/10.5285/2b8029ff-ddf5-47b2-9231-5fa0cbb6cd41): repeated bimonthly observations; ten marked leaves per eligible seedling; visual leaf-loss percentage plus galls/pathogens/trail herbivory and leaf mortality. Preserve seedling × leaf × campaign nesting and six repeated visits per subplot.
+
+Both catalogues describe the BDFFP site as approximately 100 km north of Manaus, whereas other AFEX records describe approximately 80 km. Shared experiment branding does not prove spatial identity; resolve plot/subplot keys before joins.
+
 ## 3. Non-negotiable support rules
 
 ### 3.1 Treatment and replication
