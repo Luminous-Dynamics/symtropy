@@ -196,8 +196,16 @@ fn make_case(
                     y: ((radial as f64) * angle.sin()).round() as i64,
                     z: rng.range(501) - 250,
                 };
-                let start = Point { x: -radius, y: 0, z: 0 };
-                let end = Point { x: radius, y: 0, z: 0 };
+                let start = Point {
+                    x: -radius,
+                    y: 0,
+                    z: 0,
+                };
+                let end = Point {
+                    x: radius,
+                    y: 0,
+                    z: 0,
+                };
                 let analytic = semicircle_distance(obstacle, radius);
                 let endpoint = distance(obstacle, start).min(distance(obstacle, end));
                 let chord = point_segment_distance(obstacle, start, end);
@@ -296,7 +304,13 @@ fn make_case(
     )
     .expect("writing to String cannot fail");
 
-    (json, contact, !endpoint_contact && contact, !chord_contact && contact, !contact && candidate)
+    (
+        json,
+        contact,
+        !endpoint_contact && contact,
+        !chord_contact && contact,
+        !contact && candidate,
+    )
 }
 
 fn generate() -> (String, usize, usize, usize, usize, usize) {
@@ -374,7 +388,11 @@ mod tests {
 
     #[test]
     fn lower_half_arc_endpoint_distance_uses_vertical_offset_once() {
-        let point = Point { x: 0, y: -1_000, z: 100 };
+        let point = Point {
+            x: 0,
+            y: -1_000,
+            z: 100,
+        };
         let expected = 2_010_000.0_f64.sqrt();
         assert!((semicircle_distance(point, 1_000) - expected).abs() < 1.0e-9);
     }
