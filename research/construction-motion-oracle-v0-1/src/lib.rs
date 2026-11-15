@@ -5,7 +5,13 @@
 //! producer's geometric expansion helpers.
 
 mod capsule;
+mod co_translation_ccd;
 mod translation_ccd;
+pub use co_translation_ccd::{
+    CoTranslatingCapsuleClosestApproach,
+    co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
+    co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
+};
 pub use translation_ccd::{
     TranslationCcdError, TranslatingCapsuleClosestApproach,
     endpoints_only_translating_capsule_collision, translating_capsule_aabb_candidate,
