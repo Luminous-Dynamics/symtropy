@@ -110,7 +110,11 @@ fn structural_errors(root: &Value) -> Vec<String> {
     if text(root, "evidence_class") != Some("synthetic") {
         errors.push("evidence_class must equal synthetic".to_owned());
     }
-    if text(root, "intended_use").map(str::trim).unwrap_or("").is_empty() {
+    if text(root, "intended_use")
+        .map(str::trim)
+        .unwrap_or("")
+        .is_empty()
+    {
         errors.push("intended_use must be a non-empty string".to_owned());
     }
 
@@ -173,7 +177,9 @@ fn structural_errors(root: &Value) -> Vec<String> {
         }
 
         if nested_bool(case, "claim", "performance_claim_permitted").is_none() {
-            errors.push(format!("{prefix}.claim.performance_claim_permitted must be boolean"));
+            errors.push(format!(
+                "{prefix}.claim.performance_claim_permitted must be boolean"
+            ));
         }
         match field(case, "standard")
             .and_then(|v| v.get("addenda"))
@@ -202,15 +208,25 @@ fn structural_errors(root: &Value) -> Vec<String> {
             Some("human_worn" | "vehicle" | "housing" | "cross_domain") => {}
             _ => errors.push(format!("{prefix}.domain is not a supported domain")),
         }
-        if text(case, "fixture_class").map(str::trim).unwrap_or("").is_empty() {
+        if text(case, "fixture_class")
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty()
+        {
             errors.push(format!("{prefix}.fixture_class must be non-empty"));
         }
-        if text(case, "rationale").map(str::trim).unwrap_or("").is_empty() {
+        if text(case, "rationale")
+            .map(str::trim)
+            .unwrap_or("")
+            .is_empty()
+        {
             errors.push(format!("{prefix}.rationale must be non-empty"));
         }
         match text(case, "expected_decision") {
             Some(name) if DECISIONS.contains(&name) && declared_set.contains(name) => {}
-            _ => errors.push(format!("{prefix}.expected_decision is unsupported or undeclared")),
+            _ => errors.push(format!(
+                "{prefix}.expected_decision is unsupported or undeclared"
+            )),
         }
     }
 
@@ -238,7 +254,10 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
             && is_null_or_missing(case, "evidence", "physical_test_report")
             && is_null_or_missing(case, "evidence", "measurement_data"));
     if signature_only {
-        return decision(REJECT_MISSING_OR_INVALID, "SIGNATURE_WITHOUT_PHYSICAL_CORROBORATION");
+        return decision(
+            REJECT_MISSING_OR_INVALID,
+            "SIGNATURE_WITHOUT_PHYSICAL_CORROBORATION",
+        );
     }
 
     // Test methods must be applied only to their declared article and proposition.
@@ -258,12 +277,18 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
                 .unwrap_or(false))
         && nested_text(case, "evidence", "specimen_scope") != Some("complete_wall_assembly")
     {
-        return decision(REJECT_SCOPE, "SMALL_FLAME_TEST_NOT_WHOLE_ASSEMBLY_FIRE_RESISTANCE");
+        return decision(
+            REJECT_SCOPE,
+            "SMALL_FLAME_TEST_NOT_WHOLE_ASSEMBLY_FIRE_RESISTANCE",
+        );
     }
 
     match currentness {
         "INCOMPLETE_REFERENCE" | "SUPERSEDED" | "REVOKED" | "STALE" => {
-            return decision(REJECT_STALE_OR_REVOKED, "STANDARD_REFERENCE_NOT_CURRENT_OR_COMPLETE");
+            return decision(
+                REJECT_STALE_OR_REVOKED,
+                "STANDARD_REFERENCE_NOT_CURRENT_OR_COMPLETE",
+            );
         }
         "OUT_OF_SCOPE" => return decision(REJECT_SCOPE, "STANDARD_REFERENCE_OUT_OF_SCOPE"),
         "UNKNOWN" | "DRAFT" | "UNVERIFIED" => {
@@ -284,24 +309,35 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
         .map(|(tested, current)| tested != current)
         .unwrap_or(false);
     if changed_revision || is_true(case, "evidence", "material_lot_changed") {
-        return decision(REQUIRE_INDEPENDENT_REVIEW, "CONFIGURATION_CHANGED_AFTER_TEST");
+        return decision(
+            REQUIRE_INDEPENDENT_REVIEW,
+            "CONFIGURATION_CHANGED_AFTER_TEST",
+        );
     }
 
     // Model-predicted results do not substantiate physical performance claims.
     if evidence_class == "model_predicted"
         && nested_bool(case, "claim", "performance_claim_permitted") == Some(true)
     {
-        return decision(ABSTAIN_UNKNOWN, "MODEL_PREDICTION_NOT_COMPLETE_ARTICLE_TEST");
+        return decision(
+            ABSTAIN_UNKNOWN,
+            "MODEL_PREDICTION_NOT_COMPLETE_ARTICLE_TEST",
+        );
     }
 
     // Explicitly incomplete records represent unknown dimensions, not zeros.
-    if evidence_class == "incomplete"
-        || is_true(case, "evidence", "missing_values_encoded_as_zero")
+    if evidence_class == "incomplete" || is_true(case, "evidence", "missing_values_encoded_as_zero")
     {
-        return decision(ABSTAIN_UNKNOWN, "INCOMPLETE_OR_UNKNOWN_PROTECTION_DIMENSIONS");
+        return decision(
+            ABSTAIN_UNKNOWN,
+            "INCOMPLETE_OR_UNKNOWN_PROTECTION_DIMENSIONS",
+        );
     }
     if evidence_class != "synthetic_test_report" {
-        return decision(ABSTAIN_UNKNOWN, "EVIDENCE_CLASS_NOT_ACCEPTED_BY_SYNTHETIC_VERIFIER");
+        return decision(
+            ABSTAIN_UNKNOWN,
+            "EVIDENCE_CLASS_NOT_ACCEPTED_BY_SYNTHETIC_VERIFIER",
+        );
     }
 
     // Domain-specific minimum record requirements; this is not a test-result evaluator.
@@ -336,11 +372,17 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
     };
 
     if !complete {
-        return decision(REJECT_MISSING_OR_INVALID, "DOMAIN_REQUIRED_RECORD_FIELDS_MISSING");
+        return decision(
+            REJECT_MISSING_OR_INVALID,
+            "DOMAIN_REQUIRED_RECORD_FIELDS_MISSING",
+        );
     }
 
     // A positive B0 outcome accepts only the completeness of the record.
-    decision(ACCEPT_RECORD_ONLY, "RECORD_FIELDS_COMPLETE_NO_PHYSICAL_CLAIM")
+    decision(
+        ACCEPT_RECORD_ONLY,
+        "RECORD_FIELDS_COMPLETE_NO_PHYSICAL_CLAIM",
+    )
 }
 
 /// Validate the corpus and return deterministic case-level conformance results.
@@ -358,7 +400,9 @@ pub fn evaluate_corpus(root: &Value) -> Result<Report, ValidationError> {
     let mut results = Vec::with_capacity(cases.len());
     for case in cases {
         let case_id = text(case, "case_id").unwrap_or_default().to_owned();
-        let expected = text(case, "expected_decision").unwrap_or_default().to_owned();
+        let expected = text(case, "expected_decision")
+            .unwrap_or_default()
+            .to_owned();
         let (actual, reason_code) = evaluate_case(case);
         let passed = actual == expected;
         results.push(CaseResult {
@@ -395,8 +439,7 @@ pub fn parse_corpus(input: &str) -> Result<Value, serde_json::Error> {
 mod tests {
     use super::*;
 
-    const FIXTURES: &str =
-        include_str!("../../fixtures/benchmark-cases-v0.1.json");
+    const FIXTURES: &str = include_str!("../../fixtures/benchmark-cases-v0.1.json");
 
     fn corpus() -> Value {
         parse_corpus(FIXTURES).expect("embedded fixture corpus must parse")
@@ -418,17 +461,41 @@ mod tests {
     #[test]
     fn reject_all_and_accept_all_policies_fail_the_mixed_control_corpus() {
         let report = evaluate_corpus(&corpus()).expect("corpus must validate");
-        let accept_all_matches = report.cases.iter()
+        let accept_all_matches = report
+            .cases
+            .iter()
             .all(|case| case.expected_decision == ACCEPT_RECORD_ONLY);
-        let reject_all_matches = report.cases.iter()
+        let reject_all_matches = report
+            .cases
+            .iter()
             .all(|case| case.expected_decision == REJECT_MISSING_OR_INVALID);
 
         assert!(!accept_all_matches);
         assert!(!reject_all_matches);
-        assert!(report.cases.iter().any(|c| c.expected_decision == ACCEPT_RECORD_ONLY));
-        assert!(report.cases.iter().any(|c| c.expected_decision == ABSTAIN_UNKNOWN));
-        assert!(report.cases.iter().any(|c| c.expected_decision == REJECT_SCOPE));
-        assert!(report.cases.iter().any(|c| c.expected_decision == REQUIRE_INDEPENDENT_REVIEW));
+        assert!(
+            report
+                .cases
+                .iter()
+                .any(|c| c.expected_decision == ACCEPT_RECORD_ONLY)
+        );
+        assert!(
+            report
+                .cases
+                .iter()
+                .any(|c| c.expected_decision == ABSTAIN_UNKNOWN)
+        );
+        assert!(
+            report
+                .cases
+                .iter()
+                .any(|c| c.expected_decision == REJECT_SCOPE)
+        );
+        assert!(
+            report
+                .cases
+                .iter()
+                .any(|c| c.expected_decision == REQUIRE_INDEPENDENT_REVIEW)
+        );
     }
 
     #[test]
@@ -471,7 +538,10 @@ mod tests {
     fn deterministic_digest_and_ordered_results() {
         let first = evaluate_corpus(&corpus()).expect("first run");
         let second = evaluate_corpus(&corpus()).expect("second run");
-        assert_eq!(first.canonical_corpus_sha256, second.canonical_corpus_sha256);
+        assert_eq!(
+            first.canonical_corpus_sha256,
+            second.canonical_corpus_sha256
+        );
         let first_json = serde_json::to_string(&first).expect("serialize");
         let second_json = serde_json::to_string(&second).expect("serialize");
         assert_eq!(first_json, second_json);
@@ -505,8 +575,7 @@ mod tests {
     #[test]
     fn duplicate_addenda_are_rejected_structurally() {
         let mut root = corpus();
-        root["cases"][0]["standard"]["addenda"] =
-            serde_json::json!(["1", "1", "2", "3"]);
+        root["cases"][0]["standard"]["addenda"] = serde_json::json!(["1", "1", "2", "3"]);
         let error = evaluate_corpus(&root).expect_err("duplicate addenda must fail");
         assert!(error.messages.iter().any(|m| m.contains("duplicate 1")));
     }
