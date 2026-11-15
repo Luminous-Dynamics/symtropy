@@ -8,6 +8,7 @@ use construction_motion_oracle::{
     translating_capsule_capsule_collision, translating_capsule_vs_capsule,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
+    bounded_clock_skew_capsule_collision, bounded_clock_skew_capsule_vs_capsule,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
 };
@@ -303,6 +304,54 @@ fn main() {
             black_box(moving_pair_b_delta),
         )
         .expect("valid co-translating pair AABB query");
+    });
+
+    let skew_a = Capsule::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        0.1,
+    )
+    .expect("valid clock-skew capsule A");
+    let skew_b = Capsule::new(
+        Vec3::new(0.5, 0.0, 0.0),
+        Vec3::new(0.5, 0.0, 0.0),
+        0.1,
+    )
+    .expect("valid clock-skew capsule B");
+    let skew_a_delta = Vec3::new(1.0, 0.0, 0.0);
+    let skew_b_delta = Vec3::new(2.0, 0.0, 0.0);
+    let skew_closest = bounded_clock_skew_capsule_vs_capsule(
+        black_box(skew_a),
+        black_box(skew_a_delta),
+        black_box(skew_b),
+        black_box(skew_b_delta),
+        black_box(0.5),
+    )
+    .expect("valid bounded clock-skew query");
+    println!(
+        "bounded-clock-skew,analytic_collision,{}",
+        bounded_clock_skew_capsule_collision(
+            black_box(skew_a),
+            black_box(skew_a_delta),
+            black_box(skew_b),
+            black_box(skew_b_delta),
+            black_box(0.5),
+        )
+        .expect("valid bounded clock-skew collision query")
+    );
+    println!(
+        "bounded-clock-skew,time_skew_used,{}",
+        skew_closest.time_skew_used
+    );
+    measure("bounded-clock-skew-capsule-narrow-phase", || {
+        bounded_clock_skew_capsule_vs_capsule(
+            black_box(skew_a),
+            black_box(skew_a_delta),
+            black_box(skew_b),
+            black_box(skew_b_delta),
+            black_box(0.5),
+        )
+        .expect("valid bounded clock-skew narrow phase");
     });
 
 }
