@@ -1,0 +1,16 @@
+[package]
+name = "construction-motion-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Independent analytic geometry oracle and differential corpus for construction motion envelopes."
+
+[dependencies]
+construction-motion-envelope = { path = "../construction-motion-envelope-v0-1" }
+
+[workspace]
+
+[[bin]]
+name = "differential-bench"
+path = "src/bin/differential_bench.rs"
