@@ -135,8 +135,7 @@ impl CytoplasmicFlowObservation {
             return Err(FlowObservationError::InvalidCrossSectionArea);
         }
         if self.solute.is_some_and(|solute| {
-            !solute.concentration_mg_per_mm3.is_finite()
-                || solute.concentration_mg_per_mm3 < 0.0
+            !solute.concentration_mg_per_mm3.is_finite() || solute.concentration_mg_per_mm3 < 0.0
         }) {
             return Err(FlowObservationError::InvalidSoluteConcentration);
         }
