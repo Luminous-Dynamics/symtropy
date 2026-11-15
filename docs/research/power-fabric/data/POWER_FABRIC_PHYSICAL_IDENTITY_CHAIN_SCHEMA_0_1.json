@@ -425,6 +425,13 @@
         },
         "location_ref": {
           "$ref": "#/$defs/id"
+        },
+        "observed_identity_namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "observed_serial_identifier": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "allOf": [
@@ -542,6 +549,24 @@
             "required": [
               "location_ref",
               "previous_physical_instance_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "event_type": {
+                "const": "identity_observed"
+              }
+            },
+            "required": [
+              "event_type"
+            ]
+          },
+          "then": {
+            "required": [
+              "observed_identity_namespace",
+              "observed_serial_identifier"
             ]
           }
         }
