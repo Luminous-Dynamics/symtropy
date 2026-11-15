@@ -501,17 +501,18 @@ fn compute_split(case_id: &str, input: &Value) -> Result<Value, String> {
     }
 }
 
-
 fn event_peak_metrics(input: &Value) -> Result<Value, String> {
     let event_id = text(input, "event_id")?;
     let observed = numeric_array(input, "observed")?;
     let predicted = numeric_array(input, "predicted")?;
     let start = field(input, "event_start_index")?
         .as_u64()
-        .ok_or_else(|| "event_start_index: expected non-negative integer".to_owned())? as usize;
+        .ok_or_else(|| "event_start_index: expected non-negative integer".to_owned())?
+        as usize;
     let end = field(input, "event_end_index")?
         .as_u64()
-        .ok_or_else(|| "event_end_index: expected non-negative integer".to_owned())? as usize;
+        .ok_or_else(|| "event_end_index: expected non-negative integer".to_owned())?
+        as usize;
     let step_hours = number(input, "step_hours")?;
     let tolerance = number(input, "denominator_tolerance")?;
     if observed.len() != predicted.len() || observed.len() < 2 {
@@ -521,12 +522,17 @@ fn event_peak_metrics(input: &Value) -> Result<Value, String> {
         return Err("event window must be non-empty and within the supplied arrays".to_owned());
     }
     if step_hours <= 0.0 || tolerance < 0.0 {
-        return Err("step_hours must be positive and denominator tolerance non-negative".to_owned());
+        return Err(
+            "step_hours must be positive and denominator tolerance non-negative".to_owned(),
+        );
     }
     let obs_window = &observed[start..end];
     let pred_window = &predicted[start..end];
     let observed_peak = obs_window.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    let predicted_peak = pred_window.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let predicted_peak = pred_window
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
     let obs_peak_offset = obs_window
         .iter()
         .position(|value| *value == observed_peak)
@@ -540,8 +546,7 @@ fn event_peak_metrics(input: &Value) -> Result<Value, String> {
     } else {
         Some((predicted_peak - observed_peak) / observed_peak * 100.0)
     };
-    let timing_error_hours =
-        (pred_peak_offset as f64 - obs_peak_offset as f64) * step_hours;
+    let timing_error_hours = (pred_peak_offset as f64 - obs_peak_offset as f64) * step_hours;
     let event_scores = score_series(obs_window, pred_window, tolerance)?;
     Ok(json!({
         "event_id": event_id,
@@ -649,7 +654,11 @@ fn interval_calibration_metrics(input: &Value) -> Result<Value, String> {
         .zip(&upper)
         .filter(|((obs, lo), hi)| **lo <= **obs && **obs <= **hi)
         .count();
-    let widths = lower.iter().zip(&upper).map(|(lo, hi)| hi - lo).collect::<Vec<_>>();
+    let widths = lower
+        .iter()
+        .zip(&upper)
+        .map(|(lo, hi)| hi - lo)
+        .collect::<Vec<_>>();
     let empirical = covered as f64 / observed.len() as f64;
     Ok(json!({
         "interval_disposition": "ADMITTED",
@@ -679,7 +688,9 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         }
 
         "HC-T0-022-event-peak-magnitude-and-timing" => event_peak_metrics(input),
-        "HC-T0-023-low-flow-log10-error" | "HC-T0-026-low-flow-log-zero-abstains" => low_flow_log_metrics(input),
+        "HC-T0-023-low-flow-log10-error" | "HC-T0-026-low-flow-log-zero-abstains" => {
+            low_flow_log_metrics(input)
+        }
         "HC-T0-024-probabilistic-interval-coverage-width"
         | "HC-T0-025-invalid-probabilistic-interval-reject" => interval_calibration_metrics(input),
         _ => compute_split(&id, input),
@@ -897,7 +908,6 @@ mod tests {
         assert_eq!(out["reason"], "LOWER_BOUND_EXCEEDS_UPPER_BOUND");
     }
 
-
     #[test]
     fn event_peak_ties_select_the_earliest_time_step() {
         let out = compute_case(&fixture("inputs")["cases"][26]).expect("tied event peaks");
@@ -908,9 +918,13 @@ mod tests {
 
     #[test]
     fn log_low_flow_metrics_abstain_on_zero_flow_without_pseudocount() {
-        let out = compute_case(&fixture("inputs")["cases"][25]).expect("zero-flow low-flow control");
+        let out =
+            compute_case(&fixture("inputs")["cases"][25]).expect("zero-flow low-flow control");
         assert_eq!(out["low_flow_disposition"], "INDETERMINATE");
-        assert_eq!(out["reason"], "LOG10_TRANSFORM_REQUIRES_STRICTLY_POSITIVE_OBSERVED_AND_PREDICTED_FLOW");
+        assert_eq!(
+            out["reason"],
+            "LOG10_TRANSFORM_REQUIRES_STRICTLY_POSITIVE_OBSERVED_AND_PREDICTED_FLOW"
+        );
     }
 
     #[test]
