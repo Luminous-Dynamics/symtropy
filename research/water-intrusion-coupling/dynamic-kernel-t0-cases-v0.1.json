@@ -884,6 +884,69 @@
           ]
         ]
       }
+    },
+    {
+      "case_id": "DK-T0-014-positive-mass-time-scale-invariance",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "mass_residual_standard_uncertainty": 0.1,
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "temporal_resolution_state": "sufficient",
+        "inlet_mass_flux": [
+          [
+            10,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ]
+      }
     }
   ]
 }
