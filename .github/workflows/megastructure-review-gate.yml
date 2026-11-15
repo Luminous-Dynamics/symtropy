@@ -1,0 +1,46 @@
+name: Megastructure Review Gate
+
+on:
+  push:
+    branches:
+      - research/megastructure-review-gate-v0-1
+    paths:
+      - "tools/megastructure-review-gate/**"
+      - ".github/workflows/megastructure-review-gate.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tools/megastructure-review-gate/**"
+      - ".github/workflows/megastructure-review-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-gate:
+    name: non-compensatory-review-policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head (or push/workflow-dispatch commit)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
+
+      - name: Verify exact source checkout
+        env:
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+
+      - name: Format
+        run: cargo +1.96.0 fmt --manifest-path tools/megastructure-review-gate/Cargo.toml --all -- --check
+
+      - name: Clippy
+        run: cargo +1.96.0 clippy --manifest-path tools/megastructure-review-gate/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Unit tests
+        run: cargo +1.96.0 test --manifest-path tools/megastructure-review-gate/Cargo.toml --locked --all-targets
