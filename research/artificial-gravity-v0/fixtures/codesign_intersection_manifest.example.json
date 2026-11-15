@@ -108,14 +108,6 @@
         "coverage_factor": null
       },
       {
-        "name": "active_constraint_code",
-        "value": 2,
-        "unit": "enum-code (1=gradient, 2=maximum RPM, 3=Coriolis)",
-        "origin": "derived",
-        "standard_uncertainty": null,
-        "coverage_factor": null
-      },
-      {
         "name": "resulting_rpm",
         "value": 2,
         "unit": "rpm",
@@ -140,7 +132,14 @@
         "coverage_factor": null
       }
     ],
-    "uncertainty_status": "not_applicable_analytic"
+    "uncertainty_status": "not_applicable_analytic",
+    "design_decision": {
+      "active_constraint": "maximum_rpm",
+      "minimum_radius_m": 111.78240587618983,
+      "resulting_rpm": 2,
+      "resulting_body_gradient_fraction": 0.01565541541428532,
+      "resulting_coriolis_fraction": 0.08542754569167638
+    }
   },
   "evidence": {
     "artifacts": [
