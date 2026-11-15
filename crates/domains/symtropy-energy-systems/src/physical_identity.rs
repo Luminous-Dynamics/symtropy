@@ -358,6 +358,27 @@ impl EvidenceRecord {
     }
 }
 
+
+/// Admission decision from the upstream evidence-integrity owner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvidenceAdmission {
+    Accepted,
+    Rejected,
+    Unknown,
+}
+
+/// Verifies that an evidence record's bytes, source receipt and trust status are valid
+/// at the historical decision cutoff. Implementations should consume the typed receipt
+/// from the evidence-integrity owner (#5171), not trust a caller-provided boolean.
+pub trait EvidenceAdmissionVerifier {
+    fn verify(
+        &self,
+        evidence: &EvidenceRecord,
+        as_known_at_ms: i64,
+    ) -> EvidenceAdmission;
+}
+
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PhysicalEventKind {
@@ -675,9 +696,16 @@ impl PhysicalIdentityLedger {
         let mut instance_map = BTreeMap::new();
         let mut serial_keys = BTreeSet::new();
         for instance in instances {
-            if !product_map.contains_key(&instance.product_id) {
+            let Some(product) = product_map.get(&instance.product_id) else {
                 return Err(PhysicalIdentityError::UnknownProduct {
                     product_id: instance.product_id.clone(),
+                });
+            };
+            if product.manufacturer != instance.manufacturer {
+                return Err(PhysicalIdentityError::ManufacturerMismatch {
+                    instance_id: instance.physical_instance_id.clone(),
+                    expected: product.manufacturer.clone(),
+                    actual: instance.manufacturer.clone(),
                 });
             }
             let serial_key = (
@@ -785,6 +813,7 @@ impl PhysicalIdentityLedger {
     pub fn project(
         &self,
         as_known_at_ms: i64,
+        evidence_verifier: &dyn EvidenceAdmissionVerifier,
         review_verifier: &dyn IndependentReviewVerifier,
     ) -> InstallationProjection {
         let mut runtime: BTreeMap<String, SlotRuntime> = self
@@ -811,17 +840,41 @@ impl PhysicalIdentityLedger {
                 );
                 continue;
             }
-            if event.evidence_refs.iter().any(|evidence_id| {
-                self.evidence
-                    .get(evidence_id)
-                    .is_none_or(|record| record.received_at_ms > as_known_at_ms)
-            }) {
+            let mut evidence_failure = None;
+            for evidence_id in &event.evidence_refs {
+                let evidence = self.evidence.get(evidence_id).expect("evidence validated");
+                if evidence.received_at_ms > as_known_at_ms {
+                    evidence_failure = Some((
+                        PhysicalIdentityDiagnosticCode::EvidenceUnavailableAtCutoff,
+                        true,
+                    ));
+                    break;
+                }
+                match evidence_verifier.verify(evidence, as_known_at_ms) {
+                    EvidenceAdmission::Accepted => {}
+                    EvidenceAdmission::Rejected => {
+                        evidence_failure = Some((
+                            PhysicalIdentityDiagnosticCode::EvidenceAdmissionRejected,
+                            false,
+                        ));
+                        break;
+                    }
+                    EvidenceAdmission::Unknown => {
+                        evidence_failure = Some((
+                            PhysicalIdentityDiagnosticCode::EvidenceAdmissionUnknown,
+                            true,
+                        ));
+                        break;
+                    }
+                }
+            }
+            if let Some((code, unknown)) = evidence_failure {
                 push_diagnostic(
                     &mut runtime,
                     &mut global_diagnostics,
                     event,
-                    PhysicalIdentityDiagnosticCode::EvidenceUnavailableAtCutoff,
-                    true,
+                    code,
+                    unknown,
                 );
                 continue;
             }
@@ -988,17 +1041,38 @@ impl PhysicalIdentityLedger {
             }
             PhysicalEventKind::IdentityObserved => {
                 let instance_id = event.physical_instance_id.as_ref().expect("shape validated");
-                let known = runtime.get(slot_id).is_some_and(|state| {
-                    state.delivered.contains(instance_id) || state.active.contains_key(instance_id)
-                });
-                if !known {
+                let instance = self.instances.get(instance_id).expect("instance validated");
+                let observed_namespace = event
+                    .observed_identity_namespace
+                    .as_deref()
+                    .expect("shape validated");
+                let observed_serial = event
+                    .observed_serial_identifier
+                    .as_deref()
+                    .expect("shape validated");
+                if observed_namespace != instance.identity_namespace
+                    || observed_serial != instance.serial_identifier
+                {
                     push_diagnostic(
                         runtime,
                         global_diagnostics,
                         event,
-                        PhysicalIdentityDiagnosticCode::IdentityObservationWithoutDeliveryOrAssignment,
-                        true,
+                        PhysicalIdentityDiagnosticCode::ObservedIdentityMismatch,
+                        false,
                     );
+                } else {
+                    let known = runtime.get(slot_id).is_some_and(|state| {
+                        state.delivered.contains(instance_id) || state.active.contains_key(instance_id)
+                    });
+                    if !known {
+                        push_diagnostic(
+                            runtime,
+                            global_diagnostics,
+                            event,
+                            PhysicalIdentityDiagnosticCode::IdentityObservationWithoutDeliveryOrAssignment,
+                            true,
+                        );
+                    }
                 }
             }
             PhysicalEventKind::UnitInstalled => {
@@ -1241,8 +1315,15 @@ impl PhysicalIdentityLedger {
                     installation_id: self.snapshot.installation_id.clone(),
                     installation_revision: self.snapshot.installation_revision.clone(),
                     slot_id: slot_id.to_owned(),
+                    source_node_id: self.slots[slot_id].source_node_id.clone(),
+                    module_contract_id: self.slots[slot_id].module_contract_id.clone(),
+                    design_location_id: self.slots[slot_id].expected_location_id.clone(),
                     physical_instance_id: instance_id.clone(),
+                    manufacturer: instance.manufacturer.clone(),
+                    identity_namespace: instance.identity_namespace.clone(),
+                    serial_identifier: instance.serial_identifier.clone(),
                     product_id: instance.product_id.clone(),
+                    catalogue_revision: self.products[&instance.product_id].catalogue_revision.clone(),
                     hardware_revision: instance.hardware_revision.clone(),
                     configuration_sha256: assignment.configuration_sha256,
                     location_id: assignment.location_id,
@@ -1388,6 +1469,16 @@ fn validate_event_shape(event: &PhysicalEvent) -> Result<(), PhysicalIdentityErr
         });
     }
     match event.event_kind {
+        PhysicalEventKind::IdentityObserved => {
+            if event.observed_identity_namespace.as_deref().is_none_or(str::is_empty)
+                || event.observed_serial_identifier.as_deref().is_none_or(str::is_empty)
+            {
+                return Err(PhysicalIdentityError::InvalidEventShape {
+                    event_id: event.event_id.clone(),
+                    reason: "identity observation requires observed namespace and serial",
+                });
+            }
+        }
         PhysicalEventKind::UnitInstalled
         | PhysicalEventKind::UnitRemoved
         | PhysicalEventKind::InspectionRecorded => {
