@@ -22,6 +22,7 @@ mod fuel;
 mod infrastructure_ir;
 mod ir_graph_bridge;
 mod module_contract;
+mod physical_identity;
 mod resilience;
 mod service_graph;
 mod standards_adapter;
@@ -64,6 +65,13 @@ pub use resilience::{
     assess_resilience, DisjointPath, FailureDomain, FailureDomainExposure,
     FailureDomainInventoryStatus, FailureDomainKind, IndependenceAssessment,
     ResilienceAssessment, ResilienceError,
+};
+pub use physical_identity::{
+    ActivePhysicalAssignment, DesignSlot, EvidenceRecord, IndependentReviewVerifier,
+    InstallationProjection, InstallationSnapshot, PhysicalEvent, PhysicalEventKind,
+    PhysicalIdentityDiagnostic, PhysicalIdentityDiagnosticCode, PhysicalIdentityError,
+    PhysicalIdentityLedger, PhysicalInstance, ProductModel, ReviewScope, ReviewVerification,
+    SlotProjection, SlotStatus,
 };
 pub use module_contract::{
     AcPort, CompatibilityAssessment, CompatibilityReason, CompatibilityStatus,
