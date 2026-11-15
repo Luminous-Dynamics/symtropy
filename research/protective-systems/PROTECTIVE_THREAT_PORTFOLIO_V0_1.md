@@ -238,3 +238,18 @@ External anchors:
 **Beating the state of the art requires a matched result, not a novel architecture label.** On a rights-cleared independent case, compare persistence, a competent domain rule/operator plan, available external-model results (including IN-CORE only when scope-compatible), domain-specific Symtropy solvers, and the full portfolio bridge. Freeze boundary, service demand, scenarios, evidence, uncertainty, safety floors, time horizon and lifecycle cost before comparison.
 
 Prospective materiality thresholds (not achieved): either at least 20% lower fully burdened lifecycle cost at unchanged mandatory safety/service floors, or at least 20% lower integrated critical-service deficit at equal lifecycle budget. The reviewer must first establish that the data and sample precision can resolve such effects. Otherwise publish confidence intervals and smallest detectable effects. Also require zero false-feasible decisions on the frozen negative-control set, full deterministic reproducibility, and disclosure of cases where the Luminous approach loses or abstains.
+
+
+## 12. Evidence bridge E0 and updated SOTA crosswalk
+
+The follow-on branch `research/protect-resilience-e0-oracle-v0-1` now contains the first exact E0 synthetic reference and independent Rust accounting oracle. It uses frozen service trajectories rather than creating another hazard or service simulator. The known-answer case checks exact per-stratum deficit/recovery metrics, matched scope, unique cost/benefit identities, separate buffer recovery and a mandatory safety-floor negative control.
+
+See:
+- `PROTECTIVE_RESILIENCE_EVIDENCE_BRIDGE_V0_1.md`
+- `PROTECTIVE_RESILIENCE_SOTA_CROSSWALK_2026_11.md`
+- `fixtures/protective-resilience-e0-reference-v0.1.json`
+- `verifier/src/bin/protective_resilience_e0.rs`
+
+The SOTA crosswalk incorporates the 7 November 2026 comparative paper by Shamsi, Helmrich and Deegan (DOI 10.1007/s10669-026-10162-2). It identifies a genuine integration/assurance opportunity while explicitly acknowledging existing IN-CORE, PRIIA, REFIT and other specialist tools. Luminous should compete on provenance-preserving interoperability, matched decision assurance, non-compensatory constraints, cost/benefit accounting, explicit abstention and practical operator usability—not by claiming to have invented community resilience modelling.
+
+The SOTA paper's 1–5 ordinal tool-characterization ratings are not real-world risk values or a universal leaderboard. Any future claim of superiority still requires matched scopes, external reproduction, sufficient measurement precision and independent review.
