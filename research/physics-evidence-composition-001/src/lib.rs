@@ -78,7 +78,8 @@ pub struct ProblemBindingV1 {
     pub solver_profile_id: String,
     pub constraint_model_sha256: String,
     pub observable_map_sha256: String,
-    pub task_semantics_sha256: String,
+    /// Absent when the requested claim is only physical-step equivalence.
+    pub task_semantics_sha256: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -102,6 +103,13 @@ pub struct CoordinateRelationV1 {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FrameApplicabilityV1 {
+    Source(FrameBindingV1),
+    Target(FrameBindingV1),
+    RepresentationInvariant,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvidenceReceiptV1 {
     pub kind: EvidenceKindV1,
     pub verification_status: VerificationStatusV1,
@@ -110,8 +118,9 @@ pub struct EvidenceReceiptV1 {
     pub verifier_version: String,
     pub verifier_commit_sha: String,
     pub binding: ProblemBindingV1,
-    /// The frame in which the owning verifier evaluated this evidence.
-    pub frame: FrameBindingV1,
+    /// Declares which coordinate representation the owning checker used.
+    /// Task semantics are representation-independent in this v0.1 contract.
+    pub frame_applicability: FrameApplicabilityV1,
     /// Present only for CoordinateCovariance evidence.
     pub coordinate_relation: Option<CoordinateRelationV1>,
     /// Present for nonlinear sensitivity evidence.
@@ -120,6 +129,14 @@ pub struct EvidenceReceiptV1 {
     pub mathematical_evidence_class: Option<MathematicalEvidenceClassV1>,
     /// Stable claim-scope identifier, e.g. one-step-dumbbell-v1.
     pub claim_scope_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpectedVerifierIdentityV1 {
+    pub kind: EvidenceKindV1,
+    pub verifier_id: String,
+    pub verifier_version: String,
+    pub verifier_commit_sha: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,6 +149,8 @@ pub struct CompositionRequestV1 {
     pub minimum_mathematical_evidence_class: MathematicalEvidenceClassV1,
     pub required_perturbation_radius_nanometers: u64,
     pub accepted_claim_scope_id: String,
+    /// Exact, pre-approved verifier identities for every required evidence kind.
+    pub expected_verifiers: Vec<ExpectedVerifierIdentityV1>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -140,7 +159,12 @@ pub enum CompositionErrorV1 {
     InvalidSha256(&'static str),
     InvalidGitSha(&'static str),
     InvalidTimestep,
+    MissingTaskSemanticsBinding,
     DuplicateEvidenceKind(EvidenceKindV1),
+    DuplicateExpectedVerifier(EvidenceKindV1),
+    MissingExpectedVerifier(EvidenceKindV1),
+    UnexpectedExpectedVerifier(EvidenceKindV1),
+    VerifierIdentityMismatch(EvidenceKindV1),
     UnexpectedCoordinateRelation(EvidenceKindV1),
     UnexpectedMathematicalEvidenceClass(EvidenceKindV1),
     UnexpectedPerturbationRadius(EvidenceKindV1),
@@ -171,6 +195,7 @@ pub struct EvidenceUseV1 {
     pub verifier_id: String,
     pub verifier_version: String,
     pub verifier_commit_sha: String,
+    pub frame_applicability: FrameApplicabilityV1,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -232,10 +257,14 @@ fn validate_problem_binding(binding: &ProblemBindingV1) -> Result<(), Compositio
         ("initial_state_sha256", binding.initial_state_sha256.as_str()),
         ("constraint_model_sha256", binding.constraint_model_sha256.as_str()),
         ("observable_map_sha256", binding.observable_map_sha256.as_str()),
-        ("task_semantics_sha256", binding.task_semantics_sha256.as_str()),
     ] {
         if !valid_sha256(value) {
             return Err(CompositionErrorV1::InvalidSha256(name));
+        }
+    }
+    if let Some(task_digest) = &binding.task_semantics_sha256 {
+        if !valid_sha256(task_digest) {
+            return Err(CompositionErrorV1::InvalidSha256("task_semantics_sha256"));
         }
     }
     Ok(())
@@ -305,7 +334,12 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
         return Err(CompositionErrorV1::InvalidIdentifier("claim_scope_id"));
     }
     validate_problem_binding(&receipt.binding)?;
-    validate_frame(&receipt.frame)?;
+    match &receipt.frame_applicability {
+        FrameApplicabilityV1::Source(frame) | FrameApplicabilityV1::Target(frame) => {
+            validate_frame(frame)?;
+        }
+        FrameApplicabilityV1::RepresentationInvariant => {}
+    }
 
     match (receipt.kind, &receipt.coordinate_relation) {
         (EvidenceKindV1::CoordinateCovariance, Some(relation)) => {
@@ -360,6 +394,11 @@ fn validate_receipt_structure(receipt: &EvidenceReceiptV1) -> Result<(), Composi
             receipt.kind,
         ));
     }
+    if receipt.kind == EvidenceKindV1::TaskSemantics
+        && receipt.binding.task_semantics_sha256.is_none()
+    {
+        return Err(CompositionErrorV1::MissingTaskSemanticsBinding);
+    }
     if receipt.kind == EvidenceKindV1::MathematicalSymmetry
         && receipt.mathematical_evidence_class.is_none()
     {
@@ -399,6 +438,39 @@ pub fn compose_evidence(
         return Err(CompositionErrorV1::PerturbationRadiusInsufficient);
     }
 
+    if request.claim == CompositionClaimV1::TaskEquivalence
+        && request.binding.task_semantics_sha256.is_none()
+    {
+        return Err(CompositionErrorV1::MissingTaskSemanticsBinding);
+    }
+
+    let required = required_kinds(request.claim);
+    let mut expected_by_kind = BTreeMap::new();
+    for expected in &request.expected_verifiers {
+        if !valid_identifier(&expected.verifier_id) {
+            return Err(CompositionErrorV1::InvalidIdentifier("expected_verifier_id"));
+        }
+        if !valid_identifier(&expected.verifier_version) {
+            return Err(CompositionErrorV1::InvalidIdentifier("expected_verifier_version"));
+        }
+        if !valid_git_sha(&expected.verifier_commit_sha) {
+            return Err(CompositionErrorV1::InvalidGitSha("expected_verifier_commit_sha"));
+        }
+        if expected_by_kind.insert(expected.kind, expected).is_some() {
+            return Err(CompositionErrorV1::DuplicateExpectedVerifier(expected.kind));
+        }
+    }
+    for kind in required {
+        if !expected_by_kind.contains_key(kind) {
+            return Err(CompositionErrorV1::MissingExpectedVerifier(*kind));
+        }
+    }
+    for kind in expected_by_kind.keys() {
+        if !required.contains(kind) {
+            return Err(CompositionErrorV1::UnexpectedExpectedVerifier(*kind));
+        }
+    }
+
     let mut by_kind = BTreeMap::new();
     for receipt in receipts {
         validate_receipt_structure(receipt)?;
@@ -409,7 +481,7 @@ pub fn compose_evidence(
 
     let mut uses = Vec::new();
     let mut inconclusive = false;
-    for kind in required_kinds(request.claim) {
+    for kind in required {
         let receipt = by_kind
             .get(kind)
             .copied()
@@ -420,6 +492,35 @@ pub fn compose_evidence(
         }
         if receipt.claim_scope_id != request.accepted_claim_scope_id {
             return Err(CompositionErrorV1::ClaimScopeMismatch(*kind));
+        }
+
+        let expected_verifier = expected_by_kind
+            .get(kind)
+            .copied()
+            .ok_or(CompositionErrorV1::MissingExpectedVerifier(*kind))?;
+        if receipt.verifier_id != expected_verifier.verifier_id
+            || receipt.verifier_version != expected_verifier.verifier_version
+            || receipt.verifier_commit_sha != expected_verifier.verifier_commit_sha
+        {
+            return Err(CompositionErrorV1::VerifierIdentityMismatch(*kind));
+        }
+
+        let frame_is_valid = match kind {
+            EvidenceKindV1::MathematicalSymmetry => {
+                receipt.frame_applicability == FrameApplicabilityV1::Source(request.source_frame.clone())
+            }
+            EvidenceKindV1::CoordinateCovariance => {
+                receipt.frame_applicability == FrameApplicabilityV1::Target(request.target_frame.clone())
+            }
+            EvidenceKindV1::TaskSemantics => {
+                receipt.frame_applicability == FrameApplicabilityV1::RepresentationInvariant
+            }
+            _ => {
+                receipt.frame_applicability == FrameApplicabilityV1::Target(request.target_frame.clone())
+            }
+        };
+        if !frame_is_valid {
+            return Err(CompositionErrorV1::FrameMismatch(*kind));
         }
 
         if *kind == EvidenceKindV1::CoordinateCovariance {
@@ -433,12 +534,9 @@ pub fn compose_evidence(
                 || relation.target_metric_sha256 != request.target_frame.metric_sha256
                 || relation.basis_transform_sha256 != request.basis_transform_sha256
                 || relation.covariance_receipt_sha256 != receipt.artifact_sha256
-                || receipt.frame != request.target_frame
             {
                 return Err(CompositionErrorV1::CoordinateRelationMismatch);
             }
-        } else if receipt.frame != request.target_frame {
-            return Err(CompositionErrorV1::FrameMismatch(*kind));
         }
 
         if *kind == EvidenceKindV1::MathematicalSymmetry {
@@ -478,6 +576,7 @@ pub fn compose_evidence(
             verifier_id: receipt.verifier_id.clone(),
             verifier_version: receipt.verifier_version.clone(),
             verifier_commit_sha: receipt.verifier_commit_sha.clone(),
+            frame_applicability: receipt.frame_applicability.clone(),
         });
     }
 
@@ -542,8 +641,14 @@ mod tests {
             solver_profile_id: "midpoint-newton-profile-v1".to_owned(),
             constraint_model_sha256: digest('4'),
             observable_map_sha256: digest('5'),
-            task_semantics_sha256: digest('6'),
+            task_semantics_sha256: None,
         }
+    }
+
+    fn task_binding() -> ProblemBindingV1 {
+        let mut value = binding();
+        value.task_semantics_sha256 = Some(digest('6'));
+        value
     }
 
     fn source_frame() -> FrameBindingV1 {
@@ -572,6 +677,15 @@ mod tests {
             minimum_mathematical_evidence_class: MathematicalEvidenceClassV1::NumericLieBasis,
             required_perturbation_radius_nanometers: 50_000,
             accepted_claim_scope_id: "one-step-dumbbell-v1".to_owned(),
+            expected_verifiers: required_kinds(claim)
+                .iter()
+                .map(|kind| ExpectedVerifierIdentityV1 {
+                    kind: *kind,
+                    verifier_id: format!("checker-{:?}", kind).to_ascii_lowercase(),
+                    verifier_version: "1.0.0".to_owned(),
+                    verifier_commit_sha: "a".repeat(40),
+                })
+                .collect(),
         }
     }
 
@@ -608,7 +722,13 @@ mod tests {
             verifier_version: "1.0.0".to_owned(),
             verifier_commit_sha: "a".repeat(40),
             binding: binding(),
-            frame: target_frame(),
+            frame_applicability: match kind {
+                EvidenceKindV1::MathematicalSymmetry => {
+                    FrameApplicabilityV1::Source(source_frame())
+                }
+                EvidenceKindV1::TaskSemantics => FrameApplicabilityV1::RepresentationInvariant,
+                _ => FrameApplicabilityV1::Target(target_frame()),
+            },
             coordinate_relation,
             valid_perturbation_radius_nanometers: if kind
                 == EvidenceKindV1::NonlinearSensitivity
@@ -660,15 +780,40 @@ mod tests {
     }
 
     #[test]
+    fn physical_step_chain_does_not_require_task_semantics_digest() {
+        let request = request(CompositionClaimV1::PhysicalStepEquivalence);
+        assert!(request.binding.task_semantics_sha256.is_none());
+        let output = compose_evidence(&request, &physical_receipts()).unwrap();
+        assert_eq!(output.physical_step_status, CompositionStatusV1::Pass);
+        assert_eq!(output.task_equivalence_status, CompositionStatusV1::Inconclusive);
+    }
+
+    #[test]
     fn full_task_chain_requires_separate_task_semantics_receipt() {
-        let mut evidence = physical_receipts();
+        let mut missing_task_request = request(CompositionClaimV1::TaskEquivalence);
+        let missing_task_evidence = physical_receipts();
         assert_eq!(
-            compose_evidence(&request(CompositionClaimV1::TaskEquivalence), &evidence),
-            Err(CompositionErrorV1::MissingEvidence(EvidenceKindV1::TaskSemantics))
+            compose_evidence(&missing_task_request, &missing_task_evidence),
+            Err(CompositionErrorV1::MissingTaskSemanticsBinding)
         );
-        evidence.push(receipt(EvidenceKindV1::TaskSemantics));
+
+        let mut task_request = request(CompositionClaimV1::TaskEquivalence);
+        task_request.binding = task_binding();
+        let mut evidence = physical_receipts();
+        for item in &mut evidence {
+            item.binding = task_binding();
+        }
+        let mut semantics = receipt(EvidenceKindV1::TaskSemantics);
+        semantics.binding = task_binding();
+        evidence.push(semantics);
+        task_request.expected_verifiers.push(ExpectedVerifierIdentityV1 {
+            kind: EvidenceKindV1::TaskSemantics,
+            verifier_id: format!("checker-{:?}", EvidenceKindV1::TaskSemantics).to_ascii_lowercase(),
+            verifier_version: "1.0.0".to_owned(),
+            verifier_commit_sha: "a".repeat(40),
+        });
         let output = compose_evidence(
-            &request(CompositionClaimV1::TaskEquivalence),
+            &task_request,
             &evidence,
         )
         .unwrap();
@@ -848,7 +993,7 @@ mod tests {
     }
 
     #[test]
-    fn stale_or_malformed_verifier_identity_is_rejected() {
+    fn malformed_verifier_identity_is_rejected() {
         let mut evidence = physical_receipts();
         evidence[0].verifier_commit_sha = "not-a-git-sha".to_owned();
         assert_eq!(
@@ -857,6 +1002,36 @@ mod tests {
                 &evidence
             ),
             Err(CompositionErrorV1::InvalidGitSha("verifier_commit_sha"))
+        );
+    }
+
+    #[test]
+    fn well_formed_but_stale_verifier_identity_is_rejected() {
+        let mut evidence = physical_receipts();
+        evidence[0].verifier_commit_sha = "b".repeat(40);
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::VerifierIdentityMismatch(
+                EvidenceKindV1::MathematicalSymmetry
+            ))
+        );
+    }
+
+    #[test]
+    fn mathematical_receipt_is_bound_to_source_and_task_semantics_are_frame_invariant() {
+        let mut evidence = physical_receipts();
+        evidence[0].frame_applicability = FrameApplicabilityV1::Target(target_frame());
+        assert_eq!(
+            compose_evidence(
+                &request(CompositionClaimV1::PhysicalStepEquivalence),
+                &evidence
+            ),
+            Err(CompositionErrorV1::FrameMismatch(
+                EvidenceKindV1::MathematicalSymmetry
+            ))
         );
     }
 
