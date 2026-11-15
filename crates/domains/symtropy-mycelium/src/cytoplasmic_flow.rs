@@ -119,29 +119,32 @@ impl CytoplasmicFlowObservation {
         if !self.signed_velocity_mm_per_s.is_finite() {
             return Err(FlowObservationError::InvalidVelocity);
         }
-        if let Some(std_dev) = self.velocity_std_dev_mm_per_s {
-            if !std_dev.is_finite() || std_dev < 0.0 {
-                return Err(FlowObservationError::InvalidVelocityUncertainty);
-            }
+        if self
+            .velocity_std_dev_mm_per_s
+            .is_some_and(|std_dev| !std_dev.is_finite() || std_dev < 0.0)
+        {
+            return Err(FlowObservationError::InvalidVelocityUncertainty);
         }
         if self.observation_count == 0 {
             return Err(FlowObservationError::EmptyObservationCount);
         }
-        if let Some(area) = self.cross_section_area_mm2 {
-            if !area.is_finite() || area <= 0.0 {
-                return Err(FlowObservationError::InvalidCrossSectionArea);
-            }
+        if self
+            .cross_section_area_mm2
+            .is_some_and(|area| !area.is_finite() || area <= 0.0)
+        {
+            return Err(FlowObservationError::InvalidCrossSectionArea);
         }
-        if let Some(solute) = self.solute {
-            if !solute.concentration_mg_per_mm3.is_finite() || solute.concentration_mg_per_mm3 < 0.0
-            {
-                return Err(FlowObservationError::InvalidSoluteConcentration);
-            }
+        if self.solute.is_some_and(|solute| {
+            !solute.concentration_mg_per_mm3.is_finite()
+                || solute.concentration_mg_per_mm3 < 0.0
+        }) {
+            return Err(FlowObservationError::InvalidSoluteConcentration);
         }
-        if let Some(duration) = self.sample_duration_s {
-            if !duration.is_finite() || duration <= 0.0 {
-                return Err(FlowObservationError::InvalidSampleDuration);
-            }
+        if self
+            .sample_duration_s
+            .is_some_and(|duration| !duration.is_finite() || duration <= 0.0)
+        {
+            return Err(FlowObservationError::InvalidSampleDuration);
         }
         Ok(())
     }
