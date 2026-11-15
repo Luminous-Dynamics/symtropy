@@ -18,8 +18,8 @@ use symtropy_physics::{
 };
 
 use crate::transaction::{
-    EventDisposition, PhysicalTransaction, PhysicalTransactionState, ReconciliationOutcome,
-    TransactionContext, TransactionEvent, TransactionEventKind,
+    PhysicalTransaction, PhysicalTransactionState, TransactionContext, TransactionEvent,
+    TransactionEventKind,
 };
 use crate::{AuthorizationAction, EvidenceLevel, ScenarioManifest, UseLimit};
 
