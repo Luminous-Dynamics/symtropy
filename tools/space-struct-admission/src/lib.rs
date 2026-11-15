@@ -37,6 +37,7 @@ pub enum ReasonCode {
     LoadCaseIdentityMismatch,
     FrameIdentityMismatch,
     ModelProfileIdentityMismatch,
+    ModelSourceIdentityMismatch,
     BackendIdentityMismatch,
     BackendNotAllowlisted,
     MaterialEvidenceInsufficient,
@@ -161,6 +162,8 @@ pub enum Observable {
 pub struct ModelProfile {
     pub reference: ExactRef,
     pub backend: ExactRef,
+    pub source_repository: String,
+    pub source_commit: String,
     pub maturity: ModelMaturity,
     pub max_intended_use: IntendedUse,
     pub supported_physics: Vec<PhysicsTerm>,
@@ -189,6 +192,9 @@ pub struct StructuralAnalysisRequest {
     pub frame: ExactRef,
     pub model_profile: ExactRef,
     pub backend: ExactRef,
+    pub model_source_repository: String,
+    pub model_source_commit: String,
+    pub model_maturity: ModelMaturity,
     pub requested_physics: Vec<PhysicsTerm>,
     pub requested_observables: Vec<Observable>,
     pub intended_use: IntendedUse,
@@ -351,6 +357,12 @@ pub fn admit(request: &StructuralAnalysisRequest, context: &AdmissionContext) ->
     if request.model_profile != context.model_profile.reference {
         reject.push(ReasonCode::ModelProfileIdentityMismatch);
     }
+    if request.model_source_repository != context.model_profile.source_repository
+        || request.model_source_commit != context.model_profile.source_commit
+        || request.model_maturity != context.model_profile.maturity
+    {
+        reject.push(ReasonCode::ModelSourceIdentityMismatch);
+    }
     if request.backend != context.model_profile.backend {
         reject.push(ReasonCode::BackendIdentityMismatch);
     }
@@ -466,6 +478,8 @@ mod tests {
         ModelProfile {
             reference: reference("ARTGRAV-THIN-RING-REF-V0_1", "p1", 'a'),
             backend: reference("artgrav-prestress-reference", "b1", 'b'),
+            source_repository: "Luminous-Dynamics/symtropy".to_owned(),
+            source_commit: "540fe6d2fc2fd99daa5277cbc2fe768db722cda9".to_owned(),
             maturity: ModelMaturity::DraftAnalyticalReference,
             max_intended_use: IntendedUse::SyntheticReferenceCheck,
             supported_physics: vec![
@@ -494,6 +508,9 @@ mod tests {
             frame: reference("FRAME-RING-LOCAL", "f1", '6'),
             model_profile: profile.reference.clone(),
             backend: profile.backend.clone(),
+            model_source_repository: profile.source_repository.clone(),
+            model_source_commit: profile.source_commit.clone(),
+            model_maturity: profile.maturity,
             requested_physics: vec![
                 PhysicsTerm::SteadyUniformRotation,
                 PhysicsTerm::ThinRingMembrane,
@@ -787,6 +804,17 @@ mod tests {
 
         assert_eq!(result.disposition, AdmissionDisposition::Reject);
         assert_reason(&result, ReasonCode::RequestIdentityMalformed);
+    }
+
+    #[test]
+    fn stale_model_source_commit_is_rejected() {
+        let profile = ring_profile();
+        let mut request = base_request(&profile);
+        request.model_source_commit = "0000000000000000000000000000000000000000".to_owned();
+        let result = admit(&request, &base_context(profile));
+
+        assert_eq!(result.disposition, AdmissionDisposition::Reject);
+        assert_reason(&result, ReasonCode::ModelSourceIdentityMismatch);
     }
 
     #[test]
