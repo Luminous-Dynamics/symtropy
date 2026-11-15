@@ -581,8 +581,6 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
     }
 }
 
-}
-
 impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, To, N> {
     /// Construct from q = S y, where S is nonsingular.
     pub fn new(matrix: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
