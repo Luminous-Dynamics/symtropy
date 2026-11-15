@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
@@ -78,12 +78,7 @@ fn parse_matrix(value: &Value, key: &str, rows: usize, cols: usize) -> Result<Ma
     Ok(result)
 }
 
-fn parse_tensor(
-    value: &Value,
-    key: &str,
-    nout: usize,
-    nin: usize,
-) -> Result<Tensor3, String> {
+fn parse_tensor(value: &Value, key: &str, nout: usize, nin: usize) -> Result<Tensor3, String> {
     let outputs = value
         .as_array()
         .ok_or_else(|| format!("{key} must be a rank-three tensor"))?;
@@ -238,9 +233,9 @@ fn convolve_kernel(input: &Matrix, kernel: &Tensor3) -> Result<Matrix, String> {
     let nlag = kernel[0][0].len();
     if ntime == 0
         || input.iter().any(|row| row.len() != ntime)
-        || kernel.iter().any(|out| {
-            out.len() != input.len() || out.iter().any(|entry| entry.len() != nlag)
-        })
+        || kernel
+            .iter()
+            .any(|out| out.len() != input.len() || out.iter().any(|entry| entry.len() != nlag))
     {
         return Err("kernel convolution dimensions are inconsistent".into());
     }
@@ -273,10 +268,7 @@ fn eigenvalues_2x2(matrix: &Matrix) -> Result<Vector, String> {
     let c = matrix[1][1];
     let discriminant = ((a - c).powi(2) + 4.0 * b * b).sqrt();
     let scale = a.abs().max(b.abs()).max(c.abs()).max(1.0);
-    let mut values = vec![
-        0.5 * (a + c + discriminant),
-        0.5 * (a + c - discriminant),
-    ];
+    let mut values = vec![0.5 * (a + c + discriminant), 0.5 * (a + c - discriminant)];
     for value in &mut values {
         if *value < -1.0e-9 * scale {
             return Err("information matrix has materially negative eigenvalue".into());
@@ -292,7 +284,9 @@ fn eigenvalues_2x2(matrix: &Matrix) -> Result<Vector, String> {
 #[allow(clippy::needless_range_loop)]
 fn fisher_information(jacobian: &Matrix, covariance_lower: &Matrix) -> Result<Matrix, String> {
     if jacobian.is_empty()
-        || jacobian.iter().any(|row| row.len() != TARGET_PARAMETER_COUNT)
+        || jacobian
+            .iter()
+            .any(|row| row.len() != TARGET_PARAMETER_COUNT)
         || jacobian.len() != covariance_lower.len()
     {
         return Err("Fisher information dimensions mismatch".into());
@@ -308,10 +302,7 @@ fn fisher_information(jacobian: &Matrix, covariance_lower: &Matrix) -> Result<Ma
     }
     for i in 0..TARGET_PARAMETER_COUNT {
         for j in 0..TARGET_PARAMETER_COUNT {
-            let left = jacobian
-                .iter()
-                .map(|row| row[i])
-                .collect::<Vector>();
+            let left = jacobian.iter().map(|row| row[i]).collect::<Vector>();
             information[i][j] = dot(&left, &solved[j]);
         }
     }
@@ -323,7 +314,10 @@ fn fisher_information(jacobian: &Matrix, covariance_lower: &Matrix) -> Result<Ma
 
 fn information_metrics(information: &Matrix, rank_tolerance: f64) -> Result<Value, String> {
     let eigenvalues = eigenvalues_2x2(information)?;
-    let singular = eigenvalues.iter().map(|value| value.sqrt()).collect::<Vector>();
+    let singular = eigenvalues
+        .iter()
+        .map(|value| value.sqrt())
+        .collect::<Vector>();
     let maximum = singular[0];
     let rank = if maximum <= 0.0 {
         0
@@ -339,8 +333,7 @@ fn information_metrics(information: &Matrix, rank_tolerance: f64) -> Result<Valu
     } else {
         None
     };
-    let determinant = information[0][0] * information[1][1]
-        - information[0][1] * information[1][0];
+    let determinant = information[0][0] * information[1][1] - information[0][1] * information[1][0];
     let logdet = if full_rank && determinant > 0.0 {
         Some(determinant.ln())
     } else {
@@ -360,7 +353,10 @@ fn log_sum_exp(values: &[f64]) -> Result<f64, String> {
         return Err("log-sum-exp requires finite non-empty inputs".into());
     }
     let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    let sum = values.iter().map(|value| (value - maximum).exp()).sum::<f64>();
+    let sum = values
+        .iter()
+        .map(|value| (value - maximum).exp())
+        .sum::<f64>();
     if !sum.is_finite() || sum <= 0.0 {
         return Err("log-sum-exp underflow/overflow".into());
     }
@@ -479,7 +475,9 @@ fn validate_prior_particles(
             if row.iter().any(|value| *value < 0.0)
                 || (row.iter().sum::<f64>() - 1.0).abs() > 1.0e-8
             {
-                return Err("each prior actuator response must be nonnegative and unit-area".into());
+                return Err(
+                    "each prior actuator response must be nonnegative and unit-area".into(),
+                );
             }
         }
         let sensor_rows = array(particle, "sensor_response")?;
@@ -762,8 +760,8 @@ fn compute_candidate(
     for (weight, information) in weights.iter().zip(&particle_information) {
         let metrics = information_metrics(information, rank_tolerance)?;
         robust_minimum_rank = robust_minimum_rank.min(usize_value(&metrics, "rank")?);
-        robust_minimum_singular_value = robust_minimum_singular_value
-            .min(number(&metrics, "minimum_singular_value")?);
+        robust_minimum_singular_value =
+            robust_minimum_singular_value.min(number(&metrics, "minimum_singular_value")?);
         for i in 0..TARGET_PARAMETER_COUNT {
             for j in 0..TARGET_PARAMETER_COUNT {
                 average_information[i][j] += weight * information[i][j];
@@ -771,13 +769,13 @@ fn compute_candidate(
         }
     }
     let average_metrics = information_metrics(&average_information, rank_tolerance)?;
-    let average_logdet = average_metrics.get("log_determinant").and_then(Value::as_f64);
+    let average_logdet = average_metrics
+        .get("log_determinant")
+        .and_then(Value::as_f64);
 
     let (pairwise, information_lower_bound) =
         bhattacharyya_distances(&means, weights, covariance_lower)?;
-    if !information_lower_bound.is_finite()
-        || information_lower_bound > entropy + 1.0e-8
-    {
+    if !information_lower_bound.is_finite() || information_lower_bound > entropy + 1.0e-8 {
         return Err("mutual-information lower bound outside prior entropy bounds".into());
     }
     let normalized_information = if entropy > 0.0 {
@@ -844,12 +842,10 @@ fn dominates(left: &Value, right: &Value) -> bool {
         .unwrap_or(f64::INFINITY);
     let left_duration = left["duration_seconds"].as_f64().unwrap_or(f64::INFINITY);
     let right_duration = right["duration_seconds"].as_f64().unwrap_or(f64::INFINITY);
-    let no_worse = left_info >= right_info
-        && left_dose <= right_dose
-        && left_duration <= right_duration;
-    let strictly = left_info > right_info
-        || left_dose < right_dose
-        || left_duration < right_duration;
+    let no_worse =
+        left_info >= right_info && left_dose <= right_dose && left_duration <= right_duration;
+    let strictly =
+        left_info > right_info || left_dose < right_dose || left_duration < right_duration;
     no_worse && strictly
 }
 
@@ -971,7 +967,12 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
         validate_prior_particles(input, first_nin, nout)?;
     let mut directions = Vec::with_capacity(TARGET_PARAMETER_COUNT);
     for (index, raw) in direction_raw.iter().enumerate() {
-        directions.push(parse_tensor(raw, "parameter_kernel_direction", nout, first_nin)?);
+        directions.push(parse_tensor(
+            raw,
+            "parameter_kernel_direction",
+            nout,
+            first_nin,
+        )?);
         if directions[index][0][0].len() != kernel_lags {
             return Err("parameter direction lag length mismatch".into());
         }
@@ -1029,8 +1030,7 @@ fn evaluate(input: &Value, oracle: &Value, manifest: &Value) -> Result<Value, St
         .iter()
         .enumerate()
         .filter(|(_, row)| {
-            row["candidate_state"] == "ELIGIBLE_BAYESIAN_DESIGN"
-                && row["pareto_optimal"] == true
+            row["candidate_state"] == "ELIGIBLE_BAYESIAN_DESIGN" && row["pareto_optimal"] == true
         })
         .max_by(|(_, left), (_, right)| {
             left["mutual_information_lower_bound_nats"]
@@ -1118,8 +1118,8 @@ fn digest(bytes: &[u8]) -> String {
 
 fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
     let bytes = fs::read(path).map_err(|e| format!("read {}: {e}", path.display()))?;
-    let value = serde_json::from_slice(&bytes)
-        .map_err(|e| format!("parse {}: {e}", path.display()))?;
+    let value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("parse {}: {e}", path.display()))?;
     Ok((bytes, value))
 }
 
@@ -1140,16 +1140,14 @@ fn run() -> Result<i32, String> {
             .map(String::as_str)
             .unwrap_or("research/water-intrusion-coupling/bayesian-excitation-t0-cases-v0.1.json"),
     );
-    let oracle_path = PathBuf::from(
-        args.get(1)
-            .map(String::as_str)
-            .unwrap_or("research/water-intrusion-coupling/bayesian-excitation-t0-oracle-v0.1.json"),
-    );
-    let manifest_path = PathBuf::from(
-        args.get(2)
-            .map(String::as_str)
-            .unwrap_or("research/water-intrusion-coupling/bayesian-excitation-t0-manifest-v0.1.json"),
-    );
+    let oracle_path =
+        PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
+            "research/water-intrusion-coupling/bayesian-excitation-t0-oracle-v0.1.json",
+        ));
+    let manifest_path =
+        PathBuf::from(args.get(2).map(String::as_str).unwrap_or(
+            "research/water-intrusion-coupling/bayesian-excitation-t0-manifest-v0.1.json",
+        ));
     let receipt_path = PathBuf::from(
         args.get(3)
             .map(String::as_str)
@@ -1193,8 +1191,7 @@ fn run() -> Result<i32, String> {
     if let Some(parent) = receipt_path.parent()
         && !parent.as_os_str().is_empty()
     {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("create {}: {e}", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
     }
     let bytes = serde_json::to_string_pretty(&receipt)
         .map_err(|e| format!("serialize receipt: {e}"))?
@@ -1262,7 +1259,12 @@ mod tests {
         let candidate = row("BD-T0-001-orthogonal-pulses");
         assert_eq!(candidate["candidate_state"], "ELIGIBLE_BAYESIAN_DESIGN");
         assert_eq!(candidate["robust_minimum_rank"], TARGET_PARAMETER_COUNT);
-        assert!(candidate["mutual_information_lower_bound_nats"].as_f64().unwrap() > 0.02);
+        assert!(
+            candidate["mutual_information_lower_bound_nats"]
+                .as_f64()
+                .unwrap()
+                > 0.02
+        );
     }
 
     #[test]
