@@ -583,7 +583,11 @@ pub fn verify(
         }
 
         for role in required_roles(receipt.stage) {
-            let count = receipt.parents.iter().filter(|edge| edge.role == role).count();
+            let count = receipt
+                .parents
+                .iter()
+                .filter(|edge| edge.role == role)
+                .count();
             if count == 0 {
                 return Err(VerificationError::MissingRequiredParent);
             }
