@@ -818,7 +818,6 @@ fn source_sequence_not_effective_time_orders_causal_digest_succession() {
     assert_eq!(result.evaluated_dependencies[1].digest, digest('8'));
 }
 
-
 #[test]
 fn sequence_outside_declared_coverage_frontier_is_indeterminate() {
     let change = event!(
@@ -867,7 +866,6 @@ fn knowledge_coverage_must_include_claim_recorded_time() {
     );
 }
 
-
 #[test]
 fn future_recorded_duplicate_does_not_poison_earlier_knowledge_snapshot() {
     let first = event!(
@@ -903,7 +901,6 @@ fn future_recorded_duplicate_does_not_poison_earlier_knowledge_snapshot() {
     assert_eq!(later, Err(EvaluationError::DuplicateEventId));
 }
 
-
 #[test]
 fn unrelated_dependency_feed_does_not_poison_claim_coverage() {
     let mut feeds = complete_coverage();
@@ -921,7 +918,6 @@ fn unrelated_dependency_feed_does_not_poison_claim_coverage() {
     assert_eq!(result.status, ClaimStatus::StillApplicable);
 }
 
-
 #[test]
 fn future_effective_coverage_receipt_does_not_poison_earlier_cutoff() {
     let mut feeds = complete_coverage();
@@ -936,7 +932,6 @@ fn future_effective_coverage_receipt_does_not_poison_earlier_cutoff() {
     let later = assess(&claim(), &[], &feeds, cutoff(70, 70));
     assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
 }
-
 
 #[test]
 fn unrelated_dependency_event_integrity_does_not_poison_claim() {
@@ -974,11 +969,15 @@ fn wrong_source_for_claim_dependency_is_rejected() {
     );
 
     assert_eq!(
-        assess(&claim(), &[wrong_source], &complete_coverage(), cutoff(50, 50)),
+        assess(
+            &claim(),
+            &[wrong_source],
+            &complete_coverage(),
+            cutoff(50, 50)
+        ),
         Err(EvaluationError::ChangeSourceMismatch)
     );
 }
-
 
 #[test]
 fn future_recorded_source_sequence_fork_does_not_poison_earlier_knowledge_snapshot() {
@@ -1040,7 +1039,6 @@ fn future_recorded_coverage_duplicate_does_not_poison_earlier_knowledge_snapshot
     let later = assess(&claim(), &[], &feeds, cutoff(50, 70));
     assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
 }
-
 
 #[test]
 fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
