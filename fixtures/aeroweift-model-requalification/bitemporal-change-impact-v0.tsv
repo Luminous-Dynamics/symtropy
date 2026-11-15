@@ -29,3 +29,4 @@ future-effective-coverage|coverage-effective-window|EARLIER_VIEW_STABLE
 unrelated-feed-corruption|dependency-source-filter|CLAIM_RESULT_UNCHANGED
 unrelated-malformed-event|claim-dependency-filter|CLAIM_RESULT_UNCHANGED
 wrong-source-for-claim-dependency|source-binding|SOURCE_MISMATCH
+retired-plus-material-change|mixed-status-precedence|REQUALIFICATION_REQUIRED_WITH_HISTORICAL_ONLY_DIMENSION
