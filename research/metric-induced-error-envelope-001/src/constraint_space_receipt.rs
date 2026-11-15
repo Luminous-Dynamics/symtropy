@@ -23,7 +23,7 @@
 use core::marker::PhantomData;
 
 use crate::constraint_metric::{
-    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1, rebase_constraint_jacobian,
+    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1,
 };
 use crate::rectangular_operator::{
     RectangularOperatorConditionReceiptV1, RectangularOperatorStatusV1,
@@ -125,8 +125,14 @@ fn preflight<const N: usize, const K: usize>(
     if profile.maximum_matrix_entries == 0 || profile.maximum_work_units == 0 {
         return Err(ConstraintSpaceReceiptErrorV1::WorkBudgetExceeded);
     }
-    let matrix_entries = K
+    let rectangular_entries = K
         .checked_mul(N)
+        .ok_or(ConstraintSpaceReceiptErrorV1::ArithmeticOverflow)?;
+    let constraint_operator_entries = K
+        .checked_mul(K)
+        .ok_or(ConstraintSpaceReceiptErrorV1::ArithmeticOverflow)?;
+    let matrix_entries = rectangular_entries
+        .checked_add(constraint_operator_entries)
         .ok_or(ConstraintSpaceReceiptErrorV1::ArithmeticOverflow)?;
     if matrix_entries > profile.maximum_matrix_entries {
         return Err(ConstraintSpaceReceiptErrorV1::MatrixEntryBudgetExceeded);
@@ -375,6 +381,7 @@ pub fn rebase_constraint_jacobian_both<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constraint_metric::rebase_constraint_jacobian;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct CartesianQ;
