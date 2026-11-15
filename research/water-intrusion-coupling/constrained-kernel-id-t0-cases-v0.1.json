@@ -134,21 +134,21 @@
         ],
         "observation_variance": [
           1,
-          1,
+          4,
           1
         ],
         "sample_weights": [
           1,
-          1,
+          0.25,
           1
         ],
         "holdout_observation_variance": [
           1,
-          1
+          4
         ],
         "holdout_sample_weights": [
           1,
-          1
+          0.25
         ]
       }
     },
