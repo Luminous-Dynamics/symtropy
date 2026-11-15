@@ -716,8 +716,8 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         }),
         json!({
             "id": "TARGET-ESTIMAND-MEASUREMENT-DESIGN-001",
-            "passed": json!(estimand_design_summary) == *expected_estimand_design_summary,
-            "actual": estimand_design_summary,
+            "passed": json!(estimand_design_summary.clone()) == *expected_estimand_design_summary,
+            "actual": estimand_design_summary.clone(),
             "expected": expected_estimand_design_summary
         }),
         json!({
