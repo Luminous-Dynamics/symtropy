@@ -28,6 +28,11 @@
       "actor_id": "nestport-device-01",
       "role": "receiver_device",
       "identity_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "actor_id": "custodian-01",
+      "role": "custodian",
+      "identity_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     }
   ],
   "assets": [
