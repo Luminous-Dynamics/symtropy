@@ -60,9 +60,26 @@ At minimum capture:
 - evaluator type: DISCRETE, LVS_DISCRETE, LVS_CONTINUOUS or CONTINUOUS;
 - longest-valid-segment limit for LVS modes;
 - cast/interpolation profile and link geometry identities;
-- environment revision and active collision-object set.
+- environment revision and active collision-object set;
+- continuous-cast geometry construction, including convex-hull settings and padding.
 
-Do not compare LVS_CONTINUOUS with one-shot CONTINUOUS without recording their different segment subdivision.
+The documented evaluator distinctions are material:
+- DISCRETE checks only supplied states.
+- LVS_DISCRETE adds interpolated states no farther apart than the configured longest-valid-segment length, but remains a sequence of discrete checks; a sufficiently thin obstacle can still lie between samples.
+- LVS_CONTINUOUS casts each interpolated segment. The swept link is approximated by the convex hull of its endpoint poses; shorter segments can tighten this approximation to a curved link path.
+- CONTINUOUS casts a whole trajectory segment in one operation with the same convex-hull approximation over the larger segment.
+
+Do not compare LVS_CONTINUOUS with one-shot CONTINUOUS without recording subdivision and cast geometry. A convex-hull cast can be conservative relative to the true curved sweep; report false-positive burden rather than silently treating every candidate as physical contact.
+
+## Runtime and concurrency cautions
+
+The MoveIt Bullet documentation notes that its collision managers contain mutable state and the current implementation is not thread-safe. A benchmark must serialize access or give each worker an isolated manager; never scale throughput by concurrently sharing a mutable manager. Robot-world continuous checking and self-collision remain separate query scopes.
+
+FCL itself advertises continuous collision detection in its library API. That does not prove a particular MoveIt plugin overload implements it: the exact MoveIt FCL implementation inspected above currently reports its continuous overload as not implemented. Record library capability and integration-plugin capability separately.
+
+## Published performance claims
+
+Tesseract's documentation publishes Bullet-versus-FCL speed ratios for contact, penetration and distance modes (including FIRST/CLOSEST/ALL variants). Treat those numbers as a backend-specific published reference, not a portable baseline: the exact robot/obstacle models, hardware, compiler, query distribution, collision-manager configuration and measurement method must be reproduced before making a comparative claim. Our formula microbenchmarks are not in the same workload class and must never be compared numerically with those ratios.
 
 ## Matched comparison rules
 
