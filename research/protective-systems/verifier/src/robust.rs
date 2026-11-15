@@ -5,6 +5,7 @@
 //! discrete upper-tail CVaR. It is not a physical hazard model or certification.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -57,6 +58,7 @@ pub struct Report {
     pub task_id: String,
     pub evidence_class: &'static str,
     pub claim_ceiling: &'static str,
+    pub canonical_problem_sha256: String,
     pub disposition: String,
     pub cvar_alpha: f64,
     pub selected_design_id: Option<String>,
@@ -166,6 +168,35 @@ fn validate(problem: &Problem) -> Result<(), ProblemError> {
                 design.design_id
             )));
         }
+    }
+    if !problem.uncertainty_set_complete && problem.expected_disposition != ABSTAIN_INCOMPLETE {
+        return Err(ProblemError(
+            "incomplete uncertainty set must have an abstention expected disposition".into(),
+        ));
+    }
+    if problem.uncertainty_set_complete && problem.expected_disposition == ABSTAIN_INCOMPLETE {
+        return Err(ProblemError(
+            "complete uncertainty set cannot expect incomplete-set abstention".into(),
+        ));
+    }
+    match problem.expected_disposition.as_str() {
+        ROBUST_SELECTED => {
+            let expected = problem
+                .expected_best_design_id
+                .as_deref()
+                .ok_or_else(|| ProblemError("selected-design expectation needs an ID".into()))?;
+            if !design_ids.contains(expected) {
+                return Err(ProblemError("expected design ID is not in the design set".into()));
+            }
+        }
+        NO_FEASIBLE | ABSTAIN_INCOMPLETE => {
+            if problem.expected_best_design_id.is_some() {
+                return Err(ProblemError(
+                    "no-design/abstain expectation must not name a selected design".into(),
+                ));
+            }
+        }
+        _ => return Err(ProblemError("unsupported expected disposition".into())),
     }
     Ok(())
 }
@@ -295,10 +326,15 @@ pub fn run(problem: &Problem) -> Result<Report, ProblemError> {
         None
     };
 
+    let canonical_problem = serde_json::to_vec(problem)
+        .expect("serializing a validated Problem value must succeed");
+    let canonical_problem_sha256 = format!("{:x}", Sha256::digest(canonical_problem));
+
     Ok(Report {
         task_id: problem.task_id.clone(),
         evidence_class: "synthetic",
         claim_ceiling: "finite_synthetic_robust_decision_only",
+        canonical_problem_sha256,
         disposition: disposition.clone(),
         cvar_alpha: problem.cvar_alpha,
         selected_design_id: selected_design_id.clone(),
@@ -396,6 +432,23 @@ mod tests {
         assert_eq!(report.disposition, NO_FEASIBLE);
         assert_eq!(report.selected_design_id, None);
         assert!(report.oracle_matches_fixture);
+    }
+
+
+    #[test]
+    fn identical_problem_has_identical_input_receipt() {
+        let problem = problem();
+        let first = run(&problem).expect("first run");
+        let second = run(&problem).expect("second run");
+        assert_eq!(first.canonical_problem_sha256, second.canonical_problem_sha256);
+    }
+
+    #[test]
+    fn expected_disposition_must_match_completeness_declaration() {
+        let mut problem = problem();
+        problem.uncertainty_set_complete = false;
+        problem.expected_disposition = ROBUST_SELECTED.to_owned();
+        assert!(run(&problem).is_err());
     }
 
     #[test]
