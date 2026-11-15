@@ -177,6 +177,34 @@
               "type": "string"
             }
           }
+        },
+        "design_constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maximum_body_gradient_fraction",
+            "maximum_rpm",
+            "maximum_coriolis_fraction",
+            "transverse_speed_m_s"
+          ],
+          "properties": {
+            "maximum_body_gradient_fraction": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "maximum_rpm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "maximum_coriolis_fraction": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "transverse_speed_m_s": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
         }
       }
     },
