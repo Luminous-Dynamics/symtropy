@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, env, fs, path::{Path, PathBuf}};
 
 const PROGRAMME: &str = "WATER-MIXING-DYNAMIC-OPERATOR-001";
-const CASE_COUNT: usize = 12;
+const CASE_COUNT: usize = 13;
 const EVIDENCE_CEILING: &str = "synthetic discrete causal-kernel arithmetic only";
 
 type Matrix = Vec<Vec<f64>>;
