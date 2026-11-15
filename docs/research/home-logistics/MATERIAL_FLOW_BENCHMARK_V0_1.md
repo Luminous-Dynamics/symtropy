@@ -284,7 +284,7 @@ A score is not valid if it omits failed tasks, excludes interventions, ignores e
 
 No level automatically implies the next. A digital twin is not a certified aircraft model, building structural model, refrigeration validation, safety case or regulatory approval.
 
-## 12.1 Executable contract tool — source added, qualification pending
+## 12.1 Executable contract tool — Rust contract checks passed; simulation pending
 
 The benchmark branch now includes a standalone Rust tool at `tools/material-flow-benchmark/`:
 
@@ -302,7 +302,7 @@ The benchmark branch now includes a standalone Rust tool at `tools/material-flow
 
 The first implementation intentionally does not authenticate signatures, query Hearth or Commons, model 3D packing, simulate physics, or prove real-world safety. It validates internal consistency of the declared scenario contract only.
 
-**Verification status:** source files and fixture have been created and read back from the branch. This environment has no Rust/Cargo toolchain, so the Rust tests and CLI have not been executed locally. The dedicated workflow was added to run those checks; until its exact-head result is completed successfully, compilation and test status remain unverified.
+**Verification status (2026-11-15):** the dedicated GitHub Actions run `43759881081` on source head `1ceda4188420fda493f10067ec128cbf8176945e` completed successfully. The exact job completed all steps: formatting, Clippy with `-D warnings`, Rust unit tests, and nominal-fixture CLI validation. The rustfmt output from that passing run was then read back and committed to the branch in the formatted source commits `2d1f8158a2410f6ae60ff1fa899a520d16d4c59f` and `88ff034a77d7f085cd8be9866a16a23431e53dc3`. A subsequent workflow change restores a non-mutating `cargo fmt -- --check` gate, and the exact final PR head is being requalified separately. This environment itself has no Rust/Cargo toolchain, so no local compile/test claim is made. No physical simulation, HIL, guarded rig or field operation has been run; the fixture is only a validated scenario contract.
 
 ## 12. First executable slice
 
