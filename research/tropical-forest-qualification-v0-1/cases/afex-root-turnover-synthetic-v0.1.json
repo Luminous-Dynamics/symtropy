@@ -1,0 +1,293 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "AFEX-ROOT-TURNOVER-001",
+  "evidence_class": "synthetic_known_truth_plus_published_summary_crosscheck",
+  "claim_ceiling": "Synthetic cases validate stock/productivity/turnover arithmetic and support pairing only. Published summary effect sizes are transcribed from Schmeisk-Rosa et al. 2026 and checked only for percentage arithmetic; they are not re-estimated from raw plot-level observations. The paper states fine-root productivity data are available through EIDC DOI 10.5285/b3a55011-bf46-40f5-8850-86dc8bc4c85d, while the fine-root stock data used for its turnover calculation are available from the corresponding author on reasonable request. No raw plot-level reanalysis or empirical treatment effect estimation is performed.",
+  "source": {
+    "paper_title": "Phosphorus and base cations drive contrasting root dynamics in a central Amazon forest",
+    "authors": "Schmeisk-Rosa et al.",
+    "journal": "Plant and Soil",
+    "publication_date": "2026-02-02",
+    "doi": "10.1007/s11104-026-08303-2",
+    "url": "https://link.springer.com/article/10.1007/s11104-026-08303-2",
+    "dataset_doi": "10.5285/b3a55011-bf46-40f5-8850-86dc8bc4c85d",
+    "dataset_url": "https://catalogue.ceh.ac.uk/documents/b3a55011-bf46-40f5-8850-86dc8bc4c85d",
+    "root_productivity_data_access": "EIDC dataset DOI above",
+    "root_stock_data_access": "AVAILABLE_FROM_CORRESPONDING_AUTHOR_ON_REASONABLE_REQUEST",
+    "raw_data_ingested": false
+  },
+  "process_definition": {
+    "stock_quantity": "fine-root standing biomass",
+    "productivity_quantity": "annual fine-root biomass production from in-growth cores",
+    "turnover_definition": "annual productivity divided by fine-root stock",
+    "turnover_unit": "yr-1",
+    "lifespan_definition": "1 divided by turnover, reported in days",
+    "root_diameter_max_mm": 2,
+    "root_depth_cm": [
+      0,
+      30
+    ],
+    "year1": {
+      "stock_date": "2017-08",
+      "productivity_start": "2017-08",
+      "productivity_end": "2018-09"
+    },
+    "year2": {
+      "stock_date": "2019-09",
+      "productivity_start": "2018-09",
+      "productivity_end": "2019-09"
+    },
+    "note": "Published paper describes five plot-level cores, depth-separated composites and repeated three-month ingrowth-core collections. The aggregate summary in this fixture does not reconstruct core-level observations."
+  },
+  "tolerances": {
+    "stock_absolute": 1e-9,
+    "productivity_absolute": 1e-9,
+    "turnover_absolute": 1e-9,
+    "published_percentage_points": 0.6
+  },
+  "published_summary_status": "TRANSCRIBED_FROM_PAPER_NOT_RECOMPUTED_FROM_RAW_DATA",
+  "published_summary_effects": [
+    {
+      "effect_id": "P_YEAR1",
+      "description": "Phosphorus effect on fine-root turnover, year 1",
+      "contrast": "P absent vs present",
+      "year": "year1",
+      "minus_mean": 1.12,
+      "minus_se": 0.08,
+      "plus_mean": 1.38,
+      "plus_se": 0.12,
+      "reported_change_percent": 23,
+      "p_value": 0.048,
+      "direction": "INCREASE",
+      "interpretation": "REPORTED_SIGNIFICANT_EFFECT"
+    },
+    {
+      "effect_id": "P_YEAR2",
+      "description": "Phosphorus effect on fine-root turnover, year 2",
+      "contrast": "P absent vs present",
+      "year": "year2",
+      "minus_mean": 0.69,
+      "minus_se": 0.06,
+      "plus_mean": 1.02,
+      "plus_se": 0.08,
+      "reported_change_percent": 48,
+      "p_value_less_than": 0.001,
+      "direction": "INCREASE",
+      "interpretation": "REPORTED_SIGNIFICANT_EFFECT"
+    },
+    {
+      "effect_id": "CAT_YEAR2",
+      "description": "Base-cation effect on fine-root turnover, year 2",
+      "contrast": "Cations absent vs present",
+      "year": "year2",
+      "minus_mean": 0.97,
+      "minus_se": 0.09,
+      "plus_mean": 0.74,
+      "plus_se": 0.06,
+      "reported_change_percent": -24,
+      "p_value": 0.0096,
+      "direction": "DECREASE",
+      "interpretation": "REPORTED_SIGNIFICANT_EFFECT"
+    },
+    {
+      "effect_id": "P_WITH_CAT_INTERACTION_YEAR2",
+      "description": "P response counteracted by cations, year 2",
+      "contrast": "P addition without vs with cations",
+      "year": "year2",
+      "minus_mean": 1.23,
+      "minus_se": 0.07,
+      "plus_mean": 0.82,
+      "plus_se": 0.12,
+      "reported_change_percent": -33,
+      "p_value": 0.036,
+      "direction": "DECREASE",
+      "interpretation": "REPORTED_INTERACTION"
+    },
+    {
+      "effect_id": "N_YEAR1",
+      "description": "Nitrogen effect on fine-root turnover, year 1",
+      "contrast": "N absent vs present",
+      "year": "year1",
+      "minus_mean": 1.26,
+      "minus_se": 0.09,
+      "plus_mean": 1.25,
+      "plus_se": 0.11,
+      "reported_p_value": 0.978,
+      "direction": "NO_SIGNIFICANT_DIFFERENCE",
+      "interpretation": "NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT"
+    },
+    {
+      "effect_id": "N_YEAR2",
+      "description": "Nitrogen effect on fine-root turnover, year 2",
+      "contrast": "N absent vs present",
+      "year": "year2",
+      "minus_mean": 0.93,
+      "minus_se": 0.08,
+      "plus_mean": 0.78,
+      "plus_se": 0.08,
+      "reported_p_value": 0.079,
+      "direction": "NO_SIGNIFICANT_DIFFERENCE",
+      "interpretation": "NON_SIGNIFICANCE_IS_NOT_A_ZERO_EFFECT"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "ROOT-PROCESS-MATCH-001",
+      "period": "year1",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "root_diameter_max_mm": 2,
+      "reference": {
+        "plot_id": "SYN-P01",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2017-08"
+        },
+        "productivity": {
+          "value": 0.8,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2017-08",
+          "end": "2018-09"
+        }
+      },
+      "candidate": {
+        "plot_id": "SYN-P01",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2017-08"
+        },
+        "productivity": {
+          "value": 0.8,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2017-08",
+          "end": "2018-09"
+        }
+      },
+      "expected_disposition": "PROCESS_AND_STOCK_MATCH"
+    },
+    {
+      "case_id": "SAME-STOCK-DIFFERENT-TURNOVER-001",
+      "period": "year1",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "root_diameter_max_mm": 2,
+      "reference": {
+        "plot_id": "SYN-P02",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2017-08"
+        },
+        "productivity": {
+          "value": 0.8,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2017-08",
+          "end": "2018-09"
+        }
+      },
+      "candidate": {
+        "plot_id": "SYN-P02",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2017-08"
+        },
+        "productivity": {
+          "value": 0.96,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2017-08",
+          "end": "2018-09"
+        }
+      },
+      "expected_disposition": "STOCK_MATCH_WITH_PROCESS_MISMATCH"
+    },
+    {
+      "case_id": "SAME-TURNOVER-DIFFERENT-STOCK-001",
+      "period": "year2",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "root_diameter_max_mm": 2,
+      "reference": {
+        "plot_id": "SYN-P03",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2019-09"
+        },
+        "productivity": {
+          "value": 0.8,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2018-09",
+          "end": "2019-09"
+        }
+      },
+      "candidate": {
+        "plot_id": "SYN-P03",
+        "stock": {
+          "value": 1.25,
+          "unit": "Mg C ha-1",
+          "date": "2019-09"
+        },
+        "productivity": {
+          "value": 1,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2018-09",
+          "end": "2019-09"
+        }
+      },
+      "expected_disposition": "STATE_MISMATCH"
+    },
+    {
+      "case_id": "DEPTH-SUPPORT-MISMATCH-REFUSED-001",
+      "period": "year2",
+      "depth_cm": [
+        0,
+        30
+      ],
+      "root_diameter_max_mm": 2,
+      "reference": {
+        "plot_id": "SYN-P04",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2019-09"
+        },
+        "productivity": {
+          "value": 0.8,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2018-09",
+          "end": "2019-09"
+        }
+      },
+      "candidate": {
+        "plot_id": "SYN-P04",
+        "stock": {
+          "value": 1,
+          "unit": "Mg C ha-1",
+          "date": "2019-09"
+        },
+        "productivity": {
+          "value": 0.8,
+          "unit": "Mg C ha-1 yr-1",
+          "start": "2018-09",
+          "end": "2019-09"
+        },
+        "depth_cm": [
+          0,
+          10
+        ]
+      },
+      "expected_disposition": "SUPPORT_MISMATCH_REFUSED"
+    }
+  ],
+  "expected_case_count": 4
+}
