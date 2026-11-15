@@ -49,6 +49,7 @@ fn main() -> ExitCode {
                         "\"peak_abs_port_force_n\":{:.12e},",
                         "\"final_dissipated_energy_j\":{:.12e},",
                         "\"final_external_work_j\":{:.12e},",
+                        "\"final_external_impulse_n_s\":{:.12e},",
                         "\"max_abs_linear_momentum_residual_kg_mps\":{:.12e},",
                         "\"max_abs_energy_balance_residual_j\":{:.12e}",
                         "}}"
@@ -63,6 +64,7 @@ fn main() -> ExitCode {
                     report.peak_abs_port_force_n,
                     report.final_dissipated_energy_j,
                     report.final_external_work_j,
+                    report.final_external_impulse_n_s,
                     report.max_abs_linear_momentum_residual_kg_mps,
                     report.max_abs_energy_balance_residual_j
                 ));
