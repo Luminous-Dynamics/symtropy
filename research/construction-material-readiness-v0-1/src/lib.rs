@@ -192,6 +192,7 @@ pub struct InventoryReservationReceipt {
     pub lot_id: String,
     pub work_package_id: String,
     pub design_revision_digest: String,
+    pub site_epoch: String,
     pub location_id: String,
     pub disposition: InventoryDisposition,
     pub reserved_quantity_milli: u64,
@@ -287,6 +288,7 @@ pub enum BlockerCode {
     InventoryReservationStale,
     InventoryReservationConflict,
     InventoryReservationScopeMismatch,
+    InventoryReservationEpochMismatch,
     InventoryReservationWindowMismatch,
     RequirementRevisionSuperseded,
     DesignRevisionSuperseded,
@@ -936,6 +938,18 @@ fn assess_inventory(
         );
         return;
     }
+    if receipt.site_epoch != binding.site_epoch {
+        push_blocker(
+            blockers,
+            BlockerCode::InventoryReservationEpochMismatch,
+            &requirement.line_id,
+            Some(&lot.lot_id),
+            "Inventory reservation belongs to a previous site epoch",
+            ReadinessDisposition::Superseded,
+            dispositions,
+        );
+        return;
+    }
     if !is_current(now_ms, receipt.observed_at_ms, receipt.valid_until_ms) {
         push_blocker(
             blockers,
@@ -1129,6 +1143,7 @@ mod tests {
                 lot_id: "lot-a".to_owned(),
                 work_package_id: "wp-rebar-02".to_owned(),
                 design_revision_digest: "design-r7".to_owned(),
+                site_epoch: "site-epoch-3".to_owned(),
                 location_id: "floor-02-material-zone".to_owned(),
                 disposition: InventoryDisposition::ReservedForWorkPackage,
                 reserved_quantity_milli: 1_000_000,
@@ -1266,6 +1281,46 @@ mod tests {
         )
         .expect("assessment");
         assert_eq!(result.disposition, ReadinessDisposition::Superseded);
+    }
+
+    #[test]
+    fn inventory_reservation_from_previous_site_epoch_is_superseded() {
+        let mut item = lot();
+        item.inventory.site_epoch = "site-epoch-2".to_owned();
+        let result = assess_material_kit(
+            &kit(
+                vec![requirement()],
+                vec![allocation("rebar-grade-500", "lot-a", 1_000_000)],
+            ),
+            &[item],
+            5_000,
+        )
+        .expect("assessment");
+        assert_eq!(result.disposition, ReadinessDisposition::Superseded);
+        assert!(
+            result.lines[0]
+                .blockers
+                .iter()
+                .any(|blocker| blocker.code == BlockerCode::InventoryReservationEpochMismatch)
+        );
+    }
+
+    #[test]
+    fn frozen_corpus_has_sixteen_named_cases_and_expected_dispositions() {
+        const CORPUS: &str =
+            include_str!("../fixtures/material-readiness-cases-v0.1.json");
+        assert_eq!(CORPUS.matches("\"id\":").count(), 16);
+        assert_eq!(CORPUS.matches("\"expected\":").count(), 16);
+        assert_eq!(CORPUS.matches("\"matching_test\":").count(), 16);
+
+        for case_id in [
+            "exact-lot-current-reservation",
+            "approved-substitution-wrong-project",
+            "inventory-reservation-previous-site-epoch",
+            "one-missing-kit-line",
+        ] {
+            assert!(CORPUS.contains(case_id), "missing frozen case {case_id}");
+        }
     }
 
     #[test]
