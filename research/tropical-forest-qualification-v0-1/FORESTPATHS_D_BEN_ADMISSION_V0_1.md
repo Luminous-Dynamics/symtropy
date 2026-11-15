@@ -237,3 +237,17 @@ Nine kernel tests and one top-level dispatcher/receipt test are authored but une
 Zenodo 15870478 is a separate Software record: `teatree1212/DBEN_Eckes_Shephard_et_al-v1.0.0.zip`, published 12 July 2025 (89.9 kB; MD5 `8a4d79b4a94dc58a67e36d7e7100cee1`). It points to GitHub tag `v1.0.0`. Zenodo 14415143 remains the Dataset record containing `model_outputs.zip` and `observations.zip`. The R Markdown in the v1.0.0 tag references 14415142; the record remains unresolved by targeted lookup and should be treated as a script reference discrepancy, not a data archive identifier.
 
 The software record's own license field is not populated in the retrieved page. The GitHub tag contains an Apache-2.0 LICENSE, which is a source-code license and must not be silently applied to the separate model-output/observation dataset.
+
+
+### Model-specific unit conversion paths
+
+The machine-readable crosswalk now binds the `change_unit_stoy` helper to five exact adapter paths:
+- CABLE-POP: `cmort`, crowd/disturbance/residual mortality components, GPP and NPP are multiplied by 365-day seconds/year.
+- JULES-RED: GPP/NPP use seconds/year conversion; selected `cmort` variants are only relabelled to annual because the source helper says post-processing already annualized them.
+- FATES: GPP/NPP use seconds/year conversion; stem density/mortality fields have separate ×10,000 per-hectare scaling.
+- SEIB-DGVM: GPP/NPP use seconds/year conversion.
+- BiomeE-Standalone: selected `cmort` variants use seconds/year conversion; `stemmort_size` has separate ×10,000 per-hectare scaling.
+- BiomeEP: `cmort_size` is relabelled annual without multiplication; `stemmort_size` and `stemmort` receive ×10,000 scaling.
+- LPJ-GUESS: selected `cmort` variants and `nbp` are relabelled annual without multiplication, according to the helper comment.
+
+The Rust crosswalk kernel now checks the model-application set for the seconds/year helper, requires the LPJ/JULES relabel-only annual path and the FATES per-hectare stem scaling marker, and rejects missing model-specific conversion metadata. This is a check of the published crosswalk declaration, not independent validation of raw NetCDF values.
