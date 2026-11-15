@@ -491,4 +491,97 @@ mod tests {
             scaled.collides_with_stationary_sphere(140.0, scaled_obstacle, 70.0)
         );
     }
+    #[test]
+    fn rigid_translation_and_quarter_turn_preserve_collision_truth() {
+        let path = AnalyticPath::Linear {
+            start: Vec3::new(-100.0, 0.0, 0.0),
+            end: Vec3::new(100.0, 0.0, 0.0),
+        };
+        let obstacle = Vec3::new(0.0, 15.0, 0.0);
+        let expected = path.collides_with_stationary_sphere(10.0, obstacle, 5.0);
+
+        // Apply the same exact 90-degree rotation to path and obstacle.
+        let rotated = AnalyticPath::Linear {
+            start: Vec3::new(0.0, -100.0, 0.0),
+            end: Vec3::new(0.0, 100.0, 0.0),
+        };
+        let rotated_obstacle = Vec3::new(-15.0, 0.0, 0.0);
+        assert_eq!(
+            expected,
+            rotated.collides_with_stationary_sphere(10.0, rotated_obstacle, 5.0)
+        );
+
+        // A common translation must also preserve the exact answer.
+        let translated = AnalyticPath::Linear {
+            start: Vec3::new(600.0, -300.0, 50.0),
+            end: Vec3::new(800.0, -300.0, 50.0),
+        };
+        let translated_obstacle = Vec3::new(700.0, -285.0, 50.0);
+        assert_eq!(
+            expected,
+            translated.collides_with_stationary_sphere(
+                10.0,
+                translated_obstacle,
+                5.0
+            )
+        );
+    }
+
+    #[test]
+    fn subdividing_a_linear_path_does_not_shrink_the_outer_union() {
+        let whole_path = AnalyticPath::Linear {
+            start: Vec3::new(0.0, 0.0, 0.0),
+            end: Vec3::new(1_000.0, 400.0, 100.0),
+        };
+        let whole = aabb_from_kernel(build_kernel_slice(
+            whole_path,
+            "tool",
+            50,
+            axis(5, 5, 5),
+            zero(),
+            zero(),
+            zero(),
+        ).physical_swept_outer);
+
+        let mut partials = Vec::new();
+        for index in 0..4 {
+            let start_fraction = index as f64 / 4.0;
+            let end_fraction = (index + 1) as f64 / 4.0;
+            let start = Vec3::new(
+                1_000.0 * start_fraction,
+                400.0 * start_fraction,
+                100.0 * start_fraction,
+            );
+            let end = Vec3::new(
+                1_000.0 * end_fraction,
+                400.0 * end_fraction,
+                100.0 * end_fraction,
+            );
+            let partial = build_kernel_slice(
+                AnalyticPath::Linear { start, end },
+                "tool",
+                50,
+                axis(5, 5, 5),
+                zero(),
+                zero(),
+                zero(),
+            );
+            partials.push(aabb_from_kernel(partial.physical_swept_outer));
+        }
+
+        let union = Aabb3 {
+            min: Vec3::new(
+                partials.iter().map(|item| item.min.x).fold(f64::INFINITY, f64::min),
+                partials.iter().map(|item| item.min.y).fold(f64::INFINITY, f64::min),
+                partials.iter().map(|item| item.min.z).fold(f64::INFINITY, f64::min),
+            ),
+            max: Vec3::new(
+                partials.iter().map(|item| item.max.x).fold(f64::NEG_INFINITY, f64::max),
+                partials.iter().map(|item| item.max.y).fold(f64::NEG_INFINITY, f64::max),
+                partials.iter().map(|item| item.max.z).fold(f64::NEG_INFINITY, f64::max),
+            ),
+        };
+        assert_eq!(whole, union);
+    }
+
 }
