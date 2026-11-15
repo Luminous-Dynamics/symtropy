@@ -10,7 +10,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-const CASE_COUNT: usize = 13;
+const CASE_COUNT: usize = 16;
 const SCHEMA_VERSION: &str = "waterloop-sizing-t0-v0.1";
 const CLAIM_CEILING: &str =
     "synthetic_storage_sizing_and_pump_power_arithmetic_only_no_site_or_equipment_qualification";
@@ -371,10 +371,10 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         | "WLS-T0-006-negative-demand-reject"
         | "WLS-T0-007-trace-length-mismatch-reject"
         | "WLS-T0-011-timebase-mismatch-reject"
-        | "WLS-T0-013-unadmitted-demand-measurement"
+        | "WLS-T0-014-unadmitted-demand-measurement"
         | "WLS-T0-015-negative-inflow-reject" => compute_storage(inputs),
         "WLS-T0-012-pump-hydraulic-power-lower-bound"
-        | "WLS-T0-014-pump-efficiency-invalid-reject"
+        | "WLS-T0-013-pump-efficiency-invalid-reject"
         | "WLS-T0-016-pump-efficiency-unadmitted" => compute_pump_power(inputs),
         _ => Err(format!("unsupported WaterLoop sizing case ID: {case_id}")),
     }
@@ -628,6 +628,13 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][8]).expect("capacity limit");
         assert_eq!(out["sizing_disposition"], "INFEASIBLE_DECLARED_CAPACITY_LIMIT");
         assert!((out["declared_max_capacity_unmet_m3"].as_f64().unwrap() - 0.1).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn unadmitted_demand_measurement_does_not_produce_tank_size() {
+        let out = compute_case(&fixture("inputs")["cases"][13]).expect("unadmitted demand");
+        assert_eq!(out["sizing_disposition"], "INDETERMINATE");
+        assert_eq!(out["minimum_required_usable_capacity_m3"], Value::Null);
     }
 
     #[test]
