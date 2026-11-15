@@ -499,32 +499,14 @@ pub fn canonical_energy_audit_payload(
     append_vector(&mut bytes, &input.contact_gap);
     append_f64(&mut bytes, input.dt);
 
-    append_matrix(&mut bytes, &result.effective_metric);
-    append_vector(&mut bytes, &result.unconstrained_velocity);
+    // Only serialize accepted state and derived fields independently checked
+    // by this audit. Solver diagnostics, active-set labels and its own metric /
+    // free-velocity summaries belong to separate evidence receipts.
     append_vector(&mut bytes, &result.next_velocity);
     append_vector(&mut bytes, &result.next_position_error);
-    append_vector(&mut bytes, &result.discrete_acceleration);
     append_vector(&mut bytes, &result.contact_impulse);
     append_vector(&mut bytes, &result.contact_slack);
-    append_u64(&mut bytes, result.active_contacts.len());
-    for active in &result.active_contacts {
-        bytes.push(u8::from(*active));
-    }
     append_ledger(&mut bytes, &result.energy_ledger);
-
-    for value in [
-        result.max_metric_equation_residual,
-        result.max_scaled_metric_equation_residual,
-        result.max_negative_impulse,
-        result.max_negative_contact_slack,
-        result.max_complementarity_residual,
-        result.max_scaled_dual_feasibility_residual,
-        result.max_scaled_primal_feasibility_residual,
-        result.max_scaled_complementarity_residual,
-    ] {
-        append_f64(&mut bytes, value);
-    }
-
     append_audit_receipt(&mut bytes, &receipt);
     Ok((bytes, receipt))
 }
