@@ -3,32 +3,146 @@
   "$id": "https://luminousdynamics.io/schemas/construction/material-readiness/v0.1",
   "title": "Construction Material Readiness Fixture",
   "type": "object",
-  "required": ["profile_id", "profile_version", "binding", "requirements", "lot_projections", "allocations"],
+  "required": ["profile_id", "profile_version", "binding", "requirements", "lot_projections", "allocations", "as_of_ms"],
   "properties": {
     "profile_id": {"type": "string", "minLength": 1},
     "profile_version": {"const": "0.1"},
-    "binding": {
+    "binding": {"$ref": "#/$defs/workPackageBinding"},
+    "requirements": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/materialRequirement"}},
+    "lot_projections": {"type": "array", "items": {"$ref": "#/$defs/materialLotProjection"}},
+    "allocations": {"type": "array", "items": {"$ref": "#/$defs/lotAllocation"}},
+    "as_of_ms": {"type": "integer", "minimum": 0}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "nonEmpty": {"type": "string", "minLength": 1},
+    "workPackageBinding": {
       "type": "object",
       "required": ["project_id", "floor_id", "work_package_id", "task_id", "design_revision_digest", "site_epoch", "requirement_revision_digest", "receiving_entity_id", "target_location_id", "required_window_start_ms", "required_window_end_ms"],
       "properties": {
-        "project_id": {"type": "string", "minLength": 1},
-        "floor_id": {"type": "string", "minLength": 1},
-        "work_package_id": {"type": "string", "minLength": 1},
-        "task_id": {"type": "string", "minLength": 1},
-        "design_revision_digest": {"type": "string", "minLength": 1},
-        "site_epoch": {"type": "string", "minLength": 1},
-        "requirement_revision_digest": {"type": "string", "minLength": 1},
-        "receiving_entity_id": {"type": "string", "minLength": 1},
-        "target_location_id": {"type": "string", "minLength": 1},
+        "project_id": {"$ref": "#/$defs/nonEmpty"},
+        "floor_id": {"$ref": "#/$defs/nonEmpty"},
+        "work_package_id": {"$ref": "#/$defs/nonEmpty"},
+        "task_id": {"$ref": "#/$defs/nonEmpty"},
+        "design_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "site_epoch": {"$ref": "#/$defs/nonEmpty"},
+        "requirement_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "receiving_entity_id": {"$ref": "#/$defs/nonEmpty"},
+        "target_location_id": {"$ref": "#/$defs/nonEmpty"},
         "required_window_start_ms": {"type": "integer", "minimum": 0},
         "required_window_end_ms": {"type": "integer", "minimum": 1}
       },
       "additionalProperties": false
     },
-    "requirements": {"type": "array", "minItems": 1, "items": {"type": "object"}},
-    "lot_projections": {"type": "array", "items": {"type": "object"}},
-    "allocations": {"type": "array", "items": {"type": "object"}},
-    "as_of_ms": {"type": "integer", "minimum": 0}
-  },
-  "additionalProperties": false
+    "approvedSubstitution": {
+      "type": "object",
+      "required": ["project_id", "requirement_revision_digest", "material_class_id", "grade_id", "approval_ref", "authority_ref", "design_revision_digest"],
+      "properties": {
+        "project_id": {"$ref": "#/$defs/nonEmpty"},
+        "requirement_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "material_class_id": {"$ref": "#/$defs/nonEmpty"},
+        "grade_id": {"$ref": "#/$defs/nonEmpty"},
+        "approval_ref": {"$ref": "#/$defs/nonEmpty"},
+        "authority_ref": {"$ref": "#/$defs/nonEmpty"},
+        "design_revision_digest": {"$ref": "#/$defs/nonEmpty"}
+      },
+      "additionalProperties": false
+    },
+    "materialRequirement": {
+      "type": "object",
+      "required": ["line_id", "material_class_id", "grade_id", "unit_code", "required_quantity_milli", "allowed_overage_milli", "specification_ref", "approved_substitutions"],
+      "properties": {
+        "line_id": {"$ref": "#/$defs/nonEmpty"},
+        "material_class_id": {"$ref": "#/$defs/nonEmpty"},
+        "grade_id": {"$ref": "#/$defs/nonEmpty"},
+        "unit_code": {"$ref": "#/$defs/nonEmpty"},
+        "required_quantity_milli": {"type": "integer", "minimum": 1},
+        "allowed_overage_milli": {"type": "integer", "minimum": 0},
+        "specification_ref": {"$ref": "#/$defs/nonEmpty"},
+        "approved_substitutions": {"type": "array", "items": {"$ref": "#/$defs/approvedSubstitution"}}
+      },
+      "additionalProperties": false
+    },
+    "evidenceReceipt": {
+      "type": "object",
+      "required": ["receipt_ref", "source_profile_id", "source_schema_version", "project_id", "lot_id", "design_revision_digest", "requirement_revision_digest", "authority_ref", "disposition", "observed_at_ms", "valid_until_ms"],
+      "properties": {
+        "receipt_ref": {"$ref": "#/$defs/nonEmpty"},
+        "source_profile_id": {"$ref": "#/$defs/nonEmpty"},
+        "source_schema_version": {"$ref": "#/$defs/nonEmpty"},
+        "project_id": {"$ref": "#/$defs/nonEmpty"},
+        "lot_id": {"$ref": "#/$defs/nonEmpty"},
+        "design_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "requirement_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "authority_ref": {"$ref": "#/$defs/nonEmpty"},
+        "disposition": {"enum": ["Qualified", "AssertionOnly", "Unknown", "Rejected", "Revoked", "Disputed"]},
+        "observed_at_ms": {"type": "integer", "minimum": 0},
+        "valid_until_ms": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "logisticsReceipt": {
+      "type": "object",
+      "required": ["receipt_ref", "source_profile_id", "source_schema_version", "project_id", "lot_id", "recipient_id", "delivery_location_id", "disposition", "observed_at_ms", "valid_until_ms"],
+      "properties": {
+        "receipt_ref": {"$ref": "#/$defs/nonEmpty"},
+        "source_profile_id": {"$ref": "#/$defs/nonEmpty"},
+        "source_schema_version": {"$ref": "#/$defs/nonEmpty"},
+        "project_id": {"$ref": "#/$defs/nonEmpty"},
+        "lot_id": {"$ref": "#/$defs/nonEmpty"},
+        "recipient_id": {"$ref": "#/$defs/nonEmpty"},
+        "delivery_location_id": {"$ref": "#/$defs/nonEmpty"},
+        "disposition": {"enum": ["DispatchOnly", "InTransit", "DeliveredAwaitingAcceptance", "RecipientAccepted", "Damaged", "Rejected", "Quarantined", "Unknown"]},
+        "observed_at_ms": {"type": "integer", "minimum": 0},
+        "valid_until_ms": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "inventoryReservationReceipt": {
+      "type": "object",
+      "required": ["receipt_ref", "source_profile_id", "source_schema_version", "project_id", "lot_id", "work_package_id", "design_revision_digest", "location_id", "disposition", "reserved_quantity_milli", "window_start_ms", "window_end_ms", "observed_at_ms", "valid_until_ms"],
+      "properties": {
+        "receipt_ref": {"$ref": "#/$defs/nonEmpty"},
+        "source_profile_id": {"$ref": "#/$defs/nonEmpty"},
+        "source_schema_version": {"$ref": "#/$defs/nonEmpty"},
+        "project_id": {"$ref": "#/$defs/nonEmpty"},
+        "lot_id": {"$ref": "#/$defs/nonEmpty"},
+        "work_package_id": {"$ref": "#/$defs/nonEmpty"},
+        "design_revision_digest": {"$ref": "#/$defs/nonEmpty"},
+        "location_id": {"$ref": "#/$defs/nonEmpty"},
+        "disposition": {"enum": ["ReservedForWorkPackage", "AvailableNotReserved", "Stale", "Conflict", "DamagedOrQuarantined", "Unknown"]},
+        "reserved_quantity_milli": {"type": "integer", "minimum": 0},
+        "window_start_ms": {"type": "integer", "minimum": 0},
+        "window_end_ms": {"type": "integer", "minimum": 0},
+        "observed_at_ms": {"type": "integer", "minimum": 0},
+        "valid_until_ms": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "materialLotProjection": {
+      "type": "object",
+      "required": ["lot_id", "material_class_id", "grade_id", "unit_code", "provenance", "logistics", "quality", "inventory"],
+      "properties": {
+        "lot_id": {"$ref": "#/$defs/nonEmpty"},
+        "material_class_id": {"$ref": "#/$defs/nonEmpty"},
+        "grade_id": {"$ref": "#/$defs/nonEmpty"},
+        "unit_code": {"$ref": "#/$defs/nonEmpty"},
+        "provenance": {"$ref": "#/$defs/evidenceReceipt"},
+        "logistics": {"$ref": "#/$defs/logisticsReceipt"},
+        "quality": {"$ref": "#/$defs/evidenceReceipt"},
+        "inventory": {"$ref": "#/$defs/inventoryReservationReceipt"}
+      },
+      "additionalProperties": false
+    },
+    "lotAllocation": {
+      "type": "object",
+      "required": ["line_id", "lot_id", "quantity_milli"],
+      "properties": {
+        "line_id": {"$ref": "#/$defs/nonEmpty"},
+        "lot_id": {"$ref": "#/$defs/nonEmpty"},
+        "quantity_milli": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
+  }
 }
