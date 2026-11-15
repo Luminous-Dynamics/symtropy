@@ -190,6 +190,6 @@ Keep v0.1 immutable for reproducibility. Benchmark reports must name the exact c
 
 ## 6. Machine-readable corpus v0.3 (2026-11-15)
 
-The v0.2 registry remains frozen at 50 cases across eight families. The additive v0.3 registry contains **74 synthetic cases across ten families**, adding 24 `source_inventory_closure` cases to cover scoped pagination, snapshot continuity, record/disposition accounting, permissions, exclusions and temporal replay.
+The v0.2 registry remains frozen at 50 cases across eight families. The additive v0.3 registry contains **75 synthetic cases across nine families**, adding 24 `source_inventory_closure` cases to cover scoped pagination, snapshot continuity, record/disposition accounting, permissions, exclusions and temporal replay.
 
 Files: `POWER_FABRIC_BENCHMARK_SCENARIOS_0_3.json` and `POWER_FABRIC_BENCHMARK_SCENARIOS_SCHEMA_0_3.json`. Measurement status remains `scenario_registry_authored_not_executed`. These cases are expected-outcome oracles, not executed tests, observed provider behaviour or comparative performance results. v0.1, v0.2 remain immutable.
