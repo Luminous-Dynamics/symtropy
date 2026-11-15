@@ -15,6 +15,7 @@ pub mod model_set_kernel;
 pub mod support_kernel;
 pub mod spatial_localization_kernel;
 pub mod trajectory_budget_kernel;
+pub mod flux_identifiability_kernel;
 
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -3840,6 +3841,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return trajectory_budget_kernel::validate_corpus(raw, &manifest);
     }
+    if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-FLUX-IDENTIFIABILITY-001")
+    {
+        return flux_identifiability_kernel::validate_corpus(raw, &manifest);
+    }
     if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
     }
@@ -4208,6 +4214,8 @@ mod tests {
         include_str!("../../cases/forest-consilience-dependence-synthetic-v0.1.json");
     const PROCESS_TRAJECTORY_FIXTURE: &str =
         include_str!("../../cases/forest-process-trajectory-synthetic-v0.1.json");
+    const FLUX_IDENTIFIABILITY_FIXTURE: &str =
+        include_str!("../../cases/forest-flux-identifiability-synthetic-v0.1.json");
 
     #[test]
     fn consilience_corpus_matches_twelve_synthetic_dependency_pairs() {
@@ -4802,6 +4810,20 @@ mod tests {
         assert_eq!(
             receipt["source_manifest_sha256"],
             sha256_hex(PROCESS_TRAJECTORY_FIXTURE.as_bytes())
+        );
+    }
+
+    #[test]
+    fn flux_identifiability_corpus_dispatches_with_exact_rank_receipt() {
+        let receipt = evaluate(FLUX_IDENTIFIABILITY_FIXTURE.as_bytes())
+            .expect("flux-identifiability corpus dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_FLUX_IDENTIFIABILITY");
+        assert_eq!(receipt["baseline"]["rank"], 2);
+        assert_eq!(receipt["baseline"]["nullity"], 4);
+        assert_eq!(receipt["measurement_design"]["minimum_synthetic_effort_cost"], 14);
+        assert_eq!(
+            receipt["source_manifest_sha256"],
+            sha256_hex(FLUX_IDENTIFIABILITY_FIXTURE.as_bytes())
         );
     }
 
