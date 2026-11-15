@@ -18,8 +18,8 @@
 use core::marker::PhantomData;
 use std::fmt;
 
-pub mod constraint_metric;
 pub mod constrained_kkt_error;
+pub mod constraint_metric;
 
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
