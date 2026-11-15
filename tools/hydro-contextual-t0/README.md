@@ -39,7 +39,7 @@ All v0.1 cases are synthetic. No DWS/SAWS/Highveld bytes are acquired, no catchm
 The corpus includes all 12 named HCB-NC-01 through HCB-NC-12 leakage controls, including a separate rejection when the final test set is used to select a winning model.
 
 
-### Event, low-flow and probabilistic interval metrics (cases 022–026)
+### Event, low-flow and probabilistic interval metrics (cases 022–027)
 
 The corpus now covers the process-specific metrics called for by #5338/#5356:
 - named-event peak magnitude error and signed/absolute peak timing error using a frozen event window and fixed step duration; ties choose the earliest peak;
@@ -51,3 +51,6 @@ The corpus now covers the process-specific metrics called for by #5338/#5356:
 These are separate diagnostics, not a composite score. A four-sample interval fixture is only arithmetic conformance, not a statistical calibration claim; useful interval calibration requires many independent events and strata.
 
 The event-peak contract also freezes the tie rule: equal maxima select the earliest time index. A separate case tests this deterministically.
+
+
+Event-peak ties are resolved at the earliest index in the event window. A dedicated frozen case locks this behavior so timing metrics are deterministic.
