@@ -1,0 +1,1926 @@
+{
+  "schema_id": "aeroweift.assurance-composition.synthetic-evidence-chain.v0",
+  "fixture_id": "AW-ASSURANCE-COMPOSITION-TINY-001",
+  "revision": "0.1.0",
+  "evidence_class": "synthetic-only",
+  "operational_use": false,
+  "claim_ceiling": "Finite composition of owner-produced synthetic claims only; not flight authorization, conflict-free proof, dispatch, DAA, separation assurance, aircraft control, airworthiness or certification.",
+  "owners": {
+    "pnt_time": "Symtropy #5270 / Mycelix #435 #458 #5904",
+    "reachability": "Symtropy #5163",
+    "surveillance": "Symtropy #5275",
+    "operational_intent": "Symtropy #5284",
+    "conflict_screening": "Symtropy #2279 #2297"
+  },
+  "required_traffic_classes": [
+    "COOPERATIVE_CREWED",
+    "NON_COOPERATIVE_CREWED"
+  ],
+  "identity_contract": "Every contributing owner identity must exactly match expected time scale, profile and frame.",
+  "missing_evidence_semantics": "NOT_ASSESSABLE; never empty occupancy.",
+  "positive_disposition_semantics": "READY_FOR_CONFLICT_SCREEN only; unresolved possible occupancy is preserved.",
+  "cases": [
+    {
+      "id": "fully-qualified-positive-control",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "READY_FOR_CONFLICT_SCREEN",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": true
+      }
+    },
+    {
+      "id": "accepted-qualified-fallback",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_QUALIFIED_FALLBACK",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "READY_FOR_CONFLICT_SCREEN",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": true
+      }
+    },
+    {
+      "id": "qualified-coverage-no-report",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "NO_REPORT_QUALIFIED_COVERAGE",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": null,
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "READY_FOR_CONFLICT_SCREEN",
+        "unresolved_possible_occupancy": true,
+        "unresolved_traffic_classes": [
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "positive_is_conflict_screen_only": true
+      }
+    },
+    {
+      "id": "stale-pnt-fresh-delivery",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "STALE",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "statistical-only-navigation",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "STATISTICAL_ONLY",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "pnt-clock-scale-mismatch",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "OTHER-TIME-SCALE",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "dual-clock-interval-overlap",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "CLOCK_UNQUALIFIED",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "correlated-receiver-multiplicity",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": false,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "cooperative-only-coverage",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "unknown-tdoa-clock-dependency",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "UNKNOWN-TDOA-CLOCK",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "stale-track-fresh-receipt",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "UNQUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "missing-surveillance-qualification-receipt",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": null,
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "reachability-not-assessable",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "NOT_ASSESSABLE",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "expired-or-superseded-authorization",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "REAUTHORIZATION_REQUIRED",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": false
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "REAUTHORIZATION_REQUIRED",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "intersecting-dynamic-restriction",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "REAUTHORIZATION_REQUIRED",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "REAUTHORIZATION_REQUIRED",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "nonintersecting-dynamic-restriction-control",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "READY_FOR_CONFLICT_SCREEN",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": true
+      }
+    },
+    {
+      "id": "definite-nonconformance-despite-unrelated-pnt-degradation",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "STALE",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "NONCONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NONCONFORMING",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "profile-timeout-contingency",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONTINGENT",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "CONTINGENCY_HANDOFF",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "potentially-nonconforming-intent",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "POTENTIALLY_NONCONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "missing-pnt-receipt",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": null,
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "missing-reachability-receipt",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": null,
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "missing-intent-receipt",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": null,
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "surveillance-frame-mismatch",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "OTHER-FRAME"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "duplicate-traffic-class-evidence",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "COOPERATIVE_CREWED",
+          "NON_COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "NOT_ASSESSABLE",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": false
+      }
+    },
+    {
+      "id": "permuted-class-order-replay",
+      "input": {
+        "expected_identity": {
+          "time_scale_id": "SYNTHETIC-TIME-1",
+          "profile_id": "SYNTHETIC-PROFILE-1",
+          "frame_id": "SYNTHETIC-FRAME-1"
+        },
+        "pnt": {
+          "disposition": "ACCEPTED_PRIMARY_HARD_BOUND",
+          "qualification_ref": "synthetic-pnt-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "reachability": {
+          "disposition": "QUALIFIED_BOUNDED",
+          "qualification_ref": "synthetic-reachability-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          }
+        },
+        "intent": {
+          "disposition": "CONFORMING",
+          "qualification_ref": "synthetic-intent-receipt",
+          "identity": {
+            "time_scale_id": "SYNTHETIC-TIME-1",
+            "profile_id": "SYNTHETIC-PROFILE-1",
+            "frame_id": "SYNTHETIC-FRAME-1"
+          },
+          "authorization_revision_current": true
+        },
+        "required_traffic_classes": [
+          "NON_COOPERATIVE_CREWED",
+          "COOPERATIVE_CREWED"
+        ],
+        "surveillance": [
+          {
+            "traffic_class": "NON_COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-NON_COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-NON_COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-NON_COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          },
+          {
+            "traffic_class": "COOPERATIVE_CREWED",
+            "disposition": "QUALIFIED_TRACK",
+            "coverage_qualification_ref": "synthetic-coverage-receipt-COOPERATIVE_CREWED",
+            "observation_ref": "synthetic-observation-receipt-COOPERATIVE_CREWED",
+            "dependency_snapshot_ref": "synthetic-dependency-snapshot-COOPERATIVE_CREWED",
+            "independence_qualified": true,
+            "identity": {
+              "time_scale_id": "SYNTHETIC-TIME-1",
+              "profile_id": "SYNTHETIC-PROFILE-1",
+              "frame_id": "SYNTHETIC-FRAME-1"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "decision": "READY_FOR_CONFLICT_SCREEN",
+        "unresolved_possible_occupancy": false,
+        "unresolved_traffic_classes": [],
+        "positive_is_conflict_screen_only": true
+      }
+    }
+  ]
+}
