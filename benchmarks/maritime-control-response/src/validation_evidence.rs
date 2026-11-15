@@ -134,14 +134,21 @@ impl ValidationEvidenceProfile {
                 }
             }
         }
-        if score_claim_allowed{
-            if run_status!="qualified"||evidence_level=="P0_synthetic_contract"
-                ||self.profile_status!=ProfileStatus::IndependentlyReviewed
-                ||!self.physical_independence_level.supports_score()
-                ||matches!(self.target_domain_access,TargetDomainAccess::Unclear|TargetDomainAccess::NotEvaluated)
-                ||!matches!(self.leakage_risk,LeakageRisk::Low|LeakageRisk::SomeConcerns){
-                return Err(ValidationEvidenceError::ScoreClaimWithoutIndependentEvidence);
-            }
+        if score_claim_allowed
+            && (run_status != "qualified"
+                || evidence_level == "P0_synthetic_contract"
+                || self.profile_status != ProfileStatus::IndependentlyReviewed
+                || !self.physical_independence_level.supports_score()
+                || matches!(
+                    self.target_domain_access,
+                    TargetDomainAccess::Unclear | TargetDomainAccess::NotEvaluated
+                )
+                || !matches!(
+                    self.leakage_risk,
+                    LeakageRisk::Low | LeakageRisk::SomeConcerns
+                ))
+        {
+            return Err(ValidationEvidenceError::ScoreClaimWithoutIndependentEvidence);
         }
         if run_status=="qualified"&&!score_claim_allowed{return Err(ValidationEvidenceError::ScoreClaimWithoutIndependentEvidence);}
         Ok(())
