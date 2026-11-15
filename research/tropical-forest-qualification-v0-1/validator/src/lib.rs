@@ -1520,6 +1520,16 @@ fn validate_probabilistic_forecast_corpus(
             )
             && close_enough(score.baseline_crps, number_at(expected, &["baseline_crps"])? , 1e-9)
             && optional_number_matches(
+                score.model_wis,
+                expected.get("model_wis").unwrap_or(&Value::Null),
+                1e-9,
+            )
+            && close_enough(
+                score.baseline_wis,
+                number_at(expected, &["baseline_wis"])?,
+                1e-9,
+            )
+            && optional_number_matches(
                 score.model_mean,
                 expected.get("model_mean").unwrap_or(&Value::Null),
                 1e-9,
@@ -1579,6 +1589,8 @@ fn validate_probabilistic_forecast_corpus(
             "forecast_id": forecast_id,
             "model_crps": score.model_crps,
             "baseline_crps": score.baseline_crps,
+            "model_wis": score.model_wis,
+            "baseline_wis": score.baseline_wis,
             "model_mean": score.model_mean,
             "absolute_error": score.absolute_error,
             "median": score.median,
@@ -1616,6 +1628,26 @@ fn validate_probabilistic_forecast_corpus(
         && optional_number_matches(
             summary.mean_baseline_crps_paired,
             expected_summary.get("mean_baseline_crps_paired").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.mean_model_wis,
+            expected_summary.get("mean_model_wis").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.mean_baseline_wis_paired,
+            expected_summary.get("mean_baseline_wis_paired").unwrap_or(&Value::Null),
+            1e-9,
+        )
+        && close_enough(
+            summary.mean_baseline_wis_all,
+            number_at(expected_summary, &["mean_baseline_wis_all"])?,
+            1e-9,
+        )
+        && optional_number_matches(
+            summary.wis_skill_score,
+            expected_summary.get("wis_skill_score").unwrap_or(&Value::Null),
             1e-9,
         )
         && close_enough(
@@ -1717,6 +1749,10 @@ fn validate_probabilistic_forecast_corpus(
         "mean_model_crps": summary.mean_model_crps,
         "mean_baseline_crps_paired": summary.mean_baseline_crps_paired,
         "mean_baseline_crps_all": summary.mean_baseline_crps_all,
+        "mean_model_wis": summary.mean_model_wis,
+        "mean_baseline_wis_paired": summary.mean_baseline_wis_paired,
+        "mean_baseline_wis_all": summary.mean_baseline_wis_all,
+        "wis_skill_score": summary.wis_skill_score,
         "crps_skill_score": summary.crps_skill_score,
         "mean_absolute_error": summary.mean_absolute_error,
         "interval_coverage_50": summary.interval_coverage_50,
@@ -4014,6 +4050,28 @@ mod tests {
         assert_eq!(receipt["ecological_forecast_skill"], "NOT_ESTABLISHED");
     }
 
+
+
+    #[test]
+    fn forecast_scoring_corpus_matches_paired_wis_and_interval_sharpness() {
+        let receipt = evaluate(FORECAST_SCORING_FIXTURE.as_bytes())
+            .expect("forecast scoring corpus parses");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORECAST_SCORING");
+        assert!((receipt["summary"]["mean_model_wis"].as_f64().unwrap() - 2.3142857142857145).abs() < 1e-9);
+        assert!((receipt["summary"]["mean_baseline_wis_paired"].as_f64().unwrap() - 2.0).abs() < 1e-9);
+        assert!((receipt["summary"]["wis_skill_score"].as_f64().unwrap() - (-0.15714285714285725)).abs() < 1e-9);
+        assert_eq!(receipt["forecast_scores"][4]["model_wis"], Value::Null);
+    }
+
+    #[test]
+    fn forecast_scoring_corpus_rejects_per_case_wis_oracle_mutation() {
+        let mut manifest: Value = serde_json::from_str(FORECAST_SCORING_FIXTURE)
+            .expect("valid forecast scoring corpus");
+        manifest["cases"][0]["expected"]["model_wis"] = json!(0.99);
+        let bytes = serde_json::to_vec(&manifest).expect("serialize mutated WIS corpus");
+        let receipt = evaluate(&bytes).expect("well-formed forecast corpus returns receipt");
+        assert_eq!(receipt["result"], "FAIL");
+    }
 
     #[test]
     fn forecast_scoring_corpus_checks_full_risk_coverage_curve() {
