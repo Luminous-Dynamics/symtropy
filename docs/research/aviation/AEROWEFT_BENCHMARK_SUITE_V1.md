@@ -666,3 +666,9 @@ Qualifies the exact aircraft/model/control/sensor/solver/time/frame/datum config
 ### Track U — model-evidence change impact and targeted requalification (#5371)
 
 Consumes Track T's exact model-validation claims and Mycelix #6219/#1087/#2631/#1207/#181 to determine which claim dimensions remain applicable after a bitemporal change event. It distinguishes still-applicable, historical-only, requalification-required, contradicted, indeterminate and unsupported-change outcomes per claim. A sensor calibration change should invalidate only sensor-dependent claims; an aircraft/control/model/solver/reference/domain change follows explicit versioned dependency rules. Effective time and recorded/knowledge time remain separate, and incomplete change-stream coverage never means “no change.” Track U does not implement a generic event store, lease algebra or universal currentness service. Hard gates: zero stale dependent claims remain applicable, zero unrelated claims invalidated under complete dependency evidence, zero coverage gaps treated as no-change, exact bitemporal replay and deterministic event permutation.
+
+
+
+### Track V — decision-relevant validation experiment design (#5394)
+
+Chooses the next safe, admissible experiment to distinguish competing model explanations and reduce uncertainty that matters to the declared engineering decision. Filters candidates for authorization, safety-envelope fit, independent reference availability, semantic equivalence, sealed-holdout integrity, independent hypothesis-family count and maximum uninformative probability before Pareto ranking. Keeps uncertainty reduction, model discrimination, worst-case robustness, decision relevance, uninformative probability and cost as separate axes; no opaque weighted score. Composes Track T/U and Symtropy #4487/#460/#4366/#3749/#4446. It does not authorize or execute tests and does not create a new simulator or physics corpus.
