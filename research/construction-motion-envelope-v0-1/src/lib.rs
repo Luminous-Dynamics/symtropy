@@ -650,8 +650,8 @@ mod tests {
             Point3Mm::default(),
             Point3Mm { x: 10, y: 1, z: 0 },
         );
-        let x = build(&c, &[a.clone(), b.clone()]).unwrap();
-        let y = build(&c, &[b.clone(), a.clone()]).unwrap();
+        let x = build(&ctx, &[a.clone(), b.clone()]).unwrap();
+        let y = build(&ctx, &[b.clone(), a.clone()]).unwrap();
         assert_eq!(x.canonical_bytes(), y.canonical_bytes());
         let mut c = context();
         c.tool_config_sha256 = "9".repeat(64);
@@ -687,8 +687,8 @@ mod tests {
 
     #[test]
     fn rejects_missing_primitive_in_slice_and_discontinuous_centers() {
-        let mut c = context();
-        c.expected_primitive_ids = vec!["base".into(), "tool".into()];
+        let mut ctx = context();
+        ctx.expected_primitive_ids = vec!["base".into(), "tool".into()];
         let a = seg(
             0,
             "base",
