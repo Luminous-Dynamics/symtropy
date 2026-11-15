@@ -1,0 +1,574 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/power-fabric-source-inventory-closure-0.1.schema.json",
+  "title": "Power Fabric Scoped Source Inventory Closure v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_id",
+    "as_known_at",
+    "scope",
+    "snapshot",
+    "traversal",
+    "pages",
+    "records",
+    "dispositions",
+    "exclusions",
+    "scenarios",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "fixture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "as_known_at": {
+      "$ref": "#/$defs/time"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/snapshot"
+    },
+    "traversal": {
+      "$ref": "#/$defs/traversal"
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/page"
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/disposition"
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/exclusion"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_system_id",
+        "source_namespace",
+        "adapter_profile_id",
+        "adapter_profile_version",
+        "query_scope_sha256",
+        "filter_manifest_sha256",
+        "included_record_classes",
+        "permission_scope_receipt_ref",
+        "explicit_exclusion_ids"
+      ],
+      "properties": {
+        "source_system_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "adapter_profile_id": {
+          "$ref": "#/$defs/id"
+        },
+        "adapter_profile_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query_scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "filter_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "included_record_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "scope_start": {
+          "$ref": "#/$defs/time"
+        },
+        "scope_end": {
+          "$ref": "#/$defs/time"
+        },
+        "permission_scope_receipt_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "explicit_exclusion_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "source_revision",
+        "consistency_model",
+        "snapshot_token_sha256",
+        "captured_from",
+        "captured_until",
+        "source_snapshot_receipt_ref"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "consistency_model": {
+          "enum": [
+            "immutable_export",
+            "point_in_time_snapshot",
+            "snapshot_paginated_api",
+            "best_effort_mutable"
+          ]
+        },
+        "snapshot_token_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "captured_from": {
+          "$ref": "#/$defs/time"
+        },
+        "captured_until": {
+          "$ref": "#/$defs/time"
+        },
+        "source_snapshot_receipt_ref": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "traversal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "contract_version",
+        "expected_page_count",
+        "expected_record_count",
+        "terminal_boundary_required",
+        "terminal_boundary_digest",
+        "closure_evidence_ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "immutable_manifest",
+            "cursor_paginated_api",
+            "offset_paginated_api",
+            "continuation_link",
+            "best_effort"
+          ]
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_page_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "expected_record_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "terminal_boundary_required": {
+          "type": "boolean"
+        },
+        "terminal_boundary_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "closure_evidence_ref": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "page_id",
+        "page_index",
+        "request_cursor_sha256",
+        "next_cursor_sha256",
+        "terminal",
+        "source_revision",
+        "page_payload_sha256",
+        "received_at",
+        "evidence_ref",
+        "record_identity_digests"
+      ],
+      "properties": {
+        "page_id": {
+          "$ref": "#/$defs/id"
+        },
+        "page_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "request_cursor_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "next_cursor_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "source_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "page_payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "received_at": {
+          "$ref": "#/$defs/time"
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "record_identity_digests": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_identity_sha256",
+        "source_namespace",
+        "source_record_class",
+        "page_id",
+        "source_revision",
+        "payload_sha256"
+      ],
+      "properties": {
+        "record_identity_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "source_record_class": {
+          "$ref": "#/$defs/id"
+        },
+        "page_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_revision": {
+          "$ref": "#/$defs/id"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_identity_sha256",
+        "disposition",
+        "explanation"
+      ],
+      "properties": {
+        "record_identity_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "disposition": {
+          "enum": [
+            "mapped",
+            "loss_explicit",
+            "unsupported",
+            "ambiguous",
+            "excluded_with_reason",
+            "unavailable_with_reason"
+          ]
+        },
+        "mapping_record_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "exclusion_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "mapped"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          },
+          "then": {
+            "required": [
+              "mapping_record_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "loss_explicit"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          },
+          "then": {
+            "required": [
+              "mapping_record_ref"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "excluded_with_reason"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          },
+          "then": {
+            "required": [
+              "exclusion_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "exclusion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exclusion_id",
+        "boundary_kind",
+        "boundary_ref",
+        "reason",
+        "evidence_ref"
+      ],
+      "properties": {
+        "exclusion_id": {
+          "$ref": "#/$defs/id"
+        },
+        "boundary_kind": {
+          "enum": [
+            "namespace",
+            "record_class",
+            "partition",
+            "time_window",
+            "permission_boundary",
+            "filter_boundary"
+          ]
+        },
+        "boundary_ref": {
+          "$ref": "#/$defs/id"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "description",
+        "mutation_kind",
+        "target_page_id",
+        "as_known_at",
+        "expected_closure_state",
+        "expected_semantic_state",
+        "expected_diagnostic_codes",
+        "expected_missing_page_indexes",
+        "expected_unaccounted_record_digests",
+        "expected_conflict_record_digests"
+      ],
+      "properties": {
+        "scenario_id": {
+          "$ref": "#/$defs/id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mutation_kind": {
+          "enum": [
+            "none",
+            "omit_page",
+            "omit_terminal_page",
+            "repeat_cursor",
+            "skip_cursor",
+            "source_revision_drift",
+            "same_cursor_changed_payload",
+            "page_count_mismatch",
+            "record_count_mismatch",
+            "duplicate_identity_same_namespace",
+            "same_id_different_namespace",
+            "missing_filter_pin",
+            "permission_scope_unknown",
+            "explicit_exclusion",
+            "unsupported_but_accounted",
+            "missing_disposition",
+            "duplicate_disposition",
+            "late_page_after_cutoff",
+            "best_effort_mutable",
+            "page_reorder",
+            "snapshot_token_changed",
+            "reject_all_control",
+            "accept_all_control"
+          ]
+        },
+        "target_page_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "as_known_at": {
+          "$ref": "#/$defs/time"
+        },
+        "expected_closure_state": {
+          "enum": [
+            "complete_within_declared_scope",
+            "incomplete",
+            "unknown",
+            "conflicted"
+          ]
+        },
+        "expected_semantic_state": {
+          "enum": [
+            "complete",
+            "complete_with_declared_loss",
+            "incomplete_unsupported_or_ambiguous",
+            "unknown"
+          ]
+        },
+        "expected_diagnostic_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected_missing_page_indexes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "expected_unaccounted_record_digests": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        },
+        "expected_conflict_record_digests": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/sha256"
+          }
+        }
+      }
+    }
+  }
+}
