@@ -74,3 +74,28 @@ Run it with:
 The JSON records the fixture ID, crate version, target architecture/OS, available parallelism, iteration count, sample count and raw timing summary. Record the CPU model, OS image, compiler commit and machine configuration alongside each retained report; the program intentionally does not guess those facts from portable runtime APIs.
 
 These timings are **only the reference-layer microbenchmark**. They are not comparable to Drake, MuJoCo or Pinocchio solver timings, do not establish a general overhead bound, and do not measure physical integration. Matched solver comparisons are tracked separately in Symtropy #4805.
+
+
+## Nonlinear step-map and adjoint observable sensitivity
+
+The nonlinear-sensitivity module adds a local first-order/second-order propagation contract on top of the frame-typed rectangular metric operator:
+
+`||F(x+e)-F(x)||_Y <= ||DF(x)||_(X->Y) * delta + 0.5 * H_F * delta^2`
+
+where `delta` is a declared input tangent-metric radius and `H_F` must be a uniform metric-induced second-derivative bound over the entire perturbation ball.
+
+For a scalar output observable with output covector `g_Y`, the adjoint pullback gives the first-order sensitivity:
+
+`||DF(x)^T g_Y||_(G_X^-1) * delta`
+
+The observable remainder is a separate bound on the Hessian of the composite observable `phi composed with F`; a bound on the map Hessian alone is not sufficient.
+
+The module distinguishes:
+- **Declared analytic remainder bound** — caller supplies a referenced analytic bound.
+- **Declared interval remainder bound** — caller supplies a referenced interval enclosure.
+- **Empirical estimate only** — sampled/finite-difference curvature is reported, but the total upper-bound field remains absent.
+- **First order only** — no curvature evidence; no total nonlinear bound is emitted.
+
+The evidence identifier is a caller-supplied reference, not a verified proof digest. The Jacobian operator norm remains a numerical singular-value estimate under the declared Jacobi profile. Therefore the emitted total is conditional on both pieces of evidence and is not a formal floating-point certificate.
+
+Tests cover an analytic quadratic map, interval-backed remainder arithmetic, the empirical-only and missing-evidence abstention paths, adjoint observable sensitivity, dense domain/codomain re-basing invariance, and the fact that a non-injective Jacobian can still have a useful forward operator-norm estimate.
