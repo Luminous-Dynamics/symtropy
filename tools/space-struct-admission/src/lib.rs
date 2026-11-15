@@ -596,7 +596,10 @@ mod tests {
         assert_eq!(result.disposition, AdmissionDisposition::OutOfDomain);
         assert_reason(&result, ReasonCode::IntendedUseExceedsClaimCeiling);
         assert!(!result.decision_eligible);
-        assert_eq!(result.physical_validation, PhysicalValidationState::Unresolved);
+        assert_eq!(
+            result.physical_validation,
+            PhysicalValidationState::Unresolved
+        );
     }
 
     #[test]
