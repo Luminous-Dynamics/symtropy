@@ -84,6 +84,10 @@ pub enum SelectionEvidenceRole {
 /// Independent candidate model-family/correlation group.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct HypothesisGroup {
+    /// Stable exact hypothesis identity.
+    pub hypothesis_id: String,
+    /// Digest of the exact model variant/parameterization being tested.
+    pub hypothesis_sha256: String,
     /// Stable model-family or genuinely independent hypothesis-group identity.
     pub group_id: String,
 }
@@ -517,7 +521,11 @@ fn candidate_rejection_reasons(
     if candidate.probability_uninformative > policy.maximum_probability_uninformative {
         reasons.insert(RejectionReason::TooLikelyUninformative);
     }
-    if candidate.hypothesis_groups.iter().any(|group| group.group_id.trim().is_empty()) {
+    if candidate.hypothesis_groups.iter().any(|group| {
+        group.group_id.trim().is_empty()
+            || group.hypothesis_id.trim().is_empty()
+            || !is_sha256(&group.hypothesis_sha256)
+    }) {
         reasons.insert(RejectionReason::InvalidUtilityVector);
     }
 
