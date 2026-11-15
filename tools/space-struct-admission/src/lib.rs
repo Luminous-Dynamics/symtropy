@@ -544,17 +544,34 @@ mod tests {
 
     #[test]
     fn reference_only_material_cannot_support_engineering_screen() {
-        let profile = ring_profile();
+        let mut profile = ring_profile();
+        profile.maturity = ModelMaturity::SoftwareQualified;
+        profile.max_intended_use = IntendedUse::BoundedEngineeringScreen;
         let mut request = base_request(&profile);
         request.intended_use = IntendedUse::BoundedEngineeringScreen;
         let mut context = base_context(profile);
         context.material_evidence.state = MaterialEvidenceState::ReferenceOnly;
         let result = admit(&request, &context);
 
-        assert_eq!(result.disposition, AdmissionDisposition::OutOfDomain);
-        assert_reason(&result, ReasonCode::IntendedUseExceedsClaimCeiling);
+        assert_eq!(result.disposition, AdmissionDisposition::NeedsEvidence);
         assert_reason(&result, ReasonCode::MaterialEvidenceInsufficient);
         assert_reason(&result, ReasonCode::MaterialBatchUnresolved);
+    }
+
+    #[test]
+    fn draft_profile_blocks_bounded_engineering_screen() {
+        let profile = ring_profile();
+        let mut request = base_request(&profile);
+        request.intended_use = IntendedUse::BoundedEngineeringScreen;
+        let mut context = base_context(profile);
+        context.material_evidence.state = MaterialEvidenceState::BatchQualifiedForProfile;
+        context.material_evidence.qualified_model_profile_id =
+            Some("ARTGRAV-THIN-RING-REF-V0_1".to_owned());
+        let result = admit(&request, &context);
+
+        assert_eq!(result.disposition, AdmissionDisposition::OutOfDomain);
+        assert_reason(&result, ReasonCode::IntendedUseExceedsClaimCeiling);
+        assert_reason(&result, ReasonCode::DraftProfileRestricted);
     }
 
     #[test]
