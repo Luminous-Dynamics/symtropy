@@ -22369,7 +22369,7 @@
       "expected_disposition": "UNRESOLVED"
     },
     {
-      "mutation_id": "MUT-STale-TRANSFORM-002",
+      "mutation_id": "MUT-STALE-TRANSFORM-002",
       "source_case_id": "GEN-LINE-VALIDATION-0030",
       "mutation": "Change the transform digest but keep coordinates in the previous frame.",
       "expected_disposition": "REJECT"
