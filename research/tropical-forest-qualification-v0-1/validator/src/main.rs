@@ -67,6 +67,7 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt"
             | Some("PASS_SYNTHETIC_AFEX_DESIGN")
             | Some("PASS_SYNTHETIC_ROOT_TURNOVER")
             | Some("PASS_SYNTHETIC_RATIO_ESTIMANDS")
+            | Some("PASS_SYNTHETIC_ROOT_PATHWAY_TOURNAMENT_SPEC")
             | Some("PASS_SYNTHETIC_AFEX_ROOT_DISTRIBUTION_ORACLE")
     );
     if !successful_result {
