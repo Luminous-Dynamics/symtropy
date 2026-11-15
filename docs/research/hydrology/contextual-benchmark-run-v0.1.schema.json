@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/hydrology/contextual-benchmark-run-v0.1.schema.json",
+  "title": "Catchment-Conditioned Hydrology Benchmark Run",
+  "description": "A source- and split-bound benchmark manifest. This schema records context and evidence identity; it does not certify a model or validate hydrologic observations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_run_id",
+    "profile",
+    "dataset",
+    "split",
+    "baselines",
+    "metrics",
+    "physical_gates",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "benchmark_run_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": ["string", "null"], "format": "date-time" },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_id", "process", "spatial_unit", "task", "temporal_resolution"],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "process": {
+          "enum": [
+            "rainfall_runoff",
+            "streamflow_routing",
+            "groundwater",
+            "channel_hydraulics",
+            "flood_inundation",
+            "wetland_storage",
+            "reservoir_operation",
+            "estuary",
+            "other"
+          ]
+        },
+        "spatial_unit": { "type": "string", "minLength": 1 },
+        "task": { "type": "string", "minLength": 1 },
+        "intended_decision": { "type": ["string", "null"] },
+        "temporal_resolution": { "type": "string", "minLength": 1 },
+        "metric_scope": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "version", "data_kind", "rights_status", "acquisition_status"],
+      "properties": {
+        "dataset_id": { "type": "string", "minLength": 1 },
+        "version": { "type": ["string", "null"] },
+        "locator": { "type": ["string", "null"], "format": "uri" },
+        "data_kind": { "enum": ["synthetic", "laboratory", "hardware_in_loop", "utility_field", "research_observation", "mixed", "unknown"] },
+        "rights_status": { "enum": ["verified_permitted", "restricted", "request_required", "unknown"] },
+        "acquisition_status": { "enum": ["bytes_acquired", "metadata_only", "not_acquired", "unknown"] },
+        "sha256": { "type": ["string", "null"], "pattern": "^[a-fA-F0-9]{64}$" },
+        "native_cadence": { "type": ["string", "null"] },
+        "time_semantics": { "type": ["string", "null"] }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "aridity_index": { "type": ["number", "null"] },
+        "runoff_ratio": { "type": ["number", "null"], "minimum": 0 },
+        "baseflow_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "mean_flow": { "type": ["number", "null"], "minimum": 0 },
+        "q95_flow": { "type": ["number", "null"], "minimum": 0 },
+        "low_precipitation_frequency": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "catchment_area_km2": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "urban_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "regulated": { "type": ["boolean", "null"] },
+        "forcing_resolution": { "type": ["string", "null"] },
+        "observation_resolution": { "type": ["string", "null"] },
+        "gauge_density_per_1000_km2": { "type": ["number", "null"], "minimum": 0 },
+        "missing_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "observation_uncertainty_method": { "type": ["string", "null"] },
+        "context_source_refs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "unknown_fields": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["split_id", "policy", "grouping_unit", "train", "validation", "test", "holdout_event_ids"],
+      "properties": {
+        "split_id": { "type": "string", "minLength": 1 },
+        "policy": { "enum": ["chronological", "event_blocked", "catchment_holdout", "nested_basin_grouped", "pre_registered_custom"] },
+        "grouping_unit": { "type": "string", "minLength": 1 },
+        "train": { "$ref": "#/$defs/period" },
+        "validation": { "$ref": "#/$defs/period" },
+        "test": { "$ref": "#/$defs/period" },
+        "holdout_event_ids": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "nested_catchments_grouped": { "type": "boolean" },
+        "preprocessing_fit_scope": { "enum": ["train_only", "train_plus_validation", "unknown"] },
+        "test_access_after_freeze": { "type": "boolean" }
+      }
+    },
+    "baselines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["baseline_id", "level", "method", "fit_scope", "uses_test_targets"],
+        "properties": {
+          "baseline_id": { "type": "string", "minLength": 1 },
+          "level": { "enum": ["B0", "B1", "B2", "B3", "B4", "B5"] },
+          "method": { "type": "string", "minLength": 1 },
+          "fit_scope": { "enum": ["none", "train_only", "train_plus_validation", "calibration_period", "external_reference", "unknown"] },
+          "uses_test_targets": { "type": "boolean" },
+          "ensemble_members": { "type": ["integer", "null"], "minimum": 1 },
+          "convergence_criterion": { "type": ["string", "null"] },
+          "independent_seeds": { "type": ["integer", "null"], "minimum": 1 },
+          "runtime_seconds": { "type": ["number", "null"], "minimum": 0 }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric_id", "name", "value", "unit", "direction", "evidence_class"],
+        "properties": {
+          "metric_id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "value": { "type": ["number", "null"] },
+          "unit": { "type": "string", "minLength": 1 },
+          "direction": { "enum": ["higher_is_better", "lower_is_better", "target_range", "descriptive_only"] },
+          "evidence_class": { "enum": ["invariant", "analytical", "reference_differential", "calibration", "temporal_holdout", "spatial_transfer", "physical_test", "field_observation"] },
+          "uncertainty_method": { "type": ["string", "null"] },
+          "lower_bound": { "type": ["number", "null"] },
+          "upper_bound": { "type": ["number", "null"] },
+          "stratum_id": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "physical_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["water_balance_pass", "numerical_stability_pass", "flux_reconciliation_pass", "invalid_runs_reported"],
+      "properties": {
+        "water_balance_pass": { "type": ["boolean", "null"] },
+        "numerical_stability_pass": { "type": ["boolean", "null"] },
+        "flux_reconciliation_pass": { "type": ["boolean", "null"] },
+        "invalid_runs_reported": { "type": "boolean" },
+        "receipt_refs": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "complexity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parameter_count": { "type": ["integer", "null"], "minimum": 0 },
+        "runtime_seconds": { "type": ["number", "null"], "minimum": 0 },
+        "peak_memory_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "compute_energy_wh": { "type": ["number", "null"], "minimum": 0 },
+        "data_requirements": { "type": "array", "items": { "type": "string" } },
+        "maintenance_burden": { "type": ["string", "null"] }
+      }
+    },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  },
+  "$defs": {
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" },
+        "catchment_ids": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    }
+  }
+}
