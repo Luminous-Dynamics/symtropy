@@ -1008,6 +1008,155 @@
       "intended_use": "root tissue nutrient concentration response during AFEX year one",
       "disallowed_inference": "Tissue concentration is not nutrient uptake rate or total nutrient content without compatible biomass and sampling support. Preserve the four-interval temporal composite.",
       "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-SOIL-MICROBIAL-ENZYMES-2018",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Soil microbial potential enzyme activities in fertilised plots in the Central Amazon, 2018",
+      "doi": "10.5285/b9a2523e-09ba-43c7-acfa-a894a231b133",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/b9a2523e-09ba-43c7-acfa-a894a231b133",
+      "temporal_support": {
+        "sampling_campaign": "2018-01",
+        "temporal_extent": [
+          "2018-01-01",
+          "2018-09-30"
+        ],
+        "seven_months_after_nutrient_addition": true
+      },
+      "measurement_support": {
+        "variables": [
+          "potential β-glucosidase (BG)",
+          "potential N-acetyl β-glucosaminidase (NAG)",
+          "potential phosphomonoesterase (PHOS)"
+        ],
+        "process_domains": [
+          "carbon cycling",
+          "nitrogen cycling",
+          "phosphorus cycling"
+        ],
+        "depths_cm": [
+          [
+            0,
+            5
+          ],
+          [
+            5,
+            10
+          ]
+        ],
+        "within_plot_sampling_points": 5,
+        "aggregation": "mean microbial-community potential enzyme activity per plot and depth",
+        "method": "microplate fluorimetric assay with 4-Methylumbelliferyl substrates; 365 nm excitation / 450 nm emission",
+        "unit": "nmol MUF g soil dry weight-1 hour-1",
+        "spatial_resolution_metadata_m": 1000
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × depth potential enzyme activity",
+      "nested_sampling_unit": "five within-plot soil points; not treatment replicates",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "soil microbial C/N/P enzyme response to randomized nutrient addition; test microbial alternatives to root-only nutrient-acquisition explanations",
+      "disallowed_inference": "Potential ex-situ enzyme activity is not realized in-situ mineralization, nutrient uptake or nutrient flux. Keep 0-5 and 5-10 cm layers distinct from root dataset depth layers.",
+      "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-FINE-LITTERFALL-PRODUCTION-2017-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Fine litterfall production and nutrient composition data from a fertilized site in Central Amazon, Brazil",
+      "doi": "10.5285/c0294ec9-45d6-464c-b543-ce9ece9fd968",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/c0294ec9-45d6-464c-b543-ce9ece9fd968",
+      "temporal_support": {
+        "temporal_extent": [
+          "2017-07-01",
+          "2019-07-31"
+        ],
+        "campaign": "repeated collection during two years after fertilization commenced"
+      },
+      "measurement_support": {
+        "variables": [
+          "leaf material",
+          "woody material",
+          "reproductive material",
+          "residues",
+          "frass",
+          "nutrient composition"
+        ],
+        "traps_per_plot": 5,
+        "trap_dimensions_cm": [
+          50,
+          50
+        ],
+        "trap_height_m": 1,
+        "total_trap_area_m2_per_plot": 1.25,
+        "fields": [
+          "catch order",
+          "census number",
+          "plot ID",
+          "litter-trap ID",
+          "leaves",
+          "woody material",
+          "reproductive material",
+          "residues",
+          "frass",
+          "year",
+          "month",
+          "day"
+        ],
+        "spatial_resolution_metadata_m": 1000
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × trap × collection date/category",
+      "nested_sampling_unit": "five litter traps within each plot; aggregate with area and temporal support preserved",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "above-ground litterfall production and nutrient return context for root/canopy/respiration process accounting",
+      "disallowed_inference": "A nutrient concentration is not areal nutrient return without matching litter mass and trap area; five traps are within-plot sampling units, not independent randomized plots.",
+      "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-LITTERFALL-LEAF-TRAITS-2017-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Litterfall herbivory in fertilised plots in the Central Amazon, 2017-2019",
+      "doi": "10.5285/58b66cdf-451c-42e7-8153-c24ec30631fd",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/58b66cdf-451c-42e7-8153-c24ec30631fd",
+      "temporal_support": {
+        "sampling_campaigns": [
+          "2017-08",
+          "2018-08",
+          "2019-08"
+        ],
+        "peak_litterfall_campaigns": true
+      },
+      "measurement_support": {
+        "catalogue_description": "The record summary describes leaf traits and nutrients from litterfall, including realized leaf area and leaf mass area (LMA).",
+        "sampling": "A sample of leaves from all litter traps per plot was analysed.",
+        "leaf_area_unit": "mm2",
+        "lma_unit": "g m-2",
+        "method": "image analysis for leaf area; LMA calculated as leaf biomass divided by leaf area",
+        "spatial_resolution_metadata_m": 50
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "plot × August campaign leaf sample aggregated across litter traps",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "intended_use": "litterfall leaf-area and LMA response to nutrient treatments",
+      "disallowed_inference": "Do not infer a direct herbivory rate from the catalogue summary alone; archive variables and codebook must confirm whether damaged area or herbivory variables are actually included.",
+      "mechanism_issue": 5445
     }
   ],
   "cross_source_admission_gates": [
