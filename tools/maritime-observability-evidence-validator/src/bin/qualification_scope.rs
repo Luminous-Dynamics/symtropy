@@ -170,20 +170,26 @@ fn valid_case_shape(case: &Value) -> bool {
         }
     }
 
-    if let Some(receipt) = request.get("model_update_retention_receipt").filter(|v| !v.is_null()) {
-        if !exact_keys(
-            receipt,
-            &[
-                "receipt_id", "prior_qualification_id", "old_model_sha256", "new_model_sha256",
-                "scope_sha256", "verification_suite_sha256", "evidence_profile_sha256",
-                "review_status", "result", "retained_capability_ids", "tested_regimes",
-                "worst_case_regression_pp", "maximum_allowed_regression_pp",
-                "unknown_fault_rejection_passed", "calibration_retention_passed", "scope_unchanged",
-            ],
-        ) || text(receipt, "receipt_id").is_none()
-        {
-            return false;
-        }
+    let retention_receipt_shape_valid = request
+        .get("model_update_retention_receipt")
+        .filter(|value| !value.is_null())
+        .map(|receipt| {
+            exact_keys(
+                receipt,
+                &[
+                    "receipt_id", "prior_qualification_id", "old_model_sha256", "new_model_sha256",
+                    "scope_sha256", "verification_suite_sha256", "evidence_profile_sha256",
+                    "review_status", "result", "retained_capability_ids", "tested_regimes",
+                    "worst_case_regression_pp", "maximum_allowed_regression_pp",
+                    "unknown_fault_rejection_passed", "calibration_retention_passed", "scope_unchanged",
+                ],
+            )
+            .is_ok()
+                && text(receipt, "receipt_id").is_some()
+        })
+        .unwrap_or(true);
+    if !retention_receipt_shape_valid {
+        return false;
     }
     true
 }
