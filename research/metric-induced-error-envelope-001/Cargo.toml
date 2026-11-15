@@ -14,4 +14,8 @@ path = "src/lib.rs"
 name = "metric-induced-microbenchmark"
 path = "src/bin/metric_microbenchmark.rs"
 
+[[example]]
+name = "constraint_space_ladder"
+path = "examples/constraint_space_ladder.rs"
+
 [workspace]
