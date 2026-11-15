@@ -184,8 +184,10 @@ impl<Domain: CoordinateFrame, ConstraintSpace: CoordinateFrame, const N: usize, 
             }
             delassus_whitened_eigenvalue_estimates.push(squared);
         }
-        delassus_whitened_eigenvalue_estimates
-            .extend(std::iter::repeat_n(0.0, K.saturating_sub(singular_values.len())));
+        delassus_whitened_eigenvalue_estimates.extend(std::iter::repeat_n(
+            0.0,
+            K.saturating_sub(singular_values.len()),
+        ));
 
         let rank_status = if operator_receipt.status
             == RectangularOperatorStatusV1::OutsideConditionEnvelope
@@ -318,10 +320,10 @@ impl<Domain: CoordinateFrame, ConstraintSpace: CoordinateFrame, const N: usize, 
             .delassus
             .as_ref()
             .ok_or(ConstraintSpaceReceiptErrorV1::FullRowRankAuthorityUnavailable)?;
-        let residual_typed = ConstraintResidualV1::<ConstraintSpace, K>::new(*residual.components())?;
+        let residual_typed =
+            ConstraintResidualV1::<ConstraintSpace, K>::new(*residual.components())?;
         let multiplier = delassus.solve_residual(&residual_typed)?;
-        let multiplier_covector =
-            Cotangent::<ConstraintSpace, K>::new(*multiplier.components())?;
+        let multiplier_covector = Cotangent::<ConstraintSpace, K>::new(*multiplier.components())?;
         let correction = delassus.induced_velocity_correction(&multiplier)?;
         Ok((multiplier_covector, correction))
     }
@@ -335,7 +337,8 @@ impl<Domain: CoordinateFrame, ConstraintSpace: CoordinateFrame, const N: usize, 
             .delassus
             .as_ref()
             .ok_or(ConstraintSpaceReceiptErrorV1::FullRowRankAuthorityUnavailable)?;
-        let residual_typed = ConstraintResidualV1::<ConstraintSpace, K>::new(*residual.components())?;
+        let residual_typed =
+            ConstraintResidualV1::<ConstraintSpace, K>::new(*residual.components())?;
         Ok(delassus.residual_norm(&residual_typed)?)
     }
 }
@@ -499,7 +502,10 @@ mod tests {
             constraint_profile(),
         )
         .unwrap();
-        assert_eq!(receipt_q.rank_status(), ConstraintMapRankStatusV1::FullRowRank);
+        assert_eq!(
+            receipt_q.rank_status(),
+            ConstraintMapRankStatusV1::FullRowRank
+        );
         assert_eq!(receipt_q.operator_receipt().numerical_rank, 2);
         assert!(receipt_q.delassus().is_some());
         assert_eq!(receipt_q.delassus_whitened_eigenvalue_estimates().len(), 2);
@@ -514,16 +520,15 @@ mod tests {
             metric_profile(),
         )
         .unwrap();
-        let mass_y = domain_rebasis.metric_to_to(&mass_q, metric_profile()).unwrap();
+        let mass_y = domain_rebasis
+            .metric_to_to(&mass_q, metric_profile())
+            .unwrap();
         let constraint_metric_d = constraint_rebasis
             .metric_to_to(&constraint_metric_c, metric_profile())
             .unwrap();
-        let jacobian_d = rebase_constraint_jacobian_both(
-            &jacobian_q,
-            &domain_rebasis,
-            &constraint_rebasis,
-        )
-        .unwrap();
+        let jacobian_d =
+            rebase_constraint_jacobian_both(&jacobian_q, &domain_rebasis, &constraint_rebasis)
+                .unwrap();
         let receipt_d = ConstraintSpaceReceiptV1::<DenseY, DenseConstraint, 3, 2>::new(
             mass_y,
             constraint_metric_d,
@@ -532,7 +537,10 @@ mod tests {
             constraint_profile(),
         )
         .unwrap();
-        assert_eq!(receipt_d.rank_status(), ConstraintMapRankStatusV1::FullRowRank);
+        assert_eq!(
+            receipt_d.rank_status(),
+            ConstraintMapRankStatusV1::FullRowRank
+        );
         assert_eq!(receipt_d.operator_receipt().numerical_rank, 2);
         for (left, right) in receipt_q
             .singular_values()
@@ -563,7 +571,11 @@ mod tests {
         let rate_q = receipt_q.apply_jacobian(&velocity_q).unwrap();
         let rate_d = receipt_d.apply_jacobian(&velocity_y).unwrap();
         let expected_rate_d = constraint_rebasis.tangent_to_to(&rate_q).unwrap();
-        for (actual, expected) in rate_d.components().iter().zip(expected_rate_d.components().iter()) {
+        for (actual, expected) in rate_d
+            .components()
+            .iter()
+            .zip(expected_rate_d.components().iter())
+        {
             close(*actual, *expected, 2.0e-12);
         }
         close(
@@ -575,8 +587,12 @@ mod tests {
         let multiplier_q = Cotangent::<ConstraintSpace, 2>::new([0.75, -0.2]).unwrap();
         let multiplier_d = constraint_rebasis.cotangent_to_to(&multiplier_q).unwrap();
         close(
-            receipt_q.constraint_covector_dual_norm(&multiplier_q).unwrap(),
-            receipt_d.constraint_covector_dual_norm(&multiplier_d).unwrap(),
+            receipt_q
+                .constraint_covector_dual_norm(&multiplier_q)
+                .unwrap(),
+            receipt_d
+                .constraint_covector_dual_norm(&multiplier_d)
+                .unwrap(),
             2.0e-10,
         );
         close(
@@ -589,8 +605,12 @@ mod tests {
             ConstraintMultiplierV1::<ConstraintSpace, 2>::new(*multiplier_q.components()).unwrap();
         let multiplier_d_typed =
             ConstraintMultiplierV1::<DenseConstraint, 2>::new(*multiplier_d.components()).unwrap();
-        let correction_q = delassus_q.induced_velocity_correction(&multiplier_q_typed).unwrap();
-        let correction_d = delassus_d.induced_velocity_correction(&multiplier_d_typed).unwrap();
+        let correction_q = delassus_q
+            .induced_velocity_correction(&multiplier_q_typed)
+            .unwrap();
+        let correction_d = delassus_d
+            .induced_velocity_correction(&multiplier_d_typed)
+            .unwrap();
         let correction_q_from_y = domain_rebasis.tangent_to_from(&correction_d).unwrap();
         for (actual, expected) in correction_q
             .components()
@@ -618,7 +638,9 @@ mod tests {
         let (lambda_solved_d, correction_solved_d) = receipt_d
             .solve_minimum_kinetic_correction(&target_rate_d)
             .unwrap();
-        let expected_lambda_d = constraint_rebasis.cotangent_to_to(&lambda_solved_q).unwrap();
+        let expected_lambda_d = constraint_rebasis
+            .cotangent_to_to(&lambda_solved_q)
+            .unwrap();
         for (actual, expected) in lambda_solved_d
             .components()
             .iter()
@@ -626,8 +648,9 @@ mod tests {
         {
             close(*actual, *expected, 2.0e-10);
         }
-        let correction_solved_q_from_y =
-            domain_rebasis.tangent_to_from(&correction_solved_d).unwrap();
+        let correction_solved_q_from_y = domain_rebasis
+            .tangent_to_from(&correction_solved_d)
+            .unwrap();
         for (actual, expected) in correction_solved_q
             .components()
             .iter()
@@ -636,24 +659,30 @@ mod tests {
             close(*actual, *expected, 2.0e-10);
         }
         close(
-            receipt_q.residual_delassus_dual_norm(&target_rate_q).unwrap(),
-            receipt_d.residual_delassus_dual_norm(&target_rate_d).unwrap(),
+            receipt_q
+                .residual_delassus_dual_norm(&target_rate_q)
+                .unwrap(),
+            receipt_d
+                .residual_delassus_dual_norm(&target_rate_d)
+                .unwrap(),
             2.0e-10,
         );
         close(
-            receipt_q.mass_metric.tangent_norm(&correction_solved_q).unwrap(),
-            receipt_q.residual_delassus_dual_norm(&target_rate_q).unwrap(),
+            receipt_q
+                .mass_metric
+                .tangent_norm(&correction_solved_q)
+                .unwrap(),
+            receipt_q
+                .residual_delassus_dual_norm(&target_rate_q)
+                .unwrap(),
             2.0e-10,
         );
     }
 
     #[test]
     fn rectangular_dimensions_and_rank_deficiency_do_not_gain_false_delassus_authority() {
-        let mass_2 = Metric::<CartesianQ, 2>::admit(
-            [[2.0, 0.0], [0.0, 3.0]],
-            metric_profile(),
-        )
-        .unwrap();
+        let mass_2 =
+            Metric::<CartesianQ, 2>::admit([[2.0, 0.0], [0.0, 3.0]], metric_profile()).unwrap();
         let constraint_3 = Metric::<ConstraintSpace, 3>::admit(
             [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 4.0]],
             metric_profile(),
@@ -692,7 +721,10 @@ mod tests {
         .unwrap();
         assert_eq!(redundant.operator_receipt().numerical_rank, 1);
         assert_eq!(redundant.operator_receipt().codomain_nullity, 1);
-        assert_eq!(redundant.rank_status(), ConstraintMapRankStatusV1::RankDeficient);
+        assert_eq!(
+            redundant.rank_status(),
+            ConstraintMapRankStatusV1::RankDeficient
+        );
         assert!(redundant.delassus().is_none());
     }
 
@@ -737,7 +769,9 @@ mod tests {
             metric_profile(),
         )
         .unwrap();
-        let mass_y = domain_rebasis.metric_to_to(&mass_q, metric_profile()).unwrap();
+        let mass_y = domain_rebasis
+            .metric_to_to(&mass_q, metric_profile())
+            .unwrap();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &domain_rebasis).unwrap();
         let wrong = ConstraintSpaceReceiptV1::<DenseY, ConstraintSpace, 3, 2>::new(
             mass_y,
@@ -752,9 +786,8 @@ mod tests {
 
     #[test]
     fn zero_dimensions_and_budget_exhaustion_fail_before_qualification() {
-        let zero = RectangularTangentToTangentOperator::<CartesianQ, ConstraintSpace, 0, 3>::new(
-            [],
-        );
+        let zero =
+            RectangularTangentToTangentOperator::<CartesianQ, ConstraintSpace, 0, 3>::new([]);
         assert!(matches!(zero, Err(OperatorConditionErrorV1::ZeroDimension)));
 
         let mut limited = constraint_profile();
