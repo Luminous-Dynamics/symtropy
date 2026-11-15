@@ -24,6 +24,7 @@ mod ir_graph_bridge;
 mod module_contract;
 mod physical_identity;
 mod resilience;
+mod source_inventory;
 mod service_graph;
 mod standards_adapter;
 
@@ -60,6 +61,14 @@ pub use infrastructure_ir::{
 pub use fuel::{
     DensityKgPerCubicMeter, EvidenceClass, EvidenceReference, FuelBatch, FuelFamily, FuelProperty,
     FuelRecordError,
+};
+pub use source_inventory::{
+    InventoryClosureReport, InventoryClosureState, InventoryDiagnostic, InventoryDiagnosticCode,
+    InventoryError, InventoryExclusion, InventoryPage, InventoryRecord, InventoryScope,
+    InventorySemanticState, InventorySnapshot, InventoryTraversalContract, RecordDisposition,
+    SemanticDispositionKind, SnapshotConsistencyModel, SnapshotVerification,
+    ScopeVerification, SourceInventoryManifest, SourceInventoryVerifier, SourceRecordIdentity,
+    TraversalKind,
 };
 pub use resilience::{
     assess_resilience, DisjointPath, FailureDomain, FailureDomainExposure,
