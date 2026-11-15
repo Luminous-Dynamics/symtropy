@@ -128,7 +128,17 @@ Safety is a hard gate, not a weighted objective that can be offset by faster del
 
 Evaluate returnable containers, packaging return, empty backhaul, cleaning, inspection, repair, reuse cycles, charging availability, alternative hubs, asset unavailability and emergency supply continuity.
 
-Report loss, damage, cleaning and reverse-trip cost rather than treating reuse as inherently beneficial.
+Integrate the existing Commons Waste/Circular domains where the exact hApp deployment and call graph are qualified:
+- `waste_registry`: material-stream identity and classification;
+- `waste_collection`: collection request and collection-run records;
+- `compost_control`: compost-batch and bounded sensor/process observations;
+- `circular_marketplace`: secondary-material listings and demand matching.
+
+The division of responsibility is deliberate: Waste/Circular owns material classification, processing and recovery records; Transit owns shared vehicles, route segments, booking, collection/pickup missions and transport custody. A waste-collection run must not create a second fleet-routing or vehicle registry. Compost zomes record bounded process evidence; local compost equipment controllers retain process and safety authority.
+
+**Deployment caveat:** all four Waste/Circular zome pairs are declared in the current Commons DNA manifest, but the shared `COMMONS_LOCAL_ZOMES` allowlist does not currently list them. Mycelix #6269 tracks reconciliation of manifests, Cargo members, SDK, router and actual tests. Do not assume generic bridge dispatch is available until that work is completed. The same issue records that Tool Library and Community Calendar appear in the Cargo workspace but not in the current DNA manifest.
+
+Report recovered mass, validated reuse/repair/recycling destination, contamination/rejection rate, secondary-material quality and yield, tote return rate, cleaning/inspection cost, losses, empty backhaul and reverse-trip energy. Any avoided-virgin-material or carbon claim must bind a versioned life-cycle method, source factors, system boundary and uncertainty; unverified self-reports must not mint credits or count as verified impact. Do not treat reuse as inherently beneficial without counting cleaning, transport, damage and end-of-life costs.
 
 ### T7 — Evidence integrity and provenance
 
@@ -155,6 +165,9 @@ GS1 EPCIS 2.0.1 is a candidate external event vocabulary for interoperable busin
 | Physical twin | Symtropy | Scenario state, contact/material interactions where modeled, deterministic replay and fault injection |
 | Geographic evidence | Sol-Atlas | Site/access/terrain/climate/hazard and infrastructure context with provenance and uncertainty |
 | Aircraft capability | AeroWeft | Frozen aircraft, payload, propulsion, dock, charging and flight-energy envelopes |
+| Circular-material coordination | Mycelix Commons Waste/Circular | Material stream and collection intent, compost/process records and secondary-material matching; Transit still owns vehicle assignment and physical collection missions |
+| Resource availability | Mycelix Resource-Mesh | Candidate shared-resource matching after schema, deployment and authorization review |
+| Shared equipment lending | Mycelix Tool Library | Candidate equipment lending/return interface; currently in Cargo workspace but absent from Commons DNA manifest, pending #6269 |
 | Custody/event vocabulary | SupplyChain adapter + EPCIS mapping | Authorized, minimal chain-of-custody event projection after source security qualification |
 | Operational signals | Mycelix Pulse | Bounded status summaries only; not safety control or raw home telemetry |
 
