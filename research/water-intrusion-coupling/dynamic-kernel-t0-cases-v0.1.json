@@ -1,0 +1,967 @@
+{
+  "schema_version": "dynamic-kernel-t0-input-v0.1",
+  "programme_id": "WATER-MIXING-DYNAMIC-OPERATOR-001",
+  "minimum_model_separation": 1,
+  "cases": [
+    {
+      "case_id": "DK-T0-001-static-zero-delay-limit",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-002-delayed-outlet-specific-response",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0,
+              0,
+              0.4
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              0.6,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-003-substochastic-kernel-open-residual",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.5
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-004-truncated-temporal-window",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "truncated",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0,
+              0.5
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              0.5
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-005-measured-physical-inventory",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "measured",
+          "kind": "physical_inventory",
+          "mass": 0.2,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.5
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-006-sensor-response-uncalibrated",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "uncalibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-007-calibrated-sensor-lag",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            0.4,
+            0.4,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.5,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              0.5
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-008-flow-reversal-unobserved",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": true,
+        "flow_direction_observed": false,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-009-out-of-domain",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "out_of_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-010-negative-kernel-coefficient",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              1.1
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              -0.1
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-011-same-steady-gain-different-delay",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        ],
+        "competing_kernel": [
+          [
+            [
+              0,
+              0,
+              1
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0
+            ]
+          ]
+        ],
+        "per_sample_observation_sigma": 0.1,
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "observation_noise_contract": "independent_equal_sigma",
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-012-temporal-resolution-inadequate",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 2,
+        "minimum_delay_of_interest_seconds": 0.5,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-013-partial-outlet-boundary",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": false,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.01
+      }
+    },
+    {
+      "case_id": "DK-T0-014-positive-mass-time-scale-invariance",
+      "inputs": {
+        "sample_interval_seconds": 1,
+        "mass_unit": "mg",
+        "all_outlets_observed": true,
+        "temporal_boundary_state": "complete",
+        "kernel_support_state": "complete",
+        "sensor_response_state": "calibrated",
+        "sensor_response": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "known_inventory": {
+          "state": "not_measured",
+          "kind": "none",
+          "mass": 0,
+          "mass_unit": "mg"
+        },
+        "closure_sigma_limit": 3,
+        "domain_state": "in_domain",
+        "flow_reversal_present": false,
+        "flow_direction_observed": true,
+        "inlet_mass_flux": [
+          [
+            10,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "kernel": [
+          [
+            [
+              0.7
+            ],
+            [
+              0
+            ]
+          ],
+          [
+            [
+              0.3
+            ],
+            [
+              0
+            ]
+          ]
+        ],
+        "minimum_resolvable_delay_seconds": 1,
+        "minimum_delay_of_interest_seconds": 1,
+        "declared_mass_residual_standard_uncertainty": 0.1
+      }
+    }
+  ]
+}
