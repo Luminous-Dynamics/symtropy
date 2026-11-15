@@ -14,6 +14,12 @@ The companion AFEX experiment describes a randomized complete-block, fully facto
 
 AFEX is valuable because it adds controlled perturbation to the forest process-trajectory question. Instead of only asking whether a model matches observed growth and mortality, we can test whether it predicts the changes associated with a defined nutrient intervention, including interactions and response timing.
 
+The parent AFEX collection lists 15 companion resources, including litterfall nutrient content and production, fine-root biomass, leaf area index, stem and soil respiration, seedling growth, fine-root mycorrhizal colonisation, fine-root nutrient concentration, phosphatase activity, root morphology, and soil microbial enzyme activities. These streams could support a coupled evidence graph:
+
+`N/P/cation assignment → soil/root nutrient processes → canopy/phenology and seedling response → stem growth, recruitment and mortality → litterfall and respiration`.
+
+This is a **hypothesis and observation map**, not an established causal pathway. Each edge needs process-specific evidence; each child dataset has its own time window, units, measurement operator, plot support, rights and provenance. The collection summary does not prove that its 15 resources can be joined at tree/plot/date level. The machine-readable register therefore records the collection separately from the tree-census dataset and requires child-record admission before any fusion.
+
 ## 2. The critical statistical distinction
 
 **Treatment assignment unit:** plot.  
