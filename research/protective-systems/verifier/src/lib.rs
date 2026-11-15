@@ -284,6 +284,9 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
         );
     }
 
+    let declared_addenda = field(case, "standard")
+        .and_then(|standard| standard.get("addenda"))
+        .and_then(Value::as_array);
     match currentness {
         "INCOMPLETE_REFERENCE" | "SUPERSEDED" | "REVOKED" | "STALE" => {
             return decision(
@@ -291,11 +294,25 @@ pub fn evaluate_case(case: &Value) -> (String, String) {
                 "STANDARD_REFERENCE_NOT_CURRENT_OR_COMPLETE",
             );
         }
-        "OUT_OF_SCOPE" => return decision(REJECT_SCOPE, "STANDARD_REFERENCE_OUT_OF_SCOPE"),
-        "UNKNOWN" | "DRAFT" | "UNVERIFIED" => {
+        "OUT_OF_SCOPE" | "CONTEXT_ONLY" => {
+            return decision(REJECT_SCOPE, "STANDARD_REFERENCE_OUT_OF_SCOPE");
+        }
+        "UNKNOWN" | "DRAFT" | "UNVERIFIED" | "VERIFY_LOCALLY" | "DRAFT_OR_ENQUIRY" => {
             return decision(ABSTAIN_UNKNOWN, "STANDARD_CURRENTNESS_UNKNOWN");
         }
-        "CURRENT" | "CURRENT_SNAPSHOT" | "CURRENT_REFERENCE" => {}
+        "CURRENT_WITH_AMENDMENTS" => {
+            if declared_addenda.map(Vec::is_empty).unwrap_or(true) {
+                return decision(
+                    REJECT_STALE_OR_REVOKED,
+                    "CURRENT_AMENDED_REFERENCE_MISSING_APPLICABLE_ADDENDA",
+                );
+            }
+        }
+        "CURRENT"
+        | "CURRENT_SNAPSHOT"
+        | "CURRENT_REFERENCE"
+        | "CURRENT_PUBLISHED"
+        | "SNAPSHOT_GUIDANCE" => {}
         _ => return decision(ABSTAIN_UNKNOWN, "UNRECOGNIZED_STANDARD_CURRENTNESS"),
     }
     if standard_id == "UNSPECIFIED" || standard_scope == "UNKNOWN" || standard_scope.is_empty() {
@@ -579,6 +596,54 @@ mod tests {
         root["cases"][0]["standard"]["addenda"] = serde_json::json!(["1", "1", "2", "3"]);
         let error = evaluate_corpus(&root).expect_err("duplicate addenda must fail");
         assert!(error.messages.iter().any(|m| m.contains("duplicate 1")));
+    }
+
+
+    #[test]
+    fn standards_registry_current_published_status_is_supported() {
+        let mut root = corpus();
+        root["cases"][0]["standard"]["currentness"] =
+            serde_json::json!("CURRENT_PUBLISHED");
+        assert_eq!(evaluate_case(&root["cases"][0]).0, ACCEPT_RECORD_ONLY);
+    }
+
+    #[test]
+    fn amended_registry_reference_requires_explicit_addenda() {
+        let mut root = corpus();
+        root["cases"][0]["standard"]["currentness"] =
+            serde_json::json!("CURRENT_WITH_AMENDMENTS");
+        root["cases"][0]["standard"]["addenda"] = serde_json::json!([]);
+        let result = evaluate_case(&root["cases"][0]);
+        assert_eq!(result.0, REJECT_STALE_OR_REVOKED);
+        assert_eq!(
+            result.1,
+            "CURRENT_AMENDED_REFERENCE_MISSING_APPLICABLE_ADDENDA"
+        );
+
+        root["cases"][0]["standard"]["addenda"] = serde_json::json!(["Addendum 1"]);
+        assert_eq!(evaluate_case(&root["cases"][0]).0, ACCEPT_RECORD_ONLY);
+    }
+
+    #[test]
+    fn verify_locally_status_abstains_and_context_only_rejects_scope() {
+        let mut root = corpus();
+        root["cases"][0]["standard"]["currentness"] =
+            serde_json::json!("VERIFY_LOCALLY");
+        assert_eq!(evaluate_case(&root["cases"][0]).0, ABSTAIN_UNKNOWN);
+
+        root["cases"][0]["standard"]["currentness"] = serde_json::json!("CONTEXT_ONLY");
+        assert_eq!(evaluate_case(&root["cases"][0]).0, REJECT_SCOPE);
+    }
+
+    #[test]
+    fn unknown_as_zero_is_rejected_even_when_standard_is_current() {
+        let mut root = corpus();
+        root["cases"][8]["standard"]["id"] = serde_json::json!("DECLARED-CURRENT-METHOD");
+        root["cases"][8]["standard"]["currentness"] = serde_json::json!("CURRENT");
+        root["cases"][8]["standard"]["scope"] = serde_json::json!("declared_product_scope");
+        let result = evaluate_case(&root["cases"][8]);
+        assert_eq!(result.0, ABSTAIN_UNKNOWN);
+        assert_eq!(result.1, "INCOMPLETE_OR_UNKNOWN_PROTECTION_DIMENSIONS");
     }
 
     #[test]
