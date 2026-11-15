@@ -90,3 +90,28 @@ Cross-links:
 No live flight plans, surveillance feeds, actual NOTAM or weather updates, operational separation thresholds, cockpit/ATC interface, automatic rerouting, dispatch authorization, or flight-control commands. The first dataset is synthetic and deliberately fictional. The crate must remain unconnected to operational systems.
 
 Before even evaluating any real-world planning application, require a separately reproduced mathematical oracle, independent aviation-domain review, authoritative and licensed data sources, verified frame transformations, qualified trajectory/uncertainty models, system-level assurance evidence and all applicable regulatory/operator approvals.
+
+## Next model-qualification stage — AeroWeft Kinematics (2026-11-14)
+
+The current v0.1 trajectory kernel still audits supplied piecewise-linear paths with constant uncertainty bounds; it does not establish that an aircraft can dynamically execute those paths. The next research increment is [AEROWEFT-KINEMATICS-001 #5163](https://github.com/Luminous-Dynamics/symtropy/issues/5163), with the [kinematic reachability RFC](AEROWEFT_KINEMATIC_TUBES_001.md).
+
+That contract proposes one synthetic fixed-wing coordinated-turn profile, set-valued initial state/control/wind inputs, conservative outer reachable occupancy tubes, separately attributable uncertainty and numerical enclosure error, and independent soundness oracles. It explicitly distinguishes tube membership from a dynamically realizable trajectory witness. This is a design contract only; no executable aircraft reachability model or operational claim is added by the RFC.
+
+
+The first isolated executable foundation is now present at
+`tools/aeroweft-reachability` on the AeroWeft kinematic branch. It propagates
+caller-supplied bounded velocity intervals into per-slice axis-aligned
+occupancy boxes, with separate additive nominal/state/model/control/disturbance
+terms and outward-rounded interval addition/multiplication. It includes eight
+unit-test definitions, one separately compiled integer reference-oracle test,
+and a dedicated format/Clippy/test workflow.
+
+This is **not yet an aircraft model**: it does not derive the velocity bounds
+from a coordinated-turn or aerodynamic model. That remains the next physical
+qualification obligation. No Rust execution pass is claimed here.
+\n\nThe cross-stack benchmark design is now consolidated in [AeroWeft Benchmark Suite V1](AEROWEFT_BENCHMARK_SUITE_V1.md), covering model soundness, probabilistic calibration, 4D conflict screening, network planning, resilience, community value, data rights and confirmatory evaluation.\n
+
+AeroWeft's cross-project semantic boundary is documented in
+[AEROWEFT_MODEL_BOUNDARY_V1.md](AEROWEFT_MODEL_BOUNDARY_V1.md): mission intent,
+model profile, prediction, reachable enclosure, resource reservation and
+authority decision remain distinct objects.
