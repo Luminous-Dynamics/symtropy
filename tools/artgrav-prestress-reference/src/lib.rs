@@ -170,7 +170,7 @@ pub fn evaluate_radial_spoke(
         if !station.is_finite() {
             return Err(ModelError::NonFiniteInput);
         }
-        if station < 0.0 || station > input.radius_m {
+        if !(0.0..=input.radius_m).contains(&station) {
             return Err(ModelError::StationOutsideDomain);
         }
         if let Some(previous_radius) = previous
@@ -415,6 +415,28 @@ mod tests {
         assert_eq!(
             evaluate_radial_spoke(input, &[0.0, 101.0, 100.0]),
             Err(ModelError::StationOutsideDomain)
+        );
+    }
+
+    #[test]
+    fn overflowed_derived_values_are_rejected() {
+        let mut invalid_ring = ring_input(f64::MAX);
+        invalid_ring.density_kg_m3 = 1.0;
+        invalid_ring.youngs_modulus_pa = 1.0;
+        invalid_ring.radius_m = 1.0;
+        assert_eq!(
+            evaluate_thin_ring(invalid_ring),
+            Err(ModelError::NonFiniteResult)
+        );
+
+        let mut invalid_spoke = spoke_input(2.0);
+        invalid_spoke.radius_m = 1.0e200;
+        assert_eq!(
+            evaluate_radial_spoke(
+                invalid_spoke,
+                &[0.0, invalid_spoke.radius_m]
+            ),
+            Err(ModelError::NonFiniteResult)
         );
     }
 
