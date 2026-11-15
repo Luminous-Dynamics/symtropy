@@ -383,7 +383,7 @@ mod tests{
     }
     fn result()->Value{evaluate(&load("input"),&load("oracle"),&load("manifest")).expect("dynamic kernel T0 runs")}
     fn row(id:&str)->Value{result()["results"].as_array().unwrap().iter().find(|x|x["case_id"]==id).unwrap()["result"].clone()}
-    #[test]fn all_thirteen_cases_match_the_frozen_oracle(){let x=result();assert_eq!(x["case_count"],CASE_COUNT);assert_eq!(x["matched_case_count"],CASE_COUNT);assert_eq!(x["verification_state"],"MatchedFrozenOracle");}
+    #[test]fn all_fourteen_cases_match_the_frozen_oracle(){let x=result();assert_eq!(x["case_count"],CASE_COUNT);assert_eq!(x["matched_case_count"],CASE_COUNT);assert_eq!(x["verification_state"],"MatchedFrozenOracle");}
     #[test]fn static_zero_delay_kernel_is_the_steady_transfer_limit(){let x=row("DK-T0-001-static-zero-delay-limit");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.7,0.0,0.0,0.0],[0.3,0.0,0.0,0.0]]));}
     #[test]fn delayed_kernel_preserves_outlet_specific_response(){let x=row("DK-T0-002-delayed-outlet-specific-response");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.0,0.0,0.4,0.0,0.0],[0.0,0.6,0.0,0.0,0.0]]));}
     #[test]fn sub_stochastic_kernel_keeps_unresolved_mass(){let x=row("DK-T0-003-substochastic-kernel-open-residual");assert_eq!(x["operator_disposition"],"OPEN_MASS_RESIDUAL");assert!((x["signed_predicted_mass_residual"].as_f64().unwrap()-0.2).abs()<1.0e-12);}
