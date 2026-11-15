@@ -72,7 +72,9 @@ This creates the foundation for a physical-infrastructure equivalent of a lockfi
 - a changed equipment catalogue, upstream model, or Cargo.lock creates a new build lock;
 - old receipts remain reproducible rather than being silently rewritten.
 
-Next increments should add role-projection artifact digests, export/import output receipts, independent verification signatures, and a dependency invalidation bridge. The module-identity mutation test explicitly verifies that changing one mapped module configuration changes the mapping-profile digest, compiled graph payload digest and build-lock digest while leaving the source IR digest unchanged. Signatures must be separate from these content hashes and must identify the signer, authority, key lifecycle and signing time.
+DerivedArtifactReceipt now binds rendered human and machine artifacts to the exact build-lock and graph payload digests. It records artifact identity/revision, kind, output format, generator ID/version and the output byte digest. It verifies candidate output bytes against the recorded digest. This supports resident/operator/practitioner/emergency projections, diagrams, circuit directories, source maps and interchange exports.
+
+The next increment is to connect derived artifact receipts to the dependency invalidation graph and invalidate documentation/output receipts when any upstream graph, module, standards profile or generator input changes. Independent verification signatures remain separate. The module-identity mutation test explicitly verifies that changing one mapped module configuration changes the mapping-profile digest, compiled graph payload digest and build-lock digest while leaving the source IR digest unchanged. Signatures must be separate from these content hashes and must identify the signer, authority, key lifecycle and signing time.
 
 ## 6. Claim ceiling
 

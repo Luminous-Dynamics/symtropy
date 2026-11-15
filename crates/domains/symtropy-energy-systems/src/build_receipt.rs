@@ -325,6 +325,130 @@ struct BuildLockMaterial<'a> {
     upstream_artifacts: &'a [UpstreamArtifactPin],
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DerivedArtifactKind {
+    ResidentView,
+    OperatorView,
+    QualifiedPractitionerView,
+    EmergencyResponderView,
+    SingleLineDiagram,
+    CircuitDirectory,
+    SourceMap,
+    CommissioningDossier,
+    InterchangeExport,
+    Other,
+}
+
+/// Receipt tying a generated human or machine artifact to the exact
+/// PowerFabric build and graph revision that produced it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DerivedArtifactReceipt {
+    receipt_version: u16,
+    artifact_id: String,
+    artifact_revision_id: String,
+    artifact_kind: DerivedArtifactKind,
+    output_format: String,
+    generator_id: String,
+    generator_version: String,
+    source_build_lock_digest: Sha256Digest,
+    source_graph_id: String,
+    source_graph_revision_id: String,
+    source_graph_declared_content_digest: String,
+    source_graph_payload_digest: Sha256Digest,
+    output_digest: Sha256Digest,
+}
+
+impl DerivedArtifactReceipt {
+    pub fn new(
+        build_receipt: &PowerFabricBuildReceipt,
+        artifact_id: impl Into<String>,
+        artifact_revision_id: impl Into<String>,
+        artifact_kind: DerivedArtifactKind,
+        output_format: impl Into<String>,
+        generator_id: impl Into<String>,
+        generator_version: impl Into<String>,
+        output_bytes: &[u8],
+    ) -> Result<Self, DerivedArtifactReceiptError> {
+        let artifact_id = artifact_id.into();
+        let artifact_revision_id = artifact_revision_id.into();
+        let output_format = output_format.into();
+        let generator_id = generator_id.into();
+        let generator_version = generator_version.into();
+        for (field, value) in [
+            ("artifact_id", artifact_id.as_str()),
+            ("artifact_revision_id", artifact_revision_id.as_str()),
+            ("output_format", output_format.as_str()),
+            ("generator_id", generator_id.as_str()),
+            ("generator_version", generator_version.as_str()),
+        ] {
+            require_non_empty(field, value).map_err(DerivedArtifactReceiptError::BuildReceipt)?;
+        }
+        if output_bytes.is_empty() {
+            return Err(DerivedArtifactReceiptError::EmptyOutput);
+        }
+        Ok(Self {
+            receipt_version: 1,
+            artifact_id,
+            artifact_revision_id,
+            artifact_kind,
+            output_format,
+            generator_id,
+            generator_version,
+            source_build_lock_digest: build_receipt.build_lock_digest.clone(),
+            source_graph_id: build_receipt.graph_id.clone(),
+            source_graph_revision_id: build_receipt.graph_revision_id.clone(),
+            source_graph_declared_content_digest: build_receipt.declared_graph_content_digest.clone(),
+            source_graph_payload_digest: build_receipt.service_graph_payload_digest.clone(),
+            output_digest: Sha256Digest::from_bytes(output_bytes),
+        })
+    }
+
+    pub const fn receipt_version(&self) -> u16 { self.receipt_version }
+    pub fn artifact_id(&self) -> &str { &self.artifact_id }
+    pub fn artifact_revision_id(&self) -> &str { &self.artifact_revision_id }
+    pub const fn artifact_kind(&self) -> DerivedArtifactKind { self.artifact_kind }
+    pub fn output_format(&self) -> &str { &self.output_format }
+    pub fn generator_id(&self) -> &str { &self.generator_id }
+    pub fn generator_version(&self) -> &str { &self.generator_version }
+    pub fn source_build_lock_digest(&self) -> &Sha256Digest { &self.source_build_lock_digest }
+    pub fn source_graph_id(&self) -> &str { &self.source_graph_id }
+    pub fn source_graph_revision_id(&self) -> &str { &self.source_graph_revision_id }
+    pub fn source_graph_declared_content_digest(&self) -> &str { &self.source_graph_declared_content_digest }
+    pub fn source_graph_payload_digest(&self) -> &Sha256Digest { &self.source_graph_payload_digest }
+    pub fn output_digest(&self) -> &Sha256Digest { &self.output_digest }
+
+    pub fn receipt_digest(&self) -> Result<Sha256Digest, BuildReceiptError> {
+        digest_json(self, "derived_artifact_receipt")
+    }
+
+    pub fn verify_output_bytes(&self, candidate: &[u8]) -> Result<(), DerivedArtifactReceiptError> {
+        if candidate.is_empty() {
+            return Err(DerivedArtifactReceiptError::EmptyOutput);
+        }
+        if Sha256Digest::from_bytes(candidate) == self.output_digest {
+            Ok(())
+        } else {
+            Err(DerivedArtifactReceiptError::OutputDigestMismatch)
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DerivedArtifactReceiptError {
+    EmptyOutput,
+    OutputDigestMismatch,
+    BuildReceipt(BuildReceiptError),
+}
+
+impl core::fmt::Display for DerivedArtifactReceiptError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+impl std::error::Error for DerivedArtifactReceiptError {}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReproducibleCompilation {
     compilation: IrGraphCompilation,

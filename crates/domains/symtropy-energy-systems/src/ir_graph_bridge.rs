@@ -643,6 +643,91 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn derived_artifact_receipt_binds_output_to_exact_build_and_graph() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let output = b"synthetic resident view bytes";
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:resident-view",
+            "revision:resident-view:1",
+            crate::DerivedArtifactKind::ResidentView,
+            "application/json",
+            "power-fabric-view-compiler",
+            "0.1.0",
+            output,
+        ).unwrap();
+
+        assert_eq!(receipt.source_build_lock_digest(), built.receipt().build_lock_digest());
+        assert_eq!(receipt.source_graph_id(), built.receipt().graph_id());
+        assert_eq!(receipt.source_graph_revision_id(), built.receipt().graph_revision_id());
+        assert_eq!(receipt.source_graph_payload_digest(), built.receipt().service_graph_payload_digest());
+        assert_eq!(receipt.output_digest(), &Sha256Digest::from_bytes(output));
+        assert_eq!(receipt.verify_output_bytes(output), Ok(()));
+    }
+
+    #[test]
+    fn derived_artifact_verifier_rejects_changed_output_bytes() {
+        let document = doc(RelationshipDirection::Directed);
+        let built = compile_ir_to_service_graph_reproducibly(
+            &document,
+            &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let receipt = crate::DerivedArtifactReceipt::new(
+            built.receipt(),
+            "artifact:single-line",
+            "revision:single-line:1",
+            crate::DerivedArtifactKind::SingleLineDiagram,
+            "image/svg+xml",
+            "diagram-generator",
+            "0.1.0",
+            b"<svg/>",
+        ).unwrap();
+        assert_eq!(
+            receipt.verify_output_bytes(b"<svg changed/>"),
+            Err(crate::DerivedArtifactReceiptError::OutputDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn derived_artifact_receipt_changes_when_source_build_lock_changes() {
+        let document = doc(RelationshipDirection::Directed);
+        let first = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata(true),
+        ).unwrap();
+        let second = compile_ir_to_service_graph_reproducibly(
+            &document, &profile(),
+            ctx(GraphMaturity::DesignOnly, GraphEvidenceState::DesignDeclared),
+            build_metadata_with_provenance(
+                true, true, b"compiler source changed", b"release;default-features;target=x86_64-unknown-linux-gnu", b"synthetic Cargo.lock",
+            ),
+        ).unwrap();
+        let first_artifact = crate::DerivedArtifactReceipt::new(
+            first.receipt(), "artifact:resident", "revision:1",
+            crate::DerivedArtifactKind::ResidentView, "application/json",
+            "view-compiler", "0.1", b"same rendered bytes",
+        ).unwrap();
+        let second_artifact = crate::DerivedArtifactReceipt::new(
+            second.receipt(), "artifact:resident", "revision:1",
+            crate::DerivedArtifactKind::ResidentView, "application/json",
+            "view-compiler", "0.1", b"same rendered bytes",
+        ).unwrap();
+        assert_ne!(first_artifact.source_build_lock_digest(), second_artifact.source_build_lock_digest());
+        assert_ne!(first_artifact.receipt_digest().unwrap(), second_artifact.receipt_digest().unwrap());
+    }
+
+
     #[test]
     fn mapping_profile_serializes_complex_maps_as_ordered_structured_arrays() {
         let value = serde_json::to_value(profile()).unwrap();
