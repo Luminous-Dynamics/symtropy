@@ -140,3 +140,19 @@ The Rust module also exposes global_morans_i over signed held-out residuals and 
 Four frozen reference cases cover positive spatial clustering (I = +1), alternating neighbour residuals (I = -1), no-neighbour support and zero residual variance. The statistic is descriptive only. No permutation p-value, multiple-testing correction, boundary correction, or spatial null distribution is implemented. A positive statistic does not by itself establish statistically significant residual dependence.
 
 This is intentionally smaller than spconform's full diagnostics. The next step is to benchmark the statistic and its inferential procedure against the package's Moran's I diagnostics on the same held-out geometry, then add residual variograms and boundary strata if the data justify them.
+
+
+## 9. Optional k-nearest-neighbour cap (diagnostic extension)
+
+The spatial kernel now accepts an optional `nearest_neighbor_count`. When supplied, calibration points are sorted by Euclidean distance from the target, with stable point-ID tie-breaking, and only the nearest k are retained before Gaussian weighting. Each target result reports:
+
+- `selected_neighbor_count`;
+- `selected_neighborhood_radius_m` (the physical distance to the kth selected calibration point);
+- the local weight mass, effective sample size and maximum normalized weight;
+- the resulting diagnostic radius, interval width and coverage/abstention.
+
+Without k, all calibration points remain eligible, preserving the original fixed-bandwidth experiment. The cap does not imply that the nearest k points are independent, exchangeable, or representative. It can improve locality but also discard informative observations; the physical kth-neighbour radius makes sparse-region expansion visible.
+
+The new frozen `K_NEAREST_CAP_EXCLUDES_REMOTE_HIGH_RESIDUAL` case has 12 nearby residuals of 0.5 and one remote residual of 50. The pooled split-conformal comparison returns radius 50; the diagnostic using k=12 returns local radius 0.5, ESS approximately 11.9993 and a physical neighbourhood radius of 11 m. Independent JavaScript reference arithmetic matches the declared values. This is a deliberately constructed mechanism test, not proof that excluding remote residuals improves real coverage.
+
+The k-neighbour path is tracked in [#5332 — FOREST-LOCALIZATION-STABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5332). A fair comparison must match the same held-out data and compare our diagnostic with `spconform::scp_geostatistical(k_neighbors=...)`; the two implementations must not be described as equivalent. The package provides its own localized conformal procedure and states a local-exchangeability rationale. Our Gaussian weighted-residual kernel remains `EXPERIMENTAL_LOCALIZED_DIAGNOSTIC_NO_GUARANTEE`.
