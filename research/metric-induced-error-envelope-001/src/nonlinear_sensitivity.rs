@@ -122,6 +122,7 @@ pub struct ObservableSensitivityReceiptV1<Domain: CoordinateFrame, const N: usiz
     pub first_order_observable_change_estimate: f64,
     pub curvature_evidence_class: CurvatureEvidenceClassV1,
     pub curvature_evidence_id: Option<String>,
+    pub curvature_evidence_valid_radius: Option<f64>,
     pub curvature_norm_value: Option<f64>,
     pub nonlinear_remainder_estimate: Option<f64>,
     pub nonlinear_remainder_upper_estimate: Option<f64>,
