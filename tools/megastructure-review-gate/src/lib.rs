@@ -283,11 +283,7 @@ fn review_incomplete(
 ) -> ReviewDecision {
     reasons.sort_by_key(|reason| reason.as_str());
     reasons.dedup();
-    decision(
-        Disposition::DesignReviewIncomplete,
-        reasons,
-        gate_findings,
-    )
+    decision(Disposition::DesignReviewIncomplete, reasons, gate_findings)
 }
 
 /// Evaluate hard constraints first, then review completeness and lifecycle
@@ -372,18 +368,18 @@ pub fn evaluate(envelope: &ReviewEnvelope) -> ReviewDecision {
                 gate_findings,
             );
         }
-        return decision(
-            Disposition::TimeLimitedDeferment,
-            Vec::new(),
-            gate_findings,
-        );
+        return decision(Disposition::TimeLimitedDeferment, Vec::new(), gate_findings);
     }
 
     let mut reasons = Vec::new();
     if !envelope.views_complete {
         reasons.push(ReasonCode::RequiredViewsMissing);
     }
-    if envelope.reviewed_dimensions.iter().any(|reviewed| !reviewed) {
+    if envelope
+        .reviewed_dimensions
+        .iter()
+        .any(|reviewed| !reviewed)
+    {
         reasons.push(ReasonCode::RequiredReviewDimensionMissing);
     }
     if envelope.stakeholder_group_count == 0 {
@@ -505,9 +501,21 @@ mod tests {
         envelope.dissent_handling_recorded = false;
         let result = evaluate(&envelope);
         assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
-        assert!(result.reason_codes.contains(&ReasonCode::RequiredViewsMissing));
-        assert!(result.reason_codes.contains(&ReasonCode::RequiredReviewDimensionMissing));
-        assert!(result.reason_codes.contains(&ReasonCode::DissentHandlingMissing));
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::RequiredViewsMissing)
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::RequiredReviewDimensionMissing)
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::DissentHandlingMissing)
+        );
     }
 
     #[test]
@@ -609,10 +617,19 @@ mod tests {
     #[test]
     fn deferred_review_without_a_reason_is_incomplete() {
         let mut envelope = deferred_review();
-        envelope.deferment.as_mut().expect("deferment").reason.clear();
+        envelope
+            .deferment
+            .as_mut()
+            .expect("deferment")
+            .reason
+            .clear();
         let result = evaluate(&envelope);
         assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
-        assert!(result.reason_codes.contains(&ReasonCode::MissingDefermentReason));
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::MissingDefermentReason)
+        );
     }
 
     #[test]
@@ -621,7 +638,11 @@ mod tests {
         envelope.review_status = ReviewStatus::Incomplete;
         let result = evaluate(&envelope);
         assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
-        assert!(result.reason_codes.contains(&ReasonCode::ReviewStateIncomplete));
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::ReviewStateIncomplete)
+        );
     }
 
     #[test]
@@ -643,7 +664,15 @@ mod tests {
         deferment.expires_on.clear();
         let result = evaluate(&envelope);
         assert_eq!(result.disposition, Disposition::DesignReviewIncomplete);
-        assert!(result.reason_codes.contains(&ReasonCode::MissingDefermentOwner));
-        assert!(result.reason_codes.contains(&ReasonCode::InvalidDefermentExpiry));
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::MissingDefermentOwner)
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::InvalidDefermentExpiry)
+        );
     }
 }
