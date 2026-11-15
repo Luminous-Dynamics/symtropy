@@ -31,7 +31,7 @@ Composition follows four rules:
 3. **Authority before utility.** A revoked, expired, superseded or nonconforming intent cannot be rescued by a fresh track or a high-quality navigation fix.
 4. **Unknown remains occupied/unknown.** No report under qualified coverage means unresolved possible occupancy. No qualified coverage means not assessable. Neither means an empty sky.
 
-The output is a typed evidence disposition, not a probability of safety. The strongest positive result is `READY_FOR_CONFLICT_SCREEN`. It must be passed to the existing conflict-screening owner (#2279/#2297), with any unresolved occupancy preserved. It is not a conflict-free result, clearance, route authorization, dispatch decision or proof of separation.
+The output is a typed evidence disposition, not a probability of safety. The strongest positive result is `READY_FOR_CONFLICT_SCREEN`. It must be passed to the existing conflict-screening owner (#2279/#2297), with any unresolved occupancy preserved. Every result, including a rejected one, retains the complete submitted owner-input snapshot and all receipt references; a rejected result returns no partially validated occupancy list. It is not a conflict-free result, clearance, route authorization, dispatch decision or proof of separation.
 
 ## 3. Owner boundary
 
@@ -77,7 +77,7 @@ A positive disposition preserves each class's coverage receipt, optional observa
 
 Golden fixture: `fixtures/aeroweift-assurance-composition/evidence-composition-v0.json`.
 
-The fixture contains positive controls and fault injections for:
+The 28-case fixture contains positive controls and fault injections for:
 1. fully qualified conforming path;
 2. qualified fallback PNT path;
 3. no report under qualified coverage;
@@ -100,7 +100,12 @@ The fixture contains positive controls and fault injections for:
 20. missing PNT/reachability/intent lineage;
 21. frame/profile/time-scale identity mismatch;
 22. duplicate class evidence;
-23. class-order permutation and replay determinism.
+23. class-order permutation and replay determinism;
+24. horizontal-frame mismatch;
+25. vertical-datum mismatch and absent vertical-datum identity;
+26. duplicate required traffic-class declarations;
+27. complete source-snapshot retention on accepted and rejected decisions;
+28. repeated-evaluation determinism.
 
 All values, identities, receipts, aircraft, traffic, restrictions and timelines are fictional. Synthetic fixture success is not a sensor, navigation, airworthiness, operational or safety validation.
 
