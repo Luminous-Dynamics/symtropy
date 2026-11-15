@@ -19,6 +19,7 @@ use core::marker::PhantomData;
 use std::fmt;
 
 pub mod constraint_metric;
+pub mod constraint_space_receipt;
 pub mod operator;
 pub mod rectangular_operator;
 
