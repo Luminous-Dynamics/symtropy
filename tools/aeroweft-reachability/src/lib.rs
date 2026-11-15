@@ -282,10 +282,10 @@ pub fn propagate_bounded_velocity(
         {
             return Err(ReachabilityError::InvalidTime);
         }
-        if let Some(expected_start) = previous_end {
-            if step.start_utc_ms != expected_start {
-                return Err(ReachabilityError::NonContiguousSteps);
-            }
+        if let Some(expected_start) = previous_end
+            && step.start_utc_ms != expected_start
+        {
+            return Err(ReachabilityError::NonContiguousSteps);
         }
 
         let elapsed_ms = step.end_utc_ms - step.start_utc_ms;
