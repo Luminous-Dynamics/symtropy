@@ -1,0 +1,2046 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "MARITIME-BEHAVIOURAL-SET-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "cases": [
+    {
+      "case_id": "certified_outer_sets_disjoint",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              2,
+              2,
+              2
+            ],
+            "upper": [
+              3,
+              3,
+              3
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              2.2,
+              2.2,
+              2.2
+            ],
+            "upper": [
+              2.8,
+              2.8,
+              2.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "SEPARATION_PROVEN",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "constructive_shared_inner_witness",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "INTERSECTION_WITNESS_FOUND",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "outer_overlap_without_witness",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.1,
+              0.1,
+              0.1
+            ],
+            "upper": [
+              0.4,
+              0.4,
+              0.4
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              1.4,
+              1.4,
+              1.4
+            ],
+            "upper": [
+              1.9,
+              1.9,
+              1.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_PROVEN_SEPARABLE",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "uncertified_outer_enclosure",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "UNVERIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "unsupported_operating_regime",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "UNSUPPORTED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "hypothesis_configuration_mismatch",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "touching_closed_outer_bounds",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.1,
+              0.1,
+              0.1
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              1,
+              1,
+              1
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              1.2,
+              1.2,
+              1.2
+            ],
+            "upper": [
+              1.9,
+              1.9,
+              1.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_PROVEN_SEPARABLE",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "union_outer_sets_pairwise_disjoint",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "box_id": "outer-a-1",
+            "lower": [
+              4,
+              4,
+              4
+            ],
+            "upper": [
+              5,
+              5,
+              5
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.1,
+              0.1,
+              0.1
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          {
+            "region_id": "inner-a-1",
+            "lower": [
+              4.1,
+              4.1,
+              4.1
+            ],
+            "upper": [
+              4.8,
+              4.8,
+              4.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              2,
+              2,
+              2
+            ],
+            "upper": [
+              3,
+              3,
+              3
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              2.2,
+              2.2,
+              2.2
+            ],
+            "upper": [
+              2.8,
+              2.8,
+              2.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "SEPARATION_PROVEN",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "one_union_outer_pair_overlaps",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "box_id": "outer-a-1",
+            "lower": [
+              2,
+              2,
+              2
+            ],
+            "upper": [
+              4,
+              4,
+              4
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.1,
+              0.1,
+              0.1
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          },
+          {
+            "region_id": "inner-a-1",
+            "lower": [
+              2.1,
+              2.1,
+              2.1
+            ],
+            "upper": [
+              2.8,
+              2.8,
+              2.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              3,
+              3,
+              3
+            ],
+            "upper": [
+              5,
+              5,
+              5
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              4.1,
+              4.1,
+              4.1
+            ],
+            "upper": [
+              4.9,
+              4.9,
+              4.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_PROVEN_SEPARABLE",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "inner_region_outside_outer_enclosure",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              -0.1,
+              0.1,
+              0.1
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "trajectory_dimension_mismatch",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5
+            ],
+            "upper": [
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "unverified_inner_witness_is_not_accepted",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "UNVERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ],
+            "certificate": {
+              "certificate_state": "UNVERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "NOT_PROVEN_SEPARABLE",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "invalid_uncertainty_set_digest",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "bad",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "nonmonotonic_trajectory_time_grid",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          200,
+          100
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t100",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    },
+    {
+      "case_id": "duplicate_output_dimension",
+      "schema_version": "0.1.0",
+      "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+      "asset": {
+        "asset_id": "synthetic-engine-01",
+        "configuration_revision": "configuration-r1",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "operating_domain": {
+        "regime_id": "steady-load",
+        "qualification_state": "QUALIFIED"
+      },
+      "trajectory": {
+        "input_trajectory_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "uncertainty_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "time_grid_ms": [
+          0,
+          100,
+          200
+        ]
+      },
+      "output_dimensions": [
+        "shaft_speed_t0",
+        "shaft_speed_t0",
+        "shaft_speed_t200"
+      ],
+      "fault_a": {
+        "fault_id": "FAULT_A",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-a-0",
+            "lower": [
+              0,
+              0,
+              0
+            ],
+            "upper": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-a-0",
+            "lower": [
+              0.2,
+              0.2,
+              0.2
+            ],
+            "upper": [
+              0.8,
+              0.8,
+              0.8
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "fault_b": {
+        "fault_id": "FAULT_B",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "regime_id": "steady-load",
+        "model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "solver_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "outer_set_certificate": {
+          "certificate_state": "CERTIFIED",
+          "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+          "certificate_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "outer_boxes": [
+          {
+            "box_id": "outer-b-0",
+            "lower": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "upper": [
+              2,
+              2,
+              2
+            ]
+          }
+        ],
+        "inner_regions": [
+          {
+            "region_id": "inner-b-0",
+            "lower": [
+              0.6,
+              0.6,
+              0.6
+            ],
+            "upper": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "certificate": {
+              "certificate_state": "VERIFIED",
+              "certificate_kind": "SYNTHETIC_KNOWN_TRUTH",
+              "certificate_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "authority_boundary": {
+        "read_only": true,
+        "controller_write": false,
+        "actuation": false,
+        "maintenance_authorization": false,
+        "mode_transition": false,
+        "restriction_clearance": false
+      },
+      "claim_ceiling": "Synthetic behavioural-set conformance only. It does not validate physical engine models, solver proofs, vessel behaviour, fault diagnosis, machinery safety, class compliance, maintenance authority or permission to operate."
+    }
+  ],
+  "claim_ceiling": "Synthetic contract evaluation only. The evaluator validates declared axis-aligned outer enclosures and synthetic inner witness regions. It does not validate external proof artifacts, correlated zonotope models, real engine trajectories, physical diagnosability, shipboard safety, class/statutory compliance, maintenance authority or permission to operate."
+}

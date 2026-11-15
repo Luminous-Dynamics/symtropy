@@ -1,0 +1,60 @@
+name: Maritime behavioural-set diagnosis evaluator
+on:
+  push:
+    branches: ["research/maritime-behavioural-set-diagnosis-v0-1"]
+    paths:
+      - "tools/maritime-observability-evidence-validator/src/bin/behavioural_set_diagnosis.rs"
+      - "benchmarks/maritime-behavioural-set/**"
+      - "docs/tech/MARITIME_BEHAVIOURAL_SET_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_BEHAVIOURAL_SET_DIAGNOSIS_BENCHMARK_V0_1.md"
+      - ".github/workflows/maritime-behavioural-set-diagnosis.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/maritime-observability-evidence-validator/src/bin/behavioural_set_diagnosis.rs"
+      - "benchmarks/maritime-behavioural-set/**"
+      - "docs/tech/MARITIME_BEHAVIOURAL_SET_CASE_V0_1.schema.json"
+      - "docs/tech/MARITIME_BEHAVIOURAL_SET_DIAGNOSIS_BENCHMARK_V0_1.md"
+      - ".github/workflows/maritime-behavioural-set-diagnosis.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: maritime-behavioural-set-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Format behavioural-set Rust sources
+        run: cargo fmt --manifest-path tools/maritime-observability-evidence-validator/Cargo.toml
+      - name: Run behavioural-set tests
+        run: cargo test --locked -p maritime-observability-evidence-validator --bin behavioural_set_diagnosis
+      - name: Run strict Clippy
+        run: cargo clippy --locked -p maritime-observability-evidence-validator --bin behavioural_set_diagnosis --all-targets -- -D warnings
+      - name: Execute frozen corpus and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          corpus="benchmarks/maritime-behavioural-set/behavioural-set-corpus.v0.1.json"
+          digest="$(sha256sum "$corpus" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator --bin behavioural_set_diagnosis -- "$corpus" --source-commit "$source_commit" --corpus-sha256 "$digest" > behavioural-set-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .corpus_sha256 == $digest and .scenario_count == 15 and .disposition_counts.SEPARATION_PROVEN == 2 and .disposition_counts.INTERSECTION_WITNESS_FOUND == 1 and .disposition_counts.NOT_PROVEN_SEPARABLE == 4 and .disposition_counts.NOT_EVALUATED == 3 and .disposition_counts.INVALID_CONTRACT == 5 and (.cases | all(.fault_isolation == "NOT_ATTEMPTED")) and (.cases | all(.authorization_granted == false))' behavioural-set-receipt.json
+      - name: Upload behavioural-set receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-behavioural-set-receipt
+          path: behavioural-set-receipt.json
+          if-no-files-found: error
+          retention-days: 90
