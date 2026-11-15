@@ -30,3 +30,16 @@ The package has its own Cargo workspace boundary. It does not join the root work
 A `SYNTHETIC_ACCOUNTING_PASS` means only that the supplied artificial fixture satisfies its declared arithmetic and contract checks. It is not a plasma chemistry calculation, solver result, physical experiment, oxygen production yield, reagent-recycle result, energy-performance claim, product qualification, lunar feasibility result or operating authorization.
 
 The synthetic intensity emitted for the positive control is a code-path exercise only; never use it as an engineering baseline.
+
+
+## Species-to-product metrology gate
+
+The measurement receipt is intentionally local to the synthetic plasma process fixture and does not replace the generic measurement-system owner. A quantitative O2 product is scoreable only when:
+- the calibration identity matches the product record and covers O2 plus the exact measurement method;
+- a normalized UTC validity interval contains the observation timestamp;
+- expanded uncertainty is no greater than one-third of the declared decision margin;
+- sampling recovery has an independent check identity and the corrected integrated mass matches the product mass;
+- cross-sensitivity qualification passed for the declared species;
+- a sampling interval and raw trace artifact are identified.
+
+The expanded fixture contains 13 scenarios: 1 synthetic pass, 7 blocked, 4 rejected and 1 not comparable. No calibration or measurement values in the fixture represent an actual instrument or experiment.
