@@ -1,0 +1,112 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_type": "luminous.artificial-gravity.run",
+  "run_id": "fixture-ag-field-1g-2rpm-v1",
+  "maturity": "analytical_reference",
+  "claim": {
+    "statement": "Under standard gravity 9.80665 m/s^2, the ideal radius for 1.000 g at 2.000 RPM is 223.5648117524 m.",
+    "scope": "Point-radius Newtonian rotating-frame kinematics only; excludes structural dynamics, human tolerance, spacecraft operations, and physical validation.",
+    "support_outcome": "not_assessed"
+  },
+  "configuration": {
+    "units": "SI",
+    "standard_gravity_m_s2": 9.80665,
+    "coordinate_frame": {
+      "name": "right-handed habitat-local frame",
+      "handedness": "right",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation_axis_unit_vector": [
+        0,
+        0,
+        1
+      ]
+    },
+    "rotation": {
+      "rpm": 2,
+      "angular_velocity_rad_s": [
+        0,
+        0,
+        0.20943951023931953
+      ],
+      "angular_acceleration_rad_s2": [
+        0,
+        0,
+        0
+      ]
+    },
+    "geometry": {
+      "reference_radius_m": 223.56481175237965,
+      "inner_occupied_radius_m": 223.56481175237965,
+      "outer_occupied_radius_m": 223.56481175237965
+    },
+    "target_g": 1,
+    "relative_velocity_m_s": [
+      0,
+      0,
+      0
+    ]
+  },
+  "model": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "commit_sha": "e593857da693e8d5ced999ebaf1ed1cbac987eb6",
+    "path": "research/artificial-gravity-v0/src/lib.rs",
+    "blob_sha": "9dc17705a31ae56fc9952d67825b0e13d2b909f5",
+    "implementation_kind": "analytic_reference"
+  },
+  "execution": {
+    "method": "independent_analytic_calculation",
+    "command_or_procedure": "Independent double-precision evaluation of r = g0 / (2*pi*RPM/60)^2; this is not output captured from the Rust binary.",
+    "environment": "Independent arithmetic reference; Rust compiler and Cargo were unavailable in the current execution environment.",
+    "toolchain": "not_applicable_for_analytic_reference",
+    "solver": "closed-form kinematics",
+    "seed": null,
+    "status": "executed"
+  },
+  "result": {
+    "result_class": "expected_fixture",
+    "metrics": [
+      {
+        "name": "required_radius",
+        "value": 223.56481175237965,
+        "unit": "m",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "local_gravity",
+        "value": 1,
+        "unit": "g0",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      },
+      {
+        "name": "angular_velocity",
+        "value": 0.20943951023931953,
+        "unit": "rad/s",
+        "origin": "derived",
+        "standard_uncertainty": null,
+        "coverage_factor": null
+      }
+    ],
+    "uncertainty_status": "not_applicable_analytic"
+  },
+  "evidence": {
+    "artifacts": [
+      {
+        "artifact_type": "six-rate Coriolis and gradient reference fixture",
+        "sha256": "289adc15709ef56e1ccb1adf4023ac0726e3a600b6db94c2c949c718a69855ae",
+        "media_type": "text/csv",
+        "locator": "research/artificial-gravity-v0/fixtures/coriolis_1mps.csv",
+        "license": "Apache-2.0 OR MIT",
+        "access_status": "public"
+      }
+    ],
+    "independent_review_status": "not_requested"
+  }
+}
