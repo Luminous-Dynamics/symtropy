@@ -84,11 +84,48 @@ The optimized metric re-basing path computes two matrix products, O(N^3), instea
 
 This is an internal algorithmic scaling comparison, not a simulator or industry solver result. Retain the exact runner/compiler/CPU receipt before making a speed claim.
 
+## Fixed-linear constrained KKT residual certificate
+
+For an SPD mass metric M and full-row-rank constraint Jacobian J, the fixed linear saddle-point system is
+
+    [ M  J^T ] [a] = [f]
+    [ J   0  ] [λ]   [b]
+
+For a candidate state, independently reconstruct
+
+    r_m = f - (M a_hat + J^T lambda_hat)
+    r_c = b - J a_hat
+    rho^2 = ||r_m||_(M^-1)^2 + ||r_c||_(W^-1)^2
+    W = J M^-1 J^T
+
+The exact-arithmetic inequalities implemented in constrained_kkt_error.rs are
+
+- acceleration: ||a - a_hat||_M <= rho;
+- multiplier: ||lambda - lambda_hat||_W <= sqrt(2) rho;
+- combined state: sqrt(||a-a_hat||_M^2 + ||lambda-lambda_hat||_W^2) <= ((1+sqrt(5))/2) rho.
+
+The derivation whitens the KKT system into [I B; B^T 0] with B^T B = I. The acceleration constant 1 is sharp on the constraint nullspace; the combined-state constant (1+sqrt(5))/2 is sharp on the two-dimensional constraint-parallel acceleration/multiplier block.
+
+The implementation does not form M^-1 or W^-1. It recomputes both residual blocks from the retained metric/Jacobian and candidate state, then measures them using the mass and Delassus dual norms. Redundant constraints are rejected because W is not SPD.
+
+The residual and all three bounds are checked under two independent representation changes:
+
+- generalized-coordinate re-basing q = S y, with M_y = S^T M_q S, J_y = J_q S, force covectors pulled back by S^T, and accelerations transformed by S^-1;
+- constraint-equation re-description r_new = T r_old, with J_new = T J_old, b_new = T b_old, and lambda_new = T^-T lambda_old.
+
+The example runs a 5-by-4 combined S/T ladder. Constraint-space basis changes use a distinct Rust frame type, so old and rebased multiplier/residual coordinates cannot be accidentally passed to the same typed API.
+
+A deterministic example reports residuals and bounds across five generalized-coordinate shears and four independent constraint-equation shears:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constrained_kkt_residual_ladder
+
+**Claim boundary:** this is a bound for a fixed linear KKT operator with an SPD mass metric and full-row-rank J. The f64 receipt numerically evaluates the exact-arithmetic inequality; it is not an interval-certified real-arithmetic enclosure. It does not automatically bound a nonlinear midpoint step, changing active sets, time-discretization error, redundant constraints, or contact/friction systems.
+
 ## Scope and next step
 
-v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
+The reference now covers frame-typed dense metrics, full-row-rank linear Delassus constraints, metric-induced operator norms, and a fixed-linear constrained KKT residual-to-state bound. It still does not qualify a nonlinear midpoint residual-to-state map, arbitrary manifold charts, singular chart transitions, unilateral/frictional contact, sparse articulated production solvers, or general solver superiority.
 
-The next step is to connect these frame-typed and constraint-space norms to the physical one-step dumbbell fixture in Symtropy #4730 and its conditioning-aware error envelope in #4765. Every residual must identify its domain/codomain and tensor variance; raw coordinate norms remain diagnostic only.
+The next step is to connect the fixed-linear certificate to a frozen physical one-step dumbbell fixture in Symtropy #4730. That requires a separate qualification of the nonlinear residual Jacobian / local inverse bound and a clear separation of solver error, constraint linearization error, and time-discretization error.
 
 ## Reproducible microbenchmark v0.1
 

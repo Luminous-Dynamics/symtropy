@@ -134,6 +134,11 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         self.cometric.matrix()
     }
 
+    /// Exact admitted mass metric retained by this Delassus construction.
+    pub fn mass_metric(&self) -> &Metric<Frame, N> {
+        &self.mass
+    }
+
     pub fn admission_receipt(&self) -> MetricAdmissionReceiptV1 {
         self.cometric.admission_receipt()
     }
