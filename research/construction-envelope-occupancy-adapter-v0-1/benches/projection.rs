@@ -2,9 +2,7 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_envelope_occupancy_adapter::{ProjectedOccupancy, project_slice};
-use construction_motion_envelope::{
-    Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build,
-};
+use construction_motion_envelope::{Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build};
 use construction_robot_interop_core::resources::ReservationRequest;
 use construction_spacetime_occupancy_core::{SiteBinding, SpatialOccupancyBook};
 
@@ -101,10 +99,7 @@ fn project_for(task_index: usize, x_offset: i64) -> ProjectedOccupancy {
     .expect("fixed benchmark projection is valid")
 }
 
-fn measure_queries(
-    label: &str,
-    mut operation: impl FnMut(),
-) {
+fn measure_queries(label: &str, mut operation: impl FnMut()) {
     let mut durations = Vec::with_capacity(QUERY_SAMPLES);
     for _ in 0..QUERY_SAMPLES {
         let start = Instant::now();
