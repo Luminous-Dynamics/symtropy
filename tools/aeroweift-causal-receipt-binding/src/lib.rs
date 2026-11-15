@@ -436,11 +436,11 @@ fn validate_observation_time(receipt: &Receipt) -> Result<(), VerificationError>
     if !receipt.subject.evaluation_window.contains(observed) || observed > received {
         return Err(VerificationError::ObservationTimeInvalid);
     }
-    if received > receipt.time.evaluated_at {
-        return Err(VerificationError::ObservationReceivedAfterEvaluation);
-    }
     if received > receipt.time.produced_at {
         return Err(VerificationError::ReceiptTimeInversion);
+    }
+    if received > receipt.time.evaluated_at {
+        return Err(VerificationError::ObservationReceivedAfterEvaluation);
     }
     Ok(())
 }
