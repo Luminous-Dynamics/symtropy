@@ -224,8 +224,8 @@
     {
       "case_id": "DK-T0-005-measured-physical-inventory",
       "expected": {
-        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
-        "reason": null,
+        "operator_disposition": "INDETERMINATE",
+        "reason": "INVENTORY_UNIT_MISMATCH",
         "injected_mass": 1,
         "physical_outlet_mass": 0.8,
         "sensor_observed_outlet_mass": 0.8,
@@ -317,15 +317,15 @@
     {
       "case_id": "DK-T0-007-calibrated-sensor-lag",
       "expected": {
-        "operator_disposition": "OPEN_MASS_RESIDUAL",
-        "reason": "SIGNED_RESIDUAL_EXCEEDS_DECLARED_UNCERTAINTY",
+        "operator_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
         "injected_mass": 0.8,
-        "physical_outlet_mass": 0.4,
-        "sensor_observed_outlet_mass": 0.4,
+        "physical_outlet_mass": 0.8,
+        "sensor_observed_outlet_mass": 0.8,
         "known_inventory_mass": 0,
-        "signed_mass_residual": 0.4,
+        "signed_mass_residual": 0,
         "mass_residual_standard_uncertainty": 0.01,
-        "standardized_abs_mass_residual": 40,
+        "standardized_abs_mass_residual": 0,
         "predicted_physical_tail_mass": 0,
         "predicted_sensor_tail_mass": 0,
         "per_inlet_kernel_area": [
@@ -342,8 +342,8 @@
           ],
           [
             0,
-            0,
-            0,
+            0.2,
+            0.2,
             0,
             0
           ]
@@ -358,9 +358,9 @@
           ],
           [
             0,
-            0,
-            0,
-            0,
+            0.1,
+            0.2,
+            0.1,
             0
           ]
         ],
@@ -548,8 +548,8 @@
             0
           ]
         ],
-        "competing_model_separation": null,
-        "model_discrimination_state": "INSUFFICIENT",
+        "competing_model_separation": 14.142135623730951,
+        "model_discrimination_state": "SEPARATED",
         "physical_operator_qualified": false,
         "potability_claim_permitted": false,
         "release_authorized": false
@@ -561,14 +561,14 @@
         "operator_disposition": "TEMPORAL_RESOLUTION_INADEQUATE",
         "reason": "SENSOR_BANDWIDTH_OR_SAMPLING_CANNOT_RESOLVE_KERNEL",
         "injected_mass": 1,
-        "physical_outlet_mass": null,
-        "sensor_observed_outlet_mass": null,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
         "known_inventory_mass": 0,
-        "signed_mass_residual": null,
+        "signed_mass_residual": 0,
         "mass_residual_standard_uncertainty": 0.01,
-        "standardized_abs_mass_residual": null,
-        "predicted_physical_tail_mass": null,
-        "predicted_sensor_tail_mass": null,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
         "per_inlet_kernel_area": [
           1,
           0
@@ -576,29 +576,82 @@
         "predicted_physical_outlet_flux": [
           [
             0,
-            null,
-            null,
-            null
+            1,
+            0,
+            0
           ],
           [
             0,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
           ]
         ],
         "predicted_sensor_outlet_flux": [
           [
             0,
-            null,
-            null,
-            null
+            1,
+            0,
+            0
           ],
           [
             0,
-            null,
-            null,
-            null
+            0,
+            0,
+            0
+          ]
+        ],
+        "competing_model_separation": null,
+        "model_discrimination_state": "NOT_EVALUATED",
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false
+      }
+    },
+    {
+      "case_id": "DK-T0-013-partial-outlet-boundary",
+      "expected": {
+        "operator_disposition": "PARTIAL_OUTLET_BOUNDARY",
+        "reason": "ONE_OR_MORE_OUTLETS_NOT_OBSERVED",
+        "injected_mass": 1,
+        "physical_outlet_mass": 1,
+        "sensor_observed_outlet_mass": 1,
+        "known_inventory_mass": 0,
+        "signed_mass_residual": 0,
+        "mass_residual_standard_uncertainty": 0.01,
+        "standardized_abs_mass_residual": 0,
+        "predicted_physical_tail_mass": 0,
+        "predicted_sensor_tail_mass": 0,
+        "per_inlet_kernel_area": [
+          1,
+          0
+        ],
+        "predicted_physical_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
+          ]
+        ],
+        "predicted_sensor_outlet_flux": [
+          [
+            0.7,
+            0,
+            0,
+            0
+          ],
+          [
+            0.3,
+            0,
+            0,
+            0
           ]
         ],
         "competing_model_separation": null,
