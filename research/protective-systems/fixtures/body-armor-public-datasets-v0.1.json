@@ -1,0 +1,103 @@
+{
+  "schema_version": "protective-data-registry/0.1",
+  "registry_date": "2026-11-15",
+  "records": [
+    {
+      "record_id": "NIST-M32149-V50",
+      "title": "Ballistic test results for several different soft body armor systems",
+      "publisher": "National Institute of Standards and Technology",
+      "persistent_identifier": "https://doi.org/10.18434/M32149",
+      "landing_page": "https://catalog.data.gov/dataset/ballistic-test-results-for-several-different-soft-body-armor-systems",
+      "archive_uri": "https://data.nist.gov/od/ds/mds2-2149/V50.zip",
+      "archive_name": "V50.zip",
+      "archive_sha256_published_by_repository": "ba8ee6071849d5883af434d1bda46727f695ef64d446fdbf8f26a0a653f4d66b",
+      "repository_reported_archive_size": "4.23 kB",
+      "first_published": "2019-11-12",
+      "source_data_last_updated": "2011-02-14",
+      "access_level": "public",
+      "reuse_status": "NIST_OPEN_LICENSE",
+      "license_uri": "https://www.nist.gov/open/license",
+      "license_notes": [
+        "The Data.gov record explicitly points to the NIST data licence.",
+        "NIST employee-created non-standard-reference data are generally not subject to US copyright under 17 U.S.C. 105; NIST's licence also addresses possible foreign copyright and grants rights subject to its terms.",
+        "Retain NIST attribution and the as-is/no-warranty notice.",
+        "Any modified data must carry a notice identifying the modification date and nature."
+      ],
+      "source_standard_context": {
+        "standard": "NIJ 0101.06",
+        "status": "LEGACY_HISTORICAL_CONTEXT",
+        "warning": "This dataset predates NIJ 0101.07 and does not establish conformity to NIJ 0101.07 or NIJ 0123.00."
+      },
+      "declared_contents": {
+        "armour_system_files": 6,
+        "file_format": "CSV",
+        "columns": [
+          {
+            "name": "velocity",
+            "unit": "m/s",
+            "meaning": "reported projectile velocity"
+          },
+          {
+            "name": "result",
+            "unit": "binary",
+            "meaning": "1 = perforated; 0 = stopped"
+          }
+        ],
+        "additional_file": "README text file"
+      },
+      "associated_method_reference": {
+        "title": "Analysis of Three Different Regression Models to Estimate the Ballistic Performance of New and Environmentally Conditioned Body Armor",
+        "report": "NISTIR 7760",
+        "doi": "https://doi.org/10.6028/NIST.IR.7760",
+        "published_baselines": [
+          "logistic response model",
+          "probit response model",
+          "complementary log-log response model"
+        ]
+      },
+      "intended_benchmark_use": [
+        "historical reproduction of the NISTIR 7760 statistical analysis",
+        "within-system probabilistic perforation-curve evaluation",
+        "uncertainty and calibration method development"
+      ],
+      "known_limitations": [
+        "Only six armour-system CSV files are declared.",
+        "The CSV schema contains velocity and binary perforation outcome; it does not provide material/process descriptors suitable for architecture-level transfer claims.",
+        "The data are historical and tied to the NIJ 0101.06 context.",
+        "The source is not an NIJ Compliant Products List and the dataset is not a product conformity assessment."
+      ],
+      "ingestion_state": "METADATA_VERIFIED_ARCHIVE_NOT_YET_INGESTED",
+      "evidence_class": "historical_experimental_data"
+    },
+    {
+      "record_id": "ZENODO-23313293-CFRP",
+      "title": "Dataset for experimental design of ply-blocked and helicoidal carbon-fibre laminates for ballistic protection",
+      "publisher": "Delft University of Technology / TNO contributors; hosted on Zenodo",
+      "record_uri": "https://zenodo.org/records/23313293",
+      "published": "2026-10-28",
+      "declared_contents": {
+        "laminate_architectures": 10,
+        "shots": 95,
+        "high_speed_videos": 92,
+        "video_frame_rate_fps": 40000,
+        "package_files": 319,
+        "package_size": "4.1 GB"
+      },
+      "material_scope": "carbon/epoxy laminate plates; not body armour or a torso-worn product",
+      "license_status_on_record": "to be confirmed",
+      "repository_terms_note": "Zenodo's Terms of Use state that access to content is for non-military purposes and that content reuse is subject to the applicable item-specific licence.",
+      "benchmark_disposition": "EXCLUDED_PENDING_RIGHTS_AND_PERMITTED_USE_REVIEW",
+      "allowed_actions_in_this_project": [
+        "record public bibliographic metadata",
+        "link to the source record"
+      ],
+      "prohibited_until_review": [
+        "download or ingest the data files",
+        "mirror or redistribute the dataset",
+        "use the dataset in model training or evaluation"
+      ],
+      "reason": "The item-specific licence is not confirmed in the record metadata; additionally, the repository's non-military-use term must be reconciled with the intended use before any data access or analysis.",
+      "evidence_class": "discovery_metadata_only"
+    }
+  ]
+}
