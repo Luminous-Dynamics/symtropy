@@ -1,0 +1,13 @@
+[package]
+name = "physics-evidence-composition-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Fail-closed composition of independently verified mathematical, numerical and physical receipts"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
