@@ -1,0 +1,65 @@
+name: water-mixing-operator-invariants-t0
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/water-mixing-operator-invariants-t0.yml"
+      - "tools/water-service-t0/**"
+      - "research/water-intrusion-coupling/operator-invariants-t0-*.json"
+      - "research/water-intrusion-coupling/OPERATOR_INVARIANTS_T0_V0_1.md"
+  push:
+    branches:
+      - main
+      - research/water-mixing-operator-invariants-t0-v0.1
+    paths:
+      - ".github/workflows/water-mixing-operator-invariants-t0.yml"
+      - "tools/water-service-t0/**"
+      - "research/water-intrusion-coupling/operator-invariants-t0-*.json"
+      - "research/water-intrusion-coupling/OPERATOR_INVARIANTS_T0_V0_1.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-mixing-operator-invariants-t0-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  operator-invariants-t0:
+    name: Rust format, tests, clippy and invariant-oracle replay
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/water-service-t0/Cargo.toml --all -- --check
+
+      - name: Run native Rust tests
+        run: cargo test --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-kernel-invariants-t0
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-kernel-invariants-t0 -- -D warnings
+
+      - name: Replay frozen operator invariant oracle
+        env:
+          WATER_MIXING_INVARIANTS_T0_REVISION: ${{ github.sha }}
+        run: |
+          cargo run --locked --manifest-path tools/water-service-t0/Cargo.toml --bin mixing-kernel-invariants-t0 -- \
+            research/water-intrusion-coupling/operator-invariants-t0-cases-v0.1.json \
+            research/water-intrusion-coupling/operator-invariants-t0-oracle-v0.1.json \
+            research/water-intrusion-coupling/operator-invariants-t0-manifest-v0.1.json \
+            artifacts/water-mixing-operator-invariants-t0/receipt.json
+
+      - name: Archive synthetic operator-invariant receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-mixing-operator-invariants-t0-${{ github.sha }}
+          path: artifacts/water-mixing-operator-invariants-t0/receipt.json
+          if-no-files-found: warn
