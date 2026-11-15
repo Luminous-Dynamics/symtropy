@@ -54,6 +54,7 @@ jobs:
       - name: Compare Rust receipts with exact-rational oracle
         run: |
           python3 research/operator-spectrum-oracle-001/operator_spectrum_oracle.py \
+            --input research/operator-spectrum-oracle-001/operator-spectrum-inputs-v0.1.json \
             --candidate "$RUNNER_TEMP/operator-spectrum-candidate.json" \
             --oracle-output "$RUNNER_TEMP/operator-spectrum-oracle.json" \
             --validation-output "$RUNNER_TEMP/operator-spectrum-validation.json" \
