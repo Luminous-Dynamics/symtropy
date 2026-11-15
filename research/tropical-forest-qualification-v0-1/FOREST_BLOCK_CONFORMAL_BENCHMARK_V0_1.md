@@ -19,7 +19,7 @@ Given calibration block scores $s_1,\ldots,s_n$ and target miscoverage $\alpha$,
 
 `k = \lceil (n+1)(1-\alpha) \rceil`
 
-Sort the scores and choose the $k$th order statistic. If $k>n$, return an unbounded interval (represented as no finite radius), rather than inventing a finite quantile.
+Sort the scores and choose the $k$th order statistic. If $k>n$, return an unbounded interval (represented as no finite radius), rather than inventing a finite quantile. A zero-miscoverage target ($\alpha=0$) also returns an unbounded interval; $\alpha=1$ and invalid/non-finite values are rejected.
 
 This immediately sets a minimum calibration-block count:
 - 90% target ($\alpha=0.10$): at least 9 exchangeable blocks;
@@ -76,7 +76,7 @@ Version 0.1 requires:
 - training group IDs disjoint from test group IDs;
 - calibration group IDs disjoint from test group IDs;
 - unique calibration block IDs and group IDs;
-- unique test block IDs and group IDs;
+- unique test block IDs and group IDs, with no block-ID reuse across calibration and test;
 - finite, nonnegative calibration residuals;
 - finite predictions and observations;
 - equal observation counts across calibration and test blocks.
@@ -105,7 +105,36 @@ Relevant references:
 - Vaze, *Simultaneous Coverage and Efficiency Guarantee in Online Conformal Prediction* (July 2026 preprint): https://arxiv.org/abs/2607.26577
 - 2025/2026 CP survey and data-regime taxonomy: https://doi.org/10.1145/3736575
 
-## 7. Proposed empirical benchmark targets
+
+## 7. Calibration-conditional coverage: the next statistical frontier
+
+The usual split-conformal result is **marginal over the random calibration sample**. A realised calibration set produces a random threshold, and therefore a random calibration-conditional coverage level. That variability matters when the available calibration set is only nine or nineteen genuinely independent site/campaign blocks.
+
+For continuous i.i.d. scores, the calibration-conditional coverage law has a Beta order-statistic form, Beta(k, n+1-k). Recent work extends this perspective to test-side shift and clustered/dependent calibration units. This provides a more informative question than “did the aggregate test set cover 90%?”: how variable is coverage across plausible calibration samples, and how does shared ancestry or block dependence alter that law?
+
+Add this to the eventual independent tournament:
+- repeated calibration resampling at the block level, never at the pixel/stem level;
+- empirical distribution of calibration-conditional realized coverage;
+- lower-tail probability of severe undercoverage, not only its mean;
+- block-bootstrap uncertainty for observed test coverage;
+- explicit comparison between the i.i.d. Beta reference law and dependent/clustered calibration behavior;
+- sensitivity to block definition, number of blocks and block-size imbalance.
+
+The new theory suggests three separate baselines:
+1. ordinary split conformal under a justified exchangeable block design;
+2. a dependence-aware calibration analysis / block method with its assumptions declared;
+3. an online method for sequential drift, evaluated with rolling-window coverage and interval efficiency.
+
+Do not apply the i.i.d. Beta law to the current synthetic block scores as though it were validated. The current corpus is deterministic and supplies no random sampling model for the nine calibration blocks. This section is a research target, not a capability claim.
+
+2026 research that should inform the tournament:
+- Barber & Panjandry, *Predictive inference for time series: why is split conformal effective despite temporal dependence?*, ALT/PMLR 2026: quantifies coverage loss under temporal dependence using a switch coefficient and studies stationary beta-mixing processes.
+- Ramos, Graziadei & Cabezas, *Conformal Prediction via Transported Beta Laws*, COPA/PMLR 2026: studies calibration-conditional coverage variability, test-side shift and clustered calibration dependence.
+- The CRAN spconform package (v0.1.2, published 19 October 2026) provides localized point-referenced and graph-neighbourhood areal conformal methods, with conditional spatial strata, boundary and Moran's I diagnostics.
+- Liu, Dobriban & Orabona, *Online Conformal Prediction via Universal Portfolio Algorithms*, ICML/PMLR 2026: studies finite-time long-run coverage bounds and interval-size/coverage trade-offs for possibly adversarial streams.
+- Vaze, *Simultaneous Coverage and Efficiency Guarantee in Online Conformal Prediction* (July 2026 preprint): targets non-cancelling coverage violation alongside an evolving efficiency objective.
+
+## 8. Proposed empirical benchmark targets
 
 These are future goals, not achieved results:
 1. Evaluate 90% and 95% whole-block coverage on sufficiently many independent held-out blocks, with block-bootstrap 95% confidence intervals.
@@ -117,19 +146,20 @@ These are future goals, not achieved results:
 7. Compare block split conformal with spatially weighted, EnbPI/SPCI and adaptive methods under the data regimes for which their assumptions are appropriate.
 8. Include calibration-block count, number of observations per block, runtime, memory, latency, and data/field cost.
 
-## 8. Next research slices
+## 9. Next research slices
 
 Not implemented:
 - spatially weighted or graph-neighbourhood conformal;
 - weighted conformal under a qualified covariate-shift model;
 - online ACI/AgACI or sliding-window adaptation;
 - block-bootstrap confidence intervals for realized block coverage;
+- calibration-conditional coverage distributions / dependence-adjusted Beta-law comparisons;
 - PIT, WIS / interval score and spatial residual Moran's I;
 - variable-width or area-weighted block scores;
 - empirical calibration, regional transfer or prospective coverage.
 
-The next strongest experiment is a spatial/temporal blocking tournament with independent real blocks, once a rights-cleared dataset and a credible observation operator are admitted. The block definition must be frozen before model fitting, and all tuning must remain inside the training/calibration split.
+The next strongest experiment is a repeated calibration-resampling tournament over independently sampled spatial/campaign blocks, followed by a spatial/temporal blocking tournament with a rights-cleared dataset and a credible observation operator. The block definition must be frozen before model fitting, and all tuning must remain inside the training/calibration split.
 
-## 9. Claim ceiling
+## 10. Claim ceiling
 
 A successful `PASS_SYNTHETIC_BLOCK_CONFORMAL` receipt means only that the finite-sample rank, pooled-vs-block radii, group separation and synthetic coverage calculations agree with the public fixture. It does not establish actual block exchangeability, independent field units, conditional spatial coverage, shift detection, ecological calibration, regional transfer or SOTA superiority.
