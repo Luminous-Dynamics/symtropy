@@ -80,3 +80,32 @@ serialization, so inconsequential whitespace does not change the digest.
 This crate is intentionally an isolated workspace so it can be tested without
 adding dependencies to Symtropy's main workspace. It uses Rust, serde, serde_json
 and sha2; no Python runtime or network access is needed at evaluation time.
+
+## Public dataset integrity gate
+
+The `protective-data-gate` binary is a separate integrity step for the B1
+public-data benchmark. It does not change the B0 record verifier's semantics.
+It validates the NIST registry entry and checks a local archive against the
+SHA-256 published by the NIST Public Data Repository.
+
+From the repository root:
+
+```sh
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-data-gate -- research/protective-systems/fixtures/body-armor-public-datasets-v0.1.json /path/to/V50.zip
+```
+
+Exit behavior:
+
+- `0`: registry entry is eligible and the archive digest matches;
+- `1`: input is valid but the archive digest does not match;
+- `2`: usage, registry, rights metadata, file access or hashing error.
+
+The gate prints the expected and observed digest and byte count. It does not
+download, extract, parse, train on or score the archive. A digest mismatch must
+stop the pipeline. The registry's Zenodo CFRP candidate remains excluded while
+its item-specific licence and permitted-use scope are unresolved.
+
+The gate includes known-answer SHA-256 tests and registry fail-closed tests.
+A passing digest proves byte identity only; it does not validate the dataset's
+experimental design, statistics, current relevance, armour performance or
+product conformity.
