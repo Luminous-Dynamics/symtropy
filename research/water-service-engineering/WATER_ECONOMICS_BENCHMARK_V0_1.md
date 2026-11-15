@@ -196,3 +196,8 @@ The first is any interruption; the second is the longer-duration threshold. Neit
 Sources:
 - Stats SA GHS 2025, Figure 9.5 and 9.6: https://www.statssa.gov.za/publications/P0318/P03182025.pdf
 - Stats SA GHS 2025 presentation: https://www.statssa.gov.za/publications/P0318/GHS%202025%20Presentation.pdf
+
+
+### Additional case 034: billing-period identity
+
+The 34th WaterLoop fixture supplies a 28-day tariff billing interval against a 30-day system-cost comparison period. It preserves directly supported gross system cost and useful-volume ratios, but reports tariff disposition, incremental bill comparison and affordability burden as Indeterminate. A tariff bill may not be rescaled or compared across periods without an owner-approved normalization contract.
