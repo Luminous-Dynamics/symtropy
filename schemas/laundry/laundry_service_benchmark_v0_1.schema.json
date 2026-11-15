@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:luminous-dynamics:laundry-service-benchmark:0.1.0",
   "title": "Laundry Service System Benchmark v0.1",
-  "description": "Proposed washer, dryer and paired laundry service metrics. This contract contains desk references and target hypotheses only, not measured product results.",
+  "description": "Proposed washer, dryer and paired laundry service metrics. This contract contains desk references and target hypotheses only, not measured product results. South African Defy, Bosch, LG and Samsung desk references are included where product-specific data is public.",
   "type": "object",
   "additionalProperties": false,
   "required": [
