@@ -279,3 +279,18 @@ Do not treat a synthetic Highveld forcing profile as measured local hydrology. D
 - Seibert, J., Vis, M. & Pool, S. (2026). *Setting the bar: benchmarks for model performances in large-sample hydrology*. HESS 30, 5857–5871. https://doi.org/10.5194/hess-30-5857-2026
 - Mangukiya, N.K. et al. (2026). *Benchmarking and Selecting Optimal Hydrological Models for Large-Sample Applications Considering Complexity and Uncertainty*. Water Resources Research. https://doi.org/10.1029/2026WR044753
 - Symtropy HYDRO-VALID-05 #461 and HYDRO-LAB-01 #445.
+
+
+## South African / Highveld source admission
+
+Candidate local source populations are tracked separately in [HIGHVELD-HYDRO-DATA-ADMISSION-001 #5350](https://github.com/Luminous-Dynamics/symtropy/issues/5350) and the metadata-only [Highveld source admission register v0.1](highveld-source-admission-register-v0.1.json).
+
+The register distinguishes:
+- DWS audited surface-flow records from unaudited operational displays/forecasts;
+- DWS NGA point/geosite records from actual groundwater time series;
+- DWS RQIS/WMS raw surface-water samples from dashboard snapshots;
+- SAWS station observations from gridded forcing;
+- CHIRPS, ERA5-Land and GPM IMERG as separate product populations;
+- Johannesburg Water notice assertions from independently measured service telemetry.
+
+As of this register revision, **no source bytes are acquired and no usage rights are admitted**. SHA-256 fields remain null. Catchment selection is intentionally deferred until station coverage, audited flow, event coverage, forcing quality, anthropogenic boundary records and source terms can be compared. Synthetic or gridded forcing is not local field validation.
