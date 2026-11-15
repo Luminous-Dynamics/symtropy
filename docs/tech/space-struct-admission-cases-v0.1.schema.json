@@ -246,7 +246,10 @@
         "backend_generation",
         "backend_digest",
         "mission",
-        "process_batch"
+        "process_batch",
+        "model_source_repository",
+        "model_source_commit",
+        "model_maturity"
       ],
       "properties": {
         "candidate_id": {
@@ -410,6 +413,19 @@
               "type": "null"
             }
           ]
+        },
+        "model_source_repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "model_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "model_maturity": {
+          "enum": [
+            "DRAFT_ANALYTICAL_REFERENCE",
+            "SOFTWARE_QUALIFIED"
+          ]
         }
       }
     },
@@ -446,7 +462,10 @@
         "expected_backend_digest",
         "qualified_model_profile_id",
         "current_mission",
-        "accepted_process_batch"
+        "accepted_process_batch",
+        "expected_model_source_repository",
+        "expected_model_source_commit",
+        "expected_model_maturity"
       ],
       "properties": {
         "backend_allowlisted": {
@@ -590,6 +609,19 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "expected_model_source_repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "expected_model_source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "expected_model_maturity": {
+          "enum": [
+            "DRAFT_ANALYTICAL_REFERENCE",
+            "SOFTWARE_QUALIFIED"
           ]
         }
       }
