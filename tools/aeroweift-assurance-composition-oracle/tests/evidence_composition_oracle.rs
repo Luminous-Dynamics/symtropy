@@ -52,12 +52,10 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
     } else {
         TrafficClass::NonCooperativeCrewed
     };
-    let evidence = || {
-        input
-            .surveillance
-            .iter_mut()
-            .find(|item| item.traffic_class == traffic_class)
-    };
+    let evidence_index = input
+        .surveillance
+        .iter()
+        .position(|item| item.traffic_class == traffic_class);
 
     match fault {
         0 => input.pnt_disposition = PntDisposition::Stale,
@@ -80,7 +78,8 @@ fn apply_fault(input: &mut CompositionInput, fault: usize, class_index: usize) {
             .surveillance
             .retain(|item| item.traffic_class != traffic_class),
         17 => {
-            if let Some(item) = evidence() {
+            if let Some(index) = evidence_index {
+                let item = &mut input.surveillance[index];
                 item.disposition = SurveillanceDisposition::NoQualifiedCoverage;
                 item.observation_ref = None;
             }
