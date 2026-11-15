@@ -936,3 +936,45 @@ fn future_effective_coverage_receipt_does_not_poison_earlier_cutoff() {
     let later = assess(&claim(), &[], &feeds, cutoff(70, 70));
     assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
 }
+
+
+#[test]
+fn unrelated_dependency_event_integrity_does_not_poison_claim() {
+    let mut unrelated = event!(
+        "unrelated-invalid-event",
+        "control-registry",
+        1,
+        DependencyKind::ControlStack,
+        '1',
+        '2',
+        20,
+        21,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    unrelated.event_sha256 = "not-a-sha".into();
+
+    let result = assess(&claim(), &[unrelated], &complete_coverage(), cutoff(50, 50)).unwrap();
+    assert_eq!(result.status, ClaimStatus::StillApplicable);
+}
+
+#[test]
+fn wrong_source_for_claim_dependency_is_rejected() {
+    let wrong_source = event!(
+        "sensor-event-wrong-source",
+        "rogue-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '7',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+
+    assert_eq!(
+        assess(&claim(), &[wrong_source], &complete_coverage(), cutoff(50, 50)),
+        Err(EvaluationError::ChangeSourceMismatch)
+    );
+}
