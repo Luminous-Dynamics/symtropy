@@ -35,7 +35,10 @@ fn main() -> ExitCode {
         Ok(()) => {
             println!(
                 "VALID {} (schema {}, evidence {:?}, seed {})",
-                scenario.scenario_id, scenario.schema_version, scenario.evidence_level, scenario.seed
+                scenario.scenario_id,
+                scenario.schema_version,
+                scenario.evidence_level,
+                scenario.seed
             );
             ExitCode::SUCCESS
         }
