@@ -480,6 +480,12 @@ fn frozen_fixture_registers_all_scope_join_scenarios() {
         "extra-unrequested-query",
         "input-order-permutation",
         "missing-owner-receipt",
+        "different-operator",
+        "different-issuing-ussp",
+        "different-intent-revision",
+        "different-authorization-artifact-digest",
+        "missing-issuing-provider",
+        "missing-authorization-digest",
     ];
 
     assert_eq!(fixture.matches("\"id\":").count(), case_ids.len());
