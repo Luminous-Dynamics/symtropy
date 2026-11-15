@@ -632,8 +632,8 @@ mod tests {
 
     #[test]
     fn canonical_bytes_ignore_input_order_but_bind_tool_revision() {
-        let mut c = context();
-        c.expected_primitive_ids = vec!["base".into(), "tool".into()];
+        let mut ctx = context();
+        ctx.expected_primitive_ids = vec!["base".into(), "tool".into()];
         let a = seg(
             0,
             "base",
@@ -714,7 +714,7 @@ mod tests {
             Point3Mm { x: 20, y: 0, z: 0 },
         );
         assert_eq!(
-            build(&c, &[a.clone(), b, c.clone()]).unwrap_err(),
+            build(&ctx, &[a.clone(), b, c.clone()]).unwrap_err(),
             ErrorKind::PrimitiveSetChanged(1)
         );
         let d = seg(
@@ -726,7 +726,7 @@ mod tests {
             Point3Mm { x: 20, y: 0, z: 0 },
         );
         assert!(matches!(
-            build(&c, &[a, d]),
+            build(&ctx, &[a, d]),
             Err(ErrorKind::CenterDiscontinuity(_))
         ));
     }
