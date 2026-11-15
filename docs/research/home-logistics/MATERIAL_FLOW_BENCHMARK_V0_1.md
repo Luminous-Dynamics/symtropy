@@ -430,6 +430,26 @@ A reconciliation resolution is accepted only from the configured reconciler acto
 
 The new tests cover independent reconciliation, self-reconciliation rejection, duplicate evidence digests, pre-/post-dispatch sensor disagreement and event-sequence overflow. Exact-head CI qualification is tracked separately from physical fault-injection; the tests do not mean that a real transfer, simulator episode or HIL test has occurred.
 
+### 12.4 First L1 physics episode — stationary receiver
+
+The benchmark now has a first headless simulation entry point: `tools/material-flow-benchmark/src/simulation.rs` and the `mfb-simulate` CLI.
+
+It composes the contract validator with Symtropy's existing `symtropy-physics` crate rather than introducing a second rigid-body engine. The episode:
+- builds an open-top tote from static 3D box colliders using the scenario's internal/external dimensions;
+- represents the package as a rigid box using its declared mass and dimensions;
+- releases it from a fixed, seeded offset above the tote under gravity;
+- advances 480 fixed ticks at 120 Hz with the physics crate's `deterministic-net` Q16.16 feature;
+- captures bitwise world snapshots at every tick and hashes the full trace;
+- repeats the same episode and requires same-host per-tick replay equality;
+- checks package containment, floor support and final linear speed;
+- feeds physical outcome into the append-only handoff state machine, so custody completes only after successful placement and replay checks.
+
+The machine-readable result reports final package centre/speed, trace digest, replay equality, containment, settling and final transaction state. A failed placement or replay does not produce a completed custody transaction.
+
+**Evidence level:** L1 simulation of one stationary receiver episode only. The model is a rigid-box proxy; it is not deformable packaging, grasp planning, a robot, a full carrier, truck/aircraft, route or fleet model. It contains no sensor uncertainty, metrology, human/animal exposure, doors/latches, actuator limits, guarding or emergency-stop hardware. The Q16.16 feature and bitwise replay comparison make a same-build same-host replay assertion; cross-platform bitwise determinism is not claimed. None of these tests qualifies HIL or field operation.
+
+**Verification status:** pending the first exact-head dedicated workflow run for the physics-linked tool and `mfb-simulate` CLI. Do not count the existing 50-test contract-only pass as evidence that the new physics dependency or L1 episode compiles or runs.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
