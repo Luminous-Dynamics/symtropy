@@ -6,15 +6,15 @@
 
 mod capsule;
 mod translation_ccd;
-pub use translation_ccd::{
-    TranslationCcdError, TranslatingCapsuleClosestApproach,
-    endpoints_only_translating_capsule_collision, translating_capsule_aabb_candidate,
-    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
-};
 pub use capsule::{
     Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
     endpoints_only_sphere_capsule_collision, moving_sphere_capsule_collision,
     moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
+};
+pub use translation_ccd::{
+    TranslationCcdError, TranslatingCapsuleClosestApproach,
+    endpoints_only_translating_capsule_collision, translating_capsule_aabb_candidate,
+    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
 };
 
 use construction_motion_envelope::{
