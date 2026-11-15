@@ -23,3 +23,5 @@ The schema does not verify the referenced bytes, compute metrics, or prove physi
 ## Baseline families
 
 The benchmark protocol names MuJoCo, Pinocchio, Drake MultibodyPlant and SUNDIALS CVODES. Exact engine releases and commits must be pinned for each measured run. It does not claim one universal ranking across unlike physics or derivative referents.
+
+The error-envelope record binds the numeric upper-bound value separately from its evidence class; a conditional upper-bound claim is rejected unless the emitted value, declared curvature class, artifact digest, and claim label agree.
