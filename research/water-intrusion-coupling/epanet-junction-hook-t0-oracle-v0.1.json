@@ -1,0 +1,347 @@
+{
+  "schema_version": "epanet-junction-hook-t0-oracle-v0.1",
+  "programme_id": "WATER-MIXING-ENGINE-INTEROP-001",
+  "physical_operator_qualified": false,
+  "potability_claim_permitted": false,
+  "release_authorized": false,
+  "cases": [
+    {
+      "case_id": "EJH-T0-001-baseline-complete-mix",
+      "expected": {
+        "hook_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "incoming_segment_volume_m3": 1,
+        "incoming_segment_mass_kg": 0.003,
+        "external_source_volume_m3": 0,
+        "external_source_mass_kg": 0,
+        "outlet_volume_m3": 1,
+        "operator_outlet_mass_kg": 0.003,
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "volume_balance_residual_m3": 0,
+        "mass_balance_residual_kg": 0,
+        "baseline_complete_mix_concentration_kg_per_m3": 0.003,
+        "baseline_parity_max_abs_mass_error_kg": 2.168404344971009e-19,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.6,
+            "operator_mass_kg": 0.0018,
+            "derived_concentration_kg_per_m3": 0.003
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.4,
+            "operator_mass_kg": 0.0012,
+            "derived_concentration_kg_per_m3": 0.0029999999999999996
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-002-multiple-leading-segments",
+      "expected": {
+        "hook_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "incoming_segment_volume_m3": 0.7000000000000001,
+        "incoming_segment_mass_kg": 0.006,
+        "external_source_volume_m3": 0,
+        "external_source_mass_kg": 0,
+        "outlet_volume_m3": 0.7,
+        "operator_outlet_mass_kg": 0.006,
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "volume_balance_residual_m3": 1.1102230246251565e-16,
+        "mass_balance_residual_kg": 0,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.4,
+            "operator_mass_kg": 0.003,
+            "derived_concentration_kg_per_m3": 0.0075
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.3,
+            "operator_mass_kg": 0.003,
+            "derived_concentration_kg_per_m3": 0.01
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-003-mass-booster",
+      "expected": {
+        "hook_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "incoming_segment_volume_m3": 0.5,
+        "incoming_segment_mass_kg": 0.001,
+        "external_source_volume_m3": 0,
+        "external_source_mass_kg": 0.001,
+        "outlet_volume_m3": 0.5,
+        "operator_outlet_mass_kg": 0.002,
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "volume_balance_residual_m3": 0,
+        "mass_balance_residual_kg": 0,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.3,
+            "operator_mass_kg": 0.0012,
+            "derived_concentration_kg_per_m3": 0.004
+          },
+          {
+            "port_id": "DEMAND-1",
+            "port_kind": "demand",
+            "volume_m3": 0.2,
+            "operator_mass_kg": 0.0008,
+            "derived_concentration_kg_per_m3": 0.004
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-004-concentration-source",
+      "expected": {
+        "hook_disposition": "CLOSED_WITHIN_DECLARED_UNCERTAINTY",
+        "reason": null,
+        "incoming_segment_volume_m3": 0.9,
+        "incoming_segment_mass_kg": 0.0018000000000000002,
+        "external_source_volume_m3": 0.1,
+        "external_source_mass_kg": 0.0002,
+        "outlet_volume_m3": 1,
+        "operator_outlet_mass_kg": 0.002,
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "volume_balance_residual_m3": 0,
+        "mass_balance_residual_kg": 0,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.002
+          },
+          {
+            "port_id": "DEMAND-1",
+            "port_kind": "demand",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.002
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-005-flow-paced-source-unsupported",
+      "expected": {
+        "hook_disposition": "UNSUPPORTED_SOURCE_SEMANTICS",
+        "reason": "FLOWPACED_OR_SETPOINT_SOURCE_NOT_IMPLEMENTED_IN_HOOK_CONTRACT",
+        "incoming_segment_volume_m3": null,
+        "incoming_segment_mass_kg": null,
+        "external_source_volume_m3": null,
+        "external_source_mass_kg": null,
+        "outlet_volume_m3": null,
+        "operator_outlet_mass_kg": null,
+        "inventory_delta_volume_m3": null,
+        "inventory_delta_mass_kg": null,
+        "volume_balance_residual_m3": null,
+        "mass_balance_residual_kg": null,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": false
+      }
+    },
+    {
+      "case_id": "EJH-T0-006-duplicate-outlet-id",
+      "expected": {
+        "hook_disposition": "REJECTED_CONTRACT",
+        "reason": "DUPLICATE_OUTLET_PORT_ID",
+        "incoming_segment_volume_m3": null,
+        "incoming_segment_mass_kg": null,
+        "external_source_volume_m3": null,
+        "external_source_mass_kg": null,
+        "outlet_volume_m3": null,
+        "operator_outlet_mass_kg": null,
+        "inventory_delta_volume_m3": null,
+        "inventory_delta_mass_kg": null,
+        "volume_balance_residual_m3": null,
+        "mass_balance_residual_kg": null,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": false
+      }
+    },
+    {
+      "case_id": "EJH-T0-007-partial-outlet-port-set",
+      "expected": {
+        "hook_disposition": "PARTIAL_PORT_BOUNDARY",
+        "reason": "OUTGOING_PORT_ID_SET_INCOMPLETE",
+        "incoming_segment_volume_m3": 1,
+        "incoming_segment_mass_kg": 0.002,
+        "external_source_volume_m3": 0,
+        "external_source_mass_kg": 0,
+        "outlet_volume_m3": 0.5,
+        "operator_outlet_mass_kg": 0.001,
+        "inventory_delta_volume_m3": null,
+        "inventory_delta_mass_kg": null,
+        "volume_balance_residual_m3": null,
+        "mass_balance_residual_kg": null,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.002
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-008-open-mass-residual",
+      "expected": {
+        "hook_disposition": "OPEN_MASS_RESIDUAL",
+        "reason": "NODE_MASS_BALANCE_OUTSIDE_UNCERTAINTY",
+        "incoming_segment_volume_m3": 1,
+        "incoming_segment_mass_kg": 0.004,
+        "external_source_volume_m3": 0,
+        "external_source_mass_kg": 0,
+        "outlet_volume_m3": 1,
+        "operator_outlet_mass_kg": 0.002,
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "volume_balance_residual_m3": 0,
+        "mass_balance_residual_kg": 0.002,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.002
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.5,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.002
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-009-open-volume-residual",
+      "expected": {
+        "hook_disposition": "OPEN_VOLUME_RESIDUAL",
+        "reason": "NODE_VOLUME_BALANCE_OUTSIDE_UNCERTAINTY",
+        "incoming_segment_volume_m3": 1,
+        "incoming_segment_mass_kg": 0.002,
+        "external_source_volume_m3": 0,
+        "external_source_mass_kg": 0,
+        "outlet_volume_m3": 0.9,
+        "operator_outlet_mass_kg": 0.002,
+        "inventory_delta_volume_m3": 0,
+        "inventory_delta_mass_kg": 0,
+        "volume_balance_residual_m3": 0.09999999999999998,
+        "mass_balance_residual_kg": 0,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": [
+          {
+            "port_id": "P-OUT-1",
+            "port_kind": "pipe",
+            "volume_m3": 0.45,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.0022222222222222222
+          },
+          {
+            "port_id": "P-OUT-2",
+            "port_kind": "pipe",
+            "volume_m3": 0.45,
+            "operator_mass_kg": 0.001,
+            "derived_concentration_kg_per_m3": 0.0022222222222222222
+          }
+        ],
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": true
+      }
+    },
+    {
+      "case_id": "EJH-T0-010-step-over-event",
+      "expected": {
+        "hook_disposition": "INVALID_INPUT",
+        "reason": "QUALITY_STEP_NOT_ALIGNED_TO_HYDRAULIC_EVENT",
+        "incoming_segment_volume_m3": null,
+        "incoming_segment_mass_kg": null,
+        "external_source_volume_m3": null,
+        "external_source_mass_kg": null,
+        "outlet_volume_m3": null,
+        "operator_outlet_mass_kg": null,
+        "inventory_delta_volume_m3": null,
+        "inventory_delta_mass_kg": null,
+        "volume_balance_residual_m3": null,
+        "mass_balance_residual_kg": null,
+        "baseline_complete_mix_concentration_kg_per_m3": null,
+        "baseline_parity_max_abs_mass_error_kg": null,
+        "outlet_ports": null,
+        "physical_operator_qualified": false,
+        "potability_claim_permitted": false,
+        "release_authorized": false,
+        "snapshot_contains_consumed_segment_records": false
+      }
+    }
+  ]
+}
