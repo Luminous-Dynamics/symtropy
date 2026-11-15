@@ -24,6 +24,7 @@ The Rust module `validator/src/forecast_kernel.rs` provides:
 - a full confidence-ranked CRPS risk–coverage curve with deterministic forecast-ID tie-breaking;
 - Brier score for binary event probabilities, paired baseline Brier skill and fixed-width reliability bins;
 - empirical CRPS for equally weighted finite ensemble samples;
+- weighted interval score (WIS) over central 50%, 80% and 95% intervals, with paired baseline WIS skill;
 - nearest-rank median and central 50%, 80% and 95% prediction intervals;
 - point-summary MAE;
 - paired baseline CRPS and the CRPS skill score;
@@ -78,6 +79,29 @@ The six-case binary corpus includes correct event forecasts, a confident false a
 - Brier skill +0.112.
 
 The small fixed example is solely a mathematical conformance suite. It does not estimate event prevalence, reliability, discrimination, calibration or forest disturbance skill.
+
+### Weighted interval score
+
+CRPS scores the full finite ensemble, while WIS summarizes the emitted central intervals and median. For central intervals with miscoverage levels $\alpha_k$ and median $m$:
+
+`WIS = \frac{0.5|y-m| + \sum_k (\alpha_k/2) IS_{\alpha_k}}{K+0.5}`
+
+where:
+
+`IS_{\alpha} = (u-l) + \frac{2}{\alpha}(l-y)\mathbf{1}[y<l] + \frac{2}{\alpha}(y-u)\mathbf{1}[y>u]`
+
+The current three intervals are central 50%, 80% and 95%. The benchmark reports model WIS, baseline WIS on the same issued subset, baseline WIS over all eligible cases, and paired WIS skill:
+
+`WISSS = 1 - \frac{\overline{WIS}_{model}}{\overline{WIS}_{baseline}}`
+
+Positive skill is better; a zero paired baseline leaves skill undefined. Abstentions are omitted from model WIS but remain in the coverage denominator, while the baseline is reported over all eligible cases and separately on the paired subset.
+
+On the six synthetic cases, five forecasts are issued:
+- mean model WIS 2.3143;
+- mean paired baseline WIS 2.0000;
+- WIS skill -0.1571.
+
+The negative WIS skill agrees with the negative CRPSS direction: the synthetic model is worse than the baseline. WIS is not a calibration certificate by itself; pair it with coverage and interval-width diagnostics, and compare at matched realized coverage.
 
 ## 3. Abstention is part of the denominator
 
@@ -165,7 +189,7 @@ A +0.10 CRPSS target is meaningful only against a strong baseline, frozen paired
 
 Not implemented:
 - empirical PIT and reliability diagnostics;
-- weighted interval score / interval score;
+- PIT/reliability diagnostics and confidence intervals / calibration belts for reliability summaries;
 - confidence intervals / calibration belts for Brier reliability bins and event-stratified uncertainty;
 - confidence-score calibration and operational abstention thresholds;
 - block-bootstrap confidence intervals and hierarchical region/site aggregation;
@@ -173,8 +197,8 @@ Not implemented:
 - multi-year process forecast evaluation;
 - real source-data adapters, rights adjudication, field calibration or prospective forecasts.
 
-Next extensions should add proper interval scores/WIS, PIT diagnostics, calibration intervals for the confidence score and block-bootstrap uncertainty. It should compose with the shared forecast and uncertainty owners rather than creating a second ecological forecasting engine.
+Next extensions should add PIT diagnostics, calibration intervals for the confidence score, block-bootstrap uncertainty and richer distributional methods. It should compose with the shared forecast and uncertainty owners rather than creating a second ecological forecasting engine.
 
 ## 8. Claim ceiling
 
-A successful `PASS_SYNTHETIC_FORECAST_SCORING` receipt means only that the committed ensemble CRPS, nearest-rank intervals, paired baseline score, skill, and abstention accounting agree with the synthetic known-truth cases. It does not establish ecological calibration, forecast skill, regional transfer, operational utility, conservation impact or SOTA superiority.
+A successful `PASS_SYNTHETIC_FORECAST_SCORING` receipt means only that the committed ensemble CRPS, WIS, nearest-rank intervals, paired baseline scores/skills, risk–coverage and abstention accounting agree with the synthetic known-truth cases. It does not establish ecological calibration, forecast skill, regional transfer, operational utility, conservation impact or SOTA superiority.
