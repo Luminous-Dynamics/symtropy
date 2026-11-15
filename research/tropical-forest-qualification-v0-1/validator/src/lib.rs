@@ -16,6 +16,7 @@ pub mod support_kernel;
 pub mod spatial_localization_kernel;
 pub mod trajectory_budget_kernel;
 pub mod flux_identifiability_kernel;
+pub mod forestpaths_crosswalk_kernel;
 
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -3846,6 +3847,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
     {
         return flux_identifiability_kernel::validate_corpus(raw, &manifest);
     }
+    if manifest.get("crosswalk_id").and_then(Value::as_str)
+        == Some("FORESTPATHS-D-BEN-ADMISSION-001")
+    {
+        return forestpaths_crosswalk_kernel::validate_corpus(raw, &manifest);
+    }
     if manifest.get("corpus_id").and_then(Value::as_str) == Some("FOREST-BLOCK-CONFORMAL-001") {
         return validate_block_conformal_corpus(raw, &manifest);
     }
@@ -4216,6 +4222,8 @@ mod tests {
         include_str!("../../cases/forest-process-trajectory-synthetic-v0.1.json");
     const FLUX_IDENTIFIABILITY_FIXTURE: &str =
         include_str!("../../cases/forest-flux-identifiability-synthetic-v0.1.json");
+    const FORESTPATHS_CROSSWALK_FIXTURE: &str =
+        include_str!("../../cases/forestpaths-dben-source-crosswalk-v0.1.json");
 
     #[test]
     fn consilience_corpus_matches_twelve_synthetic_dependency_pairs() {
@@ -4824,6 +4832,19 @@ mod tests {
         assert_eq!(
             receipt["source_manifest_sha256"],
             sha256_hex(FLUX_IDENTIFIABILITY_FIXTURE.as_bytes())
+        );
+    }
+
+    #[test]
+    fn forestpaths_crosswalk_dispatches_through_top_level_evaluator() {
+        let receipt = evaluate(FORESTPATHS_CROSSWALK_FIXTURE.as_bytes())
+            .expect("ForestPaths crosswalk dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORESTPATHS_CROSSWALK");
+        assert_eq!(receipt["model_count"], 9);
+        assert_eq!(receipt["quantity_count"], 24);
+        assert_eq!(
+            receipt["source_manifest_sha256"],
+            sha256_hex(FORESTPATHS_CROSSWALK_FIXTURE.as_bytes())
         );
     }
 
