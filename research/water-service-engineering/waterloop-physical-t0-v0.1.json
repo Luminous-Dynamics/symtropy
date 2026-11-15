@@ -198,6 +198,347 @@
         "delivered_volume_boundary_matched": true,
         "auxiliary_loads_included": true
       }
+    },
+    {
+      "case_id": "WL-T0-016-continuity-normal-service",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 100,
+        "maximum_storage_l": 200,
+        "protected_discretionary_reserve_l": 20,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 20,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 40,
+            "discretionary_demand_l": 30,
+            "measured_service_capacity_l": 80,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 40,
+            "discretionary_demand_l": 30,
+            "measured_service_capacity_l": 80,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-017-sa-reg4-72h-alternative-drinking-supply",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 180,
+        "maximum_storage_l": 200,
+        "protected_discretionary_reserve_l": 0,
+        "intended_use_profile_id": "drinking-water-sans241-v1",
+        "stored_quality_profile_id": "drinking-water-sans241-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 60,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 70,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 60,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 70,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 60,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 70,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      },
+      "context_reference": "South Africa GN 6292 (2025) Regulation 4(1): alternative drinking-water access for interruptions over 48 hours, at least 15 L/person/day; regulatory context only, not WaterLoop compliance."
+    },
+    {
+      "case_id": "WL-T0-018-critical-reserve-insufficient",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 60,
+        "maximum_storage_l": 100,
+        "protected_discretionary_reserve_l": 20,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 40,
+            "discretionary_demand_l": 10,
+            "measured_service_capacity_l": 60,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 40,
+            "discretionary_demand_l": 10,
+            "measured_service_capacity_l": 60,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-019-pump-outage-gravity-fallback",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 100,
+        "maximum_storage_l": 100,
+        "protected_discretionary_reserve_l": 20,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 8,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 10,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 8,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 10,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 8,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 10,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-020-compound-demand-surge-critical-priority",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 120,
+        "maximum_storage_l": 150,
+        "protected_discretionary_reserve_l": 30,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 20,
+            "discretionary_demand_l": 50,
+            "measured_service_capacity_l": 80,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 20,
+            "discretionary_demand_l": 50,
+            "measured_service_capacity_l": 80,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 20,
+            "discretionary_demand_l": 50,
+            "measured_service_capacity_l": 80,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-021-source-restoration-after-outage",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 20,
+        "maximum_storage_l": 100,
+        "protected_discretionary_reserve_l": 0,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 50,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 40,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 50,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-022-outlet-service-floor-failure",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 60,
+        "maximum_storage_l": 100,
+        "protected_discretionary_reserve_l": 0,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 30,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          },
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 30,
+            "service_floor_met": false,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-023-unadmitted-service-measurement-abstains",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 100,
+        "maximum_storage_l": 150,
+        "protected_discretionary_reserve_l": 0,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 20,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 30,
+            "service_floor_met": true,
+            "service_measurement_admitted": false
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-024-stored-water-use-quality-unqualified",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 100,
+        "maximum_storage_l": 150,
+        "protected_discretionary_reserve_l": 0,
+        "intended_use_profile_id": "drinking-water-sans241-v1",
+        "stored_quality_profile_id": "drinking-water-sans241-v1",
+        "stored_use_quality_admitted": false,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 0,
+            "source_inflow_use_quality_admitted": true,
+            "essential_demand_l": 20,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 30,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-025-unqualified-source-inflow-not-credited",
+      "family": "service_continuity",
+      "inputs": {
+        "initial_storage_l": 20,
+        "maximum_storage_l": 100,
+        "protected_discretionary_reserve_l": 0,
+        "intended_use_profile_id": "nonpotable-toilet-v1",
+        "stored_quality_profile_id": "nonpotable-toilet-v1",
+        "stored_use_quality_admitted": true,
+        "steps": [
+          {
+            "duration_hours": 24,
+            "source_inflow_l": 50,
+            "source_inflow_use_quality_admitted": false,
+            "essential_demand_l": 30,
+            "discretionary_demand_l": 0,
+            "measured_service_capacity_l": 50,
+            "service_floor_met": true,
+            "service_measurement_admitted": true
+          }
+        ]
+      }
     }
   ]
 }
