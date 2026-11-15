@@ -21,6 +21,15 @@
       "role": "stochastic traveling-wave surrogate challenger",
       "peer_reviewed": false,
       "admission_status": "preprint_only_map_equations_and_artifacts_before_claiming_reproduction"
+    },
+    {
+      "id": "amf-travelling-wave-nature-2025",
+      "doi": "10.1038/s41586-025-08614-x",
+      "data_doi": "10.6084/m9.figshare.27889143",
+      "code_repository": "https://github.com/Cocopyth/AMFTravellingWave",
+      "role": "time-resolved AMF topology plus measured intra-hyphal cytoplasmic flow",
+      "scope": "three AMF profiles in a 2D-constrained in-vitro root-organ-culture system",
+      "admission_status": "pin_code_and_figshare_data_rights_before_reproduction"
     }
   ],
   "units": {
@@ -60,6 +69,11 @@
       "id": "adaptive_graph_wave",
       "description": "Residual/process-sufficiency adaptive hybrid",
       "status": "research_target"
+    },
+    {
+      "id": "measured_graph_flow_observation",
+      "description": "Source-derived dynamic graphs and ROI-linked measured cytoplasmic flow",
+      "status": "source_admission_required"
     }
   ],
   "task_families": [
@@ -103,6 +117,12 @@
       "id": "MS-07",
       "name": "out_of_domain_stress",
       "intervention": "outside declared coarse-model applicability envelope",
+      "holdout": true
+    },
+    {
+      "id": "MS-08",
+      "name": "amf_graph_flow_coevolution",
+      "intervention": "time-resolved graph and ROI-linked flow observations from the admitted AMF travelling-wave study",
       "holdout": true
     }
   ],
@@ -218,6 +238,35 @@
         "high_fidelity_step_fraction"
       ],
       "unit": "declared_compute"
+    },
+    {
+      "id": "root_global_efficiency_cost",
+      "metric": [
+        "normalized_root_efficiency_error",
+        "normalized_global_efficiency_error",
+        "network_cost_error",
+        "pareto_hypervolume_if_admitted"
+      ],
+      "unit": "dimensionless_or_source_declared"
+    },
+    {
+      "id": "measured_cytoplasmic_flow",
+      "metric": [
+        "direction_accuracy",
+        "velocity_distribution_error",
+        "temporal_stability_error",
+        "radius_centrality_flow_association_error"
+      ],
+      "unit": "declared_velocity_and_flux"
+    },
+    {
+      "id": "graph_flow_temporal_alignment",
+      "metric": [
+        "edge_identity_persistence",
+        "flow_to_edge_association_precision_recall",
+        "time_lag_error"
+      ],
+      "unit": "declared_time_and_dimensionless"
     }
   ],
   "adaptive_refinement_policies": [
@@ -287,6 +336,9 @@
     "per-observable coarse-model validity envelope",
     "promotion/demotion events and triggering evidence",
     "runtime/memory/energy telemetry and hardware metadata",
-    "explicit PASS/FAIL/NOT_RUN/INSUFFICIENT_EVIDENCE status"
+    "explicit PASS/FAIL/NOT_RUN/INSUFFICIENT_EVIDENCE status",
+    "flow observation to graph edge / ROI / replicate / timepoint association identity",
+    "root/global efficiency normalization method and MST/DT reference revisions",
+    "separate flow velocity, volumetric flow, graph efficiency and tracer-delivery observables"
   ]
 }
