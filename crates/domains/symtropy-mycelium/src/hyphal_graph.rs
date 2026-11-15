@@ -165,6 +165,7 @@ pub enum GraphError {
     SegmentEndpointsEqual,
     DuplicateNode(NodeId),
     DuplicateSegment(SegmentId),
+    RetiredSegmentIdentity(SegmentId),
     MissingNode(NodeId),
     MissingSegment(SegmentId),
     InvalidAttachmentFraction,
@@ -186,6 +187,9 @@ impl fmt::Display for GraphError {
             Self::SegmentEndpointsEqual => write!(f, "segment endpoints must be distinct"),
             Self::DuplicateNode(id) => write!(f, "node {:?} already exists", id),
             Self::DuplicateSegment(id) => write!(f, "segment {:?} already exists", id),
+            Self::RetiredSegmentIdentity(id) => {
+                write!(f, "segment identity {:?} was previously retired", id)
+            }
             Self::MissingNode(id) => write!(f, "node {:?} does not exist", id),
             Self::MissingSegment(id) => write!(f, "segment {:?} does not exist", id),
             Self::InvalidAttachmentFraction => {
@@ -214,6 +218,7 @@ impl std::error::Error for GraphError {}
 pub struct HyphalGraph {
     nodes: BTreeMap<NodeId, HyphalNode>,
     segments: BTreeMap<SegmentId, HyphalSegment>,
+    retired_segments: BTreeSet<SegmentId>,
     applied_events: BTreeMap<EventId, AppliedGraphEvent>,
 }
 
@@ -228,6 +233,11 @@ impl HyphalGraph {
 
     pub fn segments(&self) -> impl Iterator<Item = &HyphalSegment> {
         self.segments.values()
+    }
+
+    /// Segment IDs remain retired after removal; identity is never recycled.
+    pub fn retired_segment_ids(&self) -> impl Iterator<Item = SegmentId> + '_ {
+        self.retired_segments.iter().copied()
     }
 
     pub fn node(&self, id: NodeId) -> Option<&HyphalNode> {
@@ -282,6 +292,9 @@ impl HyphalGraph {
         if self.segments.contains_key(&segment.id) {
             return Err(GraphError::DuplicateSegment(segment.id));
         }
+        if self.retired_segments.contains(&segment.id) {
+            return Err(GraphError::RetiredSegmentIdentity(segment.id));
+        }
         self.segments.insert(segment.id, segment);
         Ok(())
     }
@@ -331,6 +344,7 @@ impl HyphalGraph {
 
         let mut next = self.clone();
         next.segments.remove(&event.parent_segment);
+        next.retired_segments.insert(event.parent_segment);
         next.add_node(HyphalNode {
             id: event.branch_node,
             kind: HyphalNodeKind::BranchPoint,
@@ -512,6 +526,7 @@ impl HyphalGraph {
 
         let mut next = self.clone();
         next.segments.remove(&event.target_segment);
+        next.retired_segments.insert(event.target_segment);
         next.nodes
             .get_mut(&event.tip)
             .expect("validated active tip")
@@ -591,6 +606,64 @@ impl HyphalGraph {
             components.push(component);
         }
         components
+    }
+
+    /// Return deterministic active-segment connected components.
+    ///
+    /// Inactive segments remain part of structural history and are included by
+    /// `connected_components`, but they do not establish active connectivity.
+    pub fn active_connected_components(&self) -> Vec<Vec<NodeId>> {
+        let mut adjacency: BTreeMap<NodeId, Vec<NodeId>> = self
+            .nodes
+            .keys()
+            .copied()
+            .map(|id| (id, Vec::new()))
+            .collect();
+        for segment in self.segments.values() {
+            if segment.state != HyphalSegmentState::Active {
+                continue;
+            }
+            if let Some(neighbors) = adjacency.get_mut(&segment.from) {
+                neighbors.push(segment.to);
+            }
+            if let Some(neighbors) = adjacency.get_mut(&segment.to) {
+                neighbors.push(segment.from);
+            }
+        }
+
+        let mut visited = BTreeSet::new();
+        let mut components = Vec::new();
+        for start in self.nodes.keys().copied() {
+            if visited.contains(&start) {
+                continue;
+            }
+            let mut queue = VecDeque::from([start]);
+            let mut component = Vec::new();
+            visited.insert(start);
+            while let Some(current) = queue.pop_front() {
+                component.push(current);
+                if let Some(neighbors) = adjacency.get(&current) {
+                    for neighbor in neighbors {
+                        if visited.insert(*neighbor) {
+                            queue.push_back(*neighbor);
+                        }
+                    }
+                }
+            }
+            component.sort_unstable();
+            components.push(component);
+        }
+        components
+    }
+
+    /// Whether an active-segment path connects two nodes.
+    pub fn has_active_path(&self, from: NodeId, to: NodeId) -> bool {
+        if !self.nodes.contains_key(&from) || !self.nodes.contains_key(&to) {
+            return false;
+        }
+        self.active_connected_components().iter().any(|component| {
+            component.binary_search(&from).is_ok() && component.binary_search(&to).is_ok()
+        })
     }
 
     pub fn has_path(&self, from: NodeId, to: NodeId) -> bool {
@@ -969,6 +1042,76 @@ mod tests {
             Err(GraphError::InactiveTargetSegment(SegmentId(1)))
         );
         assert_eq!(graph, snapshot);
+    }
+
+    #[test]
+    fn retired_segment_identity_cannot_be_reused_after_branch() {
+        let mut graph = linear_graph();
+        graph
+            .apply_branch(BranchEvent {
+                id: EventId(40),
+                parent_segment: SegmentId(1),
+                attachment_fraction: 0.5,
+                branch_node: NodeId(3),
+                branch_tip: NodeId(4),
+                proximal_segment: SegmentId(2),
+                distal_segment: SegmentId(3),
+                branch_segment: SegmentId(4),
+                branch_tip_position: Position3Mm::new(5.0, 5.0, 0.0),
+            })
+            .unwrap();
+        assert!(graph.retired_segment_ids().any(|id| id == SegmentId(1)));
+        let before = graph.clone();
+        assert_eq!(
+            graph.add_segment(segment(1, 1, 3, 5.0)),
+            Err(GraphError::RetiredSegmentIdentity(SegmentId(1)))
+        );
+        assert_eq!(graph, before);
+    }
+
+    #[test]
+    fn branch_rejects_reusing_parent_segment_identity_atomically() {
+        let mut graph = linear_graph();
+        let before = graph.clone();
+        let result = graph.apply_branch(BranchEvent {
+            id: EventId(41),
+            parent_segment: SegmentId(1),
+            attachment_fraction: 0.5,
+            branch_node: NodeId(3),
+            branch_tip: NodeId(4),
+            proximal_segment: SegmentId(1),
+            distal_segment: SegmentId(3),
+            branch_segment: SegmentId(4),
+            branch_tip_position: Position3Mm::new(5.0, 5.0, 0.0),
+        });
+        assert_eq!(
+            result,
+            Err(GraphError::RetiredSegmentIdentity(SegmentId(1)))
+        );
+        assert_eq!(graph, before);
+    }
+
+    #[test]
+    fn inactive_segments_are_not_active_paths() {
+        let mut graph = HyphalGraph::new();
+        graph
+            .add_node(node(1, HyphalNodeKind::Anchor, 0.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_node(node(2, HyphalNodeKind::ActiveTip, 5.0, 0.0, 0.0))
+            .unwrap();
+        graph
+            .add_segment(HyphalSegment {
+                id: SegmentId(1),
+                from: NodeId(1),
+                to: NodeId(2),
+                length_mm: 5.0,
+                diameter_mm: Some(0.02),
+                state: HyphalSegmentState::Inactive,
+            })
+            .unwrap();
+        assert!(graph.has_path(NodeId(1), NodeId(2)));
+        assert!(!graph.has_active_path(NodeId(1), NodeId(2)));
     }
 
     #[test]
