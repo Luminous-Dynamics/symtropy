@@ -1,0 +1,209 @@
+{
+  "schema_version": "luminous.dynamics_benchmark_bundle.v0.1",
+  "fixture_mode": "synthetic_example",
+  "bundle_id": "synthetic-6dof-two-constraint-benchmark-v0.1",
+  "physical_case": {
+    "case_id": "synthetic-serial-chain-6dof-2constraints",
+    "model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "topology_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "inertial_parameters_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "initial_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "force_history_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "constraint_semantics_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "units_profile_id": "SI-v1",
+    "integrator": {
+      "family": "implicit_midpoint",
+      "time_step_seconds": 0.001,
+      "order": 2,
+      "implicitness": "implicit",
+      "configuration_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+    },
+    "constraint_mode": "hard_holonomic",
+    "observable_contract_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "contact_model_sha256": null,
+    "friction_model_sha256": null
+  },
+  "oracle": {
+    "method": "analytic_fixture",
+    "implementation_id": "synthetic-shape-only",
+    "source_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "reference_status": "INCONCLUSIVE",
+    "precision": "synthetic-placeholder"
+  },
+  "engine_runs": [
+    {
+      "engine": "symtropy",
+      "engine_version": "synthetic-0.0.0",
+      "adapter_commit_sha": "0000000000000000000000000000000000000000",
+      "adapter_source_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "semantic_signature": {
+        "model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "topology_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "inertial_parameters_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "initial_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "force_history_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "constraint_semantics_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "units_profile_id": "SI-v1",
+        "integrator_configuration_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "observable_contract_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "contact_model_sha256": null,
+        "friction_model_sha256": null
+      },
+      "hardware": {
+        "cpu_id": "synthetic-x86_64",
+        "physical_cores": 8,
+        "memory_bytes": 17179869184,
+        "os_id": "linux-synthetic",
+        "thread_count": 1
+      },
+      "compiler": {
+        "compiler_id": "synthetic-compiler",
+        "compiler_version": "0.0",
+        "build_mode": "release",
+        "flags_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "precision": "float64"
+      },
+      "runtime_ns_samples": [
+        45000,
+        46000,
+        47000,
+        48000,
+        49000,
+        45000,
+        46000,
+        47000,
+        48000,
+        49000,
+        45000,
+        46000,
+        47000,
+        48000,
+        49000,
+        45000,
+        46000,
+        47000,
+        48000,
+        49000,
+        45000,
+        46000,
+        47000,
+        48000,
+        49000,
+        45000,
+        46000,
+        47000,
+        48000,
+        49000
+      ],
+      "peak_memory_bytes": 1048576,
+      "physical_metrics": {
+        "acceleration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "constraint_residual_inf": 1e-12,
+        "energy_work_defect_abs": 2e-12,
+        "linear_momentum_error": 3e-12,
+        "angular_momentum_error": 4e-12,
+        "trajectory_error_mass_norm": 5e-12,
+        "mass_solve_backward_error": 6e-16,
+        "constraint_rank_status": "FULL_ROW_RANK"
+      },
+      "execution_status": "PASS"
+    },
+    {
+      "engine": "mujoco",
+      "engine_version": "synthetic-0.0.0",
+      "adapter_commit_sha": "0000000000000000000000000000000000000000",
+      "adapter_source_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "semantic_signature": {
+        "model_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "topology_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "inertial_parameters_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "initial_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "force_history_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "constraint_semantics_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "units_profile_id": "SI-v1",
+        "integrator_configuration_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "observable_contract_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+        "contact_model_sha256": null,
+        "friction_model_sha256": null
+      },
+      "hardware": {
+        "cpu_id": "synthetic-x86_64",
+        "physical_cores": 8,
+        "memory_bytes": 17179869184,
+        "os_id": "linux-synthetic",
+        "thread_count": 1
+      },
+      "compiler": {
+        "compiler_id": "synthetic-compiler",
+        "compiler_version": "0.0",
+        "build_mode": "release",
+        "flags_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "precision": "float64"
+      },
+      "runtime_ns_samples": [
+        38000,
+        39000,
+        40000,
+        41000,
+        42000,
+        38000,
+        39000,
+        40000,
+        41000,
+        42000,
+        38000,
+        39000,
+        40000,
+        41000,
+        42000,
+        38000,
+        39000,
+        40000,
+        41000,
+        42000,
+        38000,
+        39000,
+        40000,
+        41000,
+        42000,
+        38000,
+        39000,
+        40000,
+        41000,
+        42000
+      ],
+      "peak_memory_bytes": 1048576,
+      "physical_metrics": {
+        "acceleration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "constraint_residual_inf": 1e-12,
+        "energy_work_defect_abs": 2e-12,
+        "linear_momentum_error": 3e-12,
+        "angular_momentum_error": 4e-12,
+        "trajectory_error_mass_norm": 5e-12,
+        "mass_solve_backward_error": 6e-16,
+        "constraint_rank_status": "FULL_ROW_RANK"
+      },
+      "execution_status": "PASS"
+    }
+  ],
+  "comparison": {
+    "status": "INCONCLUSIVE",
+    "semantic_match": true,
+    "matched_engine_count": 2,
+    "latency_summary_method": "median_p95_p99_from_raw_samples",
+    "physical_error_comparison": true,
+    "claim_ceiling": "DECLARED_FIXTURE_FAMILY_ONLY"
+  },
+  "claim_boundary": {
+    "scope": "Synthetic schema example only; no engine has actually been run.",
+    "limitations": [
+      "All digests and timing samples are placeholders.",
+      "This fixture does not establish engine performance or SOTA.",
+      "Only semantically matched runs may be compared.",
+      "Engine-native integrators and constraint modes must not be silently conflated.",
+      "A performance receipt is not correctness evidence unless the independent oracle is PASS."
+    ]
+  }
+}
