@@ -122,7 +122,8 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value,String> {
     if string_at(process,"turnover_definition")?!="annual productivity divided by fine-root stock"
         || string_at(process,"turnover_unit")?!="yr-1"
         || string_at(process,"stock_quantity")?!="fine-root standing biomass"
-        || string_at(process,"productivity_quantity")?!="annual fine-root biomass production from in-growth cores" {
+        || string_at(process,"productivity_quantity")?!="annual fine-root biomass production from in-growth cores"
+        || number_at(process,"root_diameter_max_mm")? != 2.0 {
         return Err("AFEX root process semantics invalid".to_string());
     }
     let tol=manifest.get("tolerances").ok_or_else(||"tolerances required".to_string())?;
@@ -272,7 +273,7 @@ mod tests {
         let m:Value=serde_json::from_str(FIXTURE).expect("fixture");
         let r=validate_corpus(FIXTURE.as_bytes(),&m).expect("receipt");
         assert_eq!(r["case_results"][1]["reference"]["stock"],r["case_results"][1]["candidate"]["stock"]);
-        assert_ne!(r["case_results"][1]["reference"]["turnover_per_year"],r["case_results"][1]["case_candidate_turnover"]);
+        assert_ne!(r["case_results"][1]["reference"]["turnover_per_year"],r["case_results"][1]["candidate"]["turnover_per_year"]);
     }
     #[test]
     fn wrong_depth_is_refused(){
