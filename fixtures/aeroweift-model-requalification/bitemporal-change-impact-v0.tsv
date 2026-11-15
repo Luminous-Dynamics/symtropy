@@ -25,3 +25,5 @@ claim-not-yet-recorded|knowledge-cutoff|CLAIM_NOT_AVAILABLE
 claim-not-yet-effective|effective-cutoff|CLAIM_NOT_AVAILABLE
 coverage-deletion|remove-coverage|INDETERMINATE
 known-contradiction-plus-other-gap|mixed-evidence|CONTRADICTED_WITH_EXPLICIT_UNKNOWN
+future-effective-coverage|coverage-effective-window|EARLIER_VIEW_STABLE
+unrelated-feed-corruption|dependency-source-filter|CLAIM_RESULT_UNCHANGED
