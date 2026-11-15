@@ -11,7 +11,7 @@ A standalone, dependency-light Rust contract parser and validator for MFB scenar
 - Cargo handling/seal class against final storage class.
 - Actor roles, receiver endpoint, grant validity window and required actions.
 - Transfer-chain continuity and declared asset/mode compatibility.
-- Mandatory safety and unauthorized-mutation gates.
+- Mandatory safety, authorized-destination, package-identity, household-privacy and unauthorized-mutation gates.
 - Required event declarations and fault-injection references.
 
 ## What it does not prove
