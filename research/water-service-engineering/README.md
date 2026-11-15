@@ -111,7 +111,7 @@ The 23-case input corpus now has a **separate expected-output oracle**. The Rust
 
 ## WaterLoop physical bench T0 extension
 
-The companion `waterloop-physical-t0` corpus adds a synthetic-first, 12-case known-answer contract for the initial WaterLoop bench. It is deliberately separate from the existing 23-case pump/treatment/leak T0 evaluator.
+The companion `waterloop-physical-t0` corpus adds a synthetic-first, 15-case known-answer contract for the initial WaterLoop bench. It is deliberately separate from the existing 23-case pump/treatment/leak T0 evaluator.
 
 Inputs, manifest, independent oracle and corpus schema:
 - `waterloop-physical-t0-v0.1.json`
