@@ -144,6 +144,18 @@ impl ProductModel {
     pub fn product_id(&self) -> &str {
         &self.product_id
     }
+
+    pub fn manufacturer(&self) -> &str {
+        &self.manufacturer
+    }
+
+    pub fn catalogue_identifier(&self) -> &str {
+        &self.catalogue_identifier
+    }
+
+    pub fn catalogue_revision(&self) -> &str {
+        &self.catalogue_revision
+    }
 }
 
 /// A stable logical equipment position in the design graph.
@@ -182,6 +194,18 @@ impl DesignSlot {
             });
         }
         Ok(value)
+    }
+
+    pub fn slot_id(&self) -> &str {
+        &self.slot_id
+    }
+
+    pub fn expected_location_id(&self) -> &str {
+        &self.expected_location_id
+    }
+
+    pub fn max_active_instances(&self) -> usize {
+        self.max_active_instances
     }
 
     fn accepts(&self, instance: &PhysicalInstance) -> bool {
@@ -235,6 +259,22 @@ impl PhysicalInstance {
     pub fn physical_instance_id(&self) -> &str {
         &self.physical_instance_id
     }
+
+    pub fn identity_namespace(&self) -> &str {
+        &self.identity_namespace
+    }
+
+    pub fn serial_identifier(&self) -> &str {
+        &self.serial_identifier
+    }
+
+    pub fn product_id(&self) -> &str {
+        &self.product_id
+    }
+
+    pub fn hardware_revision(&self) -> &str {
+        &self.hardware_revision
+    }
 }
 
 /// An evidence reference admitted by an upstream evidence system.
@@ -274,6 +314,22 @@ impl EvidenceRecord {
             });
         }
         Ok(value)
+    }
+
+    pub fn digest_sha256(&self) -> &str {
+        &self.digest_sha256
+    }
+
+    pub fn source_receipt_id(&self) -> &str {
+        &self.source_receipt_id
+    }
+
+    pub const fn captured_at_ms(&self) -> i64 {
+        self.captured_at_ms
+    }
+
+    pub const fn received_at_ms(&self) -> i64 {
+        self.received_at_ms
     }
 }
 
@@ -662,6 +718,18 @@ impl PhysicalIdentityLedger {
             events: event_map,
             ordered_event_ids,
         })
+    }
+
+    pub fn product_models(&self) -> &BTreeMap<String, ProductModel> {
+        &self.products
+    }
+
+    pub fn design_slots(&self) -> &BTreeMap<String, DesignSlot> {
+        &self.slots
+    }
+
+    pub fn physical_instances(&self) -> &BTreeMap<String, PhysicalInstance> {
+        &self.instances
     }
 
     pub fn project(
@@ -1282,6 +1350,7 @@ fn validate_event_shape(event: &PhysicalEvent) -> Result<(), PhysicalIdentityErr
         }
         PhysicalEventKind::UnitReplaced => {
             if event.previous_physical_instance_id.is_none()
+                || event.previous_physical_instance_id.as_ref() == event.physical_instance_id.as_ref()
                 || event.location_id.as_deref().is_none_or(str::is_empty)
             {
                 return Err(PhysicalIdentityError::InvalidEventShape {
@@ -1478,12 +1547,13 @@ mod tests {
         let mut instances = vec![instance];
         instances.extend(extra_instances);
         let evidence = EvidenceRecord::new("evidence-1", D1, "source-receipt-1", 1, 1)?;
+        let late_evidence = EvidenceRecord::new("evidence-2", D2, "source-receipt-2", 50, 60)?;
         PhysicalIdentityLedger::new(
             snapshot,
             vec![product],
             vec![slot],
             instances,
-            vec![evidence],
+            vec![evidence, late_evidence],
             events,
         )
     }
@@ -1586,7 +1656,7 @@ mod tests {
                 PhysicalEventKind::IndependentReconciliationRecorded,
                 "slot-1",
                 50,
-                &["evidence-1"],
+                &["evidence-2"],
             )
             .with_instance("instance-1")
             .with_location("cabinet-east")
@@ -1623,7 +1693,7 @@ mod tests {
                 PhysicalEventKind::IndependentReconciliationRecorded,
                 "slot-1",
                 50,
-                &["evidence-1"],
+                &["evidence-2"],
             )
             .with_instance("instance-1")
             .with_location("cabinet-east")
@@ -1632,7 +1702,7 @@ mod tests {
         );
 
         let mut ledger = ledger(events);
-        ledger.evidence.get_mut("evidence-1").unwrap().received_at_ms = 60;
+        assert_eq!(ledger.evidence["evidence-2"].received_at_ms, 60);
         let verifier = TestVerifier(ReviewVerification::Valid);
         let before = ledger.project(55, &verifier);
         let after = ledger.project(70, &verifier);
