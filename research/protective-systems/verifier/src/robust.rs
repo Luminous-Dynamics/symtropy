@@ -414,10 +414,12 @@ mod tests {
     fn incomplete_uncertainty_set_abstains_instead_of_imputing_zero_risk() {
         let mut problem = problem();
         problem.uncertainty_set_complete = false;
+        problem.expected_disposition = ABSTAIN_INCOMPLETE.to_owned();
+        problem.expected_best_design_id = None;
         let report = run(&problem).expect("structurally valid incomplete problem");
         assert_eq!(report.disposition, ABSTAIN_INCOMPLETE);
         assert_eq!(report.selected_design_id, None);
-        assert!(!report.oracle_matches_fixture);
+        assert!(report.oracle_matches_fixture);
     }
 
     #[test]
