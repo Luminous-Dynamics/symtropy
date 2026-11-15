@@ -126,7 +126,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -162,7 +165,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -216,7 +222,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -252,7 +261,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -303,7 +315,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -339,7 +354,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -392,7 +410,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -428,7 +449,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -479,7 +503,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": false,
@@ -515,7 +542,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -569,7 +599,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -605,7 +638,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -657,7 +693,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -693,7 +732,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -745,7 +787,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -781,7 +826,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -832,7 +880,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -868,7 +919,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -919,7 +973,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -955,7 +1012,10 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     },
     {
@@ -1008,7 +1068,10 @@
           "generation": "m0",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "process_batch": null
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       },
       "context": {
         "backend_allowlisted": true,
@@ -1044,7 +1107,105 @@
           "generation": "m1",
           "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
-        "accepted_process_batch": null
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
+      }
+    },
+    {
+      "case_id": "NEG-MODEL-SOURCE-STALE-001",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "MODEL_SOURCE_IDENTITY_MISMATCH"
+      ],
+      "request": {
+        "candidate_id": "AG-RING-REF-001",
+        "candidate_generation": "c1",
+        "candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "geometry_id": "RING-GEOM-A",
+        "geometry_generation": "g1",
+        "geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "material_id": "MAT-ANALYTIC-A",
+        "material_generation": "m1",
+        "material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "load_case_id": "LOAD-ROT-STEADY",
+        "load_generation": "l1",
+        "load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "frame_id": "FRAME-RING-LOCAL",
+        "frame_generation": "f1",
+        "frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "backend_id": "artgrav-prestress-reference",
+        "requested_physics": [
+          "STEADY_UNIFORM_ROTATION",
+          "THIN_RING_MEMBRANE"
+        ],
+        "requested_observables": [
+          "HOOP_STRESS",
+          "HOOP_STRAIN",
+          "RADIAL_EXTENSION"
+        ],
+        "intended_use": "SYNTHETIC_REFERENCE_CHECK",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "mesh_required": false,
+        "mesh_id": null,
+        "comparison_ref": null,
+        "request_id": "REQ-POS-RING-SYNTHETIC-001",
+        "request_generation": "v1",
+        "request_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+        "model_profile_generation": "0.1.0",
+        "model_profile_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "backend_generation": "0.1.0",
+        "backend_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "process_batch": null,
+        "model_source_repository": "Luminous-Dynamics/symtropy",
+        "model_source_commit": "0000000000000000000000000000000000000000",
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
+      },
+      "context": {
+        "backend_allowlisted": true,
+        "model_maturity": "DRAFT_ANALYTICAL_REFERENCE",
+        "current_candidate_generation": "c1",
+        "current_geometry_generation": "g1",
+        "current_load_generation": "l1",
+        "current_frame_generation": "f1",
+        "expected_model_profile_id": "ARTGRAV-THIN-RING-REF-V0_1",
+        "expected_backend_id": "artgrav-prestress-reference",
+        "accepted_material_id": "MAT-ANALYTIC-A",
+        "accepted_material_generation": "m1",
+        "material_evidence_state": "ANALYTICAL_FIXTURE_ONLY",
+        "requires_mesh": false,
+        "expected_mesh_id": null,
+        "compatible_comparison_ref": null,
+        "current_candidate_id": "AG-RING-REF-001",
+        "current_candidate_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "current_geometry_id": "RING-GEOM-A",
+        "current_geometry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "current_load_case_id": "LOAD-ROT-STEADY",
+        "current_load_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "current_frame_id": "FRAME-RING-LOCAL",
+        "current_frame_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "accepted_material_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "expected_model_profile_version": "0.1.0",
+        "expected_model_profile_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "expected_backend_generation": "0.1.0",
+        "expected_backend_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+        "qualified_model_profile_id": null,
+        "current_mission": {
+          "id": "MISSION-CISLUNAR-BASELINE",
+          "generation": "m1",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "accepted_process_batch": null,
+        "expected_model_source_repository": "Luminous-Dynamics/symtropy",
+        "expected_model_source_commit": "540fe6d2fc2fd99daa5277cbc2fe768db722cda9",
+        "expected_model_maturity": "DRAFT_ANALYTICAL_REFERENCE"
       }
     }
   ]
