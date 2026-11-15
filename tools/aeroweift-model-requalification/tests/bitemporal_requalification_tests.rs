@@ -994,7 +994,7 @@ fn future_recorded_source_sequence_fork_does_not_poison_earlier_knowledge_snapsh
         ChangeClass::MaterialChange,
         ChangeEvidenceState::OwnerQualified,
     );
-    let mut late_fork = event!(
+    let late_fork = event!(
         "sequence-event-b",
         "sensor-registry",
         2,
@@ -1016,7 +1016,6 @@ fn future_recorded_source_sequence_fork_does_not_poison_earlier_knowledge_snapsh
     .unwrap();
     assert_eq!(earlier.status, ClaimStatus::RequalificationRequired);
 
-    late_fork.recorded_at = 60;
     let later = assess(
         &claim(),
         &[first, late_fork],
