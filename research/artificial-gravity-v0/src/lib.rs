@@ -375,6 +375,184 @@ pub fn euler_apparent_acceleration(
 }
 
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveRadiusConstraint {
+    BodyGradient,
+    MaximumRotationRate,
+    CoriolisMotionEnvelope,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DesignRadiusEnvelope {
+    pub gradient_min_radius_m: f64,
+    pub rpm_min_radius_m: f64,
+    pub coriolis_min_radius_m: f64,
+    pub minimum_radius_m: f64,
+    pub active_constraint: ActiveRadiusConstraint,
+    pub resulting_rpm: f64,
+    pub resulting_body_gradient_fraction: f64,
+    pub resulting_coriolis_fraction: f64,
+}
+
+pub fn minimum_radius_for_body_gradient_m(
+    body_length_m: f64,
+    maximum_gradient_fraction: f64,
+) -> Result<f64, ModelError> {
+    require_positive(body_length_m, "body_length_m")?;
+    require_positive(maximum_gradient_fraction, "maximum_gradient_fraction")?;
+    let radius = body_length_m / maximum_gradient_fraction;
+    require_positive_result(radius, "minimum_radius_for_body_gradient_m")?;
+    Ok(radius)
+}
+
+/// This is a parameterized kinematic constraint, not a human tolerance threshold.
+pub fn minimum_radius_for_coriolis_fraction_m(
+    target_g: f64,
+    maximum_coriolis_fraction: f64,
+    transverse_speed_m_s: f64,
+) -> Result<f64, ModelError> {
+    require_positive(target_g, "target_g")?;
+    require_positive(maximum_coriolis_fraction, "maximum_coriolis_fraction")?;
+    require_non_negative(transverse_speed_m_s, "transverse_speed_m_s")?;
+    if transverse_speed_m_s == 0.0 {
+        return Ok(0.0);
+    }
+
+    let target_acceleration = target_g * STANDARD_GRAVITY_M_S2;
+    require_positive_result(target_acceleration, "target_acceleration_m_s2")?;
+    let numerator = 4.0 * transverse_speed_m_s * transverse_speed_m_s;
+    let denominator = maximum_coriolis_fraction
+        * maximum_coriolis_fraction
+        * target_acceleration;
+    let radius = numerator / denominator;
+    require_positive_result(radius, "minimum_radius_for_coriolis_fraction_m")?;
+    Ok(radius)
+}
+
+/// Intersect body-gradient, maximum-RPM and optional movement-disturbance bounds.
+/// The Coriolis fraction is an input design assumption, not a medical limit.
+pub fn minimum_radius_for_design_envelope(
+    target_g: f64,
+    body_length_m: f64,
+    maximum_gradient_fraction: f64,
+    maximum_rpm: f64,
+    maximum_coriolis_fraction: f64,
+    transverse_speed_m_s: f64,
+) -> Result<DesignRadiusEnvelope, ModelError> {
+    require_positive(target_g, "target_g")?;
+    require_positive(maximum_rpm, "maximum_rpm")?;
+
+    let gradient_min_radius_m =
+        minimum_radius_for_body_gradient_m(body_length_m, maximum_gradient_fraction)?;
+    let rpm_min_radius_m = radius_for_gravity_m(target_g, maximum_rpm)?;
+    let coriolis_min_radius_m = minimum_radius_for_coriolis_fraction_m(
+        target_g,
+        maximum_coriolis_fraction,
+        transverse_speed_m_s,
+    )?;
+
+    let (minimum_radius_m, active_constraint) =
+        if gradient_min_radius_m >= rpm_min_radius_m
+            && gradient_min_radius_m >= coriolis_min_radius_m
+        {
+            (gradient_min_radius_m, ActiveRadiusConstraint::BodyGradient)
+        } else if rpm_min_radius_m >= coriolis_min_radius_m {
+            (rpm_min_radius_m, ActiveRadiusConstraint::MaximumRotationRate)
+        } else {
+            (
+                coriolis_min_radius_m,
+                ActiveRadiusConstraint::CoriolisMotionEnvelope,
+            )
+        };
+
+    let target_acceleration = target_g * STANDARD_GRAVITY_M_S2;
+    require_positive_result(target_acceleration, "target_acceleration_m_s2")?;
+    let omega = (target_acceleration / minimum_radius_m).sqrt();
+    let resulting_rpm = omega / RPM_TO_RAD_S;
+    let resulting_body_gradient_fraction = body_length_m / minimum_radius_m;
+    let resulting_coriolis_fraction =
+        (2.0 * omega * transverse_speed_m_s) / target_acceleration;
+
+    require_positive_result(resulting_rpm, "design_envelope.resulting_rpm")?;
+    require_finite_result(
+        resulting_body_gradient_fraction,
+        "design_envelope.resulting_body_gradient_fraction",
+    )?;
+    require_finite_result(
+        resulting_coriolis_fraction,
+        "design_envelope.resulting_coriolis_fraction",
+    )?;
+
+    Ok(DesignRadiusEnvelope {
+        gradient_min_radius_m,
+        rpm_min_radius_m,
+        coriolis_min_radius_m,
+        minimum_radius_m,
+        active_constraint,
+        resulting_rpm,
+        resulting_body_gradient_fraction,
+        resulting_coriolis_fraction,
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RingScalingMetrics {
+    pub moving_mass_kg: f64,
+    pub radius_m: f64,
+    pub angular_velocity_rad_s: f64,
+    pub tangential_speed_m_s: f64,
+    pub angular_momentum_kg_m2_s: f64,
+    pub rotational_energy_j: f64,
+    pub ideal_hoop_tension_n: f64,
+}
+
+pub fn ring_scaling_for_fixed_mass(
+    moving_mass_kg: f64,
+    radius_m: f64,
+    target_g: f64,
+) -> Result<RingScalingMetrics, ModelError> {
+    require_positive(moving_mass_kg, "moving_mass_kg")?;
+    require_positive(radius_m, "radius_m")?;
+    require_positive(target_g, "target_g")?;
+
+    let acceleration = target_g * STANDARD_GRAVITY_M_S2;
+    require_positive_result(acceleration, "target_acceleration_m_s2")?;
+    let omega = (acceleration / radius_m).sqrt();
+    let tangential_speed = (acceleration * radius_m).sqrt();
+    let angular_momentum = moving_mass_kg * radius_m * tangential_speed;
+    let rotational_energy = 0.5 * moving_mass_kg * tangential_speed * tangential_speed;
+    let ideal_hoop_tension = moving_mass_kg * acceleration / std::f64::consts::TAU;
+
+    require_positive_result(omega, "ring.angular_velocity_rad_s")?;
+    require_positive_result(tangential_speed, "ring.tangential_speed_m_s")?;
+    require_finite_result(angular_momentum, "ring.angular_momentum_kg_m2_s")?;
+    require_finite_result(rotational_energy, "ring.rotational_energy_j")?;
+    require_finite_result(ideal_hoop_tension, "ring.ideal_hoop_tension_n")?;
+
+    Ok(RingScalingMetrics {
+        moving_mass_kg,
+        radius_m,
+        angular_velocity_rad_s: omega,
+        tangential_speed_m_s: tangential_speed,
+        angular_momentum_kg_m2_s: angular_momentum,
+        rotational_energy_j: rotational_energy,
+        ideal_hoop_tension_n: ideal_hoop_tension,
+    })
+}
+
+pub fn ring_scaling_for_fixed_line_density(
+    line_mass_density_kg_m: f64,
+    radius_m: f64,
+    target_g: f64,
+) -> Result<RingScalingMetrics, ModelError> {
+    require_positive(line_mass_density_kg_m, "line_mass_density_kg_m")?;
+    require_positive(radius_m, "radius_m")?;
+    let moving_mass = line_mass_density_kg_m * std::f64::consts::TAU * radius_m;
+    require_positive_result(moving_mass, "ring.moving_mass_kg")?;
+    ring_scaling_for_fixed_mass(moving_mass, radius_m, target_g)
+}
+
 /// Scalar axial momentum and energy accounting for coaxial rotor modules.
 ///
 /// This deliberately limited reference assumes every module rotates about the
@@ -617,6 +795,92 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result, [0.0, 0.0, 0.0]);
+    }
+
+
+    #[test]
+    fn reproduces_published_human_mechanics_constraint_intersection() {
+        let result =
+            minimum_radius_for_design_envelope(0.5, 1.75, 0.02, 2.0, 0.10, 1.0).unwrap();
+
+        close(result.gradient_min_radius_m, 87.5, 1e-12);
+        close(result.rpm_min_radius_m, 111.78240587618983, 1e-10);
+        close(result.coriolis_min_radius_m, 81.57729703823425, 1e-10);
+        close(result.minimum_radius_m, 111.78240587618983, 1e-10);
+        assert_eq!(
+            result.active_constraint,
+            ActiveRadiusConstraint::MaximumRotationRate
+        );
+        close(result.resulting_rpm, 2.0, 1e-12);
+        close(result.resulting_body_gradient_fraction, 0.01565541541428532, 1e-12);
+        close(result.resulting_coriolis_fraction, 0.08542754569167638, 1e-12);
+    }
+
+    #[test]
+    fn constraint_intersection_identifies_gradient_and_coriolis_limits() {
+        let gradient_limited =
+            minimum_radius_for_design_envelope(0.5, 2.0, 0.01, 4.0, 0.5, 0.0).unwrap();
+        assert_eq!(
+            gradient_limited.active_constraint,
+            ActiveRadiusConstraint::BodyGradient
+        );
+        close(gradient_limited.minimum_radius_m, 200.0, 1e-12);
+
+        let coriolis_limited =
+            minimum_radius_for_design_envelope(0.5, 1.75, 0.05, 4.0, 0.01, 1.5).unwrap();
+        assert_eq!(
+            coriolis_limited.active_constraint,
+            ActiveRadiusConstraint::CoriolisMotionEnvelope
+        );
+        close(coriolis_limited.resulting_coriolis_fraction, 0.01, 1e-12);
+    }
+
+    #[test]
+    fn zero_transverse_speed_disables_coriolis_radius_bound() {
+        assert_eq!(
+            minimum_radius_for_coriolis_fraction_m(0.5, 0.05, 0.0).unwrap(),
+            0.0
+        );
+    }
+
+    #[test]
+    fn fixed_mass_ring_obeys_ideal_radius_scaling() {
+        let small = ring_scaling_for_fixed_mass(10_000.0, 100.0, 1.0).unwrap();
+        let large = ring_scaling_for_fixed_mass(10_000.0, 200.0, 1.0).unwrap();
+        close(
+            large.angular_momentum_kg_m2_s / small.angular_momentum_kg_m2_s,
+            2.0_f64.powf(1.5),
+            1e-12,
+        );
+        close(large.rotational_energy_j / small.rotational_energy_j, 2.0, 1e-12);
+        close(
+            large.ideal_hoop_tension_n / small.ideal_hoop_tension_n,
+            1.0,
+            1e-12,
+        );
+    }
+
+    #[test]
+    fn fixed_line_density_ring_obeys_its_distinct_scaling_law() {
+        let small = ring_scaling_for_fixed_line_density(100.0, 100.0, 1.0).unwrap();
+        let large = ring_scaling_for_fixed_line_density(100.0, 200.0, 1.0).unwrap();
+        close(large.moving_mass_kg / small.moving_mass_kg, 2.0, 1e-12);
+        close(
+            large.angular_momentum_kg_m2_s / small.angular_momentum_kg_m2_s,
+            2.0_f64.powf(2.5),
+            1e-12,
+        );
+        close(large.rotational_energy_j / small.rotational_energy_j, 4.0, 1e-12);
+        close(large.ideal_hoop_tension_n / small.ideal_hoop_tension_n, 2.0, 1e-12);
+    }
+
+    #[test]
+    fn constraint_and_ring_scaling_functions_reject_invalid_values() {
+        assert!(minimum_radius_for_body_gradient_m(1.75, 0.0).is_err());
+        assert!(minimum_radius_for_coriolis_fraction_m(0.5, 0.05, -1.0).is_err());
+        assert!(minimum_radius_for_design_envelope(0.5, 1.75, 0.02, 0.0, 0.1, 1.0).is_err());
+        assert!(ring_scaling_for_fixed_mass(-1.0, 100.0, 1.0).is_err());
+        assert!(ring_scaling_for_fixed_line_density(100.0, f64::INFINITY, 1.0).is_err());
     }
 
     #[test]
