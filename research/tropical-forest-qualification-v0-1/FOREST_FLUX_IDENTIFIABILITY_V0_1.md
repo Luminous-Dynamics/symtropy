@@ -69,7 +69,7 @@ Run from repository root:
 
 ```bash
 cargo run --manifest-path research/tropical-forest-qualification-v0-1/validator/Cargo.toml -- \
-  research/tropical-forest-qualification-v0.1/cases/forest-flux-identifiability-synthetic-v0.1.json
+  research/tropical-forest-qualification-v0-1/cases/forest-flux-identifiability-synthetic-v0.1.json
 ```
 
 The canonical fixture path is `research/tropical-forest-qualification-v0-1/cases/forest-flux-identifiability-synthetic-v0.1.json`; use that exact path if copying the command.
