@@ -181,9 +181,9 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
     let sigma=number(case,"mass_residual_standard_uncertainty")?;
     let k=number(case,"closure_sigma_limit")?;
     if sigma<=0.0||k<=0.0{return Ok(base("INVALID_INPUT","MASS_UNCERTAINTY_OR_SIGMA_LIMIT_NOT_POSITIVE"));}
-    let observed_mass=sensor_mass.unwrap_or(0.0);
-    let residual=input_mass-observed_mass-inventory_mass;
-    if !residual.is_finite(){return Ok(base("INVALID_INPUT","MASS_RESIDUAL_NONFINITE"));}
+    let residual=sensor_mass.map(|observed_mass|input_mass-observed_mass-inventory_mass);
+    if residual.is_some_and(|value|!value.is_finite()){return Ok(base("INVALID_INPUT","MASS_RESIDUAL_NONFINITE"));}
+    let tail_tolerance=1.0e-9*input_mass.abs().max(f64::MIN_POSITIVE);
     let all_outlets=bool_value(case,"all_outlets_observed")?;
     let temporal=text(case,"temporal_boundary_state")?;
     let kernel_tail=text(case,"kernel_support_state")?;
@@ -203,9 +203,9 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
         ("INDETERMINATE",issue)
     }else if !all_outlets{
         ("PARTIAL_OUTLET_BOUNDARY","ONE_OR_MORE_OUTLETS_NOT_OBSERVED")
-    }else if temporal!="complete"||kernel_tail!="complete"||physical_tail>1.0e-9||sensor_tail.unwrap_or(0.0)>1.0e-9{
+    }else if temporal!="complete"||kernel_tail!="complete"||physical_tail>tail_tolerance||sensor_tail.unwrap_or(0.0)>tail_tolerance{
         ("PARTIAL_TEMPORAL_WINDOW","KERNEL_OR_SENSOR_TAIL_NOT_FULLY_OBSERVED")
-    }else if residual.abs()>k*sigma{
+    }else if residual.is_some_and(|value|value.abs()>k*sigma){
         ("OPEN_MASS_RESIDUAL","SIGNED_RESIDUAL_EXCEEDS_DECLARED_UNCERTAINTY")
     }else{
         ("CLOSED_WITHIN_DECLARED_UNCERTAINTY","")
@@ -242,10 +242,10 @@ fn compute(case:&Value,minimum_separation:f64)->Result<Value,String>{
         "injected_mass":input_mass,
         "physical_outlet_mass":physical_mass,
         "sensor_observed_outlet_mass":sensor_mass,
-        "known_inventory_mass":inventory_mass,
+        "known_inventory_mass":if inventory_issue.is_some(){Value::Null}else{json!(inventory_mass)},
         "signed_mass_residual":residual,
-        "mass_residual_standard_uncertainty":sigma,
-        "standardized_abs_mass_residual":residual.abs()/sigma,
+        "mass_residual_standard_uncertainty":if residual.is_some(){json!(sigma)}else{Value::Null},
+        "standardized_abs_mass_residual":residual.map(|value|value.abs()/sigma),
         "predicted_physical_tail_mass":physical_tail,
         "predicted_sensor_tail_mass":sensor_tail,
         "per_inlet_kernel_area":per_inlet_area,
@@ -373,10 +373,10 @@ mod tests{
     #[test]fn all_thirteen_cases_match_the_frozen_oracle(){let x=result();assert_eq!(x["case_count"],CASE_COUNT);assert_eq!(x["matched_case_count"],CASE_COUNT);assert_eq!(x["verification_state"],"MatchedFrozenOracle");}
     #[test]fn static_zero_delay_kernel_is_the_steady_transfer_limit(){let x=row("DK-T0-001-static-zero-delay-limit");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.7,0.0,0.0,0.0],[0.3,0.0,0.0,0.0]]));}
     #[test]fn delayed_kernel_preserves_outlet_specific_response(){let x=row("DK-T0-002-delayed-outlet-specific-response");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.0,0.0,0.4,0.0,0.0],[0.0,0.6,0.0,0.0,0.0]]));}
-    #[test]fn sub_stochastic_kernel_keeps_unresolved_mass(){let x=row("DK-T0-003-substochastic-kernel-open-residual");assert_eq!(x["operator_disposition"],"OPEN_MASS_RESIDUAL");assert_eq!(x["signed_mass_residual"],0.2);}
+    #[test]fn sub_stochastic_kernel_keeps_unresolved_mass(){let x=row("DK-T0-003-substochastic-kernel-open-residual");assert_eq!(x["operator_disposition"],"OPEN_MASS_RESIDUAL");assert!((x["signed_mass_residual"].as_f64().unwrap()-0.2).abs()<1.0e-12);}
     #[test]fn truncated_tail_is_not_reported_as_closed(){assert_eq!(row("DK-T0-004-truncated-temporal-window")["operator_disposition"],"PARTIAL_TEMPORAL_WINDOW");}
     #[test]fn independently_measured_inventory_is_accounted_separately(){let x=row("DK-T0-005-measured-physical-inventory");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["known_inventory_mass"],0.2);}
-    #[test]fn uncalibrated_sensor_lag_does_not_become_physical_delay(){assert_eq!(row("DK-T0-006-sensor-response-uncalibrated")["operator_disposition"],"SENSOR_RESPONSE_UNRESOLVED");}
+    #[test]fn uncalibrated_sensor_lag_does_not_become_physical_delay(){let x=row("DK-T0-006-sensor-response-uncalibrated");assert_eq!(x["operator_disposition"],"SENSOR_RESPONSE_UNRESOLVED");assert!(x["sensor_observed_outlet_mass"].is_null());assert!(x["signed_mass_residual"].is_null());}
     #[test]fn calibrated_sensor_response_preserves_mass_and_time_series(){let x=row("DK-T0-007-calibrated-sensor-lag");assert_eq!(x["operator_disposition"],"CLOSED_WITHIN_DECLARED_UNCERTAINTY");assert_eq!(x["predicted_physical_outlet_flux"],json!([[0.2,0.2,0.0,0.0,0.0],[0.0,0.2,0.2,0.0,0.0]]));assert_eq!(x["predicted_sensor_outlet_flux"],json!([[0.1,0.2,0.1,0.0,0.0],[0.0,0.1,0.2,0.1,0.0]]));}
     #[test]fn flow_reversal_without_direction_observation_abstains(){assert_eq!(row("DK-T0-008-flow-reversal-unobserved")["operator_disposition"],"ABSTAIN_FLOW_DIRECTION_UNOBSERVED");}
     #[test]fn out_of_domain_operator_refuses_extrapolation(){assert_eq!(row("DK-T0-009-out-of-domain")["operator_disposition"],"OUT_OF_DOMAIN");}
