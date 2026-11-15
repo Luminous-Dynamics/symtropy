@@ -1306,7 +1306,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_corpus_has_sixteen_named_cases_and_expected_dispositions() {
+    fn frozen_corpus_has_seventeen_named_cases_and_expected_dispositions() {
         const CORPUS: &str =
             include_str!("../fixtures/material-readiness-cases-v0.1.json");
         assert_eq!(CORPUS.matches("\"id\":").count(), 17);
