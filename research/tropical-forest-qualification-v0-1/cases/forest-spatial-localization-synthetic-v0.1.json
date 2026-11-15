@@ -1,0 +1,98 @@
+{
+  "benchmark_id": "FOREST-SPATIAL-LOCALIZATION-001",
+  "version": "0.1.0",
+  "status": "SYNTHETIC_REFERENCE_CORPUS",
+  "method": "GAUSSIAN_DISTANCE_WEIGHTED_RESIDUAL_QUANTILE",
+  "method_status": "EXPERIMENTAL_LOCALIZED_DIAGNOSTIC_NO_GUARANTEE",
+  "coordinates": {
+    "required_crs": "ONE_DECLARED_PROJECTED_METRIC_CRS",
+    "units": "METRES",
+    "distance": "EUCLIDEAN",
+    "kernel": "exp(-0.5 * (distance / bandwidth)^2)",
+    "effective_sample_size": "(sum(weights)^2) / sum(weights^2)",
+    "weighted_quantile_mass": "(1 - alpha) * (sum(calibration_weights) + test_point_weight)",
+    "test_point_weight": 1.0,
+    "insufficient_mass_disposition": "UNBOUNDED_INTERVAL",
+    "minimum_effective_sample_size": 2.0
+  },
+  "cases": [
+    {
+      "case_id": "COLOCATED_TEN_CALIBRATION_POINTS",
+      "bandwidth_m": 10.0,
+      "alpha": 0.1,
+      "calibration": [{"x_m":0.0,"y_m":0.0,"residual":1.0,"count":10}],
+      "test": [{"x_m":0.0,"y_m":0.0,"prediction":100.0,"observation":101.0,"count":1}],
+      "expected": {
+        "pooled_radius": 1.0,
+        "local_radius": 1.0,
+        "weighted_calibration_mass": 10.0,
+        "effective_sample_size": 10.0,
+        "maximum_normalized_weight": 0.1,
+        "interval_width": 2.0,
+        "covered": true
+      }
+    },
+    {
+      "case_id": "POOLED_NINETY_PERCENT_HIDES_LOCAL_FAILURE",
+      "bandwidth_m": 10.0,
+      "alpha": 0.1,
+      "calibration": [
+        {"x_m":0.0,"y_m":0.0,"residual":0.5,"count":10},
+        {"x_m":100.0,"y_m":0.0,"residual":0.5,"count":10}
+      ],
+      "test": [
+        {"x_m":0.0,"y_m":0.0,"prediction":100.0,"observation":100.5,"count":90},
+        {"x_m":100.0,"y_m":0.0,"prediction":100.0,"observation":108.0,"count":10}
+      ],
+      "expected": {
+        "pooled_radius": 0.5,
+        "region_a_coverage": 1.0,
+        "region_b_coverage": 0.0,
+        "aggregate_coverage": 0.9,
+        "region_a_local_radius": 0.5,
+        "region_b_local_radius": 0.5,
+        "region_a_ess": 10.0,
+        "region_b_ess": 10.0
+      },
+      "purpose": "A pooled 90 percent coverage number conceals a zero-coverage local regime."
+    },
+    {
+      "case_id": "REMOTE_SITE_NO_LOCAL_CALIBRATION_MASS",
+      "bandwidth_m": 0.001,
+      "alpha": 0.1,
+      "calibration": [{"x_m":0.0,"y_m":0.0,"residual":1.0,"count":10}],
+      "test": [{"x_m":1000000.0,"y_m":0.0,"prediction":100.0,"observation":101.0,"count":1}],
+      "expected": {
+        "weighted_calibration_mass": 0.0,
+        "effective_sample_size": 0.0,
+        "local_radius": null,
+        "covered": null,
+        "disposition": "ABSTAIN_LOW_LOCAL_ESS"
+      },
+      "purpose": "Do not extrapolate a local interval into a geographically unsupported region."
+    },
+    {
+      "case_id": "NARROW_BANDWIDTH_LOW_WEIGHTED_MASS",
+      "bandwidth_m": 2.0,
+      "alpha": 0.1,
+      "calibration": [{"x_m":0.0,"y_m":0.0,"residual":1.0,"count":20}],
+      "test": [{"x_m":20.0,"y_m":0.0,"prediction":100.0,"observation":101.0,"count":1}],
+      "expected": {
+        "local_radius": null,
+        "disposition": "ABSTAIN_INSUFFICIENT_LOCAL_CALIBRATION_MASS"
+      }
+    },
+    {
+      "case_id": "BANDWIDTH_WIDENING_ADDS_LOCAL_WEIGHT",
+      "alpha": 0.1,
+      "calibration": [{"x_m":0.0,"y_m":0.0,"residual":1.0,"count":20}],
+      "test": [{"x_m":20.0,"y_m":0.0,"prediction":100.0,"observation":101.0,"count":1}],
+      "comparisons": [
+        {"bandwidth_m":2.0,"expected_weighted_mass":0.0,"expected_radius":null},
+        {"bandwidth_m":20.0,"expected_weighted_mass":12.130613194252668,"expected_radius":1.0}
+      ],
+      "purpose": "Expose the bandwidth-versus-local-support trade-off; do not select bandwidth on the test set."
+    }
+  ],
+  "claim_ceiling": "Synthetic weighting and support diagnostics only. Gaussian proximity is not a density ratio; no finite-sample spatial coverage, conditional validity, field transfer or superiority claim is established."
+}
