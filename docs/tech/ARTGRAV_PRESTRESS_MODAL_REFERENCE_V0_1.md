@@ -156,7 +156,7 @@ Use independent, rights-cleared analytical fixtures first. Add NAFEMS or vendor 
 
 Relevant capabilities and comparison anchors include:
 - NASA-STD-5001B Change 3 for structural design/test factors and service-life factors applicable to NASA spaceflight hardware; its minimum factors and approval requirements are not replaced by this benchmark.
-- NASA-STD-5002B for spacecraft and payload load analysis.
+- NASA-STD-5002B (active version B dated 10 March 2026) for spacecraft and payload load-analysis methods and load definition; it is a load-analysis standard, not a complete habitat structural qualification.
 - NASA-HDBK-5026 for additive-manufacturing structural assessment, model assumptions and test correlation.
 - ASME V&V 10-2019 (R2025) and VVUQ 10.2-2021 for computational solid mechanics V&V/UQ framing.
 - NAFEMS linear static, shell, solid and modal challenge/reference cases.
