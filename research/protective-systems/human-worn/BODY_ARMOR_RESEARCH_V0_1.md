@@ -86,26 +86,29 @@ Therefore:
 
 ### 4.3 South African SANS 1658 status
 
-The local standards record is intentionally conservative.
+The South African edition can now be identified more precisely from the official Gazette trail.
 
-The South African Government Gazette, Notice 3339 of 2025 (27 June 2025), lists **SANS 1658:20XX Edition 3** as a draft standard for public comment, with a closing date of 27 August 2025. It describes the scope as minimum ballistic-resistance performance requirements for body armour intended to protect the wearer's torso and says it is limited to ballistic resistance.
+- Government Gazette Notice 3339 of 2025 (27 June 2025) listed **SANS 1658:20XX Edition 3** as a draft for public comment, closing 27 August 2025.
+- Government Gazette Notice 3600 of 2025 (14 November 2025) subsequently lists **SANS 1658:2025 Edition 3** in **Schedule B.3: Revised Standards**, stating that the listed standards have been revised under section 24(1)(a) of the Standards Act.
 
-A local testing provider currently advertises **SANS 1658:2025** on its service webpage. That is useful evidence of market practice, but a provider webpage is not the SABS catalogue or the full normative standard. The available public evidence is not sufficient to establish the exact current published SABS edition, amendments, adoption status or applicability on 15 November 2026.
+The crosswalk therefore records SANS 1658:2025 Ed.3 as **CURRENT_PUBLISHED** on the basis of the official issuance notice, rather than leaving it as a vendor-advertised claim or treating the June draft as final.
 
-**Crosswalk disposition: VERIFY_LOCALLY.** Before relying on SANS 1658 for any design, procurement, tender, product or compliance decision:
-1. obtain the current SABS catalogue entry and exact normative document;
-2. verify edition, amendments, corrigenda and withdrawal/supersession status;
-3. confirm the exact article and protection scope;
-4. verify the testing laboratory's current SANAS certificate and schedule for the exact method and scope;
-5. verify any procurement, regulator or local-authority acceptance requirement.
+This does not remove the need to obtain the controlled SABS text and confirm its current amendments, corrigenda, withdrawal/supersession status and exact clauses before relying on it. The Gazette gives the scope as minimum performance requirements for torso ballistic resistance; it does not by itself establish broader wearer ergonomics or other protection categories.
+
+Laboratory competence remains a separate, scope-specific check. SANAS identifies the accredited body and maintains each body's certificate and scope; a generic ISO/IEC 17025 claim or a provider webpage does not prove accreditation for the exact body-armour test method. A SANAS-accredited laboratory is not automatically an NIJ-approved CTP laboratory.
+
+For any South African product, test or procurement decision:
+1. obtain the current controlled SANS 1658:2025 Ed.3 text and amendments from SABS;
+2. verify the applicable article, test method and protection scope;
+3. retrieve the active SANAS certificate and schedule for the exact ballistic method and product scope;
+4. inspect the governing tender, contract or authority requirements, since some procurement documents may continue to cite an earlier edition;
+5. preserve the exact normative edition and lab-scope snapshot in the test evidence record.
 
 Sources:
-- Government Gazette Notice 3339 of 2025: https://www.gov.za/sites/default/files/gcis_document/202506/52914gen3339.pdf
+- Government Gazette Notice 3339 of 2025 (draft): https://www.gov.za/sites/default/files/gcis_document/202506/52914gen3339.pdf
+- Government Gazette Notice 3600 of 2025 (issued/revised standard): https://www.gov.za/sites/default/files/gcis_document/202511/53662gen3600.pdf
 - SABS standards catalogue: https://www.sabs.co.za/standards
-- SANAS accredited facilities directory: https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx
-- Local provider's stated test services (vendor claim; not normative authority): https://www.bpt.co.za/services/ballistic-testing/
-
-The local provider's current webpage lists a 2025 edition and claims SANAS approval. Neither the advertised standard nor the provider's statement should be treated as independent confirmation of current accreditation scope. The exact SANAS schedule must be retrieved and checked.
+- SANAS accredited facilities and scope directory: https://www.sanas.co.za/Pages/website/accreditation/load/latest-accredited-facilities.aspx
 
 ### 4.4 Separate protection propositions
 
