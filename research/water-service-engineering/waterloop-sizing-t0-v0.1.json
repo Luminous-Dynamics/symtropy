@@ -1,0 +1,434 @@
+{
+  "schema_version": "waterloop-sizing-t0-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_storage_sizing_and_pump_power_arithmetic_only_no_site_or_equipment_qualification",
+  "benchmark_id": "WATERLOOP-SIZING-T0",
+  "profile": {
+    "profile_id": "SYNTHETIC-TIME-RESOLVED-HOUSEHOLD-USE",
+    "profile_revision": "0.1",
+    "all_values_are_synthetic": true
+  },
+  "cases": [
+    {
+      "case_id": "WLS-T0-001-balanced-demand-inflow",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1,
+          0.2,
+          0.3
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0.05,
+          0.05,
+          0.05
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-002-time-shifted-inflow",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0,
+        "freeboard_m3": 0,
+        "measurement_uncertainty_allowance_m3": 0,
+        "contingency_allowance_m3": 0,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.3,
+          0,
+          0.2,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0.4,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-003-unqualified-source-no-credit",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": false,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.05,
+          0.05,
+          0.05,
+          0.05
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-004-circuit-mismatch-reject",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "POTABLE",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-005-use-profile-mismatch-reject",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "irrigation_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-006-negative-demand-reject",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          -0.01,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-007-trace-length-mismatch-reject",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-008-volume-allowances-separate",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.08,
+        "freeboard_m3": 0.12,
+        "measurement_uncertainty_allowance_m3": 0.03,
+        "contingency_allowance_m3": 0.07,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1,
+          0.2,
+          0.3
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0.05,
+          0.05,
+          0.05
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-009-declared-capacity-limit-infeasible",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": 0.5,
+        "demand_m3_per_step": [
+          0.2,
+          0.2,
+          0.2
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-010-zero-demand-zero-capacity",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0,
+        "freeboard_m3": 0,
+        "measurement_uncertainty_allowance_m3": 0,
+        "contingency_allowance_m3": 0,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0,
+          0
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-011-timebase-mismatch-reject",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "UTC_hourly_aggregated",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": true,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "WLS-T0-012-pump-hydraulic-power-lower-bound",
+      "family": "pump_power",
+      "inputs": {
+        "design_flow_m3_per_hour": 1.2,
+        "total_dynamic_head_m": 18,
+        "water_density_kg_per_m3": 1000,
+        "gravity_m_per_s2": 9.80665,
+        "pump_efficiency": 0.55,
+        "pump_efficiency_evidence_admitted": true
+      }
+    },
+    {
+      "case_id": "WLS-T0-013-pump-efficiency-invalid-reject",
+      "family": "pump_power",
+      "inputs": {
+        "design_flow_m3_per_hour": 1.2,
+        "total_dynamic_head_m": 18,
+        "water_density_kg_per_m3": 1000,
+        "gravity_m_per_s2": 9.80665,
+        "pump_efficiency": 1.05,
+        "pump_efficiency_evidence_admitted": true
+      }
+    },
+    {
+      "case_id": "WLS-T0-014-unadmitted-demand-measurement",
+      "family": "storage_sizing",
+      "inputs": {
+        "demand_circuit_id": "GREYWATER",
+        "storage_circuit_id": "GREYWATER",
+        "demand_use_profile_id": "toilet_flushing_v1",
+        "storage_use_profile_id": "toilet_flushing_v1",
+        "demand_timebase_id": "30_minute_steps_local_standard_time",
+        "inflow_timebase_id": "30_minute_steps_local_standard_time",
+        "time_step_hours": 0.5,
+        "source_quality_admitted": true,
+        "source_measurement_admitted": true,
+        "demand_measurement_admitted": false,
+        "dead_volume_m3": 0.05,
+        "freeboard_m3": 0.1,
+        "measurement_uncertainty_allowance_m3": 0.02,
+        "contingency_allowance_m3": 0.05,
+        "capacity_search_tolerance_m3": 1e-10,
+        "max_search_iterations": 100,
+        "max_usable_capacity_m3": null,
+        "demand_m3_per_step": [
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ],
+        "raw_source_inflow_m3_per_step": [
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ]
+      }
+    }
+  ]
+}
