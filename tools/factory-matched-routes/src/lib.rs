@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //! Synthetic matched-route benchmark for Symtropy FACTORY-MATCHED-ROUTES-001.
 //!
 //! This crate evaluates sequential, single-unit capability coverage. It is not a
