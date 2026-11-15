@@ -281,6 +281,11 @@ pub fn estimate_probability_sample_count_total(
         {
             return Err(AggregationError::InvalidSamplingFrame);
         }
+        if sample.sampling_frame_id != sampling_frame_id
+            || sample.sampling_design_id != sampling_design_id
+        {
+            return Err(AggregationError::InvalidSamplingFrame);
+        }
         if sample.design_kind != "probability_sample" {
             return Err(AggregationError::NonProbabilityDesign);
         }
@@ -1034,6 +1039,49 @@ mod tests {
             estimate_ht_count_variance("frame", "design", 10, &samples, &pairs),
             Err(AggregationError::InvalidJointInclusionProbability)
         );
+    }
+
+
+    #[test]
+    fn ht_variance_rejects_sample_frame_or_design_mismatch() {
+        let mut samples = [
+            count_sample("a", 4, 0.5),
+            count_sample("b", 5, 0.25),
+        ];
+        samples[1].sampling_design_id = "other-design".to_string();
+        let pairs = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: 0.1,
+        }];
+        assert_eq!(
+            estimate_ht_count_variance("frame", "design", 10, &samples, &pairs),
+            Err(AggregationError::InvalidSamplingFrame)
+        );
+    }
+
+    #[test]
+    fn ht_variance_rejects_joint_probability_below_frechet_lower_bound() {
+        let samples = [
+            count_sample("a", 4, 0.8),
+            count_sample("b", 5, 0.8),
+        ];
+        let pairs = [PairInclusionProbability {
+            left_sample_unit_id: "a".to_string(),
+            right_sample_unit_id: "b".to_string(),
+            joint_inclusion_probability: 0.5,
+        }];
+        assert_eq!(
+            estimate_ht_count_variance("frame", "design", 10, &samples, &pairs),
+            Err(AggregationError::InvalidJointInclusionProbability)
+        );
+    }
+
+    #[test]
+    fn ht_variance_rejects_count_values_above_exact_f64_integer_range() {
+        let samples = [count_sample("a", 9_007_199_254_740_993, 0.5)];
+        let result = estimate_ht_count_variance("frame", "design", 10, &samples, &[]);
+        assert_eq!(result, Err(AggregationError::CountValueExceedsExactFloat));
     }
 
     #[test]
