@@ -80,7 +80,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -98,7 +102,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -131,7 +136,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -172,7 +178,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -190,7 +200,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -223,7 +234,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -264,7 +276,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -282,7 +298,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -315,7 +332,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -356,7 +374,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -374,7 +396,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -407,7 +430,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         },
         {
           "observation_id": "o-in",
@@ -438,7 +462,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -479,7 +504,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -497,7 +526,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -530,7 +560,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         },
         {
           "observation_id": "o-in-long",
@@ -561,7 +592,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -602,7 +634,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -620,7 +656,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -653,7 +690,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -695,7 +733,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -713,7 +755,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -746,7 +789,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -788,7 +832,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -806,7 +854,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -839,7 +888,8 @@
           "pnt_time_qualified": false,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -881,7 +931,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -899,7 +953,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -932,7 +987,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -969,7 +1025,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -987,7 +1047,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -1020,7 +1081,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -1057,7 +1119,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -1075,7 +1141,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": {
         "restriction_id": "restriction-intersects",
@@ -1132,7 +1199,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -1169,7 +1237,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -1187,7 +1259,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": {
         "restriction_id": "restriction-outside",
@@ -1244,7 +1317,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -1285,7 +1359,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -1303,7 +1381,8 @@
           "up": 0,
           "time": 0
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -1336,7 +1415,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -1377,7 +1457,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -1395,7 +1479,8 @@
           "up": 1,
           "time": 2
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -1428,7 +1513,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         },
         {
           "observation_id": "o-first",
@@ -1459,7 +1545,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
@@ -1500,7 +1587,11 @@
             0,
             100
           ]
-        }
+        },
+        "current_authorization_id": "auth-syn-001",
+        "issuer_reference": "synthetic-authority",
+        "authorization_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "policy": {
         "policy_id": "synthetic-conformance-policy-v0",
@@ -1518,7 +1609,8 @@
           "up": 0,
           "time": 0
         },
-        "maximum_definite_outside_ppm": 50000
+        "maximum_definite_outside_ppm": 50000,
+        "time_scale_id": "SYNTHETIC-TIME"
       },
       "dynamic_restriction": null,
       "observations": [
@@ -1551,7 +1643,8 @@
           "pnt_time_qualified": true,
           "surveillance_qualified": true,
           "horizontal_frame_id": "SYNTHETIC-ENU-01",
-          "vertical_datum_id": "SYNTHETIC-UP-01"
+          "vertical_datum_id": "SYNTHETIC-UP-01",
+          "time_scale_id": "SYNTHETIC-TIME"
         }
       ],
       "expected": {
