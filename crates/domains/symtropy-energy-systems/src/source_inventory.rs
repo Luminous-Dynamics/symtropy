@@ -285,6 +285,7 @@ pub struct InventoryPage {
     next_cursor_sha256: Option<String>,
     terminal: bool,
     source_revision: String,
+    snapshot_token_sha256: String,
     page_payload_sha256: String,
     received_at_ms: i64,
     evidence: EvidenceRecord,
@@ -300,6 +301,7 @@ impl InventoryPage {
         next_cursor_sha256: Option<String>,
         terminal: bool,
         source_revision: impl Into<String>,
+        snapshot_token_sha256: impl Into<String>,
         page_payload_sha256: impl Into<String>,
         received_at_ms: i64,
         evidence: EvidenceRecord,
@@ -312,6 +314,7 @@ impl InventoryPage {
             next_cursor_sha256,
             terminal,
             source_revision: source_revision.into(),
+            snapshot_token_sha256: snapshot_token_sha256.into(),
             page_payload_sha256: page_payload_sha256.into(),
             received_at_ms,
             evidence,
@@ -322,6 +325,7 @@ impl InventoryPage {
         };
         require_non_empty("page_id", &value.page_id)?;
         require_non_empty("page_source_revision", &value.source_revision)?;
+        validate_sha256("page_snapshot_token_sha256", &value.snapshot_token_sha256)?;
         validate_sha256("page_payload_sha256", &value.page_payload_sha256)?;
         if let Some(digest) = &value.request_cursor_sha256 {
             validate_sha256("request_cursor_sha256", digest)?;
@@ -562,6 +566,7 @@ pub enum InventoryDiagnosticCode {
     CursorChainDiscontinuity,
     CursorCycle,
     SourceRevisionChanged,
+    SnapshotTokenMismatch,
     SnapshotTokenNotPinned,
     PageRecordInventoryMismatch,
     UnknownPageReference,
@@ -833,6 +838,13 @@ impl SourceInventoryManifest {
             if page.source_revision != self.snapshot.source_revision {
                 push(
                     InventoryDiagnosticCode::SourceRevisionChanged,
+                    page.page_id.clone(),
+                    InventoryClosureState::Conflicted,
+                );
+            }
+            if page.snapshot_token_sha256 != self.snapshot.snapshot_token_sha256 {
+                push(
+                    InventoryDiagnosticCode::SnapshotTokenMismatch,
                     page.page_id.clone(),
                     InventoryClosureState::Conflicted,
                 );
@@ -1209,6 +1221,7 @@ mod tests {
                 Some(D1.to_owned()),
                 false,
                 "source-r1",
+                D3,
                 D1,
                 11,
                 evidence("p0", D1, 10, 11),
@@ -1222,6 +1235,7 @@ mod tests {
                 Some(D2.to_owned()),
                 false,
                 "source-r1",
+                D3,
                 D2,
                 20,
                 evidence("p1", D2, 10, 20),
@@ -1235,6 +1249,7 @@ mod tests {
                 None,
                 true,
                 "source-r1",
+                D3,
                 D3,
                 30,
                 evidence("p2", D3, 10, 30),
@@ -1372,6 +1387,36 @@ mod tests {
             .diagnostics
             .iter()
             .any(|item| item.code == InventoryDiagnosticCode::PageUnavailableAtCutoff));
+    }
+
+    #[test]
+    fn page_snapshot_token_mismatch_is_conflicted() {
+        let mut manifest = complete_manifest();
+        manifest.pages[1].snapshot_token_sha256 = D4.to_owned();
+        let report = manifest.project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(SnapshotVerification::Stable, ScopeVerification::Verified),
+        );
+        assert_eq!(report.closure_state, InventoryClosureState::Conflicted);
+        assert!(report.diagnostics.iter().any(|item| {
+            item.code == InventoryDiagnosticCode::SnapshotTokenMismatch
+        }));
+    }
+
+    #[test]
+    fn cursor_discontinuity_is_incomplete() {
+        let mut manifest = complete_manifest();
+        manifest.pages[1].request_cursor_sha256 = Some(D4.to_owned());
+        let report = manifest.project(
+            100,
+            &TestEvidenceVerifier(EvidenceAdmission::Accepted),
+            &TestSourceVerifier(SnapshotVerification::Stable, ScopeVerification::Verified),
+        );
+        assert_eq!(report.closure_state, InventoryClosureState::Incomplete);
+        assert!(report.diagnostics.iter().any(|item| {
+            item.code == InventoryDiagnosticCode::CursorChainDiscontinuity
+        }));
     }
 
     #[test]
