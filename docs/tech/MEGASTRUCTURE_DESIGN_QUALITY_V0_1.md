@@ -143,7 +143,7 @@ A Pareto view may be used for genuinely comparable quantitative objectives after
 
 ## 7. Adversarial synthetic benchmark
 
-The frozen v0.1 corpus is defined in `megstructure-design-quality-cases-v0.1.json` and constrained by its JSON Schema.
+The frozen v0.1 corpus is defined in `megastructure-design-quality-cases-v0.1.json` and constrained by its JSON Schema.
 
 It includes:
 - visually polished but structurally unsafe candidate;
