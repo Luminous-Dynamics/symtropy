@@ -1,0 +1,280 @@
+{
+  "schema_version": "construction-safety-applicability/0.1",
+  "profile_id": "Luminous-Construction-Robotics-Safety-Applicability-2026-11-15",
+  "assessed_at": "2026-11-15",
+  "source_basis": "Public ISO catalogue pages, official standard scope summaries and ISA/IEC 62443 series overview checked on 2026-11-15. This is an applicability triage aid, not the normative standard text. Full standards, national adoptions, regulatory instruments and the actual machine/task/site documentation must be reviewed by competent safety and legal professionals.",
+  "machine_classes": [
+    {
+      "class_id": "fixed_industrial_robot_application_or_cell",
+      "description": "A fixed industrial robot with end-effector, workpiece, supporting machinery and a defined industrial application/cell.",
+      "standard_hypotheses": [
+        "ISO 10218-1:2025",
+        "ISO 10218-2:2025",
+        "ISO 12100:2010",
+        "ISO 13849-1:2023",
+        "ISA/IEC 62443 series where connected IACS assets exist"
+      ],
+      "mandatory_review_questions": [
+        "Is the robot within the industrial-robot scope and intended workplace conditions?",
+        "Are all application hazards from tooling, workpiece, process, structures and adjacent machines assessed?",
+        "Which safety functions are required and who owns their design and validation?",
+        "Does public or non-working-adult access change the applicable framework?",
+        "Which cybersecurity controls apply to the robot, controller, engineering workstation and site network?"
+      ]
+    },
+    {
+      "class_id": "mobile_manipulator_or_driverless_amr_agv",
+      "description": "A robot manipulator mounted on a mobile platform, driverless industrial truck, AGV or autonomous mobile robot.",
+      "standard_hypotheses": [
+        "ISO 3691-4:2023 where the base vehicle falls within driverless industrial-truck definitions",
+        "ISO 10218-1:2025 and ISO 10218-2:2025 only for robot/application elements within their scope; do not assume they cover the mobile base or combined system",
+        "ISO 12100:2010",
+        "ISO 13849-1:2023",
+        "ISA/IEC 62443 series where connected IACS assets exist"
+      ],
+      "mandatory_review_questions": [
+        "Does the mobile base qualify as a driverless industrial truck under the applicable definitions?",
+        "Are combined manipulator, payload, mobile base, navigation and site hazards assessed as one application?",
+        "Is the operating zone prepared and controlled for the task?",
+        "Does operation in public zones, public roads, explosive atmospheres or severe conditions trigger exclusions or other standards?",
+        "Are localization, navigation, protective sensing, braking and emergency functions independently specified and validated?"
+      ]
+    },
+    {
+      "class_id": "autonomous_earthmoving_or_mobile_mining_machine_system",
+      "description": "Autonomous or semi-autonomous earth-moving machinery or mobile mining machines operating on surface or underground work sites.",
+      "standard_hypotheses": [
+        "ISO 17757:2019 where the machine and autonomous/semi-autonomous system fit its definitions",
+        "ISO 12100:2010",
+        "ISO 13849-1:2023 or other applicable functional-safety standards as determined by the safety architecture",
+        "Machine-specific earth-moving/mining machinery standards for baseline machine hazards",
+        "ISA/IEC 62443 series where connected IACS assets exist"
+      ],
+      "mandatory_review_questions": [
+        "Does the machine fall within ISO 6165 earth-moving machinery definitions or the mobile-mining-machine scope?",
+        "Is the autonomy system boundary defined across machines, infrastructure, communications and software?",
+        "Are surface/underground conditions and interaction with manually operated equipment included?",
+        "Are remote-control functions separately assessed where applicable?",
+        "What machine-specific standards and jurisdictional mining/construction regulations supplement ISO 17757?"
+      ]
+    },
+    {
+      "class_id": "crane_lifting_or_multi_purpose_material_handling_plant",
+      "description": "Cranes, lifting devices, forklifts or other plant whose primary function is lifting/transporting material.",
+      "standard_hypotheses": [
+        "ISO 10218-2:2025 is not a universal coverage route for multi-purpose lifting devices or machinery such as cranes and forklift trucks",
+        "ISO 12100:2010",
+        "Machine-specific lifting, crane, hoist, forklift and local statutory requirements; exact standard set NOT_ASSESSED in this profile"
+      ],
+      "mandatory_review_questions": [
+        "What is the equipment classification and rated lifting function?",
+        "Which machine-specific lifting/hoisting standards and statutory requirements govern?",
+        "Are suspended-load dynamics, rigging, load path, ground bearing, wind and exclusion zones addressed?",
+        "Who is the competent person responsible for lift planning and authorization?",
+        "Are robotic positioning functions separate from load-handling safety functions?"
+      ]
+    },
+    {
+      "class_id": "subterranean_construction_robot_or_specialist_platform",
+      "description": "A specialist robot operating underground (for example inspection, drilling, lining, material handling or tunnel works) that may not be earth-moving machinery or a mobile mining machine.",
+      "standard_hypotheses": [
+        "ISO 17757:2019 only where the system fits its earth-moving/mobile-mining machine definitions; do not extend its scope automatically to every underground robot",
+        "ISO 12100:2010",
+        "Applicable machine/product standards and national mining, tunnel and construction regulations require expert identification",
+        "ISA/IEC 62443 series where connected IACS assets exist"
+      ],
+      "mandatory_review_questions": [
+        "Is the machine an earth-moving machine or mobile mining machine within ISO 17757 scope?",
+        "What underground-specific hazards exist (ventilation, atmosphere, fire, egress, ground control, water, communications and rescue)?",
+        "Which local mine/tunnel and construction regulations govern the actual site?",
+        "Are loss-of-comms, localization degradation and evacuation/recovery states independently validated?",
+        "Does the public industrial-robot standard exclude the deployment environment or platform mobility?"
+      ]
+    }
+  ],
+  "standards": [
+    {
+      "id": "ISO 10218-1",
+      "title": "Robotics — Safety requirements — Part 1: Industrial robots",
+      "edition_or_series": "ISO 10218-1:2025, Edition 3",
+      "publication_status": "PUBLISHED",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "Safety requirements for industrial robots as machines/partly completed machinery, including inherent design and information for integration.",
+      "scope_exclusions_or_limits": [
+        "The published scope excludes underground use.",
+        "It excludes mobility when robots or manipulators are fixed to or part of driverless industrial trucks or mobile platforms.",
+        "It addresses the robot itself; application and robot-cell integration are addressed in Part 2.",
+        "Public access and non-working-adult contexts are outside the stated industrial workplace scope."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://www.iso.org/standard/73933.html"
+      ],
+      "symtropy_evidence_relationship": [
+        "Record robot identity, model and configuration digests, operating modes, tool/payload identities and integration boundaries.",
+        "Retain design and test evidence references, but do not infer conformity from these records."
+      ],
+      "non_claim": "A motion oracle, collision check or envelope receipt does not establish ISO 10218-1 conformity or validate safety functions."
+    },
+    {
+      "id": "ISO 10218-2",
+      "title": "Robotics — Safety requirements — Part 2: Industrial robot applications and robot cells",
+      "edition_or_series": "ISO 10218-2:2025, Edition 2",
+      "publication_status": "PUBLISHED",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "Safety requirements for the design, integration, commissioning, operation, maintenance, decommissioning and disposal of industrial robot applications and cells.",
+      "scope_exclusions_or_limits": [
+        "The published scope excludes multi-purpose lifting devices or machinery, including cranes and forklift trucks.",
+        "It is not a universal standard for mobile platforms, underground specialist robots or all construction plant.",
+        "The application includes workpieces, task programs and supporting machinery; the robot alone is not the complete safety case."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://www.iso.org/standard/73934.html"
+      ],
+      "symtropy_evidence_relationship": [
+        "Record application identity, workpiece/task program, machine interfaces, lifecycle state, design revision and commissioning/maintenance/inspection evidence.",
+        "Bind acceptance records to the exact configuration and operating context."
+      ],
+      "non_claim": "An application record or digital-twin model cannot certify the integrated robot application or replace integrator responsibilities."
+    },
+    {
+      "id": "ISO 17757",
+      "title": "Earth-moving machinery and mining — Autonomous and semi-autonomous machine system safety",
+      "edition_or_series": "ISO 17757:2019, Edition 2; confirmed current in 2024",
+      "publication_status": "PUBLISHED",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "Safety requirements for autonomous/semi-autonomous earth-moving and mobile mining machines and their associated systems/infrastructure, hardware and software, including surface and underground applications.",
+      "scope_exclusions_or_limits": [
+        "Applicability depends on the machine fitting the referenced earth-moving machinery or mobile-mining-machine definitions.",
+        "Remote-control capability is addressed separately (ISO 15817).",
+        "Function-specific automated features are outside the scope unless used as part of the autonomous/semi-autonomous machine system.",
+        "It is not automatically applicable to every underground inspection, construction or service robot."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://committee.iso.org/standard/76126.html"
+      ],
+      "symtropy_evidence_relationship": [
+        "Record machine/system boundary, infrastructure dependencies, operating environment, surface/underground mode, communication state, configuration and lifecycle evidence.",
+        "Bind machine/system evidence to exact site epoch, work package, design and controller versions."
+      ],
+      "non_claim": "An occupancy map or collision result does not satisfy ISO 17757 requirements or establish autonomous machine-system safety."
+    },
+    {
+      "id": "ISO 3691-4",
+      "title": "Industrial trucks — Safety requirements and verification — Part 4: Driverless industrial trucks and their systems",
+      "edition_or_series": "ISO 3691-4:2023, Edition 2",
+      "publication_status": "PUBLISHED",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "Safety requirements and verification for driverless industrial trucks and their systems; examples include AGVs, autonomous mobile robots, bots and automated guided carts.",
+      "scope_exclusions_or_limits": [
+        "The operating zone has significant effect on safe operation; operating-zone preparation is addressed in the standard.",
+        "The 2023 edition excludes public zones and public-road operation, among other listed special environments and hazards.",
+        "The third edition is under development; draft text is not treated as a published requirement in this profile."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://www.iso.org/standard/83545.html"
+      ],
+      "symtropy_evidence_relationship": [
+        "Record vehicle class, safety sensors, operating-zone survey/revision, navigation configuration, speed/braking modes, load/payload and validation results.",
+        "Bind route/occupancy observations to the exact operating zone and site state."
+      ],
+      "non_claim": "An AMR-style navigation stack or occupancy reservation is not proof of ISO 3691-4 conformity or operating-zone safety."
+    },
+    {
+      "id": "ISO 12100",
+      "title": "Safety of machinery — General principles for design — Risk assessment and risk reduction",
+      "edition_or_series": "ISO 12100:2010, Edition 1; reviewed and confirmed in 2022",
+      "publication_status": "PUBLISHED",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "General machinery safety terminology, principles and methodology for hazard identification, risk assessment and risk reduction across relevant lifecycle phases, including documentation and verification.",
+      "scope_exclusions_or_limits": [
+        "This is a general methodology; relevant type-B and type-C standards and jurisdictional laws may impose more specific requirements.",
+        "The next revision ISO/DIS 12100.3 is under development; use the published edition unless a competent standards authority directs otherwise."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://www.iso.org/standard/51528.html"
+      ],
+      "symtropy_evidence_relationship": [
+        "Provide traceable hazard, assumption, risk-control, verification, residual-risk and change records.",
+        "Keep unknown or unverified hazards explicit; preserve links between design revision, controls and validation evidence."
+      ],
+      "non_claim": "The platform can store risk-assessment evidence but cannot perform or approve a complete risk assessment by itself."
+    },
+    {
+      "id": "ISO 13849-1",
+      "title": "Safety of machinery — Safety-related parts of control systems — Part 1: General principles for design",
+      "edition_or_series": "ISO 13849-1:2023, Edition 4",
+      "publication_status": "PUBLISHED",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "Methodology and requirements/guidance for design and integration of safety-related parts of control systems, including software, for high-demand and continuous modes.",
+      "scope_exclusions_or_limits": [
+        "It is a safety-control-system design methodology, not a standalone robot or application standard.",
+        "Required performance levels, architecture, component data, validation and lifecycle responsibilities must be determined by the safety engineering process."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://www.iso.org/standard/73481.html"
+      ],
+      "symtropy_evidence_relationship": [
+        "Record safety-function identifiers, requirement revisions, component/software configuration, diagnostic/test evidence and independent validation receipts.",
+        "Preserve failure and unresolved states; do not infer a required performance level from nominal controller behavior."
+      ],
+      "non_claim": "A software unit test or successful CI job is not a PL claim, functional-safety validation or proof of a safety function."
+    },
+    {
+      "id": "ISA/IEC 62443",
+      "title": "Security for industrial automation and control systems",
+      "edition_or_series": "ISA/IEC 62443 series; edition varies by part",
+      "publication_status": "SERIES_OVERVIEW",
+      "status_as_of": "2026-11-15",
+      "scope_summary": "Cybersecurity standards and processes for industrial automation and control systems, addressing OT security across asset owners, integrators, suppliers and system components.",
+      "scope_exclusions_or_limits": [
+        "This is a cybersecurity series, not a machinery safety standard.",
+        "Select the applicable parts and editions for the actual asset, system, service-provider and lifecycle boundary.",
+        "Cybersecurity controls do not replace functional safety or physical risk reduction."
+      ],
+      "default_applicability": "REQUIRES_EXPERT_REVIEW",
+      "source_urls": [
+        "https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series"
+      ],
+      "symtropy_evidence_relationship": [
+        "Record software/build digests, identities, access grants, change approvals, provenance, vulnerability disposition and event/audit receipts.",
+        "Bind security posture records to the exact deployed controller, network zone and release."
+      ],
+      "non_claim": "An audit log, signed build or evidence receipt alone does not demonstrate an IEC 62443 security level or certification."
+    }
+  ],
+  "revision_watch": [
+    {
+      "identifier": "ISO/DIS 3691-4",
+      "status": "Third edition under development; do not substitute draft requirements for ISO 3691-4:2023 in a conformity claim.",
+      "source_url": "https://www.iso.org/standard/88615.html",
+      "handling": "Track the published status and national adoption before updating the applicable edition."
+    },
+    {
+      "identifier": "ISO/DIS 12100.3",
+      "status": "Revision of ISO 12100:2010 under development.",
+      "source_url": "https://www.iso.org/standard/51528.html",
+      "handling": "Keep the published edition and draft revision separate in all applicability records."
+    },
+    {
+      "identifier": "ISO 10218-1:2025 and ISO 10218-2:2025",
+      "status": "Published 2025 editions replacing the withdrawn 2011 editions.",
+      "source_url": "https://www.iso.org/standard/73933.html",
+      "handling": "Use the exact 2025 part and edition; do not carry forward assumptions from 2011 without reviewing revised scope and requirements."
+    }
+  ],
+  "prohibited_inferences": [
+    "A passing geometry test does not prove collision freedom on a physical robot.",
+    "A passing CI run does not establish functional safety, a performance level, a safety integrity level or regulatory conformity.",
+    "An ISO number appearing in a project manifest does not mean the standard applies or that the application conforms.",
+    "A public scope summary is not a substitute for the complete normative standard text.",
+    "ISO 10218 does not universally cover mobile platforms, underground operation, cranes, forklifts or every construction robot.",
+    "ISO 17757 is not automatically applicable to every underground robot; machine definitions and operational scope must match.",
+    "A standard applicability status is not a permission to operate or an independent safety acceptance."
+  ]
+}
