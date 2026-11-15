@@ -189,6 +189,7 @@ A September 2026 Research Square preprint by Zhang proposes co-designing human e
 - Preprint: https://doi.org/10.21203/rs.3.rs-10933822/v1
 - [ARTGRAV-CODESIGN-001 #5314](https://github.com/Luminous-Dynamics/symtropy/issues/5314)
 - [Constraint-intersection fixture](fixtures/codesign_constraint_intersection.csv)
+- [Full derivation and scaling note](CODESIGN_CONSTRAINTS_AND_SCALING.md)
 
 The Rust reference now supports three independently declared bounds: body gradient, maximum RPM, and a caller-specified Coriolis fraction for an explicitly supplied transverse movement speed. The Coriolis fraction is only a parameterized engineering envelope; it is not a validated comfort, safety or medical limit.
 
@@ -215,6 +216,7 @@ For fixed linear mass density instead, total mass grows with circumference:
 These are distinct mass-scaling assumptions. The tension relation is a limiting thin-ring membrane result—not structural qualification, pressure-vessel design, or a full mass estimate. Joint, shielding, pressure-shell, thermal, fatigue, buckling, dynamic and manufacturing effects are omitted.
 
 - [Ring scaling fixture](fixtures/ring_scaling_laws.csv)
+- [Ring scaling derivations and evidence limits](CODESIGN_CONSTRAINTS_AND_SCALING.md)
 - [Ring scaling generator](src/bin/ring_scaling_matrix.rs)
 
 ~~~bash
@@ -236,6 +238,8 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --
 - Aegis Station, Artificial Gravity Requirements Evaluation (public requirements proposal). https://aegisstation.com/artificial-gravity-requirements-evaluation.html
 - NASA (1988), Rotating Advanced-Technology Space Station configuration. https://ntrs.nasa.gov/api/citations/19880017013/downloads/19880017013.pdf
 - Jones (2020), ICES-2020-216, NASA NTRS. https://ntrs.nasa.gov/citations/20205005156
+- Zhang (2026-09-08), Research Square preprint, *Human constraints and scalable design of rotating artificial gravity habitats*. https://doi.org/10.21203/rs.3.rs-10933822/v1
+- Beverly et al. (2026-11-13), *Impact of artificial gravity on spaceflight-induced skeletal deterioration in male mice*, npj Microgravity. https://doi.org/10.1038/s41526-026-00670-5
 - Tensentric habitat architecture (2026), Acta Astronautica. https://doi.org/10.1016/j.actaastro.2026.04.071
 
 
@@ -243,6 +247,7 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --
 
 - [Rotating-frame reference implementation](src/lib.rs) and [CSV design-point executable](src/main.rs): analytic kinematics, radial gravity gradient, centrifugal/Coriolis/Euler terms, and unit tests.
 - [Matched architecture comparison protocol](ARCHITECTURE_COMPARISON.md): monolithic/segmented rings, counter-rotating rings, tethered and tension-dominated topologies under one mission envelope.
+- [Coupled human–mechanics constraints and ring scaling](CODESIGN_CONSTRAINTS_AND_SCALING.md): independently reproduce gradient/RPM/Coriolis radius intersections and fixed-mass versus fixed-line-density thin-ring scaling.
 - [Occupied-field and movement benchmark](MOTION_AND_FIELD_BENCHMARK.md): multi-rate/multi-gravity grid, field gradients, Coriolis/Euler disturbances, human-factor evidence gates, and proposed benchmarks.
 - [Coriolis reference fixture](fixtures/coriolis_1mps.csv): independently evaluated 1 m/s motion comparison across six RPM values.
 - [Sol-Atlas habitat layout handoff](SOL_ATLAS_HABITAT_HANDOFF.md): spatial interface, coordinate conventions, mass/geometry exchange, occupancy and lifecycle constraints.
@@ -250,5 +255,6 @@ cargo run --release --manifest-path research/artificial-gravity-v0/Cargo.toml --
 - [ARTGRAV-STRUCT-001 follow-on](https://github.com/Luminous-Dynamics/symtropy/issues/5280).
 - [Symthaea settlement-system scenario owner](https://github.com/Luminous-Dynamics/symthaea/issues/7687).
 - [Mycelix evidence-profile integration](https://github.com/Luminous-Dynamics/mycelix/issues/6204).
+- [ARTGRAV-CODESIGN-001](https://github.com/Luminous-Dynamics/symtropy/issues/5314): independent preprint reproduction and ring scaling.
 
 The kinematics crate is deliberately a stand-alone nested Cargo workspace. Its analytic model does not qualify structural dynamics, a physical rotor, human exposure, or a flight system.
