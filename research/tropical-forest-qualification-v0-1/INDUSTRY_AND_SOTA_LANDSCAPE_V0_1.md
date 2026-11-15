@@ -357,3 +357,35 @@ A full six-flux vector may be underdetermined even when some ecological quantiti
 In the two-pool reference, stock increments alone identify net live-pool change, net deadwood-pool change and net total-pool change. They do not identify gross mortality transfer or gross live inputs (growth plus recruitment). Across the 64 synthetic sensor subsets, mortality becomes structurally identifiable with one direct mortality observation (effort cost 3); gross live inputs need growth plus recruitment (minimum effort cost 6). The receipt also shows 43 subsets identify mortality transfer and 31 identify gross live inputs.
 
 This is a more useful scientific qualification boundary: evidence can support a net carbon-change claim while failing to support a causal attribution to mortality or recruitment. The result is still exact and noiseless; practical uncertainty requires the separate covariance-aware comparison in #5360. See [#5349](https://github.com/Luminous-Dynamics/symtropy/issues/5349).
+
+
+## 15 November 2026 — AFEX randomized intervention bridge
+
+A high-value empirical bridge is the Central Amazon Amazon Fertilization Experiment (AFEX). The official EIDC collection record describes a fully factorial N/P/cation soil-nutrient manipulation in a randomized block design, with four replicates and all eight treatment combinations represented in each block: control, N, P, cations (K/Ca/Mg), N+P, N+cations, P+cations and N+P+cations. The collection spans above- and below-ground carbon dynamics, seedlings, plant phenology, macroinvertebrates and other ecological processes: https://catalogue.ceh.ac.uk/documents/79c9df71-af3b-4ca8-8df8-330fc5fc3507
+
+The directly relevant tree record is Cunha et al. (2021), *Tree census and diameter increment in fertilised plots in the Central Amazon, 2017–2020*, DOI 10.5285/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3. EIDC documents annual censuses in 2017–2019, trees with DBH >10 cm, recruitment as a new individual reaching 10 cm DBH, recorded mortality, and dendrometer bands installed on 1,299 trees. The dendrometer record is the distance in millimetres from a circumference-band window read with a digital caliper; dates are irregular from April 2018 to January 2020. The record notes the instrument's humidity sensitivity and that measurements were not taken during rain. The record was last updated 5 November 2026 and is available under the Open Government Licence: https://catalogue.ceh.ac.uk/documents/c2587e20-ba4a-4444-8ce9-ccdec15b0aa3
+
+**The unit-of-analysis distinction is a hard gate:** nutrient treatment is assigned to plots; trees are nested observations; repeated dendrometer readings are nested time observations. The 1,299 stems do not represent 1,299 randomized treatment replicates. A candidate 2×2×2 design crossed with four complete blocks implies 32 plot assignment units, but the actual allocation must be confirmed from released plot/treatment files before estimating effects.
+
+This creates a stronger question than observational hindcasting alone: can a forest model predict the response to a known nutrient perturbation, including main effects and N×P, N×cation, P×cation and three-way interactions, while keeping growth, recruitment and mortality distinct? It also gives a testbed for whether Symtropy's observation-selection machinery chooses measurements that distinguish competing process explanations.
+
+The first executable AFEX slice is intentionally bounded:
+- [#5408 — AFEX intervention qualification](https://github.com/Luminous-Dynamics/symtropy/issues/5408);
+- [factorial design and measurement-semantics protocol](AFEX_FACTORIAL_DESIGN_V0_1.md);
+- [32-plot synthetic complete-block fixture](cases/afex-factorial-design-synthetic-v0.1.json);
+- [Rust design/anti-pseudoreplication validator](validator/src/afex_design_kernel.rs).
+
+The current validator tests the synthetic 2×2×2 allocation, four complete blocks, 11-column fixed-effect design rank, 21 residual degrees of freedom, treatment-unit hierarchy, exact census/recruitment semantics, raw dendrometer quantity and rain-related missingness. It is not a fitted causal estimator. The official AFEX archive has not been ingested, plot IDs and treatment assignments have not been reconciled, and no empirical treatment response is claimed.
+
+### Matched AFEX tournament
+
+When the record-level data pass admission, compare at identical plot/time support:
+1. block-adjusted factorial contrasts with all seven treatment terms;
+2. a repeated-measure model with tree nested in plot (and plot nested in block), where the identity structure supports it;
+3. randomization/design-based inference at the plot assignment unit;
+4. a nutrient-capable mechanistic vegetation-demography baseline whose nutrient state and flux semantics genuinely represent the AFEX treatment;
+5. Symtropy process-resolved forecasts with model-set adequacy and explicit abstention.
+
+A comparator that cannot represent a manipulated nutrient or process must be marked not applicable, not silently treated as a weak model. Use intention-to-treat by assigned plot as the primary estimand; keep treatment compliance and dose as separate observations. Hold out whole plots/blocks or future time windows according to the preregistered question—never split tree rows from the same plot across train/test.
+
+Success would be a qualified prediction of treatment contrasts and response trajectories that beats paired baselines on held-out plot-level evidence, preserves uncertainty coverage and pool closure, and reports runtime and observation cost. A lower pooled biomass RMSE alone is not sufficient. The synthetic rank and allocation checks are design facts only; empirical forecast skill, causal effects, statistical power and SOTA superiority remain unestablished.
