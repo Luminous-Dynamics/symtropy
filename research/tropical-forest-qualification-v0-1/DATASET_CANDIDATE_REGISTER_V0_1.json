@@ -1162,6 +1162,89 @@
       "intended_use": "litterfall leaf-area and LMA response to nutrient treatments",
       "disallowed_inference": "Do not infer a direct herbivory rate from the catalogue summary alone; archive variables and codebook must confirm whether damaged area or herbivory variables are actually included.",
       "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-LITTERFALL-ANTS-2018-2019",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Litterfall ant genus and abundance in a fertiliser experiment area in Central Amazon, 2018-2019",
+      "doi": "10.5285/60e77fd4-7a24-4545-8d90-08e9dfcbd16a",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/60e77fd4-7a24-4545-8d90-08e9dfcbd16a",
+      "temporal_support": {
+        "temporal_extent": [
+          "2018-10-01",
+          "2019-09-01"
+        ],
+        "sampling_dates": [
+          "2018-10",
+          "2019-09"
+        ]
+      },
+      "measurement_support": {
+        "variables": [
+          "ant genus/species identification as recorded",
+          "ant abundance"
+        ],
+        "method": "Winkler extraction; litter held in Winkler sacks and extracted for 48 hours; ants collected in 90% alcohol",
+        "spatial_sampling": "five 1×1 m subplots inside each 50×50 m experimental plot; 20 subplots per treatment and 160 total",
+        "spatial_resolution_metadata_m": 100
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "within-plot ant subplot × campaign × taxon",
+      "nested_sampling_unit": "five within-plot 1 m² subplots; not independent randomized plots",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "site_note": "Catalogue describes BDFFP approximately 100 km north of Manaus; reconcile spatial keys before joining with other AFEX records describing approximately 80 km.",
+      "intended_use": "biotic-community response and potential omitted-pathway indicator for litter decomposition and nutrient cycling",
+      "disallowed_inference": "Ant abundance is not a direct decomposition or nutrient-mineralization flux. Preserve subplot/date/taxon sampling support.",
+      "mechanism_issue": 5445
+    },
+    {
+      "source_id": "CENTRAL-AMAZON-AFEX-SEEDLING-LEAF-LOSS-HERBIVORY-2019-2020",
+      "provider": "NERC Environmental Information Data Centre",
+      "dataset_title": "Seedlings leaf loss by herbivory in a fertilized forest in Central Amazonia (2019-2020)",
+      "doi": "10.5285/2b8029ff-ddf5-47b2-9231-5fa0cbb6cd41",
+      "record_url": "https://catalogue.ceh.ac.uk/documents/2b8029ff-ddf5-47b2-9231-5fa0cbb6cd41",
+      "temporal_support": {
+        "catalogue_temporal_extent": [
+          "2019-04-01",
+          "2020-01-31"
+        ],
+        "nominal_sampling_schedule": "bimonthly February 2019 to January 2020",
+        "visits_per_subplot": 6
+      },
+      "measurement_support": {
+        "variables": [
+          "leaf herbivory damage percentage",
+          "galls presence/absence",
+          "pathogen presence/absence",
+          "leaf-trail herbivory presence/absence",
+          "leaf mortality"
+        ],
+        "individual_inclusion": "seedlings >20 cm height and diameter at ground height (DGH) >1 cm",
+        "within_individual_sampling": "ten mature leaves closest to the apical bud marked per individual",
+        "method": "direct visual estimate of leaf loss, with millimetre-grid sectoring to improve accuracy",
+        "spatial_sampling": "all eligible individuals within each subplot; repeated bimonthly observations",
+        "spatial_resolution_metadata_m": 1000
+      },
+      "treatment_assignment_unit": "plot",
+      "observation_unit": "seedling × marked leaf × campaign",
+      "nested_sampling_unit": "individuals and leaves nested within subplots/plots; six repeated visits are not independent treatment replicates",
+      "rights": {
+        "license": "Open Government Licence stated by EIDC",
+        "attribution_required": true
+      },
+      "admission_status": "METADATA_ONLY_RIGHTS_STATED_ARCHIVE_NOT_DOWNLOADED",
+      "downloaded": false,
+      "data_ingested": false,
+      "site_note": "Catalogue describes BDFFP approximately 100 km north of Manaus; reconcile site and plot keys before joining to 80 km AFEX records.",
+      "intended_use": "biotic stress and seedling damage response to randomized nutrient treatments",
+      "disallowed_inference": "Leaf herbivory/damage is not seedling growth, recruitment or mortality. Preserve repeated leaf/individual/subplot nesting.",
+      "mechanism_issue": 5445
     }
   ],
   "cross_source_admission_gates": [
