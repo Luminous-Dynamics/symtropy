@@ -179,6 +179,8 @@ pub enum ClaimStatus {
 pub enum EvaluationError {
     /// Claim identity, digest, dependency set or time metadata is malformed.
     InvalidClaim,
+    /// The claim did not yet exist at one or both requested historical cutoffs.
+    ClaimNotAvailableAtCutoff,
     /// Duplicate dependency dimension or empty change-source identity.
     InvalidDependencySet,
     /// Duplicate event identity.
@@ -235,7 +237,6 @@ fn dependency_is_complete(dependency: &DependencyBinding) -> bool {
 fn validate_claim(claim: &ModelEvidenceClaim) -> Result<(), EvaluationError> {
     if claim.claim_id.trim().is_empty()
         || !is_sha256(&claim.validation_package_sha256)
-        || claim.recorded_at < claim.validated_at_effective
         || claim.dependencies.is_empty()
     {
         return Err(EvaluationError::InvalidClaim);
@@ -325,6 +326,9 @@ pub fn evaluate_claim(
     policy: &RequalificationPolicy,
 ) -> Result<ClaimAssessment, EvaluationError> {
     validate_claim(claim)?;
+    if claim.validated_at_effective > cutoff.effective_at || claim.recorded_at > cutoff.known_at {
+        return Err(EvaluationError::ClaimNotAvailableAtCutoff);
+    }
     validate_events(events)?;
     validate_coverage(coverage)?;
     if !is_sha256(&policy.policy_sha256) {
