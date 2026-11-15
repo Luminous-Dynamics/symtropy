@@ -1638,12 +1638,17 @@ fn validate_concurrent_event_order(
             {
                 continue;
             }
-            let Some(instance_id) = first.physical_instance_id.as_deref()
-                .or(first.previous_physical_instance_id.as_deref())
-            else {
-                continue;
-            };
-            if !event_touches_instance(second, instance_id) {
+            let first_instance_ids = [
+                first.physical_instance_id.as_deref(),
+                first.previous_physical_instance_id.as_deref(),
+            ]
+            .into_iter()
+            .flatten()
+            .collect::<BTreeSet<_>>();
+            if !first_instance_ids
+                .iter()
+                .any(|instance_id| event_touches_instance(second, instance_id))
+            {
                 continue;
             }
             let causally_ordered = is_causally_before(events, &first.event_id, &second.event_id)
@@ -2234,6 +2239,36 @@ mod tests {
         let result = ledger_result(events, Vec::new());
         assert!(matches!(
             result,
+            Err(PhysicalIdentityError::ConcurrentUnorderedEvents { .. })
+        ));
+    }
+
+    #[test]
+    fn unordered_replacement_and_removal_of_old_instance_are_rejected() {
+        let mut events = BTreeMap::new();
+        let replacement = event(
+            "replace",
+            PhysicalEventKind::UnitReplaced,
+            "slot-1",
+            20,
+            &["evidence-1"],
+        )
+        .with_instance("instance-new")
+        .with_previous_instance("instance-old")
+        .with_location("cabinet-east");
+        let removal = event(
+            "remove-old",
+            PhysicalEventKind::UnitRemoved,
+            "slot-1",
+            20,
+            &["evidence-1"],
+        )
+        .with_instance("instance-old")
+        .with_location("cabinet-east");
+        events.insert(replacement.event_id.clone(), replacement);
+        events.insert(removal.event_id.clone(), removal);
+        assert!(matches!(
+            validate_concurrent_event_order(&events),
             Err(PhysicalIdentityError::ConcurrentUnorderedEvents { .. })
         ));
     }
