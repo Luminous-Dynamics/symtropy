@@ -660,11 +660,11 @@ pub fn validate_corpus(raw: &[u8], manifest: &Value) -> Result<Value, String> {
         }),
         json!({
             "id": "BASE-TARGET-ESTIMAND-IDENTIFIABILITY-001",
-            "passed": json!(baseline_identifiable_estimands) == *expected_baseline_identifiable
-                && json!(baseline_unidentifiable_estimands) == *expected_baseline_unidentifiable,
-            "actual_identifiable_estimands": baseline_identifiable_estimands,
+            "passed": json!(baseline_identifiable_estimands.clone()) == *expected_baseline_identifiable
+                && json!(baseline_unidentifiable_estimands.clone()) == *expected_baseline_unidentifiable,
+            "actual_identifiable_estimands": baseline_identifiable_estimands.clone(),
             "expected_identifiable_estimands": expected_baseline_identifiable,
-            "actual_unidentifiable_estimands": baseline_unidentifiable_estimands,
+            "actual_unidentifiable_estimands": baseline_unidentifiable_estimands.clone(),
             "expected_unidentifiable_estimands": expected_baseline_unidentifiable
         }),
         json!({
