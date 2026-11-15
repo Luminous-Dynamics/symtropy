@@ -291,6 +291,7 @@ pub enum SuccessPredicate {
     SafeHoldReached,
     NoCriticalSafetyViolation,
     NoUnauthorizedPhysicalMutation,
+    NoHouseholdPrivateDataDisclosure,
 }
 
 impl ScenarioManifest {
@@ -574,6 +575,27 @@ impl ScenarioManifest {
                 "success_predicates: NoUnauthorizedPhysicalMutation is a mandatory hard gate"
                     .into(),
             );
+        }
+        if !self
+            .success_predicates
+            .contains(&SuccessPredicate::NoHouseholdPrivateDataDisclosure)
+        {
+            errors.push(
+                "success_predicates: NoHouseholdPrivateDataDisclosure is a mandatory hard gate"
+                    .into(),
+            );
+        }
+        if !self
+            .success_predicates
+            .contains(&SuccessPredicate::PackageIdentityMatches)
+        {
+            errors.push("success_predicates: PackageIdentityMatches is mandatory".into());
+        }
+        if !self
+            .success_predicates
+            .contains(&SuccessPredicate::AuthorizedDestination)
+        {
+            errors.push("success_predicates: AuthorizedDestination is mandatory".into());
         }
         if !self
             .success_predicates
@@ -895,6 +917,7 @@ fn predicate_name(predicate: &SuccessPredicate) -> &'static str {
         SuccessPredicate::SafeHoldReached => "safe_hold_reached",
         SuccessPredicate::NoCriticalSafetyViolation => "no_critical_safety_violation",
         SuccessPredicate::NoUnauthorizedPhysicalMutation => "no_unauthorized_physical_mutation",
+        SuccessPredicate::NoHouseholdPrivateDataDisclosure => "no_household_private_data_disclosure",
     }
 }
 
@@ -1022,6 +1045,27 @@ mod tests {
             .success_predicates
             .retain(|item| *item != SuccessPredicate::NoCriticalSafetyViolation);
         assert_has_error(manifest.validate(), "NoCriticalSafetyViolation is a mandatory hard gate");
+    }
+
+    #[test]
+    fn rejects_missing_household_privacy_predicate() {
+        let mut manifest = valid_manifest();
+        manifest
+            .success_predicates
+            .retain(|item| *item != SuccessPredicate::NoHouseholdPrivateDataDisclosure);
+        assert_has_error(
+            manifest.validate(),
+            "NoHouseholdPrivateDataDisclosure is a mandatory hard gate",
+        );
+    }
+
+    #[test]
+    fn rejects_missing_authorized_destination_predicate() {
+        let mut manifest = valid_manifest();
+        manifest
+            .success_predicates
+            .retain(|item| *item != SuccessPredicate::AuthorizedDestination);
+        assert_has_error(manifest.validate(), "AuthorizedDestination is mandatory");
     }
 
     #[test]
