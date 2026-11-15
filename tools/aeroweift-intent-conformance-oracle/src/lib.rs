@@ -233,6 +233,8 @@ pub struct ObservationWindow {
     pub observed_at: ClosedInterval,
     /// Receipt tick. It does not replace observed-at time for freshness.
     pub receipt_tick: i64,
+    /// Time-scale identity for the observed-at interval.
+    pub time_scale_id: String,
     /// Position enclosure over the complete support window.
     pub position: PositionBox,
     /// Whether upstream PNT/time qualification succeeded.
@@ -467,9 +469,8 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
         || policy.time_scale_id.trim().is_empty()
         || policy.evaluation_window.duration().is_none()
         || policy.evaluation_tick < policy.evaluation_window.end
-        || policy.maximum_observation_age_ticks == 0
-        || policy.contact_loss_timeout_ticks == 0
         || policy.maximum_definite_outside_ppm > 1_000_000
+        || policy.evaluation_tick < auth.activated_at_tick
         || !policy.deviation_expansion.is_valid()
     {
         return empty(
@@ -526,14 +527,27 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
                 lineage,
             );
         }
-        let effective = restriction
+        let effective_start = restriction
             .volume
             .time
-            .intersects(restriction.effective_window)
-            && restriction
-                .effective_window
-                .intersects(policy.evaluation_window);
-        if effective && restriction.volume.intersects(auth.volume) {
+            .start
+            .max(restriction.effective_window.start)
+            .max(policy.evaluation_window.start);
+        let effective_end = restriction
+            .volume
+            .time
+            .end
+            .min(restriction.effective_window.end)
+            .min(policy.evaluation_window.end);
+        let effective = effective_start < effective_end;
+        let effective_volume = Volume4D {
+            time: TimeInterval {
+                start: effective_start,
+                end: effective_end,
+            },
+            ..restriction.volume
+        };
+        if effective && effective_volume.intersects(auth.volume) {
             return empty(
                 ConformanceStatus::ReauthorizationRequired,
                 Some(ConformanceReason::DynamicRestrictionIntersection),
@@ -617,6 +631,8 @@ pub fn evaluate(input: &ConformanceInput) -> ConformanceAssessment {
             .is_none_or(|age| age > policy.maximum_observation_age_ticks)
         {
             Some(ConformanceReason::StaleObservation)
+        } else if observation.time_scale_id != policy.time_scale_id {
+            Some(ConformanceReason::TimeScaleMismatch)
         } else if !observation.pnt_time_qualified {
             Some(ConformanceReason::PntTimeUnqualified)
         } else if !observation.surveillance_qualified {
