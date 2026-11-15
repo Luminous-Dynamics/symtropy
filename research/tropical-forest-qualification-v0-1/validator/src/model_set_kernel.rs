@@ -75,7 +75,9 @@ pub enum AdequacyDisposition {
 impl AdequacyDisposition {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::StructuralDisagreement => "STRUCTURAL_DISAGREEMENT_REQUIRES_DISCRIMINATING_EVIDENCE",
+            Self::StructuralDisagreement => {
+                "STRUCTURAL_DISAGREEMENT_REQUIRES_DISCRIMINATING_EVIDENCE"
+            }
             Self::CommonStructuralOmission => "COMMON_STRUCTURAL_OMISSION_DETECTED_ON_VALIDATION",
             Self::HistoryFitFailure => "CANDIDATE_HISTORY_FIT_INVALID",
             Self::NoFailureDetectedOnThisSyntheticCase => {
@@ -153,9 +155,8 @@ pub fn evaluate_known_truth_scenario(
         }
         candidate.predicted_validation_state.validate()?;
 
-        let history_error = (candidate.historical_total_biomass
-            - scenario.observed_historical_total_biomass)
-            .abs();
+        let history_error =
+            (candidate.historical_total_biomass - scenario.observed_historical_total_biomass).abs();
         all_candidates_fit_history &= history_error <= scenario.historical_fit_tolerance;
 
         let validation_residual = candidate
@@ -164,10 +165,8 @@ pub fn evaluate_known_truth_scenario(
         if !validation_residual.is_finite() {
             return Err(ModelSetError::InvalidCohortState);
         }
-        minimum_validation_residual =
-            minimum_validation_residual.min(validation_residual);
-        maximum_validation_residual =
-            maximum_validation_residual.max(validation_residual);
+        minimum_validation_residual = minimum_validation_residual.min(validation_residual);
+        maximum_validation_residual = maximum_validation_residual.max(validation_residual);
     }
 
     for (left_index, left) in scenario.candidates.iter().enumerate() {
@@ -242,7 +241,10 @@ mod tests {
             state(50.0, 50.0),
         ))
         .expect("known-truth cohort case");
-        assert_eq!(result.disposition, AdequacyDisposition::StructuralDisagreement);
+        assert_eq!(
+            result.disposition,
+            AdequacyDisposition::StructuralDisagreement
+        );
         assert_eq!(result.maximum_pairwise_cohort_span, 40.0);
         assert_eq!(result.minimum_validation_residual, 20.0);
     }
@@ -257,7 +259,10 @@ mod tests {
             state(15.0, 95.0),
         ))
         .expect("recruitment-growth counterexample");
-        assert_eq!(result.disposition, AdequacyDisposition::StructuralDisagreement);
+        assert_eq!(
+            result.disposition,
+            AdequacyDisposition::StructuralDisagreement
+        );
         assert_eq!(result.maximum_pairwise_cohort_span, 20.0);
     }
 
@@ -271,7 +276,10 @@ mod tests {
             state(100.0, 0.0),
         ))
         .expect("delayed-response counterexample");
-        assert_eq!(result.disposition, AdequacyDisposition::CommonStructuralOmission);
+        assert_eq!(
+            result.disposition,
+            AdequacyDisposition::CommonStructuralOmission
+        );
         assert_eq!(result.maximum_pairwise_cohort_span, 0.0);
         assert_eq!(result.minimum_validation_residual, 40.0);
     }
