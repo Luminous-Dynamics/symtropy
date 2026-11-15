@@ -161,7 +161,12 @@ impl Report {
         ] {
             put_str(&mut out, s);
         }
-        let expected_ids: BTreeSet<&str> = self.context.expected_primitive_ids.iter().map(String::as_str).collect();
+        let expected_ids: BTreeSet<&str> = self
+            .context
+            .expected_primitive_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
         put_u64(&mut out, expected_ids.len() as u64);
         for primitive_id in expected_ids {
             put_str(&mut out, primitive_id);
@@ -255,7 +260,8 @@ pub fn build(context: &Context, input: &[Segment]) -> Result<Report, ErrorKind> 
     }
 
     let mut out = Vec::with_capacity(input.len());
-    let expected_primitives: BTreeSet<String> = context.expected_primitive_ids.iter().cloned().collect();
+    let expected_primitives: BTreeSet<String> =
+        context.expected_primitive_ids.iter().cloned().collect();
     let mut previous: BTreeMap<String, (Point3Mm, u64)> = BTreeMap::new();
     let mut previous_end = None;
 
@@ -755,7 +761,6 @@ mod tests {
             ErrorKind::BadDigest("tool_config_sha256")
         );
     }
-
 
     #[test]
     fn rejects_whole_trajectory_omitting_declared_tool_or_payload_primitive() {
