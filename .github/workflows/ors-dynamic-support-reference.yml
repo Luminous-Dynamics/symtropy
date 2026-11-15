@@ -23,8 +23,10 @@ jobs:
     name: synthetic-transient-reference
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout exact source
+      - name: Checkout exact PR head (or push/workflow-dispatch commit)
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@master
@@ -43,18 +45,31 @@ jobs:
 
       - name: Run receipt twice and require deterministic output
         env:
-          SOURCE_COMMIT: ${{ github.sha }}
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           cargo run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-1.json
           cargo run --quiet --manifest-path tools/ors-dynamic-support-reference/Cargo.toml --locked > ors-dynamic-support-receipt-2.json
           cmp ors-dynamic-support-receipt-1.json ors-dynamic-support-receipt-2.json
           mv ors-dynamic-support-receipt-1.json ors-dynamic-support-receipt.json
           rm ors-dynamic-support-receipt-2.json
+          jq -e --arg commit "$SOURCE_COMMIT" '
+            .schema == "ors-dynamic-support-receipt-v0.1"
+            and .model == "two-mass-synthetic-linear-force-port"
+            and .claim_class == "SYNTHETIC_NOT_PHYSICAL"
+            and .physical_qualification == false
+            and .source_commit == $commit
+            and .summary.failed == 0
+            and .summary.passed == .summary.total
+            and all(.results[]; .status == "PASS")
+          ' ors-dynamic-support-receipt.json
 
       - name: Fingerprint exact inputs
+        env:
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
           {
-            printf 'source_commit=%s\n' "$GITHUB_SHA"
+            printf 'source_commit=%s\n' "$SOURCE_COMMIT"
             sha256sum tools/ors-dynamic-support-reference/Cargo.toml
             sha256sum tools/ors-dynamic-support-reference/Cargo.lock
             sha256sum tools/ors-dynamic-support-reference/src/lib.rs
@@ -68,7 +83,7 @@ jobs:
       - name: Retain deterministic evidence
         uses: actions/upload-artifact@v4
         with:
-          name: ors-dynamic-support-synthetic-reference-${{ github.sha }}
+          name: ors-dynamic-support-synthetic-reference-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             ors-dynamic-support-receipt.json
             ors-dynamic-support-fingerprints.txt
