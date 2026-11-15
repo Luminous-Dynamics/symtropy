@@ -851,6 +851,26 @@
         "Unknown cost components remain unknown, not zero.",
         "Report household cash cost and wider material/resource burden separately."
       ]
+    },
+    {
+      "id": "WASH-MNB-NET-ENERGY",
+      "system_boundary": "washer",
+      "unit": "kWh/kg accepted dry-equivalent textile",
+      "denominator": "accepted standardized wash output from the same textile, stain and water batch",
+      "direction": "minimize",
+      "method": "Compare MNB-assisted, conventional and generator-off sham arms at matched cleaning, rinse and fabric-care acceptance. Include gas generation, circulation pumps, mixing, heating, controls and any additional filtration; report generator and whole-washer energy separately.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "No numeric target frozen. Establish whether MNB achieves a useful stain-class improvement or enables lower detergent, temperature, mechanical action or time after counting all auxiliary electricity and water.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "A mechanism or stain-specific laboratory improvement is not a household product claim.",
+        "No resource claim unless cleaning/rinsing/gentleness are matched and auxiliary loads are included.",
+        "Stop for unstable gas characterization, fouling, foam, pump cavitation, leakage or adverse wastewater effects."
+      ]
     }
   ],
   "hard_gates": [
@@ -996,6 +1016,41 @@
       "source_type": "manufacturer_product_page",
       "uri": "https://www.samsung.com/za/washers-and-dryers/washing-machines/dv6000t-front-loading-hygiene-care-reversible-door-wrinkle-prevent-9kg-black-dv90t6240lb-fa/",
       "scope_note": "Local product page identifies 9 kg, heat pump, A+++ legacy class, 220-minute cycle and 65 dB; page mixes energy references to other models."
+    },
+    {
+      "id": "MNB-TEXTILE-2026",
+      "title": "Micro and nano bubbles technology for textile cleaning: mechanisms and the impact of multi-dimensional factors on cleaning efficiency",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1080/00405000.2026.2668156",
+      "scope_note": "Published online 7 May 2026; two textile substrates and five stains; promising oil-removal findings are not a household washer performance claim."
+    },
+    {
+      "id": "MNB-REVIEW-2025",
+      "title": "Micro-Nano Bubbles: A New Field of Eco-Friendly Cleaning",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.3390/nano15070480",
+      "scope_note": "Review of cleaning mechanisms and application constraints; not product validation."
+    },
+    {
+      "id": "ULTRASONIC-HOUSEHOLD-2023",
+      "title": "Potential of ultrasonics for energy saving in the household washing process",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1007/s12053-023-10115-7",
+      "scope_note": "Household devices performed better than soaking but below conventional wash programs in the tested conditions."
+    },
+    {
+      "id": "ULTRASONIC-PRETREAT-2023",
+      "title": "Comparison of ultrasonic devices for the pretreatment of textiles before washing and analysis of action",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1177/15589250231217086",
+      "scope_note": "Separates ultrasound, friction, soaking and temperature for pretreatment tools; no full washer superiority claim."
+    },
+    {
+      "id": "MICROBUBBLE-FLOTATION-2024",
+      "title": "Removal of Microplastics/Microfibers and Detergents from Laundry Wastewater by Microbubble Flotation",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1021/acsestwater.3c00802",
+      "scope_note": "Bench and pilot wastewater flotation results at optimized conditions; not a compact household filter demonstration."
     }
   ]
 }
