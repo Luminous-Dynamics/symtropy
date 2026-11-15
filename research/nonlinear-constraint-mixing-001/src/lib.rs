@@ -402,9 +402,7 @@ fn mat_vec3(matrix: Matrix3, vector: Vector3) -> Result<Vector3, MixingErrorV1> 
     let mut output = [0.0; 3];
     for row in 0..3 {
         output[row] = finite(
-            matrix[row][0] * vector[0]
-                + matrix[row][1] * vector[1]
-                + matrix[row][2] * vector[2],
+            matrix[row][0] * vector[0] + matrix[row][1] * vector[1] + matrix[row][2] * vector[2],
         )?;
     }
     Ok(output)
