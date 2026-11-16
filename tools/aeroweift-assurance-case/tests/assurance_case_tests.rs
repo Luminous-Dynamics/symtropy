@@ -831,12 +831,12 @@ fn defeater_must_challenge_a_claim_or_mitigation() {
         !(item.from_node_id == "defeater-sensor-bias" && item.kind == EdgeKind::Challenges)
     });
     edges.push(edge(
-        "context-operation",
         "defeater-sensor-bias",
-        EdgeKind::Contextualizes,
+        "authority-decision",
+        EdgeKind::RequiresDecision,
     ));
-    // Replace the context edge with a valid root-connected path: the evidence discharge
-    // remains attached to the defeater, but the challenge relation is absent.
+    // The defeater remains attached to the case through an authority-decision edge,
+    // but no Challenges edge identifies the claim or mitigation it is meant to challenge.
     assert!(blocker(
         &evaluate(&nodes, &edges).unwrap(),
         BlockerReason::DefeaterWithoutChallenge
