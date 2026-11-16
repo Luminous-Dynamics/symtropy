@@ -19,6 +19,7 @@ Dusty's 21 September 2026 specification describes FieldPrinter 2 as a full-scale
 Sources:
 - Manufacturer spec, updated 21 September 2026: https://support.dustyrobotics.com/hc/en-us/articles/52682349645851-FieldPrinter-Specs
 - Manufacturer control-point requirements, 13 October 2026: https://support.dustyrobotics.com/hc/en-us/articles/53221144967963-FieldPrinter-Operation-Requirements
+- Manufacturer control-point selection guidance, updated 11 August 2026, recommends additional distributed points beyond the three-point minimum; related field best-practice material recommends 6–8 control points per station where practicable. https://support.dustyrobotics.com/hc/en-us/articles/51105046226971-How-to-Select-Control-Points-for-Better-Stationing-Accuracy and https://support.dustyrobotics.com/hc/en-us/articles/46317041718939-Best-Practices-for-Recording-Control-Points-in-the-Field-All-Control-Methods
 
 Comparison discipline:
 - Reproduce the surveyed-control and tracker visibility conditions, including point count, geometry, spacing, instrument setup and site range.
@@ -62,6 +63,19 @@ Comparison discipline:
 Symtropy [#3523/#3524 — CONSTRUCTION-ROBOT-BENCHMARK-005](https://github.com/Luminous-Dynamics/symtropy/issues/3524) already owns the task-specific site-layout/printing performance profile and its vendor baseline matrix. Its documented vendor set includes HP SitePrint, Dusty FieldPrinter 2, CivDot, CivDot+ and CivDot Mini, with synthetic complexity strata, independent survey checkpoints, and separate accuracy, accepted productivity, reliability/ODD and evidence dimensions.
 
 This MIP crosswalk is intentionally not a second layout benchmark or product catalogue. When the Module B layout demonstrator is evaluated, bind the exact #3524 profile revision, layout/task complexity, ODD and acceptance rule. Keep the MIP-specific contribution at the mission boundary: configuration A/B pairing, stage progression, recovery, lifecycle/requalification linkage and accepted-output accounting. Until the #3524 machine-readable profile and digest are pinned, treat #3524 as a coordination/owner reference, not an accepted machine API.
+
+### Adjacent construction deployment: Leapting module-mounting robot
+
+ARENA's Fortescue Solar Innovation Hub report states that Leapting installed 5,838 solar modules and avoided approximately 96% of manual lifting in its Cloudbreak trial. The report also identifies workflow design, robot speed/responsiveness, material handling and automated QA as opportunities for improvement, and says further testing is needed in extreme heat, wet weather and variable ground. This is an adjacent solar-construction deployment comparator, not a directly comparable layout-accuracy benchmark.
+
+Source:
+- ARENA final trial knowledge-sharing report: https://arena.gov.au/knowledge-bank/fortescue-solar-innovation-hub-leapting-trial-report/
+
+Comparison discipline:
+- Keep installed modules and avoided manual lifts separate from accepted layout segments or piles.
+- Count modules only after a declared installation-quality/acceptance predicate; capture uninstalled, rejected, reworked and held units.
+- Include panel staging, logistics, lifting support, crew roles, weather/ground restrictions, QA and material-flow constraints.
+- Report where productivity parity, safety and workflow requirements remain open; do not convert avoided manual lifting into a generic labour-productivity multiplier.
 
 ## Test tracks: fair comparison without erasing vendor envelopes
 
