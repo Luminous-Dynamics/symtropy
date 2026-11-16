@@ -20,21 +20,6 @@ The policy does not control wet-lab hardware. Candidate costs must declare one s
 - Candidate and state reproducibility fingerprints; candidate ordering and model maps are canonicalized, and rejected candidates are retained in receipts.
 - Forty deterministic parameterized synthetic known-answer fixtures (eight regimes × five parameterizations), plus focused negative tests.
 
-## Paired-seed policy comparison runner
-
-The `benchmark` module runs a frozen synthetic scenario against:
-- static one-shot EIG ranking (rank once, then execute the frozen schedule);
-- greedy sequential EIG;
-- cost-normalized sequential EIG;
-- robust maximin sequential EIG;
-- deterministic random-feasible selection;
-- fixed canonical-ID round-robin;
-- a clairvoyant **myopic** upper bound that knows the synthetic true model.
-
-Each episode binds a scenario, policy and seed; each trial is a distinct synthetic replication unit. The paired runner uses the same scenario and seed across policies, records selected interventions and outcomes, information gain, cost, final posterior entropy, true-model posterior, false-confident classification, and myopic oracle opportunity regret. It does not claim finite-horizon optimality: the clairvoyant selector is one-step KL-per-cost, not a dynamic-programming oracle.
-
-The runner now covers the interface required for paired-seed comparisons. Publication-quality evaluation still needs many independently generated scenarios/seeds, uncertainty intervals across scenarios, calibration checks, false-stop/false-discovery rates, prior misspecification sweeps, and matched physics/controller baselines. The fixed round-robin comparator is not a balanced factorial randomization schedule; a protocol-randomized factorial design is a separate baseline.
-
 ## Anytime-valid model-discrimination evidence
 
 The `anytime` module adds a separate likelihood-ratio e-process for testing one pre-registered null model against a fixed prior mixture of alternatives. At each look it consumes conditional predictive probabilities for the observed outcome given the complete pre-outcome history and the intervention chosen using only past information. The mixture likelihood ratio is evaluated in log space and compared with the Ville boundary `1 / alpha`, so repeated peeking is covered under the stated conditional-model assumptions.
@@ -46,7 +31,7 @@ The caller must supply:
 - a valid candidate that passed assignment, safety, delivery-fidelity, interference and carryover gates;
 - the complete outcome space, with each model's conditional probabilities summing to one.
 
-An exact-zero likelihood under the null is rejected as a model-adequacy failure; it is not converted into infinite evidence. Alternative weights are frozen at construction. Testing several null models requires a predeclared familywise alpha allocation across the separate e-processes.
+An exact-zero likelihood under the null is rejected as a model-adequacy failure; it is not converted into infinite evidence. Every event records a unique sample ID, replication-unit ID and session ID in the receipt; repeated observations from the same unit/session are allowed only when the conditional forecast is based on the complete prior history, which is bound by the conditioning-state digest. Duplicate sample identities are rejected. Alternative weights are frozen at construction. Testing several null models requires a predeclared familywise alpha allocation across the separate e-processes.
 
 This is **not** a generic guarantee for arbitrary adaptive experiments: likelihood-ratio validity fails if forecasts are not correct conditional distributions, if outcomes are selected after inspection, if the action uses future data, or if serial dependence / individual clustering is ignored. The digest fields bind the declared conditioning inputs but cannot prove their scientific correctness. The e-process is a software primitive; biological inference requires a calibrated conditional likelihood model and an externally validated protocol.
 
@@ -60,17 +45,30 @@ The caller must keep randomized assignment distinct from delivered stimulation. 
 
 The categorical likelihood interface also does not yet represent serially correlated trajectories, continuous multivariate outcomes, parameter-posterior mixtures, delayed effects, within-session interference or time-varying carryover. Those remain owned by the separate full-covariance EIG, history-adjusted state-space and trajectory scorecard work. Integration must not duplicate those engines.
 
+## Exact finite-horizon scenario-tree planner
+
+The scenario_tree module adds an exact planner for the finite categorical V0 model. It expands every positive-probability outcome, updates the model posterior at each branch, applies candidate transition restrictions and the remaining cost budget, and maximizes expected discounted cumulative information gain. It returns the first action, immediate EIG, expected lookahead objective, horizon, expanded node count and residual budget.
+
+The planner is an exact reference for the supplied finite model, not a global solution to the biological experiment-design problem. Each candidate reuses a static P(outcome | model, action) table at every future node, so the V0 tree assumes conditionally independent replicate trials. It cannot yet express serially dependent time series, within-animal repeated measures, history-dependent delivery, carryover dynamics or parameter-posterior predictive mixtures. Those require conditional likelihoods that change with the full observed history, and should be integrated with #3547 rather than approximated by reusing a static table. Complexity grows with candidates, outcomes and horizon. A hard node-expansion limit returns an error; it never silently prunes branches and calls the result exact. It currently has no learned policy warm-start, posterior network, continuous design optimizer, Monte Carlo fantasy branch reduction or anytime branch-and-bound optimality gap.
+
+**External algorithmic baseline:** Guo et al. (ICML 2026), *Constrained Bayesian Experimental Design via Online Planning* (COPEx), combines offline amortized design-policy and posterior-network training with online multi-step scenario-tree planning, dynamic transition and budget constraints. Its public implementation uses Python/PyTorch and SLSQP-style optimization, with pre-trained ALINE models; its README describes horizon, fantasy branching, discounting, costs and transition restrictions. The published task suite includes active learning, location finding and CES, not Drosophila connectome experiments. COPEx is an important method baseline, not a drop-in fly-neuroscience comparator.
+
+Our differentiation target is an exact, dependency-free Rust reference for small categorical mechanism-discovery problems, with causal validity, assignment/delivery identity, evidence tier, safety, intervention provenance and anytime-valid inference wired into the same evaluation loop. A future exact-to-approximate ladder would use exact enumeration for small trees, admissible bounds and explicit optimality gaps for medium trees, and learned/warm-started scenario-tree planning for larger trees. The latter two stages are not implemented yet.
+
 ## Benchmark protocol
 
 Compare the policies on identical frozen model sets, priors, candidate manifests, outcome schemas, seeds and compute budgets:
 
-1. one-shot EIG computed once from the frozen initial posterior (baseline harness still required);
+1. static one-shot EIG ranking from the frozen initial posterior;
 2. greedy sequential EIG;
 3. cost-normalized greedy EIG;
 4. robust maximin EIG-per-cost over prior/model ambiguity;
 5. random feasible;
-6. balanced fixed/factorial schedule when a schedule-aware runner is added; the current fixed canonical-ID comparator is only a smoke-test baseline, not a factorial design;
-7. synthetic oracle upper bound (never a deployable policy).
+6. fixed canonical-ID round-robin (a smoke-test schedule, not a randomized factorial design);
+7. exact finite-horizon scenario-tree lookahead on tractable categorical instances;
+8. synthetic clairvoyant myopic upper bound (never a deployable policy or a finite-horizon optimality claim).
+
+The paired-seed runner currently implements these policy surfaces; balanced factorial assignment and COPEx's learned warm-start/posterior network are external baselines/follow-on work, not already reproduced.
 
 Report cumulative information gain, held-out intervention predictive log score, trials and cost to decision, regret versus the synthetic oracle, calibration, false confident selection, false stopping/discovery, abstention quality, rejected candidates, runtime and model-evaluation count. Report paired-seed confidence intervals and stratify by regime; do not collapse failures into mean EIG.
 
