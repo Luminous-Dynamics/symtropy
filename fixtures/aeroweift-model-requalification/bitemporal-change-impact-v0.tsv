@@ -30,3 +30,5 @@ unrelated-feed-corruption|dependency-source-filter|CLAIM_RESULT_UNCHANGED
 unrelated-malformed-event|claim-dependency-filter|CLAIM_RESULT_UNCHANGED
 wrong-source-for-claim-dependency|source-binding|SOURCE_MISMATCH
 retired-plus-material-change|mixed-status-precedence|REQUALIFICATION_REQUIRED_WITH_HISTORICAL_ONLY_DIMENSION
+wrong-source-stream|stream-binding|CHANGE_STREAM_MISMATCH
+equal-sequence-distinct-streams|stream-local-sequence|REQUALIFICATION_REQUIRED
