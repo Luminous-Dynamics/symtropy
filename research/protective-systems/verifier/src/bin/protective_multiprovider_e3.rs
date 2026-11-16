@@ -518,7 +518,15 @@ fn validate_manifest(
             .iter()
             .find(|item| item.get("provider").and_then(Value::as_str) == Some(*provider))
             .ok_or_else(|| format!("E3 manifest provider entry is missing: {provider}"))?;
-        if required_text(item, "relative_path", "E3 manifest source")? != *path
+        let native_profile = required_text(item, "native_profile", "E3 manifest source")?;
+        let profile_matches = match *provider {
+            "DATACITE" => native_profile.contains("4.7"),
+            "OGC_API_RECORDS" => native_profile.contains("Core 1.0 GeoJSON"),
+            "OPENLINEAGE" => native_profile.contains("2.0.2"),
+            _ => false,
+        };
+        if !profile_matches
+            || required_text(item, "relative_path", "E3 manifest source")? != *path
             || required_text(item, "source_identity", "E3 manifest source")? != *identity
             || required_text(item, "retrieval_mode", "E3 manifest source")?
                 != "SYNTHETIC_STATIC_FIXTURE"
