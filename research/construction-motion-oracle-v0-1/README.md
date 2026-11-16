@@ -177,3 +177,12 @@ Capsule radii remain upstream conservative geometry inputs. This API does not au
 `RobustIntervalVerificationCertificate` freezes the two capsule models/translations, bounded coefficient uncertainty, normalized time window, node/depth budget, complete interval receipt, and deterministic canonical bytes. Canonical encoding is versioned and field-ordered, uses length-prefixed UTF-8 strings and exact IEEE-754 bit patterns (including signed zero), and does not hash or authenticate the data.
 
 `replay_robust_interval_certificate` validates binding shape, re-runs the same independent interval verifier on the frozen values, compares the full receipt and checks the stored canonical bytes against the current fields. It is deterministic same-algorithm replay, not a second independent proof algorithm. Digest-shaped fields and evidence references are caller-supplied; cryptographic authenticity remains with the established evidence/attestation owner. See [#5718](https://github.com/Luminous-Dynamics/symtropy/issues/5718).
+## Source-bound robust interval replay certificates
+
+`RobustIntervalBinding` records caller-supplied site epoch, frame, design revision, moving/obstacle model digests, uncertainty-profile digest, clock domain, calibration, localization/tracking, controller and four coefficient-bound evidence references.
+
+`RobustIntervalVerificationCertificate` freezes the two capsule models/translations, bounded coefficient uncertainty, normalized time window, node/depth budget, complete interval receipt, and deterministic canonical bytes. Canonical encoding is versioned and field-ordered, uses length-prefixed UTF-8 strings and exact IEEE-754 bit patterns (including signed zero), and does not hash or authenticate the data.
+
+`replay_robust_interval_certificate` validates binding shape, re-runs the same independent interval verifier on the frozen values, compares the full receipt and checks the stored canonical bytes against the current fields. It is deterministic same-algorithm replay, not a second independent proof algorithm. Digest-shaped fields and evidence references are caller-supplied; cryptographic authenticity remains with the established evidence/attestation owner. See [#5718](https://github.com/Luminous-Dynamics/symtropy/issues/5718).
+
+The benchmark records robust certificate generation, replay and canonical encoding separately from the interval verifier's own p50/p95/p99 and node-count measurements.
