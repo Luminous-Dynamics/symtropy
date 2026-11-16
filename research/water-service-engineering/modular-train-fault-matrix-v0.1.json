@@ -1,0 +1,462 @@
+{
+  "schema_version": "waterloop-modular-fault-matrix-v0.1",
+  "benchmark_id": "WATERLOOP-MODULAR-TRAIN-T0",
+  "evidence_class": "test_design_only",
+  "claim_ceiling": "fault_scenario_and_expected_safe_state_contract_only_no_physical_safety_qualification",
+  "parent_issue": 5644,
+  "physical_test_owner_issue": 5335,
+  "test_environment": "unoccupied_test_cell_only",
+  "execution_authority": "qualified_test_lead_and_site_professional",
+  "no_autonomous_fault_injection": true,
+  "test_rules": [
+    "Every test has a frozen configuration identity, test script, precondition, instrument/channel identity and stop criterion.",
+    "Fault injection must be bounded and performed only in a reviewed unoccupied test cell with secondary containment and safe residual route.",
+    "Never inject contamination or hazardous chemical agents without a separately approved hazard and disposal plan.",
+    "Never create a potable/non-potable cross-connection, even as a test; verify separation using approved professional test methods.",
+    "Any critical unknown, stale or conflicting quality/metrology evidence must result in no product-release credit.",
+    "Each test records whether the fail-safe state was actually observed, its latency, any leakage/overflow, and restoration/recommissioning evidence.",
+    "These are test scenarios and target outcomes, not evidence that the system currently passes."
+  ],
+  "scenarios": [
+    {
+      "fault_id": "F-001",
+      "name": "Loss of mains/electrical power",
+      "fault_class": "power",
+      "preconditions": [
+        "test_cell unoccupied",
+        "approved backup/safe drain route available",
+        "treatment train in frozen baseline state"
+      ],
+      "injection": "Remove normal supply to the selected treatment/control circuit using an approved isolated test method.",
+      "expected_state": [
+        "powered treatment stops safely",
+        "reuse release closes or remains inhibited",
+        "raw and treated inventories remain physically segregated",
+        "protected mains fallback is unaffected"
+      ],
+      "prohibited_outcomes": [
+        "untreated release",
+        "backflow to potable side",
+        "uncontained overflow"
+      ],
+      "observables": [
+        "power_state",
+        "release_valve_state",
+        "tank_levels",
+        "outlet_flow",
+        "overflow_flow"
+      ],
+      "recovery": "Restore power, complete restart checks and verify process barrier readiness before release.",
+      "acceptance": "Safe state observed on every trial; no unqualified release; recovery only after re-admission."
+    },
+    {
+      "fault_id": "F-002",
+      "name": "UV barrier/lamp unavailable",
+      "fault_class": "disinfection",
+      "preconditions": [
+        "UV barrier is selected and installed",
+        "validated flow/UVT/irradiance monitoring method exists"
+      ],
+      "injection": "Simulate lamp fault or barrier-not-ready condition using manufacturer-approved test interface; do not disable UV and allow flow to a live use outlet.",
+      "expected_state": [
+        "release interlock denies product release for uses requiring UV",
+        "water remains quarantined or is diverted to approved residual route",
+        "fault event is logged"
+      ],
+      "prohibited_outcomes": [
+        "release on UV power-on alone",
+        "reuse while dose state is unknown"
+      ],
+      "observables": [
+        "lamp_status",
+        "UV_intensity",
+        "flow",
+        "UVT_if_measured",
+        "release_state"
+      ],
+      "recovery": "Correct fault, perform barrier proof test and required sample/process verification before re-admission.",
+      "acceptance": "Every seeded unready state blocks release."
+    },
+    {
+      "fault_id": "F-003",
+      "name": "UV sensor stale or unadmitted",
+      "fault_class": "metrology",
+      "preconditions": [
+        "critical UV measurand mapped to Mycelix instrument/channel identity"
+      ],
+      "injection": "Freeze timestamp or invalidate test measurement admission in a synthetic/safe test mode.",
+      "expected_state": [
+        "measurement marked unadmitted",
+        "release inhibited",
+        "no last-good value silently carried forward"
+      ],
+      "prohibited_outcomes": [
+        "stale reading treated as current",
+        "AI estimate replaces missing value"
+      ],
+      "observables": [
+        "channel_time",
+        "admission_state",
+        "release_state"
+      ],
+      "recovery": "Restore valid channel/timebase/calibration evidence and complete interlock reset procedure.",
+      "acceptance": "No release while critical measurement is stale/unadmitted."
+    },
+    {
+      "fault_id": "F-004",
+      "name": "Membrane integrity failure",
+      "fault_class": "membrane",
+      "preconditions": [
+        "UF module selected; approved non-contaminating integrity-test method available"
+      ],
+      "injection": "Apply validated integrity-test challenge or approved simulator input without feeding a compromised product to use outlet.",
+      "expected_state": [
+        "membrane module isolated",
+        "product outlet blocked/quarantined",
+        "feed routed to approved reject/hold path"
+      ],
+      "prohibited_outcomes": [
+        "membrane bypass with continued service credit",
+        "manual software override without independent proof"
+      ],
+      "observables": [
+        "integrity_test_result",
+        "TMP",
+        "flow",
+        "release_state",
+        "reject_volume"
+      ],
+      "recovery": "Repair/replace membrane, perform integrity test and recommission process before release.",
+      "acceptance": "Every failed/indeterminate integrity test blocks product release."
+    },
+    {
+      "fault_id": "F-005",
+      "name": "High turbidity / feed out of admitted envelope",
+      "fault_class": "source_quality",
+      "preconditions": [
+        "declared challenge envelope and test method frozen",
+        "safe batch containment present"
+      ],
+      "injection": "Introduce a safe, non-hazardous feed challenge only within the separately approved test protocol or replay a synthetic sensor signal.",
+      "expected_state": [
+        "source batch is not admitted or process diversion is triggered",
+        "batch identity retained",
+        "treatment not credited outside its declared envelope"
+      ],
+      "prohibited_outcomes": [
+        "silent dilution into accepted batch",
+        "unqualified product credit"
+      ],
+      "observables": [
+        "turbidity_or_proxy",
+        "batch_id",
+        "diversion_state",
+        "source_and_reject_volumes"
+      ],
+      "recovery": "Return to admitted source conditions, clean/inspect as specified, and re-qualify.",
+      "acceptance": "Out-of-envelope feed cannot create an admitted product result."
+    },
+    {
+      "fault_id": "F-006",
+      "name": "Raw equalisation tank high level / overflow",
+      "fault_class": "storage",
+      "preconditions": [
+        "overflow route inspected and approved"
+      ],
+      "injection": "Raise level using measured safe water inflow to predefined test threshold.",
+      "expected_state": [
+        "inflow isolated or diverted",
+        "overflow follows dedicated approved route",
+        "no overflow into building or potable infrastructure"
+      ],
+      "prohibited_outcomes": [
+        "uncontained spill",
+        "cross-contamination between raw and treated tanks"
+      ],
+      "observables": [
+        "level",
+        "inlet_flow",
+        "overflow_flow",
+        "isolation_state"
+      ],
+      "recovery": "Lower level, identify cause, inspect tank/route, reset with recorded event.",
+      "acceptance": "Overflow is contained and measured/uncertainty-bounded."
+    },
+    {
+      "fault_id": "F-007",
+      "name": "Treated quarantine tank high level",
+      "fault_class": "treated_storage",
+      "preconditions": [
+        "quarantine tank not connected to use without release interlock"
+      ],
+      "injection": "Raise treated tank level to the declared high threshold using admitted test water.",
+      "expected_state": [
+        "upstream feed stops or diverts",
+        "release remains governed only by valid admission",
+        "overflow has a dedicated approved route"
+      ],
+      "prohibited_outcomes": [
+        "raw/treatment bypass to outlet",
+        "unmeasured treated overflow"
+      ],
+      "observables": [
+        "quarantine_level",
+        "feed_state",
+        "overflow_flow",
+        "release_state"
+      ],
+      "recovery": "Restore normal level and verify sample/age status before release.",
+      "acceptance": "No unmeasured overflow or release bypass."
+    },
+    {
+      "fault_id": "F-008",
+      "name": "Pump failure / dry-run / overpressure",
+      "fault_class": "hydraulic",
+      "preconditions": [
+        "pump, pressure boundary and protection limits independently reviewed"
+      ],
+      "injection": "Use controlled manufacturer-approved simulation or isolated test fixture; do not dead-head an unprotected pump.",
+      "expected_state": [
+        "pump stops or protective trip occurs",
+        "reuse release is isolated if delivery envelope is lost",
+        "gravity fallback only remains available if separately designed and admitted"
+      ],
+      "prohibited_outcomes": [
+        "continued dry-run",
+        "unbounded pressure",
+        "claim of service under failed flow/pressure floor"
+      ],
+      "observables": [
+        "pump_current",
+        "pressure",
+        "flow",
+        "trip_state",
+        "service_state"
+      ],
+      "recovery": "Repair, pressure/flow check, dry-run protection proof and requalification.",
+      "acceptance": "Protection operates within approved design limits; no uncontrolled discharge."
+    },
+    {
+      "fault_id": "F-009",
+      "name": "GAC breakthrough / media identity unknown",
+      "fault_class": "adsorption",
+      "preconditions": [
+        "GAC module selected with target analytes and breakthrough method"
+      ],
+      "injection": "Use a safe reference/test solution or simulated limit event from approved analytical method.",
+      "expected_state": [
+        "module output not admitted after endpoint",
+        "release blocks or diverts",
+        "media identity and replacement event recorded"
+      ],
+      "prohibited_outcomes": [
+        "calendar-only life claim without evidence",
+        "release after detected breakthrough"
+      ],
+      "observables": [
+        "target_analyte_result",
+        "bed_volume",
+        "media_lot",
+        "release_state"
+      ],
+      "recovery": "Replace media, verify lot and commissioning, run required analytical check.",
+      "acceptance": "Breakthrough/unknown lot causes isolation."
+    },
+    {
+      "fault_id": "F-010",
+      "name": "Ozone off-gas / residual safety fault",
+      "fault_class": "oxidation_safety",
+      "preconditions": [
+        "ozone module selected and specific hazard review/monitoring installed"
+      ],
+      "injection": "Only an approved non-emitting sensor simulation unless a qualified hazardous-process test procedure exists.",
+      "expected_state": [
+        "ozone generation de-energizes",
+        "process feed isolated",
+        "off-gas handling remains safe",
+        "no output release"
+      ],
+      "prohibited_outcomes": [
+        "uncontrolled ozone release",
+        "operator exposure",
+        "oxidant residual unknown at product boundary"
+      ],
+      "observables": [
+        "ozone_generator_state",
+        "offgas_monitor",
+        "residual_monitor",
+        "release_state"
+      ],
+      "recovery": "Qualified inspection, gas-free/measurement proof, repair and recommissioning.",
+      "acceptance": "All detected or unknown safety states stop generation and block release."
+    },
+    {
+      "fault_id": "F-011",
+      "name": "Communications/cloud loss",
+      "fault_class": "communications",
+      "preconditions": [
+        "local deterministic control and manual safe operating procedure available"
+      ],
+      "injection": "Disconnect external network/telemetry while local control remains powered.",
+      "expected_state": [
+        "local safety logic continues deterministically",
+        "no remote dependency for safe shutdown/hold",
+        "loss of remote observability is recorded"
+      ],
+      "prohibited_outcomes": [
+        "fail-open release",
+        "unsafe behaviour due cloud dependency"
+      ],
+      "observables": [
+        "network_state",
+        "local_controller_state",
+        "release_state",
+        "alarm_log"
+      ],
+      "recovery": "Restore connection and reconcile events without retroactive quality admission.",
+      "acceptance": "No change to safe-state behaviour; no cloud-required safety dependency."
+    },
+    {
+      "fault_id": "F-012",
+      "name": "Conflicting or stale quality evidence",
+      "fault_class": "evidence",
+      "preconditions": [
+        "sample/result identities bound to source batch, time and use profile"
+      ],
+      "injection": "Seed a stale, mismatched-batch or contradictory quality assessment in a test-only data fixture.",
+      "expected_state": [
+        "assessment is Indeterminate or Rejected",
+        "release inhibited",
+        "no quality evidence is reassigned to a different batch"
+      ],
+      "prohibited_outcomes": [
+        "reuse last batch result",
+        "average conflicting values into a pass",
+        "AI reconciliation treated as lab assessment"
+      ],
+      "observables": [
+        "sample_id",
+        "batch_id",
+        "sample_time",
+        "assessment_state",
+        "release_state"
+      ],
+      "recovery": "Acquire correct sample/evidence and independent assessment; re-evaluate exact batch.",
+      "acceptance": "Any stale/identity conflict blocks use credit."
+    },
+    {
+      "fault_id": "F-013",
+      "name": "Timebase / event identity mismatch",
+      "fault_class": "data_integrity",
+      "preconditions": [
+        "instrument streams and controller events synchronized under admitted timebase"
+      ],
+      "injection": "Seed a time offset, duplicate timestamp or mismatched event identity in a test fixture.",
+      "expected_state": [
+        "affected evidence marked unadmitted",
+        "service or quality claim abstains where temporal linkage is critical"
+      ],
+      "prohibited_outcomes": [
+        "silent timestamp normalization",
+        "join samples to wrong process batch"
+      ],
+      "observables": [
+        "clock_status",
+        "event_id",
+        "sample_id",
+        "manifest_timebase"
+      ],
+      "recovery": "Correct clock and replay/reconcile source event trail.",
+      "acceptance": "Mismatched event-time identity never earns product credit."
+    },
+    {
+      "fault_id": "F-014",
+      "name": "Power restoration / process restart",
+      "fault_class": "recovery",
+      "preconditions": [
+        "power-loss state tested; restart protocol frozen"
+      ],
+      "injection": "Restore supply after a controlled interruption while product remains quarantined.",
+      "expected_state": [
+        "start-up sequence checks barriers, tank age and sample validity",
+        "release remains inhibited until all required checks pass",
+        "recovery time recorded"
+      ],
+      "prohibited_outcomes": [
+        "automatic release on power restoration alone",
+        "old sample treated as valid after storage/process change"
+      ],
+      "observables": [
+        "restart_state",
+        "barrier_status",
+        "sample_age",
+        "release_state",
+        "time_to_requalification"
+      ],
+      "recovery": "Complete documented restart, cleaning and proof-test actions; independently re-admit.",
+      "acceptance": "Release only after all required recovery checks."
+    },
+    {
+      "fault_id": "F-015",
+      "name": "Source cross-mix / wrong source connector",
+      "fault_class": "source_identity",
+      "preconditions": [
+        "source connectors physically keyed/labelled; isolated test fixture"
+      ],
+      "injection": "Seed incorrect source ID in a simulated input or use an inert non-contaminating labelled fluid in a test rig.",
+      "expected_state": [
+        "batch retains true identity or becomes unadmitted",
+        "incompatible source cannot silently enter a different source train"
+      ],
+      "prohibited_outcomes": [
+        "incorrect batch identity accepted",
+        "unreviewed stream mixing"
+      ],
+      "observables": [
+        "source_connector_id",
+        "batch_id",
+        "valve_state",
+        "source_volume"
+      ],
+      "recovery": "Isolate, drain/clean according to reviewed procedure and reinspect keyed interface.",
+      "acceptance": "Wrong-source condition blocks downstream release."
+    },
+    {
+      "fault_id": "F-016",
+      "name": "Nature-based cell clogging / short circuit",
+      "fault_class": "wetland",
+      "preconditions": [
+        "wetland module selected and instrumented for level/flow distribution"
+      ],
+      "injection": "Apply a bounded hydraulic-loading challenge within approved limits or simulate differential level/flow response.",
+      "expected_state": [
+        "performance outside hydraulic envelope causes module isolation or diversion",
+        "clogging/short-circuit evidence logged"
+      ],
+      "prohibited_outcomes": [
+        "nominal throughput assumed while residence distribution fails",
+        "overflow to unapproved route"
+      ],
+      "observables": [
+        "inlet_outlet_flow",
+        "head_loss",
+        "water_level_profile",
+        "maintenance_event"
+      ],
+      "recovery": "Inspect/maintain media and re-establish hydraulic performance before output admission.",
+      "acceptance": "Declared hydraulic failure is detected and no unsupported treatment claim is made."
+    }
+  ],
+  "global_acceptance": [
+    "Every seeded critical fault reaches its specified safe state in every valid trial.",
+    "Zero release occurs while a required barrier, quality admission or critical measurement is unknown/failed.",
+    "No potable/nonpotable cross-connection is created or tolerated.",
+    "All source, product, reject, purge, backwash, overflow and drain flows are reconciled within the admitted metrology uncertainty.",
+    "Each failed trial retains the configuration, event, sample and instrument identity; no failed run is hidden."
+  ],
+  "explicit_nonclaims": [
+    "This matrix does not qualify any safety interlock or hardware component.",
+    "Fault injection is not authorised until the test-cell owner and relevant professionals approve the method.",
+    "No contaminated or hazardous challenge fluid may be used without a separately approved handling and disposal plan."
+  ]
+}
