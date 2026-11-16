@@ -687,3 +687,9 @@ Track V hardening: the reported independent model-family-pair count and Pareto d
 
 
 Track V gate-custody structural hardening: each of five affirmative gate roles is tied to a policy-pinned expected issuer namespace, and each structured receipt must resolve to the candidate's exact payload-digest reference. Arbitrary non-empty issuer labels and receipt presence without a referenced payload are rejected. Signature authenticity and issuer authority remain Track Q/Mycelix responsibilities.
+
+
+
+### Track W — experiment execution fidelity and evidence completeness (#5670)
+
+Bridges Track V selection to Track T/U adjudication. Compares the exact frozen candidate, policy, design, procedure, scenario and measurement plan with actual model/aircraft/control/sensor/solver/reference configuration, authority scope and validity, run time, realized environmental strata, deviations, aborts and raw data. Each expected measurement window binds its calibration receipt, measurement profile, time/frame/datum and minimum samples. Each captured segment binds a raw payload digest, raw-data manifest and capture receipt; segments cannot splice multiple manifests or substitute calibration evidence. Missing windows remain incomplete; aborts and adverse outcomes remain in the run record. Positive status is EXECUTION_CONFORMING only for exact structural conformance and complete data-window coverage. The verifier does not execute tests, authenticate receipts or bytes, validate physical models, establish safety or authorize flight.
