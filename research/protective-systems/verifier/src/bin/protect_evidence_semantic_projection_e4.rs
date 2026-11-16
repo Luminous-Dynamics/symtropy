@@ -624,6 +624,15 @@ fn build_envelope(
     ogc: &Value,
     openlineage: &Value,
 ) -> Result<ProjectionEnvelope, String> {
+    build_envelope_with_source_bytes(datacite, ogc, openlineage, [DATACITE, OGC, OPENLINEAGE])
+}
+
+fn build_envelope_with_source_bytes(
+    datacite: &Value,
+    ogc: &Value,
+    openlineage: &Value,
+    source_bytes: [&[u8]; 3],
+) -> Result<ProjectionEnvelope, String> {
     let (datacite_view, mut mapping_decisions) = project_datacite(datacite)?;
     let (ogc_view, ogc_decisions) = project_ogc(ogc)?;
     let (lineage_view, lineage_decisions) = project_openlineage(openlineage)?;
@@ -650,19 +659,19 @@ fn build_envelope(
                 "DATACITE",
                 "DataCite REST JSON:API / Metadata Schema 4.7 selected field profile",
                 &datacite_identity,
-                DATACITE,
+                source_bytes[0],
             ),
             receipt(
                 "OGC_API_RECORDS",
                 "OGC API - Records Part 1 Core 1.0 GeoJSON",
                 &ogc_identity,
-                OGC,
+                source_bytes[1],
             ),
             receipt(
                 "OPENLINEAGE",
                 "OpenLineage RunEvent 2.0.2",
                 &lineage_identity,
-                OPENLINEAGE,
+                source_bytes[2],
             ),
         ],
         provider_views: views,
@@ -917,14 +926,25 @@ mod tests {
     }
 
     #[test]
-    fn input_json_key_order_and_whitespace_do_not_change_semantic_projection() {
+    fn input_json_key_order_and_whitespace_do_not_change_semantics_but_change_byte_digest() {
         let (datacite, ogc, lineage) = parsed_fixtures();
         let envelope_a = build_envelope(&datacite, &ogc, &lineage).expect("baseline");
         let compact_datacite = serde_json::to_string(&datacite).expect("compact JSON");
         let reparsed_datacite = parse(compact_datacite.as_bytes(), "compact DataCite").expect("parse");
-        let envelope_b =
-            build_envelope(&reparsed_datacite, &ogc, &lineage).expect("reproject compact JSON");
-        assert_eq!(envelope_a, envelope_b);
+        let envelope_b = build_envelope_with_source_bytes(
+            &reparsed_datacite,
+            &ogc,
+            &lineage,
+            [compact_datacite.as_bytes(), OGC, OPENLINEAGE],
+        )
+        .expect("reproject compact JSON");
+        assert_eq!(envelope_a.provider_views, envelope_b.provider_views);
+        assert_eq!(envelope_a.mapping_decisions, envelope_b.mapping_decisions);
+        assert_ne!(
+            envelope_a.source_receipts[0].source_sha256,
+            envelope_b.source_receipts[0].source_sha256,
+            "raw source digest remains byte-sensitive"
+        );
     }
 
     #[test]
@@ -937,6 +957,72 @@ mod tests {
         };
         assert_eq!(view.preserved_json_api_meta["providerUnknown"]["explicitUnknown"], Value::Null);
         let _ = (ogc, lineage);
+    }
+
+    #[test]
+    fn unknown_datacite_attribute_is_preserved_and_classified() {
+        let (mut datacite, ogc, lineage) = parsed_fixtures();
+        datacite["data"]["attributes"]["futureProviderField"] =
+            Value::String("keep-native-only".into());
+        let (view, decisions) = project_datacite(&datacite).expect("DataCite projection");
+        let ProviderNativeView::DataCite(view) = view else {
+            panic!("DataCite view expected")
+        };
+        assert_eq!(
+            view.preserved_unmapped_attributes["futureProviderField"],
+            "keep-native-only"
+        );
+        assert!(decisions.iter().any(|item| {
+            item.source_path == "/data/attributes/futureProviderField"
+                && item.classification == MappingClass::UnknownOrUnsupported
+                && item.target_path.as_deref()
+                    == Some("/native_view/preserved_unmapped_attributes")
+        }));
+        assert!(roundtrip(&view).expect("DataCite unknown field roundtrip"));
+        let _ = (ogc, lineage);
+    }
+
+    #[test]
+    fn unknown_ogc_property_is_preserved_and_classified() {
+        let (datacite, mut ogc, lineage) = parsed_fixtures();
+        ogc["properties"]["futureCatalogProperty"] =
+            json!({"keep": "native"});
+        let (view, decisions) = project_ogc(&ogc).expect("OGC projection");
+        let ProviderNativeView::OgcRecords(view) = view else {
+            panic!("OGC view expected")
+        };
+        assert_eq!(
+            view.preserved_unmapped_properties["futureCatalogProperty"]["keep"],
+            "native"
+        );
+        assert!(decisions.iter().any(|item| {
+            item.source_path == "/properties/futureCatalogProperty"
+                && item.classification == MappingClass::UnknownOrUnsupported
+        }));
+        assert!(roundtrip(&view).expect("OGC unknown field roundtrip"));
+        let _ = (datacite, lineage);
+    }
+
+    #[test]
+    fn unknown_openlineage_facet_is_preserved_and_classified() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        lineage["events"][0]["run"]["facets"]["futureFacet"] =
+            json!({"opaque": "retain"});
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        let (view, decisions) = project_openlineage(&lineage, &e1).expect("OpenLineage projection");
+        let ProviderNativeView::OpenLineage(view) = view else {
+            panic!("OpenLineage view expected")
+        };
+        assert_eq!(
+            view.preserved_native_events[0]["run"]["facets"]["futureFacet"]["opaque"],
+            "retain"
+        );
+        assert!(decisions.iter().any(|item| {
+            item.source_path == "/events/0/run/facets/futureFacet"
+                && item.classification == MappingClass::UnknownOrUnsupported
+        }));
+        assert!(roundtrip(&view).expect("OpenLineage unknown facet roundtrip"));
+        let _ = (datacite, ogc);
     }
 
     #[test]
