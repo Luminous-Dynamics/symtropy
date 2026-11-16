@@ -130,6 +130,9 @@ pub struct ProductAcceptanceEvidence {
     pub accepted_product_mass_kg: MetricInterval,
     pub measured_purity_fraction: MetricInterval,
     pub minimum_purity_fraction: f64,
+    pub product_batch_sha256: String,
+    pub assayed_product_batch_sha256: Option<String>,
+    pub assayed_product_contract_sha256: Option<String>,
     pub independent_assay_id: Option<String>,
     pub independent_assay_issuer_id: Option<String>,
     pub independent_assay_record_sha256: Option<String>,
@@ -143,7 +146,9 @@ impl ProductAcceptanceEvidence {
             .validate_nonnegative("accepted_product_mass_kg")?;
         self.measured_purity_fraction
             .validate_fraction("measured_purity_fraction")?;
-
+        if !is_sha256_digest(&self.product_batch_sha256) {
+            return Err(TournamentError::InvalidDigest("product_batch_sha256"));
+        }
         if !self.minimum_purity_fraction.is_finite()
             || !(0.0..=1.0).contains(&self.minimum_purity_fraction)
         {
@@ -278,6 +283,16 @@ impl CandidateRun {
         {
             return Err(TournamentError::AssayIssuerNotIndependent);
         }
+        if self.product.assayed_product_batch_sha256.as_deref()
+            != Some(self.product.product_batch_sha256.as_str())
+        {
+            return Err(TournamentError::AssayBatchMismatch);
+        }
+        if self.product.assayed_product_contract_sha256.as_deref()
+            != Some(self.campaign.product_contract_sha256.as_str())
+        {
+            return Err(TournamentError::AssayContractMismatch);
+        }
         if self.campaign.comparability_track == ComparabilityTrack::ProcessIsolation {
             match &self.shared_test_fixture_id {
                 Some(id) if !id.trim().is_empty() => {}
@@ -378,8 +393,8 @@ pub struct CandidateMetrics {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PairComparison {
-    A_Robustly_Dominates,
-    B_Robustly_Dominates,
+    FirstRobustlyDominates,
+    SecondRobustlyDominates,
     Incomparable,
     NotComparable(&'static str),
 }
@@ -491,6 +506,8 @@ pub enum TournamentError {
     IndependentAssayMissing,
     IndependentAssayRecordMissing,
     AssayIssuerNotIndependent,
+    AssayBatchMismatch,
+    AssayContractMismatch,
     CalibrationNotCurrent,
     DuplicateCandidateId,
 }
@@ -532,6 +549,12 @@ impl std::fmt::Display for TournamentError {
             }
             Self::AssayIssuerNotIndependent => {
                 write!(f, "assay issuer must differ from the candidate operator")
+            }
+            Self::AssayBatchMismatch => {
+                write!(f, "independent assay must bind the exact accepted product batch")
+            }
+            Self::AssayContractMismatch => {
+                write!(f, "independent assay must bind the campaign product contract")
             }
             Self::CalibrationNotCurrent => {
                 write!(f, "candidate calibration status is not current")
@@ -592,9 +615,12 @@ mod tests {
                 accepted_product_mass_kg: product_mass,
                 measured_purity_fraction: interval(0.995, 0.999),
                 minimum_purity_fraction: 0.99,
+                product_batch_sha256: digest('a'),
+                assayed_product_batch_sha256: Some(digest('a')),
+                assayed_product_contract_sha256: Some(digest('c')),
                 independent_assay_id: Some(format!("assay-{id}")),
                 independent_assay_issuer_id: Some("independent-lab-001".to_string()),
-                independent_assay_record_sha256: Some(digest('a')),
+                independent_assay_record_sha256: Some(digest('b')),
             },
             material_balance: MaterialBalance {
                 feedstock_input_kg: 10.0,
@@ -882,6 +908,26 @@ mod tests {
         assert_eq!(
             candidate.validate().unwrap_err(),
             TournamentError::IndependentAssayRecordMissing
+        );
+    }
+
+    #[test]
+    fn assay_must_bind_exact_product_batch() {
+        let mut candidate = strong_candidate();
+        candidate.product.assayed_product_batch_sha256 = Some(digest('z'));
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::AssayBatchMismatch
+        );
+    }
+
+    #[test]
+    fn assay_must_bind_campaign_product_contract() {
+        let mut candidate = strong_candidate();
+        candidate.product.assayed_product_contract_sha256 = Some(digest('z'));
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::AssayContractMismatch
         );
     }
 
