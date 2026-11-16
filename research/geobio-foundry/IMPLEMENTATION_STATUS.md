@@ -65,7 +65,7 @@
 | Subterra site/profile synthetic fixtures | **PASS** | Both fixture records validate against their respective schemas with format checking |
 | Subterra network schema/fixture JSON syntax | **PASS** | Both committed files parse as JSON; Draft 2020-12 meta-validation/fixture validation not yet executed for this new schema |
 | Observation-lineage schema/fixture | **PASS (schema + fixture)** | Draft 2020-12 meta-validation and fixture validation were executed against the exact committed blobs; source-graph referential integrity/cycle checks and site observation cross-reference validation remain pending |
-| Cross-repository typed lineage consumer | **AUTHORED, NOT EXECUTED** | Symthaea draft PR #12465 copies the exact six-record fixture and adds strict JSON parsing, source graph/acquisition-ancestry validation and external split-map auditing; its 39 tests remain uncompiled/unexecuted and CI-skipped |
+| Cross-repository typed lineage consumer | **AUTHORED, NOT EXECUTED** | Symthaea draft PR #12465 copies the exact six-record lineage and three site-evidence fixtures; strict JSON parsing, source graph/acquisition-ancestry validation, full site/observation reference coverage and external split-map auditing are authored but not compiled/executed |
 | Synthetic fixture against schema | **PASS** | Format checker enabled; zero validation errors |
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |

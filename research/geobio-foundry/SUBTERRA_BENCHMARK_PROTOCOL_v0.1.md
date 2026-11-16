@@ -143,3 +143,13 @@ The Symthaea draft dependence auditor (PR #12465) consumes this sidecar schema u
 | ProvenanceBoundaryBench | Opaque refs are not upgraded into verified authenticity claims | Zero authority/evidence promotion from reference presence alone |
 
 The synthetic fixture contains two sites sharing calibration and environmental episodes, with three related raw/derived records from one acquisition at site A and an isolated third site. It is an adversarial split-design fixture, not empirical planetary data.
+
+
+## 11. Site-evidence observation cross-reference fixtures
+
+Three synthetic, schema-conforming site-evidence records accompany the lineage manifest. Their observation ID sets exactly cover the six lineage records:
+- Site A: two raw acquisitions, a mesh and a derived feature product.
+- Site B: one raw acquisition sharing instrument-calibration and environmental episodes with Site A.
+- Site C: one isolated raw acquisition used as the evaluation control.
+
+The consumer must check that every lineage record's `site_id` and `observation_id` match exactly one site-evidence observation and that every site-evidence observation has exactly one lineage record. This rejects dangling observations, wrong-site binding, duplicate observation reuse and incomplete lineage manifests. The check is performed against the typed fields from schema-conforming site-evidence documents; it does not authenticate provenance references.
