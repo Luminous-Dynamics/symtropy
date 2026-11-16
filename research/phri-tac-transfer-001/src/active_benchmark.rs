@@ -904,6 +904,45 @@ impl MetricSummary {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BootstrapMeanInterval {
+    pub lower_95: f64,
+    pub upper_95: f64,
+}
+
+fn bootstrap_mean_interval(
+    samples: &[f64],
+    seed: u64,
+    resample_count: usize,
+) -> Result<BootstrapMeanInterval, String> {
+    if samples.len() < 2
+        || samples.iter().any(|sample| !sample.is_finite())
+        || seed == 0
+        || resample_count < 100
+    {
+        return Err("bootstrap requires at least two finite paired samples, a nonzero seed and 100 resamples".to_owned());
+    }
+
+    let mut state = seed;
+    let mut means = Vec::with_capacity(resample_count);
+    for _ in 0..resample_count {
+        let mut total = 0.0;
+        for _ in 0..samples.len() {
+            let index = (xorshift64(&mut state) as usize) % samples.len();
+            total += samples[index];
+        }
+        means.push(total / samples.len() as f64);
+    }
+
+    means.sort_by(f64::total_cmp);
+    let lower_index = ((means.len() - 1) as f64 * 0.025).floor() as usize;
+    let upper_index = ((means.len() - 1) as f64 * 0.975).ceil() as usize;
+    Ok(BootstrapMeanInterval {
+        lower_95: means[lower_index],
+        upper_95: means[upper_index],
+    })
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct CampaignPolicyResult {
     pub policy_id: &'static str,
@@ -918,6 +957,9 @@ pub struct CampaignPolicyResult {
     /// Paired per-seed RMSE difference against the full target-grid arm.
     /// Negative values favor this policy on this synthetic response family.
     pub paired_rmse_delta_vs_full_grid_n: MetricSummary,
+    /// Percentile bootstrap interval over paired seed-level RMSE deltas.
+    /// This is synthetic-seed variability, not physical-population coverage.
+    pub paired_rmse_delta_vs_full_grid_bootstrap_95: BootstrapMeanInterval,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1000,7 +1042,11 @@ pub fn run_active_calibration_campaign(
     }
 
     let mut campaign_results = Vec::with_capacity(policy_count);
-    for (results, paired_deltas) in per_policy_results.into_iter().zip(paired_rmse_deltas) {
+    for (policy_index, (results, paired_deltas)) in per_policy_results
+        .into_iter()
+        .zip(paired_rmse_deltas)
+        .enumerate()
+    {
         let first = results
             .first()
             .ok_or_else(|| "campaign policy result unexpectedly empty".to_owned())?;
@@ -1009,6 +1055,16 @@ pub fn run_active_calibration_campaign(
             let samples: Vec<_> = results.iter().map(extract).collect();
             MetricSummary::from_samples(&samples)
         };
+        let mut bootstrap_seed =
+            first_seed ^ (policy_index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        if bootstrap_seed == 0 {
+            bootstrap_seed = 1;
+        }
+        let paired_bootstrap = bootstrap_mean_interval(
+            &paired_deltas,
+            bootstrap_seed,
+            2_000,
+        )?;
 
         campaign_results.push(CampaignPolicyResult {
             policy_id: first.policy_id,
@@ -1023,6 +1079,7 @@ pub fn run_active_calibration_campaign(
                 result.total_estimated_fixture_cost_ms as f64
             })?,
             paired_rmse_delta_vs_full_grid_n: MetricSummary::from_samples(&paired_deltas)?,
+            paired_rmse_delta_vs_full_grid_bootstrap_95: paired_bootstrap,
         });
     }
 
@@ -1131,6 +1188,21 @@ mod tests {
     }
 
     #[test]
+    fn paired_seed_bootstrap_is_deterministic_and_resamples_seed_level_deltas() {
+        let samples = [-0.2, -0.1, 0.0, 0.1, 0.2];
+        let first = bootstrap_mean_interval(&samples, 123, 2_000)
+            .expect("bootstrap interval");
+        let replay = bootstrap_mean_interval(&samples, 123, 2_000)
+            .expect("deterministic replay");
+        let other = bootstrap_mean_interval(&samples, 124, 2_000)
+            .expect("different deterministic seed");
+        assert_eq!(first, replay);
+        assert!(first.lower_95 <= first.upper_95);
+        assert!(first.lower_95 <= 0.0 && first.upper_95 >= 0.0);
+        assert_ne!(first, other);
+    }
+
+    #[test]
     fn campaign_requires_at_least_fifty_paired_replicates() {
         assert!(run_active_calibration_campaign(20261116, 49).is_err());
         assert!(run_active_calibration_campaign(0, 50).is_err());
@@ -1155,6 +1227,10 @@ mod tests {
             assert!(policy.rmse_n.p95.is_finite());
             assert!(policy.rmse_n.maximum.is_finite());
             assert!(policy.paired_rmse_delta_vs_full_grid_n.mean.is_finite());
+            assert!(
+                policy.paired_rmse_delta_vs_full_grid_bootstrap_95.lower_95
+                    <= policy.paired_rmse_delta_vs_full_grid_bootstrap_95.upper_95
+            );
             assert!((0.0..=1.0).contains(&policy.prediction_interval_coverage_95.mean));
         }
     }
