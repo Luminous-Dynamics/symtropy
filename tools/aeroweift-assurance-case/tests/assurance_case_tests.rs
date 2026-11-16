@@ -956,3 +956,142 @@ fn hazard_must_be_explicitly_addressed_by_a_claim_or_strategy() {
     assert!(blocker(&result, BlockerReason::HazardNotLinkedToArgument));
     assert_eq!(result.status, AssuranceStatus::IncompleteArgument);
 }
+
+
+#[test]
+fn conflict_performance_receipt_cannot_substitute_for_model_credibility() {
+    let (mut nodes, edges) = positive_case();
+    let evidence = nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-model-validation")
+        .unwrap()
+        .evidence
+        .as_mut()
+        .unwrap();
+    evidence.source_kind = EvidenceSourceKind::TrackR;
+    evidence.purpose = EvidencePurpose::ConflictPerformance;
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::MissingRequiredEvidencePurpose
+    ));
+    assert!(blocker(
+        &result,
+        BlockerReason::InsufficientIndependentEvidenceGroups
+    ));
+}
+
+#[test]
+fn model_credibility_receipt_cannot_substitute_for_physical_mitigation_effectiveness() {
+    let (mut nodes, edges) = positive_case();
+    let evidence = nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-mitigation-test")
+        .unwrap()
+        .evidence
+        .as_mut()
+        .unwrap();
+    evidence.source_kind = EvidenceSourceKind::TrackT;
+    evidence.purpose = EvidencePurpose::ModelCredibility;
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::MissingRequiredEvidencePurpose
+    ));
+}
+
+#[test]
+fn source_owner_and_evidence_purpose_must_be_compatible() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-model-validation")
+        .unwrap()
+        .evidence
+        .as_mut()
+        .unwrap()
+        .purpose = EvidencePurpose::ConflictPerformance;
+    assert_eq!(
+        evaluate(&nodes, &edges),
+        Err(EvaluationError::EvidencePurposeSourceMismatch)
+    );
+}
+
+#[test]
+fn every_claim_requires_an_independent_policy_pinned_evidence_requirement() {
+    let (nodes, edges) = positive_case();
+    let mut frozen = policy();
+    frozen
+        .required_claim_evidence
+        .retain(|item| item.claim_id != "claim-model-envelope");
+    let result = evaluate_assurance_case(&nodes, &edges, "root", &frozen).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::MissingClaimEvidenceRequirement
+    ));
+}
+
+#[test]
+fn every_mitigation_requires_an_independent_policy_pinned_evidence_requirement() {
+    let (nodes, edges) = positive_case();
+    let mut frozen = policy();
+    frozen.required_mitigation_evidence.clear();
+    let result = evaluate_assurance_case(&nodes, &edges, "root", &frozen);
+    assert_eq!(result, Err(EvaluationError::InvalidPolicy));
+}
+
+#[test]
+fn policy_requirement_for_absent_claim_is_reported_as_a_blocker() {
+    let (nodes, edges) = positive_case();
+    let mut frozen = policy();
+    frozen.required_claim_evidence.push(ClaimEvidenceRequirement {
+        claim_id: "claim-that-is-not-present".into(),
+        required_purposes: vec![EvidencePurpose::ModelCredibility],
+    });
+    let result = evaluate_assurance_case(&nodes, &edges, "root", &frozen).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::EvidenceRequirementTargetMissing
+    ));
+}
+
+#[test]
+fn duplicated_evidence_purpose_in_policy_is_rejected() {
+    let (nodes, edges) = positive_case();
+    let mut frozen = policy();
+    frozen.required_claim_evidence[1]
+        .required_purposes
+        .push(EvidencePurpose::ModelCredibility);
+    assert_eq!(
+        evaluate_assurance_case(&nodes, &edges, "root", &frozen),
+        Err(EvaluationError::InvalidPolicy)
+    );
+}
+
+#[test]
+fn unrelated_evidence_purpose_does_not_increase_claim_independence_count() {
+    let (mut nodes, mut edges) = positive_case();
+    let mut extra = evidence_node(
+        "evidence-extra-conflict-performance",
+        EvidenceSourceKind::TrackR,
+        EvidenceDisposition::Qualified,
+        Some("independent-extra-performance-lab"),
+    );
+    extra.evidence.as_mut().unwrap().purpose = EvidencePurpose::ConflictPerformance;
+    nodes.push(extra);
+    edges.push(edge(
+        "evidence-extra-conflict-performance",
+        "claim-model-envelope",
+        EdgeKind::Supports,
+    ));
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert_eq!(
+        result
+            .independent_evidence_groups_by_claim
+            .iter()
+            .find(|(claim_id, _)| claim_id == "claim-model-envelope")
+            .unwrap()
+            .1,
+        1
+    );
+}
