@@ -985,6 +985,23 @@ mod tests {
     }
 
     #[test]
+    fn complete_composition_must_reconcile_to_total_flow_mass() {
+        let mut process = water_electrolysis_fixture();
+        process.inputs[0].elements[0].mass_kg.value = 0.20;
+        assert!(validate_process(&process, 1e-6).is_err());
+    }
+
+    #[test]
+    fn resource_intensity_ratio_overflow_is_rejected() {
+        let mut process = water_electrolysis_fixture();
+        process.products[1].mass_kg.value = 1.0e-308;
+        process.products[1].elements[0].mass_kg.value = 1.0e-308;
+
+        let result = resource_intensity(&process, 1e-6);
+        assert!(matches!(result, Err(KernelError::NumericalOverflow(_))));
+    }
+
+    #[test]
     fn nominal_resource_intensity_keeps_recovered_energy_separate() {
         let report = resource_intensity(&water_electrolysis_fixture(), 1e-6).unwrap();
         assert!((report.primary_product_mass_kg - 0.888102).abs() < 1e-12);
