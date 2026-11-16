@@ -144,7 +144,7 @@ fn positive_case() -> CaseSnapshot {
         node("strategy", NodeKind::Strategy),
         claim_node("claim-model-envelope", NodeKind::Claim, 1),
         node("context-operation", NodeKind::Context),
-        node("context-extra", NodeKind::Context),
+        node("context-redundant", NodeKind::Context),
         {
             let mut hazard = node("hazard-collision", NodeKind::Hazard);
             hazard.hazard_id = Some("collision-avoidance".into());
@@ -178,8 +178,9 @@ fn positive_case() -> CaseSnapshot {
             EdgeKind::Supports,
         ),
         edge("context-operation", "root", EdgeKind::Contextualizes),
-        edge("context-extra", "root", EdgeKind::Contextualizes),
         edge("context-operation", "hazard-collision", EdgeKind::Contextualizes),
+        edge("context-redundant", "root", EdgeKind::Contextualizes),
+        edge("context-redundant", "hazard-collision", EdgeKind::Contextualizes),
         edge("strategy", "hazard-collision", EdgeKind::AddressesHazard),
         edge(
             "mitigation-conflict-screen",
@@ -388,7 +389,7 @@ fn context_only_mutation_can_return_no_counterexample_found_not_a_safety_pass() 
         &attack(
             "remove-non-normative-context-link",
             AttackMutation::RemoveEdge {
-                from_node_id: "context-extra".into(),
+                from_node_id: "context-operation".into(),
                 to_node_id: "root".into(),
                 kind: EdgeKind::Contextualizes,
             },
