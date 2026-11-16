@@ -43,8 +43,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 50,
-      "maxItems": 50,
+      "minItems": 34,
+      "maxItems": 34,
       "items": {
         "type": "object",
         "required": [
@@ -66,8 +66,7 @@
               "service_floor",
               "leak_metrics",
               "service_continuity",
-              "household_economics",
-              "modular_architecture"
+              "household_economics"
             ]
           },
           "inputs": {
