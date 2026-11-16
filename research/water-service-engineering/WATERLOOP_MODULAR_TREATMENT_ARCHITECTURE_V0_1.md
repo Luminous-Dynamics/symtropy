@@ -244,3 +244,98 @@ Manufacturing should use common mechanical and electrical interfaces, but proces
 ## 12. Nonclaims
 
 No process module, train, point-of-use quality, pathogen safety, drinking-water safety, household deployment, cost saving, energy advantage, product certification or manufacturing readiness is qualified by this architecture document.
+
+
+## 13. Source characterization and matched-train tournament — T1 execution increment
+
+The architecture remains a set of candidates. The 16 November 2026 research update changes the next experiment from “choose a promising treatment train” to **measure real feed variability, then compare process candidates on matched aliquots**.
+
+### 13.1 Evidence that changes the experiment
+
+Ninsiima et al. (23 September 2026) reviewed 131 empirical studies and report COD 100–2,000 mg/L, TSS 30–1,000 mg/L and laundry surfactants frequently above 100 mg/L. They identify source mixing, household activity, temporal variation and storage transformations as drivers of fouling, process variability, maintenance and health risk. This supports treating each feed source as its own population before merging it into a process train.
+
+García-Agudelo et al. (29 October 2026) found that ozone/GAC had higher turbidity/COD removal in its bench-scale synthetic-feed test, while UF+UV had stronger reported microbial reductions; the GAC configuration also showed a 7% increase in heterotrophic bacteria associated with biofilm detachment. We therefore retain ozone/GAC as an explicit candidate train, but do not rank it as “better” from COD or turbidity alone.
+
+The full-scale NTSW study provides a separate, low-energy nature-based comparator (three household/school installations; 2.5 years of water-quality monitoring; 0.05–0.17 kWh/m³). Its flow, land, retention and feed boundaries differ, so it remains a separate comparator population.
+
+Sources:
+- Ninsiima et al., 2026: https://doi.org/10.1007/s42452-026-09559-0
+- García-Agudelo et al., 2026: https://doi.org/10.1111/1752-1688.70162
+- Halicki et al., 2026: https://doi.org/10.1016/j.jenvman.2026.130241
+
+### 13.2 Source policy and South African boundary
+
+The Human Settlements Red Book defines greywater as domestic wastewater excluding toilet water and kitchen sink/dishwasher water, and excludes baby/nappy-wash water from the potential greywater resource. It states that household greywater should not be reused untreated. This is the conservative initial source policy; local legal interpretation and the actual fully-serviced-housing conditions still require review.
+
+- South African Human Settlements Red Book, Section J: https://www.dhs.gov.za/sites/default/files/documents/Redbook/REDBOOK_Section_J_Water_v1-1.pdf
+
+The City of Cape Town's alternative-water installation guide recommends use of untreated greywater within 24 hours, treatment and disinfection for longer storage, qualified plumbing, backflow protection, signage and a correct overflow/reject route. The document explicitly says it is guidance and has no official legal status by itself; its municipal Water By-law details are Cape Town-specific. Do not transplant those approvals to Gauteng without the applicable authority and professional review.
+
+- City of Cape Town, *Guidelines for the Installation of Alternative Water Systems*: https://resource.capetown.gov.za/documentcentre/Documents/Procedures%2C%20guidelines%20and%20regulations/Guidelines%20for%20Alternative%20Water%20Installations.pdf
+
+### 13.3 First source-characterization campaign
+
+Keep four evidence populations separate:
+- Bath/shower: first candidate light-greywater reuse stream.
+- Hand-basin: conditional; keep isolated until hygiene/chemical inputs and the site risk are characterized.
+- Laundry: separate challenge population; label wash/rinse phase and detergent/softener/bleach conditions.
+- Roof rainwater: a distinct source family with roof-material, first-flush, storage and microbial/chemical evidence.
+
+Kitchen/dishwasher, toilet/bidet/faecal, baby/nappy wash, animal wash, chemical/trade wash and unknown feeds remain excluded from the first reference train.
+
+Exploratory minimum:
+1. Seven-day source survey for bath/shower and laundry, with daily observations and event-level samples kept distinct.
+2. At least three independent real-feed batches per source class for the first matched bench screen.
+3. Include normal use and predeclared high-load events (e.g. shower peak and separate laundry wash/rinse batches).
+4. Synthetic feed remains a reproducible stress-control matrix only; it cannot replace real-feed observations.
+5. Report distributions and high/low tails, not just one mean. Missing, censored or unknown values stay explicitly qualified.
+
+The analytical panel is source- and use-specific. A common screen can include pH, temperature, conductivity, turbidity, TSS, COD and BOD where appropriate. Laundry requires additional surfactant, sodium, boron, chloride and detergent/phase characterization. Microbiological indicators and method selection must come from Mycelix #6100 / the independent laboratory; turbidity, conductivity and UV sensor status are not substitutes for microbial evidence.
+
+Every sample binds source ID, batch ID, collection point, timestamps/time zone, storage age, method, preservation, laboratory, method revision, detection limit, uncertainty and chain-of-custody identity.
+
+These are exploratory screening minima—not statistical proof of household-population variability or a release threshold.
+
+### 13.4 Matched process-train comparison
+
+Run the following candidate sequences only after the exact feed batch, intended-use profile and trial conditions are frozen:
+
+| Candidate | Sequence | Main comparison question |
+|---|---|---|
+| Train A — passive/media | source selector → screen → equalisation → passive media → final barrier → product hold | Fouling, maintenance, energy and microbial stability at low complexity |
+| Train B — UF | source selector → screen → equalisation → UF → final barrier → product hold | Integrity, normalized flux, TMP, backwash, microbial barrier and recovery |
+| Train C — ozone/GAC | source selector → screen → equalisation → ozone contact → GAC/BAC → downstream microbial assessment/final barrier → product hold | Organic removal vs biofilm shedding, residual/ozone safety, carbon maturity and breakthrough |
+| Train D — nature-based | source selector → screen → equalisation → nature-based cell → polishing/final barrier → product hold | Land, hydraulic retention, temperature/seasonality, clogging and operator burden |
+| Train E — laundry | source selector → screen → equalisation only | Segregated challenge and characterization; **no reuse credit** until a separate downstream train is qualified |
+
+Use matched aliquots or matched source batches, the same declared hydraulic loading and temperature band, consistent sampling schedule, same intended use and a common system boundary. Freeze module sequence and configuration hash before each run. Do not move a module between trains mid-run and pool the results.
+
+At least three independently repeated runs per train/batch are a first exploratory repeatability target; increase the sample size if observed variance requires it. T1 should record start-up/maturation and maintenance, not only steady-state samples.
+
+### 13.5 Non-compensatory scoreboard
+
+Report separate:
+- absolute inlet/outlet concentrations and mass loads, including uncertainty;
+- contaminant-specific removal, not one aggregate percentage;
+- microbial indicator outcomes and independent use-specific assessment;
+- product-water variability and batch-to-batch failure rate;
+- verified use-qualified delivered m³ at the final point-of-use boundary;
+- kWh per useful m³ including standby and auxiliary loads;
+- reject/backwash/concentrate/spent carbon/solids volume and mass;
+- headloss, TMP/flux, integrity fault, breakthrough, cleaning and restart;
+- operator labour, consumables, downtime, and lifecycle cost per useful m³.
+
+A better turbidity/COD result cannot offset a failed microbial barrier, off-spec batch, cross-connection or unaccounted residual. No weighted scalar score may select a process train where a non-compensatory safety criterion fails.
+
+### 13.6 Design updates
+
+The machine-readable architecture now adds:
+- explicit physical potable/non-potable separation and cross-connection challenge requirements;
+- v0.1 prohibition on enabling a potable makeup connection;
+- backflow/air-gap details left unassigned pending local qualified design and approval;
+- reject/overflow and failure-bypass route placeholders that remain unauthorized until site review;
+- batch-specific independent quality admission and prohibition on sensor-only release;
+- sample provenance fields, seven-day source survey and three independent feed batches as exploratory minima;
+- Train E as an ozone/GAC candidate, alongside passive, UF and nature-based comparisons.
+
+The Rust structural verifier checks these design invariants and keeps `qualification_status: NotRun`. It does not simulate flow or treatment, validate a JSON Schema with a dedicated schema engine, or authorize a process train.
