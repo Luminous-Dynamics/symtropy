@@ -522,6 +522,7 @@ pub fn run_adversarial_campaign(
         )?;
         let observability = response_observability_check(
             &target_reference_domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
             SYNTHETIC_RESPONSE_RESOLUTION,
         )?;
 
@@ -629,6 +630,7 @@ mod tests {
             family_training_domain(20261116, TARGET_PROFILE, ResponseFamily::Saturation);
         let observability = response_observability_check(
             &saturated_domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
             SYNTHETIC_RESPONSE_RESOLUTION,
         )
         .expect("saturation observability diagnostic");
