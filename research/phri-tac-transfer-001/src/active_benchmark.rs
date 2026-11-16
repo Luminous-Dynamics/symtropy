@@ -24,12 +24,15 @@ pub const SYNTHETIC_RESPONSE_RESOLUTION: f64 = 1.0e-12;
 /// Required synthetic force-setpoint manifest. Physical operating ranges are
 /// supplied by the measurement/phantom owner, never inferred from this array.
 pub const SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N: [f64; 6] = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0];
+/// Declared synthetic strata: 3 positions × 2 temperatures × 2 loading phases.
+pub const SYNTHETIC_EXPECTED_CONDITION_COUNT: usize = 12;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ResponseObservabilityReport {
     pub accepted: bool,
     pub condition_count: usize,
     pub expected_force_setpoint_count: usize,
+    pub missing_condition_count: usize,
     pub incomplete_condition_count: usize,
     pub checked_transition_count: usize,
     pub flatline_transition_count: usize,
@@ -88,6 +91,8 @@ pub fn response_observability_check(
     let mut checked_transition_count = 0;
     let mut flatline_transition_count = 0;
     let mut decreasing_transition_count = 0;
+    let missing_condition_count =
+        SYNTHETIC_EXPECTED_CONDITION_COUNT.saturating_sub(conditions.len());
     let mut incomplete_condition_count = 0;
     let mut affected_condition_count = 0;
     let mut first_flatline_start_force_n: Option<f64> = None;
@@ -131,9 +136,12 @@ pub fn response_observability_check(
     }
 
     Ok(ResponseObservabilityReport {
-        accepted: flatline_transition_count == 0 && incomplete_condition_count == 0,
+        accepted: flatline_transition_count == 0
+            && incomplete_condition_count == 0
+            && missing_condition_count == 0,
         condition_count: conditions.len(),
         expected_force_setpoint_count: required_force_setpoints_n.len(),
+        missing_condition_count,
         incomplete_condition_count,
         checked_transition_count,
         flatline_transition_count,
@@ -1388,6 +1396,22 @@ mod tests {
         assert!(!report.accepted);
         assert_eq!(report.incomplete_condition_count, 12);
         assert_eq!(report.maximum_observed_force_setpoint_n, 6.0);
+    }
+
+    #[test]
+    fn missing_condition_strata_do_not_pass_observability() {
+        let mut domain = target_candidate_pool(20261116);
+        domain
+            .candidates
+            .retain(|candidate| !(candidate.position == -1.0 && candidate.temperature == 1.0 && candidate.phase == 1.0));
+        let report = response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("missing condition report");
+        assert!(!report.accepted);
+        assert_eq!(report.missing_condition_count, 1);
     }
 
     #[test]
