@@ -5,44 +5,58 @@
   "source_e1_context": {
     "analysis_id": "synthetic.analysis.water-continuity.001",
     "execution_status": "NOT_EXECUTED",
-    "relationship": "CONTEXT_ONLY_NOT_A_RUN"
+    "relationship": "CONTEXT_ONLY_NOT_A_RUN",
+    "relative_path": "context/e1-envelope-context.json",
+    "byte_length": 5399,
+    "sha256": "530af9e09e5bd38b0be070e2193ec76e99a58f756f52034aaab4ef5347962676"
   },
   "sources": [
     {
       "provider": "DATACITE",
       "relative_path": "datacite/doi-response.json",
-      "native_profile": "DataCite Metadata Schema 4.7 via DataCite REST JSON:API",
+      "native_profile": "DataCite REST API JSON:API response carrying Metadata Schema 4.7 fields; schemaVersion remains the generic kernel-4 URI",
       "source_identity": "10.5555/synthetic-e3-protection-record-001",
       "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
       "rights_status": "SYNTHETIC_OPEN_FIXTURE",
       "permitted_use": "SYNTHETIC_TEST_ONLY",
       "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
-      "byte_length": 2010,
-      "sha256": "969d03eb935fb17a5977ea3f79904b9d3141375b4b712cdb0e1eba069bcfb564"
+      "byte_length": 2135,
+      "sha256": "492c1fe4661219c0c4ec2c32627cad9e137e1fc2dbb34067f848e14074917ee5"
     },
     {
       "provider": "OGC_API_RECORDS",
       "relative_path": "ogc/record-feature.json",
-      "native_profile": "OGC API - Records Part 1 Core 1.0 GeoJSON record encoding",
+      "native_profile": "OGC API - Records Part 1 Core 1.0 GeoJSON Feature encoding",
       "source_identity": "e3-synthetic-record-001",
       "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
       "rights_status": "SYNTHETIC_OPEN_FIXTURE",
       "permitted_use": "SYNTHETIC_TEST_ONLY",
       "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
-      "byte_length": 1503,
-      "sha256": "7353285e0da173b1e62839f23364b83262bbc2c69c1b3637bccd89dff47ad6f0"
+      "byte_length": 1717,
+      "sha256": "54e84bb24cb0d945b126aa585e92db707cfa664dc2637d2f10a4129586a898c2"
     },
     {
       "provider": "OPENLINEAGE",
       "relative_path": "openlineage/e3-run-events.json",
-      "native_profile": "OpenLineage RunEvent 2.0.0",
+      "native_profile": "OpenLineage RunEvent schema 2.0.2",
       "source_identity": "0e70677e-e4b5-4a1f-b908-7e22ef00ed31",
       "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
       "rights_status": "SYNTHETIC_OPEN_FIXTURE",
       "permitted_use": "SYNTHETIC_TEST_ONLY",
       "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
-      "byte_length": 2574,
-      "sha256": "f8242d89708747888dd0d0de7335757ff5969f1a43afd842c67a1daa054062ee"
+      "byte_length": 2562,
+      "sha256": "d12e9ec2197fca7e60547a984818483957e07fa0ef1a4558fcf4c829e871034a"
+    }
+  ],
+  "validation_assets": [
+    {
+      "provider": "OPENLINEAGE",
+      "relative_path": "schemas/openlineage-2.0.2.schema.json",
+      "schema_id": "https://openlineage.io/spec/2-0-2/OpenLineage.json",
+      "source_repository": "OpenLineage/OpenLineage",
+      "source_blob_sha": "58167f71407add7734810cda9943b39b83c89aa2",
+      "byte_length": 9155,
+      "sha256": "69f68bee00b9beac88a87059c0102410e7bb05f3f43c46d02a0409831eceb0d2"
     }
   ]
 }
