@@ -128,6 +128,11 @@ The Rust suite includes:
 - explicit common-platform diversity exemption while preserving failed-domain rejection;
 - required diversity greater than the proven witness;
 - option permutation invariance;
+- a greedy-order trap where a first-fit witness finds one option but the exact solver finds the two-option independent set;
+- options whose only dependencies are exempt common platform domains do not count as independent;
+- deterministic lexicographic tie-breaking among equal-size maximum sets;
+- option counts above the exact-search cap return a non-exact lower-bound witness and abstain when it cannot prove required diversity;
+- policy attempts to raise the exact-search cap above 24 are rejected;
 - duplicate option, receipt and dependency identities;
 - malformed digest;
 - unknown dependency set excluded from diversity witness;
@@ -139,11 +144,12 @@ Prospective targets:
 - zero known-failed dependency accepted;
 - zero unauthorized, expired or out-of-domain option credited;
 - zero unknown/common-mode dependency counted as pairwise-independent;
-- 100% exact agreement with an independent finite option-set oracle;
+- 100% exact agreement with an independent finite option-set oracle for all cases within the frozen exact-search cap;
+- zero maximum-cardinality claims when the exact-search cap is exceeded; return a deterministic lower-bound witness and explicit non-exact flag instead;
 - zero conservative response/energy/containment/separation/ground-risk gate breaches accepted;
 - zero incomplete option inventory interpreted as “no option” or “all options covered”;
 - 100% permutation-invariant canonical output;
-- zero false maximum-diversity claims: witness size is explicitly a lower bound;
+- zero false maximum-diversity claims: bounded sets expose an exact maximum independent set; larger sets expose a deterministic lower-bound witness with `independent_option_witness_exact=false` and remain indeterminate when the required diversity is not proven;
 - report admissible option count, independent witness, failed dependencies, per-option margins and unresolved cases separately.
 
 Scale targets after correctness:
