@@ -166,9 +166,10 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin 
 ```
 
 A synthetic or not-executed envelope returns
-`ABSTAIN_SYNTHETIC_NOT_EXECUTED`. A completed external run with missing
-software version, dataset revision, rights, coordinate reference or uncertainty
-metadata abstains. A fully populated envelope is labelled only
+`ABSTAIN_SYNTHETIC_NOT_EXECUTED`. A completed external run with missing software version, dataset revision,
+rights declaration, coordinate reference or uncertainty metadata abstains.
+An explicit `UNKNOWN` rights state with `NOT_ADMITTED` use is schema-valid but
+cannot be admitted for external comparison. A fully populated envelope is labelled only
 `ENVELOPE_METADATA_COMPLETE_SOURCE_AND_RIGHTS_AUTHENTICITY_UNVERIFIED`: declared
 rights metadata and a byte digest do not authenticate the provider, license
 grant or model validity, and do not prove physical truth.
@@ -220,8 +221,10 @@ SHA-256 independently.
 
 The fixture uses exact pinned files and a path/role allow-list. This is an
 intentionally narrow conformance tranche, not a generic file importer or a
-live external API client. The validator has 22 unit tests written; none are
-claimed to have passed until Rust execution is observed.
+live external API client. The validator has 25 unit tests written. The previous hosted attempt passed
+formatting and Clippy but exposed six negative-test expectation/schema-layer
+mismatches; these have been corrected. A fresh run is still required before
+claiming that the 25 tests pass.
 
 
 ### Provider-native metadata snapshots
