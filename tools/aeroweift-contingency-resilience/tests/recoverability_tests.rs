@@ -496,7 +496,7 @@ fn duplicate_receipt_identity_is_rejected() {
 
 #[test]
 fn duplicate_dependency_domain_is_rejected() {
-    let mut candidate = option("duplicate-domain", &["GNSS", "GNSS"]);
+    let candidate = option("duplicate-domain", &["GNSS", "GNSS"]);
     assert_eq!(
         evaluate(&case(), &[candidate], &inventory(), &policy()),
         Err(EvaluationError::InvalidDependencySet)
@@ -616,8 +616,13 @@ fn adding_failed_dependency_never_increases_admissible_option_count() {
         let mut contingency = case();
         let domain = format!("FAILURE-{index}");
         let candidate = option("candidate", &[&domain]);
-        let baseline =
-            evaluate(&contingency, &[candidate.clone()], &inventory(), &policy()).unwrap();
+        let baseline = evaluate(
+            &contingency,
+            std::slice::from_ref(&candidate),
+            &inventory(),
+            &policy(),
+        )
+        .unwrap();
         contingency.failed_domains.push(domain);
         let after = evaluate(&contingency, &[candidate], &inventory(), &policy()).unwrap();
         assert_eq!(baseline.admissible_option_ids.len(), 1);
