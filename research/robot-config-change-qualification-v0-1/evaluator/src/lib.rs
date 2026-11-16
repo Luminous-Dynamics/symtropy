@@ -887,8 +887,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result["oracle_comparison"]["exact_disposition_and_reason_agreement"], true);
-        assert_eq!(result["oracle_comparison"]["agreement_count"], 49);
-        assert_eq!(result["oracle_comparison"]["expected_count"], 49);
+        assert_eq!(result["oracle_comparison"]["agreement_count"], 51);
+        assert_eq!(result["oracle_comparison"]["expected_count"], 51);
         assert_eq!(result["summary"]["case_count"], 16);
         assert_eq!(result["summary"]["claim_result_count"], 49);
         assert_eq!(result["summary"]["safety_critical_changed_dependency_preserved_count"], 0);
