@@ -15,7 +15,9 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-    pub const fn new(x: f64, y: f64, z: f64) -> Self { Self { x, y, z } }
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
+        Self { x, y, z }
+    }
     pub fn dot(self, other: Self) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
@@ -26,7 +28,9 @@ impl Vec3 {
             self.x * other.y - self.y * other.x,
         )
     }
-    pub fn norm(self) -> f64 { self.dot(self).sqrt() }
+    pub fn norm(self) -> f64 {
+        self.dot(self).sqrt()
+    }
     pub fn normalized(self) -> Option<Self> {
         let length = self.norm();
         if !length.is_finite() || length <= f64::MIN_POSITIVE {
@@ -43,7 +47,9 @@ impl Vec3 {
     pub fn sub(self, other: Self) -> Self {
         Self::new(self.x - other.x, self.y - other.y, self.z - other.z)
     }
-    pub fn distance(self, other: Self) -> f64 { self.sub(other).norm() }
+    pub fn distance(self, other: Self) -> f64 {
+        self.sub(other).norm()
+    }
     pub fn is_finite(self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
     }
@@ -132,17 +138,25 @@ impl fmt::Display for GenerationError {
             Self::InvalidAngle => write!(f, "branch_angle_rad must be finite and in (0.05, 1.2)"),
             Self::InvalidTwist => write!(f, "twist_rad must be finite and in [-3.14, 3.14]"),
             Self::InvalidLengthRatio => write!(f, "length_ratio must be finite and in (0, 1)"),
-            Self::InvalidMemberMinimum => write!(f, "min_member_length must be finite and positive"),
-            Self::NodeBudgetExceeded { required, maximum } =>
-                write!(f, "node budget exceeded: required {required}, maximum {maximum}"),
+            Self::InvalidMemberMinimum => {
+                write!(f, "min_member_length must be finite and positive")
+            }
+            Self::NodeBudgetExceeded { required, maximum } => write!(
+                f,
+                "node budget exceeded: required {required}, maximum {maximum}"
+            ),
             Self::ArithmeticOverflow => write!(f, "geometry size arithmetic overflow"),
             Self::NonFiniteGeometry => write!(f, "generated geometry contains non-finite values"),
-            Self::DegenerateMember { member_id, length } =>
-                write!(f, "member {member_id} has invalid length {length}"),
-            Self::DuplicateMember { from, to } =>
-                write!(f, "duplicate undirected member between nodes {from} and {to}"),
-            Self::Disconnected { components } =>
-                write!(f, "geometry graph is disconnected: {components} components"),
+            Self::DegenerateMember { member_id, length } => {
+                write!(f, "member {member_id} has invalid length {length}")
+            }
+            Self::DuplicateMember { from, to } => write!(
+                f,
+                "duplicate undirected member between nodes {from} and {to}"
+            ),
+            Self::Disconnected { components } => {
+                write!(f, "geometry graph is disconnected: {components} components")
+            }
             Self::InvalidGraph(message) => write!(f, "invalid graph: {message}"),
         }
     }
@@ -190,7 +204,9 @@ impl Config {
         let leaves = 1usize
             .checked_shl(u32::from(self.depth))
             .ok_or(GenerationError::ArithmeticOverflow)?;
-        let expanded = leaves.checked_sub(1).ok_or(GenerationError::ArithmeticOverflow)?;
+        let expanded = leaves
+            .checked_sub(1)
+            .ok_or(GenerationError::ArithmeticOverflow)?;
         expanded
             .checked_mul(2)
             .and_then(|count| count.checked_add(1))
@@ -201,9 +217,7 @@ impl Config {
         if !self.root_member_length.is_finite() || self.root_member_length <= 0.0 {
             return Err(GenerationError::InvalidLength);
         }
-        if !self.branch_angle_rad.is_finite()
-            || !(0.05..=1.2).contains(&self.branch_angle_rad)
-        {
+        if !self.branch_angle_rad.is_finite() || !(0.05..=1.2).contains(&self.branch_angle_rad) {
             return Err(GenerationError::InvalidAngle);
         }
         if !self.twist_rad.is_finite() || self.twist_rad.abs() > 3.14 {
@@ -278,7 +292,9 @@ impl StructureGraph {
                 let child_length = branch.length * config.length_ratio;
                 let parent_position = nodes
                     .get(branch.start_node as usize)
-                    .ok_or(GenerationError::InvalidGraph("branch references unknown parent"))?
+                    .ok_or(GenerationError::InvalidGraph(
+                        "branch references unknown parent",
+                    ))?
                     .position;
                 let left_position = parent_position.add(left_direction.scale(child_length));
                 let right_position = parent_position.add(right_direction.scale(child_length));
@@ -287,8 +303,8 @@ impl StructureGraph {
                     return Err(GenerationError::NonFiniteGeometry);
                 }
 
-                let left_id = u32::try_from(nodes.len())
-                    .map_err(|_| GenerationError::ArithmeticOverflow)?;
+                let left_id =
+                    u32::try_from(nodes.len()).map_err(|_| GenerationError::ArithmeticOverflow)?;
                 nodes.push(Node {
                     id: left_id,
                     position: left_position,
@@ -296,8 +312,8 @@ impl StructureGraph {
                     hub_family: HubFamily::UniversalFourPortV1,
                 });
 
-                let right_id = u32::try_from(nodes.len())
-                    .map_err(|_| GenerationError::ArithmeticOverflow)?;
+                let right_id =
+                    u32::try_from(nodes.len()).map_err(|_| GenerationError::ArithmeticOverflow)?;
                 nodes.push(Node {
                     id: right_id,
                     position: right_position,
@@ -306,20 +322,23 @@ impl StructureGraph {
                 });
 
                 push_member(
-                    &mut members, branch.start_node, left_id,
+                    &mut members,
+                    branch.start_node,
+                    left_id,
                     MemberRole::BranchStrut,
                 )?;
                 push_member(
-                    &mut members, branch.start_node, right_id,
+                    &mut members,
+                    branch.start_node,
+                    right_id,
                     MemberRole::BranchStrut,
                 )?;
-                push_member(
-                    &mut members, left_id, right_id,
-                    MemberRole::CrossBrace,
-                )?;
+                push_member(&mut members, left_id, right_id, MemberRole::CrossBrace)?;
 
-                let left_frame_u = perpendicular_frame(left_direction, branch.frame_u, branch.frame_v)?;
-                let right_frame_u = perpendicular_frame(right_direction, branch.frame_u, branch.frame_v)?;
+                let left_frame_u =
+                    perpendicular_frame(left_direction, branch.frame_u, branch.frame_v)?;
+                let right_frame_u =
+                    perpendicular_frame(right_direction, branch.frame_u, branch.frame_v)?;
                 let left_frame_v = left_direction
                     .cross(left_frame_u)
                     .normalized()
@@ -349,7 +368,11 @@ impl StructureGraph {
             branches = next_branches;
         }
 
-        let graph = Self { config, nodes, members };
+        let graph = Self {
+            config,
+            nodes,
+            members,
+        };
         graph.audit()?;
         Ok(graph)
     }
@@ -357,7 +380,9 @@ impl StructureGraph {
     pub fn audit(&self) -> Result<TopologyMetrics, GenerationError> {
         self.config.validate()?;
         if self.nodes.len() != self.config.expected_node_count()? {
-            return Err(GenerationError::InvalidGraph("node count does not match grammar"));
+            return Err(GenerationError::InvalidGraph(
+                "node count does not match grammar",
+            ));
         }
         if self.nodes.is_empty() {
             return Err(GenerationError::InvalidGraph("graph has no nodes"));
@@ -385,7 +410,9 @@ impl StructureGraph {
 
         for (index, member) in self.members.iter().enumerate() {
             if member.id as usize != index {
-                return Err(GenerationError::InvalidGraph("member IDs are not contiguous"));
+                return Err(GenerationError::InvalidGraph(
+                    "member IDs are not contiguous",
+                ));
             }
             if member.from as usize >= self.nodes.len()
                 || member.to as usize >= self.nodes.len()
@@ -399,7 +426,10 @@ impl StructureGraph {
                 (member.to, member.from)
             };
             if !seen.insert(key) {
-                return Err(GenerationError::DuplicateMember { from: key.0, to: key.1 });
+                return Err(GenerationError::DuplicateMember {
+                    from: key.0,
+                    to: key.1,
+                });
             }
 
             let a = self.nodes[member.from as usize].position;
@@ -448,10 +478,14 @@ impl StructureGraph {
             return Err(GenerationError::Disconnected { components });
         }
 
-        let cycle_rank = self.members.len()
+        let cycle_rank = self
+            .members
+            .len()
             .checked_sub(self.nodes.len())
             .and_then(|value| value.checked_add(1))
-            .ok_or(GenerationError::InvalidGraph("connected graph has invalid edge/node counts"))?;
+            .ok_or(GenerationError::InvalidGraph(
+                "connected graph has invalid edge/node counts",
+            ))?;
 
         Ok(TopologyMetrics {
             node_count: self.nodes.len(),
@@ -501,10 +535,13 @@ impl StructureGraph {
             mix(&mut hash, &member.id.to_le_bytes());
             mix(&mut hash, &member.from.to_le_bytes());
             mix(&mut hash, &member.to.to_le_bytes());
-            mix(&mut hash, &[match member.role {
-                MemberRole::BranchStrut => 0,
-                MemberRole::CrossBrace => 1,
-            }]);
+            mix(
+                &mut hash,
+                &[match member.role {
+                    MemberRole::BranchStrut => 0,
+                    MemberRole::CrossBrace => 1,
+                }],
+            );
         }
         hash
     }
@@ -520,7 +557,9 @@ fn perpendicular_frame(
         return Ok(unit);
     }
     let fallback = fallback_v.sub(direction.scale(fallback_v.dot(direction)));
-    fallback.normalized().ok_or(GenerationError::NonFiniteGeometry)
+    fallback
+        .normalized()
+        .ok_or(GenerationError::NonFiniteGeometry)
 }
 
 fn push_member(
@@ -602,7 +641,10 @@ mod tests {
         config.max_nodes = 100;
         assert!(matches!(
             config.validate(),
-            Err(GenerationError::NodeBudgetExceeded { required: 511, maximum: 100 })
+            Err(GenerationError::NodeBudgetExceeded {
+                required: 511,
+                maximum: 100
+            })
         ));
     }
 
