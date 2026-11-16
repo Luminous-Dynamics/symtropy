@@ -390,7 +390,10 @@ pub fn evaluate_claim(
         return Err(EvaluationError::ClaimNotAvailableAtCutoff);
     }
     for event in events.iter().filter(|event| {
-        claim.dependencies.iter().any(|dependency| dependency.kind == event.dependency)
+        claim
+            .dependencies
+            .iter()
+            .any(|dependency| dependency.kind == event.dependency)
     }) {
         if event.effective_time_scale_id != claim.effective_time_scale_id
             || event.knowledge_time_scale_id != claim.knowledge_time_scale_id
