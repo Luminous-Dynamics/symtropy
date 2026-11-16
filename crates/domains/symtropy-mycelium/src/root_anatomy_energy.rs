@@ -522,12 +522,12 @@ mod tests {
     #[test]
     fn observed_root_radius_is_retained_and_compared_with_layer_approximation() {
         let mut input = parameters(4);
-        input.observed_root_radius_m = Some(0.0044);
+        input.observed_root_radius_m = Some(0.005);
         let report = evaluate_root_anatomy_energy(&input).unwrap();
         assert_eq!(report.observed_root_radius_m, Some(0.0044));
         close(
             report.radius_approximation_relative_error.unwrap(),
-            0.1,
+            0.2,
             1e-12,
         );
     }
