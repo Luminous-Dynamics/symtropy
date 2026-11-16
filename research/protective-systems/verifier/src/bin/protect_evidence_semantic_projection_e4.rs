@@ -115,6 +115,7 @@ struct OgcSpatialExtent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 struct OgcRecordView {
     record_id: String,
+    conforms_to: Vec<String>,
     record_type: String,
     title: String,
     description: String,
@@ -263,6 +264,11 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
     let attrs = data
         .get("attributes")
         .ok_or_else(|| "DataCite attributes are required".to_owned())?;
+    let doi_attribute = required_text(attrs, "doi", "DataCite attributes")?;
+    let data_id = required_text(data, "id", "DataCite data")?;
+    if doi_attribute != data_id {
+        return Err("DataCite JSON:API data.id and attributes.doi must match".to_owned());
+    }
     let creators = attrs
         .get("creators")
         .and_then(Value::as_array)
@@ -344,7 +350,7 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         .get("types")
         .ok_or_else(|| "DataCite types are required".to_owned())?;
     let view = DataCiteView {
-        doi: required_text(data, "id", "DataCite data")?.to_owned(),
+        doi: data_id.to_owned(),
         title: required_text(title, "title", "DataCite title")?.to_owned(),
         publisher: required_text(attrs, "publisher", "DataCite attributes")?.to_owned(),
         publication_year: attrs
@@ -399,6 +405,10 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
 }
 
 fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision>), String> {
+    let conforms_to = string_array(
+        value.get("conformsTo").ok_or_else(|| "OGC conformsTo is required".to_owned())?,
+        "OGC conformsTo",
+    )?;
     let properties = value
         .get("properties")
         .ok_or_else(|| "OGC properties are required".to_owned())?;
@@ -456,6 +466,7 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
     }
     let view = OgcRecordView {
         record_id: required_text(value, "id", "OGC Feature")?.to_owned(),
+        conforms_to,
         record_type: required_text(properties, "type", "OGC properties")?.to_owned(),
         title: required_text(properties, "title", "OGC properties")?.to_owned(),
         description: required_text(properties, "description", "OGC properties")?.to_owned(),
@@ -484,6 +495,7 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
     };
     let decisions = vec![
         decision("OGC_API_RECORDS", "/id", Some("/native_view/record_id"), MappingClass::ExactNative, None, "Server-assigned catalog record identity remains a record ID, not a DOI or payload digest."),
+        decision("OGC_API_RECORDS", "/conformsTo", Some("/native_view/conforms_to"), MappingClass::ExactNative, None, "Selected conformance classes remain explicit rather than being inferred from content."),
         decision("OGC_API_RECORDS", "/properties/title", Some("/native_view/title"), MappingClass::ExactNative, None, "Catalog title preserved as supplied."),
         decision("OGC_API_RECORDS", "/geometry", Some("/native_view/geometry"), MappingClass::ExactNative, None, "GeoJSON geometry remains a geometry object; it is not converted into a dataset payload."),
         decision("OGC_API_RECORDS", "/extent/spatial/bbox", Some("/native_view/spatial_extent/bbox"), MappingClass::NormalizedEquivalent, Some("E4-OGC-NUMERIC-BBOX-001"), "Numeric coordinates are represented as f64 values; CRS URI is preserved unchanged and no reprojection occurs."),
@@ -809,6 +821,14 @@ mod tests {
     }
 
     #[test]
+    fn datacite_id_and_doi_attribute_must_agree_before_projection() {
+        let (mut datacite, _, _) = parsed_fixtures();
+        datacite["data"]["attributes"]["doi"] = Value::String("10.5555/different".into());
+        let error = project_datacite(&datacite).expect_err("identity mismatch");
+        assert!(error.contains("data.id and attributes.doi must match"));
+    }
+
+    #[test]
     fn datacite_meta_extension_is_preserved_as_raw_native_json() {
         let (datacite, ogc, lineage) = parsed_fixtures();
         let (view, decisions) = project_datacite(&datacite).expect("DataCite view");
@@ -851,6 +871,20 @@ mod tests {
         assert_eq!(view.spatial_extent.bbox, [0.0, 0.0, 1.0, 1.0]);
         assert_eq!(view.geometry["type"], "Polygon");
         assert!(roundtrip(view).expect("OGC projection roundtrip"));
+    }
+
+    #[test]
+    fn ogc_conformance_classes_remain_explicit_in_the_typed_view() {
+        let report = build_report().expect("report");
+        let ProviderNativeView::OgcRecords(view) = &report.provider_views[1] else {
+            panic!("OGC view expected")
+        };
+        assert!(view.conforms_to.iter().any(|value| {
+            value == "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"
+        }));
+        assert!(view.conforms_to.iter().any(|value| {
+            value == "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/json"
+        }));
     }
 
     #[test]
