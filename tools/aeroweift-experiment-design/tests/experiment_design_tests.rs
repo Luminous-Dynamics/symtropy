@@ -523,6 +523,7 @@ fn candidate_input_permutation_preserves_exact_result() {
     second.decision_relevance = 0.75;
     second.probability_uninformative = 0.20;
     second.cost_units = 15;
+    refresh_utility_estimate_receipt(&mut second);
 
     let candidates = vec![first, second];
     let expected = select_experiments(&candidates, &policy()).unwrap();
@@ -834,7 +835,6 @@ fn lower_worst_case_bound_cannot_restore_admissibility() {
         let mut candidate = candidate("robust-monotonic");
         candidate.worst_case_robust_reduction = 0.20 - (step as f64 * 0.001);
         refresh_utility_estimate_receipt(&mut candidate);
-        refresh_utility_estimate_receipt(&mut candidate);
         let result = select_experiments(&[candidate], &policy()).unwrap();
         if step == 0 {
             assert_eq!(result.pareto_front.len(), 1);
@@ -852,6 +852,7 @@ fn increasing_uninformative_probability_cannot_restore_admissibility() {
     for step in 0..101 {
         let mut candidate = candidate("uninformative-monotonic");
         candidate.probability_uninformative = 0.80 + (step as f64 * 0.001);
+        refresh_utility_estimate_receipt(&mut candidate);
         let result = select_experiments(&[candidate], &policy()).unwrap();
         if step == 0 {
             assert_eq!(result.pareto_front.len(), 1);
@@ -990,6 +991,7 @@ fn multiple_variant_contrasts_in_one_group_pair_count_only_once() {
         separation_lower_bound: 0.70,
         contrast_estimate_sha256: digest('a'),
     });
+    refresh_utility_estimate_receipt(&mut candidate);
     let result = select_experiments(&[candidate], &policy()).unwrap();
     assert_eq!(
         result.pareto_front[0].independent_hypothesis_group_pair_count,
