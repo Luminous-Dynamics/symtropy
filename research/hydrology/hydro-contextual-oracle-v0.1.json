@@ -724,6 +724,30 @@
         },
         "skill_score_unclipped": true
       }
+    },
+    {
+      "case_id": "HC-T0-045-crps-skill-variable-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_VARIABLE_MISMATCH",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "water_level",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-046-crps-skill-valid-time-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "VALID_TIME_SEMANTICS_MISMATCH",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "local_civil_midnight_day",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
     }
   ]
 }
