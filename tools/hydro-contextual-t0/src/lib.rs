@@ -1146,7 +1146,6 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-006-contextual-attainment" | "HC-T0-007-attainment-degenerate-bounds" => {
             compute_attainment(input)
         }
-
         "HC-T0-022-event-peak-magnitude-and-timing"
         | "HC-T0-027-event-peak-ties-earliest-index" => event_peak_metrics(input),
         "HC-T0-023-low-flow-log10-error" | "HC-T0-026-low-flow-log-zero-abstains" => {
@@ -1154,20 +1153,13 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         }
         "HC-T0-024-probabilistic-interval-coverage-width"
         | "HC-T0-025-invalid-probabilistic-interval-reject" => interval_calibration_metrics(input),
-
         "HC-T0-028-ensemble-crps" | "HC-T0-032-ensemble-crps-negative-flow-reject" => {
             ensemble_crps(input)
         }
-        "HC-T0-029-threshold-event-brier" => brier_score(input),
+        "HC-T0-029-threshold-event-brier" | "HC-T0-031-invalid-event-probability-reject" => {
+            brier_score(input)
+        }
         "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
-        "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
-
-        "HC-T0-033-crps-skill-matched-reference"
-        | "HC-T0-037-crps-skill-zero-reference-undefined"
-        | "HC-T0-038-crps-skill-lead-mismatch-not-comparable" => crps_skill_score(input),
-        "HC-T0-034-brier-skill-matched-reference"
-        | "HC-T0-036-brier-skill-zero-reference-undefined" => brier_skill_score(input),
-        "HC-T0-035-skill-population-mismatch-not-comparable" => crps_skill_score(input),
         "HC-T0-033-crps-skill-matched-reference"
         | "HC-T0-035-skill-population-mismatch-not-comparable"
         | "HC-T0-037-crps-skill-zero-reference-undefined"
@@ -1175,13 +1167,13 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         | "HC-T0-039-crps-skill-case-identity-mismatch"
         | "HC-T0-041-crps-skill-unit-mismatch-not-comparable"
         | "HC-T0-042-crps-skill-aggregation-mismatch-not-comparable"
-        | "HC-T0-043-crps-skill-negative-score-not-clipped" => crps_skill_score(input),
+        | "HC-T0-043-crps-skill-negative-score-not-clipped"
+        | "HC-T0-045-crps-skill-variable-mismatch-not-comparable"
+        | "HC-T0-046-crps-skill-valid-time-mismatch-not-comparable" => crps_skill_score(input),
         "HC-T0-034-brier-skill-matched-reference"
         | "HC-T0-036-brier-skill-zero-reference-undefined"
         | "HC-T0-040-brier-skill-event-definition-mismatch"
         | "HC-T0-044-brier-skill-negative-score-not-clipped" => brier_skill_score(input),
-        "HC-T0-045-crps-skill-variable-mismatch-not-comparable"
-        | "HC-T0-046-crps-skill-valid-time-mismatch-not-comparable" => crps_skill_score(input),
         _ => compute_split(&id, input),
     }
 }
