@@ -236,10 +236,9 @@ pub fn adjudicate_receiver_presence(
         && all_fresh_readings == BTreeSet::from([PresenceReading::Absent])
     {
         PresenceVerdict::ConfirmedAbsent
-    } else if fresh_observations.is_empty() && stale_observation_count > 0 {
-        PresenceVerdict::Stale
     } else if stale_observation_count > 0
-        && independent_group_count < policy.minimum_independent_groups
+        && (fresh_observations.is_empty()
+            || independent_group_count < policy.minimum_independent_groups)
     {
         PresenceVerdict::Stale
     } else {
