@@ -1,0 +1,226 @@
+{
+  "schema_version": "luminous.hybrid-appj-methane-process.v0",
+  "benchmark_id": "CH4-PLASMA-THERMAL-APPJ-TWIN-001",
+  "evidence_class": "published_source_register_plus_synthetic_design_controls",
+  "luminous_reproduction": false,
+  "source": {
+    "doi": "10.1016/j.ijhydene.2026.158179",
+    "publication_date": "2026-11-16",
+    "claim_ceiling": "SOURCE_ONLY_RELATIVE_CLAIMS_NO_LUMINOUS_REPRODUCTION"
+  },
+  "source_configurations": [
+    "single-electrode APPJ with plasma outside the heated zone",
+    "single-electrode APPJ with plasma directly inside the heated zone",
+    "double-electrode APPJ configuration"
+  ],
+  "factorial_design": {
+    "design_class": "PROPOSED_DESIGN_NOT_SOURCE_EXPERIMENT",
+    "factors": [
+      "plasma_enabled",
+      "thermal_zone_enabled"
+    ],
+    "cells": [
+      {
+        "plasma_enabled": false,
+        "thermal_zone_enabled": false,
+        "measurement_status": "NOT_MEASURED",
+        "observed_absolute_conversion_fraction": null,
+        "observed_accepted_h2_mass_g": null,
+        "raw_artifact_ref": null
+      },
+      {
+        "plasma_enabled": true,
+        "thermal_zone_enabled": false,
+        "measurement_status": "NOT_MEASURED",
+        "observed_absolute_conversion_fraction": null,
+        "observed_accepted_h2_mass_g": null,
+        "raw_artifact_ref": null
+      },
+      {
+        "plasma_enabled": false,
+        "thermal_zone_enabled": true,
+        "measurement_status": "NOT_MEASURED",
+        "observed_absolute_conversion_fraction": null,
+        "observed_accepted_h2_mass_g": null,
+        "raw_artifact_ref": null
+      },
+      {
+        "plasma_enabled": true,
+        "thermal_zone_enabled": true,
+        "measurement_status": "NOT_MEASURED",
+        "observed_absolute_conversion_fraction": null,
+        "observed_accepted_h2_mass_g": null,
+        "raw_artifact_ref": null
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "source-claim-positive",
+      "kind": "SOURCE_CLAIM",
+      "source_claim": {
+        "relative_conversion_gain_lower_bound_fold": 5,
+        "absolute_conversion_fraction": null,
+        "carbon_deposition_fraction_approx": 0.36,
+        "carbon_deposition_denominator_status": "RECONSTRUCT_FROM_SOURCE_DATA",
+        "captured_carbon_mass_g": null,
+        "feed_carbon_recovery_fraction": null,
+        "carbon_product_grade_status": "NOT_VALIDATED"
+      },
+      "expected_disposition": "SOURCE_CLAIM_ONLY"
+    },
+    {
+      "id": "reject-absolute-conversion-from-relative-claim",
+      "kind": "SOURCE_CLAIM",
+      "source_claim": {
+        "relative_conversion_gain_lower_bound_fold": 5,
+        "absolute_conversion_fraction": 0.95,
+        "carbon_deposition_fraction_approx": 0.36,
+        "carbon_deposition_denominator_status": "RECONSTRUCT_FROM_SOURCE_DATA",
+        "captured_carbon_mass_g": null,
+        "feed_carbon_recovery_fraction": null,
+        "carbon_product_grade_status": "NOT_VALIDATED"
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "reject-deposition-as-carbon-recovery",
+      "kind": "SOURCE_CLAIM",
+      "source_claim": {
+        "relative_conversion_gain_lower_bound_fold": 5,
+        "absolute_conversion_fraction": null,
+        "carbon_deposition_fraction_approx": 0.36,
+        "carbon_deposition_denominator_status": "RECONSTRUCT_FROM_SOURCE_DATA",
+        "captured_carbon_mass_g": 36,
+        "feed_carbon_recovery_fraction": 0.36,
+        "carbon_product_grade_status": "NOT_VALIDATED"
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "block-quantitative-h2-without-metrology",
+      "kind": "PRODUCT_CLAIM",
+      "product_evidence": {
+        "species": "H2",
+        "accepted_mass_g": 10,
+        "rate_g_per_hour": 150,
+        "purity_fraction": 0.999,
+        "pressure_kpa": 100,
+        "calibration_ref": null,
+        "quantitative_measurement_ref": null,
+        "raw_artifact_ref": null
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "factorial-controls-design-only",
+      "kind": "FACTORIAL_DESIGN",
+      "factorial_design": {
+        "design_class": "PROPOSED_DESIGN_NOT_SOURCE_EXPERIMENT",
+        "factors": [
+          "plasma_enabled",
+          "thermal_zone_enabled"
+        ],
+        "cells": [
+          {
+            "plasma_enabled": false,
+            "thermal_zone_enabled": false,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          },
+          {
+            "plasma_enabled": true,
+            "thermal_zone_enabled": false,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          },
+          {
+            "plasma_enabled": false,
+            "thermal_zone_enabled": true,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          },
+          {
+            "plasma_enabled": true,
+            "thermal_zone_enabled": true,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          }
+        ]
+      },
+      "expected_disposition": "DESIGN_ONLY"
+    },
+    {
+      "id": "reject-incomplete-factorial",
+      "kind": "FACTORIAL_DESIGN",
+      "factorial_design": {
+        "design_class": "PROPOSED_DESIGN_NOT_SOURCE_EXPERIMENT",
+        "factors": [
+          "plasma_enabled",
+          "thermal_zone_enabled"
+        ],
+        "cells": [
+          {
+            "plasma_enabled": false,
+            "thermal_zone_enabled": false,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          },
+          {
+            "plasma_enabled": true,
+            "thermal_zone_enabled": false,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          },
+          {
+            "plasma_enabled": true,
+            "thermal_zone_enabled": true,
+            "measurement_status": "NOT_MEASURED",
+            "observed_absolute_conversion_fraction": null,
+            "observed_accepted_h2_mass_g": null,
+            "raw_artifact_ref": null
+          }
+        ]
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "not-comparable-mismatched-system-boundary",
+      "kind": "COMPARISON",
+      "comparison": {
+        "candidate_product_contract_id": "accepted-h2-and-c2c3-contract-v0",
+        "reference_product_contract_id": "accepted-h2-only-contract-v0",
+        "candidate_energy_boundary_id": "grid-to-product",
+        "reference_energy_boundary_id": "reactor-terminal-only"
+      },
+      "expected_disposition": "NOT_COMPARABLE"
+    },
+    {
+      "id": "block-carbon-grade-from-characterization-only",
+      "kind": "PRODUCT_CLAIM",
+      "product_evidence": {
+        "species": "SOLID_CARBON",
+        "accepted_mass_g": 36,
+        "rate_g_per_hour": null,
+        "purity_fraction": 0.98,
+        "pressure_kpa": null,
+        "calibration_ref": null,
+        "quantitative_measurement_ref": null,
+        "raw_artifact_ref": null
+      },
+      "expected_disposition": "BLOCKED"
+    }
+  ]
+}
