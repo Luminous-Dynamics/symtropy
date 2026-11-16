@@ -41,6 +41,8 @@ pub struct FaultSimulationResult {
     pub fault_model: String,
     pub injection_semantics: String,
     pub simulation: SimulationResult,
+    pub gate_contact_event_count: usize,
+    pub gate_contact_max_impulse_ns: f64,
     pub physical_fault_effect_observed: bool,
     pub blind_retry_blocked: bool,
     pub reconciliation_required: bool,
@@ -87,6 +89,8 @@ struct EpisodeTrace {
     max_rotation_orthogonality_error: f64,
     max_rotation_determinant_error: f64,
     non_finite_body_count: usize,
+    gate_contact_event_count: usize,
+    gate_contact_max_impulse_ns: f64,
     digest: String,
     ticks: usize,
 }
@@ -139,7 +143,11 @@ fn seeded_offset(seed: u64, lane: u64) -> f64 {
     (value as f64 - 50.0) * 0.00005
 }
 
-fn add_static_box(world: &mut PhysicsWorld<3>, position_m: [f64; 3], half_extents_m: [f64; 3]) {
+fn add_static_box(
+    world: &mut PhysicsWorld<3>,
+    position_m: [f64; 3],
+    half_extents_m: [f64; 3],
+) -> BodyHandle {
     let mut body = RigidBody::static_body(
         BodyHandle(0),
         Point::new(position_m),
@@ -147,13 +155,22 @@ fn add_static_box(world: &mut PhysicsWorld<3>, position_m: [f64; 3], half_extent
     );
     body.friction = 0.9;
     body.restitution = 0.0;
-    world.add_body(body);
+    world.add_body(body)
 }
 
 fn build_world(
     scenario: &ScenarioManifest,
     closed_gate_obstruction: bool,
-) -> Result<(PhysicsWorld<3>, BodyHandle, [f64; 3], [f64; 3]), String> {
+) -> Result<
+    (
+        PhysicsWorld<3>,
+        BodyHandle,
+        [f64; 3],
+        [f64; 3],
+        Option<BodyHandle>,
+    ),
+    String,
+> {
     let geometry = tote_geometry(scenario)?;
     let package = &scenario.package;
     let package_half_m = [
@@ -209,13 +226,15 @@ fn build_world(
     // This is static collision geometry, not a model of gate actuation or
     // interlock timing. The fault path observes the failed placement after
     // the logical release has been issued.
-    if closed_gate_obstruction {
-        add_static_box(
+    let gate_obstruction_handle = if closed_gate_obstruction {
+        Some(add_static_box(
             &mut world,
             [0.0, 2.0 * inner_y + 0.01, 0.0],
             [outer_x, 0.01, outer_z],
-        );
-    }
+        ))
+    } else {
+        None
+    };
 
     let mass_kg = package.mass_g as f64 / 1_000.0;
     let [half_x, half_y, half_z] = package_half_m;
@@ -243,7 +262,13 @@ fn build_world(
     package_body.angular_damping = 0.08;
 
     let package_handle = world.add_body(package_body);
-    Ok((world, package_handle, initial_position, package_half_m))
+    Ok((
+        world,
+        package_handle,
+        initial_position,
+        package_half_m,
+        gate_obstruction_handle,
+    ))
 }
 
 fn hash_snapshot(hasher: &mut Sha256, tick: usize, snapshot: &WorldSnapshot<3>) {
@@ -291,7 +316,7 @@ fn run_episode(
     scenario: &ScenarioManifest,
     closed_gate_obstruction: bool,
 ) -> Result<EpisodeTrace, String> {
-    let (mut world, package_handle, _initial_position, _package_half) =
+    let (mut world, package_handle, _initial_position, _package_half, gate_handle) =
         build_world(scenario, closed_gate_obstruction)?;
 
     let impulse = SVector::from([0.0, -RELEASE_IMPULSE_NS, 0.0]);
@@ -319,12 +344,25 @@ fn run_episode(
     let mut max_rotation_orthogonality_error = 0.0_f64;
     let mut max_rotation_determinant_error = 0.0_f64;
     let mut non_finite_body_count = 0_usize;
+    let mut gate_contact_event_count = 0_usize;
+    let mut gate_contact_max_impulse_ns = 0.0_f64;
     for (tick, frame) in tape.frames.iter().enumerate() {
         apply_commands(&mut world, &frame.commands)
             .map_err(|error| format!("replay command failed at tick {tick}: {error:?}"))?;
         world.step(frame.dt);
         let snapshot = WorldSnapshot::capture(&world);
         hash_snapshot(&mut hasher, tick, &snapshot);
+        if let Some(gate_handle) = gate_handle {
+            for event in &snapshot.collision_events {
+                let package_gate_pair = (event.body_a == package_handle && event.body_b == gate_handle)
+                    || (event.body_a == gate_handle && event.body_b == package_handle);
+                if package_gate_pair {
+                    gate_contact_event_count += 1;
+                    gate_contact_max_impulse_ns =
+                        gate_contact_max_impulse_ns.max(f64::from_bits(event.impulse));
+                }
+            }
+        }
 
         let invariants = world.invariant_snapshot();
         max_contact_penetration_m = max_contact_penetration_m.max(invariants.max_penetration_depth);
@@ -358,6 +396,8 @@ fn run_episode(
         max_rotation_orthogonality_error,
         max_rotation_determinant_error,
         non_finite_body_count,
+        gate_contact_event_count,
+        gate_contact_max_impulse_ns,
         digest: format!("sha256:{:x}", hasher.finalize()),
         ticks: tape.frames.len(),
     })
@@ -593,12 +633,16 @@ pub fn simulate_closed_gate_obstruction(
     scenario: &ScenarioManifest,
 ) -> Result<FaultSimulationResult, String> {
     let (simulation, blind_retry_blocked) = simulate_scene(scenario, true)?;
+    let (episode_trace, _) = (run_episode(scenario, true)?, run_episode(scenario, true)?);
     let geometry = tote_geometry(scenario)?;
     let package_bottom_m =
         simulation.package_center_m[1] - simulation.package_world_aabb_half_extents_m[1];
     let tote_top_m = 2.0 * geometry.inner_half_m[1];
     let physical_fault_effect_observed =
-        !simulation.safe_inside_tote && package_bottom_m > tote_top_m + 0.001;
+        episode_trace.gate_contact_event_count > 0
+            && episode_trace.gate_contact_max_impulse_ns > 0.0
+            && !simulation.safe_inside_tote
+            && package_bottom_m > tote_top_m + 0.001;
     let reconciliation_required =
         simulation.transaction_state == PhysicalTransactionState::ReconciliationRequired;
     let false_completion_blocked = !simulation.accepted && reconciliation_required;
@@ -619,6 +663,8 @@ pub fn simulate_closed_gate_obstruction(
         fault_model: "static_closed_gate_collision_proxy".into(),
         injection_semantics: "receiver_observes_placement_failure_after_logical_release".into(),
         simulation,
+        gate_contact_event_count: episode_trace.gate_contact_event_count,
+        gate_contact_max_impulse_ns: episode_trace.gate_contact_max_impulse_ns,
         physical_fault_effect_observed,
         blind_retry_blocked,
         reconciliation_required,
@@ -663,6 +709,8 @@ mod tests {
         let result = simulate_closed_gate_obstruction(&fixture())
             .expect("closed-gate obstruction episode should execute");
         assert!(result.physical_fault_effect_observed, "{result:?}");
+        assert!(result.gate_contact_event_count > 0, "{result:?}");
+        assert!(result.gate_contact_max_impulse_ns > 0.0, "{result:?}");
         assert!(result.simulation.replay_bitwise_equal, "{result:?}");
         assert!(result.simulation.settled, "{result:?}");
         assert!(result.simulation.physics_numerically_healthy, "{result:?}");
