@@ -362,3 +362,20 @@ The comparison is not a claim that Luminous outperforms any named product. No Lu
 - a common-referee matched track under conditions valid for both systems.
 
 Do not force a competitor outside its declared envelope to manufacture an apparent Luminous win. Report operating-envelope applicability and abstention separately from performance.
+
+
+## 19. Dependency resolution integrity
+
+The isolated validator resolves Cargo dependencies in the focused workflow and exports the resulting Cargo.lock artifact. The lockfile is not committed as a source file in v0.1, so the package pins its expected lockfile digest in a Rust test. The currently verified cross-platform lock artifact is 49,016 bytes with SHA-256:
+
+`874b07517f58aa8453ad012423b8896c0dbe1f180228499cffbbabef7df65490`
+
+If a transitive dependency changes, the golden digest test fails until the dependency change is reviewed and the expected digest intentionally updated. This guards against silent registry drift, but is not a substitute for a committed lockfile in downstream deployment or packaging. CI retains the lock artifact for review.
+
+The corresponding public challenge golden vector fixes:
+- profile digest: `03e604e0af5242e9161f2097f687683ed4acd8018202b561e69ba811d5d4b8df`;
+- root seed: `0123456789abcdef`;
+- count: 128;
+- canonical manifest digest: `37059e33d960c69c912ef753e5392cf902bc1a7bb232e11406c597f4eef5b633`.
+
+The three independent Linux/macOS/Windows workflow artifacts have identical manifest bytes and the same Cargo.lock bytes. The generator's golden-vector unit test replays the known-answer vector from the checked-in profile, seed and count.
