@@ -108,11 +108,16 @@ fn deterministic_noise(seed: u64, index: usize, scale: f64) -> f64 {
     (unit_interval(&mut state) - 0.5) * 2.0 * scale
 }
 
-fn polynomial_response(profile: SensorProfile, force_n: f64, position: f64,
-    temperature: f64, phase: f64, noise: f64) -> f64 {
+fn polynomial_response(
+    profile: SensorProfile,
+    force_n: f64,
+    position: f64,
+    temperature: f64,
+    phase: f64,
+    noise: f64,
+) -> f64 {
     let c = profile.raw_coefficients;
-    c[0]
-        + c[1] * force_n
+    c[0] + c[1] * force_n
         + c[2] * force_n * force_n
         + c[3] * position
         + c[4] * temperature
@@ -122,8 +127,7 @@ fn polynomial_response(profile: SensorProfile, force_n: f64, position: f64,
         + noise
 }
 
-fn design_features(raw: f64, position: f64, temperature: f64, phase: f64)
-    -> [f64; PARAMS] {
+fn design_features(raw: f64, position: f64, temperature: f64, phase: f64) -> [f64; PARAMS] {
     [
         1.0,
         raw,
@@ -155,7 +159,8 @@ fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> Candidate {
         phase,
         deterministic_noise(seed, id, noise_scale),
     );
-    let cost_ms = 500 + (force_n * 5.0) as u64
+    let cost_ms = 500
+        + (force_n * 5.0) as u64
         + if phase > 0.0 { 100 } else { 0 }
         + if position.abs() > 0.9 { 80 } else { 0 };
 
@@ -255,8 +260,7 @@ fn heldout_target_pool(seed: u64) -> Vec<Candidate> {
     candidates
 }
 
-fn invert_matrix(matrix: [[f64; PARAMS]; PARAMS])
-    -> Result<[[f64; PARAMS]; PARAMS], String> {
+fn invert_matrix(matrix: [[f64; PARAMS]; PARAMS]) -> Result<[[f64; PARAMS]; PARAMS], String> {
     let mut augmented = [[0.0_f64; PARAMS * 2]; PARAMS];
     for (row_index, row_values) in augmented.iter_mut().enumerate() {
         for (column, value) in row_values.iter_mut().take(PARAMS).enumerate() {
@@ -308,10 +312,7 @@ fn invert_matrix(matrix: [[f64; PARAMS]; PARAMS])
     Ok(inverse)
 }
 
-fn quadratic_form(
-    vector: &[f64; PARAMS],
-    matrix: &[[f64; PARAMS]; PARAMS],
-) -> f64 {
+fn quadratic_form(vector: &[f64; PARAMS], matrix: &[[f64; PARAMS]; PARAMS]) -> f64 {
     let mut value = 0.0;
     for row in 0..PARAMS {
         for column in 0..PARAMS {
@@ -391,11 +392,10 @@ fn initial_stratum_candidate(candidates: &[Candidate], stratum: usize) -> Option
         .enumerate()
         .filter(|(_, candidate)| candidate.stratum == stratum)
         .max_by(|(_, left), (_, right)| {
-            let left_score = (left.force_n / 10.0 - 0.5).abs()
-                + left.position.abs() * 0.25;
-            let right_score = (right.force_n / 10.0 - 0.5).abs()
-                + right.position.abs() * 0.25;
-            left_score.total_cmp(&right_score)
+            let left_score = (left.force_n / 10.0 - 0.5).abs() + left.position.abs() * 0.25;
+            let right_score = (right.force_n / 10.0 - 0.5).abs() + right.position.abs() * 0.25;
+            left_score
+                .total_cmp(&right_score)
                 .then_with(|| right.id.cmp(&left.id))
         })
         .map(|(index, _)| index)
@@ -406,8 +406,7 @@ fn normalized_stimulus_distance(left: &Candidate, right: &Candidate) -> f64 {
     let position = (left.position - right.position) / 2.0;
     let temperature = (left.temperature - right.temperature) / 2.0;
     let phase = (left.phase - right.phase) / 2.0;
-    force * force + position * position
-        + temperature * temperature + phase * phase
+    force * force + position * position + temperature * temperature + phase * phase
 }
 
 fn select_uniform(candidates: &[Candidate]) -> Result<Vec<usize>, String> {
@@ -429,10 +428,7 @@ fn select_uniform(candidates: &[Candidate]) -> Result<Vec<usize>, String> {
     Ok(selected)
 }
 
-fn select_random_stratified(
-    candidates: &[Candidate],
-    seed: u64,
-) -> Result<Vec<usize>, String> {
+fn select_random_stratified(candidates: &[Candidate], seed: u64) -> Result<Vec<usize>, String> {
     let mut state = if seed == 0 { 1 } else { seed };
     let mut selected = Vec::with_capacity(TARGET_BUDGET);
 
@@ -485,7 +481,8 @@ fn select_maximin(candidates: &[Candidate]) -> Result<Vec<usize>, String> {
                             normalized_stimulus_distance(right, &candidates[*selected_index])
                         })
                         .fold(f64::INFINITY, f64::min);
-                    left_distance.total_cmp(&right_distance)
+                    left_distance
+                        .total_cmp(&right_distance)
                         .then_with(|| right.id.cmp(&left.id))
                 })
                 .map(|(index, _)| index)
@@ -529,7 +526,8 @@ fn select_d_optimal(candidates: &[Candidate]) -> Result<Vec<usize>, String> {
             .max_by(|(_, left), (_, right)| {
                 let left_score = quadratic_form(&left.features, &inverse);
                 let right_score = quadratic_form(&right.features, &inverse);
-                left_score.total_cmp(&right_score)
+                left_score
+                    .total_cmp(&right_score)
                     .then_with(|| right.id.cmp(&left.id))
             })
             .map(|(index, _)| index)
@@ -566,9 +564,7 @@ fn information_matrix(
     Ok(information)
 }
 
-fn source_prior(
-    source_candidates: &[Candidate],
-) -> Result<[f64; PARAMS], String> {
+fn source_prior(source_candidates: &[Candidate]) -> Result<[f64; PARAMS], String> {
     let selected: Vec<_> = (0..source_candidates.len()).collect();
     let fit = fit_model(source_candidates, &selected, None, 0.0)?;
     Ok(fit.coefficients)
@@ -623,7 +619,8 @@ fn evaluate(
         let candidate = target_candidates
             .get(*index)
             .ok_or_else(|| "target selection index is out of bounds".to_owned())?;
-        total.checked_add(candidate.cost_ms)
+        total
+            .checked_add(candidate.cost_ms)
             .ok_or_else(|| "target synthetic cost accumulation overflow".to_owned())
     })?;
     let total_estimated_fixture_cost_ms = source_reference_cost_ms
@@ -648,7 +645,8 @@ fn evaluate(
 
 fn candidate_cost_sum(candidates: &[Candidate]) -> Result<u64, String> {
     candidates.iter().try_fold(0_u64, |total, candidate| {
-        total.checked_add(candidate.cost_ms)
+        total
+            .checked_add(candidate.cost_ms)
             .ok_or_else(|| "source synthetic cost accumulation overflow".to_owned())
     })
 }
@@ -752,12 +750,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     results.push(evaluate_source_transfer(&source_candidates, &heldout)?);
 
     let prior = source_prior(&source_candidates)?;
-    let transfer_active_fit = fit_model(
-        &target_candidates,
-        &d_optimal,
-        Some(&prior),
-        0.25,
-    )?;
+    let transfer_active_fit = fit_model(&target_candidates, &d_optimal, Some(&prior), 0.25)?;
     results.push(evaluate(
         "transfer_plus_d_optimal_target_adaptation",
         &target_candidates,
@@ -788,12 +781,16 @@ mod tests {
         let heldout = heldout_target_pool(20261116);
         assert_eq!(candidates.len(), 72);
         assert_eq!(heldout.len(), 60);
-        assert!(candidates.iter().all(|candidate| {
-            [0.0, 2.0, 4.0, 6.0, 8.0, 10.0].contains(&candidate.force_n)
-        }));
-        assert!(heldout.iter().all(|candidate| {
-            [1.0, 3.0, 5.0, 7.0, 9.0].contains(&candidate.force_n)
-        }));
+        assert!(
+            candidates
+                .iter()
+                .all(|candidate| { [0.0, 2.0, 4.0, 6.0, 8.0, 10.0].contains(&candidate.force_n) })
+        );
+        assert!(
+            heldout
+                .iter()
+                .all(|candidate| { [1.0, 3.0, 5.0, 7.0, 9.0].contains(&candidate.force_n) })
+        );
     }
 
     #[test]
@@ -850,8 +847,7 @@ mod tests {
         assert_eq!(report.results[6].target_reference_contacts, 16);
         assert_eq!(
             report.results[6].total_estimated_fixture_cost_ms,
-            report.results[6].source_reference_cost_ms
-                + report.results[6].target_reference_cost_ms
+            report.results[6].source_reference_cost_ms + report.results[6].target_reference_cost_ms
         );
         for result in &report.results {
             assert!(result.rmse_n.is_finite());

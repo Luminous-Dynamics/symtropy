@@ -20,13 +20,27 @@ fn main() -> ExitCode {
             );
             println!("result=all_known_answers_matched");
             println!("claim_ceiling=synthetic_transfer_contract_only");
-            match phri_tac_transfer_oracle::active_benchmark::run_active_calibration_benchmark(20261116) {
+            match phri_tac_transfer_oracle::active_benchmark::run_active_calibration_benchmark(
+                20261116,
+            ) {
                 Ok(benchmark) => {
                     println!("active_calibration_suite=synthetic_policy_comparison_v0_1");
-                    println!("active_calibration_source_candidate_pool={}", benchmark.source_candidate_pool_size);
-                    println!("active_calibration_target_candidate_pool={}", benchmark.target_candidate_pool_size);
-                    println!("active_calibration_heldout_cases={}", benchmark.heldout_case_count);
-                    println!("active_calibration_target_contact_budget={}", benchmark.target_contact_budget);
+                    println!(
+                        "active_calibration_source_candidate_pool={}",
+                        benchmark.source_candidate_pool_size
+                    );
+                    println!(
+                        "active_calibration_target_candidate_pool={}",
+                        benchmark.target_candidate_pool_size
+                    );
+                    println!(
+                        "active_calibration_heldout_cases={}",
+                        benchmark.heldout_case_count
+                    );
+                    println!(
+                        "active_calibration_target_contact_budget={}",
+                        benchmark.target_contact_budget
+                    );
                     for result in benchmark.results {
                         println!(
                             "policy={} source_contacts={} target_contacts={} source_cost_ms={} target_cost_ms={} total_synthetic_cost_ms={} rmse_n={:.6} p95_abs_n={:.6} worst_abs_n={:.6} prediction_interval_coverage95={:.4} mean_interval_width_n={:.6} claim={}",
