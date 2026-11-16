@@ -85,6 +85,18 @@ pub enum ObservationSubject {
     RamanCalibrationReference,
     /// A synchronization pulse/trigger used to align separate acquisition clocks.
     ClockSynchronization,
+    /// A source-linked mapping of one plant/fungus interface across modalities.
+    SymbiosisInterfaceRegistration,
+    PlantRootExudateSignal,
+    SymbioticSignalResponse,
+    ArbusculeInterfaceMorphology,
+    HostCarbonInvestment,
+    FungalNutrientDelivery,
+    ArbusculeTurnover,
+    FungalRegulatorySignal,
+    IsotopeTracerTransfer,
+    HostNutrientResponse,
+    MatchedControlCondition,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -550,6 +562,17 @@ const fn subject_tag(subject: ObservationSubject) -> u8 {
         ObservationSubject::RamanChemicalMap => 13,
         ObservationSubject::RamanCalibrationReference => 14,
         ObservationSubject::ClockSynchronization => 15,
+        ObservationSubject::SymbiosisInterfaceRegistration => 16,
+        ObservationSubject::PlantRootExudateSignal => 17,
+        ObservationSubject::SymbioticSignalResponse => 18,
+        ObservationSubject::ArbusculeInterfaceMorphology => 19,
+        ObservationSubject::HostCarbonInvestment => 20,
+        ObservationSubject::FungalNutrientDelivery => 21,
+        ObservationSubject::ArbusculeTurnover => 22,
+        ObservationSubject::FungalRegulatorySignal => 23,
+        ObservationSubject::IsotopeTracerTransfer => 24,
+        ObservationSubject::HostNutrientResponse => 25,
+        ObservationSubject::MatchedControlCondition => 26,
     }
 }
 
@@ -762,6 +785,20 @@ mod tests {
             14
         );
         assert_eq!(subject_tag(ObservationSubject::ClockSynchronization), 15);
+        assert_eq!(
+            subject_tag(ObservationSubject::SymbiosisInterfaceRegistration),
+            16
+        );
+        assert_eq!(subject_tag(ObservationSubject::PlantRootExudateSignal), 17);
+        assert_eq!(subject_tag(ObservationSubject::SymbioticSignalResponse), 18);
+        assert_eq!(subject_tag(ObservationSubject::ArbusculeInterfaceMorphology), 19);
+        assert_eq!(subject_tag(ObservationSubject::HostCarbonInvestment), 20);
+        assert_eq!(subject_tag(ObservationSubject::FungalNutrientDelivery), 21);
+        assert_eq!(subject_tag(ObservationSubject::ArbusculeTurnover), 22);
+        assert_eq!(subject_tag(ObservationSubject::FungalRegulatorySignal), 23);
+        assert_eq!(subject_tag(ObservationSubject::IsotopeTracerTransfer), 24);
+        assert_eq!(subject_tag(ObservationSubject::HostNutrientResponse), 25);
+        assert_eq!(subject_tag(ObservationSubject::MatchedControlCondition), 26);
         assert_ne!(
             subject_tag(ObservationSubject::LiquidFilmPatch),
             subject_tag(ObservationSubject::BacterialTrajectory)
