@@ -41,6 +41,7 @@ fn plan() -> ExecutionPlan {
         allowed_environment_strata: vec!["crosswind-high".into()],
         authorization_required: true,
         authorization_scope_sha256: digest('2'),
+        expected_authorization_receipt_sha256: Some(digest('a')),
         permitted_run_window: interval(0, 40),
         expected_data_windows: vec![ExpectedDataWindow {
             window_id: "window-telemetry-001".into(),
@@ -564,4 +565,14 @@ fn capture_receipt_digest_is_required_for_every_raw_segment() {
         assess(&plan(), &actual),
         Err(ExecutionError::InvalidSegment)
     );
+}
+
+
+#[test]
+fn authorization_receipt_substitution_is_not_admissible_even_when_scope_matches() {
+    let mut actual = record();
+    actual.authority.receipt_sha256 = Some(digest('0'));
+    let result = assess(&plan(), &actual).unwrap();
+    assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
+    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Authorization));
 }
