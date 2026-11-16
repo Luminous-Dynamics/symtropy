@@ -1,16 +1,43 @@
 {
   "type": "Feature",
   "id": "e3-synthetic-record-001",
-  "geometry": null,
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          0
+        ]
+      ]
+    ]
+  },
+  "conformsTo": [
+    "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core",
+    "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/json"
+  ],
   "properties": {
-    "title": "Synthetic resilient water service catalogue record",
-    "description": "Synthetic OGC API - Records Core 1.0 catalog metadata fixture. No geospatial payload is bundled or implied.",
-    "type": "dataset",
     "created": "2026-11-16T10:00:00Z",
     "updated": "2026-11-16T10:00:00Z",
-    "conformsTo": [
-      "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"
-    ],
+    "type": "dataset",
+    "title": "Synthetic resilient water service catalogue record",
+    "description": "Synthetic OGC API - Records Core 1.0 GeoJSON catalog metadata fixture. The polygon is a fictional unit-square geometry used only for conformance testing; no geospatial payload is bundled or implied.",
     "language": "en",
     "languages": [
       "en"
@@ -21,29 +48,10 @@
       "synthetic"
     ],
     "themes": [],
-    "contacts": [],
-    "providers": [],
-    "extent": {
-      "spatial": {
-        "bbox": [
-          -180,
-          -90,
-          180,
-          90
-        ],
-        "crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
-      },
-      "temporal": {
-        "interval": [
-          "2026-01-01T00:00:00Z",
-          null
-        ],
-        "trs": "http://www.opengis.net/def/uom/ISO-8601/0/Gregorian"
-      }
-    },
     "e3Extension": {
       "value": "must-be-preserved",
-      "provenance": "E3 synthetic test only"
+      "provenance": "E3 synthetic test only",
+      "spatialInterpretation": "synthetic-unit-square-not-a-real-world-location"
     }
   },
   "links": [
@@ -56,6 +64,10 @@
       "rel": "collection",
       "type": "application/json",
       "href": "https://example.invalid/ogc/collections/synthetic"
+    },
+    {
+      "rel": "profile",
+      "href": "http://www.opengis.net/def/profile/OGC/0/ogc-catalog"
     }
   ]
 }
