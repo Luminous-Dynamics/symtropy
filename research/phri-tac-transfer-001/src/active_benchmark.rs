@@ -10,8 +10,6 @@
 
 #![forbid(unsafe_code)]
 
-use std::cmp::Ordering;
-
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
 const CONTACTS_PER_STRATUM: usize = 4;
@@ -43,6 +41,17 @@ const TARGET_PROFILE: SensorProfile = SensorProfile {
 const SOURCE_PROFILE: SensorProfile = SensorProfile {
     raw_coefficients: [0.19, 0.82, 0.006, 0.10, 0.020, 0.052, 0.030, 0.013],
 };
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct SyntheticStimulus {
+    profile: SensorProfile,
+    force_n: f64,
+    position: f64,
+    temperature: f64,
+    phase: f64,
+    seed: u64,
+    noise_scale: f64,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 struct Fit {
@@ -127,16 +136,16 @@ fn design_features(raw: f64, position: f64, temperature: f64, phase: f64)
     ]
 }
 
-fn make_candidate(
-    id: usize,
-    profile: SensorProfile,
-    force_n: f64,
-    position: f64,
-    temperature: f64,
-    phase: f64,
-    seed: u64,
-    noise_scale: f64,
-) -> Candidate {
+fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> Candidate {
+    let SyntheticStimulus {
+        profile,
+        force_n,
+        position,
+        temperature,
+        phase,
+        seed,
+        noise_scale,
+    } = stimulus;
     let stratum = usize::from(temperature > 0.0) * 2 + usize::from(phase > 0.0);
     let raw = polynomial_response(
         profile,
@@ -172,8 +181,16 @@ fn target_candidate_pool(seed: u64) -> Vec<Candidate> {
             for temperature in [-1.0, 1.0] {
                 for phase in [-1.0, 1.0] {
                     candidates.push(make_candidate(
-                        id, TARGET_PROFILE, force, position, temperature, phase,
-                        seed ^ 0xA5A5_5A5A_1234_5678, 0.006,
+                        id,
+                        SyntheticStimulus {
+                            profile: TARGET_PROFILE,
+                            force_n: force,
+                            position,
+                            temperature,
+                            phase,
+                            seed: seed ^ 0xA5A5_5A5A_1234_5678,
+                            noise_scale: 0.006,
+                        },
                     ));
                     id += 1;
                 }
@@ -192,8 +209,16 @@ fn source_candidate_pool(seed: u64) -> Vec<Candidate> {
             for temperature in [-1.0, 1.0] {
                 for phase in [-1.0, 1.0] {
                     candidates.push(make_candidate(
-                        id, SOURCE_PROFILE, force, position, temperature, phase,
-                        seed ^ 0x5A5A_A5A5_8765_4321, 0.006,
+                        id,
+                        SyntheticStimulus {
+                            profile: SOURCE_PROFILE,
+                            force_n: force,
+                            position,
+                            temperature,
+                            phase,
+                            seed: seed ^ 0x5A5A_A5A5_8765_4321,
+                            noise_scale: 0.006,
+                        },
                     ));
                     id += 1;
                 }
@@ -211,8 +236,16 @@ fn heldout_target_pool(seed: u64) -> Vec<Candidate> {
             for temperature in [-0.6, 0.6] {
                 for phase in [-0.5, 0.5] {
                     candidates.push(make_candidate(
-                        id, TARGET_PROFILE, force, position, temperature, phase,
-                        seed ^ 0x1357_9BDF_2468_ACE0, 0.006,
+                        id,
+                        SyntheticStimulus {
+                            profile: TARGET_PROFILE,
+                            force_n: force,
+                            position,
+                            temperature,
+                            phase,
+                            seed: seed ^ 0x1357_9BDF_2468_ACE0,
+                            noise_scale: 0.006,
+                        },
                     ));
                     id += 1;
                 }
@@ -225,11 +258,11 @@ fn heldout_target_pool(seed: u64) -> Vec<Candidate> {
 fn invert_matrix(matrix: [[f64; PARAMS]; PARAMS])
     -> Result<[[f64; PARAMS]; PARAMS], String> {
     let mut augmented = [[0.0_f64; PARAMS * 2]; PARAMS];
-    for row in 0..PARAMS {
-        for column in 0..PARAMS {
-            augmented[row][column] = matrix[row][column];
+    for (row_index, row_values) in augmented.iter_mut().enumerate() {
+        for (column, value) in row_values.iter_mut().take(PARAMS).enumerate() {
+            *value = matrix[row_index][column];
         }
-        augmented[row][PARAMS + row] = 1.0;
+        row_values[PARAMS + row_index] = 1.0;
     }
 
     for column in 0..PARAMS {
@@ -255,13 +288,13 @@ fn invert_matrix(matrix: [[f64; PARAMS]; PARAMS])
         }
 
         let pivot_row = augmented[column];
-        for row in 0..PARAMS {
-            if row == column {
+        for (row_index, row_values) in augmented.iter_mut().enumerate() {
+            if row_index == column {
                 continue;
             }
-            let factor = augmented[row][column];
-            for index in 0..PARAMS * 2 {
-                augmented[row][index] -= factor * pivot_row[index];
+            let factor = row_values[column];
+            for (value, pivot_value) in row_values.iter_mut().zip(pivot_row.iter()) {
+                *value -= factor * pivot_value;
             }
         }
     }
@@ -301,8 +334,8 @@ fn fit_model(
     let mut information = [[0.0_f64; PARAMS]; PARAMS];
     let mut rhs = [0.0_f64; PARAMS];
 
-    for index in 0..PARAMS {
-        information[index][index] = prior_strength + RIDGE;
+    for (index, information_row) in information.iter_mut().enumerate() {
+        information_row[index] = prior_strength + RIDGE;
         if let Some(prior) = prior {
             rhs[index] = prior_strength * prior[index];
         }
@@ -312,11 +345,13 @@ fn fit_model(
         let candidate = candidates
             .get(*selected_index)
             .ok_or_else(|| "selected candidate index is out of bounds".to_owned())?;
-        for row in 0..PARAMS {
-            rhs[row] += candidate.features[row] * candidate.reference_force_n;
-            for column in 0..PARAMS {
-                information[row][column] +=
-                    candidate.features[row] * candidate.features[column];
+        for (row, (rhs_value, information_row)) in
+            rhs.iter_mut().zip(information.iter_mut()).enumerate()
+        {
+            let row_feature = candidate.features[row];
+            *rhs_value += row_feature * candidate.reference_force_n;
+            for (column, value) in information_row.iter_mut().enumerate() {
+                *value += row_feature * candidate.features[column];
             }
         }
     }
@@ -470,12 +505,12 @@ fn select_d_optimal(candidates: &[Candidate]) -> Result<Vec<usize>, String> {
     let mut counts = [0_usize; STRATA];
 
     // Start with one extreme reference contact in each mandatory stratum.
-    for stratum in 0..STRATA {
+    for (stratum, count) in counts.iter_mut().enumerate() {
         let first = initial_stratum_candidate(candidates, stratum)
             .ok_or_else(|| "stratum has no initial D-optimal candidate".to_owned())?;
         selected.push(first);
         selected_ids.push(candidates[first].id);
-        counts[stratum] = 1;
+        *count = 1;
     }
 
     while selected.len() < TARGET_BUDGET {
@@ -514,17 +549,17 @@ fn information_matrix(
     ridge: f64,
 ) -> Result<[[f64; PARAMS]; PARAMS], String> {
     let mut information = [[0.0_f64; PARAMS]; PARAMS];
-    for index in 0..PARAMS {
-        information[index][index] = ridge;
+    for (index, information_row) in information.iter_mut().enumerate() {
+        information_row[index] = ridge;
     }
     for selected_index in selected {
         let candidate = candidates
             .get(*selected_index)
             .ok_or_else(|| "selected candidate index is out of bounds".to_owned())?;
-        for row in 0..PARAMS {
-            for column in 0..PARAMS {
-                information[row][column] +=
-                    candidate.features[row] * candidate.features[column];
+        for (row, information_row) in information.iter_mut().enumerate() {
+            let row_feature = candidate.features[row];
+            for (column, value) in information_row.iter_mut().enumerate() {
+                *value += row_feature * candidate.features[column];
             }
         }
     }
