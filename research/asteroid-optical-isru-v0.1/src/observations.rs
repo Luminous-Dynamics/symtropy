@@ -18,6 +18,17 @@ pub enum ObservationStatus {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum ObservationEvidenceClass {
+    SourceReportedMeasurement,
+    SourceReportedCondition,
+    AuthorDerived,
+    QualitativeSourceReport,
+    ModelOutput,
+    NotReported,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum EvidenceStage {
     PrimaryInput,
     FeedstockCondition,
@@ -53,6 +64,7 @@ pub struct ObservationRecord {
     pub id: String,
     pub source_id: String,
     pub status: ObservationStatus,
+    pub evidence_class: ObservationEvidenceClass,
     pub metric: String,
     pub value: Option<f64>,
     pub range: Option<NumericInterval>,
@@ -91,6 +103,7 @@ pub enum RegisterError {
     NonFiniteValue(&'static str),
     InvalidNumericInterval,
     StatusValueMismatch(&'static str),
+    EvidenceClassMismatch(&'static str),
     AcceptedProductEvidenceMissing,
     AcceptedProductMustBePositive,
 }
@@ -109,6 +122,7 @@ impl std::fmt::Display for RegisterError {
             Self::NonFiniteValue(field) => write!(f, "{field} must be finite"),
             Self::InvalidNumericInterval => write!(f, "numeric interval must satisfy finite lower <= upper"),
             Self::StatusValueMismatch(field) => write!(f, "observation status/value mismatch: {field}"),
+            Self::EvidenceClassMismatch(field) => write!(f, "observation evidence-class mismatch: {field}"),
             Self::AcceptedProductEvidenceMissing => write!(
                 f,
                 "accepted product requires independent assay, issuer and product-contract identities"
@@ -125,6 +139,27 @@ fn nonempty(value: &str) -> bool {
 }
 
 fn validate_value_semantics(record: &ObservationRecord) -> Result<(), RegisterError> {
+    match (record.status, record.evidence_class) {
+        (ObservationStatus::Numeric, ObservationEvidenceClass::SourceReportedMeasurement)
+        | (ObservationStatus::Numeric, ObservationEvidenceClass::SourceReportedCondition)
+        | (ObservationStatus::Numeric, ObservationEvidenceClass::AuthorDerived)
+        | (ObservationStatus::Numeric, ObservationEvidenceClass::ModelOutput)
+        | (ObservationStatus::Range, ObservationEvidenceClass::SourceReportedMeasurement)
+        | (ObservationStatus::Range, ObservationEvidenceClass::AuthorDerived)
+        | (ObservationStatus::Range, ObservationEvidenceClass::ModelOutput)
+        | (ObservationStatus::Qualitative, ObservationEvidenceClass::QualitativeSourceReport)
+        | (ObservationStatus::NotReported, ObservationEvidenceClass::NotReported) => {}
+        (ObservationStatus::Numeric | ObservationStatus::Range, _) => {
+            return Err(RegisterError::EvidenceClassMismatch("numeric_or_range_requires_numeric_evidence_class"));
+        }
+        (ObservationStatus::Qualitative, _) => {
+            return Err(RegisterError::EvidenceClassMismatch("qualitative_requires_qualitative_source_report"));
+        }
+        (ObservationStatus::NotReported, _) => {
+            return Err(RegisterError::EvidenceClassMismatch("not_reported_requires_not_reported_class"));
+        }
+    }
+
     match record.status {
         ObservationStatus::Numeric => {
             let value = record.value.ok_or(RegisterError::StatusValueMismatch("numeric_value_missing"))?;
@@ -264,6 +299,7 @@ mod tests {
             id: "test-accepted-product".to_string(),
             source_id: "source-test".to_string(),
             status: ObservationStatus::Numeric,
+            evidence_class: ObservationEvidenceClass::SourceReportedMeasurement,
             metric: "accepted_product_mass".to_string(),
             value: Some(1.0),
             range: None,
@@ -355,6 +391,30 @@ mod tests {
             validate_observation_register(&register).unwrap_err(),
             RegisterError::StatusValueMismatch("numeric_unit_missing")
         );
+    }
+
+    #[test]
+    fn numeric_status_cannot_be_mislabeled_as_qualitative_evidence() {
+        let mut register = valid_register();
+        let record = register.observations.iter_mut().find(|record| record.status == ObservationStatus::Numeric).unwrap();
+        record.evidence_class = ObservationEvidenceClass::QualitativeSourceReport;
+        assert_eq!(
+            validate_observation_register(&register).unwrap_err(),
+            RegisterError::EvidenceClassMismatch("numeric_or_range_requires_numeric_evidence_class")
+        );
+    }
+
+    #[test]
+    fn author_derived_estimates_remain_distinct_from_measurements() {
+        let register = valid_register();
+        assert!(register.observations.iter().any(|record| {
+            record.metric == "water_mass_loss_efficiency"
+                && record.evidence_class == ObservationEvidenceClass::AuthorDerived
+        }));
+        assert!(register.observations.iter().any(|record| {
+            record.metric == "TGA_mass_loss_post_200C"
+                && record.evidence_class == ObservationEvidenceClass::SourceReportedMeasurement
+        }));
     }
 
     #[test]
