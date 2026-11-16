@@ -11,6 +11,24 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+struct InputPaths {
+    corpus: PathBuf,
+    oracle: PathBuf,
+    corpus_schema: PathBuf,
+    oracle_schema: PathBuf,
+    result_schema: PathBuf,
+    output: Option<PathBuf>,
+}
+
+struct InputFiles {
+    corpus: Value,
+    oracle: Value,
+    corpus_schema: Value,
+    oracle_schema: Value,
+    result_schema: Value,
+    output: Option<PathBuf>,
+}
+
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,
@@ -60,9 +78,7 @@ fn run() -> Result<(), String> {
     }
 }
 
-fn paths(
-    args: &[String],
-) -> Result<(PathBuf, PathBuf, PathBuf, PathBuf, PathBuf, Option<PathBuf>), String> {
+fn paths(args: &[String]) -> Result<InputPaths, String> {
     let mut options = parse_options(args)?;
     let base = repository_root().join(PACKAGE_DIR);
     let corpus = take(&mut options, "--corpus")
@@ -87,50 +103,36 @@ fn paths(
             options.keys().cloned().collect::<Vec<_>>().join(",")
         ));
     }
-    Ok((
+    Ok(InputPaths {
         corpus,
         oracle,
         corpus_schema,
         oracle_schema,
         result_schema,
         output,
-    ))
+    })
 }
 
-fn load_inputs(
-    args: &[String],
-) -> Result<(Value, Value, Value, Value, Value, Option<PathBuf>), String> {
-    let (
-        corpus_path,
-        oracle_path,
-        corpus_schema_path,
-        oracle_schema_path,
-        result_schema_path,
-        output,
-    ) = paths(args)?;
-    let corpus = read_json(&corpus_path)?;
-    let oracle = read_json(&oracle_path)?;
-    let corpus_schema = read_json(&corpus_schema_path)?;
-    let oracle_schema = read_json(&oracle_schema_path)?;
-    let result_schema = read_json(&result_schema_path)?;
-    Ok((
-        corpus,
-        oracle,
-        corpus_schema,
-        oracle_schema,
-        result_schema,
-        output,
-    ))
+fn load_inputs(args: &[String]) -> Result<InputFiles, String> {
+    let input_paths = paths(args)?;
+    Ok(InputFiles {
+        corpus: read_json(&input_paths.corpus)?,
+        oracle: read_json(&input_paths.oracle)?,
+        corpus_schema: read_json(&input_paths.corpus_schema)?,
+        oracle_schema: read_json(&input_paths.oracle_schema)?,
+        result_schema: read_json(&input_paths.result_schema)?,
+        output: input_paths.output,
+    })
 }
 
 fn validate_command(args: &[String]) -> Result<(), String> {
-    let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) = load_inputs(args)?;
+    let inputs = load_inputs(args)?;
     let result = validate_package(
-        &corpus,
-        &oracle,
-        &corpus_schema,
-        &oracle_schema,
-        &result_schema,
+        &inputs.corpus,
+        &inputs.oracle,
+        &inputs.corpus_schema,
+        &inputs.oracle_schema,
+        &inputs.result_schema,
     )
     .map_err(|errors| errors.join("\n"))?;
     if result["oracle_comparison"]["exact_disposition_and_reason_agreement"] != true {
@@ -139,27 +141,29 @@ fn validate_command(args: &[String]) -> Result<(), String> {
             result["oracle_comparison"]["mismatches"]
         ));
     }
-    if output.is_some() {
+    if inputs.output.is_some() {
         return Err("--output is available only with the evaluate command".to_owned());
     }
     println!(
         "PASS: {} cases / {} claim results exactly match the public development oracle; critical changed-dependency preservation count={}",
         result["summary"]["case_count"],
         result["summary"]["claim_result_count"],
-        result["summary"]["safety_critical_changed_dependency_preserved_count"]
+        result["summary"]["safety_critical_changed_dependency_false_preservation_count"]
     );
     Ok(())
 }
 
 fn evaluate_command(args: &[String]) -> Result<(), String> {
-    let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) = load_inputs(args)?;
-    let output_path = output.ok_or_else(|| "required_option_missing:--output".to_owned())?;
+    let inputs = load_inputs(args)?;
+    let output_path = inputs
+        .output
+        .ok_or_else(|| "required_option_missing:--output".to_owned())?;
     let result = validate_package(
-        &corpus,
-        &oracle,
-        &corpus_schema,
-        &oracle_schema,
-        &result_schema,
+        &inputs.corpus,
+        &inputs.oracle,
+        &inputs.corpus_schema,
+        &inputs.oracle_schema,
+        &inputs.result_schema,
     )
     .map_err(|errors| errors.join("\n"))?;
     if result["oracle_comparison"]["exact_disposition_and_reason_agreement"] != true {
@@ -168,8 +172,8 @@ fn evaluate_command(args: &[String]) -> Result<(), String> {
             result["oracle_comparison"]["mismatches"]
         ));
     }
-    let mut bytes =
-        serde_json::to_vec_pretty(&result).map_err(|error| format!("result_serialize:{error}"))?;
+    let mut bytes = serde_json::to_vec_pretty(&result)
+        .map_err(|error| format!("result_serialize:{error}"))?;
     bytes.push(b'\n');
     if let Some(parent) = output_path
         .parent()
