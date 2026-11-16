@@ -33,9 +33,13 @@ impl ExactRational {
 
     /// Convert only when an explicitly selected floating-point evaluator is used.
     pub fn to_f64(&self) -> Result<f64, RationalQueryError> {
-        let numerator = self.numerator.parse::<f64>()
+        let numerator = self
+            .numerator
+            .parse::<f64>()
             .map_err(|_| RationalQueryError::FloatConversionOutOfRange)?;
-        let denominator = self.denominator.parse::<f64>()
+        let denominator = self
+            .denominator
+            .parse::<f64>()
             .map_err(|_| RationalQueryError::FloatConversionOutOfRange)?;
         if !numerator.is_finite() || !denominator.is_finite() || denominator == 0.0 {
             return Err(RationalQueryError::FloatConversionOutOfRange);
@@ -133,9 +137,9 @@ pub fn parse_rational_queries(
             Some(match fields[6] {
                 "0" => false,
                 "1" => true,
-                _ => return Err(RationalQueryError::InvalidInlineGroundTruth {
-                    line: line_number,
-                }),
+                _ => {
+                    return Err(RationalQueryError::InvalidInlineGroundTruth { line: line_number });
+                }
             })
         } else {
             None
@@ -259,7 +263,10 @@ fn is_integer_lexeme(value: &str) -> bool {
 }
 
 fn is_zero_integer(value: &str) -> bool {
-    let digits = value.strip_prefix('-').or_else(|| value.strip_prefix('+')).unwrap_or(value);
+    let digits = value
+        .strip_prefix('-')
+        .or_else(|| value.strip_prefix('+'))
+        .unwrap_or(value);
     !digits.is_empty() && digits.bytes().all(|byte| byte == b'0')
 }
 
