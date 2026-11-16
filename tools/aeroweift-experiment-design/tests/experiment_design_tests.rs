@@ -59,37 +59,7 @@ fn gate_evidence_receipt(
         scenario_manifest_sha256: candidate.scenario_manifest_sha256.clone(),
         measurement_plan_sha256: candidate.measurement_plan_sha256.clone(),
         policy_sha256: frozen_policy.policy_sha256.clone(),
-    };
-    let frozen_policy = policy();
-    add_gate_evidence_receipt(
-        &mut result,
-        &frozen_policy,
-        GateEvidenceRole::Safety,
-        "safety-receipt",
-        digest('4'),
-    );
-    add_gate_evidence_receipt(
-        &mut result,
-        &frozen_policy,
-        GateEvidenceRole::Envelope,
-        "envelope-receipt",
-        digest('5'),
-    );
-    add_gate_evidence_receipt(
-        &mut result,
-        &frozen_policy,
-        GateEvidenceRole::IndependentReference,
-        "reference-receipt",
-        digest('6'),
-    );
-    add_gate_evidence_receipt(
-        &mut result,
-        &frozen_policy,
-        GateEvidenceRole::SemanticEquivalence,
-        "semantic-receipt",
-        digest('7'),
-    );
-    result
+    }
 }
 
 fn add_gate_evidence_receipt(
@@ -99,7 +69,8 @@ fn add_gate_evidence_receipt(
     receipt_id: &str,
     payload_sha256: String,
 ) {
-    let receipt = gate_evidence_receipt(candidate, frozen_policy, role, receipt_id, payload_sha256);
+    let receipt =
+        gate_evidence_receipt(candidate, frozen_policy, role, receipt_id, payload_sha256);
     candidate.gate_evidence_receipts.push(receipt);
 }
 
@@ -163,7 +134,38 @@ fn candidate(id: &str) -> ExperimentCandidate {
             energy_joules: 1_000,
             adjudication_person_minutes: 5,
         },
-    }
+    };
+
+    let frozen_policy = policy();
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::Safety,
+        "safety-receipt",
+        digest('4'),
+    );
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::Envelope,
+        "envelope-receipt",
+        digest('5'),
+    );
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::IndependentReference,
+        "reference-receipt",
+        digest('6'),
+    );
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::SemanticEquivalence,
+        "semantic-receipt",
+        digest('7'),
+    );
+    result
 }
 
 fn reason(
