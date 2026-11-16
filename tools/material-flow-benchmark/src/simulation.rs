@@ -400,7 +400,7 @@ fn run_episode(
                 if package_gate_pair {
                     gate_contact_event_count += 1;
                     gate_contact_max_impulse_ns =
-                        gate_contact_max_impulse_ns.max(f64::from_bits(event.impulse));
+                        gate_contact_max_impulse_ns.max(event.impulse);
                 }
             }
         }
@@ -938,4 +938,3 @@ pub fn simulate_closed_gate_obstruction_sweep(
         ],
     })
 }
-
