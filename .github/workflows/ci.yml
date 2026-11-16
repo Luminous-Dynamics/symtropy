@@ -89,6 +89,67 @@ jobs:
 
   factory-fjsplib-adapter:
     name: FJSPLib Import + Exact Oracle + CP-SAT Cross-Check
+    if: ${{ hashFiles('tools/factory-fjsplib-adapter/Cargo.toml') != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Verify frozen fixture blob identities
+        shell: bash
+        run: |
+          tab="$(printf '\t')"
+          while IFS="$tab" read -r format path blob_sha1 byte_count provenance; do
+            [[ "$format" == "format" ]] && continue
+            test -n "$path"
+            test "$(wc -c < "$path")" -eq "$byte_count"
+            test "$(git hash-object "$path")" = "$blob_sha1"
+          done < tools/factory-fjsplib-adapter/fixtures/manifest.tsv
+      - name: Format
+        run: cargo fmt --manifest-path tools/factory-fjsplib-adapter/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets -- -D warnings
+      - name: Rust tests
+        run: cargo test --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets
+      - name: Import both FJSPLib formats
+        shell: bash
+        run: |
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fjsp | tee /tmp/fjsplib-fjsp.tsv
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fajsp | tee /tmp/fjsplib-fajsp.tsv
+          test "$(wc -l < /tmp/fjsplib-fjsp.tsv)" -eq 16
+          test "$(wc -l < /tmp/fjsplib-fajsp.tsv)" -eq 16
+          awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fjsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp.tsv
+          awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fajsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp.tsv
+      - name: Verify exact schedule certificates
+        shell: bash
+        run: |
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fjsp | tee /tmp/fjsplib-fjsp-solved.tsv
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fajsp | tee /tmp/fjsplib-fajsp-solved.tsv
+          test "$(wc -l < /tmp/fjsplib-fjsp-solved.tsv)" -eq 8
+          test "$(wc -l < /tmp/fjsplib-fajsp-solved.tsv)" -eq 8
+          awk -F '\t' '$1 == "SUMMARY" && $4 == "EXACT" && $5 == "true" && $6 == "66" && $7 == "16" && $8 == "120" && $9 == "68" && $10 == "52" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp-solved.tsv
+          awk -F '\t' '$1 == "SUMMARY" && $4 == "EXACT" && $5 == "true" && $6 == "66" && $7 == "16" && $8 == "120" && $9 == "68" && $10 == "52" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp-solved.tsv
+      - name: Set up benchmark-only Python reference
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned OR-Tools CP-SAT
+        run: python -m pip install --disable-pip-version-check --only-binary=:all: ortools==9.15.6755
+      - name: Independent CP-SAT cross-check
+        shell: bash
+        run: |
+          python tools/factory-fjsplib-adapter/reference/ortools_fattahi1_check.py --format fjsp tools/factory-fjsplib-adapter/fixtures/fattahi1.fjsp | tee /tmp/fjsplib-cpsat-fjsp-reference.json
+          python tools/factory-fjsplib-adapter/reference/ortools_fattahi1_check.py --format fajsp tools/factory-fjsplib-adapter/fixtures/fattahi1.fajsp | tee /tmp/fjsplib-cpsat-fajsp-reference.json
+          grep -F '"status": "OPTIMAL"' /tmp/fjsplib-cpsat-fjsp-reference.json
+          grep -F '"objective": 66' /tmp/fjsplib-cpsat-fjsp-reference.json
+          grep -F '"best_bound": 66' /tmp/fjsplib-cpsat-fjsp-reference.json
+          grep -F '"status": "OPTIMAL"' /tmp/fjsplib-cpsat-fajsp-reference.json
+          grep -F '"objective": 66' /tmp/fjsplib-cpsat-fajsp-reference.json
+          grep -F '"best_bound": 66' /tmp/fjsplib-cpsat-fajsp-reference.json
+
+    name: FJSPLib Import + Exact Oracle + CP-SAT Cross-Check
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
