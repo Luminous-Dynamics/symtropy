@@ -134,9 +134,7 @@ impl ProcedureOperation {
             O::CollectCustodyAcknowledgement => {
                 &[E::PlacementVerified, E::CounterpartyCustodyReceipt]
             }
-            O::ReconcileUnknownOutcome => {
-                &[E::ReleaseIntentReady, E::AmbiguousOutcomeObservation]
-            }
+            O::ReconcileUnknownOutcome => &[E::ReleaseIntentReady, E::AmbiguousOutcomeObservation],
         }
     }
 
@@ -264,7 +262,7 @@ impl ProcedureGraph {
                     "{prefix}.produces: does not match the operation's typed output contract"
                 ));
             }
-            if !steps_by_id.insert(step.step_id.as_str(), step).is_none() {
+            if steps_by_id.insert(step.step_id.as_str(), step).is_some() {
                 errors.push(format!("{prefix}.step_id: duplicate lookup key"));
             }
         }
@@ -512,7 +510,9 @@ mod tests {
     #[test]
     fn nominal_procedure_is_structurally_ready_but_has_no_authority() {
         let (scenario, procedure) = fixture();
-        let report = procedure.evaluate(&scenario).expect("valid procedure graph");
+        let report = procedure
+            .evaluate(&scenario)
+            .expect("valid procedure graph");
         assert_eq!(report.step_count, 15);
         assert_eq!(report.topological_order.len(), 15);
         assert!(report.structurally_valid_for_external_review);
