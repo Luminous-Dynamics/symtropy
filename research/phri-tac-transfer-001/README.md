@@ -95,3 +95,17 @@ First 50-seed campaign output (all values are synthetic model estimates; force u
 - The bootstrap resamples paired seed-level differences, but these seeds are not independent physical instruments. The interval is conditional on this synthetic generator. The pseudo prediction interval is not a GUM uncertainty budget, and the cost values are not measured fixture time.
 
 The next required campaign changes the physical/model response family and introduces model misspecification, nonlinearity, hysteresis, reference common-mode faults, aging/remount and unit/lot variation. No physical acceptance decision should be based on this first campaign.
+
+
+## Adversarial response-family campaign
+
+The follow-on module `src/active_benchmark/adversarial.rs` adds five synthetic known-answer families while keeping the fitted inverse-response basis fixed:
+- nominal control;
+- cubic force response outside the inverse basis;
+- force × temperature × loading-history interaction;
+- upper response saturation/clipping;
+- common-mode reference-channel bias applied to training reference labels while held-out evaluator truth remains independent.
+
+The selector-visible candidate type still contains no reference label. The generated training domain stores labels separately, and the held-out domain stores evaluator truth separately. The campaign compares full-grid, uniform, random, maximin, D-optimal, source-only transfer and transfer-plus-adaptation over 50 paired seeds for each family.
+
+These cases are synthetic fault injections; saturation, aging, hysteresis and common-mode behaviour are not claimed to reproduce a specific physical sensor until independently measured on #4753's fixture. The additional model-family campaign is intentionally a stress test of the current response basis, not a universal tactile sensor simulator.
