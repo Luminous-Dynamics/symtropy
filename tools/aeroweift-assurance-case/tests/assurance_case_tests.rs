@@ -916,7 +916,6 @@ fn rejected_authority_decision_is_reported_as_outstanding() {
     );
 }
 
-
 #[test]
 fn hazard_must_be_explicitly_addressed_by_a_claim_or_strategy() {
     let (nodes, mut edges) = positive_case();
