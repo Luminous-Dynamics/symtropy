@@ -644,17 +644,24 @@ impl ProcedureGraph {
             if receipt.expires_at_unix_ms <= receipt.observed_at_unix_ms {
                 errors.push(format!("{prefix}: expiry must be later than observation"));
             }
-            let latest_observation = scenario
+            let latest_possible_decision_time = scenario
                 .started_at_unix_ms
                 .saturating_add(scenario.clock_uncertainty_ms);
-            let earliest_validity = scenario
+            let earliest_possible_decision_time = scenario
                 .started_at_unix_ms
                 .saturating_sub(scenario.clock_uncertainty_ms);
-            if receipt.observed_at_unix_ms > latest_observation {
-                errors.push(format!("{prefix}: observation occurs after scenario time"));
+            // Fail closed across the entire uncertainty interval: the receipt
+            // must already exist at the earliest plausible decision time and
+            // remain valid through the latest plausible decision time.
+            if receipt.observed_at_unix_ms > earliest_possible_decision_time {
+                errors.push(format!(
+                    "{prefix}: observation is not guaranteed to precede the decision window"
+                ));
             }
-            if receipt.expires_at_unix_ms < earliest_validity {
-                errors.push(format!("{prefix}: evidence expired before scenario time"));
+            if receipt.expires_at_unix_ms < latest_possible_decision_time {
+                errors.push(format!(
+                    "{prefix}: expiry does not cover the full decision uncertainty window"
+                ));
             }
         }
 
@@ -828,6 +835,33 @@ mod tests {
         receipt.observed_at_unix_ms = scenario.started_at_unix_ms - 1_000;
         receipt.expires_at_unix_ms = scenario.started_at_unix_ms - 100;
         assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_requires_validity_across_entire_clock_uncertainty_window() {
+        let (scenario, procedure) = fixture();
+
+        let mut observation_too_recent = evidence_fixture();
+        observation_too_recent.receipts[0].observed_at_unix_ms =
+            scenario.started_at_unix_ms - 10;
+        observation_too_recent.receipts[0].expires_at_unix_ms =
+            scenario.started_at_unix_ms + 100;
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &observation_too_recent)
+                .is_err()
+        );
+
+        let mut expiry_inside_uncertainty = evidence_fixture();
+        expiry_inside_uncertainty.receipts[0].observed_at_unix_ms =
+            scenario.started_at_unix_ms - 1_000;
+        expiry_inside_uncertainty.receipts[0].expires_at_unix_ms =
+            scenario.started_at_unix_ms + 10;
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &expiry_inside_uncertainty)
+                .is_err()
+        );
     }
 
     #[test]
