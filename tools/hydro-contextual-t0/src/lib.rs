@@ -1388,6 +1388,7 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPSS");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
         assert_eq!(out["case_count"], 3);
+        assert_eq!(out["comparison_context"]["reference_forecast_id"], "persistence-v1");
         assert!(out["crps_skill_score"].as_f64().expect("CRPSS") > 0.0);
         assert_eq!(out["skill_score_unclipped"], true);
     }
@@ -1397,6 +1398,7 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][33]).expect("BSS");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
         assert_eq!(out["event_definition_id"], "daily_flow_exceeds_5_m3_s");
+        assert_eq!(out["comparison_context"]["reference_forecast_id"], "seasonal-climatology-train-only-v1");
         assert!(out["brier_skill_score"].as_f64().expect("BSS") > 0.0);
     }
 
