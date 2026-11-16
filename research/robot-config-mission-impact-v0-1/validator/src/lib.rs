@@ -96,7 +96,6 @@ fn check_trace(
     errors: &mut Vec<String>,
 ) -> bool {
     let mut ids = BTreeSet::new();
-    let mut previous_event_time = None;
     let mut previous_arrival_time = None;
     let mut event_clock_domain: Option<String> = None;
     let mut arrival_clock_domain: Option<String> = None;
@@ -120,12 +119,7 @@ fn check_trace(
             errors.push(format!("event_id_missing:{pair_id}:{side}:{index}"));
         }
 
-        if let Some(time) = event_time {
-            if previous_event_time.is_some_and(|previous| time < previous) {
-                errors.push(format!("event_time_decreased:{pair_id}:{side}:{index}"));
-            }
-            previous_event_time = Some(time);
-        } else {
+        if event_time.is_none() {
             errors.push(format!("event_time_missing:{pair_id}:{side}:{index}"));
         }
 
@@ -976,17 +970,14 @@ mod tests {
     }
 
     #[test]
-    fn non_monotonic_event_time_is_rejected() {
+    fn late_event_time_is_preserved_when_arrival_order_is_monotonic() {
         let root = repository_root();
         let base = root.join("research/robot-config-mission-impact-v0-1");
         let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
-        let mut corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
-        corpus["cases"][0]["target_trace"][1]["event_time_tick"] = Value::from(0);
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        let mut delayed = corpus.clone();
+        delayed["cases"][0]["target_trace"][1]["event_time_tick"] = Value::from(0);
         let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
-        assert!(
-            cross_file_invariants(&stage, &corpus, &oracle)
-                .iter()
-                .any(|error| error.starts_with("event_time_decreased:"))
-        );
+        assert!(cross_file_invariants(&stage, &delayed, &oracle).is_empty());
     }
 }
