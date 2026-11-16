@@ -522,6 +522,8 @@ pub enum DesignError {
     InvalidPolicy,
     /// Candidate identities are duplicated.
     DuplicateCandidateId,
+    /// One utility-estimate receipt ID is reused across candidate alternatives.
+    DuplicateUtilityEstimateReceiptId,
 }
 
 /// Check digest syntax only; cryptographic verification is external.
@@ -1011,9 +1013,20 @@ fn dominates(
     left: &ExperimentCandidate,
     right: &ExperimentCandidate,
     minimum_pair_separation: f64,
+    objective: ExperimentObjective,
 ) -> bool {
+    let left_model_discrimination = if objective == ExperimentObjective::ModelDiscrimination {
+        left.expected_model_discrimination
+    } else {
+        0.0
+    };
+    let right_model_discrimination = if objective == ExperimentObjective::ModelDiscrimination {
+        right.expected_model_discrimination
+    } else {
+        0.0
+    };
     let no_worse = left.expected_uncertainty_reduction >= right.expected_uncertainty_reduction
-        && left.expected_model_discrimination >= right.expected_model_discrimination
+        && left_model_discrimination >= right_model_discrimination
         && independent_group_pair_count(left, minimum_pair_separation)
             >= independent_group_pair_count(right, minimum_pair_separation)
         && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
@@ -1030,7 +1043,7 @@ fn dominates(
 
     let strictly_better = left.expected_uncertainty_reduction
         > right.expected_uncertainty_reduction
-        || left.expected_model_discrimination > right.expected_model_discrimination
+        || left_model_discrimination > right_model_discrimination
         || independent_group_pair_count(left, minimum_pair_separation)
             > independent_group_pair_count(right, minimum_pair_separation)
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
@@ -1048,11 +1061,19 @@ fn dominates(
     no_worse && strictly_better
 }
 
-fn to_pareto(candidate: &ExperimentCandidate, minimum_pair_separation: f64) -> ParetoCandidate {
+fn to_pareto(
+    candidate: &ExperimentCandidate,
+    minimum_pair_separation: f64,
+    objective: ExperimentObjective,
+) -> ParetoCandidate {
     ParetoCandidate {
         candidate_id: candidate.candidate_id.clone(),
         expected_uncertainty_reduction: candidate.expected_uncertainty_reduction,
-        expected_model_discrimination: candidate.expected_model_discrimination,
+        expected_model_discrimination: if objective == ExperimentObjective::ModelDiscrimination {
+            candidate.expected_model_discrimination
+        } else {
+            0.0
+        },
         independent_hypothesis_group_pair_count: independent_group_pair_count(
             candidate,
             minimum_pair_separation,
@@ -1077,9 +1098,16 @@ pub fn select_experiments(
     validate_policy(policy)?;
 
     let mut seen = BTreeSet::new();
+    let mut utility_receipt_ids = BTreeSet::new();
     for candidate in candidates {
         if !seen.insert(candidate.candidate_id.as_str()) {
             return Err(DesignError::DuplicateCandidateId);
+        }
+        if let Some(receipt) = candidate.utility_estimate_receipt.as_ref()
+            && !receipt.receipt_id.trim().is_empty()
+            && !utility_receipt_ids.insert(receipt.receipt_id.as_str())
+        {
+            return Err(DesignError::DuplicateUtilityEstimateReceiptId);
         }
     }
 
@@ -1104,14 +1132,25 @@ pub fn select_experiments(
         .filter(|candidate| {
             !admissible.iter().copied().any(|other| {
                 other.candidate_id != candidate.candidate_id
-                    && dominates(other, candidate, policy.minimum_pair_separation)
+                    && dominates(
+                        other,
+                        candidate,
+                        policy.minimum_pair_separation,
+                        policy.objective,
+                    )
             })
         })
         .collect();
 
     let mut pareto_front: Vec<ParetoCandidate> = front
         .into_iter()
-        .map(|candidate| to_pareto(candidate, policy.minimum_pair_separation))
+        .map(|candidate| {
+            to_pareto(
+                candidate,
+                policy.minimum_pair_separation,
+                policy.objective,
+            )
+        })
         .collect();
     pareto_front.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     rejected.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
