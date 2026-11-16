@@ -319,7 +319,7 @@ fn validate_crate_with_binding(
         root.get("publisher")
             .ok_or_else(|| "RO-Crate root.publisher is required".to_owned())?,
         "RO-Crate root.publisher",
-    )? != "#synthetic-provider"
+    )? != AGENT
     {
         return Err(
             "RO-Crate root.publisher must reference the declared synthetic provider".to_owned(),
@@ -327,7 +327,7 @@ fn validate_crate_with_binding(
     }
     require_type(
         crate_entities
-            .get("#synthetic-provider")
+            .get(AGENT)
             .ok_or_else(|| "RO-Crate synthetic provider contextual entity is missing".to_owned())?,
         "Organization",
         "RO-Crate synthetic provider",
