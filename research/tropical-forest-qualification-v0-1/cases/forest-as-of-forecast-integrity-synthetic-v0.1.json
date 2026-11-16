@@ -1,0 +1,625 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-AS-OF-FORECAST-INTEGRITY-001",
+  "evidence_class": "synthetic_known_truth_temporal_leakage",
+  "claim_ceiling": "All times, source/version IDs, rights states, forecasts and target values in this corpus are synthetic. The corpus tests as-of availability, bitemporal version selection and forecast leakage policy only. No AFEX data versions, real forecast issue times or empirical latency estimates are admitted.",
+  "time_unit": "UTC Unix seconds",
+  "availability_definition": "max(source_released_at, qa_released_at, rights_effective_at, ingested_at) for a permitted and QC-released source version",
+  "case_count": 12,
+  "cases": [
+    {
+      "case_id": "VALID_SENSOR_AS_OF",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "SENSOR-V1",
+          "logical_observation_id": "SENSOR-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "SENSOR-V1"
+      ],
+      "fitted_transforms": [
+        {
+          "transform_id": "STANDARDIZE-001",
+          "fit_data_cutoff_at": 900,
+          "fit_completed_at": 950,
+          "training_input_version_ids": [
+            "SENSOR-V1"
+          ]
+        }
+      ],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "VALID_AS_OF",
+      "expected_reasons": []
+    },
+    {
+      "case_id": "LAB_QA_AFTER_CUTOFF",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "ROOT-ASSAY-V1",
+          "logical_observation_id": "ROOT-ASSAY-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 800,
+          "source_released_at": 820,
+          "qa_released_at": 1250,
+          "rights_effective_at": 840,
+          "ingested_at": 1260,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "ROOT-ASSAY-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "INPUT_NOT_AVAILABLE_BY_CUTOFF",
+      "expected_reasons": [
+        "INPUT_NOT_AVAILABLE_BY_CUTOFF"
+      ]
+    },
+    {
+      "case_id": "RETROSPECTIVE_SATELLITE_RELEASE",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "SATELLITE-FINAL-V1",
+          "logical_observation_id": "SATELLITE-COMPOSITE-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 900,
+          "collected_at": 900,
+          "source_released_at": 1450,
+          "qa_released_at": 1500,
+          "rights_effective_at": 1420,
+          "ingested_at": 1520,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "SATELLITE-FINAL-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "INPUT_NOT_AVAILABLE_BY_CUTOFF",
+      "expected_reasons": [
+        "INPUT_NOT_AVAILABLE_BY_CUTOFF"
+      ]
+    },
+    {
+      "case_id": "REVISION_AS_OF_SELECTS_PRIOR_VERSION",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "TREE-CENSUS-V1",
+          "logical_observation_id": "TREE-CENSUS-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        },
+        {
+          "version_id": "TREE-CENSUS-V2",
+          "logical_observation_id": "TREE-CENSUS-001",
+          "version_number": 2,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 1240,
+          "qa_released_at": 1250,
+          "rights_effective_at": 1240,
+          "ingested_at": 1260,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "TREE-CENSUS-V1"
+      ],
+      "fitted_transforms": [
+        {
+          "transform_id": "STANDARDIZE-001",
+          "fit_data_cutoff_at": 900,
+          "fit_completed_at": 950,
+          "training_input_version_ids": [
+            "TREE-CENSUS-V1"
+          ]
+        }
+      ],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "VALID_AS_OF",
+      "expected_reasons": []
+    },
+    {
+      "case_id": "FUTURE_VERSION_SELECTED",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "TREE-CENSUS-V1",
+          "logical_observation_id": "TREE-CENSUS-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        },
+        {
+          "version_id": "TREE-CENSUS-V2",
+          "logical_observation_id": "TREE-CENSUS-001",
+          "version_number": 2,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 1240,
+          "qa_released_at": 1250,
+          "rights_effective_at": 1240,
+          "ingested_at": 1260,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "TREE-CENSUS-V2"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF",
+      "expected_reasons": [
+        "SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF"
+      ]
+    },
+    {
+      "case_id": "FUTURE_REALIZED_DRIVER",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "WEATHER-REALIZED-V1",
+          "logical_observation_id": "WEATHER-OBS-001",
+          "version_number": 1,
+          "role": "realized_observation",
+          "valid_start": 1300,
+          "valid_end": 1400,
+          "collected_at": 1400,
+          "source_released_at": 1410,
+          "qa_released_at": 1420,
+          "rights_effective_at": 1400,
+          "ingested_at": 1430,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "WEATHER-REALIZED-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER",
+      "expected_reasons": [
+        "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER"
+      ]
+    },
+    {
+      "case_id": "FORECASTED_DRIVER_AS_OF",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "WEATHER-FORECAST-V1",
+          "logical_observation_id": "WEATHER-DRIVER-001",
+          "version_number": 1,
+          "role": "forecasted_driver",
+          "valid_start": 1300,
+          "valid_end": 1400,
+          "collected_at": 1150,
+          "source_released_at": 1160,
+          "qa_released_at": 1170,
+          "rights_effective_at": 1150,
+          "ingested_at": 1180,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": 1150,
+          "driver_target_start": 1300,
+          "driver_target_end": 1400
+        }
+      ],
+      "selected_input_version_ids": [
+        "WEATHER-FORECAST-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "VALID_AS_OF",
+      "expected_reasons": []
+    },
+    {
+      "case_id": "TRANSFORM_FUTURE_FIT",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "SENSOR-V1",
+          "logical_observation_id": "SENSOR-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "SENSOR-V1"
+      ],
+      "fitted_transforms": [
+        {
+          "transform_id": "STANDARDIZE-001",
+          "fit_data_cutoff_at": 1210,
+          "fit_completed_at": 1215,
+          "training_input_version_ids": [
+            "SENSOR-V1"
+          ]
+        }
+      ],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "TRANSFORM_FIT_AFTER_CUTOFF",
+      "expected_reasons": [
+        "TRANSFORM_FIT_AFTER_CUTOFF"
+      ]
+    },
+    {
+      "case_id": "MISSING_QA_TIMESTAMP_NOT_ESTIMABLE",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "SOIL-ENZYME-V1",
+          "logical_observation_id": "SOIL-ENZYME-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": null,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "SOIL-ENZYME-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
+      "expected_reasons": [
+        "MISSING_AVAILABILITY_EVIDENCE"
+      ]
+    },
+    {
+      "case_id": "UNCLEARED_RIGHTS_REFUSED",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "RESTRICTED-PLOT-V1",
+          "logical_observation_id": "RESTRICTED-PLOT-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "UNKNOWN",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "RESTRICTED-PLOT-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "REFUSED_RIGHTS",
+      "expected_reasons": [
+        "RIGHTS_NOT_CLEARED"
+      ]
+    },
+    {
+      "case_id": "EVALUATION_TARGET_USED_AS_INPUT",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "SENSOR-V1",
+          "logical_observation_id": "SENSOR-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 850,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        },
+        {
+          "version_id": "TARGET-INPUT-V1",
+          "logical_observation_id": "TARGET-001",
+          "version_number": 1,
+          "role": "evaluation_only_target",
+          "valid_start": 1300,
+          "valid_end": 1400,
+          "collected_at": 1400,
+          "source_released_at": 1500,
+          "qa_released_at": 1510,
+          "rights_effective_at": 1500,
+          "ingested_at": 1520,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "SENSOR-V1",
+        "TARGET-INPUT-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "EVALUATION_TARGET_USED_AS_INPUT",
+      "expected_reasons": [
+        "EVALUATION_TARGET_USED_AS_INPUT"
+      ]
+    },
+    {
+      "case_id": "INGESTED_AFTER_INFORMATION_CUTOFF",
+      "forecast": {
+        "reference_time": 1000,
+        "information_cutoff_time": 1200,
+        "issued_at": 1210,
+        "target_start": 1300,
+        "target_end": 1400,
+        "target_horizon_seconds": 300
+      },
+      "source_versions": [
+        {
+          "version_id": "LITTERFALL-V1",
+          "logical_observation_id": "LITTERFALL-001",
+          "version_number": 1,
+          "role": "historical_observation",
+          "valid_start": 700,
+          "valid_end": 800,
+          "collected_at": 810,
+          "source_released_at": 820,
+          "qa_released_at": 830,
+          "rights_effective_at": 840,
+          "ingested_at": 1220,
+          "rights_status": "PERMITTED",
+          "driver_forecast_issued_at": null,
+          "driver_target_start": null,
+          "driver_target_end": null
+        }
+      ],
+      "selected_input_version_ids": [
+        "LITTERFALL-V1"
+      ],
+      "fitted_transforms": [],
+      "evaluation_target": {
+        "logical_observation_id": "TARGET-001",
+        "valid_start": 1300,
+        "valid_end": 1400,
+        "available_at": 1500,
+        "role": "evaluation_only_target"
+      },
+      "expected_disposition": "INPUT_NOT_AVAILABLE_BY_CUTOFF",
+      "expected_reasons": [
+        "INPUT_NOT_AVAILABLE_BY_CUTOFF"
+      ]
+    }
+  ]
+}
