@@ -20,7 +20,7 @@ This is not an attempt to replace W3C provenance, RO-Crate, OGC records or speci
 
 PROV-O models provenance using Entities, Activities and Agents. The synthetic graph models datasets as Entities, an analysis as an Activity and the synthetic provider as an Agent. It expresses inputs through `prov:used`, outputs via `prov:wasGeneratedBy`, and provider responsibility through `prov:wasAssociatedWith`.
 
-The most important invariant is that *used* is not the same as *derived from*. One activity can use several inputs and generate multiple outputs without each output being derived from every input. E2 carries only one explicitly declared per-output derivation and rejects inferred all-to-all relations.
+The most important invariant is that *used* is not the same as *derived from*. One activity can use several inputs and generate multiple outputs without each output being derived from every input. The E1 envelope declares only `CONSUMED_BY` and `PRODUCED_BY` edges; it does not declare a direct `wasDerivedFrom` edge. E2 must not upgrade those E1 relations into a stronger derivation. The one derivation in the E2 graph is a separately declared synthetic-control assertion in the E2 binding manifest, not an E1 provider claim.
 
 References:
 - W3C PROV-O: https://www.w3.org/TR/prov-o/
@@ -117,7 +117,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 
 ## 5. Adversarial tests
 
-27 Rust unit tests are written:
+29 Rust unit tests are written:
 - valid RO-Crate + sparse PROV-O graph;
 - all-to-all derivation inference;
 - incorrect sparse derivation target;
