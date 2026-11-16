@@ -184,6 +184,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 .get("reported_shift_hours")
                 .and_then(Value::as_f64)
                 .unwrap_or(0.0);
+            let first_success = suite
+                .get("first_pass_success_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
             let first_rate = suite
                 .get("first_pass_table_ready_items_per_hour_target")
                 .and_then(Value::as_f64)
@@ -226,7 +230,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                         .to_owned(),
                 );
             }
-            if first_pass <= reference_success
+            if first_success <= reference_success
                 || first_rate <= reference_rate
                 || first_shift <= reference_shift
                 || shift_hours != reference_hours
