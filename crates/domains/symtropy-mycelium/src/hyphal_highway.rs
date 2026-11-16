@@ -368,9 +368,9 @@ impl HyphalHighwayNetwork {
                     ));
                 };
                 let Some(patch_receipt) = receipt_map.get(&observation_id) else {
-                    return Ok(unresolved(
-                        HighwayUnresolvedReason::MissingPatchReceipt(observation_id),
-                    ));
+                    return Ok(unresolved(HighwayUnresolvedReason::MissingPatchReceipt(
+                        observation_id,
+                    )));
                 };
                 patch_receipt.validate().map_err(|source| {
                     HyphalHighwayError::InvalidObservationReceipt {
@@ -810,39 +810,41 @@ mod tests {
 
     #[test]
     fn missing_source_receipt_for_endpoint_patch_prevents_qualification() {
-        let (mut network, transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (mut network, transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         network
             .patches
             .get_mut(&LiquidPatchId(1))
             .unwrap()
             .observation = None;
         assert_eq!(
-            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::MissingPatchObservation(LiquidPatchId(1))
-            )
+            network
+                .assess_transit(&graph(), &transit, &receipts)
+                .unwrap()
+                .outcome,
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::MissingPatchObservation(
+                LiquidPatchId(1)
+            ))
         );
     }
 
     #[test]
     fn wrong_endpoint_patch_receipt_subject_prevents_qualification() {
-        let (network, transit, mut receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, transit, mut receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         receipts
             .iter_mut()
             .find(|item| item.id == ObservationEvidenceId(20))
             .unwrap()
             .subject = ObservationSubject::FluorescenceRoi;
         assert_eq!(
-            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::WrongPatchReceiptSubject(ObservationEvidenceId(20))
-            )
+            network
+                .assess_transit(&graph(), &transit, &receipts)
+                .unwrap()
+                .outcome,
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::WrongPatchReceiptSubject(
+                ObservationEvidenceId(20)
+            ))
         );
     }
 
@@ -895,10 +897,8 @@ mod tests {
 
     #[test]
     fn reverse_direction_uses_the_same_observed_liquid_link() {
-        let (network, mut transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, mut transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         transit.source_patch = LiquidPatchId(2);
         transit.target_patch = LiquidPatchId(1);
         transit.path = vec![LiquidPatchId(2), LiquidPatchId(1)];
@@ -934,10 +934,8 @@ mod tests {
 
     #[test]
     fn bacterial_route_cannot_use_visual_overlap_without_a_hyphal_graph_segment() {
-        let (network, transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         let empty_graph = HyphalGraph::new();
         assert_eq!(
             network
