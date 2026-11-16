@@ -3,10 +3,7 @@
 
 use std::{env, fs, process::ExitCode};
 
-use symtropy_material_flow_benchmark::{
-    ScenarioManifest,
-    simulation::simulate_closed_gate_obstruction,
-};
+use symtropy_material_flow_benchmark::{ScenarioManifest, simulation::simulate_closed_gate_obstruction};
 
 fn main() -> ExitCode {
     let mut args = env::args_os();
