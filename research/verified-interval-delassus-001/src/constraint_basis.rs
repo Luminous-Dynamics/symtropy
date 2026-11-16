@@ -36,6 +36,7 @@ pub enum ConstraintBasisErrorV1 {
     MultiplierNormEnclosuresDisjoint,
     ResidualNormEnclosuresDisjoint,
     ResidualEquationNotEnclosed { row: usize },
+    MultiplierEquationNotEnclosed { index: usize },
     CertificateMismatch,
     Interval(IntervalErrorV1),
     Delassus(VerifiedDelassusErrorV1),
@@ -187,6 +188,10 @@ fn interval_overlap(left: Interval, right: Interval) -> Option<Interval> {
     } else {
         None
     }
+}
+
+fn interval_contains_interval(outer: Interval, inner: Interval) -> bool {
+    outer.lower() <= inner.lower() && outer.upper() >= inner.upper()
 }
 
 fn require_vector_overlap<const N: usize>(
@@ -555,6 +560,14 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
     let transform_transpose_point: [[f64; K]; K] =
         std::array::from_fn(|row| std::array::from_fn(|column| transform[column][row]));
     let transformed_multiplier = solve_point_system(&transform_transpose_point, multiplier_old)?;
+    let transform_transpose_interval = point_matrix_interval(&transform_transpose_point)?;
+    let multiplier_reconstructed =
+        multiply_interval_vector(&transform_transpose_interval, &transformed_multiplier)?;
+    for index in 0..K {
+        if !interval_contains_interval(multiplier_reconstructed[index], multiplier_old[index]) {
+            return Err(ConstraintBasisErrorV1::MultiplierEquationNotEnclosed { index });
+        }
+    }
     let transformed_residual = transform_vector(transform, residual_old)?;
 
     let dual_pairing_original = pairing(multiplier_old, residual_old)?;
@@ -633,12 +646,11 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
         &minimum_kinetic_correction_transformed,
     )?;
     for row in 0..K {
-        if interval_overlap(residual_reconstructed_original[row], residual_old[row]).is_none()
-            || interval_overlap(
+        if !interval_contains_interval(residual_reconstructed_original[row], residual_old[row])
+            || !interval_contains_interval(
                 residual_reconstructed_transformed[row],
                 transformed_residual[row],
             )
-            .is_none()
         {
             return Err(ConstraintBasisErrorV1::ResidualEquationNotEnclosed { row });
         }
