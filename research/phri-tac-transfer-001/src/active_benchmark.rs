@@ -59,8 +59,12 @@ fn response_observability_check(
 ) -> Result<ResponseObservabilityReport, String> {
     if candidates.is_empty()
         || required_force_setpoints_n.len() < 2
-        || required_force_setpoints_n.iter().any(|value| !value.is_finite())
-        || required_force_setpoints_n.windows(2).any(|pair| pair[1] <= pair[0])
+        || required_force_setpoints_n
+            .iter()
+            .any(|value| !value.is_finite())
+        || required_force_setpoints_n
+            .windows(2)
+            .any(|pair| pair[1] <= pair[0])
         || !raw_response_resolution.is_finite()
         || raw_response_resolution < 0.0
     {
@@ -76,7 +80,9 @@ fn response_observability_check(
             || !candidate.phase.is_finite()
             || !candidate.features[1].is_finite()
         {
-            return Err("observability candidate contains non-finite stimulus or raw response".to_owned());
+            return Err(
+                "observability candidate contains non-finite stimulus or raw response".to_owned(),
+            );
         }
         maximum_force = maximum_force.max(candidate.force_setpoint_n);
         let key = (
@@ -102,8 +108,10 @@ fn response_observability_check(
 
     for (_, group) in &mut conditions {
         group.sort_by(|left, right| left.force_setpoint_n.total_cmp(&right.force_setpoint_n));
-        let observed_setpoints: Vec<_> =
-            group.iter().map(|candidate| candidate.force_setpoint_n).collect();
+        let observed_setpoints: Vec<_> = group
+            .iter()
+            .map(|candidate| candidate.force_setpoint_n)
+            .collect();
         let condition_incomplete = required_force_setpoints_n.iter().any(|required| {
             !observed_setpoints
                 .iter()
@@ -117,7 +125,10 @@ fn response_observability_check(
             let lower = pair[0];
             let higher = pair[1];
             if higher.force_setpoint_n <= lower.force_setpoint_n {
-                return Err("observability condition contains duplicate or unordered force setpoints".to_owned());
+                return Err(
+                    "observability condition contains duplicate or unordered force setpoints"
+                        .to_owned(),
+                );
             }
             checked_transition_count += 1;
             let response_delta = higher.features[1] - lower.features[1];
@@ -125,8 +136,9 @@ fn response_observability_check(
                 flatline_transition_count += 1;
                 condition_affected = true;
                 first_flatline_start_force_n = Some(
-                    first_flatline_start_force_n
-                        .map_or(lower.force_setpoint_n, |current| current.min(lower.force_setpoint_n)),
+                    first_flatline_start_force_n.map_or(lower.force_setpoint_n, |current| {
+                        current.min(lower.force_setpoint_n)
+                    }),
                 );
             }
             if response_delta < -raw_response_resolution {
@@ -155,7 +167,6 @@ fn response_observability_check(
         raw_response_resolution,
     })
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Candidate {
@@ -580,12 +591,11 @@ fn fit_qualified_domain(
     prior: Option<&[f64; PARAMS]>,
     prior_strength: f64,
 ) -> Result<Fit, String> {
-    let observability =
-        response_observability_check(
-            &domain.candidates,
-            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
-            SYNTHETIC_RESPONSE_RESOLUTION,
-        )?;
+    let observability = response_observability_check(
+        &domain.candidates,
+        &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+        SYNTHETIC_RESPONSE_RESOLUTION,
+    )?;
     if !observability.accepted {
         return Err(format!(
             "response observability gate failed: {} flatline transitions across {} conditions; first plateau starts at {:?} N",
@@ -993,8 +1003,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     let source_domain = source_candidate_pool(seed);
     let heldout = heldout_target_pool(seed);
     let target_candidates = &target_domain.candidates;
-    let response_observability =
-        response_observability_check(
+    let response_observability = response_observability_check(
         target_candidates,
         &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
         SYNTHETIC_RESPONSE_RESOLUTION,
@@ -1420,9 +1429,9 @@ mod tests {
     #[test]
     fn missing_condition_strata_do_not_pass_observability() {
         let mut domain = target_candidate_pool(20261116);
-        domain
-            .candidates
-            .retain(|candidate| !(candidate.position == -1.0 && candidate.temperature == 1.0 && candidate.phase == 1.0));
+        domain.candidates.retain(|candidate| {
+            !(candidate.position == -1.0 && candidate.temperature == 1.0 && candidate.phase == 1.0)
+        });
         let report = response_observability_check(
             &domain.candidates,
             &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,

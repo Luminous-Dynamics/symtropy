@@ -48,7 +48,9 @@ fn main() -> ExitCode {
                         benchmark.response_observability.affected_condition_count,
                         benchmark.response_observability.missing_condition_count,
                         benchmark.response_observability.incomplete_condition_count,
-                        benchmark.response_observability.maximum_observed_force_setpoint_n,
+                        benchmark
+                            .response_observability
+                            .maximum_observed_force_setpoint_n,
                     );
                     for result in benchmark.results {
                         println!(
