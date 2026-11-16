@@ -218,6 +218,14 @@ The relevant competitors are not one product category:
 - **Physiology engines:** BioGears and individual CellML/Physiome models are reference implementations for selected mechanisms, not proof of an integrated human twin. OpenSim is a musculoskeletal comparator only when the task requires muscle/joint dynamics.
 - **Embodied activity / task simulation:** BEHAVIOR-1K is a strong environmental-task reference, but it benchmarks embodied task capability, not the realism of human internal states.
 
+### Published wearable comparisons: a defensible industry baseline
+
+A 2025 PSG study evaluated six commercial wrist-worn devices (Fitbit Charge 5/Sense, Withings Scanwatch, Garmin Vivosmart 4, Whoop 4.0 and Apple Watch Series 8) in 62 adults. Reported sleep/wake sensitivity exceeded 90%, but specificity ranged from 29.39% to 52.15%, with Cohen's kappa from 0.21 to 0.53. The study also reports stage-specific misclassification and parameter-dependent bias. This is a useful warning against reporting sensitivity or overall accuracy alone: a device can identify most sleep epochs while still confusing wake and particular sleep stages. Source: https://doi.org/10.1093/sleepadvances/zpaf021.
+
+A 2026 home comparison of Apple Watch Series 7, Fitbit Charge 5 and Polar Vantage M2 against home PSG and seven-day actigraphy reported generally weak agreement with wide limits of agreement, with device-specific stage-duration biases. The authors framed these as suitable for longitudinal self-monitoring rather than clinical-grade sleep-architecture assessment. Source: https://doi.org/10.1016/j.sleep.2026.109059.
+
+These studies are not universal rankings: sample sizes, firmware, populations, algorithms and study protocols matter. Use them to define an independent PSG comparison lane, not to claim that a synthetic model beats a commercial product. For a credible direct comparison, test the same cohort, same PSG labels, same night boundaries and equivalent sensor inputs; report per-stage confusion, sensitivity, specificity, macro-F1, kappa, event timing, calibration and limits of agreement. A Sleep-EDF EEG model and a wrist-wearable PPG/accelerometry system are different input tasks and must be reported as separate tracks.
+
 The differentiation should be **evidence-aware compositional simulation**: explicit latent truth, explicit observation generation, causal/time semantics, model disagreement, calibrated abstention, multi-fidelity escalation, reproducible receipts and claim-specific validation. The ambition is not to beat every specialist engine at its own task. It is to outperform monolithic or opaque approaches on cross-subsystem accountability, robustness to observation failure, and the ability to say when the evidence cannot support a prediction.
 
 ## 11. First implementation increments
