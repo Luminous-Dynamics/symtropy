@@ -1,0 +1,26 @@
+{
+  "id": "synthetic.dataset.water.output.001",
+  "deleted": false,
+  "title": "Synthetic water service trajectory output",
+  "description": "Synthetic E1 compatibility record; not sourced from an IN-CORE service.",
+  "date": "2026-11-16T06:00:00+0000",
+  "creator": "synthetic-fixture-generator",
+  "contributors": [],
+  "fileDescriptors": [
+    {
+      "id": "synthetic-file-water-output-001",
+      "deleted": false,
+      "filename": "synthetic-output.json",
+      "mimeType": "application/json",
+      "size": 272,
+      "dataURL": "synthetic-fixture://synthetic.dataset.water.output.001/synthetic-file-water-output-001",
+      "md5sum": "8e94280943966abb6a1bb5e9ed64a5d2"
+    }
+  ],
+  "dataType": "synthetic:servicePerformance",
+  "storedUrl": "",
+  "format": "json",
+  "sourceDataset": "",
+  "boundingBox": null,
+  "networkDataset": null
+}
