@@ -903,6 +903,44 @@ mod tests {
     }
 
     #[test]
+    fn preflight_rejection_after_dispatch_cannot_erase_unknown_physical_outcome() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-late-preflight-rejection",
+                "receiver-01",
+                TransactionEventKind::PreflightRejected {
+                    reason: PreflightRejectionReason::WrongContainer,
+                },
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
+    fn preflight_safe_hold_after_dispatch_requires_reconciliation() {
+        let mut tx = transaction();
+        issue_release(&mut tx);
+        assert_eq!(
+            tx.record_event(event(
+                2,
+                "event-late-preflight-hold",
+                "receiver-01",
+                TransactionEventKind::PreflightSafeHold {
+                    reason: PreflightHoldReason::SealNotIntact,
+                },
+            ))
+            .unwrap(),
+            EventDisposition::ReconciliationRequired
+        );
+        assert_eq!(tx.state, PhysicalTransactionState::ReconciliationRequired);
+    }
+
+    #[test]
     fn network_partition_after_release_requires_reconciliation() {
         let mut tx = transaction();
         issue_release(&mut tx);
