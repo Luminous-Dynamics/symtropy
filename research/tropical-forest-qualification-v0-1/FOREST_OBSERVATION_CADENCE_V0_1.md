@@ -67,3 +67,17 @@ Report predictive scores and decision loss separately. The minimum useful cadenc
 ## 6. Claim ceiling
 
 Synthetic PASS verifies only the declared scalar-Gaussian variance and portfolio arithmetic. It does not establish AFEX data latency, actual sensor performance, an ecological process timescale, field cost, disturbance impact, monitoring optimum or forecast superiority.
+
+
+## 7. Frozen v0.1 synthetic result
+
+The independent reference reproduces all six context/deadline scenarios, including every profile summary, feasible portfolio count, best portfolio and Pareto-frontier entry.
+
+Examples:
+- At a **7-day deadline**, both 10-day-latency laboratory streams yield zero usable measurements. Their small analytical variance does not help before the decision cutoff.
+- At a **30-day deadline**, the best synthetic portfolio in both persistence regimes combines daily sensing, every-third-day remote observations, weekly field samples and fortnightly cores. It uses 42 measurements, 3.4 effort units and 0.469 disturbance units. Posterior variance is 0.10370 in the persistent regime versus 0.60387 in the volatile regime.
+- At a **90-day deadline**, the best portfolio changes to daily plus every-third-day remote observations. In the volatile context this gives 114 available measurements, 3.6 effort units, 0.144 disturbance units and posterior variance 0.78751. The volatile process remains substantially less certain under the same schedule.
+
+These are conditional results of the toy AR(1) model and invented costs/noise. They are not estimates of tropical-forest process persistence or recommended AFEX monitoring frequencies.
+
+The Rust kernel includes direct monotonicity tests: increasing a profile's latency cannot increase its eligible observation count or reduce posterior variance, and a profile with no result available by the deadline leaves the prior variance unchanged.
