@@ -693,7 +693,7 @@ mod tests {
         generate_scenario(scenario_id, 0x5EED_2026)
     }
 
-    fn truth_link(scenario: &ScenarioRun, event: &ObservationEvent) -> &ScorerEventTruth {
+    fn truth_link<'a>(scenario: &'a ScenarioRun, event: &ObservationEvent) -> &'a ScorerEventTruth {
         scenario
             .scorer_view
             .event_truth
@@ -713,7 +713,7 @@ mod tests {
 
     #[test]
     fn canonical_scenario_ids_are_unique_and_stable() {
-        let ids: Vec<_> = ScenarioId::ALL.map(ScenarioId::as_str);
+        let ids = ScenarioId::ALL.map(ScenarioId::as_str);
         let unique: std::collections::HashSet<_> = ids.iter().copied().collect();
         assert_eq!(ids.len(), SCENARIO_COUNT);
         assert_eq!(unique.len(), SCENARIO_COUNT);
