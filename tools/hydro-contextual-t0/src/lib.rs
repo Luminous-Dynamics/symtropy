@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 44;
+pub const CASE_COUNT: usize = 46;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -1180,6 +1180,8 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         | "HC-T0-036-brier-skill-zero-reference-undefined"
         | "HC-T0-040-brier-skill-event-definition-mismatch"
         | "HC-T0-044-brier-skill-negative-score-not-clipped" => brier_skill_score(input),
+        "HC-T0-045-crps-skill-variable-mismatch-not-comparable"
+        | "HC-T0-046-crps-skill-valid-time-mismatch-not-comparable" => crps_skill_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1322,7 +1324,7 @@ mod tests {
     }
 
     #[test]
-    fn all_forty_four_cases_match_separate_oracle() {
+    fn all_forty_six_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1512,6 +1514,23 @@ mod tests {
         assert_eq!(out["reason"], "FORECAST_LEAD_TIME_MISMATCH");
     }
 
+
+
+    #[test]
+    fn probabilistic_skill_rejects_variable_mismatch() {
+        let out = compute_case(&fixture("inputs")["cases"][44]).expect("variable mismatch");
+        assert_eq!(out["skill_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "FORECAST_VARIABLE_MISMATCH");
+        assert_eq!(out["skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn probabilistic_skill_rejects_valid_time_semantics_mismatch() {
+        let out = compute_case(&fixture("inputs")["cases"][45]).expect("valid time mismatch");
+        assert_eq!(out["skill_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "VALID_TIME_SEMANTICS_MISMATCH");
+        assert_eq!(out["skill_score"], Value::Null);
+    }
 
     #[test]
     fn probabilistic_skill_rejects_unit_mismatch() {
