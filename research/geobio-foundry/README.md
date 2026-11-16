@@ -16,6 +16,16 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 
 ## Research documents
 
+### Subterra — planetary subterranean programme
+
+- [Subterra programme v0.1](SUBTERRA_PROGRAMME_v0.1.md)
+- [Subterra SOTA and competitive analysis](SUBTERRA_SOTA_GAP_ANALYSIS_2026-11.md)
+- [SubterraBench v0.1](SUBTERRA_BENCHMARK_PROTOCOL_v0.1.md)
+- [Subterra site evidence schema](SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json)
+- [Subterra non-uniform profile schema](SUBTERRA_PROFILE_SCHEMA_v0.1.json)
+- [Synthetic non-uniform profile fixture](fixtures/subterra-nonuniform-profile-synthetic.json)
+
+
 - [Architecture fit and integration boundaries](ARCHITECTURE_FIT_v0.2.md)
 - [Research programme v0.2](RESEARCH_PROGRAMME_v0.2.md)
 - [State-of-the-art gap analysis — 16 November 2026](SOTA_GAP_ANALYSIS_2026-11-16.md)
@@ -24,7 +34,7 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [PressureForge analytical reference protocol](PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md)
 - [Resource graph record schema v0.2](RESOURCE_GRAPH_SCHEMA_v0.2.json)
 - [Synthetic water-electrolysis fixture](fixtures/water-electrolysis-reference.json)
-- [Reference kernel](kernel/) — elemental/resource accounting and bounded ideal-gas pressure reference
+- [Reference kernel](kernel/) — elemental/resource accounting, bounded ideal-gas pressure reference and non-uniform subterranean morphometry
 - [Implementation and validation status](IMPLEMENTATION_STATUS.md)
 
 ## Evidence contract
