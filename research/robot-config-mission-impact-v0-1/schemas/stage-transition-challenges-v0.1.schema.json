@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-mission-stage-transition-corpus:v0.1",
+  "title": "ROBOT-MISSION-IMPACT-001 evidence-gated stage transition challenge corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "policy_id",
+    "stages_catalog_ref",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-mission-stage-transition-corpus-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-MISSION-IMPACT-001"
+    },
+    "visibility": {
+      "const": "public_synthetic_development"
+    },
+    "policy_id": {
+      "const": "evidence-gated-stage-transition-policy-v0.1"
+    },
+    "stages_catalog_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "scenario",
+          "stage_id",
+          "stage_criticality",
+          "task_revision",
+          "current_configuration_revision",
+          "current_frame_epoch_ref",
+          "required_source_classes",
+          "required_evidence_axes",
+          "current_calibration_status",
+          "clock_mapping_required",
+          "resume_context",
+          "optional_stage",
+          "skip_requested",
+          "skip_authorized",
+          "command_acknowledgement",
+          "robot_report",
+          "duplicate_event_replay_count",
+          "accepted_unit_count",
+          "evidence"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MST-[0-9]{3}$"
+          },
+          "scenario": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage_id": {
+            "type": "string",
+            "pattern": "^S[0-9]{2}$"
+          },
+          "stage_criticality": {
+            "enum": [
+              "low_risk_intermediate",
+              "quality_critical",
+              "safety_critical"
+            ]
+          },
+          "task_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current_configuration_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current_frame_epoch_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_source_classes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "task_system",
+                "robot_telemetry",
+                "referee_measurement",
+                "independent_referee",
+                "operator_action"
+              ]
+            }
+          },
+          "required_evidence_axes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "configuration_identity",
+                "frame_epoch",
+                "calibration",
+                "clock_mapping",
+                "raw_artifact",
+                "independent_referee"
+              ]
+            }
+          },
+          "current_calibration_status": {
+            "enum": [
+              "current",
+              "expired",
+              "not_required",
+              "unknown"
+            ]
+          },
+          "clock_mapping_required": {
+            "type": "boolean"
+          },
+          "resume_context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "interrupted",
+              "resume_requested",
+              "prior_configuration_revision",
+              "prior_frame_epoch_ref"
+            ],
+            "properties": {
+              "interrupted": {
+                "type": "boolean"
+              },
+              "resume_requested": {
+                "type": "boolean"
+              },
+              "prior_configuration_revision": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "prior_frame_epoch_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "optional_stage": {
+            "type": "boolean"
+          },
+          "skip_requested": {
+            "type": "boolean"
+          },
+          "skip_authorized": {
+            "type": "boolean"
+          },
+          "command_acknowledgement": {
+            "enum": [
+              "accepted",
+              "rejected",
+              "timeout",
+              "none"
+            ]
+          },
+          "robot_report": {
+            "enum": [
+              "completed",
+              "failed",
+              "unknown",
+              "absent"
+            ]
+          },
+          "duplicate_event_replay_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accepted_unit_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "source_class",
+                "observation_result",
+                "configuration_revision",
+                "frame_epoch_ref",
+                "calibration_status",
+                "clock_mapping_status",
+                "verifier_profile_ref",
+                "raw_artifact_ref"
+              ],
+              "properties": {
+                "source_class": {
+                  "enum": [
+                    "task_system",
+                    "robot_telemetry",
+                    "referee_measurement",
+                    "independent_referee",
+                    "operator_action"
+                  ]
+                },
+                "observation_result": {
+                  "enum": [
+                    "satisfied",
+                    "violated",
+                    "unknown"
+                  ]
+                },
+                "configuration_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "frame_epoch_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "calibration_status": {
+                  "enum": [
+                    "current",
+                    "expired",
+                    "not_required",
+                    "unknown"
+                  ]
+                },
+                "clock_mapping_status": {
+                  "enum": [
+                    "qualified",
+                    "unqualified",
+                    "absent"
+                  ]
+                },
+                "verifier_profile_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "raw_artifact_ref": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
