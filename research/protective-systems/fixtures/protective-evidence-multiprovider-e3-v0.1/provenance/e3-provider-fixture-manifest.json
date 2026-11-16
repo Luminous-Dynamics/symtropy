@@ -32,8 +32,8 @@
       "rights_status": "SYNTHETIC_OPEN_FIXTURE",
       "permitted_use": "SYNTHETIC_TEST_ONLY",
       "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
-      "byte_length": 1717,
-      "sha256": "54e84bb24cb0d945b126aa585e92db707cfa664dc2637d2f10a4129586a898c2"
+      "byte_length": 1887,
+      "sha256": "d49867707a1e869d8a78d5e9fa3a483ec533388dd94265bb9eaeca4987b69bad"
     },
     {
       "provider": "OPENLINEAGE",
