@@ -104,6 +104,8 @@ pub struct LifecycleSnapshot {
     pub total_contact_cycles: u64,
     pub temperature_c: f64,
     pub surface_condition: SurfaceCondition,
+    /// Receipt reference for the last independently inspected/cleaned surface state.
+    pub surface_condition_receipt_id: Option<String>,
     pub last_event_sequence: u64,
     applied_event_ids: BTreeSet<String>,
 }
@@ -139,7 +141,13 @@ pub enum LifecycleChange {
     ContaminationDetected,
     CleaningCompleted {
         protocol_digest: String,
-        verified_clean: bool,
+        /// Optional receipt from an independent condition verifier. This module
+        /// stores the reference but does not validate the receipt.
+        condition_receipt_id: Option<String>,
+    },
+    SurfaceInspectionAccepted {
+        /// Receipt from the independent inspection/condition verifier.
+        condition_receipt_id: String,
     },
     DamageDetected,
     ContactCyclesAdvanced {
@@ -163,7 +171,8 @@ impl LifecycleSnapshot {
             lifecycle_generation: 0,
             total_contact_cycles: 0,
             temperature_c,
-            surface_condition: SurfaceCondition::QualifiedClean,
+            surface_condition: SurfaceCondition::ConditionUnknown,
+            surface_condition_receipt_id: None,
             last_event_sequence: 0,
             applied_event_ids: BTreeSet::new(),
         })
@@ -178,8 +187,12 @@ impl LifecycleSnapshot {
         if self.applied_event_ids.contains(&event.event_id) {
             return Err("lifecycle event ID has already been applied".to_owned());
         }
-        if event.sequence <= self.last_event_sequence {
-            return Err("lifecycle event sequence must increase strictly".to_owned());
+        let expected_sequence = self
+            .last_event_sequence
+            .checked_add(1)
+            .ok_or_else(|| "lifecycle event sequence overflow".to_owned())?;
+        if event.sequence != expected_sequence {
+            return Err("lifecycle event sequence must be contiguous and increasing".to_owned());
         }
 
         let mut next = self.clone();
@@ -204,6 +217,7 @@ impl LifecycleSnapshot {
                 next.identity.skin_revision = skin_revision.clone();
                 next.identity.material_lot_id = material_lot_id.clone();
                 next.surface_condition = SurfaceCondition::ConditionUnknown;
+                next.surface_condition_receipt_id = None;
                 next.bump_generation()?;
             }
             LifecycleChange::Remounted {
@@ -254,24 +268,36 @@ impl LifecycleSnapshot {
             }
             LifecycleChange::ContaminationDetected => {
                 next.surface_condition = SurfaceCondition::ContaminationSuspected;
+                next.surface_condition_receipt_id = None;
                 next.bump_generation()?;
             }
             LifecycleChange::CleaningCompleted {
                 protocol_digest,
-                verified_clean,
+                condition_receipt_id,
             } => {
                 require_nonempty(protocol_digest, "cleaning protocol digest")?;
-                next.surface_condition = if *verified_clean {
-                    SurfaceCondition::QualifiedClean
+                if let Some(receipt_id) = condition_receipt_id {
+                    require_nonempty(receipt_id, "surface condition receipt ID")?;
+                    next.surface_condition = SurfaceCondition::QualifiedClean;
+                    next.surface_condition_receipt_id = Some(receipt_id.clone());
                 } else {
-                    SurfaceCondition::CleaningUnverified
-                };
-                // Even verified cleaning changes the physical surface state.
-                // Old calibration is not silently reinstated.
+                    next.surface_condition = SurfaceCondition::CleaningUnverified;
+                    next.surface_condition_receipt_id = None;
+                }
+                // Even cleaning supported by an external condition receipt
+                // changes lifecycle generation. Old calibration is never
+                // silently reinstated.
+                next.bump_generation()?;
+            }
+            LifecycleChange::SurfaceInspectionAccepted { condition_receipt_id } => {
+                require_nonempty(condition_receipt_id, "surface condition receipt ID")?;
+                next.surface_condition = SurfaceCondition::QualifiedClean;
+                next.surface_condition_receipt_id = Some(condition_receipt_id.clone());
                 next.bump_generation()?;
             }
             LifecycleChange::DamageDetected => {
                 next.surface_condition = SurfaceCondition::Damaged;
+                next.surface_condition_receipt_id = None;
                 next.bump_generation()?;
             }
             LifecycleChange::ContactCyclesAdvanced {
@@ -410,6 +436,12 @@ impl CalibrationPassport {
             reasons.push(AssessmentReason::SurfaceConditionNotQualified(
                 current.surface_condition,
             ));
+        } else if current
+            .surface_condition_receipt_id
+            .as_deref()
+            .is_none_or(|receipt_id| receipt_id.trim().is_empty())
+        {
+            reasons.push(AssessmentReason::MissingEvidenceReceipt("surface_condition"));
         }
 
         let contact_cycles_since_calibration = current
@@ -517,6 +549,18 @@ mod tests {
         LifecycleSnapshot::new(identity(), 23.0).expect("snapshot")
     }
 
+    fn qualified_snapshot() -> LifecycleSnapshot {
+        snapshot()
+            .apply(&event(
+                "event-inspection-01",
+                1,
+                LifecycleChange::SurfaceInspectionAccepted {
+                    condition_receipt_id: "receipt:surface-condition-01".to_owned(),
+                },
+            ))
+            .expect("independent surface inspection receipt")
+    }
+
     fn passport(snapshot: &LifecycleSnapshot) -> CalibrationPassport {
         CalibrationPassport {
             calibration_id: "calibration-01".to_owned(),
@@ -543,7 +587,7 @@ mod tests {
 
     #[test]
     fn unchanged_physical_state_with_complete_evidence_remains_applicable() {
-        let current = snapshot();
+        let current = qualified_snapshot();
         let assessment = passport(&current).assess(&current);
         assert_eq!(assessment.disposition, AssessmentDisposition::Applicable);
         assert!(assessment.reasons.is_empty());
@@ -552,12 +596,12 @@ mod tests {
 
     #[test]
     fn replacing_the_skin_invalidates_the_previous_calibration() {
-        let original = snapshot();
+        let original = qualified_snapshot();
         let calibration = passport(&original);
         let current = original
             .apply(&event(
                 "event-skin-replace-01",
-                1,
+                2,
                 LifecycleChange::SkinReplaced {
                     skin_article_id: "skin-article-02".to_owned(),
                     skin_revision: "skin-r2".to_owned(),
@@ -591,7 +635,7 @@ mod tests {
         let current = original
             .apply(&event(
                 "event-remount-01",
-                1,
+                2,
                 LifecycleChange::Remounted {
                     mounting_revision: "mount-r2".to_owned(),
                     geometry_digest: "sha256:geometry-r2".to_owned(),
@@ -616,7 +660,7 @@ mod tests {
         let current = original
             .apply(&event(
                 "event-firmware-01",
-                1,
+                2,
                 LifecycleChange::FirmwareUpdated {
                     firmware_revision: "fw-r2".to_owned(),
                 },
@@ -630,7 +674,7 @@ mod tests {
         let second = current
             .apply(&event(
                 "event-electronics-01",
-                2,
+                3,
                 LifecycleChange::ElectronicsRevisionChanged {
                     electronics_revision: "pcb-r2".to_owned(),
                 },
@@ -649,17 +693,17 @@ mod tests {
         let contaminated = original
             .apply(&event(
                 "event-contamination-01",
-                1,
+                2,
                 LifecycleChange::ContaminationDetected,
             ))
             .expect("contamination");
         let cleaned = contaminated
             .apply(&event(
                 "event-cleaning-01",
-                2,
+                3,
                 LifecycleChange::CleaningCompleted {
                     protocol_digest: "sha256:cleaning-protocol".to_owned(),
-                    verified_clean: true,
+                    condition_receipt_id: Some("receipt:cleaning-condition-01".to_owned()),
                 },
             ))
             .expect("cleaning");
@@ -668,7 +712,7 @@ mod tests {
             calibration.assess(&cleaned).disposition,
             AssessmentDisposition::Invalidated
         );
-        assert_eq!(cleaned.lifecycle_generation, 2);
+        assert_eq!(cleaned.lifecycle_generation, 3);
     }
 
     #[test]
@@ -693,7 +737,7 @@ mod tests {
                 2,
                 LifecycleChange::CleaningCompleted {
                     protocol_digest: "sha256:cleaning-protocol".to_owned(),
-                    verified_clean: false,
+                    condition_receipt_id: None,
                 },
             ))
             .expect("unverified cleaning");
@@ -708,7 +752,7 @@ mod tests {
         let current = snapshot()
             .apply(&event(
                 "event-damage-01",
-                1,
+                2,
                 LifecycleChange::DamageDetected,
             ))
             .expect("damage");
@@ -725,7 +769,7 @@ mod tests {
         let cycles = original
             .apply(&event(
                 "event-cycles-01",
-                1,
+                2,
                 LifecycleChange::ContactCyclesAdvanced {
                     total_contact_cycles: 10_001,
                 },
@@ -753,7 +797,7 @@ mod tests {
 
     #[test]
     fn missing_receipt_reference_never_qualifies_a_calibration() {
-        let current = snapshot();
+        let current = qualified_snapshot();
         let mut incomplete = passport(&current);
         incomplete.reference_chain_receipt_id.clear();
         let assessment = incomplete.assess(&current);
@@ -796,6 +840,18 @@ mod tests {
     }
 
     #[test]
+    fn missing_lifecycle_event_sequence_is_rejected() {
+        let original = snapshot();
+        let gap = event(
+            "event-gap-02",
+            2,
+            LifecycleChange::TemperatureObserved { temperature_c: 25.0 },
+        );
+        assert!(original.apply(&gap).is_err());
+        assert_eq!(original.last_event_sequence, 0);
+    }
+
+    #[test]
     fn cycle_counter_cannot_move_backwards_and_failed_events_are_atomic() {
         let original = snapshot()
             .apply(&event(
@@ -828,7 +884,7 @@ mod tests {
         assert!(LifecycleSnapshot::new(missing_identity, 23.0).is_err());
         assert!(LifecycleSnapshot::new(identity(), f64::NAN).is_err());
 
-        let current = snapshot();
+        let current = qualified_snapshot();
         let mut invalid_passport = passport(&current);
         invalid_passport.minimum_temperature_c = 42.0;
         invalid_passport.maximum_temperature_c = 20.0;
