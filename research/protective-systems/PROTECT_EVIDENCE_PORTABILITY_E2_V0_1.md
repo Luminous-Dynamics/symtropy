@@ -99,7 +99,7 @@ Binary: `protective-evidence-portability`
 It checks:
 - RO-Crate 1.3 context, descriptor, conformsTo, root pointer and root Dataset;
 - exact root hasPart inventory and exact File entity inventory;
-- byte length, media type and SHA-256 for all nine package data files;
+- byte length, media type and SHA-256 for all ten package data files;
 - exact E1 envelope byte equality against the original E1 fixture;
 - E1 envelope analysis identity/execution status against the binding manifest;
 - E1 dataset IDs, directions and artifact paths against the binding manifest;
