@@ -1,0 +1,1176 @@
+{
+  "schema_version": "myco.synthetic_3d_graph_fixtures.v0.1",
+  "suite_id": "MYCO-3D-KNOWN-TRUTH-001",
+  "units": {
+    "coordinates": "micrometres",
+    "velocity": "micrometres_per_second",
+    "voxel_spacing": "micrometres"
+  },
+  "generated_by": "hand-authored analytic centerline fixtures; no stochastic generator execution claimed",
+  "seed": "not_applicable_to_analytic_fixtures",
+  "coordinate_convention": "right-handed Cartesian XYZ; graph edges are straight segments between nodes; no node identity is shared across filament tracks unless an actual junction is explicitly defined",
+  "cases": [
+    {
+      "id": "3D-KT-001",
+      "name": "depth_separated_projection_crossing",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        1
+      ],
+      "psf_fwhm_um": 1.2,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 20,
+          "xyz_um": [
+            0,
+            -10,
+            8
+          ]
+        },
+        {
+          "id": 4,
+          "track": 20,
+          "xyz_um": [
+            0,
+            10,
+            8
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 3,
+          "to": 4,
+          "track": 20
+        }
+      ],
+      "projected_overlaps": [
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            0,
+            0
+          ],
+          "depth_intervals_um": [
+            [
+              0,
+              0.5
+            ],
+            [
+              7.5,
+              8.5
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [],
+        "topology": "separate_filaments",
+        "false_fusion_allowed": false
+      }
+    },
+    {
+      "id": "3D-KT-002",
+      "name": "shallow_ambiguous_projection_crossing",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        1
+      ],
+      "psf_fwhm_um": 2,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 20,
+          "xyz_um": [
+            0,
+            -10,
+            1.5
+          ]
+        },
+        {
+          "id": 4,
+          "track": 20,
+          "xyz_um": [
+            0,
+            10,
+            1.5
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 3,
+          "to": 4,
+          "track": 20
+        }
+      ],
+      "projected_overlaps": [
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            0,
+            0
+          ],
+          "depth_intervals_um": [
+            [
+              -1,
+              2
+            ],
+            [
+              0.5,
+              3
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [],
+        "topology": "ambiguous_separate_hypotheses",
+        "required_action": "abstain_or_review",
+        "false_fusion_allowed": false
+      }
+    },
+    {
+      "id": "3D-KT-003",
+      "name": "true_y_junction",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        0.5
+      ],
+      "psf_fwhm_um": 1,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            10,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            10,
+            10,
+            0
+          ]
+        },
+        {
+          "id": 4,
+          "track": 10,
+          "xyz_um": [
+            0,
+            -10,
+            0
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 1,
+          "to": 3,
+          "track": 10
+        },
+        {
+          "id": 3,
+          "from": 1,
+          "to": 4,
+          "track": 10
+        }
+      ],
+      "projected_overlaps": [],
+      "expected": {
+        "component_count": 1,
+        "junction_degrees": [
+          {
+            "node": 1,
+            "degree": 3
+          }
+        ],
+        "topology": "true_y_junction"
+      }
+    },
+    {
+      "id": "3D-KT-004",
+      "name": "true_four_way_junction",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        0.5
+      ],
+      "psf_fwhm_um": 1,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 4,
+          "track": 10,
+          "xyz_um": [
+            0,
+            -10,
+            0
+          ]
+        },
+        {
+          "id": 5,
+          "track": 10,
+          "xyz_um": [
+            0,
+            10,
+            0
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 1,
+          "to": 3,
+          "track": 10
+        },
+        {
+          "id": 3,
+          "from": 1,
+          "to": 4,
+          "track": 10
+        },
+        {
+          "id": 4,
+          "from": 1,
+          "to": 5,
+          "track": 10
+        }
+      ],
+      "projected_overlaps": [],
+      "expected": {
+        "component_count": 1,
+        "junction_degrees": [
+          {
+            "node": 1,
+            "degree": 4
+          }
+        ],
+        "topology": "true_four_way_junction"
+      }
+    },
+    {
+      "id": "3D-KT-005",
+      "name": "near_touch_without_connection",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        0.5
+      ],
+      "psf_fwhm_um": 1,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 20,
+          "xyz_um": [
+            0,
+            0,
+            0.75
+          ]
+        },
+        {
+          "id": 4,
+          "track": 20,
+          "xyz_um": [
+            10,
+            0,
+            0.75
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 3,
+          "to": 4,
+          "track": 20
+        }
+      ],
+      "projected_overlaps": [
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            0,
+            0
+          ],
+          "depth_intervals_um": [
+            [
+              -0.25,
+              0.25
+            ],
+            [
+              0.5,
+              1
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [],
+        "topology": "near_touch_separate",
+        "false_fusion_allowed": false
+      }
+    },
+    {
+      "id": "3D-KT-006",
+      "name": "partial_z_slice_dropout",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        1
+      ],
+      "psf_fwhm_um": 1.2,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            -5,
+            1,
+            1
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            0,
+            2,
+            2
+          ]
+        },
+        {
+          "id": 4,
+          "track": 10,
+          "xyz_um": [
+            5,
+            3,
+            3
+          ]
+        },
+        {
+          "id": 5,
+          "track": 10,
+          "xyz_um": [
+            10,
+            4,
+            4
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 2,
+          "to": 3,
+          "track": 10
+        },
+        {
+          "id": 3,
+          "from": 3,
+          "to": 4,
+          "track": 10
+        },
+        {
+          "id": 4,
+          "from": 4,
+          "to": 5,
+          "track": 10
+        }
+      ],
+      "acquisition": {
+        "missing_z_planes": [
+          2,
+          3
+        ],
+        "reason": "synthetic_slice_dropout"
+      },
+      "expected": {
+        "component_count": 1,
+        "junction_degrees": [],
+        "topology": "single_chain_or_abstain_on_gap",
+        "invented_edge_allowed": false
+      }
+    },
+    {
+      "id": "3D-KT-007",
+      "name": "low_contrast_segment_dropout",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        0.5
+      ],
+      "psf_fwhm_um": 1.2,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            -3,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            3,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 4,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10,
+          "contrast": 0.9,
+          "visible": true
+        },
+        {
+          "id": 2,
+          "from": 2,
+          "to": 3,
+          "track": 10,
+          "contrast": 0.05,
+          "visible": false
+        },
+        {
+          "id": 3,
+          "from": 3,
+          "to": 4,
+          "track": 10,
+          "contrast": 0.9,
+          "visible": true
+        }
+      ],
+      "expected": {
+        "component_count": 1,
+        "junction_degrees": [],
+        "topology": "underlying_chain_with_unobserved_middle_edge",
+        "required_action": "uncertainty_not_invented_edge"
+      }
+    },
+    {
+      "id": "3D-KT-008",
+      "name": "antiparallel_flow_without_fusion",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        1
+      ],
+      "psf_fwhm_um": 1.2,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 20,
+          "xyz_um": [
+            -10,
+            0,
+            8
+          ]
+        },
+        {
+          "id": 4,
+          "track": 20,
+          "xyz_um": [
+            10,
+            0,
+            8
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 3,
+          "to": 4,
+          "track": 20
+        }
+      ],
+      "flow_streams": [
+        {
+          "id": 1,
+          "edge": 1,
+          "stream": 1,
+          "signed_velocity_um_per_s": 1.5,
+          "orientation": "from_to"
+        },
+        {
+          "id": 2,
+          "edge": 2,
+          "stream": 2,
+          "signed_velocity_um_per_s": -0.75,
+          "orientation": "from_to"
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [],
+        "topology": "separate_filaments_with_antiparallel_stream_observations",
+        "flow_must_not_create_edge": true
+      }
+    },
+    {
+      "id": "3D-KT-009",
+      "name": "depth_unresolved_parallel_filaments",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        2
+      ],
+      "psf_fwhm_um": 2.5,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 20,
+          "xyz_um": [
+            -10,
+            1,
+            0.8
+          ]
+        },
+        {
+          "id": 4,
+          "track": 20,
+          "xyz_um": [
+            10,
+            1,
+            0.8
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 3,
+          "to": 4,
+          "track": 20
+        }
+      ],
+      "projected_overlaps": [
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            0,
+            0.5
+          ],
+          "depth_intervals_um": [
+            [
+              -1,
+              1.5
+            ],
+            [
+              -0.5,
+              2
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [],
+        "topology": "two_filaments_ambiguous_at_current_resolution",
+        "required_action": "multiple_hypotheses_or_review"
+      }
+    },
+    {
+      "id": "3D-KT-010",
+      "name": "focus_depth_bias",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        1
+      ],
+      "psf_fwhm_um": 1.2,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            0,
+            0,
+            2
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            4
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 2,
+          "to": 3,
+          "track": 10
+        }
+      ],
+      "acquisition": {
+        "systematic_focus_depth_bias_um": 0.8
+      },
+      "expected": {
+        "component_count": 1,
+        "junction_degrees": [],
+        "topology": "single_chain",
+        "depth_bias_must_be_detected_or_covered": true
+      }
+    },
+    {
+      "id": "3D-KT-011",
+      "name": "crossing_near_branch_node",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        0.5
+      ],
+      "psf_fwhm_um": 1,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            10,
+            0,
+            0
+          ]
+        },
+        {
+          "id": 4,
+          "track": 10,
+          "xyz_um": [
+            0,
+            10,
+            0
+          ]
+        },
+        {
+          "id": 5,
+          "track": 20,
+          "xyz_um": [
+            0,
+            -10,
+            8
+          ]
+        },
+        {
+          "id": 6,
+          "track": 20,
+          "xyz_um": [
+            0,
+            10,
+            8
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 1,
+          "to": 3,
+          "track": 10
+        },
+        {
+          "id": 3,
+          "from": 1,
+          "to": 4,
+          "track": 10
+        },
+        {
+          "id": 4,
+          "from": 5,
+          "to": 6,
+          "track": 20
+        }
+      ],
+      "projected_overlaps": [
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            0,
+            0
+          ],
+          "depth_intervals_um": [
+            [
+              -0.5,
+              0.5
+            ],
+            [
+              7.5,
+              8.5
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [
+          {
+            "node": 1,
+            "degree": 3
+          }
+        ],
+        "topology": "preserve_branch_and_separate_crossing_filament"
+      }
+    },
+    {
+      "id": "3D-KT-012",
+      "name": "multi_cycle_topology_ambiguity",
+      "voxel_spacing_um": [
+        0.25,
+        0.25,
+        1
+      ],
+      "psf_fwhm_um": 1.8,
+      "nodes": [
+        {
+          "id": 1,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            -10,
+            0
+          ]
+        },
+        {
+          "id": 2,
+          "track": 10,
+          "xyz_um": [
+            10,
+            -10,
+            0
+          ]
+        },
+        {
+          "id": 3,
+          "track": 10,
+          "xyz_um": [
+            10,
+            10,
+            0
+          ]
+        },
+        {
+          "id": 4,
+          "track": 10,
+          "xyz_um": [
+            -10,
+            10,
+            0
+          ]
+        },
+        {
+          "id": 5,
+          "track": 20,
+          "xyz_um": [
+            -10,
+            -10,
+            8
+          ]
+        },
+        {
+          "id": 6,
+          "track": 20,
+          "xyz_um": [
+            10,
+            -10,
+            8
+          ]
+        },
+        {
+          "id": 7,
+          "track": 20,
+          "xyz_um": [
+            10,
+            10,
+            8
+          ]
+        },
+        {
+          "id": 8,
+          "track": 20,
+          "xyz_um": [
+            -10,
+            10,
+            8
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "track": 10
+        },
+        {
+          "id": 2,
+          "from": 2,
+          "to": 3,
+          "track": 10
+        },
+        {
+          "id": 3,
+          "from": 3,
+          "to": 4,
+          "track": 10
+        },
+        {
+          "id": 4,
+          "from": 4,
+          "to": 1,
+          "track": 10
+        },
+        {
+          "id": 5,
+          "from": 5,
+          "to": 6,
+          "track": 20
+        },
+        {
+          "id": 6,
+          "from": 6,
+          "to": 7,
+          "track": 20
+        },
+        {
+          "id": 7,
+          "from": 7,
+          "to": 8,
+          "track": 20
+        },
+        {
+          "id": 8,
+          "from": 8,
+          "to": 5,
+          "track": 20
+        }
+      ],
+      "projected_overlaps": [
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            0,
+            -10
+          ],
+          "depth_intervals_um": [
+            [
+              -0.5,
+              0.5
+            ],
+            [
+              7.5,
+              8.5
+            ]
+          ]
+        },
+        {
+          "tracks": [
+            10,
+            20
+          ],
+          "xy_um": [
+            10,
+            0
+          ],
+          "depth_intervals_um": [
+            [
+              -0.5,
+              0.5
+            ],
+            [
+              7.5,
+              8.5
+            ]
+          ]
+        }
+      ],
+      "expected": {
+        "component_count": 2,
+        "junction_degrees": [],
+        "cycle_rank": 2,
+        "topology": "two_separate_cycles_no_cross_component_edges"
+      }
+    }
+  ]
+}
