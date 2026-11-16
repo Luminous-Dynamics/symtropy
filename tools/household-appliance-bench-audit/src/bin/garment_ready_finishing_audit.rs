@@ -384,7 +384,13 @@ mod tests {
         let (schema, profile) = fixture();
         assert!(is_valid(&schema, &profile));
         assert_eq!(profile["metrics"].as_array().expect("metrics").len(), 10);
-        assert_eq!(profile["benchmark_suites"].as_array().expect("suites").len(), 2);
+        assert_eq!(
+            profile["benchmark_suites"]
+                .as_array()
+                .expect("suites")
+                .len(),
+            2
+        );
         assert_eq!(
             profile["external_comparators"]
                 .as_array()
