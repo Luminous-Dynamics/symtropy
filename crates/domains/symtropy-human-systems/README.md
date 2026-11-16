@@ -143,3 +143,42 @@ assert_eq!(samples.len(), 336);
 This ideal low-pass is a known-answer oracle, not a production anti-alias filter. A future decimation implementation must pin its filter family, order/taps, cutoff, phase mode, boundaries and group delay, then quantify its deviation from the oracle. The fixed-token TSFM experiment must separately interpolate to a constant token count while preserving physical context duration and forecast horizon.
 
 Every signal component is an arbitrary mathematical fixture, not human physiology, sensor calibration, or a wearable measurement. See [HUMAN-SAMPLING-INVARIANCE-001 / #5688](https://github.com/Luminous-Dynamics/symtropy/issues/5688) and the research fixture [HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json](../../../research/human-systems/HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json).
+
+
+## Typed intervention event-chain fixtures
+
+The crate exposes a small non-clinical synthetic event-chain module in intervention. It deliberately stops before causal effect estimation.
+
+It keeps four stages distinct:
+
+1. **Assignment** — what was requested or scheduled.
+2. **Delivery** — whether the command/action was actually delivered.
+3. **Physical exposure** — whether the simulated environment/person actually received the action.
+4. **Observation** — what a sensor reported, and when that report became available.
+
+The five HIE fixtures cover successful delivery and measurement, failed delivery, delivered-but-blocked exposure, exposure with a missing sensor measurement, and an exposure measurement delayed beyond the decision cutoff.
+
+Minimal use:
+
+~~~rust
+use symtropy_human_systems::intervention::{
+    generate_intervention_scenario, InterventionScenarioId,
+};
+
+let scenario = generate_intervention_scenario(
+    InterventionScenarioId::ExposureOccurredMeasurementDelayed,
+    60.0,
+)?;
+
+let candidate_inputs = scenario.candidate;
+let scorer_only_truth = scenario.oracle;
+
+assert!(candidate_inputs.exposure_observations.is_empty());
+assert!(!scorer_only_truth.traces.is_empty());
+~~~
+
+The initial cutoff at 60 seconds cannot see the measurement that only becomes available at 90 seconds. The scorer can still establish that a synthetic physical exposure occurred. This is a software event-semantics fixture, not a physiological exposure model or a causal-effect estimator.
+
+The candidate/scorer Rust structures are not a security boundary. Confirmatory evaluations must place candidate input and oracle truth in separate processes. The module does not generate potential outcomes, calculate treatment effects, or estimate whether any real person benefits from rest, light, task scheduling or activity changes.
+
+See [HUMAN-INTERVENTION-DGP-001 / Symtropy #5707](https://github.com/Luminous-Dynamics/symtropy/issues/5707) and the generic causal oracle owner [Symthaea #11954](https://github.com/Luminous-Dynamics/symthaea/issues/11954).
