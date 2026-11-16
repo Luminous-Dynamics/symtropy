@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-source-acceptance-v0.1.schema.json",
+  "title": "WaterLoop Source Acceptance Matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "profile_id",
+    "sources",
+    "residence_time_policy",
+    "release_invariants"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-source-acceptance-v0.1"
+    },
+    "status": {
+      "const": "research_reference_only"
+    },
+    "profile_id": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "source",
+          "v0_disposition"
+        ],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "v0_disposition": {
+            "enum": [
+              "ACCEPT_FOR_CHARACTERISATION",
+              "SEPARATE_LOW_RISK_REFERENCE",
+              "EXCLUDED_V0_FUTURE_PROFILE_ONLY",
+              "REJECT",
+              "REJECT_OR_SUSPEND"
+            ]
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "residence_time_policy": {
+      "type": "object",
+      "required": [
+        "clock_start",
+        "maximum_hours_from_WRC_guidance",
+        "engineering_note"
+      ],
+      "properties": {
+        "clock_start": {
+          "type": "string"
+        },
+        "maximum_hours_from_WRC_guidance": {
+          "const": 24
+        },
+        "engineering_note": {
+          "type": "string"
+        }
+      }
+    },
+    "release_invariants": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
