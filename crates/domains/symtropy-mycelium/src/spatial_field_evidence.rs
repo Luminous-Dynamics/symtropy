@@ -12,6 +12,7 @@
 //! nutrient flux: those require separately admitted density/turnover/chemistry
 //! calibrations.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::observation_evidence::{
@@ -182,6 +183,68 @@ impl FieldHyphalDensityObservation {
     }
 }
 
+/// Validated field-sample collection with stable study and source-row
+/// identities. It prevents repeated records from being silently treated as
+/// independent samples and provides a study key for leakage-safe holdouts.
+#[derive(Debug, Clone, PartialEq)]
+pub struct FieldObservationCatalog {
+    observations: Vec<FieldHyphalDensityObservation>,
+    index_by_id: BTreeMap<FieldSampleId, usize>,
+    studies: BTreeSet<FieldStudyId>,
+}
+
+impl FieldObservationCatalog {
+    pub fn new(
+        observations: Vec<FieldHyphalDensityObservation>,
+    ) -> Result<Self, SpatialFieldError> {
+        let mut index_by_id = BTreeMap::new();
+        let mut source_rows = BTreeSet::new();
+        let mut studies = BTreeSet::new();
+
+        for (index, observation) in observations.iter().enumerate() {
+            observation.validate()?;
+            if index_by_id.insert(observation.id, index).is_some() {
+                return Err(SpatialFieldError::DuplicateSampleId(observation.id));
+            }
+            if !source_rows.insert((observation.study, observation.source_record_key.clone())) {
+                return Err(SpatialFieldError::DuplicateStudySourceRecord {
+                    study: observation.study,
+                    source_record_key: observation.source_record_key.clone(),
+                });
+            }
+            studies.insert(observation.study);
+        }
+
+        Ok(Self {
+            observations,
+            index_by_id,
+            studies,
+        })
+    }
+
+    pub fn observations(&self) -> &[FieldHyphalDensityObservation] {
+        &self.observations
+    }
+
+    pub fn observation(&self, id: FieldSampleId) -> Option<&FieldHyphalDensityObservation> {
+        self.index_by_id.get(&id).map(|index| &self.observations[*index])
+    }
+
+    pub fn studies(&self) -> impl Iterator<Item = FieldStudyId> + '_ {
+        self.studies.iter().copied()
+    }
+
+    /// Only rows with both a valid coordinate and a known sampling-depth
+    /// interval are included. All other rows remain accessible in observations.
+    pub fn spatially_supported_rows(
+        &self,
+    ) -> impl Iterator<Item = &FieldHyphalDensityObservation> {
+        self.observations
+            .iter()
+            .filter(|item| item.has_spatial_support())
+    }
+}
+
 /// A cell from a spatial prediction raster. This is not a field observation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct HyphalDensityRasterPrediction {
@@ -318,6 +381,11 @@ pub enum SpatialFieldError {
     InvalidSourceDigest,
     InvalidSourceRecordKey,
     InvalidReplicateCount,
+    DuplicateSampleId(FieldSampleId),
+    DuplicateStudySourceRecord {
+        study: FieldStudyId,
+        source_record_key: String,
+    },
     InvalidRasterCellGeometry,
     InvalidPredictedDensity,
     InvalidPredictionUncertainty,
@@ -364,7 +432,22 @@ impl fmt::Display for SpatialFieldError {
                     "source record key must be non-empty and at most 256 bytes"
                 )
             }
-            Self::InvalidReplicateCount => write!(f, "biological replicate count must be positive"),
+            Self::InvalidReplicateCount => {
+                write!(f, "biological replicate count must be positive")
+            }
+            Self::DuplicateSampleId(id) => {
+                write!(f, "field sample identity {:?} is duplicated", id)
+            }
+            Self::DuplicateStudySourceRecord {
+                study,
+                source_record_key,
+            } => {
+                write!(
+                    f,
+                    "source record {:?} is duplicated in study {:?}",
+                    source_record_key, study
+                )
+            }
             Self::InvalidRasterCellGeometry => {
                 write!(
                     f,
@@ -539,6 +622,47 @@ mod tests {
             item.validate(),
             Err(SpatialFieldError::InvalidSamplingDepth)
         );
+    }
+
+    #[test]
+    fn catalog_rejects_duplicate_sample_ids() {
+        let first = observation();
+        let mut second = observation();
+        second.study = FieldStudyId(11);
+        second.source_record_key = "study-11-core-1".to_string();
+        assert_eq!(
+            FieldObservationCatalog::new(vec![first.clone(), second]),
+            Err(SpatialFieldError::DuplicateSampleId(FieldSampleId(1)))
+        );
+    }
+
+    #[test]
+    fn catalog_rejects_duplicate_source_rows_within_study() {
+        let first = observation();
+        let mut second = observation();
+        second.id = FieldSampleId(2);
+        assert_eq!(
+            FieldObservationCatalog::new(vec![first, second]),
+            Err(SpatialFieldError::DuplicateStudySourceRecord {
+                study: FieldStudyId(10),
+                source_record_key: "study-10-core-1".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn catalog_keeps_unlocated_rows_but_excludes_them_from_spatial_training() {
+        let first = observation();
+        let mut second = observation();
+        second.id = FieldSampleId(2);
+        second.source_record_key = "study-10-core-2".to_string();
+        second.location = None;
+        let catalog = FieldObservationCatalog::new(vec![first, second]).unwrap();
+
+        assert_eq!(catalog.observations().len(), 2);
+        assert_eq!(catalog.studies().collect::<Vec<_>>(), vec![FieldStudyId(10)]);
+        assert_eq!(catalog.spatially_supported_rows().count(), 1);
+        assert!(catalog.observation(FieldSampleId(2)).is_some());
     }
 
     #[test]
