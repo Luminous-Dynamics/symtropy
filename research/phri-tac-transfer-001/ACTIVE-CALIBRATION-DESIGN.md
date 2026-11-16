@@ -158,3 +158,10 @@ The executable comparison now separates three data objects:
 Every selection policy accepts only the candidate slice. Model fitting receives the selected candidate indices and separately supplied reference observations. Held-out truth is passed only to the evaluator after policy selection completes. This prevents a future selector from accidentally reading reference labels through a shared candidate record, and is stronger than an informal "no leakage" promise.
 
 A deterministic reference-channel noise term is separate from the sensor readout noise. This is synthetic reference error, not a real instrument calibration or covariance model.
+
+
+## Paired multi-seed reproducibility tranche
+
+The executable robustness follow-on requires at least 50 preregistered paired seeds. Each seed reuses the same generated data across policy arms, and each arm is compared with the full-grid reference under the same seed. The summary preserves mean, median, p95 and maximum error, synthetic interval diagnostic, generated contact-cost proxy and paired RMSE delta against full-grid.
+
+This establishes whether the first policy ordering is seed-stable enough to justify further study. It does not yet provide bootstrap confidence intervals, cluster-robust statistical inference or model-family robustness; those remain required before any physical-policy selection. The source/target split and selector/evaluator type boundary remain intact across every seed.
