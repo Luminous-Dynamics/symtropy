@@ -14,6 +14,23 @@ A standalone Rust benchmark toolkit combining strict scenario contracts, handoff
 - Mandatory safety, authorized-destination, package-identity, household-privacy and unauthorized-mutation gates.
 - Required event declarations and fault-injection references.
 
+## L1 closed-gate obstruction fault experiment
+
+The `mfb-simulate-gate-fault` binary adds a static closed-gate collision proxy across the tote opening and executes the same 480 Hz rigid-body episode plus same-host replay.
+
+This is the first scene-level physical-fault proxy in the MFB suite: the package contacts the obstruction, remains outside the tote, and the physical-placement predicate fails. The handoff protocol records an observation disagreement after logical release, enters `reconciliation_required`, and blocks a retry against the old command ID. The fault report succeeds only when those physical and protocol oracles match.
+
+Run it from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
+```
+
+The report separates `physical_fault_effect_observed`, `reconciliation_required`, `blind_retry_blocked`, `false_completion_blocked` and `fault_oracle_passed`. A passing fault oracle is not a successful delivery: the nested nominal `SimulationResult.accepted` must be false and the transaction must remain unresolved.
+
+**Limitations:** the gate is a static collision geometry proxy present in the scene. This does not simulate gate motion, controller/interlock timing, actuator power, sensor perception or firmware. It is not HIL or a real-world safety test. The detailed physical fault-injection programme remains #5500.
+
 ## Distributed physical handoff reference state machine
 
 `src/transaction.rs` supplies a deterministic reference state machine for:
