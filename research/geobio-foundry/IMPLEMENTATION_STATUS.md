@@ -20,6 +20,8 @@
 | `SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json` | Separate morphology, origin, connectivity, accessibility, engineering and preservation claims |
 | `SUBTERRA_PROFILE_SCHEMA_v0.1.json` | Non-uniform profile intervals with explicit unobserved geometry |
 | `SUBTERRA_NETWORK_SCHEMA_v0.1.json` | Cave network graph separating candidate, geophysically supported, directly observed and contradicted links, with traversal and direction states |
+| `SUBTERRA_OBSERVATION_LINEAGE_SCHEMA_v0.1.json` | Dataset-level manifest linking site observations and derived products to physical acquisitions and declared common-cause episodes |
+| `fixtures/subterra-observation-lineage-synthetic.json` | Synthetic multisite fixture with repeated derived products, shared calibration/environment episodes and an isolated control site |
 | `fixtures/subterra-site-evidence-synthetic.json` | Synthetic Mars candidate record preserving unknown origin, connectivity, accessibility and use qualification |
 | `fixtures/subterra-nonuniform-profile-synthetic.json` | Synthetic profile with a deliberately unobserved interval |
 | `fixtures/subterra-cave-network-synthetic.json` | Synthetic cave graph separating observed topology from demonstrated traversal |
@@ -62,6 +64,7 @@
 | Subterra site/profile schema meta-validation | **PASS** | Python jsonschema `Draft202012Validator.check_schema` |
 | Subterra site/profile synthetic fixtures | **PASS** | Both fixture records validate against their respective schemas with format checking |
 | Subterra network schema/fixture JSON syntax | **PASS** | Both committed files parse as JSON; Draft 2020-12 meta-validation/fixture validation not yet executed for this new schema |
+| Observation-lineage schema/fixture | **AUTHORED** | Schema and synthetic manifest added in this increment; meta-validation, fixture validation and graph-reference validation pending |
 | Synthetic fixture against schema | **PASS** | Format checker enabled; zero validation errors |
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
@@ -90,8 +93,9 @@
 3. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 4. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
 5. Add a dedicated CI lane or explicit nested-workspace verification target for `research/geobio-foundry/kernel`; the successful root-workspace CI run does not execute its 61 research tests.
-6. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
-7. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
-8. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin`, Sol-Atlas site evidence and robotics interfaces.
+6. Meta-validate the observation-lineage schema, add semantic source-record/observation-reference checks, and test split-group leakage against Symthaea's dependence auditor.
+7. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
+8. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
+9. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin`, Sol-Atlas site evidence and robotics interfaces.
 
-No production Symtropy crate, root Cargo workspace membership, or runtime dependency was changed in this increment.
+No production Symtropy crate, root Cargo workspace membership, or runtime dependency was changed in this increment. The observation-lineage manifest is a separate research schema; the current site-evidence v0.1 schema is unchanged.

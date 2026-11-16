@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/subterra/observation-lineage-manifest/v0.1",
+  "title": "Subterra Observation Lineage Manifest v0.1",
+  "description": "A dataset-level sidecar mapping site observations and derived artifacts to physical acquisitions and declared common-cause episodes. It provides split-grouping metadata, not proof of statistical independence or authenticated provenance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "dataset_id",
+    "records",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "site_id",
+          "observation_id",
+          "acquisition_lineage_id",
+          "artifact_kind",
+          "source_record_ids",
+          "shared_cause_groups",
+          "provenance_ref"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "site_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acquisition_lineage_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact_kind": {
+            "enum": [
+              "raw_acquisition",
+              "derived_product"
+            ]
+          },
+          "source_record_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "shared_cause_groups": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "group_id"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "instrument_calibration",
+                    "environmental_episode",
+                    "processing_lineage",
+                    "reference_label_campaign",
+                    "other"
+                  ]
+                },
+                "group_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "provenance_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "artifact_kind": {
+                  "const": "raw_acquisition"
+                }
+              },
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "source_record_ids": {
+                  "maxItems": 0
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "artifact_kind": {
+                  "const": "derived_product"
+                }
+              },
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "source_record_ids": {
+                  "minItems": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

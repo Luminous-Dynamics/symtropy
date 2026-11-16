@@ -24,6 +24,8 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [Subterra site evidence schema](SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json)
 - [Subterra non-uniform profile schema](SUBTERRA_PROFILE_SCHEMA_v0.1.json)
 - [Subterra cave network schema](SUBTERRA_NETWORK_SCHEMA_v0.1.json)
+- [Subterra observation lineage manifest schema](SUBTERRA_OBSERVATION_LINEAGE_SCHEMA_v0.1.json)
+- [Synthetic multisite observation-lineage fixture](fixtures/subterra-observation-lineage-synthetic.json)
 - [Synthetic non-uniform profile fixture](fixtures/subterra-nonuniform-profile-synthetic.json)
 - [Synthetic cave connectivity fixture](fixtures/subterra-cave-network-synthetic.json)
 - [Synthetic site-evidence fixture](fixtures/subterra-site-evidence-synthetic.json)

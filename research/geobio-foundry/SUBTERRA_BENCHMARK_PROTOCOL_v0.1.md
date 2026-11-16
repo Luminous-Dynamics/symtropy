@@ -117,3 +117,29 @@ SubterraBench v0.1 is ready for external review when:
 - communications and semantic detection are scored separately from map coverage;
 - evidence tiers and planetary protection are explicit;
 - independent reproduction is possible from frozen inputs and score code.
+
+
+## 10. Observation lineage and common-cause grouping
+
+The new dataset-level observation-lineage manifest links site observation IDs and derived records to physical acquisitions and declared shared-cause episodes. It is separate from the site-evidence schema so the v0.1 site record remains unchanged.
+
+The manifest captures:
+- one record per raw acquisition or derived evidence product;
+- stable record, site, observation and physical-acquisition IDs;
+- derived-product source-record references;
+- shared instrument-calibration, environmental-episode, processing-lineage and reference-label-campaign groups;
+- opaque provenance references, without claiming that reference presence authenticates the underlying source.
+
+Required semantic validation still sits beyond JSON Schema: every referenced source record must exist; no source graph cycle is permitted; observation IDs must resolve exactly once to observations in the declared site record; derived products must preserve the acquisition lineage of their source chain unless an explicitly reviewed transformation declares a new physical acquisition boundary; shared-cause groups must be scoped to an episode/campaign, not a global device or software name.
+
+The Symthaea dependence audit consumes corresponding typed declarations and computes transitive split components. Its output is an audit of declared grouping only, not proof of independence. A future adapter should retain original IDs and issue a source-to-audit mapping receipt; it must not silently infer independence from absent group declarations.
+
+| Benchmark | Property | Proposed gate |
+|---|---|---|
+| ObservationLineageCompletenessBench | Every site observation maps to one or more lineage records, without dangling observation IDs | 100% declared observation association coverage; no silent omission |
+| DerivedArtifactGraphBench | Derived products cite existing source records; graph is acyclic | Zero dangling IDs or cycles |
+| AcquisitionPreservationBench | Derived records retain physical acquisition identity | Zero accidental acquisition split |
+| CommonCauseSplitBench | Shared calibration/environment/processing/adjudication episode IDs are grouped transitively | Zero declared common-cause groups cross qualifying data splits |
+| ProvenanceBoundaryBench | Opaque refs are not upgraded into verified authenticity claims | Zero authority/evidence promotion from reference presence alone |
+
+The synthetic fixture contains two sites sharing calibration and environmental episodes, with three related raw/derived records from one acquisition at site A and an isolated third site. It is an adversarial split-design fixture, not empirical planetary data.
