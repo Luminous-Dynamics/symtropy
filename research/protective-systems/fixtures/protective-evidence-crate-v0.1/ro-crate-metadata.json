@@ -139,8 +139,8 @@
       "@type": "File",
       "name": "e2-sparse-derivation.jsonld",
       "encodingFormat": "application/ld+json",
-      "contentSize": "2640",
-      "sha256": "93bd7e9bbd0dfe78caeb0dfbafe6c8cfa4ba1908f83f05767b18732fe0d82c59",
+      "contentSize": "2789",
+      "sha256": "c5c55a1d1df5cb84addf66e4343dab47b0c42a18b4fd67d0f2d3a50c2515657c",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY",
       "description": "Synthetic PROV-O graph fixture separating E1 lineage declarations from an E2-only sparse control derivation."
