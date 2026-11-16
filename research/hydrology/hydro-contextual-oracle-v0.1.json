@@ -522,7 +522,11 @@
         "observed": 4,
         "model_crps": 0.6666666666666666,
         "reference_crps": 0.4444444444444444,
-        "crps_skill_score": -0.5
+        "crps_skill_score": -0.5,
+        "model_forecast_id": "model-flow-v0.1",
+        "reference_forecast_id": "seasonal-climatology-v0.1",
+        "verification_population_id": "synthetic-catchment-event-window-001",
+        "lead_time_hours": 24
       }
     },
     {
@@ -536,7 +540,11 @@
         "observed": 4,
         "model_crps": 0.6666666666666666,
         "reference_crps": 0,
-        "crps_skill_score": null
+        "crps_skill_score": null,
+        "model_forecast_id": "model-flow-v0.1",
+        "reference_forecast_id": "seasonal-climatology-v0.1",
+        "verification_population_id": "synthetic-catchment-event-window-001",
+        "lead_time_hours": 24
       }
     },
     {
@@ -590,6 +598,47 @@
         "sample_count": 1,
         "interval_count": 1,
         "weighted_interval_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-038-weighted-interval-duplicate-alpha-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "DUPLICATE_INTERVAL_ALPHA",
+        "sample_count": 1,
+        "interval_count": 2,
+        "weighted_interval_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-039-crpss-invalid-forecast-identity-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD",
+        "model_forecast_id": "same-forecast",
+        "reference_forecast_id": "same-forecast",
+        "verification_population_id": "synthetic-event-002",
+        "lead_time_hours": 24,
+        "model_crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-040-crpss-negative-lead-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD",
+        "model_forecast_id": "model-flow-v0.1",
+        "reference_forecast_id": "seasonal-climatology-v0.1",
+        "verification_population_id": "synthetic-event-003",
+        "lead_time_hours": -1,
+        "model_crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null
       }
     }
   ]
