@@ -14,14 +14,14 @@
     {
       "provider": "DATACITE",
       "relative_path": "datacite/doi-response.json",
-      "native_profile": "DataCite REST API JSON:API response carrying Metadata Schema 4.7 fields; schemaVersion remains the generic kernel-4 URI",
+      "native_profile": "DataCite REST JSON:API response with selected Metadata Schema 4.7 fields; SWHID core syntax checked only, resolution not asserted; schemaVersion remains generic kernel-4 URI",
       "source_identity": "10.5555/synthetic-e3-protection-record-001",
       "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
       "rights_status": "SYNTHETIC_OPEN_FIXTURE",
       "permitted_use": "SYNTHETIC_TEST_ONLY",
       "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
-      "byte_length": 2135,
-      "sha256": "492c1fe4661219c0c4ec2c32627cad9e137e1fc2dbb34067f848e14074917ee5"
+      "byte_length": 2205,
+      "sha256": "f9eb5ecec783649324031c1dd5417367adf2df5ba2e0ce0c72f2a45cfc0c7646"
     },
     {
       "provider": "OGC_API_RECORDS",
