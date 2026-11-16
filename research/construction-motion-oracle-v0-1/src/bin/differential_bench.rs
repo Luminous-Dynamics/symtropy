@@ -398,5 +398,4 @@ fn main() {
             .expect("valid bounded clock-uncertainty query"),
         );
     });
-
 }
