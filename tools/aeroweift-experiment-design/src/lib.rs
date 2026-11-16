@@ -662,10 +662,7 @@ fn same_hypothesis_set(left: &[HypothesisGroup], right: &[HypothesisGroup]) -> b
     left == right
 }
 
-fn same_hypothesis_contrast_set(
-    left: &[HypothesisContrast],
-    right: &[HypothesisContrast],
-) -> bool {
+fn same_hypothesis_contrast_set(left: &[HypothesisContrast], right: &[HypothesisContrast]) -> bool {
     if left.len() != right.len() {
         return false;
     }
@@ -676,7 +673,10 @@ fn same_hypothesis_contrast_set(
             a.left_hypothesis_id
                 .cmp(&b.left_hypothesis_id)
                 .then_with(|| a.right_hypothesis_id.cmp(&b.right_hypothesis_id))
-                .then_with(|| a.separation_lower_bound.total_cmp(&b.separation_lower_bound))
+                .then_with(|| {
+                    a.separation_lower_bound
+                        .total_cmp(&b.separation_lower_bound)
+                })
                 .then_with(|| a.contrast_estimate_sha256.cmp(&b.contrast_estimate_sha256))
         });
     };
@@ -1185,13 +1185,7 @@ pub fn select_experiments(
 
     let mut pareto_front: Vec<ParetoCandidate> = front
         .into_iter()
-        .map(|candidate| {
-            to_pareto(
-                candidate,
-                policy.minimum_pair_separation,
-                policy.objective,
-            )
-        })
+        .map(|candidate| to_pareto(candidate, policy.minimum_pair_separation, policy.objective))
         .collect();
     pareto_front.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     rejected.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
