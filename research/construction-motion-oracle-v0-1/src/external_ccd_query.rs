@@ -251,7 +251,10 @@ pub fn parse_boolean_array(json: &str) -> Result<Vec<bool>, RationalQueryError> 
 }
 
 fn is_integer_lexeme(value: &str) -> bool {
-    let digits = value.strip_prefix('-').or_else(|| value.strip_prefix('+')).unwrap_or(value);
+    let digits = value
+        .strip_prefix('-')
+        .or_else(|| value.strip_prefix('+'))
+        .unwrap_or(value);
     !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
 }
 
@@ -270,11 +273,7 @@ fn peek(bytes: &[u8], cursor: usize) -> Option<u8> {
     bytes.get(cursor).copied()
 }
 
-fn expect_byte(
-    bytes: &[u8],
-    cursor: &mut usize,
-    expected: u8,
-) -> Result<(), RationalQueryError> {
+fn expect_byte(bytes: &[u8], cursor: &mut usize, expected: u8) -> Result<(), RationalQueryError> {
     if peek(bytes, *cursor) != Some(expected) {
         return Err(RationalQueryError::InvalidBooleanArray);
     }
@@ -310,7 +309,8 @@ mod tests {
 
     #[test]
     fn parses_inline_truth_and_preserves_rational_lexemes() {
-        let parsed = parse_rational_queries(&eight_rows(Some(1)), QueryKind::EdgeEdge, None).unwrap();
+        let parsed =
+            parse_rational_queries(&eight_rows(Some(1)), QueryKind::EdgeEdge, None).unwrap();
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].kind, QueryKind::EdgeEdge);
         assert!(parsed[0].ground_truth);
@@ -332,23 +332,16 @@ mod tests {
 
     #[test]
     fn parses_separate_boolean_json() {
-        let parsed = parse_rational_queries(
-            &eight_rows(None),
-            QueryKind::VertexFace,
-            Some("[ true ]"),
-        )
-        .unwrap();
+        let parsed =
+            parse_rational_queries(&eight_rows(None), QueryKind::VertexFace, Some("[ true ]"))
+                .unwrap();
         assert!(!parsed[0].ground_truth);
     }
 
     #[test]
     fn rejects_mismatched_inline_and_external_truth() {
         assert_eq!(
-            parse_rational_queries(
-                &eight_rows(Some(1)),
-                QueryKind::EdgeEdge,
-                Some("[false]")
-            ),
+            parse_rational_queries(&eight_rows(Some(1)), QueryKind::EdgeEdge, Some("[false]")),
             Err(RationalQueryError::GroundTruthRepresentationMismatch { query_index: 0 })
         );
     }
@@ -420,7 +413,14 @@ mod tests {
 
     #[test]
     fn validates_json_booleans_and_query_count() {
-        for invalid in ["[0]", "[null]", "[true false]", "[true,]", "true", "[true] trailing"] {
+        for invalid in [
+            "[0]",
+            "[null]",
+            "[true false]",
+            "[true,]",
+            "true",
+            "[true] trailing",
+        ] {
             assert_eq!(
                 parse_boolean_array(invalid),
                 Err(RationalQueryError::InvalidBooleanArray)
@@ -455,6 +455,9 @@ mod tests {
             numerator: "9".repeat(400),
             denominator: "1".into(),
         };
-        assert_eq!(huge.to_f64(), Err(RationalQueryError::FloatConversionOutOfRange));
+        assert_eq!(
+            huge.to_f64(),
+            Err(RationalQueryError::FloatConversionOutOfRange)
+        );
     }
 }
