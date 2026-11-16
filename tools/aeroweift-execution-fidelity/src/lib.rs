@@ -902,10 +902,9 @@ pub fn evaluate_execution(
         .collect();
     incomplete_window_ids.sort_unstable();
 
-    let total_samples = record
-        .segments
-        .iter()
-        .fold(0_u64, |total, segment| total.saturating_add(segment.sample_count));
+    let total_samples = record.segments.iter().fold(0_u64, |total, segment| {
+        total.saturating_add(segment.sample_count)
+    });
 
     let not_admissible = !mismatches.is_empty() || !authority_ok && plan.authorization_required
         || outside_authority_envelope;
