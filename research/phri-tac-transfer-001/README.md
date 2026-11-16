@@ -122,3 +122,14 @@ The report always states that pairwise agreement does **not** prove independence
 The adversarial campaign still executes the unguarded diagnostic fit to quantify the damage from ignoring a failed reference gate. These policy metrics are counterfactual diagnostics only and must not be treated as qualified measurements. The normal active-calibration benchmark and fit helper now enforce the reference gate before fitting.
 
 The 0.02 N threshold and ancestry boolean are synthetic test-fixture parameters, not physical metrology thresholds or proof of actual instrument independence. Real qualification requires the #4753 owners to establish independent instrument identities, calibration ancestry, timebases, mounting/range applicability, uncertainty, and common-cause analysis.
+
+
+## Reference integrity: two separate gates
+
+The reference-channel prototype now requires both numeric agreement and an attested distinct calibration ancestry before the normal calibration-fitting path accepts a domain. The synthetic cross-check tolerance is 0.02 N and is named in code as a synthetic-only fixture value. It is not a physical metrology threshold.
+
+A sixth adversarial family, shared reference common-mode bias, gives both numerical channels the same 0.25 N offset. Pairwise disagreement alone would accept it; the fixture therefore marks its ancestry attestation false, and the qualification path rejects it. The primary-only reference-bias family is rejected by a large pairwise difference. The report always states that numerical agreement does not prove independence.
+
+The adversarial campaign retains explicit diagnostic-only functions that bypass reference qualification to measure the counterfactual error from using faulty data. They are isolated from the normal active calibration path and never qualify a measurement. The standard benchmark's source and target fits now require the integrity gate.
+
+Real hardware still requires independent calibration ancestry, calibration validity/range, clock/time alignment, mounting/force-path analysis, uncertainty and common-cause review from the physical phantom/reference owner. A software ancestry boolean is not a calibration certificate.
