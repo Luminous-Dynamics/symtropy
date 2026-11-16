@@ -669,7 +669,7 @@ fn evaluate(scenario: &Scenario, scenario_bytes: &[u8]) -> Result<GateReport, St
     let plan = exact_minimum_plan(&affected_claim_refs, &scenario.actions)?;
 
     Ok(GateReport {
-        schema_version: "protect-capability-assurance-e5/0.1",
+        schema_version: "protect-capability-assurance-e5/0.1".to_owned(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
         disposition: if plan.feasible {
             "ABSTAIN_REQUALIFICATION_NOT_EXECUTED".to_owned()
@@ -751,9 +751,13 @@ mod tests {
         let result = run().expect("valid E5 gate");
         assert_eq!(
             result.affected_claim_ids,
-            vec!["claim:air", "claim:power", "claim:shelter"]
+            vec![
+                "claim:air".to_owned(),
+                "claim:power".to_owned(),
+                "claim:shelter".to_owned()
+            ]
         );
-        assert_eq!(result.qualified_claim_ids, vec!["claim:comms"]);
+        assert_eq!(result.qualified_claim_ids, vec!["claim:comms".to_owned()]);
         assert_eq!(
             result.requalification_plan.selected_action_ids,
             vec!["action:integrated-refuge-requalification"]
@@ -876,6 +880,25 @@ mod tests {
         let result = report(&value);
         assert!(!result.qualified_claim_ids.contains(&"claim:comms".to_owned()));
         assert!(result.affected_claim_ids.contains(&"claim:comms".to_owned()));
+    }
+
+    #[test]
+    fn conflicted_evidence_never_qualifies_a_capability_claim() {
+        let mut value = scenario();
+        value
+            .evidence
+            .iter_mut()
+            .find(|item| item.id == "evidence:radio-failover")
+            .expect("radio evidence")
+            .status = "CONFLICTED".to_owned();
+        let result = report(&value);
+        assert!(!result.qualified_claim_ids.contains(&"claim:comms".to_owned()));
+        let evidence = result
+            .evidence_results
+            .iter()
+            .find(|item| item.evidence_id == "evidence:radio-failover")
+            .expect("radio evidence result");
+        assert_eq!(evidence.effective_state, "CONFLICTED");
     }
 
     #[test]
