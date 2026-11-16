@@ -77,7 +77,7 @@
     },
     "candidate_trains": {
       "type": "array",
-      "minItems": 3,
+      "minItems": 4,
       "items": {
         "type": "object",
         "required": [
@@ -182,14 +182,14 @@
     },
     "comparison_metrics": {
       "type": "array",
-      "minItems": 10,
+      "minItems": 15,
       "items": {
         "type": "string"
       }
     },
     "release_gates": {
       "type": "array",
-      "minItems": 7,
+      "minItems": 8,
       "items": {
         "type": "string"
       }
