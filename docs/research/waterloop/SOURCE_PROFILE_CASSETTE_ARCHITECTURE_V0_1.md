@@ -358,8 +358,10 @@ The design objective is **maintainable, quality-verifiable service over time**, 
 ## 16. First-article functional BOM and T1 challenge matrix
 
 The following companion artifacts define a build-planning interface without freezing any supplier or dimension:
-- [Functional BOM v0.1](SOURCE_PROFILE_CASSETTE_FUNCTIONAL_BOM_V0_1.csv): shared batch/measurement backbone plus Train A/B/C/D candidate items. It states quantities as functional planning counts, not procurement quantities; exact working volumes, pipe sizes, materials, pressure ratings, membrane ratings and component SKUs remain open.
-- [T1 test matrix v0.1](source-profile-cassette-t1-test-matrix-v0.1.json) and [schema](source-profile-cassette-t1-test-matrix-v0.1.schema.json): 15 source, process, safety, residual and longitudinal-monitoring challenges.
+- [Typed functional BOM v0.1](source-profile-cassette-functional-bom-v0.1.json) and [BOM schema](source-profile-cassette-functional-bom-v0.1.schema.json): 32 unique functional items across the shared test skid and Train A/B/C/D candidate modules. Quantity bases describe functional planning counts, not procurement quantities.
+- [T1 test matrix v0.1](source-profile-cassette-t1-test-matrix-v0.1.json) and [test-matrix schema](source-profile-cassette-t1-test-matrix-v0.1.schema.json): 15 unique source, process, safety, residual and longitudinal-monitoring challenges.
+
+The exact working volumes, pipe sizes, wetted materials, pressure ratings, membrane properties, UV dose, ozone duty, component SKUs and site installation details remain open until the frozen test duty, feed envelope, component evidence and professional review are available. The BOM is not a purchasing list or manufacturing release.
 
 ### Assembly concept
 
