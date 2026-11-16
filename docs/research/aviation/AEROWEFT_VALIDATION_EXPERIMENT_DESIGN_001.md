@@ -71,9 +71,17 @@ Hard eligibility gates include:
 
 Only after eligibility is established does Pareto ranking happen. Benefits are maximized; uninformative probability and each resource-cost dimension are minimized. Costs are never summed or exchanged: a low compute cost cannot compensate for exceeding a facility, energy or adjudication budget. The output is a set of nondominated options, not a single "winner" forced by arbitrary scalarization. The Pareto record exposes the number of distinct independent model-family pairs with qualifying contrast bounds.
 
+## Utility estimate evidence and objective semantics
+
+The utility estimate is now itself a first-class, candidate-bound evidence object. Each estimate receipt binds the exact candidate ID, campaign, model/sensor/control scope, intended-use profile, decision question, design, scenario manifest, measurement plan, decision boundary, hypothesis-set manifest, robust ambiguity-set manifest and adaptive-development dataset manifest. It also pins the estimator build and method, confidence level, sampling unit and independent sample count, exact hypothesis groups/contrasts, and every conservative utility value. An estimate receipt cannot be replayed across candidate alternatives, and receipt IDs must be unique across the candidate batch. Receipt authenticity and estimator correctness remain Track Q/independent evaluator responsibilities; this crate checks structure and exact value equality only.
+
+For a `ModelFamilyPair` sample unit, the declared sample count must equal the number of distinct qualifying model-family pairs under the frozen contrast-separation floor. Hypothesis/contrast input order is not semantic: reordering the same set must leave admissibility and selection unchanged. The hypothesis manifest digest remains the exact content identity.
+
+The Pareto comparator is objective-aware. `expected_model_discrimination` contributes only to `ModelDiscrimination` campaigns; parameter-identification and decision-boundary campaigns cannot improve their rank by inflating a metric outside their declared objective. The returned model-discrimination field is zero for those other objectives.
+
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 66 adversarial tests (pending exact-head verification):
+The dependency-free Rust suite currently contains 82 adversarial tests:
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
@@ -93,34 +101,51 @@ The dependency-free Rust suite currently contains 66 adversarial tests (pending 
 - exact campaign/model/use-scope binding;
 - affirmative owner-receipt requirements and authorization hard-gate against candidate-flag bypass;
 - frozen estimator build/method/confidence binding;
+- structured utility-estimate receipt bound to candidate ID, exact decision boundary, hypothesis and robust-set manifests, adaptive-development data, design, measurement plan, estimator/method, utility vector, sample unit and independent sample count;
+- duplicate utility-estimate receipt IDs rejected across candidate batches;
+- estimate receipt replay across candidate alternatives and mismatched utility/hypothesis/sample metadata rejected;
+- hypothesis and contrast set permutation invariance;
+- model-family-pair sample count checked against the number of distinct qualified pairs;
+- objective-aware Pareto comparison, so model-discrimination scores do not affect parameter-identification campaigns;
 - non-substitutable resource budgets and multidimensional Pareto tradeoffs;
 - valid zero ceilings for resource dimensions that a modality is not allowed to consume.
 
 ## SOTA comparison protocol
 
-Use equal candidate sets, priors, available information, admissibility rules and *each separate resource budget* to compare:
-- fixed expert-designed test matrices;
-- factorial/covering-array plans;
+Use identical candidate designs, prior/ambiguity assumptions, available data, authority/safety admissibility, holdout policy and each separate resource budget. Compare at least:
+
+- fixed expert-designed, factorial and covering-array test matrices;
 - Monte Carlo, Latin-hypercube and Sobol sensitivity campaigns;
-- parameter-only expected information gain;
-- Bayesian optimal experimental design;
-- robust/minimax experimental design under prior/model uncertainty;
-- active learning and sequential model discrimination;
-- batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including mean-/quantile-based misclassification acquisition and input constraints;
-- model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
+- parameter-only expected information gain / mutual information;
+- Bayesian optimal experimental design for nonlinear models, including published goal-oriented Bayesian OED using MCMC;
+- risk-aware goal-oriented BOED that treats posterior predictive error, risk across the prediction domain and risk across datasets as separate design dimensions;
+- goal-driven BOED under model uncertainty, directly optimizing the downstream decision instead of all parameter directions equally;
+- generalized Bayesian OED / Gibbs EIG under likelihood misspecification, outliers and incorrect observation-noise assumptions;
+- robust/minimax experimental design and distributionally robust design;
+- sequential OED / active learning with finite-horizon lookahead and model discrimination;
+- multi-fidelity EIG and budgeted multi-fidelity escalation;
+- batch active learning for reliability-based model validation and model-discrepancy active learning;
 - the multi-fidelity admission/escalation lane in #4487.
 
-Report:
-- decision-relevant uncertainty reduction per cost;
-- model discrimination on independent model-family groups;
-- worst-case utility under prior/model misspecification;
-- decision-boundary regret against an independently constructed oracle Pareto set;
-- probability of uninformative result and false-utility calibration;
-- unsafe/ineligible candidate selection rate (target zero);
-- adaptive development versus untouched confirmatory data leakage (target zero);
-- selector runtime, experiment execution cost and evidence-adjudication cost separately.
+Recent specific comparators:
+- Jakeman et al., *Risk-Aware Goal-Oriented Bayesian Optimal Experimental Design* (7 September 2026), which composes three risk levels: predictive uncertainty, risk over prediction space and risk over datasets. Its sensor-placement example reports substantial improvement over expected-information-gain allocation in that problem; do not assume this transfers automatically to aviation.
+- Go, Qian and Yoon, *Goal-driven Bayesian Optimal Experimental Design for Robust Decision-Making Under Model Uncertainty* (25 May 2026), which targets the downstream decision and model uncertainty rather than maximizing parameter information alone.
+- Zhong et al., *Goal-Oriented Bayesian Optimal Experimental Design for Nonlinear Models Using Markov Chain Monte Carlo*, SIAM/ASA Journal on Uncertainty Quantification 14(1), March 2026.
+- Barlas, Sloman and Kaski, *Robust Experimental Design via Generalised Bayesian Inference* (10 November 2025), introducing Gibbs expected information gain for resilience to outliers and incorrect noise likelihoods.
 
-A reduction in test count is not success if the resulting model is less reliable or the decision changes under plausible model discrepancy.
+Report:
+- decision-relevant uncertainty reduction per each separate cost dimension;
+- held-out decision regret against an independently constructed oracle Pareto set;
+- risk-tail / high-consequence boundary discovery rate and worst-case utility under prior/model misspecification;
+- model discrimination across independently adjudicated model-family groups;
+- calibration of utility bounds and their empirical coverage on untouched campaigns;
+- probability of uninformative results and false-utility calibration;
+- unsafe/ineligible candidate selection rate (target zero);
+- adaptive development versus untouched confirmatory/challenge leakage (target zero);
+- candidate admission, selector runtime, experiment execution and evidence-adjudication costs separately;
+- performance by modality, model family, operating stratum and risk tier.
+
+The selector implemented in this crate is not yet an OED optimizer and does not calculate EIG, Gibbs EIG, a posterior, acquisition functions or realized utility. It is a scope-/receipt-qualified candidate-admission and Pareto-ranking layer. To outperform SOTA, the next research increment must implement a separate estimator/selector adapter and compare it head-to-head on the same frozen candidate space. A green selector test is not evidence that the chosen design is statistically optimal.
 
 ## Hard prospective targets
 
@@ -136,7 +161,9 @@ A reduction in test count is not success if the resulting model is less reliable
 
 ## Industry/research anchors
 
-- NASA-STD-7009B: modeling/simulation lifecycle credibility and intended-use assessment; acceptance criteria are set by the programme/project and approved by delegated technical authority.
+- NASA-STD-7009B: requires validation-domain records and assessment of empirical data acquisition/processing with the same rigor as the model validation; intended-use acceptance criteria are set by the programme/project and approved by delegated technical authority.
+- NASA-HDBK-7009B (3 February 2026) is the companion implementation handbook, not a separate technical standard or a replacement for discipline-specific acceptance criteria.
+- NIST AMS 100-85 (5 October 2026) harmonizes ASME VVUQ with JCGM metrology and proposes risk-scaled credibility assessment based on model influence and decision consequence.
 - NIST AMS 100-85 (5 October 2026): harmonizes ASME VVUQ with JCGM metrology and argues that credibility effort should scale with model influence and decision consequence.
 - NASA-HDBK-7009B (2026-02-03): current implementation guidance accompanying NASA-STD-7009B.
 - AIAA R-154-2021: model-based reduction of flight testing and six engineering tasks.
