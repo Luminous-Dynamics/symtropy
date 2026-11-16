@@ -146,3 +146,15 @@ The policies are full target grid, uniform stratified, seeded random stratified,
 The reported interval is only a regression prediction-interval diagnostic and the contact-cost quantity is a synthetic proxy. Neither is a GUM uncertainty result or measured fixture time. This tranche does not qualify a physical calibration, establish a physical transfer advantage, or authorize operation of the phantom.
 
 Next evaluation gate: reproduce the result over a preregistered seed set; investigate model misspecification and worst-stratum performance; retain all negative results; then compare the selection policies at matched target reference-contact budgets and matched held-out uncertainty requirements once the physical reference chain is qualified.
+
+
+## Selector / label / evaluator type boundary
+
+The executable comparison now separates three data objects:
+- selector-visible candidate stimuli and derived sensor features;
+- training-only reference-force observations, stored separately from candidate records;
+- held-out target truth, stored in a separate evaluator-owned domain.
+
+Every selection policy accepts only the candidate slice. Model fitting receives the selected candidate indices and separately supplied reference observations. Held-out truth is passed only to the evaluator after policy selection completes. This prevents a future selector from accidentally reading reference labels through a shared candidate record, and is stronger than an informal "no leakage" promise.
+
+A deterministic reference-channel noise term is separate from the sensor readout noise. This is synthetic reference error, not a real instrument calibration or covariance model.
