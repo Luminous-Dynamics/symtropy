@@ -27,7 +27,10 @@ fn main() {
         report.mismatched_expectations
     );
     for result in report.results {
-        println!("{}: {} (expected {})", result.id, result.disposition, result.expected_disposition);
+        println!(
+            "{}: {} (expected {})",
+            result.id, result.disposition, result.expected_disposition
+        );
         for reason in result.reasons {
             println!("  - {reason}");
         }
