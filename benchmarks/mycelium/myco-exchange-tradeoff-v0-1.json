@@ -296,5 +296,30 @@
     "prediction_intervals_and_worst_stratum",
     "PASS_FAIL_UNREPORTED_NOT_RUN_INSUFFICIENT_EVIDENCE"
   ],
-  "claim_ceiling": "Source-specific C/P/N exchange and network-evidence benchmark; no universal exchange ratio, direct cytoplasmic flow from isotope enrichment, or field generalization without independent holdouts."
+  "claim_ceiling": "Source-specific C/P/N exchange and network-evidence benchmark; no universal exchange ratio, direct cytoplasmic flow from isotope enrichment, or field generalization without independent holdouts.",
+  "network_evidence_implementation": {
+    "module": "crates/domains/symtropy-mycelium/src/network_evidence.rs",
+    "branch": "feat/mycelium-hyphal-graph-kernel-v0-2",
+    "test_functions": 13,
+    "implementation_status": "authored_ci_pending",
+    "semantics": [
+      "PASS and FAIL criteria require source-linked observation receipts",
+      "UNREPORTED and NOT_APPLICABLE cannot carry fabricated receipts",
+      "CMN effect attribution requires criteria 1-4",
+      "CMN-HC evidence requires criteria 1-5",
+      "hyphal continuity does not imply continuous cytoplasmic flow",
+      "plant-to-plant flow requires independent evidence and a supported shared fungal link"
+    ]
+  },
+  "evidence_policy": {
+    "flux_basis_values": [
+      "direct_isotope_tracer",
+      "morphology_ML_derived_estimate",
+      "direct_physical_flow_observation",
+      "simulation_prediction",
+      "theoretical_model"
+    ],
+    "rule": "never compare or pool unlike evidence bases as if they were interchangeable measured fluxes",
+    "cpn_units": "store elemental flux, isotope enrichment, recovered fraction and estimated exchange ratio as distinct quantities with explicit units"
+  }
 }
