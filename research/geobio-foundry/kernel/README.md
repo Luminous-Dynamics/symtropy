@@ -27,6 +27,7 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Single-species ideal-gas pressure/known-mass-transfer reference module with explicit limitations and observation comparison.
 - Non-uniform one-dimensional subterranean profile summary with explicit unobserved intervals, coverage fraction, length-weighted width/height and standard uncertainty, observed extrema and profile variability.
 - Typed cross-field Subterra site-evidence validator rejecting logically inconsistent connectivity/access/survey/engineering/preservation states. Non-Earth sampling/biological activity requires a named authorization-case reference; Earth records may mark planetary protection not applicable but still require a basis reference for an authorized activity.
+- Evidence-preserving cave network graph: candidate/geophysically supported links remain separate from directly observed topology; robot routes use only directly observed edges with demonstrated traversability; directed edges allow inbound and retreat routes to differ.
 
 ## Important limitations
 
