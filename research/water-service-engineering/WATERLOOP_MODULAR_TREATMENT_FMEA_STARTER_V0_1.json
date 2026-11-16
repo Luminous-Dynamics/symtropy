@@ -1,0 +1,121 @@
+{
+  "schema_version": "waterloop-modular-train-fmea-starter-v0.1",
+  "evidence_class": "conceptual_hazard_analysis",
+  "claim_ceiling": "starter_failure_modes_only_not_complete_fmea_or_safety_case",
+  "hazards": [
+    {
+      "hazard_id": "WL-FMEA-001",
+      "failure": "unknown_or_excluded_source_enters_raw_tank",
+      "effect": "unexpected influent composition and unqualified treatment challenge",
+      "detection": "source identity state missing or incompatible with approved source matrix",
+      "safe_state": "divert source to approved wastewater route; quarantine current batch; no reuse release",
+      "verification": "seed unknown-source test; inspect physical source segregation and diversion"
+    },
+    {
+      "hazard_id": "WL-FMEA-002",
+      "failure": "screen_blockage_or_hair_lint_overload",
+      "effect": "overflow, loss of flow, or unfiltered solids bypass",
+      "detection": "measured differential level/pressure or flow deviation; physical inspection",
+      "safe_state": "stop feed to process, route to approved drain, service basket",
+      "verification": "challenge with measured solids/lint load; verify no bypass or overflow to stormwater"
+    },
+    {
+      "hazard_id": "WL-FMEA-003",
+      "failure": "raw_equalisation_batch_exceeds_approved_storage_age",
+      "effect": "storage-induced transformation and increased microbial/odour risk",
+      "detection": "batch timestamp, timebase validity and temperature history",
+      "safe_state": "hold batch; no release; divert or obtain independent quality decision per approved procedure",
+      "verification": "seed over-age, stale clock and missing timestamp controls"
+    },
+    {
+      "hazard_id": "WL-FMEA-004",
+      "failure": "UF_membrane_integrity_or_pressure_boundary_invalid",
+      "effect": "barrier performance not established; fouling or breakthrough",
+      "detection": "module integrity test, pressure/flow and process-specific admission",
+      "safe_state": "isolate cassette; hold product; divert feed",
+      "verification": "integrity challenge and post-clean recovery trial with admitted instruments"
+    },
+    {
+      "hazard_id": "WL-FMEA-005",
+      "failure": "UV_barrier_not_within_validated_operating_conditions",
+      "effect": "disinfection claim unsupported for the batch",
+      "detection": "UV system state and independently validated dose/flow/transmittance envelope invalid",
+      "safe_state": "close product outlet; hold/divert",
+      "verification": "seed low-intensity, lamp fault, fouled sleeve and out-of-range flow tests"
+    },
+    {
+      "hazard_id": "WL-FMEA-006",
+      "failure": "ozone_leak_or_offgas_destruction_failure",
+      "effect": "worker exposure and uncontrolled oxidant release",
+      "detection": "professionally selected gas detection, ventilation/off-gas interlocks and inspection",
+      "safe_state": "de-energise ozone generation, isolate module and follow site emergency procedure",
+      "verification": "engineered gas/ventilation functional testing before ozone is introduced"
+    },
+    {
+      "hazard_id": "WL-FMEA-007",
+      "failure": "oxidation_byproduct_or_GAC_breakthrough",
+      "effect": "treated water contains unassessed transformation products",
+      "detection": "analytical sampling and validated GAC exhaustion criterion",
+      "safe_state": "hold product; replace media or reject train",
+      "verification": "feed-specific challenge and byproduct analysis by qualified laboratory"
+    },
+    {
+      "hazard_id": "WL-FMEA-008",
+      "failure": "biological_process_instability_or_startup",
+      "effect": "variable effluent and solids carryover",
+      "detection": "process history plus source/sample laboratory evidence",
+      "safe_state": "hold product; isolate or divert until process restabilised and quality reassessed",
+      "verification": "start-up, idling, temperature/load shock and recovery trials"
+    },
+    {
+      "hazard_id": "WL-FMEA-009",
+      "failure": "power_loss_or_controller_restart_mid_batch",
+      "effect": "incomplete treatment or missing process history",
+      "detection": "power event/timebase and incomplete cycle receipt",
+      "safe_state": "batch remains held; no restart-to-release; require controlled recovery",
+      "verification": "cut power during each state and test retained batch identity"
+    },
+    {
+      "hazard_id": "WL-FMEA-010",
+      "failure": "critical_sensor_missing_stale_uncalibrated_or_conflicted",
+      "effect": "false safe process status",
+      "detection": "Mycelix capability/calibration/applicability/timebase admission invalid",
+      "safe_state": "Indeterminate; no product release",
+      "verification": "negative controls for missing, stale, calibration expired, drift and timebase mismatch"
+    },
+    {
+      "hazard_id": "WL-FMEA-011",
+      "failure": "reject_backwash_or_overflow_route_blocked",
+      "effect": "residual accumulation, overpressure or uncontrolled spill",
+      "detection": "level/flow closure and physical inspection",
+      "safe_state": "stop process, isolate energy/source and maintenance lockout",
+      "verification": "blocked route tests with contained safe test fluid"
+    },
+    {
+      "hazard_id": "WL-FMEA-012",
+      "failure": "cross_connection_or_backflow_between_potable_and_reclaimed",
+      "effect": "potential potable-system contamination",
+      "detection": "physical design inspection, pressure/backflow test and plumbing professional review",
+      "safe_state": "do not commission; physically disconnect/isolate and redesign",
+      "verification": "independent professional cross-connection/backflow hazard inspection"
+    }
+  ],
+  "invariants": [
+    "No automated release when any source, storage, process, sample, quality or calibration evidence is unknown, stale, invalid or conflicted.",
+    "No potable and reclaimed-water direct pressurised cross-connection in the demonstrator.",
+    "No unapproved reject, overflow or backwash discharge route.",
+    "Any sensor or controller is a process-control input, not a water-quality certificate.",
+    "No installation or operational use before qualified local plumbing/electrical/process review and applicable approvals."
+  ],
+  "not_completed": [
+    "severity/occurrence/detectability scoring",
+    "risk priority allocation",
+    "HAZOP",
+    "human factors review",
+    "electrical hazard assessment",
+    "ozone worker exposure assessment",
+    "site emergency plan",
+    "formal safety case",
+    "professional design signoff"
+  ]
+}
