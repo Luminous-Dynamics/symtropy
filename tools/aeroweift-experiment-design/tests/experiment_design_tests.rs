@@ -1423,3 +1423,41 @@ fn duplicate_utility_estimate_receipt_id_across_candidates_fails_closed() {
         Err(aeroweift_experiment_design::DesignError::DuplicateUtilityEstimateReceiptId)
     );
 }
+
+
+#[test]
+fn hypothesis_array_permutation_preserves_utility_receipt_admissibility() {
+    let mut candidate = candidate("hypothesis-order-invariant");
+    candidate.hypothesis_groups.reverse();
+    candidate.hypothesis_contrasts.reverse();
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert_eq!(result.pareto_front.len(), 1);
+    assert_eq!(
+        result.pareto_front[0].independent_hypothesis_group_pair_count,
+        1
+    );
+}
+
+#[test]
+fn model_family_pair_sampling_unit_must_match_distinct_qualified_group_pairs() {
+    let mut frozen = policy();
+    frozen.required_estimate_sample_unit = EstimateSampleUnit::ModelFamilyPair;
+    frozen.minimum_estimate_independent_units = 1;
+    let mut candidate = candidate("model-family-pair-samples");
+    {
+        let receipt = candidate.utility_estimate_receipt.as_mut().unwrap();
+        receipt.sample_unit = EstimateSampleUnit::ModelFamilyPair;
+        receipt.independent_unit_count = 1;
+    }
+    let admitted = select_experiments(std::slice::from_ref(&candidate), &frozen).unwrap();
+    assert_eq!(admitted.pareto_front.len(), 1);
+
+    candidate
+        .utility_estimate_receipt
+        .as_mut()
+        .unwrap()
+        .independent_unit_count = 2;
+    let rejected = select_experiments(&[candidate], &frozen).unwrap();
+    assert!(reason(&rejected, "model-family-pair-samples")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
