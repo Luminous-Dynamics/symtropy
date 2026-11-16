@@ -1,0 +1,19 @@
+[package]
+name = "construction-envelope-occupancy-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Pure typed projection from motion envelopes to construction space-time occupancy."
+
+[dependencies]
+construction-motion-envelope = { path = "../construction-motion-envelope-v0-1" }
+construction-robot-interop-core = { path = "../construction-robot-interop-v0-1" }
+construction-spacetime-occupancy-core = { path = "../construction-spacetime-occupancy-v0-1" }
+
+[workspace]
+
+[[bench]]
+name = "projection"
+path = "benches/projection.rs"
+harness = false
