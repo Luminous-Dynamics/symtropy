@@ -78,3 +78,18 @@ This is not arbitrary continuous-to-continuous collision checking: both bodies m
 For two translating capsules, the full swept-AABB union ignores whether the bodies occupy overlapping coordinates at the same time. The new dyadic time-sliced candidate query partitions the shared normalized interval and computes a conservative swept AABB for each body within each slab. It returns the number of candidate slabs, not a collision verdict. Narrow phase remains mandatory for positive candidates.
 
 The construction invariant is one-sided: if the exact synchronized continuous narrow phase reports contact, at least one slab must remain a candidate for any positive subdivision count. For nested 1, 2, 4, 8, ... refinements, candidate time fraction is non-increasing; raw candidate slab count may increase when parent slabs split. More subdivisions tighten broad-phase selectivity but cost more tests; benchmark both cost and candidate reduction. This is still an AABB broad phase, not a safety guarantee or exact dynamic collision result.
+
+## Adaptive space-time branch-and-bound
+
+The adaptive query recursively bisects the common normalized time interval only while per-window swept AABBs overlap. A disjoint pair safely prunes that interval. Remaining candidate leaves are checked with the exact capsule continuous-collision solver restricted to that leaf; local time is mapped back to the original trajectory. Candidate windows are sorted and disjoint in their interiors.
+
+Outcomes are explicit:
+- `Contact`: a narrow-phase witness proves contact.
+- `NoContact`: every candidate interval was checked and clear, or all intervals were safely pruned.
+- `Unresolved`: at least one candidate interval could not receive a reliable narrow-phase result.
+
+An unresolved interval can never be re-labelled clear. An established contact takes precedence because the existence of contact is already proven.
+
+The proof is limited to rigid fixed-orientation capsules undergoing affine translation over a common time domain: the union of endpoint AABBs encloses each capsule throughout a window. If the per-window boxes are disjoint, no instantaneous contact is possible in that window.
+
+The adaptive query is benchmarked against the full-interval analytic query and the uniform time-sliced AABB baseline. Its purpose is selective pruning before expensive downstream narrow phases, not an assumed speed advantage over this already-small analytic kernel. Benchmark node visits, pruned intervals, candidate time fraction, exact narrow-phase calls and end-to-end latency together. See [#5541](https://github.com/Luminous-Dynamics/symtropy/issues/5541).
