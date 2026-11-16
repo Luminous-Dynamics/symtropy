@@ -1,0 +1,88 @@
+{
+  "schema_version": "waterloop-modular-demonstrator-test-matrix-v0.1",
+  "status": "planning_only",
+  "physical_testing_authorized": false,
+  "test_families": [
+    {
+      "id": "T0-source-acceptance",
+      "cases": [
+        "accepted shower/bath",
+        "laundry exclusion",
+        "kitchen exclusion",
+        "toilet/floor drain exclusion",
+        "household illness suspend"
+      ]
+    },
+    {
+      "id": "T0-residence",
+      "cases": [
+        "first-entry timestamp",
+        "source mixing does not reset clock",
+        "6h",
+        "12h",
+        "18h",
+        "24h diversion boundary"
+      ]
+    },
+    {
+      "id": "T0-safe-state",
+      "cases": [
+        "power fail",
+        "pump fail",
+        "sensor missing",
+        "sensor stale",
+        "quality not admitted",
+        "final barrier failed",
+        "outlet valve fail",
+        "product tank high level",
+        "reject route unavailable"
+      ]
+    },
+    {
+      "id": "T0-cross-connection",
+      "cases": [
+        "no direct potable connection",
+        "air-gap separation inspection",
+        "dye test on nonpotable branch",
+        "mains-backup fault isolation"
+      ]
+    },
+    {
+      "id": "T1-treatment-challenge",
+      "cases": [
+        "paired batch influent",
+        "COD and TSS envelope",
+        "surfactant pulse",
+        "temperature steps",
+        "intermittent loading",
+        "membrane fouling and clean recovery",
+        "GAC breakthrough",
+        "wetland clogging",
+        "biological startup and idle restart",
+        "post-treatment storage/regrowth"
+      ]
+    },
+    {
+      "id": "T1-service-economics",
+      "cases": [
+        "useful toilet flush volume",
+        "pressure/flow service floor",
+        "reject and purge closure",
+        "metered energy including standby",
+        "maintenance labor",
+        "spares lead time",
+        "cost per admitted useful m3"
+      ]
+    }
+  ],
+  "acceptance_gates": [
+    "all source and intended use IDs declared",
+    "all raw batches remain within the approved time envelope or are diverted",
+    "all seeded critical failures isolate reclaimed outlet",
+    "no unqualified batch is released",
+    "independent lab methods/sample plan admitted before quality claims",
+    "water/energy/residual mass balance closes within uncertainty",
+    "cross-connection and backflow review passes before connection to any building",
+    "unoccupied test cell only; no human exposure trial"
+  ]
+}
