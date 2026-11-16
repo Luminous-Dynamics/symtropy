@@ -304,7 +304,7 @@
         "calibration",
         "raw_artifact"
       ],
-      "current_calibration_status": "current",
+      "current_calibration_status": "expired",
       "clock_mapping_required": false,
       "resume_context": {
         "interrupted": false,
