@@ -102,6 +102,10 @@ The dependency-free Rust suite currently contains 82 adversarial tests:
 - affirmative owner-receipt requirements and authorization hard-gate against candidate-flag bypass;
 - frozen estimator build/method/confidence binding;
 - structured utility-estimate receipt bound to candidate ID, exact decision boundary, hypothesis and robust-set manifests, adaptive-development data, design, measurement plan, estimator/method, utility vector, sample unit and independent sample count;
+- candidate-batch uniqueness for utility-estimate receipt IDs;
+- set-order invariance for exact hypothesis groups and pairwise contrast records;
+- model-family-pair sampling denominators equal the exact number of distinct qualified pairs;
+- objective-aware Pareto comparison: model-discrimination values cannot improve a parameter-identification result;
 - duplicate utility-estimate receipt IDs rejected across candidate batches;
 - estimate receipt replay across candidate alternatives and mismatched utility/hypothesis/sample metadata rejected;
 - hypothesis and contrast set permutation invariance;
@@ -145,7 +149,7 @@ Report:
 - candidate admission, selector runtime, experiment execution and evidence-adjudication costs separately;
 - performance by modality, model family, operating stratum and risk tier.
 
-The selector implemented in this crate is not yet an OED optimizer and does not calculate EIG, Gibbs EIG, a posterior, acquisition functions or realized utility. It is a scope-/receipt-qualified candidate-admission and Pareto-ranking layer. To outperform SOTA, the next research increment must implement a separate estimator/selector adapter and compare it head-to-head on the same frozen candidate space. A green selector test is not evidence that the chosen design is statistically optimal.
+The selector implemented in this crate is not yet an OED optimizer and does not calculate EIG, Gibbs EIG, a posterior, acquisition functions or realized utility. It also does not verify the empirical independence of estimator samples; it only checks the declared sampling-unit type and count, with an additional exact denominator check for model-family-pair units. It is a scope-/receipt-qualified candidate-admission and Pareto-ranking layer. To outperform SOTA, the next research increment must implement a separate estimator/selector adapter and compare it head-to-head on the same frozen candidate space. A green selector test is not evidence that the chosen design is statistically optimal.
 
 ## Hard prospective targets
 
