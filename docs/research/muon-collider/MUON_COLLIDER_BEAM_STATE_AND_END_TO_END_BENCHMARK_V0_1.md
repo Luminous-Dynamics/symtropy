@@ -115,8 +115,17 @@ A stage reports weighted physical population, not merely the number of macro-par
 
 For each particle species, the ledger records:
 
-    input_weight + generated_weight
-      = surviving_weight + sum(weighted_losses) + balance_residual
+    computed_residual = input_weight + generated_weight
+                        - surviving_weight - sum(weighted_losses)
+
+The declared balance residual must equal that computed residual and its
+absolute value must be within the declared relative tolerance. The residual
+is an independently checked discrepancy, not an extra balancing term.
+For `particle_production`, `input_weighted_count` is zero and
+`generated_weighted_count` is the output-species population created before
+losses. The input/source species and its population are recorded separately
+in `source_accounting`; proton population must not be added to muon
+population as if they were the same conserved species.
 
 The residual is computed and compared with a declared numerical tolerance. The validator must reject unexplained positive residuals, double-counted losses, hidden reweighting and inconsistent parent/child bunch accounting.
 
