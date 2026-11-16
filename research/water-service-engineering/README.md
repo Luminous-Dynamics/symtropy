@@ -162,4 +162,8 @@ WATERLOOP_MODULAR_T0_REVISION="$(git rev-parse HEAD)" \
     artifacts/water-service-t0/waterloop-modular-receipt.json
 ```
 
-The Rust gate checks unique source/module/train IDs, module references, required ports, excluded feed sources, segregation of laundry as a challenge-only path, drinking/cooking exclusion, fail-safe rules and configuration-identity changes. It parses and hashes the schema file but does not use a JSON-Schema engine to validate every schema keyword. It is not a hydraulic, treatment, plumbing, water-quality or regulatory qualification. All values remain design_reference_only and qualification_status NotRun.
+The Rust gate checks unique source/module/train IDs, module references, required ports, excluded feed sources (including explicit baby/nappy wash), segregation of laundry as a challenge-only path, drinking/cooking exclusion, and whole-train configuration identity changes. The 16 November extension also structurally checks physical potable/non-potable separation, no potable makeup in v0.1, no bypass-to-product, held batch-specific laboratory evidence, source-characterization minima, and matched train conditions. The candidate set now includes five train families: passive media, UF, segregated laundry challenge, nature-based, and ozone/GAC.
+
+The gate parses and hashes the schema file but does not use a JSON-Schema engine to validate every schema keyword. It is not a hydraulic, treatment, plumbing, water-quality or regulatory qualification. All values remain design_reference_only and qualification_status NotRun.
+
+The follow-on T1 evidence campaign is tracked separately in [#5587 WATERLOOP-SOURCE-CHALLENGE-001](https://github.com/Luminous-Dynamics/symtropy/issues/5587): source characterization and matched bench comparisons of real feed batches, with the synthetic study retained as a stress/control population only.
