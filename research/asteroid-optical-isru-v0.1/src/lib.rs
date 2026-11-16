@@ -119,6 +119,21 @@ pub fn solar_image_diameter_m(
     Ok(range_m * solar_angular_diameter)
 }
 
+/// Ideal geometric concentration ratio for a circular collector focused onto
+/// the solar image. This is collector area divided by solar-image area and
+/// assumes all intercepted energy reaches that image uniformly with no optical
+/// losses. It is an upper-bound screen, not a flux-profile or thermal model.
+pub fn ideal_solar_concentration_ratio(
+    collector_diameter_m: f64,
+    focal_distance_m: f64,
+    heliocentric_distance_au: f64,
+) -> Result<f64, AuditError> {
+    require_finite_positive(collector_diameter_m, "collector_diameter_m")?;
+    let image_diameter =
+        solar_image_diameter_m(focal_distance_m, heliocentric_distance_au)?;
+    Ok((collector_diameter_m / image_diameter).powi(2))
+}
+
 /// Ideal circular-aperture Airy first-null diameter in the far field:
 /// 2.44 * wavelength * range / aperture.
 ///
@@ -419,6 +434,15 @@ mod tests {
         assert!((spot - 465.0).abs() < 1.0e-9);
         let belt_spot = solar_image_diameter_m(100_000.0, 2.7).unwrap();
         assert!((belt_spot - (930.0 / 2.7)).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn ideal_solar_concentration_depends_on_aperture_and_standoff() {
+        let near = ideal_solar_concentration_ratio(10.0, 100.0, 1.0).unwrap();
+        let far = ideal_solar_concentration_ratio(10.0, 1_000.0, 1.0).unwrap();
+        assert!((near - (10.0_f64 / 0.93).powi(2)).abs() < 1.0e-9);
+        assert!((far - (10.0_f64 / 9.3).powi(2)).abs() < 1.0e-9);
+        assert!(near > far * 99.0);
     }
 
     #[test]
