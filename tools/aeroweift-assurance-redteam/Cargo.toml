@@ -1,0 +1,15 @@
+[package]
+name = "aeroweift-assurance-redteam"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+description = "Seeded adversarial challenge and counterexample minimization for AeroWeft assurance cases"
+
+[dependencies]
+aeroweift-assurance-case = { path = "../aeroweift-assurance-case" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
