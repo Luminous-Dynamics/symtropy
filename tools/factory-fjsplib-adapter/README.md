@@ -33,6 +33,15 @@ A deterministic FNV-1a 64-bit canonical fingerprint is emitted for reproducibili
 
 The tests use the official FJSPLib fattahi1 example in both text formats. They check one-based versus zero-based normalization and that the FJSP route structure and FAJSP precedence graph carry the same operation/machine/duration semantics.
 
+## Exact upstream fixture provenance and reference bound
+
+Both frozen Fattahi1 text fixtures now match the raw upstream files exactly at FJSPLib repository revision `8a6e36ef31263d36975e56fb481e0ba04e188d6f`:
+
+- FJSP: blob `84e868f74b099f68d05352d645cdbcaf444ddd6b`, 58 bytes.
+- FAJSP: blob `e9eeea2fb0b9382e4857b44cff2cd5d5d2fd0483`, 65 bytes (no trailing newline).
+
+The independent upstream `flexible-jobshop/solutions/bks.json` record marks `fattahi1` as `closed`, with lower bound = upper bound = **66**. Its bound history attributes both values to OptalCP on an Intel i7-1185G7 on 2025-08-29 (the archive records no standalone certificate). The Rust complete enumeration and independent CP-SAT model are separate reproducibility checks against this archived reference. No timing superiority is implied.
+
 ## Independent CP-SAT cross-check
 
 A benchmark-only Python adapter at `reference/ortools_fattahi1_check.py` independently parses both frozen `fixtures/fattahi1.fjsp` and `fixtures/fattahi1.fajsp` inputs and builds an optional-interval CP-SAT model. CI installs the pinned OR-Tools 9.15.6755 package and requires each representation to return OPTIMAL with objective and best bound both equal to 66.
