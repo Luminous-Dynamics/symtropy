@@ -415,7 +415,7 @@ The standalone tool now also defines a `FaultCampaignManifest` and `mfb-validate
 
 The fixture `tools/material-flow-benchmark/fixtures/ten-fault-campaign.json` and its CLI verify only that the declared test campaign is complete and internally consistent. It does not execute a fault injection, simulate a physical response or prove safe recovery. Those results require the Symtropy scenario runner and later evidence levels.
 
-**Verification status (2026-11-16):** newest dedicated workflow [`43821500342`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43821500342) passed on exact branch head `970ae35eb28d6ffaae0c4fbb141b5156b4a2312f`. It passed strict formatting, Clippy `-D warnings`, **67 Rust tests**, nominal scenario validation, campaign-manifest validation, all ten executable protocol faults, 15-step procedure graph validation, four-timestep analytical free-fall convergence, L1 simulation/replay and evidence upload. The dependency graph is committed in `Cargo.lock`; checks use `--locked`. Artifact `mfb-l1-evidence-970ae35eb28d6ffaae0c4fbb141b5156b4a2312f` (ID `14204208667`) contains five files: protocol campaign, procedure readiness, free-fall convergence, L1 result and environment metadata. SHA-256 ZIP digest: `b8fcda86fad54b649148faae8c722970596b3716f3f92c0df26decb070fc0e4c`. No physical sensor, power, network, actuator, HIL, guarded-rig or field fault injection is claimed.
+**Verification status (2026-11-16):** newest dedicated workflow [`43823753266`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266) passed on exact branch head `386fc63ea84561f072ec58804154cb02f0d4b8d9`. It passed strict formatting, Clippy `-D warnings`, **76 Rust tests**, nominal scenario validation, campaign-manifest validation, all ten executable protocol faults, 15-step procedure graph validation, 14/14 procedure evidence-receipt admission, four-timestep analytical free-fall convergence, L1 simulation/replay and evidence upload. The dependency graph is committed in `Cargo.lock`; checks use `--locked`. Artifact `mfb-l1-evidence-386fc63ea84561f072ec58804154cb02f0d4b8d9` (ID `14205746262`) contains six files: protocol campaign, procedure readiness, procedure evidence admission, free-fall convergence, L1 result and environment metadata. SHA-256 ZIP digest: `634d4ad1001fe0a5590cfdb9a77aa97c1df1b1f7281a8be35260da4b61b3593d`. The admission report still explicitly leaves cryptographic verification, sensor truth, motion authority, physical command and task success false. No physical sensor, power, network, actuator, HIL, guarded-rig or field fault injection is claimed.
 
 ### 12.3 Distributed physical-transaction reference state machine
 
@@ -536,13 +536,18 @@ For each receipt, the admission layer checks:
 - evidence-kind-specific subject binding (manifest/scenario, grant, receiver endpoint, package, tote or transfer mechanism);
 - issuer actor exists in the scenario and has a role allowed for that evidence kind;
 - SHA-256 digest syntax;
-- declared observation and expiry timestamps relative to scenario start and its explicit clock-uncertainty window.
+- declared observation and expiry timestamps against the full scenario clock-uncertainty window; the receipt must predate the earliest plausible decision time and remain valid through the latest plausible decision time;
+- a versioned maximum observation age for each evidence kind, evaluated at the latest plausible decision time.
+
+Freshness policy v1 maximum ages: manifest 300,000 ms; authorization receipt 60,000 ms; receiver capability and container fit 86,400,000 ms; package identity and payload mass 2,000 ms; seal 5,000 ms; temperature 2,000 ms; transfer-gate and receiver-presence 500 ms; release-execution 10,000 ms; placement 1,000 ms; counterparty custody 30,000 ms; ambiguous outcome 5,000 ms.
 
 Adversarial tests reject missing and duplicate receipts, wrong issuer roles, wrong subjects, malformed digests, source/configuration mismatch and stale observations. A positive synthetic bundle exercises all fourteen required external inputs.
 
 **Claim boundary:** this is structural envelope admission only. It does not verify cryptographic signatures, revocation, hardware attestation, sensor truth, evidence-source independence or real physical state. Its report explicitly sets `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. The only permitted claim is that the receipt envelopes are correctly shaped and scoped for independent verification.
 
-The workflow archives `procedure-evidence-admission.json` and hashes it in the environment record alongside the graph, campaign, convergence, simulation and dependency lock. Exact-head CI qualification is required before claiming that this addition passes.
+The workflow archives `procedure-evidence-admission.json` and hashes it in the environment record alongside the graph, campaign, convergence, simulation and dependency lock.
+
+**Exact-head verification (2026-11-16):** workflow [`43823753266`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266) passed on `386fc63ea84561f072ec58804154cb02f0d4b8d9`: strict format, Clippy `-D warnings`, **76 Rust tests**, campaign execution, graph validation, receipt admission, four-timestep convergence, L1 simulation/replay and evidence upload. The CLI admitted **14/14** synthetic external receipt envelopes under freshness policy v1. The report kept cryptographic verification, sensor truth, motion authority, physical command and success attestation false. Evidence artifact `mfb-l1-evidence-386fc63ea84561f072ec58804154cb02f0d4b8d9` (ID `14205746262`), six files, ZIP SHA-256 `634d4ad1001fe0a5590cfdb9a77aa97c1df1b1f7281a8be35260da4b61b3593d`.
 
 ## 12. First executable slice
 
