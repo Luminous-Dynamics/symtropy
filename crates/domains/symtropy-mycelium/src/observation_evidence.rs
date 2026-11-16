@@ -791,7 +791,10 @@ mod tests {
         );
         assert_eq!(subject_tag(ObservationSubject::PlantRootExudateSignal), 17);
         assert_eq!(subject_tag(ObservationSubject::SymbioticSignalResponse), 18);
-        assert_eq!(subject_tag(ObservationSubject::ArbusculeInterfaceMorphology), 19);
+        assert_eq!(
+            subject_tag(ObservationSubject::ArbusculeInterfaceMorphology),
+            19
+        );
         assert_eq!(subject_tag(ObservationSubject::HostCarbonInvestment), 20);
         assert_eq!(subject_tag(ObservationSubject::FungalNutrientDelivery), 21);
         assert_eq!(subject_tag(ObservationSubject::ArbusculeTurnover), 22);
