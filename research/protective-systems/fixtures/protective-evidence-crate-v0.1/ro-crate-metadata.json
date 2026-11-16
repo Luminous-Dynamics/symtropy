@@ -64,7 +64,7 @@
       "@type": "File",
       "name": "synthetic-input-dataset.json",
       "encodingFormat": "application/json",
-      "contentSize": "824 bytes",
+      "contentSize": "824",
       "sha256": "4666739793f3a85025da66ab7d829222f7539549dcf93127728253c5a7756373",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
@@ -74,7 +74,7 @@
       "@type": "File",
       "name": "synthetic-input-files.json",
       "encodingFormat": "application/json",
-      "contentSize": "323 bytes",
+      "contentSize": "323",
       "sha256": "2b719d5523bd6154b779cf9abff637603f1ba1da9b0da0874c59f881129bf386",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
@@ -84,7 +84,7 @@
       "@type": "File",
       "name": "synthetic-input.json",
       "encodingFormat": "application/json",
-      "contentSize": "228 bytes",
+      "contentSize": "228",
       "sha256": "7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
@@ -94,7 +94,7 @@
       "@type": "File",
       "name": "synthetic-output-dataset.json",
       "encodingFormat": "application/json",
-      "contentSize": "847 bytes",
+      "contentSize": "847",
       "sha256": "d04f016c8973ba8eb21fc2e9db64e2b8b6229258017873d09f7a6f62012612af",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
@@ -104,7 +104,7 @@
       "@type": "File",
       "name": "synthetic-output-files.json",
       "encodingFormat": "application/json",
-      "contentSize": "327 bytes",
+      "contentSize": "327",
       "sha256": "fcb0ca282e15f69c4c940e19f2a4434bed3b36a701ce7be4e825acf027ffc633",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
@@ -114,7 +114,7 @@
       "@type": "File",
       "name": "synthetic-output.json",
       "encodingFormat": "application/json",
-      "contentSize": "272 bytes",
+      "contentSize": "272",
       "sha256": "ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
@@ -124,7 +124,7 @@
       "@type": "File",
       "name": "e2-sparse-derivation.jsonld",
       "encodingFormat": "application/ld+json",
-      "contentSize": "1426 bytes",
+      "contentSize": "1426",
       "sha256": "c23b531ccd322eb176c3da85607976f635e3c2925f133e0b1fd29e76d5f6d8f5",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
