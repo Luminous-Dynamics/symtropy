@@ -214,8 +214,7 @@ impl HyphalDensityRasterPrediction {
         if !self.predicted_density.is_finite() || self.predicted_density < 0.0 {
             return Err(SpatialFieldError::InvalidPredictedDensity);
         }
-        if !self.predicted_standard_deviation.is_finite()
-            || self.predicted_standard_deviation < 0.0
+        if !self.predicted_standard_deviation.is_finite() || self.predicted_standard_deviation < 0.0
         {
             return Err(SpatialFieldError::InvalidPredictionUncertainty);
         }
@@ -338,30 +337,51 @@ impl fmt::Display for SpatialFieldError {
         match self {
             Self::InvalidCoordinate => write!(f, "latitude/longitude is outside valid bounds"),
             Self::InvalidCoordinateUncertainty => {
-                write!(f, "horizontal coordinate uncertainty must be finite and non-negative")
+                write!(
+                    f,
+                    "horizontal coordinate uncertainty must be finite and non-negative"
+                )
             }
             Self::InvalidSamplingDepth => {
-                write!(f, "soil sampling depth must be finite, non-negative and ordered")
+                write!(
+                    f,
+                    "soil sampling depth must be finite, non-negative and ordered"
+                )
             }
             Self::InvalidHyphalLengthDensity => {
                 write!(f, "hyphal length density must be finite and non-negative")
             }
             Self::InvalidMeasurementUncertainty => {
-                write!(f, "measurement standard error must be finite and non-negative")
+                write!(
+                    f,
+                    "measurement standard error must be finite and non-negative"
+                )
             }
             Self::InvalidSourceDigest => write!(f, "source and model digests must not be zero"),
             Self::InvalidSourceRecordKey => {
-                write!(f, "source record key must be non-empty and at most 256 bytes")
+                write!(
+                    f,
+                    "source record key must be non-empty and at most 256 bytes"
+                )
             }
             Self::InvalidReplicateCount => write!(f, "biological replicate count must be positive"),
             Self::InvalidRasterCellGeometry => {
-                write!(f, "raster cell width and height must be finite and positive")
+                write!(
+                    f,
+                    "raster cell width and height must be finite and positive"
+                )
             }
             Self::InvalidPredictedDensity => {
-                write!(f, "predicted hyphal density must be finite and non-negative")
+                write!(
+                    f,
+                    "predicted hyphal density must be finite and non-negative"
+                )
             }
             Self::InvalidPredictionUncertainty => {
-                write!(f, "prediction standard deviation must be finite and non-negative")
+                write!(
+                    f,
+                    "prediction standard deviation must be finite and non-negative"
+                )
             }
             Self::InvalidSamplingIntensity => {
                 write!(f, "sampling intensity must be finite and non-negative")
@@ -373,11 +393,17 @@ impl fmt::Display for SpatialFieldError {
                 write!(f, "effective hyphal radius must be finite and positive")
             }
             Self::InvalidRadiusUncertainty => {
-                write!(f, "radius standard deviation must be finite and non-negative")
+                write!(
+                    f,
+                    "radius standard deviation must be finite and non-negative"
+                )
             }
             Self::InvalidImagingSampleCount => write!(f, "imaged hypha count must be positive"),
             Self::InvalidTaxonKey => {
-                write!(f, "fungal taxon key must be non-empty and at most 128 bytes")
+                write!(
+                    f,
+                    "fungal taxon key must be non-empty and at most 128 bytes"
+                )
             }
             Self::MissingObservationEvidence(id) => {
                 write!(f, "linked observation evidence {:?} is missing", id)
@@ -385,7 +411,9 @@ impl fmt::Display for SpatialFieldError {
             Self::InvalidLinkedObservationEvidence(id) => {
                 write!(f, "linked observation evidence {:?} is invalid", id)
             }
-            Self::NonFiniteDerivedQuantity => write!(f, "derived geometric volume fraction is invalid"),
+            Self::NonFiniteDerivedQuantity => {
+                write!(f, "derived geometric volume fraction is invalid")
+            }
         }
     }
 }
@@ -507,7 +535,10 @@ mod tests {
             top_cm: 10.0,
             bottom_cm: 5.0,
         });
-        assert_eq!(item.validate(), Err(SpatialFieldError::InvalidSamplingDepth));
+        assert_eq!(
+            item.validate(),
+            Err(SpatialFieldError::InvalidSamplingDepth)
+        );
     }
 
     #[test]
@@ -590,9 +621,15 @@ mod tests {
     fn source_record_keys_are_bounded_and_replicate_counts_are_positive() {
         let mut item = observation();
         item.source_record_key = " ".to_string();
-        assert_eq!(item.validate(), Err(SpatialFieldError::InvalidSourceRecordKey));
+        assert_eq!(
+            item.validate(),
+            Err(SpatialFieldError::InvalidSourceRecordKey)
+        );
         item = observation();
         item.biological_replicate_count = Some(0);
-        assert_eq!(item.validate(), Err(SpatialFieldError::InvalidReplicateCount));
+        assert_eq!(
+            item.validate(),
+            Err(SpatialFieldError::InvalidReplicateCount)
+        );
     }
 }
