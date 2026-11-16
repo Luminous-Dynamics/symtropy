@@ -424,7 +424,12 @@ mod tests {
 
     #[test]
     fn wrong_subject_or_scenario_rejects_the_observation_bundle() {
-        let mut wrong = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let mut wrong = observation(
+            "evt-1",
+            "sensor-1",
+            Some("sensor-a"),
+            PresenceReading::Present,
+        );
         wrong.subject_id = "package-02".into();
         assert!(adjudicate_receiver_presence(&[wrong], &policy()).is_err());
     }
