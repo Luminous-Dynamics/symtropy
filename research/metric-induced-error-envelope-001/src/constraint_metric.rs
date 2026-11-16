@@ -368,7 +368,7 @@ mod tests {
                 let row_covector = Cotangent::<CartesianQ, 3>::new(jacobian[row]).unwrap();
                 close(
                     delassus.matrix()[row][column],
-                    crate::pairing(&row_covector, &raised_column),
+                    crate::pairing(&row_covector, &raised_column).unwrap(),
                     2.0e-13,
                 );
             }
