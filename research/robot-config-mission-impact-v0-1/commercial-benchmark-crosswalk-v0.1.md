@@ -57,6 +57,12 @@ Comparison discipline:
 - Keep “autonomous drive/installation speed” separate from accepted piles per total workflow crew-hour and cost per accepted pile.
 - Do not treat a trial result under prepared ground as proof for untreated rock, wet ground, night shift or other installation processes.
 
+## Composition with the task-specific layout benchmark
+
+Symtropy [#3523/#3524 — CONSTRUCTION-ROBOT-BENCHMARK-005](https://github.com/Luminous-Dynamics/symtropy/issues/3524) already owns the task-specific site-layout/printing performance profile and its vendor baseline matrix. Its documented vendor set includes HP SitePrint, Dusty FieldPrinter 2, CivDot, CivDot+ and CivDot Mini, with synthetic complexity strata, independent survey checkpoints, and separate accuracy, accepted productivity, reliability/ODD and evidence dimensions.
+
+This MIP crosswalk is intentionally not a second layout benchmark or product catalogue. When the Module B layout demonstrator is evaluated, bind the exact #3524 profile revision, layout/task complexity, ODD and acceptance rule. Keep the MIP-specific contribution at the mission boundary: configuration A/B pairing, stage progression, recovery, lifecycle/requalification linkage and accepted-output accounting. Until the #3524 machine-readable profile and digest are pinned, treat #3524 as a coordination/owner reference, not an accepted machine API.
+
 ## Test tracks: fair comparison without erasing vendor envelopes
 
 ### Track A — declared-condition reproduction
