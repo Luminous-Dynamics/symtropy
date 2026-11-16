@@ -230,9 +230,7 @@ impl NetworkEvidenceAssessment {
                 FungalNetworkIdentity::OtherFilamentousFungus => {
                     NetworkClaimLevel::CommonFungalNetworkSupported
                 }
-                FungalNetworkIdentity::MixedOrUnresolved => {
-                    NetworkClaimLevel::NetworkCandidateOnly
-                }
+                FungalNetworkIdentity::MixedOrUnresolved => NetworkClaimLevel::NetworkCandidateOnly,
                 FungalNetworkIdentity::ArbuscularMycorrhizal => {
                     let am_colonization = criterion(NetworkCriterion::AllLinkedPlantsAmColonized)
                         == EvidenceOutcome::Pass;
@@ -306,23 +304,52 @@ impl fmt::Display for NetworkEvidenceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::MissingReceipt(criterion) => {
-                write!(f, "criterion {:?} requires a source-linked receipt", criterion)
+                write!(
+                    f,
+                    "criterion {:?} requires a source-linked receipt",
+                    criterion
+                )
             }
             Self::UnexpectedReceipt(criterion) => {
-                write!(f, "criterion {:?} must not carry a receipt for this status", criterion)
+                write!(
+                    f,
+                    "criterion {:?} must not carry a receipt for this status",
+                    criterion
+                )
             }
             Self::MissingReasonCode(criterion) => {
                 write!(f, "criterion {:?} requires a stable reason code", criterion)
             }
-            Self::CriterionOrderMismatch { index, expected, actual } => {
-                write!(f, "criterion slot {} expected {:?}, found {:?}", index, expected, actual)
+            Self::CriterionOrderMismatch {
+                index,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "criterion slot {} expected {:?}, found {:?}",
+                    index, expected, actual
+                )
             }
-            Self::MissingSharedLinkReceipt => write!(f, "shared fungal link requires a source receipt"),
-            Self::UnexpectedSharedLinkReceipt => write!(f, "unreported shared fungal link must not carry a receipt"),
-            Self::MissingSharedLinkReasonCode => write!(f, "shared fungal link requires a stable reason code"),
-            Self::MissingFlowReceipt => write!(f, "plant-to-plant flow result requires a source receipt"),
-            Self::FlowWithoutSharedNetwork => write!(f, "plant-to-plant flow requires a supported shared fungal link"),
-            Self::UnexpectedFlowReceipt => write!(f, "unevaluated flow result must not carry a receipt"),
+            Self::MissingSharedLinkReceipt => {
+                write!(f, "shared fungal link requires a source receipt")
+            }
+            Self::UnexpectedSharedLinkReceipt => {
+                write!(f, "unreported shared fungal link must not carry a receipt")
+            }
+            Self::MissingSharedLinkReasonCode => {
+                write!(f, "shared fungal link requires a stable reason code")
+            }
+            Self::MissingFlowReceipt => {
+                write!(f, "plant-to-plant flow result requires a source receipt")
+            }
+            Self::FlowWithoutSharedNetwork => write!(
+                f,
+                "plant-to-plant flow requires a supported shared fungal link"
+            ),
+            Self::UnexpectedFlowReceipt => {
+                write!(f, "unevaluated flow result must not carry a receipt")
+            }
             Self::MissingFlowReasonCode => write!(f, "flow result requires a stable reason code"),
         }
     }
@@ -381,10 +408,16 @@ mod tests {
             EvidenceOutcome::Unreported,
         ]);
         let result = assessment.classify().unwrap();
-        assert_eq!(result.claim_level, NetworkClaimLevel::CommonMycorrhizalNetworkEffectSupported);
+        assert_eq!(
+            result.claim_level,
+            NetworkClaimLevel::CommonMycorrhizalNetworkEffectSupported
+        );
         assert!(result.criteria_1_to_4_pass);
         assert!(!result.all_five_criteria_pass);
-        assert_eq!(result.cytoplasmic_flow, CytoplasmicFlowEvidence::NotEvaluated);
+        assert_eq!(
+            result.cytoplasmic_flow,
+            CytoplasmicFlowEvidence::NotEvaluated
+        );
     }
 
     #[test]
@@ -409,7 +442,10 @@ mod tests {
             EvidenceOutcome::Pass,
         ]);
         let result = assessment.classify().unwrap();
-        assert_eq!(result.claim_level, NetworkClaimLevel::CommonMycorrhizalNetworkObserved);
+        assert_eq!(
+            result.claim_level,
+            NetworkClaimLevel::CommonMycorrhizalNetworkObserved
+        );
         assert!(!result.criteria_1_to_4_pass);
     }
 
@@ -472,7 +508,10 @@ mod tests {
             reason_code: "continuous_stream_traced_across_link".to_owned(),
         };
         let result = assessment.classify().unwrap();
-        assert_eq!(result.cytoplasmic_flow, CytoplasmicFlowEvidence::PlantToPlantFlowSupported);
+        assert_eq!(
+            result.cytoplasmic_flow,
+            CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+        );
     }
 
     #[test]
