@@ -333,13 +333,21 @@ fn validate_graph(scenario: &Scenario) -> Result<(), String> {
                         change.id
                     ));
                 }
+                if change.occurred_at[..10] < item.valid_until {
+                    return Err(format!(
+                        "change {} occurs before the evidence validity boundary",
+                        change.id
+                    ));
+                }
                 if change.asset_id.is_some()
                     || change.from_digest.is_some()
                     || change.to_digest.is_some()
                 {
                     return Err(format!("evidence expiry change {} has incompatible fields", change.id));
                 }
-                validity_event_ids.insert(evidence_id.to_owned());
+                if !validity_event_ids.insert(evidence_id.to_owned()) {
+                    return Err(format!("evidence {} has duplicate validity-boundary events", evidence_id));
+                }
             }
             other => return Err(format!("unsupported E5 change event type: {other}")),
         }
@@ -950,6 +958,49 @@ mod tests {
         let mut value = scenario();
         value.changes[0].occurred_at = "2026-11-17T00:00:00Z".to_owned();
         assert!(validate_graph(&value).expect_err("future change").contains("after scenario as_of"));
+    }
+
+    #[test]
+    fn evidence_remains_valid_the_day_before_exclusive_expiry() {
+        let value = scenario();
+        let assets = unique_map(&value.assets, |item| &item.id, "assets").expect("assets");
+        let item = value
+            .evidence
+            .iter()
+            .find(|item| item.id == "evidence:filter-flow")
+            .expect("filter evidence");
+        let (state, _) = effective_evidence_state(item, &assets, "2026-11-15");
+        assert_eq!(state, "VALID");
+    }
+
+    #[test]
+    fn evidence_boundary_event_cannot_precede_valid_until() {
+        let mut value = scenario();
+        value
+            .changes
+            .iter_mut()
+            .find(|event| event.event_type == "EVIDENCE_VALIDITY_BOUNDARY_REACHED")
+            .expect("expiry event")
+            .occurred_at = "2026-11-15T23:59:59Z".to_owned();
+        assert!(validate_graph(&value)
+            .expect_err("early expiry event")
+            .contains("occurs before the evidence validity boundary"));
+    }
+
+    #[test]
+    fn exact_plan_is_stable_under_action_catalog_reordering() {
+        let mut value = scenario();
+        let baseline = report(&value);
+        value.actions.reverse();
+        let reordered = report(&value);
+        assert_eq!(
+            baseline.requalification_plan.selected_action_ids,
+            reordered.requalification_plan.selected_action_ids
+        );
+        assert_eq!(
+            baseline.requalification_plan.total_cost_cents,
+            reordered.requalification_plan.total_cost_cents
+        );
     }
 
     #[test]
