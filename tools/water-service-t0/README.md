@@ -67,3 +67,8 @@ The regulatory profile is a reference scenario only. It does not establish Water
 
 
 The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](../../research/water-service-engineering/SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
+
+
+### Modular WaterLoop reference design
+
+The modular design issue is [#5542](https://github.com/Luminous-Dynamics/symtropy/issues/5542). Its source-segregated interface manifest and 20-case test matrix are in `research/water-service-engineering/`. The design first validates an isolated clean-water hydraulic bench; it does not qualify greywater treatment or potable water.
