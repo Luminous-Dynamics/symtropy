@@ -61,6 +61,9 @@ jobs:
           jq -e '.muon_scaling.rcs_chain_survival.evidence_class == "analytic_linear_energy_ramp_decay_integration" and (.muon_scaling.rcs_chain_survival.stages | length) == 4 and .muon_scaling.rcs_chain_survival.total_acceleration_time_ms == 10.18 and .muon_scaling.rcs_chain_survival.total_turns == 193 and .muon_scaling.rcs_chain_survival.integrated_survival_fraction > 0.6563 and .muon_scaling.rcs_chain_survival.integrated_survival_fraction < 0.6565' space-collider-reference.json >/dev/null
           jq -e '.plasma_screen.evidence_class == "source_bound_plasma_acceleration_screen" and .plasma_screen.muon_energy_gain_factor > 133.3 and .plasma_screen.muon_energy_gain_factor < 133.4 and .plasma_screen.energy_spread_gap_ratio_if_definitions_match == 188.5 and .plasma_screen.conditional_emittance_gap_ratio_if_definitions_match == 354.4' space-collider-reference.json >/dev/null
           jq -e '.plasma_screen.acceleration_result_initial_distribution == "zero initial energy spread and zero initial emittance" and (.plasma_screen.data_availability | contains("not publicly available at publication"))' space-collider-reference.json >/dev/null
+          jq -e '.rcs_emittance_budget.evidence_class == "source_table_arithmetic_screen" and .rcs_emittance_budget.conditional_chain_budget.composition_status == "conditional_sequential_composition" and .rcs_emittance_budget.conditional_chain_budget.physical_qualification_status == "not_evaluated"' space-collider-reference.json >/dev/null
+          jq -e '(.rcs_emittance_budget.conditional_chain_budget.stages | length) == 4 and .rcs_emittance_budget.conditional_chain_budget.derived.additive_first_order_growth_pct == 9.7 and .rcs_emittance_budget.conditional_chain_budget.derived.multiplicative_compound_growth_pct > 9.9239 and .rcs_emittance_budget.conditional_chain_budget.derived.multiplicative_compound_growth_pct < 9.9241 and .rcs_emittance_budget.conditional_chain_budget.derived.budget_consumption_pct > 99.23 and .rcs_emittance_budget.conditional_chain_budget.derived.budget_consumption_pct < 99.25 and .rcs_emittance_budget.conditional_chain_budget.derived.remaining_margin_percentage_points > 0.076 and .rcs_emittance_budget.conditional_chain_budget.derived.remaining_margin_percentage_points < 0.077' space-collider-reference.json >/dev/null
+          jq -e '.rcs_emittance_budget.case_separation.rf_distribution_comparison.eight_arc_horizontal_emittance_growth_gt_pct == 500 and .rcs_emittance_budget.case_separation.rf_distribution_comparison.thirty_two_arc_horizontal_emittance_growth_pct == 13' space-collider-reference.json >/dev/null
           grep -q '"evidence_class": "analytical_reference_check"' space-collider-reference.json
           grep -q '"gamma_ratio_under_center_of_mass_convention": 71.428571' space-collider-reference.json
           grep -q '"performance_closure"' space-collider-reference.json
@@ -78,6 +81,7 @@ jobs:
             sha256sum tools/space-collider-reference/src/luminosity.rs
             sha256sum tools/space-collider-reference/src/muon_scaling.rs
             sha256sum tools/space-collider-reference/src/plasma_screen.rs
+            sha256sum tools/space-collider-reference/src/rcs_emittance_budget.rs
             sha256sum space-collider-reference.json
           } > evidence-manifest.txt
 
