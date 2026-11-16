@@ -22,7 +22,7 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Uncertainty propagation for independent measurements and explicitly named fully correlated groups.
 - Process-level status: within tolerance, outside tolerance or unquantified.
 - Independent-witness requirement for independently reproduced and qualified claims.
-- Nominal resource intensity per kg of declared primary product, with gross and recovered energy kept separate.
+- Resource intensity per kg of declared primary product, with first-order uncertainty propagation for feedstock-origin ratios and gross/recovered energy kept separate.
 - Numerical overflow checks and negative/non-finite input rejection.
 - Numerical overflow checks and negative/non-finite input rejection.
 - Complete-composition mass reconciliation and origin-intensity ratio overflow rejection.
@@ -31,7 +31,7 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 ## Important limitations
 
 - Correlation groups assume perfect correlation within a group and independence between groups. A general covariance matrix is not implemented.
-- Resource-intensity ratios are nominal point estimates; ratio uncertainty is not propagated yet.
+- Ratio uncertainty uses first-order derivatives; this is not a full covariance estimator and does not model non-linear uncertainty or model discrepancy.
 - Detection-limit/censored measurements, elemental ontology mapping, isotope effects, process heat/exergy closure, JSON deserialization and lifecycle cost are not implemented.
 - The kernel does not model a live biological process, geomechanics, pressure vessels, life support or any physical actuator.
 - A synthetic fixture and unit tests do not establish laboratory, field, orbital or flight performance.
