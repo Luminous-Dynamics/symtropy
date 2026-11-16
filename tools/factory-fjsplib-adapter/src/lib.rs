@@ -961,7 +961,11 @@ mod tests {
 1 0 9
 ";
         let instance = parse_fajsp("assembly-join", Some("yfjs"), input).unwrap();
-        assert_eq!(instance.declared_job_count, Some(2));
+        assert_eq!(instance.declared_job_count, None);
+        assert!(instance
+            .operations
+            .iter()
+            .all(|operation| operation.job_id.is_none() && operation.position_in_job.is_none()));
         assert_eq!(
             instance.precedences,
             vec![
