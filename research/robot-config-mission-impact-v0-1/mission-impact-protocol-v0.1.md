@@ -308,3 +308,44 @@ The other two owner joins are deliberately unresolved:
 - #3605's accepted functional-unit/inspection contract is not yet pinned as a machine-readable owner artifact here; the current layout acceptance profile is a synthetic fixture only.
 
 The validator enforces these nonclaims. It rejects changing either unresolved owner link into a synthetic "receipt" and rejects mission-to-qualification mappings whose declared mission family no longer matches the MIP corpus. Later owner acceptance should replace these explicit unresolved states with exact, revision/digest-pinned references—not reinterpret the current fixture URIs as real owner contracts.
+
+
+## 17. Deterministic public-development challenge generator v0.1
+
+The child implementation workstream is [Symtropy #5590](https://github.com/Luminous-Dynamics/symtropy/issues/5590). Its first bounded implementation consists of:
+- `challenge-distribution-v0.1.json`: eight change-family strata, weighted allocation, task/site/ODD/severity labels and 23 named coupled factor bundles;
+- closed schemas for the distribution profile and generated challenge manifest;
+- an isolated Rust generator and `generate` CLI;
+- deterministic allocation, domain-separated seed derivation, unbiased bounded integer sampling, atomic bundle selection and canonical SHA-256 digests;
+- golden-property tests for repeatability, seed-domain separation, exact stratum allocation, bundle coherence and schema conformance.
+
+### Allocation and replay
+
+For requested count (N), stratum weights (w_i), and total weight (W=\sum_i w_i), v0.1 computes the base allocation \\(\lfloor Nw_i/W\\rfloor\\) and allocates remaining entries by descending fractional remainder with a deterministic seed-derived tie-break. The resulting challenge list is then shuffled with a separate domain-separated PRNG stream. Bundle selection occurs uniformly within the allocated stratum.
+
+The root seed is supplied explicitly. SHA-256 domain separation derives independent deterministic streams for allocation ties, challenge identity, bundle selection and output ordering. SplitMix64 is used as the specified reproducible bounded sampler, with rejection sampling rather than modulo-only reduction. The generator emits exact allocation denominators, seed algorithm, derivation domain, profile SHA-256, per-challenge digest and a manifest digest.
+
+### What v0.1 does not solve
+
+- SplitMix64 is not a cryptographic PRNG; public reproducibility is not evaluator-seed secrecy.
+- The 23 factor-profile references are synthetic symbolic labels, not numeric physical parameter ranges.
+- Atomic bundle selection prevents independent sampling of coupled axes, but does not prove that the bundle is physically coherent, safe or representative.
+- The generator does not synthesize CAD, 3-D environments, robot dynamics, contact physics, sensor observations or calibrated measurement data.
+- The current deterministic generator makes no statistical goodness-of-fit, entropy, distribution coverage or physical-scene repeatability claim.
+
+The next generator increment must bind domain-owned, versioned parameter profiles and constraints (payload/CoM/inertia, sensor mount/extrinsics, battery/power/thermal, drive/surface/friction, clock/timebase/latency and safety-chain evidence) and report invalid bundle rejections rather than silently resampling. Only after those profiles have competent domain owners and reference evidence should the phrase “physically coherent distribution” be used without qualification.
+
+### CLI
+
+From the repository root:
+
+```sh
+cargo run --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked -- validate
+
+cargo run --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked -- generate \
+  --seed 0123456789abcdef \
+  --count 128 \
+  --output /tmp/mip-challenges.json
+```
+
+Identical profile bytes, generator version, root seed and count must reproduce the exact canonical manifest digest across supported operating systems. The CI job also exports the lockfile and generated manifest separately for independent comparison.
