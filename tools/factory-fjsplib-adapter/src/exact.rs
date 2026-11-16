@@ -813,6 +813,21 @@ mod tests {
     }
 
     #[test]
+    fn certificate_verifier_rejects_machine_overlap_without_job_precedence() {
+        let input = "3 1 1
+1 1 1 5
+1 1 1 5
+1 1 1 5
+";
+        let instance = parse_fjsp("independent-jobs", None, input).unwrap();
+        let mut schedule = solve_exact(&instance).schedule.unwrap();
+        assert!(verify_schedule(&instance, &schedule));
+        schedule.operations[1].start_ticks = 0;
+        schedule.operations[1].end_ticks = 5;
+        assert!(!verify_schedule(&instance, &schedule));
+    }
+
+    #[test]
     fn schedule_certificate_tampering_is_rejected() {
         let instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
         let result = solve_exact(&instance);
