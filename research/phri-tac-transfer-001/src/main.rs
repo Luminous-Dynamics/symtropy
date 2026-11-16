@@ -97,8 +97,7 @@ fn main() -> ExitCode {
                 }
             }
             match phri_tac_transfer_oracle::active_benchmark::adversarial::run_adversarial_campaign(
-                20261116,
-                50,
+                20261116, 50,
             ) {
                 Ok(campaign) => {
                     println!("adversarial_response_campaign=paired_seed_v0_1");

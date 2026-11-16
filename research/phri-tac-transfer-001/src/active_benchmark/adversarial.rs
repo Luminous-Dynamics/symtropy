@@ -29,18 +29,11 @@ impl ResponseFamily {
         }
     }
 
-    fn sensor_response_shift(
-        self,
-        force_n: f64,
-        temperature: f64,
-        phase: f64,
-    ) -> f64 {
+    fn sensor_response_shift(self, force_n: f64, temperature: f64, phase: f64) -> f64 {
         match self {
             Self::Nominal | Self::ReferenceCommonModeBias => 0.0,
             Self::CubicForce => 0.0009 * force_n.powi(3),
-            Self::ForceTemperatureHistoryInteraction => {
-                0.035 * force_n * temperature * phase
-            }
+            Self::ForceTemperatureHistoryInteraction => 0.035 * force_n * temperature * phase,
             Self::Saturation => 0.0,
         }
     }
@@ -107,14 +100,8 @@ fn family_candidate(id: usize, stimulus: FamilyStimulus) -> (Candidate, f64) {
     } = stimulus;
     let stratum = usize::from(temperature > 0.0) * 2 + usize::from(phase > 0.0);
     let noise = deterministic_noise(seed, id, 0.006);
-    let mut raw = polynomial_response(
-        profile,
-        force_n,
-        position,
-        temperature,
-        phase,
-        noise,
-    ) + family.sensor_response_shift(force_n, temperature, phase);
+    let mut raw = polynomial_response(profile, force_n, position, temperature, phase, noise)
+        + family.sensor_response_shift(force_n, temperature, phase);
 
     if family == ResponseFamily::Saturation {
         // Deliberately clips the sensor response; no inverse model can recover
@@ -145,9 +132,8 @@ fn family_candidate(id: usize, stimulus: FamilyStimulus) -> (Candidate, f64) {
     } else {
         seed ^ 0xD1B5_4A32_D192_ED03
     };
-    let reference_observation_n = force_n
-        + deterministic_noise(reference_noise_seed, id, 0.003)
-        + family.reference_bias_n();
+    let reference_observation_n =
+        force_n + deterministic_noise(reference_noise_seed, id, 0.003) + family.reference_bias_n();
 
     (candidate, reference_observation_n)
 }
@@ -392,8 +378,7 @@ pub fn run_adversarial_campaign(
 
         let mut policy_runs =
             vec![Vec::<PolicyResult>::with_capacity(replicate_count); first_run.len()];
-        let mut paired_deltas =
-            vec![Vec::<f64>::with_capacity(replicate_count); first_run.len()];
+        let mut paired_deltas = vec![Vec::<f64>::with_capacity(replicate_count); first_run.len()];
 
         let first_grid_rmse = first_run[0].rmse_n;
         for (index, result) in first_run.iter().enumerate() {
@@ -427,10 +412,7 @@ pub fn run_adversarial_campaign(
         }
 
         let mut policy_summaries = Vec::with_capacity(first_run.len());
-        for (policy_index, (runs, paired)) in policy_runs
-            .into_iter()
-            .zip(paired_deltas)
-            .enumerate()
+        for (policy_index, (runs, paired)) in policy_runs.into_iter().zip(paired_deltas).enumerate()
         {
             let first = runs
                 .first()
@@ -495,8 +477,8 @@ mod tests {
 
     #[test]
     fn saturation_family_has_irrecoverable_high_force_error() {
-        let nominal = evaluate_family_policy_arms(20261116, ResponseFamily::Nominal)
-            .expect("nominal family");
+        let nominal =
+            evaluate_family_policy_arms(20261116, ResponseFamily::Nominal).expect("nominal family");
         let saturated = evaluate_family_policy_arms(20261116, ResponseFamily::Saturation)
             .expect("saturation family");
         assert!(saturated[0].worst_absolute_error_n > nominal[0].worst_absolute_error_n);
