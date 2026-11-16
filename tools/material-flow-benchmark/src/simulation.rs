@@ -109,7 +109,6 @@ struct BuiltWorld {
     gate_obstruction_handle: Option<BodyHandle>,
 }
 
-
 fn millimetres(value: u32) -> f64 {
     value as f64 / 1_000.0
 }
