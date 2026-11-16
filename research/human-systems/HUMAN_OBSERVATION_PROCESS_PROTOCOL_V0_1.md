@@ -109,7 +109,7 @@ The initial catalogue is available as a machine-readable fixture at [HUMAN_OBSER
 |---|---|---|
 | HOBS-00 | Clean complete regular stream | Exact observation and legacy-adapter parity |
 | HOBS-01 | Irregular capture cadence with jitter | Physical-time result must not depend on packet count |
-| HOBS-02 | MCAR channel dropout and burst outage | Missing data must not be scored as zero or a pseudo-observation |
+| HOBS-02 | MCAR iid dropout plus independent scheduled sensor outage | MCAR and exogenous outage have separate causal labels; missing values provide no likelihood |
 | HOBS-03 | MAR activity-linked motion artefact | Sampling/quality metadata must be separated from latent physiology |
 | HOBS-04 | MNAR state-dependent dropout | Clean-data calibration must not be assumed to survive |
 | HOBS-05 | Sensor bias and slow calibration drift | Detect or expose systematic residual; do not absorb it silently into physiology |
@@ -142,6 +142,44 @@ Run all candidate estimators on identical event histories, train/test partitions
 8. Model portfolio / disagreement baseline with calibrated abstention.
 
 The interpolation/forward-fill baseline may be included as a deliberately weak diagnostic; it must not be the only classical baseline.
+
+### Sampling-frequency invariance and equivariance (new 2026 comparison lane)
+
+Sampling-frequency robustness is now an explicit SOTA dimension, not a generic missing-data stress. A November 10, 2026 preprint evaluates MOMENT-1-large, Chronos-2, Moirai-MoE and TimesFM under anti-aliased bandwidth reduction with fixed input-token length. It proposes three complementary measures: embedding Frequency Sensitivity Index (FSI), Forecast Degradation Index (FDI), and Classification Degradation Index (CDI). The authors report that embeddings can drift before task performance degrades, and that downstream degradation can exceed the loss attributable to removed signal information. This is an arXiv preprint, not yet a settled community standard; reproduce its protocol and label our additions as independent metrics. Source: https://arxiv.org/abs/2611.14425.
+
+The direct model portfolio must include:
+- **FlowState (ICML 2026):** sampling-rate-equivariant forecasting using a state-space encoder and functional-basis decoder. This is the strongest direct architectural comparator for variable-rate forecasting; include it rather than assuming every transformer is the SOTA. Source: https://proceedings.mlr.press/v306/graf26a.html.
+- **MOMENT, Chronos-2, Moirai-MoE, TimesFM:** general time-series foundation-model baselines, with frozen release/checkpoint and software version.
+- **TiRex / TiRex-2:** xLSTM-based zero-shot forecasting baseline, where the multivariate/covariate interface matches the task. Source: https://nx-ai.github.io/tirex/.
+- **NormWear:** a wearable-specific multimodal representation baseline reported across 11 public datasets and 18 applications; compare only for supported sensor modalities and identical data splits. Source: https://doi.org/10.1145/3803808.
+- **ODE-RNN / Neural CDE / continuous-time state-space baselines:** use true timestamps and irregular event semantics, not a resampled approximation unless resampling is the explicit test condition.
+
+Use two distinct perturbation tracks:
+1. **Rate change with preserved task bandwidth:** anti-alias before decimation, keep elapsed context and prediction horizon fixed in physical time, and test downsampling while the task-critical frequency band remains observable.
+2. **Rate change that removes task-critical bandwidth:** continue below the information-theoretic limit; do not penalize a model for irrecoverable signal loss. Compare its degradation to a declared information-loss oracle/upper bound.
+
+For each track report:
+- embedding drift (cosine distance or a frozen representation metric);
+- normalized forecast error at identical physical horizons;
+- downstream macro-F1 / balanced accuracy and calibration;
+- retained spectral information / task-band energy;
+- sensor rate, context duration, number of tokens, and compute;
+- recovery after returning to the original rate.
+
+For the paper-faithful TSFM comparison, reproduce the fixed-token, anti-aliased bandwidth-reduction design and FSI/FDI/CDI definitions from the preprint. Separately add an event-native challenge with genuinely irregular capture times and explicit timestamps. Do not conflate bandwidth reduction, random dropout, irregular sampling and changed context duration: they are different perturbations.
+
+### Cross-device and cross-dataset activity-recognition SOTA
+
+AICOS-HAR's October 2026 data descriptor highlights fragmentation across protocols, devices, placements and labels, and releases 21 parsers for integrating public HAR datasets. Its own data include 106 participants, 87 smartphones and 17 wearable devices. This enables participant-held-out, leave-one-device-out and cross-dataset tests, but the AICOS-HAR dataset itself is listed as CC BY-NC-ND 4.0 in the NLM Dataset Catalog: do not assume commercial use or redistribution of derivatives is permitted. Sources: https://www.nature.com/articles/s41597-026-08470-y and https://datasetcatalog.nlm.nih.gov/dataset?q=0003181855.
+
+A November 2026 IEEE Transactions on Mobile Computing paper, *Learning From Decoupled Sensor Axes*, reports a decouple-and-ensemble adaptation method evaluated across 20 source-target dataset pairs, with best accuracy in 18 scenarios and reported improvements of 9.15–10.63% over the compared SOTA methods across four source datasets. Treat this as a published comparator to reproduce—not as a transferable guaranteed gain. Match label sets, axes, placement, device domains, adaptation data access and target-label budget. Source: https://doi.org/10.1109/TMC.2026.3723993.
+
+For our own cross-device lane:
+- use participant-, device-, placement- and source-dataset-held-out partitions;
+- include source-only, unsupervised adaptation, few-shot adaptation and fully supervised target-domain ceilings as separate tracks;
+- compare joint-axis encoders with decoupled-axis and confidence-weighted ensemble baselines;
+- report balanced accuracy, macro-F1, per-class calibration, worst-domain and lower-quantile performance, abstention, and adaptation-data/compute budgets;
+- keep activity recognition as a sensor-transfer task, not evidence of physiological or cognitive fidelity.
 
 ### Metrics (report independently)
 
