@@ -36,6 +36,13 @@ pub enum ConditionState {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ReferenceIndependenceState {
+    Verified,
+    SharedCommonMode,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadingPhase {
     Loading,
     Unloading,
@@ -70,10 +77,14 @@ pub struct CalibrationCandidate {
     pub dwell_ms: u64,
     pub cycle_index: u64,
     pub reference_calibration_id: String,
-    pub reference_independent: bool,
+    pub reference_qualification_receipt_id: String,
+    pub reference_independence_state: ReferenceIndependenceState,
     pub reference_state: ReferenceState,
     pub method_state: MethodState,
     pub condition_state: ConditionState,
+    pub condition_profile_digest: String,
+    pub condition_applicability_receipt_id: String,
+    pub method_qualification_receipt_id: String,
     pub stratum_id: String,
     pub cost_ms: u64,
     /// Dimensionless ranking input supplied by a candidate model.
@@ -178,15 +189,21 @@ fn candidate_exclusion_reason(
         return Some("STIMULUS_OUTSIDE_OR_MISSING_REFERENCE_ENVELOPE");
     }
     if candidate.reference_calibration_id.is_empty()
-        || !candidate.reference_independent
+        || candidate.reference_qualification_receipt_id.is_empty()
+        || candidate.reference_independence_state != ReferenceIndependenceState::Verified
         || candidate.reference_state != ReferenceState::Current
     {
         return Some("REFERENCE_NOT_CURRENT_AND_INDEPENDENT");
     }
-    if candidate.method_state != MethodState::Qualified {
+    if candidate.method_state != MethodState::Qualified
+        || candidate.method_qualification_receipt_id.is_empty()
+    {
         return Some("METHOD_NOT_QUALIFIED");
     }
-    if candidate.condition_state != ConditionState::WithinEnvelope {
+    if candidate.condition_state != ConditionState::WithinEnvelope
+        || !is_hex_sha256(&candidate.condition_profile_digest)
+        || candidate.condition_applicability_receipt_id.is_empty()
+    {
         return Some("CONDITIONS_NOT_APPLICABLE");
     }
     if candidate.cost_ms == 0 {
@@ -237,7 +254,7 @@ pub fn plan_calibration(
         || !is_hex_sha256(&request.target_profile_digest)
         || request.phantom_id.is_empty()
         || request.phantom_revision.is_empty()
-        || request.measurand_id.is_empty()
+        || request.measurand_id != "force.normal"
         || request.unit != "N"
         || request.surface_frame_id.is_empty()
     {
@@ -437,10 +454,14 @@ mod tests {
             dwell_ms: 500,
             cycle_index: 1,
             reference_calibration_id: "ref-cal-01".to_owned(),
-            reference_independent: true,
+            reference_qualification_receipt_id: "reference-receipt-01".to_owned(),
+            reference_independence_state: ReferenceIndependenceState::Verified,
             reference_state: ReferenceState::Current,
             method_state: MethodState::Qualified,
             condition_state: ConditionState::WithinEnvelope,
+            condition_profile_digest: "f".repeat(64),
+            condition_applicability_receipt_id: "condition-receipt-01".to_owned(),
+            method_qualification_receipt_id: "method-receipt-01".to_owned(),
             stratum_id: stratum.to_owned(),
             cost_ms,
             predicted_information_gain: score,
@@ -592,7 +613,8 @@ mod tests {
         let mut unapproved = candidate("unapproved", "low-force", 10.0, 1);
         unapproved.stimulus_approval_id.clear();
         let mut dependent_reference = candidate("dependent", "high-force", 10.0, 1);
-        dependent_reference.reference_independent = false;
+        dependent_reference.reference_independence_state =
+            ReferenceIndependenceState::SharedCommonMode;
         let plan = plan_calibration(&request(vec![unapproved, dependent_reference]))
             .expect("unapproved references are excluded");
 
@@ -646,6 +668,37 @@ mod tests {
             candidate("high-a", "high-force", 1.0, 1),
         ]);
         req.target_profile_digest = "not-a-digest".to_owned();
+        assert!(plan_calibration(&req).is_err());
+    }
+
+
+    #[test]
+    fn reference_and_condition_qualification_require_receipt_identities() {
+        let mut no_reference_receipt = candidate("no-ref-receipt", "low-force", 10.0, 1);
+        no_reference_receipt.reference_qualification_receipt_id.clear();
+        let mut no_condition_receipt = candidate("no-condition-receipt", "high-force", 10.0, 1);
+        no_condition_receipt.condition_applicability_receipt_id.clear();
+
+        let plan = plan_calibration(&request(vec![no_reference_receipt, no_condition_receipt]))
+            .expect("missing qualification receipts are excluded");
+
+        assert_eq!(
+            plan.excluded_candidate_reasons["no-ref-receipt"],
+            "REFERENCE_NOT_CURRENT_AND_INDEPENDENT"
+        );
+        assert_eq!(
+            plan.excluded_candidate_reasons["no-condition-receipt"],
+            "CONDITIONS_NOT_APPLICABLE"
+        );
+    }
+
+    #[test]
+    fn only_the_frozen_normal_force_measurand_is_admitted_in_v0_1() {
+        let mut req = request(vec![
+            candidate("low-a", "low-force", 1.0, 1),
+            candidate("high-a", "high-force", 1.0, 1),
+        ]);
+        req.measurand_id = "force.shear".to_owned();
         assert!(plan_calibration(&req).is_err());
     }
 
