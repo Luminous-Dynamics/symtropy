@@ -285,6 +285,17 @@ fn positive_control_is_review_ready_only_and_never_permission() {
     assert!(!result.permission_granted);
     assert_eq!(result.case_id, "case-aero-001");
     assert_eq!(result.root_claim_id, "root");
+    assert_eq!(
+        result.independent_evidence_groups_by_claim,
+        vec![
+            ("root".to_string(), 0),
+            ("claim-model-envelope".to_string(), 1)
+        ]
+    );
+    assert_eq!(
+        result.independent_evidence_groups_by_mitigation,
+        vec![("mitigation-conflict-screen".to_string(), 1)]
+    );
 }
 
 #[test]
@@ -1155,4 +1166,27 @@ fn frozen_mitigation_minimum_cannot_be_zero() {
         evaluate_assurance_case(&nodes, &edges, "root", &frozen),
         Err(EvaluationError::InvalidPolicy)
     );
+}
+
+
+#[test]
+fn mitigation_independence_count_is_reported_even_when_the_floor_fails() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-mitigation-test")
+        .unwrap()
+        .evidence
+        .as_mut()
+        .unwrap()
+        .correlation_group_id = None;
+    let assessment = evaluate(&nodes, &edges).unwrap();
+    assert_eq!(
+        assessment.independent_evidence_groups_by_mitigation,
+        vec![("mitigation-conflict-screen".to_string(), 0)]
+    );
+    assert!(blocker(
+        &assessment,
+        BlockerReason::MitigationInsufficientIndependentEvidenceGroups
+    ));
 }
