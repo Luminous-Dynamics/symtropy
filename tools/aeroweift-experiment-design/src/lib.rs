@@ -9,7 +9,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Physical or computational modality of a proposed validation experiment.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -406,6 +406,9 @@ pub struct ExperimentDesignPolicy {
     pub required_estimator_build_sha256: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
+    /// Exact owner namespace expected for each structured evidence gate role.
+    /// This is an identity binding, not signature or issuer-authority verification.
+    pub expected_gate_issuer_ids: BTreeMap<GateEvidenceRole, String>,
     /// Modalities that require affirmative external authorization under this campaign.
     pub authorization_required_modalities: Vec<ExperimentModality>,
     /// Per-dimension non-substitutable resource budget.
@@ -547,6 +550,21 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || policy.minimum_estimate_independent_units == 0
         || !is_sha256(&policy.required_estimator_build_sha256)
         || !is_sha256(&policy.required_estimate_method_sha256)
+        || policy.expected_gate_issuer_ids.len() != 5
+        || [
+            GateEvidenceRole::Authorization,
+            GateEvidenceRole::Safety,
+            GateEvidenceRole::Envelope,
+            GateEvidenceRole::IndependentReference,
+            GateEvidenceRole::SemanticEquivalence,
+        ]
+        .iter()
+        .any(|role| {
+            policy
+                .expected_gate_issuer_ids
+                .get(role)
+                .is_none_or(|issuer| issuer.trim().is_empty())
+        })
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
         || policy.minimum_estimate_confidence_level == 1.0
@@ -587,6 +605,10 @@ fn gate_receipt_matches_scope(
         && receipt.scenario_manifest_sha256 == candidate.scenario_manifest_sha256
         && receipt.measurement_plan_sha256 == candidate.measurement_plan_sha256
         && receipt.policy_sha256 == policy.policy_sha256
+        && policy
+            .expected_gate_issuer_ids
+            .get(&receipt.role)
+            .is_some_and(|issuer| issuer == &receipt.issuer_id)
 }
 
 fn gate_receipt_payload_matches(
@@ -605,7 +627,7 @@ fn gate_receipt_payload_matches(
             candidate.semantic_equivalence_receipt_sha256.as_deref()
         }
     };
-    expected.is_none_or(|expected_digest| expected_digest == payload_sha256)
+    expected.is_some_and(|expected_digest| expected_digest == payload_sha256)
 }
 
 fn validate_gate_evidence_receipts(
