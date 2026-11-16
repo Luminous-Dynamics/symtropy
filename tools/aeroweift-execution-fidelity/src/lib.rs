@@ -436,6 +436,8 @@ pub enum ExecutionError {
     InvalidPolicy,
     /// Duplicate expected window identity.
     DuplicateExpectedWindow,
+    /// Planned windows for one source stream overlap and would permit double counting.
+    OverlappingExpectedWindows,
     /// Duplicate deviation identity.
     DuplicateDeviationId,
     /// Deviation interval or record digest is malformed.
@@ -494,6 +496,7 @@ fn validate_plan(plan: &ExecutionPlan) -> Result<(), ExecutionError> {
     }
 
     let mut window_ids = BTreeSet::new();
+    let mut windows_by_stream: BTreeMap<(&str, &str), Vec<TimeWindow>> = BTreeMap::new();
     for expected in &plan.expected_data_windows {
         if expected.window_id.trim().is_empty()
             || expected.source_id.trim().is_empty()
@@ -506,12 +509,21 @@ fn validate_plan(plan: &ExecutionPlan) -> Result<(), ExecutionError> {
             || expected.time_scale_id != plan.configuration.time_scale_id
             || expected.horizontal_frame_id != plan.configuration.horizontal_frame_id
             || expected.vertical_datum_id != plan.configuration.vertical_datum_id
-            || !window_ids.insert(expected.window_id.as_str())
         {
-            if window_ids.contains(expected.window_id.as_str()) {
-                return Err(ExecutionError::DuplicateExpectedWindow);
-            }
             return Err(ExecutionError::InvalidPlan);
+        }
+        if !window_ids.insert(expected.window_id.as_str()) {
+            return Err(ExecutionError::DuplicateExpectedWindow);
+        }
+        windows_by_stream
+            .entry((expected.source_id.as_str(), expected.source_stream_id.as_str()))
+            .or_default()
+            .push(expected.window);
+    }
+    for windows in windows_by_stream.values_mut() {
+        windows.sort_by_key(|window| window.start);
+        if windows.windows(2).any(|pair| pair[0].end > pair[1].start) {
+            return Err(ExecutionError::OverlappingExpectedWindows);
         }
     }
     Ok(())
@@ -768,19 +780,23 @@ fn assess_window(
     let mut cursor = expected.window.start;
     let mut samples = 0_u64;
     let mut covered_ticks = 0_u64;
+    let mut gap_seen = false;
     for segment in accepted {
-        if segment.window.start != cursor {
-            if segment.window.start > cursor {
-                break;
-            }
+        if segment.window.start > cursor {
+            // Preserve later captured data in the accounting, but never close the gap.
+            gap_seen = true;
+        } else if segment.window.start < cursor {
             mismatches.insert(MismatchDimension::DataStream);
-            break;
+            continue;
         }
         cursor = segment.window.end;
         covered_ticks = covered_ticks.saturating_add(segment.window.duration());
         samples = samples.saturating_add(segment.sample_count);
     }
-    let complete = cursor == expected.window.end && samples >= expected.minimum_samples;
+    let complete = !gap_seen
+        && cursor == expected.window.end
+        && covered_ticks == expected.window.duration()
+        && samples >= expected.minimum_samples;
     if record.actual_end < expected.window.end {
         // A shortened run cannot satisfy a window that extends beyond the actual run.
     }
