@@ -78,3 +78,25 @@ The cases cover a rising-block bill delta, unadmitted tariff, zero useful volume
 Protocol: [WATER_ECONOMICS_BENCHMARK_V0_1.md](../../research/water-service-engineering/WATER_ECONOMICS_BENCHMARK_V0_1.md). All values are synthetic; no household affordability, actual tariff, savings or product performance is qualified.
 
 Cost comparison and affordability are intentionally separate: missing income leaves the resident affordability burden Indeterminate but does not suppress an otherwise admitted cost-per-service comparison. The evaluator also rejects a tariff bill whose billing-period duration differs from the declared system-cost period.
+
+
+### Modular treatment architecture T0 — source/module compatibility
+
+The candidate modular architecture is defined in:
+- `research/water-service-engineering/waterloop-modular-architecture-v0.1.json`
+- `research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json`
+- `research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md`
+
+Run the structural gate:
+```sh
+cargo fmt --package water-service-t0 -- --check
+cargo test --locked --package water-service-t0
+cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
+WATERLOOP_MODULAR_T0_REVISION="$(git rev-parse HEAD)" \
+  cargo run --locked --package water-service-t0 --bin waterloop-modular-t0 -- \
+    research/water-service-engineering/waterloop-modular-architecture-v0.1.json \
+    research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json \
+    artifacts/water-service-t0/waterloop-modular-receipt.json
+```
+
+The Rust gate checks unique source/module/train IDs, module references, required ports, excluded feed sources, segregation of laundry as a challenge-only path, drinking/cooking exclusion, fail-safe rules and configuration-identity changes. It parses and hashes the schema file but does not use a JSON-Schema engine to validate every schema keyword. It is not a hydraulic, treatment, plumbing, water-quality or regulatory qualification. All values remain design_reference_only and qualification_status NotRun.
