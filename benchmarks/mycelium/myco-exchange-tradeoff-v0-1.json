@@ -300,7 +300,7 @@
   "network_evidence_implementation": {
     "module": "crates/domains/symtropy-mycelium/src/network_evidence.rs",
     "branch": "feat/mycelium-hyphal-graph-kernel-v0-2",
-    "test_functions": 18,
+    "test_functions": 19,
     "implementation_status": "authored_ci_pending",
     "semantics": [
       "PASS and FAIL criteria require source-linked observation receipts",
@@ -308,10 +308,11 @@
       "CMN effect attribution requires criteria 1-4",
       "CMN-HC evidence requires criteria 1-5",
       "hyphal continuity does not imply continuous cytoplasmic flow",
-      "plant-to-plant flow requires independent evidence and a supported shared fungal link",
-      "all referenced observation IDs must resolve to a unique, valid ObservationEvidenceReceipt"
+      "all referenced observation IDs must resolve to a unique, valid ObservationEvidenceReceipt",
+      "the current flow claim is limited to a cytoplasmic-flow stream observed on a segment; it is not plant-to-plant transfer",
+      "plant-to-plant transfer is a future claim requiring source/recipient plant-interface evidence, a verified continuous canonical graph path, and compatible flow observations along that path"
     ],
-    "status": "authored_ci_pending"
+    "status": "authored_exact_head_ci_pending"
   },
   "evidence_policy": {
     "flux_basis_values": [
