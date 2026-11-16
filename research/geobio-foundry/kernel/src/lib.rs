@@ -11,6 +11,8 @@
 //! group are treated as perfectly correlated; different groups and ungrouped
 //! measurements are treated as independent.
 
+pub mod pressure;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
