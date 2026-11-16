@@ -301,7 +301,7 @@ All numeric values in the current file are fictional fixtures designed to test t
 | MIP-007 safety chain revision | RCQ-011 | Related change family |
 | MIP-008 unknown module | RCQ-016 | Related change family |
 
-Every row is labelled `family_related_not_case_equivalence`. These are not identical conditions, expected dispositions, physical cases or claims. The crosswalk pins the source RCQ corpus by its exact Git blob SHA `9e38da798173c653bd01fc1ceb648fd0ff8a6dff`, not merely by a mutable branch URL.
+Every row is labelled `family_related_not_case_equivalence`. These are not identical conditions, expected dispositions, physical cases or claims. The crosswalk pins the source RCQ corpus by its exact Git blob SHA `8ed43a9f4b99ddc6c8a76e8de42d6610325e2229`, not merely by a mutable branch URL. The v0.1.2 claim-catalog audit added the firmware→localization/recovery and motion→swept-clearance edges; those are synthetic profile assumptions pending confirmation by the capability/dependency owners.
 
 The other two owner joins are deliberately unresolved:
 - #5411's required last-accepted-A to first-accepted-B transition receipt is not yet pinned as a machine-readable artifact in this tranche; `transition_receipt_ref` remains null.
