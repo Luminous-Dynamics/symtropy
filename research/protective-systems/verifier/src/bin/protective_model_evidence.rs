@@ -93,12 +93,15 @@ fn validate_version_field(value: &Value, path: &str) -> Result<bool, String> {
     }
 }
 
-fn media_type_for_dataset_payload(dataset: &Value, payload_media_type: &str) -> Result<String, String> {
+fn validate_dataset_payload_media_type(
+    dataset: &Value,
+    payload_media_type: &str,
+) -> Result<(), String> {
     let declared = required_text(dataset, "data_type", "dataset")?;
     if declared != payload_media_type {
         return Err("dataset data_type does not match provider payload MIME type".to_owned());
     }
-    Ok(declared.to_owned())
+    Ok(())
 }
 
 fn validate_rights(
@@ -553,7 +556,7 @@ fn validate_envelope(
         {
             return Err(format!("{path}: data payload identity/filename/MIME/size differs from provider file descriptor"));
         }
-        let _ = media_type_for_dataset_payload(dataset, &payload_media_type)?;
+        validate_dataset_payload_media_type(dataset, &payload_media_type)?;
     }
     if input_ids.is_empty() || output_ids.is_empty() {
         return Err("at least one INPUT and one OUTPUT dataset are required".to_owned());
