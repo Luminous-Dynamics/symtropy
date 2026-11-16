@@ -55,3 +55,10 @@ two-pair-policy-one-pair-candidate|minimum-group-pair-count|REJECT
 two-independent-group-pairs|two-contrasts|ADMIT
 zero-facility-resource-budget|budget-zero|ADMIT_IF_COST_ZERO
 weak-contrast-not-counted-in-pareto-metric|pair-count-threshold|ONLY_POLICY_QUALIFIED_PAIRS_COUNTED
+below-threshold-pair-not-pareto-advantage|weak-contrast-under-policy-floor|BOTH_UNDOMINATED
+gate-receipt-design-splice|wrong-design-digest|REJECT
+gate-receipt-policy-splice|wrong-policy-digest|REJECT
+duplicate-gate-receipt-id|duplicate-receipt-id|REJECT
+duplicate-gate-receipt-role|duplicate-role|REJECT
+missing-structured-gate-receipt|digest-string-only|REJECT
+gate-receipt-payload-mismatch|payload-reference-mismatch|REJECT
