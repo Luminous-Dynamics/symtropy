@@ -1,0 +1,46 @@
+{
+  "@context": {
+    "prov": "http://www.w3.org/ns/prov#",
+    "schema": "https://schema.org/",
+    "ex": "https://luminousdynamics.io/protect-evidence/e2/"
+  },
+  "@graph": [
+    {
+      "@id": "ex:activity/analysis-001",
+      "@type": "prov:Activity",
+      "prov:used": [
+        {"@id": "ex:entity/input-water-demand"},
+        {"@id": "ex:entity/input-power-availability"}
+      ],
+      "prov:wasAssociatedWith": {"@id": "ex:agent/synthetic-provider"}
+    },
+    {
+      "@id": "ex:agent/synthetic-provider",
+      "@type": "prov:Agent",
+      "schema:name": "Synthetic E2 provider fixture; not an external model execution"
+    },
+    {
+      "@id": "ex:entity/input-water-demand",
+      "@type": "prov:Entity",
+      "schema:name": "Synthetic water demand input"
+    },
+    {
+      "@id": "ex:entity/input-power-availability",
+      "@type": "prov:Entity",
+      "schema:name": "Synthetic power availability input"
+    },
+    {
+      "@id": "ex:entity/output-water-service",
+      "@type": "prov:Entity",
+      "prov:wasGeneratedBy": {"@id": "ex:activity/analysis-001"},
+      "prov:wasDerivedFrom": {"@id": "ex:entity/input-water-demand"},
+      "schema:name": "Synthetic water service output"
+    },
+    {
+      "@id": "ex:entity/output-clinic-access",
+      "@type": "prov:Entity",
+      "prov:wasGeneratedBy": {"@id": "ex:activity/analysis-001"},
+      "schema:name": "Synthetic clinic access output"
+    }
+  ]
+}
