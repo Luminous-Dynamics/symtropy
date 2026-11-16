@@ -304,7 +304,7 @@ pub fn render_report_json() -> Result<String, String> {
     let inputs = CcmInputs::published_reference();
     let result = calculate(inputs)?;
 
-    let fcc_circumference_m = 97_750_000.0;
+    let fcc_circumference_m = 97_750.0;
     let fcc_revolution_frequency_hz = SPEED_OF_LIGHT_M_S / fcc_circumference_m;
     let fcc_baseline_bunches = 10_600.0;
     let fcc_baseline_crossing_rate_hz =
@@ -472,6 +472,13 @@ mod tests {
     fn scheduled_time_and_availability_reproduce_the_reported_annual_luminosity() {
         let value = calculate(CcmInputs::published_reference()).expect("valid CCM");
         close(value.annual_integrated_luminosity_ab_inv, 1935.36, 1.0e-6);
+    }
+
+    #[test]
+    fn fcc_reference_reproduces_thousand_hertz_revolution_and_million_hertz_crossing_rates() {
+        let revolution_hz = SPEED_OF_LIGHT_M_S / 97_750.0;
+        close(revolution_hz, 3_066.930_516_624_041, 1.0e-9);
+        close(revolution_hz * 10_600.0 / 1.0e6, 32.509_463_476_214_834, 1.0e-9);
     }
 
     #[test]
