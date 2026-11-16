@@ -33,6 +33,7 @@ pub enum ConstraintBasisErrorV1 {
     GeneralizedForceEnclosuresDisjoint { coordinate: usize },
     CorrectionEnclosuresDisjoint { coordinate: usize },
     CorrectionNormEnclosuresDisjoint,
+    CorrectionResidualNormIdentityNotEnclosed { transformed: bool },
     MultiplierNormEnclosuresDisjoint,
     ResidualNormEnclosuresDisjoint,
     ResidualEquationNotEnclosed { row: usize },
@@ -636,6 +637,21 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
         quadratic_norm(&delassus_common, &residual_solution_transformed)?;
     if interval_overlap(residual_dual_norm_original, residual_dual_norm_transformed).is_none() {
         return Err(ConstraintBasisErrorV1::ResidualNormEnclosuresDisjoint);
+    }
+    if interval_overlap(correction_mass_norm_original, residual_dual_norm_original).is_none() {
+        return Err(ConstraintBasisErrorV1::CorrectionResidualNormIdentityNotEnclosed {
+            transformed: false,
+        });
+    }
+    if interval_overlap(
+        correction_mass_norm_transformed,
+        residual_dual_norm_transformed,
+    )
+    .is_none()
+    {
+        return Err(ConstraintBasisErrorV1::CorrectionResidualNormIdentityNotEnclosed {
+            transformed: true,
+        });
     }
 
     // Check J delta_v = r in both constraint representations.
