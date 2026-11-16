@@ -50,11 +50,7 @@ impl BoundaryConditions {
         Ok(())
     }
 
-    pub fn fix_dof(
-        &mut self,
-        node: usize,
-        axis: usize,
-    ) -> Result<(), AnalysisError> {
+    pub fn fix_dof(&mut self, node: usize, axis: usize) -> Result<(), AnalysisError> {
         if axis >= 3 {
             return Err(AnalysisError::InvalidBoundaryConditions);
         }
@@ -66,11 +62,7 @@ impl BoundaryConditions {
         Ok(())
     }
 
-    pub fn add_force(
-        &mut self,
-        node: usize,
-        force_n: [f64; 3],
-    ) -> Result<(), AnalysisError> {
+    pub fn add_force(&mut self, node: usize, force_n: [f64; 3]) -> Result<(), AnalysisError> {
         if !force_n.iter().all(|value| value.is_finite()) {
             return Err(AnalysisError::NonFiniteInput);
         }
@@ -108,11 +100,7 @@ impl TrussModel {
 
     pub fn from_tetrahedral_assembly(assembly: &TetrahedralAssembly) -> Self {
         Self {
-            nodes: assembly
-                .nodes
-                .iter()
-                .map(|node| node.position)
-                .collect(),
+            nodes: assembly.nodes.iter().map(|node| node.position).collect(),
             members: assembly
                 .members
                 .iter()
@@ -141,12 +129,7 @@ impl TrussModel {
 
         let mut stiffness = vec![vec![0.0_f64; dof_count]; dof_count];
         for member in &self.members {
-            assemble_member(
-                &mut stiffness,
-                &self.nodes,
-                *member,
-                material,
-            )?;
+            assemble_member(&mut stiffness, &self.nodes, *member, material)?;
         }
 
         let mut free_dofs = Vec::new();
@@ -164,8 +147,7 @@ impl TrussModel {
         let mut reduced = vec![vec![0.0; free_dofs.len()]; free_dofs.len()];
         let mut reduced_force = vec![0.0; free_dofs.len()];
         for (row_index, &global_row) in free_dofs.iter().enumerate() {
-            reduced_force[row_index] =
-                boundary.nodal_forces_n[global_row / 3][global_row % 3];
+            reduced_force[row_index] = boundary.nodal_forces_n[global_row / 3][global_row % 3];
             for (column_index, &global_column) in free_dofs.iter().enumerate() {
                 reduced[row_index][column_index] = stiffness[global_row][global_column];
             }
@@ -225,9 +207,8 @@ impl TrussModel {
                 displacement_b[1] - displacement_a[1],
                 displacement_b[2] - displacement_a[2],
             ];
-            let extension = relative[0] * direction.x
-                + relative[1] * direction.y
-                + relative[2] * direction.z;
+            let extension =
+                relative[0] * direction.x + relative[1] * direction.y + relative[2] * direction.z;
             let strain = extension / length;
             let stress = material.youngs_modulus_pa * strain;
             let axial_force = stress * material.cross_section_area_m2;
@@ -293,7 +274,10 @@ pub enum AnalysisError {
     InvalidMaterial,
     InvalidBoundaryConditions,
     InvalidGeometry,
-    DuplicateMember { from: usize, to: usize },
+    DuplicateMember {
+        from: usize,
+        to: usize,
+    },
     NonFiniteInput,
     NonFiniteResult,
     ModelTooLarge,
@@ -307,13 +291,24 @@ pub enum AnalysisError {
 impl fmt::Display for AnalysisError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidMaterial => write!(f, "Young's modulus and area must be finite and positive"),
-            Self::InvalidBoundaryConditions => write!(f, "boundary condition vectors do not match model"),
-            Self::InvalidGeometry => write!(f, "model contains invalid geometry or member endpoints"),
-            Self::DuplicateMember { from, to } => write!(f, "duplicate truss member between {from} and {to}"),
+            Self::InvalidMaterial => {
+                write!(f, "Young's modulus and area must be finite and positive")
+            }
+            Self::InvalidBoundaryConditions => {
+                write!(f, "boundary condition vectors do not match model")
+            }
+            Self::InvalidGeometry => {
+                write!(f, "model contains invalid geometry or member endpoints")
+            }
+            Self::DuplicateMember { from, to } => {
+                write!(f, "duplicate truss member between {from} and {to}")
+            }
             Self::NonFiniteInput => write!(f, "model input contains a non-finite value"),
             Self::NonFiniteResult => write!(f, "analysis produced a non-finite result"),
-            Self::ModelTooLarge => write!(f, "model exceeds the reference solver's dense-matrix budget"),
+            Self::ModelTooLarge => write!(
+                f,
+                "model exceeds the reference solver's dense-matrix budget"
+            ),
             Self::SingularStiffnessMatrix {
                 pivot_index,
                 pivot_magnitude,
@@ -396,9 +391,7 @@ fn assemble_member(
     }
     let direction = delta.scale(1.0 / length);
     let n = [direction.x, direction.y, direction.z];
-    let axial_stiffness = material.youngs_modulus_pa
-        * material.cross_section_area_m2
-        / length;
+    let axial_stiffness = material.youngs_modulus_pa * material.cross_section_area_m2 / length;
     if !axial_stiffness.is_finite() || axial_stiffness <= 0.0 {
         return Err(AnalysisError::InvalidMaterial);
     }
@@ -420,10 +413,7 @@ fn assemble_member(
     Ok(())
 }
 
-fn solve_dense(
-    mut matrix: Vec<Vec<f64>>,
-    mut rhs: Vec<f64>,
-) -> Result<Vec<f64>, AnalysisError> {
+fn solve_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Result<Vec<f64>, AnalysisError> {
     let size = rhs.len();
     if matrix.len() != size || matrix.iter().any(|row| row.len() != size) {
         return Err(AnalysisError::InvalidBoundaryConditions);
@@ -497,9 +487,7 @@ fn solve_dense(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use symtropy_freeflow_structure_lab::tetrahedral::{
-        TetrahedralAssembly, TetrahedralConfig,
-    };
+    use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
     use symtropy_freeflow_structure_lab::{Config, StructureGraph};
 
     fn material() -> TrussMaterial {
@@ -522,12 +510,13 @@ mod tests {
         boundary.add_force(1, [1_000.0, 0.0, 0.0]).unwrap();
 
         let result = model.analyze(material(), &boundary).unwrap();
-        let expected_displacement =
-            1_000.0 * 2.0 / (200.0e9 * 0.01);
+        let expected_displacement = 1_000.0 * 2.0 / (200.0e9 * 0.01);
         assert!((result.node_displacements_m[1][0] - expected_displacement).abs() < 1e-12);
         assert!((result.members[0].axial_force_n - 1_000.0).abs() < 1e-8);
         assert!((result.members[0].axial_stress_pa - 100_000.0).abs() < 1e-6);
-        assert!((result.total_strain_energy_j - 0.5 * 1_000.0 * expected_displacement).abs() < 1e-12);
+        assert!(
+            (result.total_strain_energy_j - 0.5 * 1_000.0 * expected_displacement).abs() < 1e-12
+        );
         assert!(result.max_free_dof_equilibrium_residual_n < 1e-7);
     }
 
@@ -543,10 +532,18 @@ mod tests {
         boundary.fix_dof(1, 2).unwrap();
         boundary.fix_dof(2, 2).unwrap();
         let last_node = model.nodes.len() - 1;
-        boundary.add_force(last_node, [25.0, -10.0, -100.0]).unwrap();
+        boundary
+            .add_force(last_node, [25.0, -10.0, -100.0])
+            .unwrap();
 
         let result = model.analyze(material(), &boundary).unwrap();
-        assert!(result.node_displacements_m.iter().flatten().all(|v| v.is_finite()));
+        assert!(
+            result
+                .node_displacements_m
+                .iter()
+                .flatten()
+                .all(|v| v.is_finite())
+        );
         assert!(result.members.iter().all(|m| m.axial_stress_pa.is_finite()));
         assert!(result.total_strain_energy_j > 0.0);
         assert!(result.max_free_dof_equilibrium_residual_n < 1e-5);
@@ -562,7 +559,10 @@ mod tests {
         boundary.add_force(last_node, [0.0, 0.0, -1.0]).unwrap();
 
         let error = model.analyze(material(), &boundary).unwrap_err();
-        assert!(matches!(error, AnalysisError::SingularStiffnessMatrix { .. }));
+        assert!(matches!(
+            error,
+            AnalysisError::SingularStiffnessMatrix { .. }
+        ));
     }
 
     #[test]
