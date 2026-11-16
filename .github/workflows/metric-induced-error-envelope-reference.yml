@@ -59,12 +59,23 @@ jobs:
           python3 - "$RUNNER_TEMP/metric-induced-microbenchmark.json" <<'PY'
           import json
           import math
+          import os
+          import re
           import sys
 
           with open(sys.argv[1], encoding="utf-8") as stream:
               report = json.load(stream)
+          expected_source = os.environ["METRIC_BENCHMARK_SOURCE_SHA"]
+          expected_run = os.environ["GITHUB_RUN_ID"]
+          assert re.fullmatch(r"[0-9a-f]{40}", expected_source), expected_source
           assert report["schema_version"] == "luminous.metric_induced_microbenchmark.v0.1"
-          assert report["source_commit"] and report["source_commit"] != "local"
+          assert report["source_commit"] == expected_source, (report["source_commit"], expected_source)
+          assert report["workflow_run_id"] == expected_run, (report["workflow_run_id"], expected_run)
+          assert report["fixture_id"] == "dense-6d-diagonal-mass-upper-unitriangular-rebasis-v0.1"
+          assert report["samples"] == 31
+          assert report["iterations_per_sample"] == 20000
+          assert report["cpu_model"] and report["cpu_model"] != "not-exposed"
+          assert report["rustc_version"].startswith("rustc ")
           rows = report["measurements"]
           assert len(rows) == 15, f"expected 15 measurements, got {len(rows)}"
           names = {row["name"] for row in rows}
@@ -94,6 +105,6 @@ jobs:
       - name: Upload reference-layer microbenchmark report
         uses: actions/upload-artifact@v4
         with:
-          name: metric-induced-reference-microbenchmark-${{ github.sha }}
+          name: metric-induced-reference-microbenchmark-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/metric-induced-microbenchmark.json
           if-no-files-found: error
