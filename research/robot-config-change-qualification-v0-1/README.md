@@ -107,3 +107,31 @@ This initial artifact tranche is authored as JSON/Markdown only. It has not been
 ## Nonclaims
 
 No evidence in this package establishes real robot capability, hardware interchangeability, safety, reliability, calibration validity, legal authority, standards conformity, vendor interoperability, production productivity or physical qualification. There is no controller, actuator, dispatch, E-stop, robot network or work-authorization path.
+
+
+## V0.1.1 audit correction
+
+A manual consistency audit found and corrected one unsafe oracle label in RCQ-016. The case declares `dependency_snapshot_complete: false` and includes an unclassified module with no admitted dependency mapping. The prior oracle marked `operator.recovery.observability` as `PreservedByExactIdentity` because its currently declared dependency list did not include the unknown module. That was unsound: an incomplete dependency snapshot cannot prove that the unknown module is unrelated.
+
+The corrected disposition is:
+
+```text
+RCQ-016 / operator.recovery.observability
+UnknownImpact / DEPENDENCY_CLOSURE_INCOMPLETE
+```
+
+**Conservative rule for this benchmark:** when the case-level dependency snapshot is incomplete or unknown, every evaluated claim in that case is `UnknownImpact` or `Unsupported` unless an independently admitted owner contract explicitly bounds the missing scope. A missing edge is not evidence of independence. This is a fail-closed benchmark rule; it does not assert that every physical change actually affects every claim.
+
+The public oracle remains development-visible, and this correction is not a candidate performance result.
+
+## Claim-profile binding before evaluator implementation
+
+The corpus currently contains a small local claim catalog and symbolic `target_claim_profile_ref` values. Those are useful development fixtures, but they are not yet pinned, consumable upstream claim contracts. A dependency intersection alone cannot decide whether the competent next step is applicability review, bench reverification, physical reverification, or independent adjudication.
+
+Before implementing the scored Rust evaluator, pin a read-only claim-profile binding contract. The design note is in `claim-profile-binding-contract-v0.1.md`. It specifies references to existing owners and the minimum fields the evaluator needs without creating a parallel capability registry, evidence graph, independence graph, or authority system.
+
+## Industry and standards crosswalk
+
+`qualification-industry-crosswalk-v0.1.md` records the existing test-configuration, metrology, interoperability, commercial-product and safety-standard comparators. The benchmark should ingest and compose those methods where applicable; it should not claim to replace them.
+
+The public development oracle now has a closed Draft 2020-12 schema at `schemas/development-oracle-v0.1.schema.json`. Schema shape validation is still a separate check from semantic oracle review and evaluator tests; no independent validator or Rust evaluator result is claimed by adding this schema.
