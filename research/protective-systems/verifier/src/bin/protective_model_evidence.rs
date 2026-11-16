@@ -5,7 +5,7 @@
 //! upstream model is correct or that a physical system is safe.
 
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::process;
