@@ -86,7 +86,7 @@ The assessment retains mismatch dimensions, deviation IDs, abort state, incomple
 - Every segment has a valid digest-shaped raw payload, capture receipt, raw-data manifest and calibration receipt reference.
 - Segments for a planned window use the exact calibration receipt and measurement profile.
 - One planned window cannot silently combine multiple raw-data manifests.
-- Duplicate segment IDs, stream sequence reuse, source-time inversion and overlapping segments fail closed.
+- Duplicate segment IDs, stream sequence reuse, source-time inversion and overlapping segments fail closed. Planned windows on one source stream must also be non-overlapping. Within an expected window, later captured segments after a gap remain in the captured-time/sample totals, but do not close the gap or make the window complete.
 - A fresh wrapper cannot freshen stale raw observations; Track Q/Mycelix owns authenticity and time evidence.
 - Aborts and adverse runs remain in the campaign record; no favorable-only filtering.
 - Input/segment permutation does not change the canonical result.
@@ -94,7 +94,7 @@ The assessment retains mismatch dimensions, deviation IDs, abort state, incomple
 
 ## Benchmark matrix
 
-The Rust suite includes positive complete-run controls; contiguous segment assembly; candidate/selection-policy/design/procedure/scenario/measurement-plan mismatch; model, sensor, control and reference changes; unknown/denied/expired/wrong-scope authority; run-time and environment-envelope deviations; documented/unknown/out-of-envelope deviations; abort; absent/partial/low-sample windows; capture/calibration/raw-manifest receipt substitution; duplicate IDs, sequence forks, time inversion and overlapping segments; unexpected streams; capture-build/policy mismatch; coverage monotonicity and deterministic segment permutation.
+The Rust suite includes positive complete-run controls; contiguous segment assembly; candidate/selection-policy/design/procedure/scenario/measurement-plan mismatch; model, sensor, control and reference changes; unknown/denied/expired/wrong-scope authority; run-time and environment-envelope deviations; documented/unknown/out-of-envelope deviations; abort; absent/partial/low-sample windows; capture/calibration/raw-manifest receipt substitution; duplicate IDs, sequence forks, time inversion and overlapping segments; unexpected streams; capture-build/policy mismatch; coverage monotonicity, deterministic segment permutation, later-segment accounting across gaps and non-overlapping expected-window constraints.
 
 Prospective hard targets:
 - 100% exact agreement with an independently authored finite execution-contract oracle.
