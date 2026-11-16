@@ -98,6 +98,7 @@ struct DataCiteView {
     rights: Vec<DataCiteRights>,
     preserved_json_api_meta: Value,
     preserved_unmapped_attributes: Value,
+    native_record: Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -130,6 +131,7 @@ struct OgcRecordView {
     links: Vec<OgcLink>,
     preserved_property_extensions: Value,
     preserved_unmapped_properties: Value,
+    native_record: Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -154,6 +156,7 @@ struct OpenLineageRunView {
     outputs: Vec<OpenLineageDataset>,
     preserved_run_facets: Vec<Value>,
     preserved_native_events: Vec<Value>,
+    native_record: Value,
     source_e1_analysis_id: String,
     source_e1_execution_status: String,
     source_e1_relationship: String,
@@ -374,6 +377,7 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         rights,
         preserved_json_api_meta: value.get("meta").cloned().unwrap_or(Value::Null),
         preserved_unmapped_attributes: Value::Object(preserved_unmapped_attributes.clone()),
+        native_record: value.clone(),
     };
     let mut decisions = vec![
         decision("DATACITE", "/data/id+/data/attributes/doi", Some("/native_view/doi"), MappingClass::ExactNative, None, "JSON:API id and DataCite doi are required to agree; registration/resolution is not asserted."),
@@ -386,6 +390,7 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         decision("DATACITE", "/data/attributes/rightsList", Some("/native_view/rights"), MappingClass::ExactNative, None, "Rights statement, URI null/unknown and language are preserved; no license grant is inferred."),
         decision("DATACITE", "/data/attributes/schemaVersion", Some("/native_view/schema_version_uri"), MappingClass::ExactNative, None, "Generic kernel-4 URI is retained; the 4.7 minor-version profile remains separate metadata."),
         decision("DATACITE", "/meta/e3FixtureExtension", Some("/native_view/preserved_json_api_meta"), MappingClass::PreservedRawOnly, None, "JSON:API extension is preserved as native JSON rather than coerced into a cross-provider field."),
+        decision("DATACITE", "/", Some("/native_view/native_record"), MappingClass::PreservedRawOnly, None, "Complete provider-native JSON:API record is retained to guarantee reconstruction of every unprojected field."),
     ];
     for key in ["identifiers", "subjects", "dates", "language", "descriptions", "url"] {
         if preserved_unmapped_attributes.contains_key(key) {
@@ -504,6 +509,7 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
             .cloned()
             .unwrap_or(Value::Null),
         preserved_unmapped_properties: Value::Object(preserved_unmapped_properties.clone()),
+        native_record: value.clone(),
     };
     let mut decisions = vec![
         decision("OGC_API_RECORDS", "/id", Some("/native_view/record_id"), MappingClass::ExactNative, None, "Server-assigned catalog record identity remains a record ID, not a DOI or payload digest."),
@@ -521,6 +527,7 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
         decision("OGC_API_RECORDS", "/extent/spatial/crs", Some("/native_view/spatial_extent/crs_uri"), MappingClass::ExactNative, None, "CRS declaration remains an explicit URI, not an inferred coordinate system."),
         decision("OGC_API_RECORDS", "/links", Some("/native_view/links"), MappingClass::ExactNative, None, "Self, collection and profile links retain their native relations and targets."),
         decision("OGC_API_RECORDS", "/properties/e3Extension", Some("/native_view/preserved_property_extensions"), MappingClass::PreservedRawOnly, None, "Foreign property extension remains native JSON and is not flattened."),
+        decision("OGC_API_RECORDS", "/", Some("/native_view/native_record"), MappingClass::PreservedRawOnly, None, "Complete provider-native catalog record is retained so unprojected top-level/profile fields survive."),
     ];
     for key in ["themes", "contacts", "providers"] {
         if preserved_unmapped_properties.contains_key(key) {
@@ -638,6 +645,7 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         outputs,
         preserved_run_facets: vec![start_facet.clone(), terminal_facet.clone()],
         preserved_native_events: events.to_vec(),
+        native_record: value.clone(),
         source_e1_analysis_id: e1_analysis_id.to_owned(),
         source_e1_execution_status: e1_execution_status.to_owned(),
         source_e1_relationship: required_text(&start_facet, "sourceBinding", "OpenLineage facet")?
@@ -671,6 +679,7 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/notASourceExecution", Some("/native_view/source_e1_not_source_execution"), MappingClass::ExactNative, None, "Explicit boolean prevents the embedded E1 context from being interpreted as this OpenLineage run."),
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context", Some("/native_view/preserved_run_facets"), MappingClass::PreservedRawOnly, None, "Custom facet is retained as native facet JSON, including E1 NOT_EXECUTED context-only assertion."),
         decision("OPENLINEAGE", "/events/*", Some("/native_view/preserved_native_events"), MappingClass::PreservedRawOnly, None, "Complete native event objects remain available so unprojected provider fields survive the typed projection."),
+        decision("OPENLINEAGE", "/", Some("/native_view/native_record"), MappingClass::PreservedRawOnly, None, "Complete native event bundle is retained, including any future top-level provider fields."),
     ];
     for (index, event) in events.iter().enumerate() {
         if let Some(facets) = event
@@ -1186,6 +1195,35 @@ mod tests {
         }));
         assert!(roundtrip(&view).expect("OpenLineage unknown facet roundtrip"));
         let _ = (datacite, ogc);
+    }
+
+    #[test]
+    fn each_provider_view_retains_the_complete_native_source_record() {
+        let report = build_report().expect("report");
+        let ProviderNativeView::DataCite(datacite) = &report.provider_views[0] else {
+            panic!("DataCite view expected")
+        };
+        let ProviderNativeView::OgcRecords(ogc) = &report.provider_views[1] else {
+            panic!("OGC view expected")
+        };
+        let ProviderNativeView::OpenLineage(openlineage) = &report.provider_views[2] else {
+            panic!("OpenLineage view expected")
+        };
+        assert_eq!(datacite.native_record, parse(DATACITE, "DataCite").expect("DataCite source"));
+        assert_eq!(ogc.native_record, parse(OGC, "OGC").expect("OGC source"));
+        assert_eq!(
+            openlineage.native_record,
+            parse(OPENLINEAGE, "OpenLineage").expect("OpenLineage source")
+        );
+        assert!(report.mapping_decisions.iter().any(|item| {
+            item.provider == "DATACITE" && item.source_path == "/" && item.target_path.as_deref() == Some("/native_view/native_record")
+        }));
+        assert!(report.mapping_decisions.iter().any(|item| {
+            item.provider == "OGC_API_RECORDS" && item.source_path == "/"
+        }));
+        assert!(report.mapping_decisions.iter().any(|item| {
+            item.provider == "OPENLINEAGE" && item.source_path == "/"
+        }));
     }
 
     #[test]
