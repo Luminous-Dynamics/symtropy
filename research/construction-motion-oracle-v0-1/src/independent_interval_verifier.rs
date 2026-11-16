@@ -1080,6 +1080,75 @@ mod tests {
     }
 
     #[test]
+    fn generated_point_uncertainty_verdicts_match_independent_box_distance_oracle() {
+        let mut seed = 0x5714_2026_u64;
+        let mut next = || {
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+            ((seed >> 32) % 21) as f64 - 10.0
+        };
+
+        for case_index in 0..1_000 {
+            let moving_center = p(next(), next(), next());
+            let obstacle_center = p(next(), next(), next());
+            let uncertainty = p(
+                next().abs() * 0.25,
+                next().abs() * 0.25,
+                next().abs() * 0.25,
+            );
+            let moving_radius = 1.0 + (case_index % 4) as f64;
+            let obstacle_radius = 1.0 + (case_index % 3) as f64;
+            let delta = [
+                (moving_center.x - obstacle_center.x).abs(),
+                (moving_center.y - obstacle_center.y).abs(),
+                (moving_center.z - obstacle_center.z).abs(),
+            ];
+            let bounds = [uncertainty.x, uncertainty.y, uncertainty.z];
+            let minimum_distance = delta
+                .iter()
+                .zip(bounds)
+                .map(|(distance, bound)| (distance - bound).max(0.0).powi(2))
+                .sum::<f64>()
+                .sqrt();
+            let maximum_distance = delta
+                .iter()
+                .zip(bounds)
+                .map(|(distance, bound)| (distance + bound).powi(2))
+                .sum::<f64>()
+                .sqrt();
+            let contact_radius = moving_radius + obstacle_radius + CONTACT_EPSILON_MM;
+            let expected = if minimum_distance > contact_radius + 1.0e-5 {
+                IntervalVerificationStatus::Clear
+            } else if maximum_distance + 1.0e-5 < contact_radius {
+                IntervalVerificationStatus::ContactWitness
+            } else {
+                IntervalVerificationStatus::Unresolved
+            };
+
+            let result = verify_capsule_interval_no_contact_with_uncertainty(
+                point_capsule(moving_center.x, moving_center.y, moving_center.z, moving_radius),
+                p(0.0, 0.0, 0.0),
+                point_capsule(obstacle_center.x, obstacle_center.y, obstacle_center.z, obstacle_radius),
+                p(0.0, 0.0, 0.0),
+                CapsuleRelativeUncertainty {
+                    origin_relative_mm: uncertainty,
+                    ..CapsuleRelativeUncertainty::zero()
+                },
+                window(),
+                IntervalVerifierConfig {
+                    maximum_nodes: 64,
+                    maximum_depth: 12,
+                },
+            )
+            .unwrap_or_else(|error| panic!("case {case_index} failed: {error:?}"));
+            assert_eq!(
+                result.status,
+                expected,
+                "case={case_index} min={minimum_distance} max={maximum_distance} r={contact_radius}",
+            );
+        }
+    }
+
+    #[test]
     fn invalid_inputs_never_generate_clear_receipts() {
         let invalid = Capsule {
             radius_mm: f64::NAN,
