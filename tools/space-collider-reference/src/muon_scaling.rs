@@ -347,13 +347,14 @@ fn linear_energy_ramp_survival(
 }
 
 /// Independent composite-Simpson reference used only by the analytical tests.
+#[cfg(test)]
 fn linear_energy_ramp_survival_simpson(
     injection_energy_gev: f64,
     extraction_energy_gev: f64,
     acceleration_time_s: f64,
     intervals: usize,
 ) -> Result<f64, String> {
-    if intervals == 0 || intervals % 2 != 0 {
+    if intervals == 0 || !intervals.is_multiple_of(2) {
         return Err("Simpson integration requires a positive even interval count".to_owned());
     }
     let values = [
