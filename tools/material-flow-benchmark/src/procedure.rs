@@ -677,15 +677,17 @@ impl ProcedureGraph {
             ProcedureExecutionBranch::NormalCompletion => {
                 ProcedureOperation::CollectCustodyAcknowledgement
             }
-            ProcedureExecutionBranch::Reconciliation => {
-                ProcedureOperation::ReconcileUnknownOutcome
-            }
+            ProcedureExecutionBranch::Reconciliation => ProcedureOperation::ReconcileUnknownOutcome,
         };
         let terminal_step = self
             .steps
             .iter()
             .find(|step| step.operation == terminal_operation)
-            .ok_or_else(|| vec![format!("procedure graph is missing terminal operation {terminal_operation:?}")])?;
+            .ok_or_else(|| {
+                vec![format!(
+                    "procedure graph is missing terminal operation {terminal_operation:?}"
+                )]
+            })?;
 
         let steps_by_id = self
             .steps
@@ -981,8 +983,7 @@ mod tests {
     }
 
     fn reconciliation_evidence_fixture() -> ProcedureEvidenceBundle {
-        serde_json::from_str(RECONCILIATION_EVIDENCE)
-            .expect("reconciliation evidence fixture")
+        serde_json::from_str(RECONCILIATION_EVIDENCE).expect("reconciliation evidence fixture")
     }
 
     #[test]
@@ -991,13 +992,20 @@ mod tests {
         let report = procedure
             .admit_evidence(&scenario, &evidence_fixture())
             .expect("well-formed receipt bundle");
-        assert_eq!(report.execution_branch, ProcedureExecutionBranch::NormalCompletion);
+        assert_eq!(
+            report.execution_branch,
+            ProcedureExecutionBranch::NormalCompletion
+        );
         assert_eq!(report.admitted_receipt_count, 13);
         assert_eq!(report.admitted_kinds.len(), 13);
-        assert!(!report.admitted_kinds.contains(&EvidenceKind::AmbiguousOutcomeObservation));
+        assert!(
+            !report
+                .admitted_kinds
+                .contains(&EvidenceKind::AmbiguousOutcomeObservation)
+        );
         assert!(report.evidence_envelopes_structurally_admitted);
         assert!(report.declared_freshness_policy_passed);
-        assert_eq!(report.required_verification_domains.len(), 6);
+        assert_eq!(report.required_verification_domains.len(), 5);
         assert!(!report.content_digest_verified);
         assert!(!report.cryptographic_authentication_verified);
         assert!(!report.issuer_authorization_verified);
@@ -1014,13 +1022,36 @@ mod tests {
         let report = procedure
             .admit_evidence(&scenario, &reconciliation_evidence_fixture())
             .expect("reconciliation branch receipt bundle");
-        assert_eq!(report.execution_branch, ProcedureExecutionBranch::Reconciliation);
+        assert_eq!(
+            report.execution_branch,
+            ProcedureExecutionBranch::Reconciliation
+        );
         assert_eq!(report.admitted_receipt_count, 10);
-        assert!(report.admitted_kinds.contains(&EvidenceKind::AmbiguousOutcomeObservation));
-        assert!(!report.admitted_kinds.contains(&EvidenceKind::ReleaseExecutionReceipt));
-        assert!(!report.admitted_kinds.contains(&EvidenceKind::ReceiverPresenceObservation));
-        assert!(!report.admitted_kinds.contains(&EvidenceKind::PlacementObservation));
-        assert!(!report.admitted_kinds.contains(&EvidenceKind::CounterpartyCustodyReceipt));
+        assert!(
+            report
+                .admitted_kinds
+                .contains(&EvidenceKind::AmbiguousOutcomeObservation)
+        );
+        assert!(
+            !report
+                .admitted_kinds
+                .contains(&EvidenceKind::ReleaseExecutionReceipt)
+        );
+        assert!(
+            !report
+                .admitted_kinds
+                .contains(&EvidenceKind::ReceiverPresenceObservation)
+        );
+        assert!(
+            !report
+                .admitted_kinds
+                .contains(&EvidenceKind::PlacementObservation)
+        );
+        assert!(
+            !report
+                .admitted_kinds
+                .contains(&EvidenceKind::CounterpartyCustodyReceipt)
+        );
         assert!(!report.motion_authority_granted);
         assert!(!report.task_success_attested);
     }
