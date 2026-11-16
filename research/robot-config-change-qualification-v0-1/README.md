@@ -145,3 +145,13 @@ The reference evaluator is deliberately restricted to the public fixture rules. 
 `qualification-industry-crosswalk-v0.1.md` records the existing test-configuration, metrology, interoperability, commercial-product and safety-standard comparators. The benchmark should ingest and compose those methods where applicable; it should not claim to replace them.
 
 The public development oracle now has a closed Draft 2020-12 schema at `schemas/development-oracle-v0.1.schema.json`. Schema shape validation is still a separate check from semantic oracle review and evaluator tests; no independent validator or Rust evaluator result is claimed by adding this schema.
+
+
+## V0.1.2 dependency-catalog audit
+
+The reference-evaluator tranche found three missing edges in the local synthetic claim catalog. The public corpus now explicitly records:
+- `controller.firmware` as a dependency of `localization.visual`;
+- `controller.firmware` as a dependency of `operator.recovery.observability`;
+- `controller.motion` as a dependency of `tool.swept_clearance`.
+
+These edges make the fixture's firmware-scope-unproven and motion-timing-changed cases agree with their intended claim-specific review/reverification obligations through actual dependency intersection, rather than evaluator-side name-based exceptions. They are corpus assumptions for this synthetic workcell only, not universal robot dependency laws. The updated corpus blob SHA-1 is `8ed43a9f4b99ddc6c8a76e8de42d6610325e2229`; consumers must update exact digest pins. The separate public oracle labels are unchanged.
