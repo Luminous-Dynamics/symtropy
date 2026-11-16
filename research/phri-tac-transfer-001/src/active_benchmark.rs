@@ -977,7 +977,7 @@ pub fn run_active_calibration_campaign(
             .ok_or_else(|| "campaign seed increment overflow".to_owned())?;
         let report = run_active_calibration_benchmark(seed)?;
         if report.results.len() != policy_count
-            || report.candidate_pool_size != first_run.candidate_pool_size
+            || report.target_candidate_pool_size != first_run.target_candidate_pool_size
             || report.source_candidate_pool_size != first_run.source_candidate_pool_size
             || report.heldout_case_count != first_run.heldout_case_count
             || report.target_contact_budget != first_run.target_contact_budget
