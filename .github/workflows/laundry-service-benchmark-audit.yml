@@ -48,6 +48,7 @@ on:
       - research/garment-care-platform-morphology-v0-1
       - research/garment-material-passport-nir-v0-1
       - research/garment-ready-finishing-v0-1
+      - research/garment-care-ops-semantic-observability-v0-1
     paths:
       - "docs/tech/LAUNDRY_SERVICE_SYSTEM_BENCHMARK_V0_1.md"
       - "docs/tech/LAUNDRY_MNB_EXTERNAL_LOOP_PROTOCOL_V0_1.md"
