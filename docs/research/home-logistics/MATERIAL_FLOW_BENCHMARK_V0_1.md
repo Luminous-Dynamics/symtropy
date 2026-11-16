@@ -525,6 +525,25 @@ This is the minimal executable foundation for the procedure-learning hypothesis 
 
 
 
+### 12.8 Procedure evidence-receipt admission
+
+The procedure graph now has a separate receipt-envelope admission layer in `src/procedure.rs`, a synthetic 14-receipt bundle at `fixtures/nominal-receiving-evidence.json`, and an `mfb-admit-procedure-evidence` CLI.
+
+For each receipt, the admission layer checks:
+- bundle procedure ID/version and exact scenario identity;
+- exact scenario source commit and configuration digest;
+- unique evidence ID and unique evidence kind, and complete coverage of all externally supplied evidence kinds required by the procedure;
+- evidence-kind-specific subject binding (manifest/scenario, grant, receiver endpoint, package, tote or transfer mechanism);
+- issuer actor exists in the scenario and has a role allowed for that evidence kind;
+- SHA-256 digest syntax;
+- declared observation and expiry timestamps relative to scenario start and its explicit clock-uncertainty window.
+
+Adversarial tests reject missing and duplicate receipts, wrong issuer roles, wrong subjects, malformed digests, source/configuration mismatch and stale observations. A positive synthetic bundle exercises all fourteen required external inputs.
+
+**Claim boundary:** this is structural envelope admission only. It does not verify cryptographic signatures, revocation, hardware attestation, sensor truth, evidence-source independence or real physical state. Its report explicitly sets `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. The only permitted claim is that the receipt envelopes are correctly shaped and scoped for independent verification.
+
+The workflow archives `procedure-evidence-admission.json` and hashes it in the environment record alongside the graph, campaign, convergence, simulation and dependency lock. Exact-head CI qualification is required before claiming that this addition passes.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
