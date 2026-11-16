@@ -244,6 +244,20 @@
       }
     },
     {
+      "id": "synthetic-local-concentrator-10m-at-100m",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_IDEAL_GEOMETRIC_CONCENTRATION_ONLY",
+      "note": "An ideal 10 m circular collector focused at 100 m at 1 AU produces a 0.93 m solar image and about 115.6x geometric concentration before optical losses.",
+      "source_id": null,
+      "conditions": {
+        "collector_diameter_m": 10,
+        "focal_distance_m": 100,
+        "heliocentric_distance_au": 1,
+        "expected_solar_image_diameter_m": 0.93,
+        "expected_ideal_geometric_concentration_ratio": 115.6
+      }
+    },
+    {
       "id": "synthetic-laser-diffraction-1km",
       "evidence_class": "synthetic_analytic_screen",
       "expected_disposition": "PASS_DIFFRACTION_SCREEN_ONLY",
