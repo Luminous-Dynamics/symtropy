@@ -220,3 +220,17 @@ The forest tournament should adopt that granularity, then go further where the f
 - freeze the forecast distribution and input/source digests before the validation observation is revealed.
 
 The competitive target is not to invent a new proper score. It is to apply existing proper-scoring discipline to a stricter evidence, dependence, transfer and decision-value contract.
+
+
+## 16 November 2026: decision-specific useful forecast horizons
+
+A horizon score alone does not state whether a forecast remains useful for a particular decision. The new [#5485 usefulness-limit workstream](https://github.com/Luminous-Dynamics/symtropy/issues/5485) composes this scorer with block qualification and a unitful decision tolerance. It reports a variable-/regime-specific horizon limit as the longest initial contiguous sequence of horizons that beats its frozen baseline, meets interval-coverage and issuance requirements, and stays within decision tolerance in every declared block.
+
+The synthetic development fixture has stable-canopy and post-disturbance mortality contexts, both with a deliberately misleading later recovery after an intermediate failure. It shows why a single pooled CRPS or the longest isolated passing horizon is not enough. The 365-day score may recover after a failed 180-day or 90-day evaluation; the first failing horizon still bounds the qualified prefix for that forecast origin/regime.
+
+See:
+- [Usefulness-limit protocol](FOREST_FORECAST_USEFULNESS_LIMIT_V0_1.md)
+- [128-case synthetic fixture](cases/forest-forecast-usefulness-synthetic-v0.1.json)
+- [Rust adapter over the shared CRPS kernel](validator/src/forecast_usefulness_kernel.rs)
+
+The useful-horizon policy is not itself a confidence guarantee. Empirical limits require rolling-origin held-out hindcasts, adequate independent blocks/sites, uncertainty on block coverage, a preregistered decision tolerance and separate pre-/post-disturbance evaluations.
