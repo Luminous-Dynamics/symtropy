@@ -326,7 +326,10 @@ mod tests {
             .as_array()
             .expect("baselines array")
             .len();
-        assert!(baseline_count >= 2, "retain at least washer and dryer desk references");
+        assert!(
+            baseline_count >= 2,
+            "retain at least washer and dryer desk references"
+        );
     }
 
     #[test]
