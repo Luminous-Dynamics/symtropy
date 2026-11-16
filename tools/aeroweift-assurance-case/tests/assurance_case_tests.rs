@@ -40,15 +40,18 @@ fn policy() -> AssuranceCasePolicy {
             ClaimEvidenceRequirement {
                 claim_id: "root".into(),
                 required_purposes: vec![],
+                minimum_independent_evidence_groups: 0,
             },
             ClaimEvidenceRequirement {
                 claim_id: "claim-model-envelope".into(),
                 required_purposes: vec![EvidencePurpose::ModelCredibility],
+                minimum_independent_evidence_groups: 1,
             },
         ],
         required_mitigation_evidence: vec![MitigationEvidenceRequirement {
             mitigation_id: "mitigation-conflict-screen".into(),
             required_purposes: vec![EvidencePurpose::PhysicalMitigationEffectiveness],
+            minimum_independent_evidence_groups: 1,
         }],
         policy_sha256: digest('e'),
         verifier_build_sha256: digest('f'),
@@ -1096,5 +1099,61 @@ fn unrelated_evidence_purpose_does_not_increase_claim_independence_count() {
             .unwrap()
             .1,
         1
+    );
+}
+
+
+#[test]
+fn owner_cannot_lower_claim_independence_below_frozen_policy_minimum() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "claim-model-envelope")
+        .unwrap()
+        .claim
+        .as_mut()
+        .unwrap()
+        .minimum_independent_evidence_groups = 0;
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-model-validation")
+        .unwrap()
+        .evidence
+        .as_mut()
+        .unwrap()
+        .correlation_group_id = None;
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::InsufficientIndependentEvidenceGroups
+    ));
+}
+
+#[test]
+fn mitigation_requires_policy_minimum_distinct_evidence_groups() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-mitigation-test")
+        .unwrap()
+        .evidence
+        .as_mut()
+        .unwrap()
+        .correlation_group_id = None;
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::MitigationInsufficientIndependentEvidenceGroups
+    ));
+}
+
+#[test]
+fn frozen_mitigation_minimum_cannot_be_zero() {
+    let (nodes, edges) = positive_case();
+    let mut frozen = policy();
+    frozen.required_mitigation_evidence[0].minimum_independent_evidence_groups = 0;
+    assert_eq!(
+        evaluate_assurance_case(&nodes, &edges, "root", &frozen),
+        Err(EvaluationError::InvalidPolicy)
     );
 }
