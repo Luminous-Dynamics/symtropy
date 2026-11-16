@@ -576,16 +576,19 @@ mod tests {
         legacy.add_toxin(4, 1, 50.0);
         audited.add_toxin(4, 1, 50.0);
 
-        legacy.step();
-        let _ = audited.step_with_report();
+        for _ in 0..8 {
+            legacy.step();
+            let report = audited.step_with_report();
+            assert_eq!(report.tick_after, audited.tick());
 
-        for y in 0..5 {
-            for x in 0..8 {
-                for layer in [FieldLayer::Biomass, FieldLayer::Nutrient, FieldLayer::Toxin] {
-                    assert_eq!(
-                        legacy.fields.get(layer, x, y),
-                        audited.fields.get(layer, x, y)
-                    );
+            for y in 0..5 {
+                for x in 0..8 {
+                    for layer in [FieldLayer::Biomass, FieldLayer::Nutrient, FieldLayer::Toxin] {
+                        assert_eq!(
+                            legacy.fields.get(layer, x, y),
+                            audited.fields.get(layer, x, y)
+                        );
+                    }
                 }
             }
         }
