@@ -10,7 +10,9 @@
     "evidence_class",
     "analysis",
     "source_envelope",
-    "bindings"
+    "bindings",
+    "fixture_activity",
+    "derivations"
   ],
   "properties": {
     "schema_version": {
@@ -151,6 +153,63 @@
             ]
           }
         ]
+      }
+    },
+    "fixture_activity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prov_activity_id",
+        "fixture_activity_id",
+        "execution_class",
+        "source_analysis_not_executed"
+      ],
+      "properties": {
+        "prov_activity_id": {
+          "const": "ex:activity/e2-portability-fixture-001"
+        },
+        "fixture_activity_id": {
+          "const": "synthetic.e2.provenance.fixture.001"
+        },
+        "execution_class": {
+          "const": "E2_SYNTHETIC_GRAPH_FIXTURE"
+        },
+        "source_analysis_not_executed": {
+          "const": true
+        }
+      }
+    },
+    "derivations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "generated_entity_id",
+          "source_entity_id",
+          "assertion_source",
+          "source_class",
+          "not_in_e1_lineage"
+        ],
+        "properties": {
+          "generated_entity_id": {
+            "const": "ex:entity/output-clinic-access"
+          },
+          "source_entity_id": {
+            "const": "ex:entity/input-power-availability"
+          },
+          "assertion_source": {
+            "const": "E2_FIXTURE_SYNTHETIC_CONTROL"
+          },
+          "source_class": {
+            "const": "E2_FIXTURE"
+          },
+          "not_in_e1_lineage": {
+            "const": true
+          }
+        }
       }
     }
   }
