@@ -3,10 +3,7 @@
 
 use std::{env, fs, process::ExitCode};
 
-use symtropy_material_flow_benchmark::{
-    ScenarioManifest,
-    procedure::ProcedureGraph,
-};
+use symtropy_material_flow_benchmark::{ScenarioManifest, procedure::ProcedureGraph};
 
 fn read(path: &str) -> Result<String, ExitCode> {
     fs::read_to_string(path).map_err(|error| {
