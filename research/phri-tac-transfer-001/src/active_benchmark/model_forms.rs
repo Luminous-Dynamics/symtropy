@@ -405,8 +405,7 @@ mod tests {
         };
         let observations: Vec<_> = FULL_FORCE_GRID_N
             .iter()
-            .enumerate()
-            .map(|(_index, force_n)| CalibrationObservation {
+            .map(|force_n| CalibrationObservation {
                 taxel_id: 0,
                 force_setpoint_n: *force_n,
                 voltage_v: voltage_for_force(expected, *force_n),
