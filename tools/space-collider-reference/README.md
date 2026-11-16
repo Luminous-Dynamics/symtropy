@@ -204,3 +204,25 @@ The 2026 rapid-acceleration study shows why the latter are still critical: RCS1'
 Sources:
 - Soubirou & Chancé, arXiv:2611.02865, Table 1 and RCS1 tracking results: https://arxiv.org/abs/2611.02865
 - MuCol Consolidated Parameters, 2025: https://doi.org/10.5281/zenodo.17476875
+
+
+## Muon plasma-wakefield source-gap screen
+
+The JSON report now includes a machine-readable screen for the published 2026 electron-beam-driven muon plasma-wakefield result (Wang et al., *Physical Review Accelerators and Beams* 29, 021302, DOI 10.1103/wq5g-mtjq). This is **not a WarpX reproduction**. It records the published headline values and their limitations for downstream research selection.
+
+The paper-reported setup uses a 23 GeV electron driver and a 300 MeV muon injection energy, with a headline output at 40 GeV. The paper reports 18.85% final energy spread and 8.86 mm mrad normalized emittance.
+
+The screen compares those headline values to the MuCol 10 TeV reference values of 0.1% rms high-energy injection energy spread and 25 μm normalized transverse rms emittance:
+- energy-spread ratio: **188.5×**, if the definitions and statistical conventions are comparable;
+- 8.86 mm mrad converts to 8,860 μm mrad; conditional emittance ratio: **354.4×**, if the plane, rms/normalization and averaging definitions are comparable.
+
+These ratios are screening gaps, not harmonized machine-performance comparisons. The more consequential caveat is that the paper explicitly calculates the headline 300 MeV→40 GeV acceleration with **zero initial energy spread and zero initial emittance**. A separate finite-emittance injection study reports that large-divergence particles can be lost when their oscillation amplitude exceeds the plasma-bubble radius. The finite-source capture efficiency and the headline acceleration output therefore must not be silently conflated.
+
+The paper's 3D WarpX PIC setup reports a 23 GeV electron driver, a plasma density ramp from 1e23 to 7e23 m^-3, a 0.1 mm up-ramp, and a 256×256×512 grid in an 800×800×750 μm moving window. Its supporting simulation data were **not publicly available at publication** and were stated to be available from the authors on reasonable request. Until the input decks and raw/source distributions are admitted, any independent recreation is an independent reconstruction, not exact reproduction.
+
+The next benchmark is finite-source end-to-end performance: capture fraction, full 6D phase space, tails/losses, surviving muons, and downstream RF/RLA/RCS/FFA acceptance. High gradient alone is not a collider-acceleration result.
+
+References:
+- Wang et al., *Muon injection and acceleration via ultraintense electron beam-driven plasma wakefield*, PRAB 29, 021302 (2026): https://doi.org/10.1103/wq5g-mtjq
+- MuCol Consolidated Parameters, 2025: https://doi.org/10.5281/zenodo.17476875
+- Follow-on qualification owner: [SPACE-COLLIDER-MUON-PLASMA-ACCEL-001 #5641](https://github.com/Luminous-Dynamics/symtropy/issues/5641)
