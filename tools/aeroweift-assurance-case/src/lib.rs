@@ -1034,6 +1034,31 @@ pub fn evaluate_assurance_case(
     let mut blockers = BTreeSet::new();
     let mut groups_by_claim = Vec::new();
 
+    for requirement in &policy.required_claim_evidence {
+        if !by_id
+            .get(requirement.claim_id.as_str())
+            .is_some_and(|node| matches!(node.kind, NodeKind::TopClaim | NodeKind::Claim))
+        {
+            add_blocker(
+                &mut blockers,
+                &requirement.claim_id,
+                BlockerReason::EvidenceRequirementTargetMissing,
+            );
+        }
+    }
+    for requirement in &policy.required_mitigation_evidence {
+        if !by_id
+            .get(requirement.mitigation_id.as_str())
+            .is_some_and(|node| node.kind == NodeKind::Mitigation)
+        {
+            add_blocker(
+                &mut blockers,
+                &requirement.mitigation_id,
+                BlockerReason::EvidenceRequirementTargetMissing,
+            );
+        }
+    }
+
     // The top-level argument must be decomposed into at least one named strategy.
     if !edges.iter().any(|edge| {
         edge.from_node_id == root_claim_id
@@ -1093,7 +1118,46 @@ pub fn evaluate_assurance_case(
                 .filter_map(|edge| by_id.get(edge.from_node_id.as_str()).copied())
                 .filter(|evidence| evidence.kind == NodeKind::Evidence)
                 .collect();
-            let independent_groups: BTreeSet<&str> = supporting_evidence
+            let requirement = policy
+                .required_claim_evidence
+                .iter()
+                .find(|item| item.claim_id == node.node_id);
+            let required_purposes = requirement
+                .map(|item| item.required_purposes.as_slice())
+                .unwrap_or(&[]);
+            if requirement.is_none() {
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::MissingClaimEvidenceRequirement,
+                );
+            }
+            for purpose in required_purposes {
+                let purpose_is_supported = supporting_evidence.iter().any(|evidence_node| {
+                    evidence_node.evidence.as_ref().is_some_and(|evidence| {
+                        evidence.purpose == *purpose
+                            && evidence.disposition == EvidenceDisposition::Qualified
+                    })
+                });
+                if !purpose_is_supported {
+                    add_blocker(
+                        &mut blockers,
+                        &node.node_id,
+                        BlockerReason::MissingRequiredEvidencePurpose,
+                    );
+                }
+            }
+            let eligible_evidence: Vec<&AssuranceNode> = supporting_evidence
+                .iter()
+                .copied()
+                .filter(|evidence_node| {
+                    evidence_node.evidence.as_ref().is_some_and(|evidence| {
+                        required_purposes.contains(&evidence.purpose)
+                            && evidence.disposition == EvidenceDisposition::Qualified
+                    })
+                })
+                .collect();
+            let independent_groups: BTreeSet<&str> = eligible_evidence
                 .iter()
                 .filter_map(|evidence| evidence.evidence.as_ref()?.correlation_group_id.as_deref())
                 .collect();
@@ -1249,7 +1313,7 @@ pub fn evaluate_assurance_case(
         }
     }
 
-    // Every supplied mitigation must be attached to at least one required hazard.
+    // Every supplied mitigation must attach to a required hazard and meet its frozen evidence predicates.
     for mitigation in nodes
         .iter()
         .filter(|node| node.kind == NodeKind::Mitigation)
@@ -1270,6 +1334,41 @@ pub fn evaluate_assurance_case(
                 &mitigation.node_id,
                 BlockerReason::MitigationNotAttachedToHazard,
             );
+        }
+
+        let requirement = policy
+            .required_mitigation_evidence
+            .iter()
+            .find(|item| item.mitigation_id == mitigation.node_id);
+        let Some(requirement) = requirement else {
+            add_blocker(
+                &mut blockers,
+                &mitigation.node_id,
+                BlockerReason::MissingMitigationEvidenceRequirement,
+            );
+            continue;
+        };
+        for purpose in &requirement.required_purposes {
+            let purpose_is_supported = edges.iter().any(|edge| {
+                edge.to_node_id == mitigation.node_id
+                    && edge.kind == EdgeKind::Supports
+                    && by_id
+                        .get(edge.from_node_id.as_str())
+                        .is_some_and(|evidence_node| {
+                            evidence_node.kind == NodeKind::Evidence
+                                && evidence_node.evidence.as_ref().is_some_and(|evidence| {
+                                    evidence.purpose == *purpose
+                                        && evidence.disposition == EvidenceDisposition::Qualified
+                                })
+                        })
+            });
+            if !purpose_is_supported {
+                add_blocker(
+                    &mut blockers,
+                    &mitigation.node_id,
+                    BlockerReason::MissingRequiredEvidencePurpose,
+                );
+            }
         }
     }
 
