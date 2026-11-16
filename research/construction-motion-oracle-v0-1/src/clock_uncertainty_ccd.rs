@@ -521,8 +521,30 @@ mod tests {
             let offset_a = (index as i64 % (2 * uncertainty_a as i64 + 1)) - uncertainty_a as i64;
             let offset_b = ((index * 3) as i64 % (2 * uncertainty_b as i64 + 1)) - uncertainty_b as i64;
             let base_time = 100_000_u64;
-            let mut reported_a = span(next() as f64, next() as f64, base_time, base_time + 1_000, uncertainty_a);
-            let mut reported_b = span(next() as f64, next() as f64, base_time + 100, base_time + 900, uncertainty_b);
+            let (reported_a_x, reported_a_dx, reported_b_x, reported_b_dx) = if index < 32 {
+                (-10.0, 20.0, 10.0, -20.0)
+            } else {
+                (
+                    next() as f64,
+                    next() as f64,
+                    next() as f64,
+                    next() as f64,
+                )
+            };
+            let mut reported_a = span(
+                reported_a_x,
+                reported_a_dx,
+                base_time,
+                base_time + 1_000,
+                uncertainty_a,
+            );
+            let mut reported_b = span(
+                reported_b_x,
+                reported_b_dx,
+                base_time + 100,
+                base_time + 900,
+                uncertainty_b,
+            );
             // Use point capsules so every generated case has a unique centreline parameter.
             reported_a.capsule_at_start = Capsule::new(reported_a.capsule_at_start.start, reported_a.capsule_at_start.start, 0.5).unwrap();
             reported_b.capsule_at_start = Capsule::new(reported_b.capsule_at_start.start, reported_b.capsule_at_start.start, 0.5).unwrap();
