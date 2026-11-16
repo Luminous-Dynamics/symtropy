@@ -258,6 +258,7 @@ fn dominated_candidate_is_removed_without_weighted_scoring() {
     inferior.probability_uninformative = 0.20;
     inferior.cost_units = 30;
 
+    refresh_utility_estimate_receipt(&mut inferior);
     let result = select_experiments(&[best, inferior], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 1);
     assert_eq!(result.pareto_front[0].candidate_id, "best");
@@ -276,6 +277,7 @@ fn real_cost_utility_tradeoff_preserves_multiple_pareto_options() {
     let mut expensive = candidate("expensive");
     expensive.cost_units = 70;
 
+    refresh_utility_estimate_receipt(&mut cheap);
     let result = select_experiments(&[expensive, cheap], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 2);
     assert_eq!(
@@ -295,6 +297,7 @@ fn high_information_but_irrelevant_test_is_rejected() {
     irrelevant.expected_model_discrimination = 0.99;
     irrelevant.decision_relevance = 0.10;
 
+    refresh_utility_estimate_receipt(&mut irrelevant);
     let result = select_experiments(&[irrelevant], &policy()).unwrap();
     assert_eq!(
         result.disposition,
@@ -426,6 +429,7 @@ fn model_discrimination_threshold_is_an_explicit_gate() {
     let mut weak = candidate("weak-discrimination");
     weak.expected_model_discrimination = 0.10;
 
+    refresh_utility_estimate_receipt(&mut weak);
     let result = select_experiments(&[weak], &policy()).unwrap();
     assert!(
         reason(&result, "weak-discrimination")
@@ -438,6 +442,7 @@ fn robust_reduction_threshold_is_an_explicit_gate() {
     let mut brittle = candidate("brittle");
     brittle.worst_case_robust_reduction = 0.10;
 
+    refresh_utility_estimate_receipt(&mut brittle);
     let result = select_experiments(&[brittle], &policy()).unwrap();
     assert!(reason(&result, "brittle").contains(&RejectionReason::InsufficientRobustReduction));
 }
@@ -483,6 +488,7 @@ fn parameter_identification_does_not_require_two_independent_model_families() {
     parameter_test.hypothesis_contrasts.clear();
     parameter_test.expected_model_discrimination = 0.0;
 
+    refresh_utility_estimate_receipt(&mut parameter_test);
     let result = select_experiments(&[parameter_test], &parameter_policy).unwrap();
     assert_eq!(result.disposition, DesignDisposition::ParetoFrontAvailable);
 }
@@ -593,6 +599,7 @@ fn model_discrimination_can_compare_different_outputs_under_common_observables()
 fn excessive_probability_of_uninformative_result_is_a_hard_gate() {
     let mut low_value = candidate("likely-uninformative");
     low_value.probability_uninformative = 0.95;
+    refresh_utility_estimate_receipt(&mut low_value);
     let result = select_experiments(&[low_value], &policy()).unwrap();
     assert!(
         reason(&result, "likely-uninformative").contains(&RejectionReason::TooLikelyUninformative)
@@ -679,6 +686,8 @@ fn pareto_front_preserves_tradeoffs_across_resource_dimensions() {
     low_facility.resource_cost.facility_minutes = 5;
     low_facility.expected_uncertainty_reduction = 0.75;
 
+    refresh_utility_estimate_receipt(&mut low_energy);
+    refresh_utility_estimate_receipt(&mut low_facility);
     let result = select_experiments(&[low_energy, low_facility], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 2);
 }
@@ -796,6 +805,7 @@ fn independent_finite_pareto_oracle_matches_selector_on_generated_tradeoff_matri
             energy_joules: 1 + (index * 997) % 90_000,
             adjudication_person_minutes: 1 + (index * 3) % 90,
         };
+        refresh_utility_estimate_receipt(&mut item);
         candidates.push(item);
     }
 
@@ -825,6 +835,8 @@ fn lower_worst_case_bound_cannot_restore_admissibility() {
     for step in 0..101 {
         let mut candidate = candidate("robust-monotonic");
         candidate.worst_case_robust_reduction = 0.20 - (step as f64 * 0.001);
+        refresh_utility_estimate_receipt(&mut candidate);
+        refresh_utility_estimate_receipt(&mut candidate);
         let result = select_experiments(&[candidate], &policy()).unwrap();
         if step == 0 {
             assert_eq!(result.pareto_front.len(), 1);
@@ -1015,6 +1027,7 @@ fn two_distinct_group_pair_contrasts_satisfy_a_two_pair_policy() {
         separation_lower_bound: 0.55,
         contrast_estimate_sha256: digest('a'),
     });
+    refresh_utility_estimate_receipt(&mut candidate);
     let result = select_experiments(&[candidate], &frozen).unwrap();
     assert_eq!(
         result.pareto_front[0].independent_hypothesis_group_pair_count,
@@ -1072,6 +1085,7 @@ fn reported_hypothesis_pair_count_uses_the_frozen_separation_floor() {
         separation_lower_bound: 0.19,
         contrast_estimate_sha256: digest('a'),
     });
+    refresh_utility_estimate_receipt(&mut candidate);
     let result = select_experiments(&[candidate], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 1);
     assert_eq!(
@@ -1098,6 +1112,7 @@ fn below_floor_pairwise_contrast_cannot_create_pareto_advantage() {
             contrast_estimate_sha256: digest('a'),
         });
 
+    refresh_utility_estimate_receipt(&mut extra_weak_pair);
     let result = select_experiments(&[baseline, extra_weak_pair], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 2);
     assert_eq!(
@@ -1125,6 +1140,7 @@ fn pair_count_dominance_is_monotonic_only_above_frozen_separation_floor() {
             separation_lower_bound: separation_step as f64 / 100.0,
             contrast_estimate_sha256: digest('a'),
         });
+        refresh_utility_estimate_receipt(&mut candidate);
         let result = select_experiments(&[candidate], &policy()).unwrap();
         assert_eq!(result.pareto_front.len(), 1);
         let expected_pair_count = if separation_step == 20 { 2 } else { 1 };
