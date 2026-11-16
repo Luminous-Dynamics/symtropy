@@ -107,7 +107,6 @@ fn parse_source_version(value: &Value) -> Result<SourceVersion, String> {
         || version.logical_observation_id.trim().is_empty()
         || version.version_number == 0
         || version.valid_start > version.valid_end
-        || version.collected_at > version.valid_end.saturating_add(1_000_000_000)
     {
         return Err(format!("source version {} has invalid identity or temporal bounds", version.version_id));
     }
@@ -209,6 +208,30 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             ));
         }
 
+        match selected.role.as_str() {
+            "evaluation_only_target" => {
+                return Ok(disposition(
+                    case_id, "EVALUATION_TARGET_USED_AS_INPUT",
+                    "EVALUATION_TARGET_USED_AS_INPUT", selected_ids, latencies
+                ));
+            }
+            "historical_observation" | "training_label" | "state_initialization" | "realized_observation" => {
+                if selected.valid_start > reference || selected.valid_end > reference {
+                    return Ok(disposition(
+                        case_id, "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER",
+                        "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER", selected_ids, latencies
+                    ));
+                }
+            }
+            "forecasted_driver" => {}
+            _ => {
+                return Ok(disposition(
+                    case_id, "REFUSED_UNKNOWN_INPUT_ROLE",
+                    "UNKNOWN_INPUT_ROLE", selected_ids, latencies
+                ));
+            }
+        }
+
         let Some(available_at) = selected.effective_available_at() else {
             return Ok(disposition(
                 case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
@@ -224,62 +247,40 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         }
 
         if available_at > cutoff {
-            return Ok(disposition(
-                case_id, "INPUT_NOT_AVAILABLE_BY_CUTOFF",
-                "INPUT_NOT_AVAILABLE_BY_CUTOFF", selected_ids, latencies
-            ));
+            let earlier_version_available = versions.iter().any(|candidate| {
+                candidate.logical_observation_id == selected.logical_observation_id
+                    && candidate.version_number < selected.version_number
+                    && candidate.rights_status == "PERMITTED"
+                    && candidate.effective_available_at().is_some_and(|time| time <= cutoff)
+            });
+            let (name, reason) = if earlier_version_available {
+                ("SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF", "SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF")
+            } else {
+                ("INPUT_NOT_AVAILABLE_BY_CUTOFF", "INPUT_NOT_AVAILABLE_BY_CUTOFF")
+            };
+            return Ok(disposition(case_id, name, reason, selected_ids, latencies));
         }
 
-        match selected.role.as_str() {
-            "evaluation_only_target" => {
+        if selected.role == "forecasted_driver" {
+            let Some(driver_issued) = selected.driver_forecast_issued_at else {
                 return Ok(disposition(
-                    case_id, "EVALUATION_TARGET_USED_AS_INPUT",
-                    "EVALUATION_TARGET_USED_AS_INPUT", selected_ids, latencies
+                    case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
+                    "MISSING_DRIVER_FORECAST_ISSUE_TIME", selected_ids, latencies
                 ));
-            }
-            "historical_observation" | "training_label" | "state_initialization" => {
-                if selected.valid_end > reference {
-                    return Ok(disposition(
-                        case_id, "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER",
-                        "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER", selected_ids, latencies
-                    ));
-                }
-            }
-            "realized_observation" => {
-                if selected.valid_start > reference || selected.valid_end > reference {
-                    return Ok(disposition(
-                        case_id, "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER",
-                        "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER", selected_ids, latencies
-                    ));
-                }
-            }
-            "forecasted_driver" => {
-                let Some(driver_issued) = selected.driver_forecast_issued_at else {
-                    return Ok(disposition(
-                        case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
-                        "MISSING_DRIVER_FORECAST_ISSUE_TIME", selected_ids, latencies
-                    ));
-                };
-                let (Some(driver_start), Some(driver_end)) =
-                    (selected.driver_target_start, selected.driver_target_end)
-                else {
-                    return Ok(disposition(
-                        case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
-                        "MISSING_DRIVER_TARGET_SUPPORT", selected_ids, latencies
-                    ));
-                };
-                if driver_issued > cutoff || driver_start > target_start || driver_end < target_end {
-                    return Ok(disposition(
-                        case_id, "INVALID_FORECASTED_DRIVER_SUPPORT",
-                        "DRIVER_FORECAST_NOT_AVAILABLE_OR_TARGET_SUPPORT_MISMATCH",
-                        selected_ids, latencies
-                    ));
-                }
-            }
-            _ => {
+            };
+            let (Some(driver_start), Some(driver_end)) =
+                (selected.driver_target_start, selected.driver_target_end)
+            else {
                 return Ok(disposition(
-                    case_id, "REFUSED_UNKNOWN_INPUT_ROLE",
-                    "UNKNOWN_INPUT_ROLE", selected_ids, latencies
+                    case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
+                    "MISSING_DRIVER_TARGET_SUPPORT", selected_ids, latencies
+                ));
+            };
+            if driver_issued > cutoff || driver_start > target_start || driver_end < target_end {
+                return Ok(disposition(
+                    case_id, "INVALID_FORECASTED_DRIVER_SUPPORT",
+                    "DRIVER_FORECAST_NOT_AVAILABLE_OR_TARGET_SUPPORT_MISMATCH",
+                    selected_ids, latencies
                 ));
             }
         }
@@ -533,4 +534,24 @@ mod tests {
             .iter().find(|case|case["case_id"]=="EVALUATION_TARGET_USED_AS_INPUT").expect("target case");
         assert_eq!(result["disposition"],"EVALUATION_TARGET_USED_AS_INPUT");
     }
+    #[test]
+    fn a_later_revision_cannot_be_selected_before_its_availability_time() {
+        let mut manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        manifest["cases"][3]["selected_input_version_ids"]=json!(["TREE-CENSUS-V2"]);
+        manifest["cases"][3]["expected_disposition"]=json!("SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF");
+        manifest["cases"][3]["expected_reasons"]=json!(["SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF"]);
+        let raw=serde_json::to_vec(&manifest).expect("serialize");
+        assert!(validate_corpus(&raw,&manifest).is_err());
+    }
+
+    #[test]
+    fn a_forecasted_driver_must_be_issued_by_the_information_cutoff() {
+        let mut manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        manifest["cases"][6]["source_versions"][0]["driver_forecast_issued_at"]=json!(1210);
+        manifest["cases"][6]["expected_disposition"]=json!("INVALID_FORECASTED_DRIVER_SUPPORT");
+        manifest["cases"][6]["expected_reasons"]=json!(["DRIVER_FORECAST_NOT_AVAILABLE_OR_TARGET_SUPPORT_MISMATCH"]);
+        let raw=serde_json::to_vec(&manifest).expect("serialize");
+        assert!(validate_corpus(&raw,&manifest).is_err());
+    }
+
 }
