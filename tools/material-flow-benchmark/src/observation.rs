@@ -396,7 +396,12 @@ mod tests {
 
     #[test]
     fn identical_event_replay_is_suppressed_without_counting_a_second_vote() {
-        let first = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let first = observation(
+            "evt-1",
+            "sensor-1",
+            Some("sensor-a"),
+            PresenceReading::Present,
+        );
         let second = observation("evt-2", "sensor-2", Some("sensor-b"), PresenceReading::Present);
         let duplicate = first.clone();
         let report = adjudicate_receiver_presence(&[first, second, duplicate], &policy())
