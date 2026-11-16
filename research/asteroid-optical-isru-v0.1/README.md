@@ -46,7 +46,8 @@ The Rust library currently implements:
 7. explicit solid/gas material stream mass closure;
 8. product acceptance requiring a separate captured stream, contract purity and independent assay;
 9. accepted product yield per declared source-energy meter plane;
-10. stable corpus source/case identity and cross-reference checks.
+10. stable corpus source/case identity and cross-reference checks;
+11. an isolated matched-campaign tournament validator for shared campaign identity, candidate-specific hardware, uncertainty intervals and robust pairwise comparison.
 
 The calculations are screening relationships, not full engineering models. In particular:
 - solar-image diameter and ideal concentration ratio are not a full collector/aberration/flux-profile model and scale with heliocentric distance;
@@ -55,6 +56,39 @@ The calculations are screening relationships, not full engineering models. In pa
 - energy-chain monotonicity is not a substitute for a complete first-law/exergy audit;
 - mass closure does not establish that the feedstock assay, capture apparatus or product assay is physically correct;
 - the JSON corpus audit confirms record structure and references, not the correctness of cited research.
+
+## Matched architecture tournament v0.1
+
+The isolated `src/tournament.rs` module adds a first typed comparison contract for the two tracks in the research protocol:
+
+- process-isolation comparisons require a shared campaign and test-fixture identity;
+- whole-system candidates may have different process articles and architecture configurations while sharing target, batch, environment, product contract, metrology protocol and campaign duration;
+- candidate-specific calibration record identity/status is required;
+- product assay identity, issuer, record digest, exact product-batch digest and campaign product-contract digest are bound;
+- the existing `MaterialBalance` validator is reused, and the product's captured raw stream cannot exceed the corresponding closed gas/solid balance stream;
+- accepted-product/day, accepted-product/source-boundary-kWh and accepted-product/system-kg-year intervals are derived from primitive declared values;
+- pairwise robust dominance is reported only where the campaign, product stream, source-energy meter plane/form match and one candidate's conservative interval clears the other's adverse interval on every objective.
+
+This is an **admissibility and accounting slice**, not a signed-attestation verifier, calibration authority, physical process model or full Pareto-front report. A non-empty assay identifier, issuer identifier and digest do not prove authenticity or independence by themselves; the applicable Mycelix/evidence-authority record must resolve those claims. A declared current calibration status likewise requires external record verification. The module contains synthetic unit tests, not experimental data.
+
+## Source-faithful experimental observations v0.1
+
+The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records five sources and 78 observation entries from:
+
+- NASA historical 8 kW / 10 m optical-mining demonstration;
+- 2025 Nectar A/B optical-mining experiments, including Table 5 and Table 6 TGA and author-derived efficiency rows;
+- 2026 C-/S-type cryogenic-vacuum laser experiment;
+- NASA/Lunar Resources 25 kg molten-regolith electrolysis presentation;
+- NASA CaRD integrated solar-carbothermal prototype.
+
+The source register preserves exact units, values/ranges, condition records, source locators and caveats. In particular:
+- Nectar's RGA-derived water-loss values are explicitly **author-derived estimates**, because the paper describes an uncalibrated RGA plus pressure-gauge calculation and an inefficient cold-trap measurement;
+- laser Fe–Ni enrichment applies to **ejected fines**, not captured or refined metal;
+- the MRE 0.3 mol O2/kWh, 0.07 kg/h, 2.3 wt%, 45 V and 210 A remain separate source-reported metrics. The time-varying electrical traces are not integrated into a synthetic campaign energy;
+- CaRD CO detection is recorded as a process signal, not purified accepted oxygen;
+- source-unreported product quantities remain explicit null-valued `not_reported` records, never zero.
+
+The new `src/observations.rs` module validates source/observation identity, cross-references, status/value/unit/evidence-class combinations, condition records and a positive-conservative-bound accepted-product gate requiring assay, issuer and contract identities. It does not authenticate those identities or establish physical truth. The register currently contains 14 authored structural tests; they are not reported as executed.
 
 ## Run
 
