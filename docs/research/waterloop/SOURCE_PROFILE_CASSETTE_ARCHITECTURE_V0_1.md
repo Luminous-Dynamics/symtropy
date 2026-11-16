@@ -371,7 +371,7 @@ The first article is a **contained bench module**, not an occupied-household app
 
 ### T1 fault matrix
 
-The 15 frozen challenges include bathroom baseline, laundry-only challenge, unknown/mixed feed rejection, kitchen/blackwater rejection, feed-envelope excursion, membrane fouling/integrity failure, UVT/UV failure, ozone off-gas failure, GAC breakthrough/unknown age, EC electrode degradation, power loss, stale quality evidence, unmetered residual path, extended idle/restart and quality-verification gap.
+The 19 frozen challenges include bathroom baseline, laundry-only challenge, unknown/mixed feed rejection, kitchen/blackwater rejection, feed-envelope excursion, membrane fouling/integrity failure, UVT/UV failure, ozone off-gas failure, GAC breakthrough/unknown age, EC electrode degradation, power loss, stale quality evidence, unmetered residual path, extended idle/restart, quality-verification gap, missing module envelope, source outside cassette allowlist, intended use outside envelope and changed cassette configuration requiring requalification.
 
 For every failed/unknown critical state, expected output is isolation/quarantine or an explicit loss of quality claim. These are proposed test cases only; running them requires the release gates in the test matrix and the professional/safety reviews already stated above.
 
@@ -389,3 +389,15 @@ The allowed initial source populations are deliberately narrow:
 - No train accepts kitchen, blackwater or unknown mixed feed in v0.1.
 
 The only intended use currently listed is a contained test load; no reuse application is qualified.
+
+
+## 18. Envelope admission negative controls
+
+The T1 matrix includes four cases that protect against a subtle but dangerous modularity failure: reusing a cassette because it physically fits.
+
+- Missing or not-admitted envelope: operation is rejected and product outlet isolated.
+- Unsupported source profile: reject and quarantine; a bathroom train cannot silently receive laundry.
+- Intended use outside the train's allowlist: no use credit and outlet isolation.
+- Changed critical component/configuration (for example UV reactor, membrane, GAC grade, electrode lot or process geometry): create a new configuration identity and require requalification; do not inherit prior evidence.
+
+This is configuration-level assurance. A cassette is qualified only for the exact source/use/configuration/evidence envelope that was tested.
