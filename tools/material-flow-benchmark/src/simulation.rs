@@ -52,6 +52,45 @@ pub struct FaultSimulationResult {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct GateFaultSweepCase {
+    pub case_index: usize,
+    pub seed: u64,
+    pub fault_oracle_passed: bool,
+    pub gate_contact_event_count: usize,
+    pub gate_contact_max_impulse_ns: f64,
+    pub max_contact_penetration_m: f64,
+    pub reconciliation_required: bool,
+    pub blind_retry_blocked: bool,
+    pub false_completion_blocked: bool,
+    pub physics_trace_digest: Option<String>,
+    pub failure_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct GateFaultSweepResult {
+    pub schema_version: u16,
+    pub scenario_id: String,
+    pub source_commit: String,
+    pub configuration_digest: String,
+    pub seed_start: u64,
+    pub requested_run_count: usize,
+    pub executed_run_count: usize,
+    pub passed_run_count: usize,
+    pub failed_run_count: usize,
+    pub all_fault_oracles_passed: bool,
+    pub total_gate_contact_events: u64,
+    pub minimum_gate_contact_events: usize,
+    pub maximum_gate_contact_events: usize,
+    pub maximum_gate_contact_impulse_ns: f64,
+    pub maximum_contact_penetration_m: f64,
+    pub reconciliation_run_count: usize,
+    pub blind_retry_blocked_run_count: usize,
+    pub false_completion_blocked_run_count: usize,
+    pub cases: Vec<GateFaultSweepCase>,
+    pub limitations: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SimulationResult {
     pub schema_version: u16,
     pub scenario_id: String,
@@ -732,6 +771,32 @@ mod tests {
     }
 
     #[test]
+    fn small_gate_fault_sweep_retains_all_cases_and_is_repeatable() {
+        let first = simulate_closed_gate_obstruction_sweep(&fixture(), 3)
+            .expect("three-seed gate sweep should execute");
+        let replay = simulate_closed_gate_obstruction_sweep(&fixture(), 3)
+            .expect("repeated three-seed gate sweep should execute");
+        assert_eq!(first, replay);
+        assert_eq!(first.requested_run_count, 3);
+        assert_eq!(first.executed_run_count, 3);
+        assert_eq!(first.passed_run_count, 3, "{first:?}");
+        assert_eq!(first.failed_run_count, 0);
+        assert!(first.all_fault_oracles_passed);
+        assert_eq!(first.reconciliation_run_count, 3);
+        assert_eq!(first.blind_retry_blocked_run_count, 3);
+        assert_eq!(first.false_completion_blocked_run_count, 3);
+        assert!(first.minimum_gate_contact_events > 0);
+        assert!(first.maximum_gate_contact_impulse_ns > 0.0);
+        assert!(first.cases.iter().all(|case| case.physics_trace_digest.is_some()));
+    }
+
+    #[test]
+    fn gate_fault_sweep_rejects_zero_and_oversized_run_counts() {
+        assert!(simulate_closed_gate_obstruction_sweep(&fixture(), 0).is_err());
+        assert!(simulate_closed_gate_obstruction_sweep(&fixture(), 257).is_err());
+    }
+
+    #[test]
     fn seed_is_bound_into_the_physics_trace() {
         let baseline = simulate_nominal(&fixture()).expect("baseline episode should execute");
         let mut other_seed = fixture();
@@ -748,3 +813,122 @@ mod tests {
         assert!(simulate_nominal(&scenario).is_err());
     }
 }
+
+/// Run a deterministic seed sweep for the static gate-obstruction scene.
+/// Every requested seed is retained in the report, including simulation
+/// errors and failed fault oracles; cases are never silently dropped.
+pub fn simulate_closed_gate_obstruction_sweep(
+    scenario: &ScenarioManifest,
+    run_count: usize,
+) -> Result<GateFaultSweepResult, String> {
+    const MAX_SWEEP_RUNS: usize = 256;
+    if !(1..=MAX_SWEEP_RUNS).contains(&run_count) {
+        return Err(format!(
+            "gate-fault sweep run_count must be in 1..={MAX_SWEEP_RUNS}"
+        ));
+    }
+    scenario.validate().map_err(|errors| errors.join("; "))?;
+
+    let mut cases = Vec::with_capacity(run_count);
+    let mut passed_run_count = 0_usize;
+    let mut total_gate_contact_events = 0_u64;
+    let mut minimum_gate_contact_events = usize::MAX;
+    let mut maximum_gate_contact_events = 0_usize;
+    let mut maximum_gate_contact_impulse_ns = 0.0_f64;
+    let mut maximum_contact_penetration_m = 0.0_f64;
+    let mut reconciliation_run_count = 0_usize;
+    let mut blind_retry_blocked_run_count = 0_usize;
+    let mut false_completion_blocked_run_count = 0_usize;
+
+    for case_index in 0..run_count {
+        let seed = scenario
+            .seed
+            .checked_add(case_index as u64)
+            .ok_or_else(|| "gate-fault seed range overflows u64".to_string())?;
+        let mut case_scenario = scenario.clone();
+        case_scenario.seed = seed;
+
+        match simulate_closed_gate_obstruction(&case_scenario) {
+            Ok(result) => {
+                total_gate_contact_events = total_gate_contact_events
+                    .saturating_add(result.gate_contact_event_count as u64);
+                minimum_gate_contact_events =
+                    minimum_gate_contact_events.min(result.gate_contact_event_count);
+                maximum_gate_contact_events =
+                    maximum_gate_contact_events.max(result.gate_contact_event_count);
+                maximum_gate_contact_impulse_ns = maximum_gate_contact_impulse_ns
+                    .max(result.gate_contact_max_impulse_ns);
+                maximum_contact_penetration_m = maximum_contact_penetration_m
+                    .max(result.simulation.max_contact_penetration_m);
+                reconciliation_run_count += usize::from(result.reconciliation_required);
+                blind_retry_blocked_run_count += usize::from(result.blind_retry_blocked);
+                false_completion_blocked_run_count +=
+                    usize::from(result.false_completion_blocked);
+                passed_run_count += usize::from(result.fault_oracle_passed);
+                cases.push(GateFaultSweepCase {
+                    case_index,
+                    seed,
+                    fault_oracle_passed: result.fault_oracle_passed,
+                    gate_contact_event_count: result.gate_contact_event_count,
+                    gate_contact_max_impulse_ns: result.gate_contact_max_impulse_ns,
+                    max_contact_penetration_m: result.simulation.max_contact_penetration_m,
+                    reconciliation_required: result.reconciliation_required,
+                    blind_retry_blocked: result.blind_retry_blocked,
+                    false_completion_blocked: result.false_completion_blocked,
+                    physics_trace_digest: Some(result.simulation.physics_trace_digest),
+                    failure_reason: (!result.fault_oracle_passed)
+                        .then(|| "one or more per-case fault oracle conditions failed".into()),
+                });
+            }
+            Err(error) => {
+                cases.push(GateFaultSweepCase {
+                    case_index,
+                    seed,
+                    fault_oracle_passed: false,
+                    gate_contact_event_count: 0,
+                    gate_contact_max_impulse_ns: 0.0,
+                    max_contact_penetration_m: 0.0,
+                    reconciliation_required: false,
+                    blind_retry_blocked: false,
+                    false_completion_blocked: false,
+                    physics_trace_digest: None,
+                    failure_reason: Some(error),
+                });
+            }
+        }
+    }
+
+    let failed_run_count = run_count - passed_run_count;
+    if minimum_gate_contact_events == usize::MAX {
+        minimum_gate_contact_events = 0;
+    }
+
+    Ok(GateFaultSweepResult {
+        schema_version: scenario.schema_version,
+        scenario_id: scenario.scenario_id.clone(),
+        source_commit: scenario.digests.source_commit.clone(),
+        configuration_digest: scenario.digests.configuration_digest.clone(),
+        seed_start: scenario.seed,
+        requested_run_count: run_count,
+        executed_run_count: cases.len(),
+        passed_run_count,
+        failed_run_count,
+        all_fault_oracles_passed: passed_run_count == run_count,
+        total_gate_contact_events,
+        minimum_gate_contact_events,
+        maximum_gate_contact_events,
+        maximum_gate_contact_impulse_ns,
+        maximum_contact_penetration_m,
+        reconciliation_run_count,
+        blind_retry_blocked_run_count,
+        false_completion_blocked_run_count,
+        cases,
+        limitations: vec![
+            "Each case varies the deterministic initial package offsets via scenario seed; it is not an independent home, robot, sensor or hardware sample".into(),
+            "All runs use the same static gate geometry, physics engine, package/tote configuration and fixed timestep".into(),
+            "This remains an L1 synthetic obstruction study; it does not establish HIL, guarded-rig or field reliability".into(),
+            "Execution errors remain explicit failed cases and are not removed from the denominator".into(),
+        ],
+    })
+}
+
