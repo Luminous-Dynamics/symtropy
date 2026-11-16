@@ -70,6 +70,8 @@ No second capability engine, evidence graph, accepted-output ledger, maintenance
 
 ## Current verification
 
+The parent integration branch's focused validation workflow also runs for pull requests targeting `research/robot-config-mission-impact-v0-1`, so this child research PR is checked at its merge head before composition.
+
 The isolated Rust 1.96 package validates the public schemas and cross-file invariants, generates deterministic public synthetic challenge manifests, and checks the 16-case stage-transition challenge corpus against a separate public development oracle. Stage-transition checks fail closed on missing postcondition evidence, critical verifier-class mismatch, stale configuration/frame/calibration, unqualified clock mapping, unauthorized skip, resume revision mismatch, conflicting evidence and duplicate accepted output. Robot command acknowledgement and self-report alone cannot advance a stage.
 
 The public development generator uses domain-separated SHA-256 seed derivation and SplitMix64 sampling; this is reproducible but not cryptographically secure. The focused Linux/macOS/Windows workflow exercises the generator and stage-transition fixtures. Exact-head results must be reported from the current workflow run, not inferred from an earlier revision.
