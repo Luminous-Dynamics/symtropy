@@ -56,6 +56,7 @@ All numerical targets below are programme targets for preregistered test envelop
 | EnvironmentalCharacterizationBench | Temperature, pressure, radiation, dust, gas, volatile and illumination mapping | Spatial coverage and uncertainty reported by sensor modality; missing values never interpolated into qualified zones |
 | ScienceValueOfInformationBench | Expected reduction in uncertainty or decision regret per observation mass, energy and time | Target at least 20% lower preregistered decision regret than passive/uniform sampling at equal observation budget |
 | PreservationBench | Planetary-protection constraints, contamination-control records and sample chain of custody | Reject all unauthorized or policy-incompatible sampling/biological actions in the finite adversarial suite |
+| ClaimConsistencyBench | Cross-field consistency of morphology, origin, connectivity, access, survey, engineering-use and preservation claims | Reject contradictory states (for example, direct connectivity with no demonstrated access or survey); no inconsistent site-readiness claim may be promoted |
 | UseQualificationBench | Requirements and evidence for storage, industry, habitat or science use | No cross-use inference: each declared use has its own acceptance envelope and independent test records |
 
 ## 5. Baseline set
