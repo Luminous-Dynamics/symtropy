@@ -85,13 +85,15 @@ pub fn classify_case(case: &Value) -> Result<Classification, String> {
         compare_metrics(case)?
     };
 
-    let qualification_decision = if technical_status == "success"
+    let qualification_decision = if evidence_integrity == "invalid" {
+        "reject"
+    } else if domain != "inside_validity_domain" || !references_available {
+        "abstain"
+    } else if technical_status == "success"
         && scientific_status == "valid"
         && evidence_integrity == "valid"
     {
         "accept"
-    } else if domain != "inside_validity_domain" || !references_available {
-        "abstain"
     } else {
         "reject"
     };
@@ -311,6 +313,15 @@ mod tests {
         let case = registry()["cases"][4].clone();
         let result = classify_case(&case).expect("case should classify");
         assert_eq!(result.qualification_decision, "abstain");
+    }
+
+    #[test]
+    fn invalid_provenance_is_rejected_even_when_domain_is_unsupported() {
+        let mut case = registry()["cases"][4].clone();
+        case["execution"]["source_identity"] = json!("mismatch");
+        let result = classify_case(&case).expect("case should classify");
+        assert_eq!(result.evidence_integrity, "invalid");
+        assert_eq!(result.qualification_decision, "reject");
     }
 
     #[test]
