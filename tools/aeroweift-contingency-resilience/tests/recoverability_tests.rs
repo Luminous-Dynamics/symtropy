@@ -542,7 +542,6 @@ fn reauthorization_gap_is_reported_when_one_known_option_is_not_enough() {
     assert_eq!(result.status, RecoverabilityStatus::ReauthorizationRequired);
 }
 
-
 #[test]
 fn one_option_is_not_misreported_as_meeting_two_option_requirement() {
     let result = evaluate(
@@ -555,7 +554,10 @@ fn one_option_is_not_misreported_as_meeting_two_option_requirement() {
     assert_eq!(result.status, RecoverabilityStatus::CoveredSingleOption);
     assert_eq!(result.required_independent_options, 2);
     assert!(!result.required_diversity_met);
-    assert_eq!(result.independent_option_witness, vec!["single".to_string()]);
+    assert_eq!(
+        result.independent_option_witness,
+        vec!["single".to_string()]
+    );
 }
 
 #[test]
@@ -614,7 +616,8 @@ fn adding_failed_dependency_never_increases_admissible_option_count() {
         let mut contingency = case();
         let domain = format!("FAILURE-{index}");
         let candidate = option("candidate", &[&domain]);
-        let baseline = evaluate(&contingency, &[candidate.clone()], &inventory(), &policy()).unwrap();
+        let baseline =
+            evaluate(&contingency, &[candidate.clone()], &inventory(), &policy()).unwrap();
         contingency.failed_domains.push(domain);
         let after = evaluate(&contingency, &[candidate], &inventory(), &policy()).unwrap();
         assert_eq!(baseline.admissible_option_ids.len(), 1);
@@ -627,13 +630,7 @@ fn decreasing_containment_bound_never_improves_option_admissibility() {
     for step in 0..20 {
         let mut candidate = option("containment-monotone", &["GNSS"]);
         candidate.bounds.containment_lower = 0.95 - (step as f64 * 0.001);
-        let result = evaluate(
-            &case(),
-            &[candidate],
-            &inventory(),
-            &policy(),
-        )
-        .unwrap();
+        let result = evaluate(&case(), &[candidate], &inventory(), &policy()).unwrap();
         if step == 0 {
             assert_eq!(result.admissible_option_ids.len(), 1);
         } else {
