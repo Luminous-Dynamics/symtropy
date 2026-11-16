@@ -260,3 +260,26 @@ This avoids inferring stages from event-name prefixes and preserves the distinct
 - **Robot Manipulation Benchmark Audit**, arXiv:2606.04233 (2 June 2026), identifies shortcut solvability, insufficient statistical significance, creeping overfitting and data-source dependence. Its audit found that only 19.8% and 19.7% of SOTA claims on LIBERO and SimplerEnv, respectively, were provably significant under the authors' analysis. MIP therefore requires low-capacity probes, held-out seeds, per-seed effects and data-source disclosure before any benchmark claim. https://arxiv.org/abs/2606.04233 and https://ripl.github.io/manipulation_benchmark_audit/
 
 The benchmarks differ in robot embodiments, task families, simulator/physical evidence and denominators. Do not compare their success percentages to each other or to construction field productivity. The useful contribution is methodological transfer, not a leaderboard claim.
+
+
+## 15. Outcome measures and acceptance-margin reporting
+
+The public `mission-outcome-metrics-v0.1.json` file provides one synthetic functional-unit outcome record for each source/target pair. It intentionally records separate quantities:
+- attempted, accepted, rejected, held, aborted, unknown and not-started units;
+- robot elapsed seconds and total-workflow crew seconds;
+- energy in Wh;
+- operator interventions and intervention seconds;
+- reinspection count;
+- signed geometry error, expanded measurement uncertainty and acceptance tolerance, with an independent measurement reference where a result exists.
+
+For the declared synthetic layout tolerance, a result is within the uncertainty-guarded tolerance only when:
+
+`abs(signed_error_mm) + expanded_uncertainty_mm <= acceptance_tolerance_mm`
+
+This is a simplified fixture rule, not a substitute for a task-specific uncertainty budget, decision rule or applicable metrology standard. Real acceptance criteria must be supplied by the relevant owner/customer/referee profile.
+
+The benchmark must retain **distance to the acceptance boundary**, not only pass/fail. MIP-006 intentionally keeps aggregate acceptance unchanged while reducing the target's uncertainty-guarded margin and increasing intervention/reinspection burden. This is the counterexample to a benchmark that equates equal binary success with equivalent operational performance.
+
+No combined score is computed from energy, quality, labour, safety, downtime or requalification effort. Report a vector and its uncertainty. A hard acceptance or safety failure remains non-compensable by throughput.
+
+All numeric values in the current file are fictional fixtures designed to test the contract. They are not measurements, baseline data, or evidence of improved productivity.
