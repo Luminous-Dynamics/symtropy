@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/muon-collider/beam-state-handoff.schema.json",
+  "$id": "urn:luminous-dynamics:symtropy:muon-collider:beam-state-handoff:0.1.0",
   "title": "Muon Collider Beam-State Handoff Envelope",
   "description": "Metadata and qualification envelope for one species/bunch handoff. Large particle data remain in an immutable external asset.",
   "type": "object",
