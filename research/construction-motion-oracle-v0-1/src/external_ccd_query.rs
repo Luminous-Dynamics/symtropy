@@ -283,8 +283,9 @@ fn expect_byte(
 }
 
 fn consume_literal(bytes: &[u8], cursor: &mut usize, literal: &[u8]) -> bool {
-    if bytes.get(*cursor..cursor.saturating_add(literal.len())) == Some(literal) {
-        *cursor += literal.len();
+    let end = (*cursor).saturating_add(literal.len());
+    if bytes.get(*cursor..end) == Some(literal) {
+        *cursor = end;
         true
     } else {
         false
