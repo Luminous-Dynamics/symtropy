@@ -754,7 +754,10 @@ mod tests {
         assert_eq!(subject_tag(ObservationSubject::LiquidFilmBridge), 11);
         assert_eq!(subject_tag(ObservationSubject::RamanSpectrum), 12);
         assert_eq!(subject_tag(ObservationSubject::RamanChemicalMap), 13);
-        assert_eq!(subject_tag(ObservationSubject::RamanCalibrationReference), 14);
+        assert_eq!(
+            subject_tag(ObservationSubject::RamanCalibrationReference),
+            14
+        );
         assert_ne!(
             subject_tag(ObservationSubject::LiquidFilmPatch),
             subject_tag(ObservationSubject::BacterialTrajectory)
