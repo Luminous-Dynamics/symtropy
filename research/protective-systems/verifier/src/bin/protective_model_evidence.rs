@@ -12,6 +12,8 @@ use std::process;
 
 const FIXTURE: &str =
     include_str!("../../../fixtures/protective-model-evidence-envelope-v0.1.json");
+const SCHEMA_SPEC: &str =
+    include_str!("../../../schemas/protective-model-evidence-envelope-v0.1.schema.json");
 const INPUT_BYTES: &[u8] =
     include_bytes!("../../../fixtures/model-evidence-payloads/synthetic-input.json");
 const OUTPUT_BYTES: &[u8] =
@@ -30,6 +32,7 @@ struct ArtifactReceipt {
 #[derive(Debug, Serialize)]
 struct GateReport {
     schema_version: &'static str,
+    schema_spec_sha256: String,
     evidence_class: String,
     provider_id: String,
     analysis_id: String,
@@ -75,15 +78,29 @@ fn validate_version_field(value: &Value, path: &str) -> Result<bool, String> {
     }
 }
 
-fn validate_rights(value: &Value, path: &str, evidence_class: &str) -> Result<bool, String> {
+fn validate_rights(
+    value: &Value,
+    path: &str,
+    evidence_class: &str,
+    intended_use: &str,
+) -> Result<bool, String> {
     let status = required_text(value, "status", path)?;
     let license = value
         .get("license_id")
         .ok_or_else(|| format!("{path}.license_id is required"))?;
-    required_text(value, "permitted_use", path)?;
+    let permitted_use = required_text(value, "permitted_use", path)?;
     match status {
-        "SYNTHETIC_OPEN_FIXTURE" if evidence_class == "synthetic" && license.is_null() => Ok(true),
-        "LICENSED" if license.as_str().map(str::trim).filter(|item| !item.is_empty()).is_some() => Ok(true),
+        "SYNTHETIC_OPEN_FIXTURE"
+            if evidence_class == "synthetic"
+                && intended_use == "SYNTHETIC_TEST_ONLY"
+                && permitted_use == "SYNTHETIC_TEST_ONLY"
+                && license.is_null() => Ok(true),
+        "LICENSED"
+            if evidence_class == "external_observed"
+                && permitted_use == intended_use
+                && ["INTEROPERABILITY_EVALUATION", "RESEARCH_EVALUATION", "PUBLICATION_REVIEW"]
+                    .contains(&intended_use)
+                && license.as_str().map(str::trim).filter(|item| !item.is_empty()).is_some() => Ok(true),
         "UNKNOWN" | "RESTRICTED" => Ok(false),
         "SYNTHETIC_OPEN_FIXTURE" => Err(format!(
             "{path}: synthetic fixture rights are only valid for evidence_class=synthetic"
@@ -98,6 +115,33 @@ fn validate_envelope(
     input_bytes: &[u8],
     output_bytes: &[u8],
 ) -> Result<GateReport, String> {
+    let schema_value: Value = serde_json::from_str(SCHEMA_SPEC)
+        .map_err(|error| format!("embedded JSON Schema invalid: {error}"))?;
+    if schema_value["$schema"] != "https://json-schema.org/draft/2020-12/schema"
+        || schema_value["properties"]["schema_version"]["const"] != SCHEMA
+    {
+        return Err("embedded JSON Schema metadata does not match the executable schema".to_owned());
+    }
+    let schema_required = schema_value["required"]
+        .as_array()
+        .ok_or_else(|| "embedded JSON Schema required fields must be an array".to_owned())?;
+    for key in [
+        "schema_version",
+        "evidence_class",
+        "intended_use",
+        "source",
+        "analysis",
+        "scope",
+        "datasets",
+        "lineage_edges",
+        "uncertainty",
+        "claim_ceiling",
+    ] {
+        if !schema_required.iter().any(|item| item.as_str() == Some(key)) {
+            return Err(format!("embedded JSON Schema omits required field {key}"));
+        }
+    }
+
     let root: Value = serde_json::from_str(envelope_text)
         .map_err(|error| format!("envelope JSON invalid: {error}"))?;
     if required_text(&root, "schema_version", "root")? != SCHEMA {
@@ -107,6 +151,30 @@ fn validate_envelope(
     let evidence_class = required_text(&root, "evidence_class", "root")?;
     if !["synthetic", "external_observed"].contains(&evidence_class) {
         return Err(format!("unsupported evidence_class: {evidence_class}"));
+    }
+    let intended_use = required_text(&root, "intended_use", "root")?;
+    let allowed_uses = [
+        "SYNTHETIC_TEST_ONLY",
+        "INTEROPERABILITY_EVALUATION",
+        "RESEARCH_EVALUATION",
+        "PUBLICATION_REVIEW",
+    ];
+    if !allowed_uses.contains(&intended_use) {
+        return Err(format!("unsupported intended_use: {intended_use}"));
+    }
+    if (evidence_class == "synthetic" && intended_use != "SYNTHETIC_TEST_ONLY")
+        || (evidence_class == "external_observed" && intended_use == "SYNTHETIC_TEST_ONLY")
+    {
+        return Err("intended_use conflicts with evidence_class".to_owned());
+    }
+    let claim_ceiling = required_text(&root, "claim_ceiling", "root")?;
+    let expected_claim_ceiling = if evidence_class == "synthetic" {
+        "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY"
+    } else {
+        "EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY"
+    };
+    if claim_ceiling != expected_claim_ceiling {
+        return Err("claim_ceiling exceeds or conflicts with the declared evidence class".to_owned());
     }
     let source = root
         .get("source")
@@ -125,13 +193,12 @@ fn validate_envelope(
             .ok_or_else(|| "source.software_version is required".to_owned())?,
         "source.software_version",
     )?;
-    if let Some(uri) = source.get("documentation_uri") {
-        if !uri.is_null() && uri.as_str().map(str::trim).filter(|s| !s.is_empty()).is_none() {
-            return Err("source.documentation_uri must be a URI string or null".to_owned());
-        }
-    } else {
-        return Err("source.documentation_uri is required".to_owned());
-    }
+    let documentation_uri_known = source
+        .get("documentation_uri")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .is_some();
 
     let analysis = root
         .get("analysis")
@@ -159,8 +226,8 @@ fn validate_envelope(
         if !run_id_known {
             return Err("completed analysis requires a non-empty analysis.run_id".to_owned());
         }
-        if analysis["completed_at"].is_null() {
-            return Err("completed analysis requires analysis.completed_at".to_owned());
+        if analysis["started_at"].is_null() || analysis["completed_at"].is_null() {
+            return Err("completed analysis requires both analysis.started_at and analysis.completed_at".to_owned());
         }
     }
 
@@ -232,6 +299,7 @@ fn validate_envelope(
                 .ok_or_else(|| format!("{path}.rights is required"))?,
             &format!("{path}.rights"),
             evidence_class,
+            intended_use,
         )?;
         all_rights_cleared &= rights_cleared;
 
@@ -371,8 +439,6 @@ fn validate_envelope(
             "represented uncertainty requires method_id and calibration_reference".to_owned(),
         );
     }
-    required_text(&root, "claim_ceiling", "root")?;
-
     let disposition = if evidence_class == "synthetic" || execution_status == "NOT_EXECUTED" {
         "ABSTAIN_SYNTHETIC_NOT_EXECUTED"
     } else if execution_status != "COMPLETED" {
@@ -383,6 +449,7 @@ fn validate_envelope(
         || !all_rights_cleared
         || !all_dataset_crs_known
         || !scope_crs_known
+        || !documentation_uri_known
         || uncertainty_status != "REPRESENTED"
     {
         "ABSTAIN_INCOMPLETE_EXTERNAL_EVIDENCE"
@@ -394,6 +461,7 @@ fn validate_envelope(
         .map_err(|error| format!("envelope canonicalization failed: {error}"))?;
     Ok(GateReport {
         schema_version: SCHEMA,
+        schema_spec_sha256: format!("{:x}", Sha256::digest(SCHEMA_SPEC.as_bytes())),
         evidence_class: evidence_class.to_owned(),
         provider_id: provider_id.to_owned(),
         analysis_id: analysis_id.to_owned(),
@@ -444,6 +512,65 @@ mod tests {
         assert_eq!(report.artifact_receipts.len(), 2);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_NOT_EXECUTED");
         assert!(report.artifact_receipts.iter().all(|item| item.integrity_verified));
+    }
+
+    #[test]
+    fn completed_external_metadata_never_authenticates_the_provider() {
+        let mut root = fixture_value();
+        root["evidence_class"] = Value::String("external_observed".into());
+        root["intended_use"] = Value::String("INTEROPERABILITY_EVALUATION".into());
+        root["claim_ceiling"] =
+            Value::String("EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY".into());
+        root["source"]["provider_kind"] = Value::String("EXTERNAL_MODEL".into());
+        root["source"]["software_version"] =
+            json!({"status":"KNOWN","value":"adapter-fixture-1"});
+        root["analysis"]["execution_status"] = Value::String("COMPLETED".into());
+        root["analysis"]["run_id"] = Value::String("synthetic-test-run-only".into());
+        root["analysis"]["started_at"] = Value::String("2026-11-16T00:00:00+01:00".into());
+        root["analysis"]["completed_at"] = Value::String("2026-11-16T00:00:00+02:00".into());
+        root["scope"]["coordinate_reference"] =
+            json!({"status":"KNOWN","value":"EPSG:4326"});
+        root["uncertainty"] = json!({
+            "status":"REPRESENTED",
+            "representation":"test-only interval metadata",
+            "method_id":"test-method",
+            "calibration_reference":"test-calibration"
+        });
+        for dataset in root["datasets"].as_array_mut().expect("datasets") {
+            dataset["revision"] = json!({"status":"KNOWN","value":"test-revision"});
+            dataset["rights"] = json!({
+                "status":"LICENSED",
+                "license_id":"TEST-LICENSE-ONLY",
+                "permitted_use":"INTEROPERABILITY_EVALUATION"
+            });
+            dataset["coordinate_reference"] =
+                json!({"status":"KNOWN","value":"EPSG:4326"});
+        }
+        let report = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect("complete synthetic metadata envelope");
+        assert_eq!(
+            report.disposition,
+            "ENVELOPE_METADATA_COMPLETE_SOURCE_AUTHENTICITY_UNVERIFIED"
+        );
+    }
+
+    #[test]
+    fn claim_ceiling_cannot_be_promoted_by_envelope_author() {
+        let mut root = fixture_value();
+        root["claim_ceiling"] =
+            Value::String("PHYSICALLY_VALIDATED_AND_SAFE".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("unsupported claim");
+        assert!(error.contains("claim_ceiling exceeds"));
+    }
+
+    #[test]
+    fn intended_use_must_match_the_dataset_rights_grant() {
+        let mut root = fixture_value();
+        root["intended_use"] = Value::String("PUBLICATION_REVIEW".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("rights use mismatch");
+        assert!(error.contains("intended_use conflicts"));
     }
 
     #[test]
@@ -526,9 +653,18 @@ mod tests {
         root["source"]["provider_kind"] = Value::String("EXTERNAL_MODEL".into());
         root["analysis"]["execution_status"] = Value::String("COMPLETED".into());
         root["analysis"]["run_id"] = Value::String("provider-run-001".into());
+        root["analysis"]["started_at"] = Value::String("2026-11-16T00:00:00+01:00".into());
         root["analysis"]["completed_at"] = Value::String("2026-11-16T00:00:00+02:00".into());
+        root["intended_use"] = Value::String("INTEROPERABILITY_EVALUATION".into());
+        root["claim_ceiling"] = Value::String("EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY".into());
+        root["source"]["software_version"] = json!({"status":"KNOWN","value":"adapter-fixture-1"});
+        root["scope"]["coordinate_reference"] = json!({"status":"KNOWN","value":"EPSG:4326"});
+        root["uncertainty"] = json!({"status":"REPRESENTED","representation":"test-only interval metadata","method_id":"test-method","calibration_reference":"test-calibration"});
         for dataset in root["datasets"].as_array_mut().expect("datasets") {
+            dataset["revision"] = json!({"status":"KNOWN","value":"dataset-revision-1"});
+            dataset["coordinate_reference"] = json!({"status":"KNOWN","value":"EPSG:4326"});
             dataset["rights"]["status"] = Value::String("UNKNOWN".into());
+            dataset["rights"]["license_id"] = Value::Null;
             dataset["rights"]["permitted_use"] = Value::String("NOT_ADMITTED".into());
         }
         let report = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
@@ -544,10 +680,15 @@ mod tests {
         root["source"]["software_version"] = json!({"status":"KNOWN","value":"1.22"});
         root["analysis"]["execution_status"] = Value::String("COMPLETED".into());
         root["analysis"]["run_id"] = Value::String("provider-run-001".into());
+        root["analysis"]["started_at"] = Value::String("2026-11-16T00:00:00+01:00".into());
         root["analysis"]["completed_at"] = Value::String("2026-11-16T00:00:00+02:00".into());
+        root["intended_use"] = Value::String("INTEROPERABILITY_EVALUATION".into());
+        root["claim_ceiling"] = Value::String("EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY".into());
+        root["scope"]["coordinate_reference"] = json!({"status":"KNOWN","value":"EPSG:4326"});
+        root["uncertainty"] = json!({"status":"REPRESENTED","representation":"test-only interval metadata","method_id":"test-method","calibration_reference":"test-calibration"});
         for dataset in root["datasets"].as_array_mut().expect("datasets") {
-            dataset["rights"]["status"] = Value::String("UNKNOWN".into());
-            dataset["rights"]["permitted_use"] = Value::String("NOT_ADMITTED".into());
+            dataset["rights"] = json!({"status":"LICENSED","license_id":"TEST-LICENSE-ONLY","permitted_use":"INTEROPERABILITY_EVALUATION"});
+            dataset["coordinate_reference"] = json!({"status":"KNOWN","value":"EPSG:4326"});
         }
         let report = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect("unknown revision retained explicitly");
