@@ -21,7 +21,12 @@
     "candidate_train_families",
     "fail_safe_state",
     "qualification_stages",
-    "benchmark_targets"
+    "benchmark_targets",
+    "potable_nonpotable_separation",
+    "reject_and_overflow_routing",
+    "batch_quality_release_policy",
+    "source_characterization_protocol",
+    "matched_train_experiment"
   ],
   "properties": {
     "schema_version": {
@@ -86,7 +91,7 @@
     },
     "source_classes": {
       "type": "array",
-      "minItems": 6,
+      "minItems": 9,
       "items": {
         "type": "object",
         "required": [
@@ -261,7 +266,7 @@
     },
     "candidate_train_families": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 5,
       "items": {
         "type": "object",
         "required": [
@@ -337,6 +342,241 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "potable_nonpotable_separation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "separate_physical_circuits",
+        "common_tank_or_pipe_prohibited",
+        "cross_connection_test_required",
+        "cross_connection_suspected_action",
+        "potable_makeup_connection_in_v0_1",
+        "future_makeup_protection_method",
+        "future_makeup_requires_backflow_or_air_gap_review",
+        "local_authority_approval_required_before_any_plumbed_makeup",
+        "nonpotable_fixture_and_pipe_identification_required"
+      ],
+      "properties": {
+        "separate_physical_circuits": {
+          "const": true
+        },
+        "common_tank_or_pipe_prohibited": {
+          "const": true
+        },
+        "cross_connection_test_required": {
+          "const": true
+        },
+        "cross_connection_suspected_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "potable_makeup_connection_in_v0_1": {
+          "const": false
+        },
+        "future_makeup_protection_method": {
+          "type": "string",
+          "pattern": "UNASSIGNED_PENDING"
+        },
+        "future_makeup_requires_backflow_or_air_gap_review": {
+          "const": true
+        },
+        "local_authority_approval_required_before_any_plumbed_makeup": {
+          "const": true
+        },
+        "nonpotable_fixture_and_pipe_identification_required": {
+          "const": true
+        }
+      }
+    },
+    "reject_and_overflow_routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reject_destination",
+        "overflow_destination",
+        "bypass_to_product_permitted",
+        "bypass_isolated_from_product",
+        "blocked_reject_action",
+        "route_authorization"
+      ],
+      "properties": {
+        "reject_destination": {
+          "type": "string",
+          "pattern": "UNASSIGNED_PENDING"
+        },
+        "overflow_destination": {
+          "type": "string",
+          "pattern": "UNASSIGNED_PENDING"
+        },
+        "bypass_to_product_permitted": {
+          "const": false
+        },
+        "bypass_isolated_from_product": {
+          "const": true
+        },
+        "blocked_reject_action": {
+          "type": "string"
+        },
+        "route_authorization": {
+          "const": "NOT_AUTHORIZED_BY_THIS_DESIGN_REFERENCE"
+        }
+      }
+    },
+    "batch_quality_release_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_batch_identity_required",
+        "module_configuration_identity_required",
+        "independent_laboratory_sample_required",
+        "sample_before_and_after_train_required",
+        "quality_assessment_must_match_exact_intended_use",
+        "sample_time_and_storage_age_required",
+        "stale_or_missing_quality_action",
+        "online_sensor_alone_can_unlock_release",
+        "batch_release_authority"
+      ],
+      "properties": {
+        "source_batch_identity_required": {
+          "const": true
+        },
+        "module_configuration_identity_required": {
+          "const": true
+        },
+        "independent_laboratory_sample_required": {
+          "const": true
+        },
+        "sample_before_and_after_train_required": {
+          "const": true
+        },
+        "quality_assessment_must_match_exact_intended_use": {
+          "const": true
+        },
+        "sample_time_and_storage_age_required": {
+          "const": true
+        },
+        "stale_or_missing_quality_action": {
+          "type": "string"
+        },
+        "online_sensor_alone_can_unlock_release": {
+          "const": false
+        },
+        "batch_release_authority": {
+          "const": "INDEPENDENT_USE_SPECIFIC_QUALITY_ASSESSMENT_ONLY"
+        }
+      }
+    },
+    "source_characterization_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_populations",
+        "minimum_source_survey_days",
+        "minimum_independent_real_feed_batches_per_source_class",
+        "exploratory_only",
+        "synthetic_feed_role",
+        "common_characterization",
+        "laundry_characterization",
+        "microbial_characterization",
+        "sample_identity_fields"
+      ],
+      "properties": {
+        "source_populations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "minimum_source_survey_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_independent_real_feed_batches_per_source_class": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exploratory_only": {
+          "const": true
+        },
+        "synthetic_feed_role": {
+          "type": "string"
+        },
+        "common_characterization": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "laundry_characterization": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "microbial_characterization": {
+          "type": "string"
+        },
+        "sample_identity_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "matched_train_experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "train_ids",
+        "matched_conditions",
+        "minimum_independent_runs_per_train_batch",
+        "report_absolute_concentrations_and_mass_loads",
+        "report_microbiology_separately_from_turbidity_and_COD",
+        "report_energy_and_all_auxiliary_loads",
+        "report_reject_backwash_concentrate_and_spent_media",
+        "no_single_removal_score_may_select_the_train"
+      ],
+      "properties": {
+        "train_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "matched_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "minimum_independent_runs_per_train_batch": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "report_absolute_concentrations_and_mass_loads": {
+          "const": true
+        },
+        "report_microbiology_separately_from_turbidity_and_COD": {
+          "const": true
+        },
+        "report_energy_and_all_auxiliary_loads": {
+          "const": true
+        },
+        "report_reject_backwash_concentrate_and_spent_media": {
+          "const": true
+        },
+        "no_single_removal_score_may_select_the_train": {
+          "const": true
         }
       }
     }
