@@ -652,8 +652,8 @@ mod tests {
             assessment
                 .reasons
                 .contains(&AssessmentReason::LifecycleGenerationMismatch {
-                    calibrated_generation: 0,
-                    current_generation: 1
+                    calibrated_generation: 1,
+                    current_generation: 2
                 })
         );
     }
