@@ -33,6 +33,12 @@ A deterministic FNV-1a 64-bit canonical fingerprint is emitted for reproducibili
 
 The tests use the official FJSPLib fattahi1 example in both text formats. They check one-based versus zero-based normalization and that the FJSP route structure and FAJSP precedence graph carry the same operation/machine/duration semantics.
 
+## Independent CP-SAT cross-check
+
+A benchmark-only Python adapter at `reference/ortools_fattahi1_check.py` parses the exact frozen `fixtures/fattahi1.fjsp` bytes and builds an independent optional-interval CP-SAT model. CI installs the pinned OR-Tools 9.15.6755 package and requires an OPTIMAL status with objective and best bound both equal to 66.
+
+This adapter is isolated to test/benchmark verification. The parser, exact solver, schedule verifier and any future runtime implementation remain Rust. Agreement on this one tiny known-answer case is a semantic cross-check, not a performance comparison or SOTA claim. The independent checker has its own parser/model and does not call the Rust exact solver.
+
 ## External comparison protocol to adopt
 
 The live FJSPLib reference page reports a 600-second comparison on a Windows PC with an Intel i7 4-core 3 GHz CPU and 32 GB RAM. Its published engine configuration is:
