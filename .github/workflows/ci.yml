@@ -97,6 +97,33 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
+      - name: Verify pinned FJSPLib corpus inventory
+        shell: bash
+        run: |
+          index="tools/factory-fjsplib-adapter/corpus/fjsplib-index-2026-10-22.tsv"
+          test "$(git hash-object "$index")" = "ffca6cdf55103205bcca73746324f94691ceeb87"
+          awk -F '\\t' '
+            NR == 1 { next }
+            {
+              rows++
+              logical[$1] = 1
+              formats[$6]++
+              classes[$6 "/" $2]++
+            }
+            END {
+              for (id in logical) unique++
+              if (rows != 854 || unique != 452 ||
+                  formats["fjsp"] != 402 || formats["fajsp"] != 452 ||
+                  classes["fjsp/classic_fjsp"] != 138 ||
+                  classes["fjsp/machine_independent_fjsp"] != 264 ||
+                  classes["fajsp/classic_fjsp"] != 138 ||
+                  classes["fajsp/machine_independent_fjsp"] != 264 ||
+                  classes["fajsp/flexible_assembly_fjsp"] != 50) {
+                print "FJSPLib inventory count mismatch" > "/dev/stderr"
+                exit 1
+              }
+            }
+          ' "$index"
       - name: Verify frozen fixture blob identities
         shell: bash
         run: |
