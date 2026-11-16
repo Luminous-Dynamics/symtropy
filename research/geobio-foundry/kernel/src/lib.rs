@@ -811,7 +811,7 @@ pub fn resource_intensity(
         gross_energy_standard_uncertainty,
     ]
     .iter()
-    .all(Option::is_some)
+    .all(|uncertainty| uncertainty.is_some())
         && (process.energy.recovered_j.is_none()
             || recovered_energy_standard_uncertainty.is_some());
 
