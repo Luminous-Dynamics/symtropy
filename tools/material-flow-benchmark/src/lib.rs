@@ -11,6 +11,7 @@ use std::collections::HashSet;
 
 pub mod campaign;
 pub mod convergence;
+pub mod procedure;
 pub mod simulation;
 pub mod transaction;
 
