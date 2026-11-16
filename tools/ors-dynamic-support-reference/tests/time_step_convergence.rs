@@ -107,14 +107,13 @@ fn exact_state(scenario: &Scenario) -> (f64, f64, f64) {
         scenario.damping_n_s_m,
     );
 
-    let expected_impulse_n_s =
-        if scenario.release_stream_time_s < scenario.release_support_time_s {
-            -scenario.preload_n * skew_s
-        } else if scenario.release_support_time_s < scenario.release_stream_time_s {
-            scenario.preload_n * skew_s
-        } else {
-            0.0
-        };
+    let expected_impulse_n_s = if scenario.release_stream_time_s < scenario.release_support_time_s {
+        -scenario.preload_n * skew_s
+    } else if scenario.release_support_time_s < scenario.release_stream_time_s {
+        scenario.preload_n * skew_s
+    } else {
+        0.0
+    };
 
     (separation_m, velocity_mps, expected_impulse_n_s)
 }
