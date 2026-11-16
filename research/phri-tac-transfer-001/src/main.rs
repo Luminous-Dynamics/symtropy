@@ -118,6 +118,19 @@ fn main() -> ExitCode {
                             family.reference_integrity.agreement_proves_independence,
                             family.shared_reference_common_cause_injected,
                         );
+                        println!(
+                            "response_observability family={} accepted={} conditions={} transitions={} flatlines={} decreasing={} affected_conditions={} first_plateau_start_n={:?} max_force_setpoint_n={:.3} resolution={:.3e}",
+                            family.family_id,
+                            family.observability.accepted,
+                            family.observability.condition_count,
+                            family.observability.checked_transition_count,
+                            family.observability.flatline_transition_count,
+                            family.observability.decreasing_transition_count,
+                            family.observability.affected_condition_count,
+                            family.observability.first_flatline_start_force_n,
+                            family.observability.maximum_observed_force_setpoint_n,
+                            family.observability.raw_response_resolution,
+                        );
                         for result in family.policies {
                             println!(
                                 "adversarial_family={} policy={} source_contacts={} target_contacts={} rmse_mean={:.6} rmse_p95={:.6} worst_error_mean={:.6} interval_coverage_mean={:.4} paired_rmse_delta_mean={:.6} bootstrap95_low={:.6} bootstrap95_high={:.6}",
