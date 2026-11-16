@@ -8,7 +8,7 @@
 //! common-cause declarations are honest, grant motion authority, or complete
 //! custody. Simulator ground truth must remain outside this input contract.
 
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
