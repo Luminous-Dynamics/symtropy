@@ -196,7 +196,7 @@ fn compute_budget_closure(
     })
 }
 
-fn render_report_json() -> Result<String, String> {
+pub(super) fn render_report_json() -> Result<String, String> {
     let closure = compute_budget_closure(&STAGES, HORIZONTAL_EMITTANCE_BUDGET_PCT)?;
 
     let stage_rows = closure
