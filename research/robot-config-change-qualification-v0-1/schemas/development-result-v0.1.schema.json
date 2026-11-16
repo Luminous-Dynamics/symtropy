@@ -151,6 +151,7 @@
         "claim_result_count",
         "disposition_counts",
         "safety_critical_changed_dependency_preserved_count",
+        "safety_critical_changed_dependency_false_preservation_count",
         "incomplete_dependency_claim_count"
       ],
       "properties": {
@@ -198,6 +199,10 @@
           "minimum": 0
         },
         "incomplete_dependency_claim_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "safety_critical_changed_dependency_false_preservation_count": {
           "type": "integer",
           "minimum": 0
         }
