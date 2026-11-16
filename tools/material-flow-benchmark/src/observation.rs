@@ -415,6 +415,12 @@ mod tests {
     #[test]
     fn reused_event_id_with_different_payload_is_contradictory() {
         let first = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let first = observation(
+            "evt-1",
+            "sensor-1",
+            Some("sensor-a"),
+            PresenceReading::Present,
+        );
         let mut conflicting = first.clone();
         conflicting.reading = PresenceReading::Absent;
         let report = adjudicate_receiver_presence(&[first, conflicting], &policy())
