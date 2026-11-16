@@ -602,6 +602,154 @@
         "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
         "denominator_tolerance": 1e-12
       }
+    },
+    {
+      "case_id": "HC-T0-037-crps-skill-positive",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "denominator_tolerance": 1e-12,
+        "observed": 4,
+        "ensemble_members": [
+          3,
+          4,
+          5
+        ],
+        "reference_ensemble_members": [
+          0,
+          0,
+          8
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-negative",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead48h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead48h_v1",
+        "denominator_tolerance": 1e-12,
+        "observed": 4,
+        "ensemble_members": [
+          0,
+          0,
+          8
+        ],
+        "reference_ensemble_members": [
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-039-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead6h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead6h_v1",
+        "denominator_tolerance": 1e-12,
+        "observed": 4,
+        "ensemble_members": [
+          3,
+          4,
+          5
+        ],
+        "reference_ensemble_members": [
+          4,
+          4,
+          4
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-040-crps-skill-target-mismatch",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead72h_v1",
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-041-weighted-interval-score-contained",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 5,
+        "median_forecast": 5,
+        "intervals": [
+          {
+            "alpha": 0.1,
+            "lower": 3,
+            "upper": 7
+          },
+          {
+            "alpha": 0.5,
+            "lower": 4,
+            "upper": 6
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-042-weighted-interval-score-upper-miss",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 8,
+        "median_forecast": 5,
+        "intervals": [
+          {
+            "alpha": 0.1,
+            "lower": 3,
+            "upper": 7
+          },
+          {
+            "alpha": 0.5,
+            "lower": 4,
+            "upper": 6
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-043-weighted-interval-crossed-bounds-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 5,
+        "median_forecast": 5,
+        "intervals": [
+          {
+            "alpha": 0.1,
+            "lower": 4,
+            "upper": 3
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-044-weighted-interval-quantile-crossing-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 5,
+        "median_forecast": 5,
+        "intervals": [
+          {
+            "alpha": 0.1,
+            "lower": 3,
+            "upper": 7
+          },
+          {
+            "alpha": 0.5,
+            "lower": 2,
+            "upper": 8
+          }
+        ]
+      }
     }
   ]
 }
