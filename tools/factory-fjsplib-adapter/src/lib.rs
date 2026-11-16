@@ -804,6 +804,17 @@ mod tests {
     }
 
     #[test]
+    fn fajsp_single_operation_without_precedence_keeps_job_count_unknown() {
+        let input = "1 0 1\n1 0 7\n";
+        let instance = parse_fajsp("single-operation", None, input).unwrap();
+        assert_eq!(instance.declared_job_count, None);
+        assert!(instance.precedences.is_empty());
+        assert_eq!(instance.operations.len(), 1);
+        assert_eq!(instance.operations[0].job_id, None);
+        assert_eq!(instance.operations[0].position_in_job, None);
+    }
+
+    #[test]
     fn same_semantics_import_to_deterministic_normalized_records() {
         let fjsp = parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1).unwrap();
         let fajsp = parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1).unwrap();
