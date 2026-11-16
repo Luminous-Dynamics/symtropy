@@ -71,6 +71,30 @@ fn synchrotron_loss_per_turn_mev(
     Ok(loss)
 }
 
+fn classical_quantum_parameter(
+    beam_energy_gev: f64,
+    dipole_field_t: f64,
+    particle_mass_gev: f64,
+) -> Result<f64, String> {
+    if !beam_energy_gev.is_finite()
+        || beam_energy_gev <= 0.0
+        || !dipole_field_t.is_finite()
+        || dipole_field_t <= 0.0
+        || !particle_mass_gev.is_finite()
+        || particle_mass_gev <= 0.0
+    {
+        return Err("quantum synchrotron inputs must be finite and positive".to_owned());
+    }
+    let gamma = beam_energy_gev / particle_mass_gev;
+    let critical_field_t =
+        ELECTRON_CRITICAL_FIELD_T * (particle_mass_gev / ELECTRON_MASS_GEV).powi(2);
+    let chi = gamma * dipole_field_t / critical_field_t;
+    if !chi.is_finite() {
+        return Err("quantum synchrotron parameter is non-finite".to_owned());
+    }
+    Ok(chi)
+}
+
 fn calculate_scenario(
     circumference_m: f64,
     dipole_field_t: f64,
@@ -142,9 +166,8 @@ fn calculate_scenario(
 
     let critical_photon_energy_ev =
         1.5 * HBAR_C_EV_M * gamma.powi(3) / bending_radius_m;
-    let critical_field_muon_t =
-        ELECTRON_CRITICAL_FIELD_T * (MUON_MASS_GEV / ELECTRON_MASS_GEV).powi(2);
-    let quantum_chi = gamma * dipole_field_t / critical_field_muon_t;
+    let quantum_chi =
+        classical_quantum_parameter(beam_energy_gev, dipole_field_t, MUON_MASS_GEV)?;
 
     let derived = [
         bending_radius_m,
@@ -322,6 +345,10 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
         moon.bending_radius_m,
         ELECTRON_MASS_GEV,
     )?;
+    let proton_chi =
+        classical_quantum_parameter(moon.beam_energy_gev, source_field_t, PROTON_MASS_GEV)?;
+    let electron_chi =
+        classical_quantum_parameter(moon.beam_energy_gev, source_field_t, ELECTRON_MASS_GEV)?;
 
     let circumference_for_one_percent_loss_m = reference.circumference_m
         * (0.01 / reference.synchrotron_loss_fraction_per_turn).sqrt();
@@ -381,6 +408,9 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
             "\"proton_loss_mev_per_turn\":{:.9e},",
             "\"electron_classical_loss_mev_per_turn_formal\":{:.9e},",
             "\"muon_to_proton_loss_ratio\":{:.6e},",
+            "\"muon_quantum_chi\":{:.9e},",
+            "\"proton_quantum_chi\":{:.9e},",
+            "\"electron_quantum_chi\":{:.9e},",
             "\"electron_classical_validity\":\"invalid_without_quantum_synchrotron_model_at_this_energy\"",
             "}},",
             "\"fixed_field_fractional_loss_thresholds\":{{",
@@ -423,6 +453,9 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
         proton_loss_mev,
         electron_loss_mev,
         moon.synchrotron_loss_per_turn_mev / proton_loss_mev,
+        moon.quantum_chi,
+        proton_chi,
+        electron_chi,
         circumference_for_one_percent_loss_m / 1000.0,
         circumference_for_five_percent_loss_m / 1000.0,
         circumference_for_ten_percent_loss_m / 1000.0,
@@ -522,5 +555,7 @@ mod tests {
         assert!(report.contains("no_fixed_energy_circular_equilibrium_under_declared_model"));
         assert!(report.contains("Classical synchrotron model"));
         assert!(report.contains("decay_energy_flow_w_per_beam_not_deposited_heat"));
+        assert!(report.contains("electron_quantum_chi"));
+        assert!(report.contains("electron_classical_validity"));
     }
 }
