@@ -1,0 +1,265 @@
+{
+  "schema_version": "waterloop-safe-state-machine-v0.1",
+  "status": "research_reference_only",
+  "qualification_status": "NotRun",
+  "safety_authority": "local_hardwired_interlocks_and_manual_isolation",
+  "ai_authority": "none_for_release_or_safety_isolation",
+  "default_state": "ISOLATED_SAFE",
+  "outputs_default": {
+    "reclaimed_product_outlet": "CLOSED",
+    "raw_source_inlet": "CLOSED_OR_APPROVED_DIVERT",
+    "municipal_backup": "ISOLATED_UNTIL_SEPARATION_VERIFIED",
+    "product_water_credit": false
+  },
+  "states": [
+    {
+      "id": "ISOLATED_SAFE",
+      "description": "Reclaimed outlet closed; raw intake closed/diverted; no product credit.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false
+      }
+    },
+    {
+      "id": "RAW_COLLECTION",
+      "description": "Only accepted V0 shower/bath source is admitted into a timestamped raw batch.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false
+      }
+    },
+    {
+      "id": "EQUALISATION",
+      "description": "Raw batch held inside the validated residence-time and storage envelope.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false
+      }
+    },
+    {
+      "id": "TREATING",
+      "description": "Identified cassette runs only within its admitted feed, loading and process envelope.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false
+      }
+    },
+    {
+      "id": "PRODUCT_HOLD",
+      "description": "Treated batch isolated from users pending batch-specific independent quality release.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false
+      }
+    },
+    {
+      "id": "RELEASED_PRODUCT",
+      "description": "Batch is admitted for the exact declared non-potable use and may be delivered on dedicated pipework.",
+      "outputs": {
+        "reclaimed_product_outlet": "OPEN_ONLY_WHEN_SERVICE_INTERLOCKS_HEALTHY",
+        "product_credit": true
+      }
+    },
+    {
+      "id": "BACKUP_ONLY",
+      "description": "Municipal backup may supply non-potable service through verified air-gap/approved separation; reclaimed supply remains isolated.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false,
+        "backup_supply": "AIR_GAPPED_ONLY"
+      }
+    },
+    {
+      "id": "MAINTENANCE_LOCKOUT",
+      "description": "Critical fault or overdue maintenance; no automatic restart or product release.",
+      "outputs": {
+        "reclaimed_product_outlet": "CLOSED",
+        "product_credit": false,
+        "automatic_restart": false
+      }
+    }
+  ],
+  "required_preconditions": [
+    "source_profile_id_is_known_and_admitted",
+    "source_is_v0_shower_or_bath_only",
+    "raw_storage_and_approved_drain_route_are_available",
+    "first_entry_timestamp_is_present_and_monotonic",
+    "active_cassette_id_and_revision_are_known",
+    "critical_process_measurands_are_admitted_and_fresh",
+    "process_is_within_the_cassette_feed_and_hydraulic_envelope",
+    "final_barrier_is_valid_for_the_intended_use",
+    "product_batch_id_links_to_inlet_outlet_sample_and_module_revision",
+    "independent_quality_result_is_admitted_for_exact_intended_use",
+    "cross_connection_and_backflow_review_is_passed",
+    "nonpotable_outlet_is_dedicated_labelled_and_verified"
+  ],
+  "transitions": [
+    {
+      "from": "ISOLATED_SAFE",
+      "to": "RAW_COLLECTION",
+      "when": [
+        "source_profile_admitted",
+        "source_is_shower_or_bath",
+        "raw_collection_path_healthy",
+        "approved_drain_path_available",
+        "local_safety_interlocks_healthy"
+      ],
+      "automatic": false
+    },
+    {
+      "from": "RAW_COLLECTION",
+      "to": "EQUALISATION",
+      "when": [
+        "first_entry_timestamp_captured",
+        "batch_id_created",
+        "level_measurement_admitted"
+      ],
+      "automatic": true
+    },
+    {
+      "from": "RAW_COLLECTION",
+      "to": "ISOLATED_SAFE",
+      "when": [
+        "source_mismatch_or_source_acceptance_failed"
+      ],
+      "automatic": true
+    },
+    {
+      "from": "EQUALISATION",
+      "to": "TREATING",
+      "when": [
+        "residence_time_within_validated_limit",
+        "cassette_identity_admitted",
+        "feed_within_cassette_envelope",
+        "process_measurands_fresh",
+        "local_safety_interlocks_healthy"
+      ],
+      "automatic": false
+    },
+    {
+      "from": "EQUALISATION",
+      "to": "ISOLATED_SAFE",
+      "when": [
+        "residence_time_exceeded",
+        "feed_out_of_envelope"
+      ],
+      "automatic": true,
+      "action": "divert_raw_batch_to_approved_drain_only_if_route_is_confirmed"
+    },
+    {
+      "from": "TREATING",
+      "to": "PRODUCT_HOLD",
+      "when": [
+        "cycle_complete",
+        "mass_balance_and_process_receipt_valid",
+        "final_barrier_process_envelope_met"
+      ],
+      "automatic": true
+    },
+    {
+      "from": "TREATING",
+      "to": "MAINTENANCE_LOCKOUT",
+      "when": [
+        "barrier_failure",
+        "critical_sensor_stale_or_missing",
+        "power_loss",
+        "pump_fault",
+        "unknown_residual_route",
+        "configuration_mismatch"
+      ],
+      "automatic": true
+    },
+    {
+      "from": "PRODUCT_HOLD",
+      "to": "RELEASED_PRODUCT",
+      "when": [
+        "sample_batch_id_matches",
+        "quality_result_admitted",
+        "quality_result_passes_named_use_profile",
+        "final_barrier_valid",
+        "cross_connection_test_passed",
+        "outlet_interlocks_healthy"
+      ],
+      "automatic": false
+    },
+    {
+      "from": "PRODUCT_HOLD",
+      "to": "MAINTENANCE_LOCKOUT",
+      "when": [
+        "quality_result_failed",
+        "quality_result_not_admitted",
+        "sample_identity_mismatch",
+        "critical_evidence_expired"
+      ],
+      "automatic": true
+    },
+    {
+      "from": "RELEASED_PRODUCT",
+      "to": "ISOLATED_SAFE",
+      "when": [
+        "critical_evidence_stale",
+        "process_fault",
+        "power_loss",
+        "outlet_interlock_fault",
+        "quality_release_expired"
+      ],
+      "automatic": true,
+      "action": "close_reclaimed_outlet_and_revoke_current_batch_credit_for_future_delivery"
+    },
+    {
+      "from": "ISOLATED_SAFE",
+      "to": "BACKUP_ONLY",
+      "when": [
+        "approved_air_gap_or_separation_verified",
+        "backflow_protection_verified",
+        "backup_supply_available",
+        "reclaimed_outlet_physically_isolated"
+      ],
+      "automatic": false
+    },
+    {
+      "from": "BACKUP_ONLY",
+      "to": "ISOLATED_SAFE",
+      "when": [
+        "backup_supply_lost",
+        "separation_or_backflow_fault",
+        "maintenance_requested"
+      ],
+      "automatic": true
+    },
+    {
+      "from": "MAINTENANCE_LOCKOUT",
+      "to": "ISOLATED_SAFE",
+      "when": [
+        "qualified_inspection_complete",
+        "fault_cleared",
+        "cleaning_and_restart_steps_signed",
+        "instrument_and_quality_gate_current"
+      ],
+      "automatic": false
+    }
+  ],
+  "global_fail_closed_conditions": [
+    "power_loss",
+    "critical_process_sensor_missing_stale_or_conflicted",
+    "unknown_source_or_wrong_source",
+    "raw_residence_time_exceeded",
+    "cassette_out_of_validated_envelope",
+    "final_barrier_fault",
+    "quality_result_not_admitted_or_failed",
+    "batch_identity_mismatch",
+    "cross_connection_or_backflow_gate_failed",
+    "outlet_valve_or_interlock_fault",
+    "reject_or_residual_route_undefined"
+  ],
+  "invariants": [
+    "RELEASED_PRODUCT is reachable only from PRODUCT_HOLD after independent quality admission for the exact intended use and batch.",
+    "No state authorizes potable drinking, cooking, showering, bathing, food washing or other unqualified use.",
+    "No direct potable-to-reclaimed cross-connection is permitted.",
+    "BACKUP_ONLY carries zero reclaimed-water volume or quality credit.",
+    "Internet, cloud, Symthaea, Mycelix consensus and AI inference are not required for fail-closed isolation.",
+    "MAINTENANCE_LOCKOUT cannot automatically restart.",
+    "If the approved drain route is unavailable, hold/lockout is safer than uncontrolled release or diversion.",
+    "The first raw-water entry timestamp cannot be reset by blending or relabelling the batch."
+  ]
+}

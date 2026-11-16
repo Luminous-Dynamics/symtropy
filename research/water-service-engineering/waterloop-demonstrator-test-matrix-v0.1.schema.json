@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-demonstrator-test-matrix-v0.1.schema.json",
+  "title": "WaterLoop Modular Demonstrator Test Matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "physical_testing_authorized",
+    "test_families",
+    "acceptance_gates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-modular-demonstrator-test-matrix-v0.1"
+    },
+    "status": {
+      "const": "planning_only"
+    },
+    "physical_testing_authorized": {
+      "const": false
+    },
+    "test_families": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "cases"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cases": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "acceptance_gates": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

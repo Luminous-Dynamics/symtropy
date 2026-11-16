@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-modular-train-interface-v0.1.schema.json",
+  "title": "WaterLoop Modular Train Interface Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "evidence_class",
+    "qualification_status",
+    "primary_profile",
+    "modules",
+    "candidate_trains",
+    "safety_invariants",
+    "literature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-modular-train-interface-v0.1"
+    },
+    "status": {
+      "const": "research_reference_only"
+    },
+    "evidence_class": {
+      "const": "literature_and_vendor_declared_plus_synthetic_contract"
+    },
+    "qualification_status": {
+      "const": "NotRun"
+    },
+    "primary_profile": {
+      "type": "object",
+      "required": [
+        "id",
+        "sources",
+        "intended_use",
+        "potable"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "intended_use": {
+          "type": "string"
+        },
+        "potable": {
+          "const": false
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "required",
+          "interfaces",
+          "failure_state"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "interfaces": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_untreated_residence_hours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "failure_state": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "candidate_trains": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "sequence",
+          "risks",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string"
+            }
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "const": "candidate_not_selected"
+          }
+        }
+      }
+    },
+    "safety_invariants": {
+      "type": "array",
+      "minItems": 7,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "literature": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "doi",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "doi": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "studies": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
