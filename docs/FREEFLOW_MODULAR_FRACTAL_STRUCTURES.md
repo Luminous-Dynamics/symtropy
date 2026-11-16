@@ -312,3 +312,79 @@ The second proof should add an independently checked truss/beam analysis and sim
 ## Decision
 
 Proceed with a small, measurable geometry grammar and module-interface research track. Prioritize secondary and reconfigurable structures before occupied primary structures. Treat occupant expression and sensory/accessibility choice as functional requirements. Keep structural integrity, environmental protection and life-safety systems independently qualified.
+
+
+
+## Frontier update — 2026-11-16
+
+### What the current literature changes
+
+1. **Interfaces must be treated as first-class mechanical elements.** The September 2026 review of modular discrete mechanical metamaterials identifies contact, constraints and cooperative inter-module interaction as central determinants of global stiffness, strength, deformation and energy absorption. A cell-only homogenized model is insufficient if the real assembly is interface-dominated. Reference: https://doi.org/10.1016/j.ijmecsci.2026.111915
+
+2. **Generative design must include manufacturing constraints during search.** The February 2026 review integrates geometry generation, performance evaluation and cross-scale optimization, with process-aware, human-in-the-loop and multi-fidelity design as key themes. Reference: https://doi.org/10.1016/j.matdes.2026.115431
+
+3. **Pareto search should be compared against manufacturability-aware methods, not random sampling alone.** A September 2026 lattice-optimization study embeds overhang, enclosed-cavity and powder-removal constraints in inverse-homogenization topology optimization. On its particular 3D periodic unit-cell experiment it reports 92.60% successful initialization and 916 manufacturable samples versus 78.30% and 776 for random initialization, with hypervolume 0.0787 versus 0.0675. These are paper-specific results and must be reproduced on our structures before comparison. Reference: https://www.microsoft.com/en-us/research/publication/lattice-structure-optimization-for-additive-manufacturing-manufacturability-driven-design-and-pareto-front-construction/
+
+4. **Independent manufacturing-model validation resources exist.** NIST AM-Bench provides controlled measurement/challenge datasets; its 2025 benchmarks include high-cycle fatigue and metal/polymer process measurements. NIST says its planned 2028 cycle will shift further toward higher-TRL components while retaining lower-TRL modeling benchmarks. This is a valuable external data source and possible future challenge venue. Reference: https://www.nist.gov/ambench
+
+5. **Robotic modular assembly is an active space engineering direction.** NASA ARMADAS is developing builder robots and reusable voxels for functional structures such as habitats and antenna arrays. NASA's ISAM programme explicitly identifies in-space assembly as a way to overcome launch fairing volume constraints. JPL is also exploring supervised robotic assembly of 10–100+ metre modular telescope structures. These are meaningful industry comparators; FFMFS must demonstrate an advantage beyond re-labelling regular voxel or truss assembly. References: https://www.nasa.gov/automated-reconfigurable-mission-adaptive-digital-assembly-systems-armadas/ and https://www.nasa.gov/isam/ and https://robotics.jpl.nasa.gov/what-we-do/research-tasks/risk-reduction-for-robotic-in-space-telescope-assembly-concept/
+
+### New structural grammar insight: face-attached rigid modules
+
+A pure branching graph with cross-braces can be connected and contain cycles yet still have hinge mechanisms. Graph connectivity and cycle rank alone do not establish kinematic rigidity.
+
+A stronger idealized module grammar is a **regular tetrahedral bay**:
+- Each bay has four nodes and six pin-jointed members.
+- Each child bay attaches to the existing assembly through three shared, non-collinear vertices forming a complete triangular face.
+- Each child contributes one new apex and three new members.
+- Parent-before-child attachment order is explicit.
+- A connector interface contract checks port-count and minimum angular separation.
+
+Under ideal pin-joint assumptions, a tetrahedron is a rigid bar framework and a child sharing three non-collinear vertices with an already rigid framework does not have the free one-point hinge of a single-node attachment. This is a kinematic construction argument only. Real joint compliance, bolt preload, clearance, local stress, buckling, fatigue and manufacturing tolerances remain unmodeled.
+
+The current experimental scaffold intentionally retains both the earlier branching motif and the new face-attached tetrahedral grammar. Compare them rather than silently replacing one with the other.
+
+### FEM reference step
+
+The new standalone research/truss-fem-lab is a narrow, dense-matrix, linear-elastic 3D pin-jointed truss solver. Its initial tests use:
+- A single axial bar against the closed-form \(u=FL/(EA)\) solution.
+- The face-attached tetrahedral assembly under explicit support and load conditions.
+- The one-point-attached branching motif as a negative control expected to expose a singular stiffness mechanism.
+
+This evaluator is not a production FEM solver. It excludes bending, shear, torsion, joint flexibility, contact, geometric nonlinearity, buckling, fracture, fatigue and AM material defects. Its purpose is to establish a small analytical reference and to reject a topologically connected but kinematically unstable candidate.
+
+### Updated benchmark priorities
+
+| Priority | Benchmark | Required comparison |
+|---|---|---|
+| 1 | Kinematic stability and support sensitivity | Face-attached tetrahedral cells vs one-point branching and conventional triangulated trusses |
+| 2 | Analytical truss response | Closed-form bar, tetrahedral truss and independent solver results |
+| 3 | Interface fit and assembly | Indexed pin/three-point face interfaces, tolerance stacks, assembly sequence and replacement |
+| 4 | Structural optimization | Conventional spaceframe, topology-optimized design, graded lattice, TPMS and manufacturability-aware Pareto methods |
+| 5 | Manufacturing realization | As-built dimensional metrology, joint coupons, defect inspection, fatigue and NIST AM-Bench-relevant models |
+| 6 | Robotic assembly | NASA ARMADAS-like voxel assembly and standard modular truss baselines under matched task constraints |
+| 7 | Human experience | Accessible wayfinding, reach, egress, sensory controls, privacy choice and occupant-authored infill |
+
+### Spaceflight standard references
+
+For flight-relevant work, the applicable programme and responsible technical authority determine requirements. The following current NASA standards/guidance are important references, not a complete compliance checklist:
+
+- NASA-STD-3001 Volume 2, Version F, dated 2026-07-14, is active and covers human factors, habitability and environmental health for human-rated systems: https://standards.nasa.gov/node/237
+- NASA-STD-5001 B with Change 3 is active and establishes structural design, test and service-life factors for spaceflight hardware: https://standards.nasa.gov/standard/nasa/nasa-std-5001
+- NASA-STD-5019 A with Change 4 is active and addresses fracture control for human-rated spaceflight systems: https://standards.nasa.gov/node/253
+- NASA-HDBK-5026 is active guidance for strength, fatigue and fracture control of additively manufactured spaceflight hardware: https://standards.nasa.gov/node/11897
+
+Do not describe a generated geometry or a linear truss solve as flight-qualified. Human-rated structures require mission-specific structural substantiation, fracture control, manufacturing/process qualification, NDE and formal acceptance.
+
+### New execution sequence
+
+1. Preserve the original branching motif as a morphology/negative-control grammar.
+2. Qualify the face-attached tetrahedral generator's exact counts, attachment faces, port separation, and geometry.
+3. Validate the truss FEM against analytical and independent solver references.
+4. Add tolerance stack-up and connector-fit envelopes before calling the grammar manufacturable.
+5. Introduce non-overlap/clearance, member slenderness, and simple Euler buckling screening.
+6. Compare manufacturability-aware Pareto generation against matched random, evolutionary, topology-optimization and conventional parametric baselines.
+7. Print and test physical node/member/face-coupler coupons; scan as-built geometry and correlate test results.
+8. Only then explore robotic assembly and non-pressurized habitat mockups.
+
+**Revised principle:** the unit of design is not only the cell or the overall shape. It is the entire qualified chain from module geometry through interfaces, assembly, inspection, repair, occupant use and lifecycle evidence.
