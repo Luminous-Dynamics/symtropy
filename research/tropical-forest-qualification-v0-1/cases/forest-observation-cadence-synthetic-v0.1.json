@@ -1,0 +1,946 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-OBSERVATION-CADENCE-001",
+  "evidence_class": "synthetic_linear_gaussian_observation_cadence",
+  "claim_ceiling": "All AR(1) state parameters, process noise, sensor profiles, observation error variances, latency, effort costs, ecological disturbance costs and budgets are synthetic. This is an exact scalar-Gaussian variance benchmark, not a calibrated forest process model or AFEX monitoring recommendation.",
+  "time_unit": "discrete synthetic days",
+  "state_process": {
+    "equation": "x[t+1] = phi*x[t] + eta[t]",
+    "stationary_prior_variance": 1,
+    "innovation_variance_definition": "1 - phi^2, so the stationary marginal state variance is one",
+    "observation_equation": "y[t] = x[t] + epsilon[t]",
+    "observation_variance": "profile-specific independent Gaussian variance",
+    "prior_variance_at_day_zero": 1,
+    "update_order": "sort all measurements by collection/event time; include only samples whose data availability time (sample time + latency) is no later than the decision deadline; update scalar Kalman variance; propagate to the decision time"
+  },
+  "budgets": {
+    "field_effort_units": 4.2,
+    "ecological_disturbance_units": 0.8
+  },
+  "measurement_profiles": [
+    {
+      "id": "DAILY_SENSOR_7D_LATENCY",
+      "cadence_days": 1,
+      "latency_days": 7,
+      "measurement_variance": 0.4,
+      "effort_cost_per_sample": 0.025,
+      "disturbance_cost_per_sample": 0.001
+    },
+    {
+      "id": "THREE_DAY_REMOTE_2D_LATENCY",
+      "cadence_days": 3,
+      "latency_days": 2,
+      "measurement_variance": 0.25,
+      "effort_cost_per_sample": 0.05,
+      "disturbance_cost_per_sample": 0.002
+    },
+    {
+      "id": "WEEKLY_FIELD_1D_LATENCY",
+      "cadence_days": 7,
+      "latency_days": 1,
+      "measurement_variance": 0.12,
+      "effort_cost_per_sample": 0.22,
+      "disturbance_cost_per_sample": 0.025
+    },
+    {
+      "id": "FORTNIGHTLY_CORE_2D_LATENCY",
+      "cadence_days": 14,
+      "latency_days": 2,
+      "measurement_variance": 0.05,
+      "effort_cost_per_sample": 0.4,
+      "disturbance_cost_per_sample": 0.1
+    },
+    {
+      "id": "MONTHLY_LAB_10D_LATENCY",
+      "cadence_days": 30,
+      "latency_days": 10,
+      "measurement_variance": 0.01,
+      "effort_cost_per_sample": 0.7,
+      "disturbance_cost_per_sample": 0.12
+    },
+    {
+      "id": "WEEKLY_LAB_10D_LATENCY",
+      "cadence_days": 7,
+      "latency_days": 10,
+      "measurement_variance": 0.03,
+      "effort_cost_per_sample": 0.35,
+      "disturbance_cost_per_sample": 0.12
+    }
+  ],
+  "expected_context_count": 2,
+  "contexts": [
+    {
+      "context_id": "PERSISTENT_STABLE",
+      "phi": 0.98,
+      "innovation_variance": 0.03960000000000008,
+      "decision_results": [
+        {
+          "decision_deadline_days": 7,
+          "profile_summaries": [
+            {
+              "profile_id": "DAILY_SENSOR_7D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.025,
+              "ecological_disturbance_units": 0.001,
+              "posterior_variance": 0.461684327518
+            },
+            {
+              "profile_id": "THREE_DAY_REMOTE_2D_LATENCY",
+              "available_measurement_count": 2,
+              "latest_observation_age_days": 4,
+              "effort_cost_units": 0.1,
+              "ecological_disturbance_units": 0.004,
+              "posterior_variance": 0.26370100915
+            },
+            {
+              "profile_id": "WEEKLY_FIELD_1D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.22,
+              "ecological_disturbance_units": 0.025,
+              "posterior_variance": 0.327105409397
+            },
+            {
+              "profile_id": "FORTNIGHTLY_CORE_2D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.4,
+              "ecological_disturbance_units": 0.1,
+              "posterior_variance": 0.282245770024
+            },
+            {
+              "profile_id": "MONTHLY_LAB_10D_LATENCY",
+              "available_measurement_count": 0,
+              "latest_observation_age_days": null,
+              "effort_cost_units": 0,
+              "ecological_disturbance_units": 0,
+              "posterior_variance": 1
+            },
+            {
+              "profile_id": "WEEKLY_LAB_10D_LATENCY",
+              "available_measurement_count": 0,
+              "latest_observation_age_days": null,
+              "effort_cost_units": 0,
+              "ecological_disturbance_units": 0,
+              "posterior_variance": 1
+            }
+          ],
+          "feasible_portfolio_count": 16,
+          "best_portfolio": {
+            "selected_profile_ids": [
+              "DAILY_SENSOR_7D_LATENCY",
+              "THREE_DAY_REMOTE_2D_LATENCY",
+              "WEEKLY_FIELD_1D_LATENCY",
+              "FORTNIGHTLY_CORE_2D_LATENCY"
+            ],
+            "measurement_count": 5,
+            "total_effort_cost_units": 0.745,
+            "total_ecological_disturbance_units": 0.13,
+            "posterior_variance": 0.225194414978,
+            "latest_observation_age_days": 4
+          },
+          "pareto_frontier": [
+            {
+              "selected_profile_ids": [],
+              "measurement_count": 0,
+              "total_effort_cost_units": 0,
+              "total_ecological_disturbance_units": 0,
+              "posterior_variance": 1,
+              "latest_observation_age_days": null
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY"
+              ],
+              "measurement_count": 1,
+              "total_effort_cost_units": 0.025,
+              "total_ecological_disturbance_units": 0.001,
+              "posterior_variance": 0.461684327518,
+              "latest_observation_age_days": 7
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 2,
+              "total_effort_cost_units": 0.1,
+              "total_ecological_disturbance_units": 0.004,
+              "posterior_variance": 0.26370100915,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 0.125,
+              "total_ecological_disturbance_units": 0.005,
+              "posterior_variance": 0.251672697703,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 0.32,
+              "total_ecological_disturbance_units": 0.029,
+              "posterior_variance": 0.238441416673,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY"
+              ],
+              "measurement_count": 4,
+              "total_effort_cost_units": 0.345,
+              "total_ecological_disturbance_units": 0.03,
+              "posterior_variance": 0.235357903708,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 0.5,
+              "total_ecological_disturbance_units": 0.104,
+              "posterior_variance": 0.228860053664,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 4,
+              "total_effort_cost_units": 0.525,
+              "total_ecological_disturbance_units": 0.105,
+              "posterior_variance": 0.227778630941,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 4,
+              "total_effort_cost_units": 0.72,
+              "total_ecological_disturbance_units": 0.129,
+              "posterior_variance": 0.225843235967,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 5,
+              "total_effort_cost_units": 0.745,
+              "total_ecological_disturbance_units": 0.13,
+              "posterior_variance": 0.225194414978,
+              "latest_observation_age_days": 4
+            }
+          ]
+        },
+        {
+          "decision_deadline_days": 30,
+          "profile_summaries": [
+            {
+              "profile_id": "DAILY_SENSOR_7D_LATENCY",
+              "available_measurement_count": 24,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.6,
+              "ecological_disturbance_units": 0.024,
+              "posterior_variance": 0.323806899277
+            },
+            {
+              "profile_id": "THREE_DAY_REMOTE_2D_LATENCY",
+              "available_measurement_count": 10,
+              "latest_observation_age_days": 3,
+              "effort_cost_units": 0.5,
+              "ecological_disturbance_units": 0.02,
+              "posterior_variance": 0.217085088207
+            },
+            {
+              "profile_id": "WEEKLY_FIELD_1D_LATENCY",
+              "available_measurement_count": 5,
+              "latest_observation_age_days": 2,
+              "effort_cost_units": 1.1,
+              "ecological_disturbance_units": 0.125,
+              "posterior_variance": 0.157545945314
+            },
+            {
+              "profile_id": "FORTNIGHTLY_CORE_2D_LATENCY",
+              "available_measurement_count": 3,
+              "latest_observation_age_days": 2,
+              "effort_cost_units": 1.2,
+              "ecological_disturbance_units": 0.3,
+              "posterior_variance": 0.119207756073
+            },
+            {
+              "profile_id": "MONTHLY_LAB_10D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 30,
+              "effort_cost_units": 0.7,
+              "ecological_disturbance_units": 0.12,
+              "posterior_variance": 0.705392928028
+            },
+            {
+              "profile_id": "WEEKLY_LAB_10D_LATENCY",
+              "available_measurement_count": 3,
+              "latest_observation_age_days": 16,
+              "effort_cost_units": 1.05,
+              "ecological_disturbance_units": 0.36,
+              "posterior_variance": 0.490244189602
+            }
+          ],
+          "feasible_portfolio_count": 55,
+          "best_portfolio": {
+            "selected_profile_ids": [
+              "DAILY_SENSOR_7D_LATENCY",
+              "THREE_DAY_REMOTE_2D_LATENCY",
+              "WEEKLY_FIELD_1D_LATENCY",
+              "FORTNIGHTLY_CORE_2D_LATENCY"
+            ],
+            "measurement_count": 42,
+            "total_effort_cost_units": 3.4,
+            "total_ecological_disturbance_units": 0.469,
+            "posterior_variance": 0.103703615225,
+            "latest_observation_age_days": 2
+          },
+          "pareto_frontier": [
+            {
+              "selected_profile_ids": [],
+              "measurement_count": 0,
+              "total_effort_cost_units": 0,
+              "total_ecological_disturbance_units": 0,
+              "posterior_variance": 1,
+              "latest_observation_age_days": null
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 10,
+              "total_effort_cost_units": 0.5,
+              "total_ecological_disturbance_units": 0.02,
+              "posterior_variance": 0.217085088207,
+              "latest_observation_age_days": 3
+            },
+            {
+              "selected_profile_ids": [
+                "WEEKLY_FIELD_1D_LATENCY"
+              ],
+              "measurement_count": 5,
+              "total_effort_cost_units": 1.1,
+              "total_ecological_disturbance_units": 0.125,
+              "posterior_variance": 0.157545945314,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 1.2,
+              "total_ecological_disturbance_units": 0.3,
+              "posterior_variance": 0.119207756073,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 13,
+              "total_effort_cost_units": 1.7,
+              "total_ecological_disturbance_units": 0.32,
+              "posterior_variance": 0.112273683713,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 8,
+              "total_effort_cost_units": 2.3,
+              "total_ecological_disturbance_units": 0.425,
+              "posterior_variance": 0.106848685226,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 18,
+              "total_effort_cost_units": 2.8,
+              "total_ecological_disturbance_units": 0.445,
+              "posterior_variance": 0.103882985937,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 42,
+              "total_effort_cost_units": 3.4,
+              "total_ecological_disturbance_units": 0.469,
+              "posterior_variance": 0.103703615225,
+              "latest_observation_age_days": 2
+            }
+          ]
+        },
+        {
+          "decision_deadline_days": 90,
+          "profile_summaries": [
+            {
+              "profile_id": "DAILY_SENSOR_7D_LATENCY",
+              "available_measurement_count": 84,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 2.1,
+              "ecological_disturbance_units": 0.084,
+              "posterior_variance": 0.323806861736
+            },
+            {
+              "profile_id": "THREE_DAY_REMOTE_2D_LATENCY",
+              "available_measurement_count": 30,
+              "latest_observation_age_days": 3,
+              "effort_cost_units": 1.5,
+              "ecological_disturbance_units": 0.06,
+              "posterior_variance": 0.217084821035
+            },
+            {
+              "profile_id": "WEEKLY_FIELD_1D_LATENCY",
+              "available_measurement_count": 13,
+              "latest_observation_age_days": 6,
+              "effort_cost_units": 2.86,
+              "ecological_disturbance_units": 0.325,
+              "posterior_variance": 0.283271063666
+            },
+            {
+              "profile_id": "FORTNIGHTLY_CORE_2D_LATENCY",
+              "available_measurement_count": 7,
+              "latest_observation_age_days": 6,
+              "effort_cost_units": 2.8,
+              "ecological_disturbance_units": 0.7,
+              "posterior_variance": 0.250654467847
+            },
+            {
+              "profile_id": "MONTHLY_LAB_10D_LATENCY",
+              "available_measurement_count": 3,
+              "latest_observation_age_days": 30,
+              "effort_cost_units": 2.1,
+              "ecological_disturbance_units": 0.36,
+              "posterior_variance": 0.705380795063
+            },
+            {
+              "profile_id": "WEEKLY_LAB_10D_LATENCY",
+              "available_measurement_count": 12,
+              "latest_observation_age_days": 13,
+              "effort_cost_units": 4.2,
+              "ecological_disturbance_units": 1.44,
+              "posterior_variance": 0.424552394163
+            }
+          ],
+          "feasible_portfolio_count": 9,
+          "best_portfolio": {
+            "selected_profile_ids": [
+              "DAILY_SENSOR_7D_LATENCY",
+              "THREE_DAY_REMOTE_2D_LATENCY"
+            ],
+            "measurement_count": 114,
+            "total_effort_cost_units": 3.6,
+            "total_ecological_disturbance_units": 0.144,
+            "posterior_variance": 0.209610355436,
+            "latest_observation_age_days": 3
+          },
+          "pareto_frontier": [
+            {
+              "selected_profile_ids": [],
+              "measurement_count": 0,
+              "total_effort_cost_units": 0,
+              "total_ecological_disturbance_units": 0,
+              "posterior_variance": 1,
+              "latest_observation_age_days": null
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 30,
+              "total_effort_cost_units": 1.5,
+              "total_ecological_disturbance_units": 0.06,
+              "posterior_variance": 0.217084821035,
+              "latest_observation_age_days": 3
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 114,
+              "total_effort_cost_units": 3.6,
+              "total_ecological_disturbance_units": 0.144,
+              "posterior_variance": 0.209610355436,
+              "latest_observation_age_days": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "context_id": "VOLATILE_POST_DISTURBANCE",
+      "phi": 0.8,
+      "innovation_variance": 0.3599999999999999,
+      "decision_results": [
+        {
+          "decision_deadline_days": 7,
+          "profile_summaries": [
+            {
+              "profile_id": "DAILY_SENSOR_7D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.025,
+              "ecological_disturbance_units": 0.001,
+              "posterior_variance": 0.968585382064
+            },
+            {
+              "profile_id": "THREE_DAY_REMOTE_2D_LATENCY",
+              "available_measurement_count": 2,
+              "latest_observation_age_days": 4,
+              "effort_cost_units": 0.1,
+              "ecological_disturbance_units": 0.004,
+              "posterior_variance": 0.864091178749
+            },
+            {
+              "profile_id": "WEEKLY_FIELD_1D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.22,
+              "ecological_disturbance_units": 0.025,
+              "posterior_variance": 0.960731727579
+            },
+            {
+              "profile_id": "FORTNIGHTLY_CORE_2D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.4,
+              "ecological_disturbance_units": 0.1,
+              "posterior_variance": 0.958113842751
+            },
+            {
+              "profile_id": "MONTHLY_LAB_10D_LATENCY",
+              "available_measurement_count": 0,
+              "latest_observation_age_days": null,
+              "effort_cost_units": 0,
+              "ecological_disturbance_units": 0,
+              "posterior_variance": 1
+            },
+            {
+              "profile_id": "WEEKLY_LAB_10D_LATENCY",
+              "available_measurement_count": 0,
+              "latest_observation_age_days": null,
+              "effort_cost_units": 0,
+              "ecological_disturbance_units": 0,
+              "posterior_variance": 1
+            }
+          ],
+          "feasible_portfolio_count": 16,
+          "best_portfolio": {
+            "selected_profile_ids": [
+              "DAILY_SENSOR_7D_LATENCY",
+              "THREE_DAY_REMOTE_2D_LATENCY",
+              "WEEKLY_FIELD_1D_LATENCY",
+              "FORTNIGHTLY_CORE_2D_LATENCY"
+            ],
+            "measurement_count": 5,
+            "total_effort_cost_units": 0.745,
+            "total_ecological_disturbance_units": 0.13,
+            "posterior_variance": 0.863634245404,
+            "latest_observation_age_days": 4
+          },
+          "pareto_frontier": [
+            {
+              "selected_profile_ids": [],
+              "measurement_count": 0,
+              "total_effort_cost_units": 0,
+              "total_ecological_disturbance_units": 0,
+              "posterior_variance": 1,
+              "latest_observation_age_days": null
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY"
+              ],
+              "measurement_count": 1,
+              "total_effort_cost_units": 0.025,
+              "total_ecological_disturbance_units": 0.001,
+              "posterior_variance": 0.968585382064,
+              "latest_observation_age_days": 7
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 2,
+              "total_effort_cost_units": 0.1,
+              "total_ecological_disturbance_units": 0.004,
+              "posterior_variance": 0.864091178749,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 0.125,
+              "total_ecological_disturbance_units": 0.005,
+              "posterior_variance": 0.863918951454,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 0.32,
+              "total_ecological_disturbance_units": 0.029,
+              "posterior_variance": 0.863763351312,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY"
+              ],
+              "measurement_count": 4,
+              "total_effort_cost_units": 0.345,
+              "total_ecological_disturbance_units": 0.03,
+              "posterior_variance": 0.863731184771,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 0.5,
+              "total_ecological_disturbance_units": 0.104,
+              "posterior_variance": 0.863667703212,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 4,
+              "total_effort_cost_units": 0.525,
+              "total_ecological_disturbance_units": 0.105,
+              "posterior_variance": 0.863657664834,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 4,
+              "total_effort_cost_units": 0.72,
+              "total_ecological_disturbance_units": 0.129,
+              "posterior_variance": 0.863640051424,
+              "latest_observation_age_days": 4
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 5,
+              "total_effort_cost_units": 0.745,
+              "total_ecological_disturbance_units": 0.13,
+              "posterior_variance": 0.863634245404,
+              "latest_observation_age_days": 4
+            }
+          ]
+        },
+        {
+          "decision_deadline_days": 30,
+          "profile_summaries": [
+            {
+              "profile_id": "DAILY_SENSOR_7D_LATENCY",
+              "available_measurement_count": 24,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 0.6,
+              "ecological_disturbance_units": 0.024,
+              "posterior_variance": 0.965814999686
+            },
+            {
+              "profile_id": "THREE_DAY_REMOTE_2D_LATENCY",
+              "available_measurement_count": 10,
+              "latest_observation_age_days": 3,
+              "effort_cost_units": 0.5,
+              "ecological_disturbance_units": 0.02,
+              "posterior_variance": 0.787601741224
+            },
+            {
+              "profile_id": "WEEKLY_FIELD_1D_LATENCY",
+              "available_measurement_count": 5,
+              "latest_observation_age_days": 2,
+              "effort_cost_units": 1.1,
+              "ecological_disturbance_units": 0.125,
+              "posterior_variance": 0.63409426054
+            },
+            {
+              "profile_id": "FORTNIGHTLY_CORE_2D_LATENCY",
+              "available_measurement_count": 3,
+              "latest_observation_age_days": 2,
+              "effort_cost_units": 1.2,
+              "ecological_disturbance_units": 0.3,
+              "posterior_variance": 0.609903047883
+            },
+            {
+              "profile_id": "MONTHLY_LAB_10D_LATENCY",
+              "available_measurement_count": 1,
+              "latest_observation_age_days": 30,
+              "effort_cost_units": 0.7,
+              "ecological_disturbance_units": 0.12,
+              "posterior_variance": 0.999998482678
+            },
+            {
+              "profile_id": "WEEKLY_LAB_10D_LATENCY",
+              "available_measurement_count": 3,
+              "latest_observation_age_days": 16,
+              "effort_cost_units": 1.05,
+              "ecological_disturbance_units": 0.36,
+              "posterior_variance": 0.999230764597
+            }
+          ],
+          "feasible_portfolio_count": 55,
+          "best_portfolio": {
+            "selected_profile_ids": [
+              "DAILY_SENSOR_7D_LATENCY",
+              "THREE_DAY_REMOTE_2D_LATENCY",
+              "WEEKLY_FIELD_1D_LATENCY",
+              "FORTNIGHTLY_CORE_2D_LATENCY"
+            ],
+            "measurement_count": 42,
+            "total_effort_cost_units": 3.4,
+            "total_ecological_disturbance_units": 0.469,
+            "posterior_variance": 0.60386864775,
+            "latest_observation_age_days": 2
+          },
+          "pareto_frontier": [
+            {
+              "selected_profile_ids": [],
+              "measurement_count": 0,
+              "total_effort_cost_units": 0,
+              "total_ecological_disturbance_units": 0,
+              "posterior_variance": 1,
+              "latest_observation_age_days": null
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 10,
+              "total_effort_cost_units": 0.5,
+              "total_ecological_disturbance_units": 0.02,
+              "posterior_variance": 0.787601741224,
+              "latest_observation_age_days": 3
+            },
+            {
+              "selected_profile_ids": [
+                "WEEKLY_FIELD_1D_LATENCY"
+              ],
+              "measurement_count": 5,
+              "total_effort_cost_units": 1.1,
+              "total_ecological_disturbance_units": 0.125,
+              "posterior_variance": 0.63409426054,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 3,
+              "total_effort_cost_units": 1.2,
+              "total_ecological_disturbance_units": 0.3,
+              "posterior_variance": 0.609903047883,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 13,
+              "total_effort_cost_units": 1.7,
+              "total_ecological_disturbance_units": 0.32,
+              "posterior_variance": 0.608953194386,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 8,
+              "total_effort_cost_units": 2.3,
+              "total_ecological_disturbance_units": 0.425,
+              "posterior_variance": 0.604344194931,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 18,
+              "total_effort_cost_units": 2.8,
+              "total_ecological_disturbance_units": 0.445,
+              "posterior_variance": 0.603869045044,
+              "latest_observation_age_days": 2
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY",
+                "WEEKLY_FIELD_1D_LATENCY",
+                "FORTNIGHTLY_CORE_2D_LATENCY"
+              ],
+              "measurement_count": 42,
+              "total_effort_cost_units": 3.4,
+              "total_ecological_disturbance_units": 0.469,
+              "posterior_variance": 0.60386864775,
+              "latest_observation_age_days": 2
+            }
+          ]
+        },
+        {
+          "decision_deadline_days": 90,
+          "profile_summaries": [
+            {
+              "profile_id": "DAILY_SENSOR_7D_LATENCY",
+              "available_measurement_count": 84,
+              "latest_observation_age_days": 7,
+              "effort_cost_units": 2.1,
+              "ecological_disturbance_units": 0.084,
+              "posterior_variance": 0.965814999686
+            },
+            {
+              "profile_id": "THREE_DAY_REMOTE_2D_LATENCY",
+              "available_measurement_count": 30,
+              "latest_observation_age_days": 3,
+              "effort_cost_units": 1.5,
+              "ecological_disturbance_units": 0.06,
+              "posterior_variance": 0.787601741224
+            },
+            {
+              "profile_id": "WEEKLY_FIELD_1D_LATENCY",
+              "available_measurement_count": 13,
+              "latest_observation_age_days": 6,
+              "effort_cost_units": 2.86,
+              "ecological_disturbance_units": 0.325,
+              "posterior_variance": 0.938611203734
+            },
+            {
+              "profile_id": "FORTNIGHTLY_CORE_2D_LATENCY",
+              "available_measurement_count": 7,
+              "latest_observation_age_days": 6,
+              "effort_cost_units": 2.8,
+              "ecological_disturbance_units": 0.7,
+              "posterior_variance": 0.934552591734
+            },
+            {
+              "profile_id": "MONTHLY_LAB_10D_LATENCY",
+              "available_measurement_count": 3,
+              "latest_observation_age_days": 30,
+              "effort_cost_units": 2.1,
+              "ecological_disturbance_units": 0.36,
+              "posterior_variance": 0.999998482678
+            },
+            {
+              "profile_id": "WEEKLY_LAB_10D_LATENCY",
+              "available_measurement_count": 12,
+              "latest_observation_age_days": 13,
+              "effort_cost_units": 4.2,
+              "ecological_disturbance_units": 1.44,
+              "posterior_variance": 0.997065599812
+            }
+          ],
+          "feasible_portfolio_count": 9,
+          "best_portfolio": {
+            "selected_profile_ids": [
+              "DAILY_SENSOR_7D_LATENCY",
+              "THREE_DAY_REMOTE_2D_LATENCY"
+            ],
+            "measurement_count": 114,
+            "total_effort_cost_units": 3.6,
+            "total_ecological_disturbance_units": 0.144,
+            "posterior_variance": 0.78750967339,
+            "latest_observation_age_days": 3
+          },
+          "pareto_frontier": [
+            {
+              "selected_profile_ids": [],
+              "measurement_count": 0,
+              "total_effort_cost_units": 0,
+              "total_ecological_disturbance_units": 0,
+              "posterior_variance": 1,
+              "latest_observation_age_days": null
+            },
+            {
+              "selected_profile_ids": [
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 30,
+              "total_effort_cost_units": 1.5,
+              "total_ecological_disturbance_units": 0.06,
+              "posterior_variance": 0.787601741224,
+              "latest_observation_age_days": 3
+            },
+            {
+              "selected_profile_ids": [
+                "DAILY_SENSOR_7D_LATENCY",
+                "THREE_DAY_REMOTE_2D_LATENCY"
+              ],
+              "measurement_count": 114,
+              "total_effort_cost_units": 3.6,
+              "total_ecological_disturbance_units": 0.144,
+              "posterior_variance": 0.78750967339,
+              "latest_observation_age_days": 3
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
