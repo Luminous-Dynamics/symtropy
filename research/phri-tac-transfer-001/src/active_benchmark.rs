@@ -19,6 +19,154 @@ const TARGET_BUDGET: usize = STRATA * CONTACTS_PER_STRATUM;
 const RIDGE: f64 = 1.0e-8;
 /// Synthetic-only primary/check reference agreement threshold; not a hardware tolerance.
 pub const SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N: f64 = 0.02;
+/// Synthetic-only raw-response resolution used by the observability fixture.
+pub const SYNTHETIC_RESPONSE_RESOLUTION: f64 = 1.0e-12;
+/// Required synthetic force-setpoint manifest. Physical operating ranges are
+/// supplied by the measurement/phantom owner, never inferred from this array.
+pub const SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N: [f64; 6] = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0];
+/// Declared synthetic strata: 3 positions × 2 temperatures × 2 loading phases.
+pub const SYNTHETIC_EXPECTED_CONDITION_COUNT: usize = 12;
+
+type ConditionKey = (u64, u64, u64);
+type ConditionGroup<'a> = (ConditionKey, Vec<&'a Candidate>);
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ResponseObservabilityReport {
+    pub accepted: bool,
+    pub condition_count: usize,
+    pub expected_force_setpoint_count: usize,
+    pub missing_condition_count: usize,
+    pub incomplete_condition_count: usize,
+    pub checked_transition_count: usize,
+    pub flatline_transition_count: usize,
+    pub decreasing_transition_count: usize,
+    pub affected_condition_count: usize,
+    pub first_flatline_start_force_n: Option<f64>,
+    pub maximum_observed_force_setpoint_n: f64,
+    pub raw_response_resolution: f64,
+}
+
+/// Screen selector-visible raw-derived responses for non-increasing output
+/// under an increasing normal-force setpoint, within fixed position,
+/// temperature and loading-history conditions.
+///
+/// This synthetic guard is not a general observability proof and must not be
+/// presented as a calibrated force-range certificate.
+fn response_observability_check(
+    candidates: &[Candidate],
+    required_force_setpoints_n: &[f64],
+    raw_response_resolution: f64,
+) -> Result<ResponseObservabilityReport, String> {
+    if candidates.is_empty()
+        || required_force_setpoints_n.len() < 2
+        || required_force_setpoints_n
+            .iter()
+            .any(|value| !value.is_finite())
+        || required_force_setpoints_n
+            .windows(2)
+            .any(|pair| pair[1] <= pair[0])
+        || !raw_response_resolution.is_finite()
+        || raw_response_resolution < 0.0
+    {
+        return Err("observability check requires candidates, an increasing finite force manifest and a finite nonnegative response resolution".to_owned());
+    }
+
+    let mut conditions: Vec<ConditionGroup<'_>> = Vec::new();
+    let mut maximum_force = f64::NEG_INFINITY;
+    for candidate in candidates {
+        if !candidate.force_setpoint_n.is_finite()
+            || !candidate.position.is_finite()
+            || !candidate.temperature.is_finite()
+            || !candidate.phase.is_finite()
+            || !candidate.features[1].is_finite()
+        {
+            return Err(
+                "observability candidate contains non-finite stimulus or raw response".to_owned(),
+            );
+        }
+        maximum_force = maximum_force.max(candidate.force_setpoint_n);
+        let key = (
+            candidate.position.to_bits(),
+            candidate.temperature.to_bits(),
+            candidate.phase.to_bits(),
+        );
+        if let Some((_, group)) = conditions.iter_mut().find(|(existing, _)| *existing == key) {
+            group.push(candidate);
+        } else {
+            conditions.push((key, vec![candidate]));
+        }
+    }
+
+    let mut checked_transition_count = 0;
+    let mut flatline_transition_count = 0;
+    let mut decreasing_transition_count = 0;
+    let missing_condition_count =
+        SYNTHETIC_EXPECTED_CONDITION_COUNT.saturating_sub(conditions.len());
+    let mut incomplete_condition_count = 0;
+    let mut affected_condition_count = 0;
+    let mut first_flatline_start_force_n: Option<f64> = None;
+
+    for (_, group) in &mut conditions {
+        group.sort_by(|left, right| left.force_setpoint_n.total_cmp(&right.force_setpoint_n));
+        let observed_setpoints: Vec<_> = group
+            .iter()
+            .map(|candidate| candidate.force_setpoint_n)
+            .collect();
+        let condition_incomplete = required_force_setpoints_n.iter().any(|required| {
+            !observed_setpoints
+                .iter()
+                .any(|observed| observed.total_cmp(required).is_eq())
+        });
+        if condition_incomplete {
+            incomplete_condition_count += 1;
+        }
+        let mut condition_affected = false;
+        for pair in group.windows(2) {
+            let lower = pair[0];
+            let higher = pair[1];
+            if higher.force_setpoint_n <= lower.force_setpoint_n {
+                return Err(
+                    "observability condition contains duplicate or unordered force setpoints"
+                        .to_owned(),
+                );
+            }
+            checked_transition_count += 1;
+            let response_delta = higher.features[1] - lower.features[1];
+            if response_delta <= raw_response_resolution {
+                flatline_transition_count += 1;
+                condition_affected = true;
+                first_flatline_start_force_n = Some(
+                    first_flatline_start_force_n.map_or(lower.force_setpoint_n, |current| {
+                        current.min(lower.force_setpoint_n)
+                    }),
+                );
+            }
+            if response_delta < -raw_response_resolution {
+                decreasing_transition_count += 1;
+            }
+        }
+        if condition_affected {
+            affected_condition_count += 1;
+        }
+    }
+
+    Ok(ResponseObservabilityReport {
+        accepted: flatline_transition_count == 0
+            && incomplete_condition_count == 0
+            && missing_condition_count == 0,
+        condition_count: conditions.len(),
+        expected_force_setpoint_count: required_force_setpoints_n.len(),
+        missing_condition_count,
+        incomplete_condition_count,
+        checked_transition_count,
+        flatline_transition_count,
+        decreasing_transition_count,
+        affected_condition_count,
+        first_flatline_start_force_n,
+        maximum_observed_force_setpoint_n: maximum_force,
+        raw_response_resolution,
+    })
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Candidate {
@@ -163,6 +311,7 @@ pub struct PolicyResult {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BenchmarkReport {
     pub seed: u64,
+    pub response_observability: ResponseObservabilityReport,
     pub source_candidate_pool_size: usize,
     pub target_candidate_pool_size: usize,
     pub heldout_case_count: usize,
@@ -442,6 +591,19 @@ fn fit_qualified_domain(
     prior: Option<&[f64; PARAMS]>,
     prior_strength: f64,
 ) -> Result<Fit, String> {
+    let observability = response_observability_check(
+        &domain.candidates,
+        &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+        SYNTHETIC_RESPONSE_RESOLUTION,
+    )?;
+    if !observability.accepted {
+        return Err(format!(
+            "response observability gate failed: {} flatline transitions across {} conditions; first plateau starts at {:?} N",
+            observability.flatline_transition_count,
+            observability.affected_condition_count,
+            observability.first_flatline_start_force_n,
+        ));
+    }
     let integrity = reference_integrity_check(
         &domain.reference_force_observations_n,
         &domain.independent_check_reference_force_observations_n,
@@ -841,6 +1003,14 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     let source_domain = source_candidate_pool(seed);
     let heldout = heldout_target_pool(seed);
     let target_candidates = &target_domain.candidates;
+    let response_observability = response_observability_check(
+        target_candidates,
+        &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+        SYNTHETIC_RESPONSE_RESOLUTION,
+    )?;
+    if !response_observability.accepted {
+        return Err("target response observability gate failed before policy selection".to_owned());
+    }
 
     let all_target: Vec<_> = (0..target_candidates.len()).collect();
     let uniform = select_uniform(target_candidates)?;
@@ -921,6 +1091,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
 
     Ok(BenchmarkReport {
         seed,
+        response_observability,
         source_candidate_pool_size: source_domain.candidates.len(),
         target_candidate_pool_size: target_domain.candidates.len(),
         heldout_case_count: heldout.candidates.len(),
@@ -1188,6 +1359,90 @@ mod tests {
     }
 
     #[test]
+    fn nominal_response_is_observable_across_the_synthetic_force_grid() {
+        let domain = target_candidate_pool(20261116);
+        let report = response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("nominal observability report");
+        assert!(report.accepted);
+        assert_eq!(report.condition_count, 12);
+        assert_eq!(report.checked_transition_count, 60);
+        assert_eq!(report.flatline_transition_count, 0);
+    }
+
+    #[test]
+    fn flatline_and_decreasing_sensor_response_fail_observability() {
+        let mut domain = target_candidate_pool(20261116);
+        for candidate in &mut domain.candidates {
+            if candidate.force_setpoint_n >= 8.0 {
+                candidate.features[1] = 7.0;
+            }
+        }
+        let report = response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("saturation observability report");
+        assert!(!report.accepted);
+        assert!(report.flatline_transition_count > 0);
+        assert!(report.affected_condition_count > 0);
+        assert!(report.first_flatline_start_force_n.is_some());
+
+        let mut decreasing = target_candidate_pool(20261116);
+        for candidate in &mut decreasing.candidates {
+            if candidate.force_setpoint_n == 8.0 {
+                candidate.features[1] = 7.0;
+            } else if candidate.force_setpoint_n == 10.0 {
+                candidate.features[1] = 6.0;
+            }
+        }
+        let decreasing_report = response_observability_check(
+            &decreasing.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("decreasing response report");
+        assert!(decreasing_report.decreasing_transition_count > 0);
+    }
+
+    #[test]
+    fn missing_declared_force_range_is_incomplete_observability_evidence() {
+        let mut domain = target_candidate_pool(20261116);
+        domain
+            .candidates
+            .retain(|candidate| candidate.force_setpoint_n <= 6.0);
+        let report = response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("incomplete force-range report");
+        assert!(!report.accepted);
+        assert_eq!(report.incomplete_condition_count, 12);
+        assert_eq!(report.maximum_observed_force_setpoint_n, 6.0);
+    }
+
+    #[test]
+    fn missing_condition_strata_do_not_pass_observability() {
+        let mut domain = target_candidate_pool(20261116);
+        domain.candidates.retain(|candidate| {
+            !(candidate.position == -1.0 && candidate.temperature == 1.0 && candidate.phase == 1.0)
+        });
+        let report = response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("missing condition report");
+        assert!(!report.accepted);
+        assert_eq!(report.missing_condition_count, 1);
+    }
+
+    #[test]
     fn qualified_fit_rejects_reference_disagreement_and_missing_ancestry() {
         let domain = target_candidate_pool(20261116);
         let selected: Vec<_> = (0..domain.candidates.len()).collect();
@@ -1267,6 +1522,7 @@ mod tests {
         assert_eq!(report.target_candidate_pool_size, 72);
         assert_eq!(report.heldout_case_count, 60);
         assert_eq!(report.target_contact_budget, 16);
+        assert!(report.response_observability.accepted);
         assert_eq!(report.results.len(), 7);
         assert_eq!(report.results[0].source_reference_contacts, 0);
         assert_eq!(report.results[0].target_reference_contacts, 72);

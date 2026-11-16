@@ -41,6 +41,17 @@ fn main() -> ExitCode {
                         "active_calibration_target_contact_budget={}",
                         benchmark.target_contact_budget
                     );
+                    println!(
+                        "active_calibration_observability=accepted:{} flatlines:{} affected_conditions:{} missing_conditions:{} incomplete_conditions:{} max_force_setpoint_n:{:.3}",
+                        benchmark.response_observability.accepted,
+                        benchmark.response_observability.flatline_transition_count,
+                        benchmark.response_observability.affected_condition_count,
+                        benchmark.response_observability.missing_condition_count,
+                        benchmark.response_observability.incomplete_condition_count,
+                        benchmark
+                            .response_observability
+                            .maximum_observed_force_setpoint_n,
+                    );
                     for result in benchmark.results {
                         println!(
                             "policy={} source_contacts={} target_contacts={} source_cost_ms={} target_cost_ms={} total_synthetic_cost_ms={} rmse_n={:.6} p95_abs_n={:.6} worst_abs_n={:.6} prediction_interval_coverage95={:.4} mean_interval_width_n={:.6} claim={}",
@@ -117,6 +128,21 @@ fn main() -> ExitCode {
                                 .independent_reference_ancestry_attested,
                             family.reference_integrity.agreement_proves_independence,
                             family.shared_reference_common_cause_injected,
+                        );
+                        println!(
+                            "response_observability family={} accepted={} conditions={} missing_conditions={} incomplete_conditions={} transitions={} flatlines={} decreasing={} affected_conditions={} first_plateau_start_n={:?} max_force_setpoint_n={:.3} resolution={:.3e}",
+                            family.family_id,
+                            family.observability.accepted,
+                            family.observability.condition_count,
+                            family.observability.missing_condition_count,
+                            family.observability.incomplete_condition_count,
+                            family.observability.checked_transition_count,
+                            family.observability.flatline_transition_count,
+                            family.observability.decreasing_transition_count,
+                            family.observability.affected_condition_count,
+                            family.observability.first_flatline_start_force_n,
+                            family.observability.maximum_observed_force_setpoint_n,
+                            family.observability.raw_response_resolution,
                         );
                         for result in family.policies {
                             println!(
