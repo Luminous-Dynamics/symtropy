@@ -6,6 +6,9 @@ on:
       - main
       - research/large-appliance-repairable-architecture-v0-1
       - research/laundry-service-system-benchmark-v0-1
+      - research/laundry-mnb-external-loop-v0-1
+      - research/garment-care-platform-morphology-v0-1
+      - research/garment-material-passport-nir-v0-1
     paths:
       - "docs/tech/LAUNDRY_SERVICE_SYSTEM_BENCHMARK_V0_1.md"
       - "docs/tech/LAUNDRY_CLEANING_INTENSIFICATION_SCREEN_V0_1.md"
@@ -14,6 +17,10 @@ on:
       - "schemas/laundry/garment_care_morphology_v0_1.schema.json"
       - "fixtures/laundry/garment_care_morphology_v0_1.json"
       - "tools/household-appliance-bench-audit/src/bin/garment_care_morphology_audit.rs"
+      - "docs/tech/GARMENT_MATERIAL_PASSPORT_NIR_V0_1.md"
+      - "schemas/laundry/garment_material_passport_v0_1.schema.json"
+      - "fixtures/laundry/garment_material_passport_v0_1.json"
+      - "tools/household-appliance-bench-audit/src/bin/garment_material_passport_audit.rs"
       - "schemas/laundry/mnb_external_loop_v0_1.schema.json"
       - "fixtures/laundry/mnb_external_loop_v0_1.json"
       - "tools/household-appliance-bench-audit/src/bin/laundry_mnb_protocol_audit.rs"
@@ -29,6 +36,7 @@ on:
       - research/laundry-service-system-benchmark-v0-1
       - research/laundry-mnb-external-loop-v0-1
       - research/garment-care-platform-morphology-v0-1
+      - research/garment-material-passport-nir-v0-1
     paths:
       - "docs/tech/LAUNDRY_SERVICE_SYSTEM_BENCHMARK_V0_1.md"
       - "docs/tech/LAUNDRY_MNB_EXTERNAL_LOOP_PROTOCOL_V0_1.md"
@@ -36,6 +44,10 @@ on:
       - "schemas/laundry/garment_care_morphology_v0_1.schema.json"
       - "fixtures/laundry/garment_care_morphology_v0_1.json"
       - "tools/household-appliance-bench-audit/src/bin/garment_care_morphology_audit.rs"
+      - "docs/tech/GARMENT_MATERIAL_PASSPORT_NIR_V0_1.md"
+      - "schemas/laundry/garment_material_passport_v0_1.schema.json"
+      - "fixtures/laundry/garment_material_passport_v0_1.json"
+      - "tools/household-appliance-bench-audit/src/bin/garment_material_passport_audit.rs"
       - "schemas/laundry/mnb_external_loop_v0_1.schema.json"
       - "fixtures/laundry/mnb_external_loop_v0_1.json"
       - "tools/household-appliance-bench-audit/src/bin/laundry_mnb_protocol_audit.rs"
@@ -64,7 +76,7 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
       - name: Check formatting
-        run: rustfmt --edition 2024 --check tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs tools/household-appliance-bench-audit/src/bin/laundry_spin_dryer_screen.rs tools/household-appliance-bench-audit/src/bin/laundry_mnb_protocol_audit.rs tools/household-appliance-bench-audit/src/bin/garment_care_morphology_audit.rs
+        run: rustfmt --edition 2024 --check tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs tools/household-appliance-bench-audit/src/bin/laundry_spin_dryer_screen.rs tools/household-appliance-bench-audit/src/bin/laundry_mnb_protocol_audit.rs tools/household-appliance-bench-audit/src/bin/garment_care_morphology_audit.rs tools/household-appliance-bench-audit/src/bin/garment_material_passport_audit.rs
       - name: Run schema and mutation tests
         run: cargo test --manifest-path tools/household-appliance-bench-audit/Cargo.toml --all-targets
       - name: Audit laundry service profile and emit digest-bound receipt
@@ -87,6 +99,14 @@ jobs:
             --schema schemas/laundry/garment_care_morphology_v0_1.schema.json \
             --profile fixtures/laundry/garment_care_morphology_v0_1.json \
             | tee /tmp/garment-care-morphology-receipt.json
+      - name: Audit garment material passport benchmark and emit digest-bound receipt
+        run: |
+          cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml --bin garment_material_passport_audit -- \
+            --schema schemas/laundry/garment_material_passport_v0_1.schema.json \
+            --profile fixtures/laundry/garment_material_passport_v0_1.json \
+            | tee /tmp/garment-material-passport-receipt.json
+          printf '{"head_sha":"%s","workflow":"garment-material-passport-contract","receipt":"garment-material-passport-receipt.json"}\n' "$GITHUB_SHA" \
+            > /tmp/garment-material-passport-exact-head-manifest.json
       - name: Run washer-spin dryer latent-heat screening model
         run: |
           cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml --bin laundry_spin_dryer_screen \
@@ -100,6 +120,8 @@ jobs:
             /tmp/laundry-service-benchmark-receipt.json
             /tmp/laundry-mnb-protocol-receipt.json
             /tmp/garment-care-morphology-receipt.json
+            /tmp/garment-material-passport-receipt.json
+            /tmp/garment-material-passport-exact-head-manifest.json
             /tmp/laundry-spin-dryer-screen.json
             /tmp/laundry-service-exact-head-manifest.json
           if-no-files-found: ignore

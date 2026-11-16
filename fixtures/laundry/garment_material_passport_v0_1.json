@@ -1,0 +1,54 @@
+{
+  "schema_version":"0.1.0",
+  "program_id":"GARMENT-MATERIAL-PASSPORT-001",
+  "status":"benchmark_contract_proposal_no_physical_measurements",
+  "claim_ceiling":"no_model_or_process_qualification_claim",
+  "datasets":[
+    {"id":"NIST-NIR-SORT-2","version":"2.0","kind":"nir_reference_dataset","specimen_count":113,"scope":"90 known-provenance, 12 pre-consumer and 11 post-consumer textile specimens with custom blends, dyed fabrics, additional fibre types, handheld and standoff measurement profiles.","source_uri":"https://doi.org/10.18434/mds2-3325","role":"development_and_instrument_validation","not_our_measurement":true},
+    {"id":"OPENTEXTILE-NIR","version":"2026","kind":"nir_hyperspectral_reference_dataset","specimen_count":71,"spectrum_count":11000000,"annotated_spectrum_count":6000000,"scope":"71 post-industrial textile samples with NIR hyperspectral imagery, RGB photographs, fibre/colour metadata and more than 11 million spectra including more than 6 million annotated spectra.","source_uri":"https://doi.org/10.1016/j.dib.2026.112559","role":"external_domain_challenge","not_our_measurement":true},
+    {"id":"WORKWEAR-COMPOSITION-DRIFT-2025","version":"2025","kind":"published_external_validation_cohort","specimen_count":30,"scope":"30 used hospital workwear garments with declared common polyester/cotton blend at manufacture and NIR-HSI estimated present composition compared with ISO-standardized chemical analysis.","source_uri":"https://doi.org/10.1016/j.rcradv.2025.200282","role":"published_result_comparator","not_our_measurement":true}
+  ],
+  "external_reference_results":[
+    {"id":"WORKWEAR-HSI-RMSE","dataset_id":"WORKWEAR-COMPOSITION-DRIFT-2025","metric_id":"blend_fraction_rmse_same_scope_wt_pct","reported_result":"RMSE <0.5 wt-% for NIR-HSI; cycle-count estimate RMSE >1.4 wt-%","unit":"wt-% RMSE","scope_note":"Published result for the paper's 30-garment polyester/cotton hospital workwear cohort only; not a universal or Luminous result.","is_our_result":false}
+  ],
+  "validation_policy":{
+    "split_group_fields":["physical_specimen_id","garment_id","source_lot_id","acquisition_session_id"],
+    "random_spectral_pixel_split_allowed":false,
+    "source_lot_holdout_required":true,
+    "instrument_holdout_required":true,
+    "external_cohorts_separate":true,
+    "chemical_ground_truth_required_for_blend_claim":true
+  },
+  "metrics":[
+    {"id":"fibre_family_macro_f1","unit":"score","target_hypothesis":">=0.95","scope":"In-domain held-out specimen classification with worst-class report.","status":"proposal_target_only"},
+    {"id":"blend_fraction_rmse_same_scope_wt_pct","unit":"wt-% RMSE","target_hypothesis":"Replicate published <0.5 wt-% in the declared workwear cohort.","scope":"Same-scope reproduction only; chemical ground truth required.","status":"proposal_target_only"},
+    {"id":"blend_fraction_rmse_broad_corpus_wt_pct","unit":"wt-% RMSE","target_hypothesis":"<=1.0 wt-% as an initial broader-family hypothesis.","scope":"Cross-family test specimens with calibrated chemical ground truth.","status":"proposal_target_only"},
+    {"id":"prediction_interval_coverage_95","unit":"fraction","target_hypothesis":">=0.95 coverage at nominal 95% interval.","scope":"Coverage and interval width reported separately by class and instrument.","status":"proposal_target_only"},
+    {"id":"ood_detection_sensitivity","unit":"fraction","target_hypothesis":">=0.995 sensitivity on a frozen OOD challenge corpus.","scope":"Unseen fibres, coatings, wet/soiled materials, mixed layers and unsupported instruments.","status":"proposal_target_only"},
+    {"id":"false_safe_process_route_count","unit":"count","target_hypothesis":"0 in frozen adversarial safety corpus.","scope":"Material estimate alone cannot authorize process suitability; a human gate is required.","status":"proposal_target_only"},
+    {"id":"instrument_holdout_performance_delta","unit":"score_delta","target_hypothesis":"Establish baseline and minimize domain-shift degradation.","scope":"Entire instrument model or acquisition site held out.","status":"proposal_target_only"},
+    {"id":"within_garment_scan_repeatability","unit":"wt-% standard deviation","target_hypothesis":"Establish variance baseline before setting acceptance threshold.","scope":"Repeated scan, operator, region, angle, distance and moisture-state challenges.","status":"proposal_target_only"},
+    {"id":"region_layer_localization_accuracy","unit":"score","target_hypothesis":"Establish baseline with explicit abstention on occluded/multilayer areas.","scope":"Shell, lining, interlining, seam tape and trim remain separate regions.","status":"proposal_target_only"},
+    {"id":"expected_calibration_error","unit":"fraction","target_hypothesis":"<=0.05 initial calibration hypothesis, subject to class balance and validation design.","scope":"Calibrated class probabilities and selective prediction.","status":"proposal_target_only"}
+  ],
+  "hard_gates":[
+    "specimen_source_lot_and_session_grouped_splits",
+    "instrument_holdout_and_calibration_traceability",
+    "independent_chemical_ground_truth_for_blend_regression",
+    "ood_detection_and_abstention",
+    "multi_region_and_multilayer_uncertainty",
+    "no_nir_only_process_suitability_claim",
+    "no_ai_actuation_or_interlock_override",
+    "dataset_license_and_provenance",
+    "offline_and_privacy_preserving_scan_processing"
+  ],
+  "governance":{"physical_scan_observations":0,"trained_models":0,"product_claims":false,"care_route_authority":"advisory_material_estimate_human_gate","symthaea_authority":"advisory_only_no_actuation","physical_interlocks":"independent_deterministic_device_controls"},
+  "scan_records":[],
+  "sources":[
+    {"id":"NIST-NIR-SORT-2-RELEASE","uri":"https://www.nist.gov/news-events/news/2026/03/nist-releases-nir-sort-20-enhancing-model-validation-textile-feedstock-0","scope_note":"NIST March 2026 release details and instrument/data additions."},
+    {"id":"NIST-NIR-SORT-DATA","uri":"https://doi.org/10.18434/mds2-3325","scope_note":"Versioned public reference dataset; verify README, licence and metadata at import."},
+    {"id":"OPENTEXTILE-NIR","uri":"https://doi.org/10.1016/j.dib.2026.112559","scope_note":"OpenTextile-NIR 2026 dataset article and data availability."},
+    {"id":"WORKWEAR-COMPOSITION-DRIFT","uri":"https://doi.org/10.1016/j.rcradv.2025.200282","scope_note":"Published 30-garment NIR-HSI blend-composition change study."},
+    {"id":"NIST-SCIENTIFIC-DATA","uri":"https://doi.org/10.1038/s41597-026-07434-6","scope_note":"Scientific Data description of NIR-SORT corpus, methods and data availability."}
+  ]
+}
