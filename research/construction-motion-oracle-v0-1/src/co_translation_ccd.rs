@@ -1276,7 +1276,7 @@ pub struct AdaptiveProofLeaf {
     pub disposition: AdaptiveProofLeafDisposition,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AdaptiveProofLeafDisposition {
     /// This interval was safely removed by disjoint conservative swept AABBs.
     Pruned {
@@ -1799,10 +1799,10 @@ mod adaptive_certificate_tests {
     #[test]
     fn forged_narrow_phase_distance_is_rejected() {
         let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
-            point_capsule(-10.0, 0.5),
-            p(0.0, 0.0, 0.0),
+            point_capsule(0.0, 0.5),
+            p(10.0, 0.0, 0.0),
             point_capsule(10.0, 0.5),
-            p(0.0, 0.0, 0.0),
+            p(10.0, 0.0, 0.0),
             AdaptiveSubdivisionConfig {
                 maximum_depth: 0,
                 minimum_window_width: 1.0,
