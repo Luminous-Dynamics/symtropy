@@ -12,6 +12,9 @@
 use std::f64::consts::TAU;
 use std::fmt;
 
+/// Synthetic observation-process generator and scorer-only truth fixtures.
+pub mod observation;
+
 /// Number of harmonics in the reference circadian expansion.
 pub const C_MAX_HARMONICS: usize = 5;
 
