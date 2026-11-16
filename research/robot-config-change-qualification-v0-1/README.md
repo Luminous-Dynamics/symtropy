@@ -49,6 +49,9 @@ This work is an adapter and benchmark. It must consume these owners' stable cont
 - `development-oracle-v0.1.json`: public expected dispositions for the development cases. This is a debug oracle, not hidden test data.
 - `schemas/robot-config-change-corpus-v0.1.schema.json`: closed JSON Schema Draft 2020-12 for the corpus package.
 - `stochastic-challenge-protocol-v0.1.md`: design for seeded configuration distributions, cross-lab sampling, statistical power, benchmark-validity diagnostics and later guarded physical trials.
+- `claim-profile-binding-contract-v0.1.md`: proposed read-only join contract for the existing capability, change-impact, dependency, admissibility, provenance and evidence-request owners; not an upstream API.
+- `qualification-industry-crosswalk-v0.1.md`: standards, measurement-science, interoperability, commercial-product and matched-referee comparison plan.
+- `schemas/development-oracle-v0.1.schema.json`: closed structural schema for the public development oracle; does not certify label correctness.
 
 All robot identities, module identifiers, evidence references, units and witness names in these files are fabricated. No vendor capability or physical measurement is asserted.
 
