@@ -87,6 +87,7 @@ fn screen(s: Scenario) -> Result<ScreeningResult, String> {
     })
 }
 
+#[cfg(test)]
 fn paired_net_reduction_kwh(
     incremental_washer_spin_electricity_kwh: f64,
     measured_dryer_electricity_reduction_kwh: f64,
