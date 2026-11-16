@@ -300,9 +300,8 @@ fn solve_point_system<const K: usize>(
                 selected_margin = margin;
             }
         }
-        let pivot_row = selected.ok_or(ConstraintBasisErrorV1::SingularTransform {
-            pivot: column,
-        })?;
+        let pivot_row =
+            selected.ok_or(ConstraintBasisErrorV1::SingularTransform { pivot: column })?;
         left.swap(column, pivot_row);
         right.swap(column, pivot_row);
 
@@ -318,8 +317,7 @@ fn solve_point_system<const K: usize>(
             }
             let factor = left[row][column];
             for entry in column..K {
-                left[row][entry] =
-                    left[row][entry].sub(factor.mul(left[column][entry])?)?;
+                left[row][entry] = left[row][entry].sub(factor.mul(left[column][entry])?)?;
             }
             right[row] = right[row].sub(factor.mul(right[column])?)?;
         }
@@ -531,8 +529,7 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
         &transform_interval,
         original_coefficients.delassus_intervals(),
     )?;
-    let delassus_from_congruence =
-        multiply_interval(&left_product, &transform_transpose)?;
+    let delassus_from_congruence = multiply_interval(&left_product, &transform_transpose)?;
     let delassus_common = intersect_delassus(
         &delassus_from_congruence,
         transformed_coefficients.delassus_intervals(),
@@ -542,8 +539,7 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
     // refuses transforms whose interval pivots cannot be separated from zero.
     let transform_transpose_point: [[f64; K]; K] =
         std::array::from_fn(|row| std::array::from_fn(|column| transform[column][row]));
-    let transformed_multiplier =
-        solve_point_system(&transform_transpose_point, multiplier_old)?;
+    let transformed_multiplier = solve_point_system(&transform_transpose_point, multiplier_old)?;
     let transformed_residual = transform_vector(transform, residual_old)?;
 
     let dual_pairing_original = pairing(multiplier_old, residual_old)?;
@@ -558,15 +554,12 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
     require_vector_overlap(
         &generalized_force_original,
         &generalized_force_transformed,
-        |coordinate| ConstraintBasisErrorV1::GeneralizedForceEnclosuresDisjoint {
-            coordinate,
-        },
+        |coordinate| ConstraintBasisErrorV1::GeneralizedForceEnclosuresDisjoint { coordinate },
     )?;
 
     let residual_solution_original =
         solve_spd(original_coefficients.delassus_intervals(), residual_old)?;
-    let residual_solution_transformed =
-        solve_spd(&delassus_common, &transformed_residual)?;
+    let residual_solution_transformed = solve_spd(&delassus_common, &transformed_residual)?;
     let minimum_kinetic_correction_original = multiply_b_vector(
         original_coefficients.inverse_mass_jacobian_transpose(),
         &residual_solution_original,
@@ -613,20 +606,17 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
     )?;
     let residual_dual_norm_transformed =
         quadratic_norm(&delassus_common, &residual_solution_transformed)?;
-    if interval_overlap(
-        residual_dual_norm_original,
-        residual_dual_norm_transformed,
-    )
-    .is_none()
-    {
+    if interval_overlap(residual_dual_norm_original, residual_dual_norm_transformed).is_none() {
         return Err(ConstraintBasisErrorV1::ResidualNormEnclosuresDisjoint);
     }
 
     // Check J delta_v = r in both constraint representations.
     let residual_reconstructed_original =
         multiply_interval(jacobian, &minimum_kinetic_correction_original)?;
-    let residual_reconstructed_transformed =
-        multiply_interval(&transformed_jacobian, &minimum_kinetic_correction_transformed)?;
+    let residual_reconstructed_transformed = multiply_interval(
+        &transformed_jacobian,
+        &minimum_kinetic_correction_transformed,
+    )?;
     for row in 0..K {
         if interval_overlap(residual_reconstructed_original[row], residual_old[row]).is_none()
             || interval_overlap(
@@ -711,8 +701,14 @@ mod tests {
     fn upper_triangular_constraint_shear_preserves_all_physical_quantities() {
         let (mass, jacobian) = fixture();
         let transform = [[1.0, 2.0], [0.0, 1.0]];
-        let residual = [Interval::point(0.25).unwrap(), Interval::point(-0.4).unwrap()];
-        let multiplier = [Interval::point(0.75).unwrap(), Interval::point(-1.25).unwrap()];
+        let residual = [
+            Interval::point(0.25).unwrap(),
+            Interval::point(-0.4).unwrap(),
+        ];
+        let multiplier = [
+            Interval::point(0.75).unwrap(),
+            Interval::point(-1.25).unwrap(),
+        ];
         let certificate = certify_interval_constraint_basis_covariance(
             &mass,
             &jacobian,
@@ -723,27 +719,38 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(certificate.status(), ConstraintBasisStatusV1::VerifiedCovariant);
-        assert!(interval_overlap(
-            certificate.dual_pairing_original(),
-            certificate.dual_pairing_transformed()
-        )
-        .is_some());
-        assert!(interval_overlap(
-            certificate.correction_mass_norm_original(),
-            certificate.correction_mass_norm_transformed()
-        )
-        .is_some());
-        assert!(interval_overlap(
-            certificate.multiplier_kinetic_norm_original(),
-            certificate.multiplier_kinetic_norm_transformed()
-        )
-        .is_some());
-        assert!(interval_overlap(
-            certificate.residual_dual_norm_original(),
-            certificate.residual_dual_norm_transformed()
-        )
-        .is_some());
+        assert_eq!(
+            certificate.status(),
+            ConstraintBasisStatusV1::VerifiedCovariant
+        );
+        assert!(
+            interval_overlap(
+                certificate.dual_pairing_original(),
+                certificate.dual_pairing_transformed()
+            )
+            .is_some()
+        );
+        assert!(
+            interval_overlap(
+                certificate.correction_mass_norm_original(),
+                certificate.correction_mass_norm_transformed()
+            )
+            .is_some()
+        );
+        assert!(
+            interval_overlap(
+                certificate.multiplier_kinetic_norm_original(),
+                certificate.multiplier_kinetic_norm_transformed()
+            )
+            .is_some()
+        );
+        assert!(
+            interval_overlap(
+                certificate.residual_dual_norm_original(),
+                certificate.residual_dual_norm_transformed()
+            )
+            .is_some()
+        );
         verify_interval_constraint_basis_certificate(
             &mass,
             &jacobian,
@@ -834,16 +841,18 @@ mod tests {
 
         let mut changed_jacobian = jacobian;
         changed_jacobian[0][0] = Interval::point(1.5).unwrap();
-        assert!(verify_interval_constraint_basis_certificate(
-            &mass,
-            &changed_jacobian,
-            &transform,
-            &residual,
-            &multiplier,
-            profile(),
-            &certificate,
-        )
-        .is_err());
+        assert!(
+            verify_interval_constraint_basis_certificate(
+                &mass,
+                &changed_jacobian,
+                &transform,
+                &residual,
+                &multiplier,
+                profile(),
+                &certificate,
+            )
+            .is_err()
+        );
     }
 
     #[test]
@@ -869,12 +878,10 @@ mod tests {
 
         // Wrong multiplier mapping uses T^-1 lambda instead of T^-T lambda.
         let wrong_multiplier = [
-            Interval::point(multiplier[0].lower()).unwrap().add(
-                Interval::point(-2.0)
-                    .unwrap()
-                    .mul(multiplier[1])
-                    .unwrap(),
-            ).unwrap(),
+            Interval::point(multiplier[0].lower())
+                .unwrap()
+                .add(Interval::point(-2.0).unwrap().mul(multiplier[1]).unwrap())
+                .unwrap(),
             multiplier[1],
         ];
         assert_ne!(wrong_multiplier, *certificate.transformed_multiplier());
