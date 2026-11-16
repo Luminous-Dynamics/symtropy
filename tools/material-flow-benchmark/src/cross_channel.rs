@@ -11,12 +11,12 @@
 
 use serde::Serialize;
 
+use crate::ScenarioManifest;
 use crate::observation::{
-    PresenceAdjudicationPolicy, PresenceAdjudicationReport, PresenceReading,
-    PresenceVerdict, ReceiverPresenceObservation, adjudicate_receiver_presence,
+    PresenceAdjudicationPolicy, PresenceAdjudicationReport, PresenceReading, PresenceVerdict,
+    ReceiverPresenceObservation, adjudicate_receiver_presence,
 };
 use crate::simulation::simulate_closed_gate_obstruction;
-use crate::ScenarioManifest;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct CrossChannelFaultResult {
@@ -102,9 +102,8 @@ pub fn run_gate_fault_observation_cross_check(
 ) -> Result<CrossChannelFaultResult, String> {
     let physical = simulate_closed_gate_obstruction(scenario)?;
     let (policy, device_observations) = observations_for_scenario(scenario);
-    let observation_adjudication =
-        adjudicate_receiver_presence(&device_observations, &policy)
-            .map_err(|errors| format!("observation adjudication rejected: {}", errors.join("; ")))?;
+    let observation_adjudication = adjudicate_receiver_presence(&device_observations, &policy)
+        .map_err(|errors| format!("observation adjudication rejected: {}", errors.join("; ")))?;
 
     let physical_and_observation_disagreement_detected = !physical.simulation.safe_inside_tote
         && device_observations
@@ -177,7 +176,11 @@ mod tests {
             result.physical_ground_truth_for_evaluator.visibility,
             "independent_evaluator_only"
         );
-        assert!(!result.physical_ground_truth_for_evaluator.package_inside_tote);
+        assert!(
+            !result
+                .physical_ground_truth_for_evaluator
+                .package_inside_tote
+        );
         assert_eq!(
             result.physical_ground_truth_for_evaluator.transaction_state,
             crate::transaction::PhysicalTransactionState::ReconciliationRequired
@@ -207,7 +210,11 @@ mod tests {
         let result = run_gate_fault_observation_cross_check(&scenario())
             .expect("cross-channel fault episode should execute");
         assert!(!result.observation_adjudication.sensor_truth_established);
-        assert!(!result.observation_adjudication.cryptographic_authentication_verified);
+        assert!(
+            !result
+                .observation_adjudication
+                .cryptographic_authentication_verified
+        );
         assert!(!result.observation_adjudication.trusted_time_verified);
         assert!(!result.observation_adjudication.motion_authority_granted);
         assert!(!result.observation_adjudication.physical_command_emitted);
@@ -220,11 +227,9 @@ mod tests {
         let result = run_gate_fault_observation_cross_check(&scenario)
             .expect("cross-channel fault episode should execute");
         assert_eq!(result.scenario_id, scenario.scenario_id);
-        assert!(
-            result.device_observations.iter().all(|observation| {
-                observation.scenario_id == scenario.scenario_id
-                    && observation.subject_id == scenario.package.package_id
-            })
-        );
+        assert!(result.device_observations.iter().all(|observation| {
+            observation.scenario_id == scenario.scenario_id
+                && observation.subject_id == scenario.package.package_id
+        }));
     }
 }
