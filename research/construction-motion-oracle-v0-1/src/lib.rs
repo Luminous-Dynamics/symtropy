@@ -16,14 +16,12 @@ pub use co_translation_ccd::{
     AdaptiveCertificateError, AdaptiveCollisionCertificate, AdaptiveCollisionReport,
     AdaptiveCollisionStatus, AdaptiveProofLeaf, AdaptiveProofLeafDisposition,
     AdaptiveSubdivisionConfig, AdaptiveSubdivisionStats, CoTranslatingCapsuleClosestApproach,
-    NormalizedTimeWindow,
-    TimeSlicedAabbCandidates, co_translating_capsule_adaptive_query,
+    NormalizedTimeWindow, TimeSlicedAabbCandidates, co_translating_capsule_adaptive_query,
     co_translating_capsule_adaptive_query_with_certificate,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     co_translating_capsule_vs_capsule_in_time_window,
-    verify_adaptive_collision_certificate,
-    endpoints_only_co_translating_capsule_collision,
+    endpoints_only_co_translating_capsule_collision, verify_adaptive_collision_certificate,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
