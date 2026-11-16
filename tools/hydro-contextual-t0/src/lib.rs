@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 40;
+pub const CASE_COUNT: usize = 44;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -872,6 +872,14 @@ fn skill_context(input: &Value, require_event: bool) -> Result<Result<Value, Val
     let reference_population = text(input, "reference_evaluation_population_id")?;
     let forecast_lead = number(input, "forecast_lead_hours")?;
     let reference_lead = number(input, "reference_lead_hours")?;
+    let forecast_variable = text(input, "forecast_variable_id")?;
+    let reference_variable = text(input, "reference_variable_id")?;
+    let forecast_unit = text(input, "forecast_unit_id")?;
+    let reference_unit = text(input, "reference_unit_id")?;
+    let forecast_aggregation = text(input, "forecast_aggregation_id")?;
+    let reference_aggregation = text(input, "reference_aggregation_id")?;
+    let forecast_valid_time = text(input, "forecast_valid_time_semantics_id")?;
+    let reference_valid_time = text(input, "reference_valid_time_semantics_id")?;
     let observation_ids = strings(input, "observation_case_ids")?;
     let forecast_ids = strings(input, "forecast_case_ids")?;
     let reference_ids = strings(input, "reference_case_ids")?;
@@ -894,6 +902,42 @@ fn skill_context(input: &Value, require_event: bool) -> Result<Result<Value, Val
             "reason": "FORECAST_LEAD_TIME_MISMATCH",
             "forecast_lead_hours": forecast_lead,
             "reference_lead_hours": reference_lead,
+            "skill_score": null
+        })));
+    }
+    if forecast_variable != reference_variable {
+        return Ok(Err(json!({
+            "skill_disposition": "NOT_COMPARABLE",
+            "reason": "FORECAST_VARIABLE_MISMATCH",
+            "forecast_variable_id": forecast_variable,
+            "reference_variable_id": reference_variable,
+            "skill_score": null
+        })));
+    }
+    if forecast_unit != reference_unit {
+        return Ok(Err(json!({
+            "skill_disposition": "NOT_COMPARABLE",
+            "reason": "FORECAST_UNIT_MISMATCH",
+            "forecast_unit_id": forecast_unit,
+            "reference_unit_id": reference_unit,
+            "skill_score": null
+        })));
+    }
+    if forecast_aggregation != reference_aggregation {
+        return Ok(Err(json!({
+            "skill_disposition": "NOT_COMPARABLE",
+            "reason": "AGGREGATION_SEMANTICS_MISMATCH",
+            "forecast_aggregation_id": forecast_aggregation,
+            "reference_aggregation_id": reference_aggregation,
+            "skill_score": null
+        })));
+    }
+    if forecast_valid_time != reference_valid_time {
+        return Ok(Err(json!({
+            "skill_disposition": "NOT_COMPARABLE",
+            "reason": "VALID_TIME_SEMANTICS_MISMATCH",
+            "forecast_valid_time_semantics_id": forecast_valid_time,
+            "reference_valid_time_semantics_id": reference_valid_time,
             "skill_score": null
         })));
     }
@@ -925,6 +969,10 @@ fn skill_context(input: &Value, require_event: bool) -> Result<Result<Value, Val
         "reference_forecast_id": reference_id,
         "forecast_evaluation_population_id": forecast_population,
         "forecast_lead_hours": forecast_lead,
+        "forecast_variable_id": forecast_variable,
+        "forecast_unit_id": forecast_unit,
+        "forecast_aggregation_id": forecast_aggregation,
+        "forecast_valid_time_semantics_id": forecast_valid_time,
         "case_count": observation_ids.len(),
         "case_identity_ids": observation_ids
     })))
@@ -1120,6 +1168,18 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-034-brier-skill-matched-reference"
         | "HC-T0-036-brier-skill-zero-reference-undefined" => brier_skill_score(input),
         "HC-T0-035-skill-population-mismatch-not-comparable" => crps_skill_score(input),
+        "HC-T0-033-crps-skill-matched-reference"
+        | "HC-T0-035-skill-population-mismatch-not-comparable"
+        | "HC-T0-037-crps-skill-zero-reference-undefined"
+        | "HC-T0-038-crps-skill-lead-mismatch-not-comparable"
+        | "HC-T0-039-crps-skill-case-identity-mismatch"
+        | "HC-T0-041-crps-skill-unit-mismatch-not-comparable"
+        | "HC-T0-042-crps-skill-aggregation-mismatch-not-comparable"
+        | "HC-T0-043-crps-skill-negative-score-not-clipped" => crps_skill_score(input),
+        "HC-T0-034-brier-skill-matched-reference"
+        | "HC-T0-036-brier-skill-zero-reference-undefined"
+        | "HC-T0-040-brier-skill-event-definition-mismatch"
+        | "HC-T0-044-brier-skill-negative-score-not-clipped" => brier_skill_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1262,7 +1322,7 @@ mod tests {
     }
 
     #[test]
-    fn all_forty_cases_match_separate_oracle() {
+    fn all_forty_four_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1450,6 +1510,37 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][37]).expect("lead mismatch");
         assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
         assert_eq!(out["reason"], "FORECAST_LEAD_TIME_MISMATCH");
+    }
+
+
+    #[test]
+    fn probabilistic_skill_rejects_unit_mismatch() {
+        let out = compute_case(&fixture("inputs")["cases"][40]).expect("unit mismatch");
+        assert_eq!(out["skill_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "FORECAST_UNIT_MISMATCH");
+        assert_eq!(out["skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn probabilistic_skill_rejects_aggregation_mismatch() {
+        let out = compute_case(&fixture("inputs")["cases"][41]).expect("aggregation mismatch");
+        assert_eq!(out["skill_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "AGGREGATION_SEMANTICS_MISMATCH");
+        assert_eq!(out["skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn crps_skill_below_zero_is_preserved_not_clipped() {
+        let out = compute_case(&fixture("inputs")["cases"][42]).expect("negative CRPSS");
+        assert!(out["crps_skill_score"].as_f64().expect("CRPSS") < 0.0);
+        assert_eq!(out["skill_score_unclipped"], true);
+    }
+
+    #[test]
+    fn brier_skill_below_zero_is_preserved_not_clipped() {
+        let out = compute_case(&fixture("inputs")["cases"][43]).expect("negative BSS");
+        assert!(out["brier_skill_score"].as_f64().expect("BSS") < 0.0);
+        assert_eq!(out["skill_score_unclipped"], true);
     }
 
     #[test]
