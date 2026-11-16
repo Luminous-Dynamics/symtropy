@@ -13,8 +13,11 @@ pub use capsule::{
     moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
 };
 pub use co_translation_ccd::{
-    CoTranslatingCapsuleClosestApproach, TimeSlicedAabbCandidates,
+    AdaptiveCollisionReport, AdaptiveCollisionStatus, AdaptiveSubdivisionConfig,
+    AdaptiveSubdivisionStats, CoTranslatingCapsuleClosestApproach, NormalizedTimeWindow,
+    TimeSlicedAabbCandidates,
     co_translating_capsule_adaptive_query, co_translating_capsule_capsule_collision,
+    co_translating_capsule_vs_capsule_in_time_window,
     co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision,
