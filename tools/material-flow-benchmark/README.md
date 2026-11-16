@@ -27,7 +27,7 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
 ```
 
-The report separates `physical_fault_effect_observed`, `reconciliation_required`, `blind_retry_blocked`, `false_completion_blocked` and `fault_oracle_passed`. A passing fault oracle is not a successful delivery: the nested nominal `SimulationResult.accepted` must be false and the transaction must remain unresolved.
+The report separates `physical_fault_effect_observed`, `gate_contact_event_count`, `gate_contact_max_impulse_ns`, `reconciliation_required`, `blind_retry_blocked`, `false_completion_blocked` and `fault_oracle_passed`. A passing fault oracle requires a non-zero package↔gate `CollisionEvent` and measured impact impulse. These events are emitted by the physics engine once per finalized resolved contact manifold after the solver, and are captured in `WorldSnapshot` replay evidence. A passing fault oracle is not a successful delivery: the nested nominal `SimulationResult.accepted` must be false and the transaction must remain unresolved.
 
 **Limitations:** the gate is a static collision geometry proxy present in the scene. This does not simulate gate motion, controller/interlock timing, actuator power, sensor perception or firmware. It is not HIL or a real-world safety test. The detailed physical fault-injection programme remains #5500.
 
