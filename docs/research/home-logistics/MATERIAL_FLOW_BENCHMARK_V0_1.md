@@ -615,6 +615,18 @@ Unit tests check a three-seed sweep is exactly repeatable, all three cases remai
 
 The workflow now requests 30 seeds and archives `gate-obstruction-fault-sweep.json` with its own SHA-256. Exact-head qualification is pending for this new runner.
 
+### 12.11 Receiver-observation consistency prototype
+
+The MFB toolkit now includes `src/observation.rs`, the `mfb-adjudicate-presence` CLI and `fixtures/false-positive-receiver-observation.json`.
+
+The adjudicator takes only declared observations and a versioned policy. It does not take or expose simulator ground truth. It requires two fresh observations from distinct declared common-cause groups before reporting a positive or negative presence result. It treats common-cause group identity (controller, power, firmware, calibration or clock) as a first-class field; two sensors sharing one group are one source, and absent group membership cannot be assumed independent.
+
+The v1 report distinguishes `ConfirmedPresent`, `ConfirmedAbsent`, `Unknown`, `Contradictory` and `Stale`. It rejects event replay, conflicting source identity, subject/scenario mismatch and readings that touch the decision-time boundary. Eleven unit tests cover a lone positive, positive quorum, correlated sensors, false-positive/negative disagreement, stale evidence, duplicate event identity, source identity conflict, clock-boundary staleness, wrong subject/scenario and unknown common-cause groups.
+
+The fixture models a false-positive receiver-presence reading against an independent negative gate-contact reading. CI expects `Contradictory`, `positive_presence_confirmed=false` and `custody_completion_permitted=false`.
+
+**Claim boundary:** this checks consistency of declared observation envelopes only. The report hard-codes `sensor_truth_established=false`, `cryptographic_authentication_verified=false`, `issuer_authorization_verified=false`, `trusted_time_verified=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `custody_completion_permitted=false`. The declared common-cause group is not authenticated; no sensor truth, trusted chronology or physical result is established. Ground truth remains evaluator-only in future controller-vs-oracle benchmark tracks. This is the first executable slice for [#5601](https://github.com/Luminous-Dynamics/symtropy/issues/5601); it is not yet integrated into the physical handoff transaction path.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
