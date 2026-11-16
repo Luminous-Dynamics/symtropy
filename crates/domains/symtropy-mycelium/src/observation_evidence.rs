@@ -10,7 +10,7 @@
 
 use std::fmt;
 
-use crate::hyphal_graph::{HyphalGraph, NodeId, SegmentId};
+use crate::hyphal_graph::{EventId, HyphalGraph, NodeId, SegmentId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ObservationEvidenceId(pub u64);
@@ -116,6 +116,8 @@ pub struct ObservationEvidenceReceipt {
     pub processor_parameters_sha256: Sha256Digest,
     pub subject: ObservationSubject,
     pub graph_target: Option<EvidenceGraphTarget>,
+    /// Event that consumed/accepted this evidence, if a topology mutation occurred.
+    pub graph_event: Option<EventId>,
     pub uncertainty: Option<SpatialUncertaintyUm>,
     pub disposition: EvidenceDisposition,
 }
@@ -136,6 +138,7 @@ pub enum EvidenceReceiptError {
     ThreeDimensionalUncertaintyRequiresDepthCalibration,
     MissingGraphNode(NodeId),
     MissingGraphSegment(SegmentId),
+    MissingGraphEvent(EventId),
 }
 
 impl fmt::Display for EvidenceReceiptError {
@@ -184,6 +187,9 @@ impl fmt::Display for EvidenceReceiptError {
                     "evidence references graph segment {:?} that does not exist",
                     id
                 )
+            }
+            Self::MissingGraphEvent(id) => {
+                write!(f, "evidence references graph event {:?} that has not been applied", id)
             }
         }
     }
@@ -293,7 +299,14 @@ impl ObservationEvidenceReceipt {
             Some(EvidenceGraphTarget::Segment(id)) if graph.segment(id).is_none() => {
                 Err(EvidenceReceiptError::MissingGraphSegment(id))
             }
-            _ => Ok(()),
+            _ => {
+                if let Some(event_id) = self.graph_event
+                    && !graph.has_applied_event(event_id)
+                {
+                    return Err(EvidenceReceiptError::MissingGraphEvent(event_id));
+                }
+                Ok(())
+            }
         }
     }
 }
@@ -332,6 +345,7 @@ mod tests {
             processor_parameters_sha256: Sha256Digest([2; 32]),
             subject: ObservationSubject::CrossingCandidate,
             graph_target: None,
+            graph_event: None,
             uncertainty: Some(SpatialUncertaintyUm {
                 x_std_dev_um: Some(0.1),
                 y_std_dev_um: Some(0.1),
@@ -445,6 +459,42 @@ mod tests {
             item.validate_graph_target(&graph()),
             Err(EvidenceReceiptError::MissingGraphSegment(SegmentId(99)))
         );
+    }
+
+    #[test]
+    fn graph_event_reference_requires_an_applied_event() {
+        let graph = graph();
+        let mut item = receipt();
+        item.graph_event = Some(EventId(99));
+        assert_eq!(
+            item.validate_graph_target(&graph),
+            Err(EvidenceReceiptError::MissingGraphEvent(EventId(99)))
+        );
+    }
+
+    #[test]
+    fn graph_event_reference_accepts_applied_topology_event() {
+        use crate::hyphal_graph::BranchEvent;
+
+        let mut graph = graph();
+        graph
+            .apply_branch(BranchEvent {
+                id: EventId(9),
+                parent_segment: SegmentId(4),
+                attachment_fraction: 0.5,
+                branch_node: NodeId(3),
+                branch_tip: NodeId(4),
+                proximal_segment: SegmentId(5),
+                distal_segment: SegmentId(6),
+                branch_segment: SegmentId(7),
+                branch_tip_position: Position3Mm::new(0.5, 1.0, 0.0),
+            })
+            .unwrap();
+
+        let mut item = receipt();
+        item.graph_event = Some(EventId(9));
+        item.graph_target = Some(EvidenceGraphTarget::Node(NodeId(3)));
+        assert_eq!(item.validate_graph_target(&graph), Ok(()));
     }
 
     #[test]
