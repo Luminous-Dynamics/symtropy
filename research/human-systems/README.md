@@ -39,6 +39,7 @@ This gives us a non-clinical research target useful for human-centred robotics, 
 - [Human observation-process protocol v0.1](HUMAN_OBSERVATION_PROCESS_PROTOCOL_V0_1.md) — synthetic sensor worlds, missingness, delay, clock semantics, identifiability, transfer and SOTA comparison. Tracked by [#5664](https://github.com/Luminous-Dynamics/symtropy/issues/5664).
 - [Machine-readable 12-scenario catalogue](HUMAN_OBSERVATION_SCENARIOS_V0_1.json) — synthetic arbitrary-unit scenario definitions; not human data.
 - [Known-truth sampling-rate fixtures](HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json) — exact task-band information-retention values across a six-rate anti-alias/downsample sweep.
+- [Human circadian model register v0.1](HUMAN_CIRCADIAN_MODEL_REGISTER_V0_1.md) — FJK99, JK99 and Hannay 2019 equation families, parameter provenance and eye-plane light exposure semantics.
 
 ### Fidelity labels
 
