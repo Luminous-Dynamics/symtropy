@@ -556,7 +556,10 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
     Ok((ProviderNativeView::OgcRecords(view), decisions))
 }
 
-fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision>), String> {
+fn project_openlineage(
+    value: &Value,
+    e1_context: &Value,
+) -> Result<(ProviderNativeView, Vec<MappingDecision>), String> {
     let events = value
         .get("events")
         .and_then(Value::as_array)
@@ -564,6 +567,18 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         .ok_or_else(|| "OpenLineage must contain the two fixture events".to_owned())?;
     let start = &events[0];
     let terminal = &events[1];
+    if required_text(start, "eventType", "OpenLineage first event")? != "START" {
+        return Err("OpenLineage first event must be START".to_owned());
+    }
+    let terminal_event_type = required_text(terminal, "eventType", "OpenLineage terminal event")?;
+    if !["COMPLETE", "FAIL", "ABORT"].contains(&terminal_event_type) {
+        return Err(format!("unsupported OpenLineage terminal event type: {terminal_event_type}"));
+    }
+    let start_time = required_text(start, "eventTime", "OpenLineage START")?;
+    let terminal_time = required_text(terminal, "eventTime", "OpenLineage terminal")?;
+    if terminal_time <= start_time {
+        return Err("OpenLineage terminal event must follow START".to_owned());
+    }
     let start_run = start.get("run").ok_or_else(|| "OpenLineage START run missing".to_owned())?;
     let terminal_run = terminal.get("run").ok_or_else(|| "OpenLineage terminal run missing".to_owned())?;
     let job = start.get("job").ok_or_else(|| "OpenLineage job missing".to_owned())?;
@@ -601,7 +616,6 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         .and_then(|facets| facets.get("e3_evidence_context"))
         .cloned()
         .ok_or_else(|| "OpenLineage terminal E3 facet missing".to_owned())?;
-    let e1_context = parse(E1_CONTEXT, "E1 context")?;
     let e1_analysis = e1_context
         .get("analysis")
         .ok_or_else(|| "E1 context analysis is required".to_owned())?;
@@ -628,12 +642,8 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         run_event_schema_url: required_text(start, "schemaURL", "OpenLineage START")?.to_owned(),
         start_event_type: required_text(start, "eventType", "OpenLineage START")?.to_owned(),
         start_event_time: required_text(start, "eventTime", "OpenLineage START")?.to_owned(),
-        terminal_event_type: required_text(terminal, "eventType", "OpenLineage terminal")?.to_owned(),
-        derived_terminal_status: match required_text(
-            terminal,
-            "eventType",
-            "OpenLineage terminal",
-        )? {
+        terminal_event_type: terminal_event_type.to_owned(),
+        derived_terminal_status: match terminal_event_type {
             "COMPLETE" => "COMPLETED",
             "FAIL" => "FAILED",
             "ABORT" => "ABORTED",
@@ -718,7 +728,8 @@ fn build_envelope_with_source_bytes(
 ) -> Result<ProjectionEnvelope, String> {
     let (datacite_view, mut mapping_decisions) = project_datacite(datacite)?;
     let (ogc_view, ogc_decisions) = project_ogc(ogc)?;
-    let (lineage_view, lineage_decisions) = project_openlineage(openlineage)?;
+    let e1_context = parse(E1_CONTEXT, "E1 context")?;
+    let (lineage_view, lineage_decisions) = project_openlineage(openlineage, &e1_context)?;
     mapping_decisions.extend(ogc_decisions);
     mapping_decisions.extend(lineage_decisions);
     let datacite_identity = match &datacite_view {
@@ -994,6 +1005,27 @@ mod tests {
                 && item.source_path == "/properties/e3Extension"
         }));
         let _ = (datacite, lineage);
+    }
+
+    #[test]
+    fn openlineage_start_event_must_be_start() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        lineage["events"][0]["eventType"] = Value::String("COMPLETE".into());
+        let error = project_openlineage(&lineage, &e1).expect_err("invalid initial event");
+        assert!(error.contains("first event must be START"));
+        let _ = (datacite, ogc);
+    }
+
+    #[test]
+    fn openlineage_terminal_event_must_be_after_start() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        lineage["events"][1]["eventTime"] =
+            Value::String("2026-11-16T09:59:59.000Z".into());
+        let error = project_openlineage(&lineage, &e1).expect_err("terminal before start");
+        assert!(error.contains("terminal event must follow START"));
+        let _ = (datacite, ogc);
     }
 
     #[test]
