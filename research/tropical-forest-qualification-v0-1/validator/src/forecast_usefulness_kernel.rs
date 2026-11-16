@@ -231,6 +231,53 @@ fn validate_expected_context(actual: &Value, expected: &Value) -> Result<(), Str
                 _ => return Err(format!("horizon optional oracle mismatch for {key}")),
             }
         }
+
+        let actual_blocks = actual_row.get("blocks").and_then(Value::as_array)
+            .ok_or_else(|| "actual horizon block results missing".to_string())?;
+        let expected_blocks = expected_row.get("block_results").and_then(Value::as_array)
+            .ok_or_else(|| "expected horizon block oracle missing".to_string())?;
+        if actual_blocks.len() != expected_blocks.len() {
+            return Err("horizon block count oracle mismatch".to_string());
+        }
+        for (actual_block, expected_block) in actual_blocks.iter().zip(expected_blocks.iter()) {
+            if string_at(actual_block, "block_id")? != string_at(expected_block, "block_id")? {
+                return Err("block identity oracle mismatch".to_string());
+            }
+            for key in ["eligible_case_count", "issued_case_count", "qualified"] {
+                if actual_block.get(key) != expected_block.get(key) {
+                    return Err(format!("block oracle mismatch for {key}"));
+                }
+            }
+            for key in [
+                "issuance_fraction",
+                "crps_skill_score",
+                "interval_coverage_80",
+                "mean_absolute_median_error",
+            ] {
+                match (actual_block.get(key), expected_block.get(key)) {
+                    (Some(Value::Null), Some(Value::Null)) => {}
+                    (Some(actual_value), Some(expected_value)) => {
+                        let actual_number = actual_value.as_f64()
+                            .ok_or_else(|| format!("block {key} actual must be numeric"))?;
+                        let expected_number = expected_value.as_f64()
+                            .ok_or_else(|| format!("block {key} expected must be numeric"))?;
+                        if (actual_number - expected_number).abs() > 1e-8 {
+                            return Err(format!("block numeric oracle mismatch for {key}"));
+                        }
+                    }
+                    _ => return Err(format!("block optional oracle mismatch for {key}")),
+                }
+            }
+            let actual_reasons = actual_block.get("failure_reasons")
+                .and_then(Value::as_array)
+                .ok_or_else(|| "actual block failure_reasons missing".to_string())?;
+            let expected_reasons = expected_block.get("failure_reasons")
+                .and_then(Value::as_array)
+                .ok_or_else(|| "expected block failure_reasons missing".to_string())?;
+            if actual_reasons != expected_reasons {
+                return Err("block failure-reason oracle mismatch".to_string());
+            }
+        }
     }
     Ok(())
 }
