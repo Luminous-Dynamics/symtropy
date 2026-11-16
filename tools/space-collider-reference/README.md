@@ -105,3 +105,12 @@ References:
 - Lunar CCM source beam parameters: https://arxiv.org/html/2106.02048v3
 - FCC-hh 2025 CDR, stored energy per beam: https://doi.org/10.23731/CYRM-2025-006
 - Follow-on research owner: [SPACE-COLLIDER-STORED-ENERGY-DUMP-001 #5572](https://github.com/Luminous-Dynamics/symtropy/issues/5572)
+
+
+## Reproducibility receipt
+
+The focused GitHub Actions workflow executes the report twice and requires byte-identical JSON output. It parses the complete JSON document (including the nested luminosity and stored-energy closure), checks the expected numerical ranges, and retains:
+- the final JSON report;
+- an evidence manifest binding the exact checked-out commit, pinned Rust/Cargo versions, source-file SHA-256 fingerprints and report SHA-256.
+
+The two files are uploaded as a run artifact named `space-collider-reference-<exact-commit>`. The report is source-arithmetic evidence only; the manifest makes its software/input lineage reproducible and does not turn it into physical validation.
