@@ -1,0 +1,153 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.3/context",
+    {
+      "ex": "https://luminousdynamics.io/protect-evidence/e3/",
+      "claimCeiling": "ex:claimCeiling",
+      "rightsStatus": "ex:rightsStatus",
+      "permittedUse": "ex:permittedUse"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.3"
+      },
+      "about": {
+        "@id": "./"
+      },
+      "description": "RO-Crate 1.3 descriptor for the synthetic E3 multi-provider metadata interoperability corpus."
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "Luminous Protective Systems E3 Multi-provider Fixture Crate",
+      "description": "Synthetic static fixture package for DataCite REST JSON:API carrying Metadata Schema 4.7 fields, OGC API - Records Part 1 Core 1.0 GeoJSON, and OpenLineage 2.0.2 RunEvents. It includes an exact E1 context envelope showing NOT_EXECUTED. No source-provider record, live DOI, geospatial payload, or completed E1 model run is asserted.",
+      "datePublished": "2026-11-16",
+      "hasPart": [
+        {
+          "@id": "datacite/doi-response.json"
+        },
+        {
+          "@id": "ogc/record-feature.json"
+        },
+        {
+          "@id": "openlineage/e3-run-events.json"
+        },
+        {
+          "@id": "context/e1-envelope-context.json"
+        },
+        {
+          "@id": "provenance/e3-provider-fixture-manifest.json"
+        },
+        {
+          "@id": "schemas/protective-multiprovider-fixture-manifest-v0.1.schema.json"
+        },
+        {
+          "@id": "schemas/openlineage-2.0.2.schema.json"
+        }
+      ],
+      "publisher": {
+        "@id": "#e3-synthetic-fixture-owner"
+      },
+      "isBasedOn": {
+        "@id": "https://github.com/Luminous-Dynamics/symtropy/issues/5598"
+      },
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "@id": "datacite/doi-response.json",
+      "@type": "File",
+      "name": "doi-response.json",
+      "encodingFormat": "application/vnd.api+json",
+      "contentSize": "2135",
+      "sha256": "492c1fe4661219c0c4ec2c32627cad9e137e1fc2dbb34067f848e14074917ee5",
+      "description": "Synthetic DataCite REST JSON:API DOI-shaped response. Not a registered DOI or an authenticated record.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "ogc/record-feature.json",
+      "@type": "File",
+      "name": "record-feature.json",
+      "encodingFormat": "application/geo+json",
+      "contentSize": "1717",
+      "sha256": "54e84bb24cb0d945b126aa585e92db707cfa664dc2637d2f10a4129586a898c2",
+      "description": "Synthetic OGC API - Records Core 1.0 GeoJSON Feature. Polygon is a fictional unit-square test geometry.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "openlineage/e3-run-events.json",
+      "@type": "File",
+      "name": "e3-run-events.json",
+      "encodingFormat": "application/json",
+      "contentSize": "2562",
+      "sha256": "d12e9ec2197fca7e60547a984818483957e07fa0ef1a4558fcf4c829e871034a",
+      "description": "Two OpenLineage 2.0.2 RunEvent objects for the synthetic E3 adapter conformance run, not the E1 model analysis.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "context/e1-envelope-context.json",
+      "@type": "File",
+      "name": "e1-envelope-context.json",
+      "encodingFormat": "application/json",
+      "contentSize": "5399",
+      "sha256": "530af9e09e5bd38b0be070e2193ec76e99a58f756f52034aaab4ef5347962676",
+      "description": "Exact E1 evidence envelope copied unchanged to preserve the source analysis status NOT_EXECUTED.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "provenance/e3-provider-fixture-manifest.json",
+      "@type": "File",
+      "name": "e3-provider-fixture-manifest.json",
+      "encodingFormat": "application/json",
+      "contentSize": "2726",
+      "sha256": "4efcbf87efa1bfb4d18d61c622aa954beda846643925444d3f882441895ad1dd",
+      "description": "Versioned E3 fixture manifest binding provider record identities, original bytes and schema assets.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "schemas/protective-multiprovider-fixture-manifest-v0.1.schema.json",
+      "@type": "File",
+      "name": "protective-multiprovider-fixture-manifest-v0.1.schema.json",
+      "encodingFormat": "application/schema+json",
+      "contentSize": "4305",
+      "sha256": "b4b0ce7e21748d762e6bb2434528ee7ff9b7669589051b0de502d446b2d2a380",
+      "description": "Draft 2020-12 JSON Schema for E3 source and validation-asset manifest.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "schemas/openlineage-2.0.2.schema.json",
+      "@type": "File",
+      "name": "openlineage-2.0.2.schema.json",
+      "encodingFormat": "application/schema+json",
+      "contentSize": "9155",
+      "sha256": "69f68bee00b9beac88a87059c0102410e7bb05f3f43c46d02a0409831eceb0d2",
+      "description": "Unmodified OpenLineage 2.0.2 official RunEvent JSON Schema snapshot, pinned by source repository and blob SHA.",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    {
+      "@id": "#e3-synthetic-fixture-owner",
+      "@type": "Organization",
+      "name": "Luminous Dynamics E3 synthetic fixture owner",
+      "description": "Synthetic package ownership label; not an external provider identity or authentication claim."
+    }
+  ]
+}
