@@ -102,6 +102,15 @@ struct ToteGeometry {
     wall_half_m: [f64; 3],
 }
 
+#[derive(Debug, Clone, Copy)]
+struct BuiltWorld {
+    world: PhysicsWorld<3>,
+    package_handle: BodyHandle,
+    package_half_m: [f64; 3],
+    gate_obstruction_handle: Option<BodyHandle>,
+}
+
+
 fn millimetres(value: u32) -> f64 {
     value as f64 / 1_000.0
 }
@@ -161,16 +170,7 @@ fn add_static_box(
 fn build_world(
     scenario: &ScenarioManifest,
     closed_gate_obstruction: bool,
-) -> Result<
-    (
-        PhysicsWorld<3>,
-        BodyHandle,
-        [f64; 3],
-        [f64; 3],
-        Option<BodyHandle>,
-    ),
-    String,
-> {
+) -> Result<BuiltWorld, String> {
     let geometry = tote_geometry(scenario)?;
     let package = &scenario.package;
     let package_half_m = [
@@ -262,13 +262,12 @@ fn build_world(
     package_body.angular_damping = 0.08;
 
     let package_handle = world.add_body(package_body);
-    Ok((
+    Ok(BuiltWorld {
         world,
         package_handle,
-        initial_position,
         package_half_m,
         gate_obstruction_handle,
-    ))
+    })
 }
 
 fn hash_snapshot(hasher: &mut Sha256, tick: usize, snapshot: &WorldSnapshot<3>) {
@@ -316,8 +315,12 @@ fn run_episode(
     scenario: &ScenarioManifest,
     closed_gate_obstruction: bool,
 ) -> Result<EpisodeTrace, String> {
-    let (mut world, package_handle, _initial_position, _package_half, gate_handle) =
-        build_world(scenario, closed_gate_obstruction)?;
+    let BuiltWorld {
+        mut world,
+        package_handle,
+        package_half_m: _package_half,
+        gate_obstruction_handle: gate_handle,
+    } = build_world(scenario, closed_gate_obstruction)?;
 
     let impulse = SVector::from([0.0, -RELEASE_IMPULSE_NS, 0.0]);
     let mut tape = ReplayTape::<3>::default();
