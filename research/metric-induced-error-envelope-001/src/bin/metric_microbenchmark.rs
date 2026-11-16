@@ -147,7 +147,7 @@ fn direct_delassus(
         let raised_column = mass.raise(&column_covector).unwrap();
         for row in 0..CONSTRAINTS {
             let row_covector = Cotangent::<CartesianQ, N>::new(jacobian[row]).unwrap();
-            matrix[row][column] = pairing(&row_covector, &raised_column);
+            matrix[row][column] = pairing(&row_covector, &raised_column).unwrap();
         }
     }
     Metric::<ConstraintSpace, CONSTRAINTS>::admit(matrix, profile).unwrap()
