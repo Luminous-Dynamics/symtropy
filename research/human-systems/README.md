@@ -37,6 +37,7 @@ This gives us a non-clinical research target useful for human-centred robotics, 
 - [Benchmark protocol v0.1](HUMAN_SYSTEMS_BENCHMARK_PROTOCOL_V0_1.md) — known-answer simulations, public-data evaluation, baselines, metrics and counterfactual gates.
 - [Dataset and model-resource register v0.1](DATASET_AND_MODEL_RESOURCE_REGISTER_V0_1.md) — dataset scope, access terms and external model engines.
 - [Human observation-process protocol v0.1](HUMAN_OBSERVATION_PROCESS_PROTOCOL_V0_1.md) — synthetic sensor worlds, missingness, delay, clock semantics, identifiability, transfer and SOTA comparison. Tracked by [#5664](https://github.com/Luminous-Dynamics/symtropy/issues/5664).
+- [Machine-readable 12-scenario catalogue](HUMAN_OBSERVATION_SCENARIOS_V0_1.json) — synthetic arbitrary-unit scenario definitions; not human data.
 
 ### Fidelity labels
 
