@@ -528,14 +528,25 @@ fn validate_manifest(
     let e1_context_manifest = manifest
         .get("source_e1_context")
         .ok_or_else(|| "E3 manifest source_e1_context is required".to_owned())?;
-    if required_text(e1_context_manifest, "execution_status", "E3 source E1 context")?
-        != "NOT_EXECUTED"
+    let e1_envelope = parse_json(e1_context, "packaged E1 context envelope")?;
+    let e1_analysis = e1_envelope
+        .get("analysis")
+        .ok_or_else(|| "packaged E1 envelope analysis is required".to_owned())?;
+    let e1_analysis_id = required_text(e1_analysis, "analysis_id", "E1 source analysis")?;
+    let e1_execution_status =
+        required_text(e1_analysis, "execution_status", "E1 source analysis")?;
+    if required_text(e1_context_manifest, "analysis_id", "E3 source E1 context")?
+        != e1_analysis_id
+        || required_text(e1_context_manifest, "execution_status", "E3 source E1 context")?
+            != e1_execution_status
+        || e1_execution_status != "NOT_EXECUTED"
+        || !e1_analysis.get("run_id").is_some_and(Value::is_null)
         || required_text(e1_context_manifest, "relationship", "E3 source E1 context")?
             != "CONTEXT_ONLY_NOT_A_RUN"
         || required_text(e1_context_manifest, "relative_path", "E3 source E1 context")?
             != "context/e1-envelope-context.json"
     {
-        return Err("E3 manifest must preserve the E1 NOT_EXECUTED context-only boundary".to_owned());
+        return Err("E3 manifest must exactly preserve the E1 analysis ID and NOT_EXECUTED context-only boundary".to_owned());
     }
     let e1_context_length = e1_context_manifest
         .get("byte_length")
@@ -1074,6 +1085,23 @@ mod tests {
         )
         .expect_err("unknown manifest property");
         assert!(error.contains("manifest schema validation failed"));
+    }
+
+    #[test]
+    fn e3_manifest_must_match_the_source_e1_analysis_identity() {
+        let mut manifest: Value = serde_json::from_str(MANIFEST).expect("manifest");
+        manifest["source_e1_context"]["analysis_id"] =
+            Value::String("different-analysis".into());
+        let error = validate_bundle(
+            std::str::from_utf8(DATACITE).expect("DataCite UTF-8"),
+            std::str::from_utf8(OGC_RECORD).expect("OGC UTF-8"),
+            std::str::from_utf8(OPENLINEAGE_EVENTS).expect("OpenLineage UTF-8"),
+            std::str::from_utf8(E1_CONTEXT).expect("E1 UTF-8"),
+            &manifest.to_string(),
+            CRATE_METADATA,
+        )
+        .expect_err("E1 source analysis identity mismatch");
+        assert!(error.contains("E1 analysis ID and NOT_EXECUTED"));
     }
 
     #[test]
