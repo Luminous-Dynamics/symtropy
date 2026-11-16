@@ -1812,7 +1812,12 @@ mod adaptive_certificate_tests {
         let leaf = certificate
             .leaves
             .iter_mut()
-            .find(|leaf| matches!(leaf.disposition, AdaptiveProofLeafDisposition::CheckedClear { .. }))
+            .find(|leaf| {
+                matches!(
+                    leaf.disposition,
+                    AdaptiveProofLeafDisposition::CheckedClear { .. }
+                )
+            })
             .expect("overlapping swept bounds require an exact check");
         let AdaptiveProofLeafDisposition::CheckedClear { closest } = &mut leaf.disposition else {
             unreachable!()
@@ -1827,8 +1832,7 @@ mod adaptive_certificate_tests {
     #[test]
     fn unresolved_leaf_blocks_no_contact_certificate() {
         let moving = Capsule::new(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 4.2).unwrap();
-        let obstacle =
-            Capsule::new(p(0.0, 6.0, 6.0), p(1_000.0, 6.000_001, 6.0), 4.2).unwrap();
+        let obstacle = Capsule::new(p(0.0, 6.0, 6.0), p(1_000.0, 6.000_001, 6.0), 4.2).unwrap();
         let certificate = co_translating_capsule_adaptive_query_with_certificate(
             moving,
             p(0.0, 0.0, 0.0),
@@ -1840,7 +1844,10 @@ mod adaptive_certificate_tests {
             },
         )
         .unwrap();
-        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::Unresolved);
+        assert_eq!(
+            certificate.report.status,
+            AdaptiveCollisionStatus::Unresolved
+        );
         verify_adaptive_collision_certificate(&certificate).unwrap();
     }
 
