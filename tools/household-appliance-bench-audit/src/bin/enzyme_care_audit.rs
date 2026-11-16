@@ -8,11 +8,9 @@ use std::process::ExitCode;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:enzyme-care:0.1.0";
 #[cfg(test)]
-const SCHEMA_TEXT: &str =
-    include_str!("../../../../schemas/laundry/enzyme_care_v0_1.schema.json");
+const SCHEMA_TEXT: &str = include_str!("../../../../schemas/laundry/enzyme_care_v0_1.schema.json");
 #[cfg(test)]
-const PROFILE_TEXT: &str =
-    include_str!("../../../../fixtures/laundry/enzyme_care_v0_1.json");
+const PROFILE_TEXT: &str = include_str!("../../../../fixtures/laundry/enzyme_care_v0_1.json");
 
 fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
@@ -49,8 +47,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(profile, "status") != Some("proposal_no_physical_measurements") {
         errors.push("profile must remain proposal-only".to_owned());
     }
-    if text_at(profile, "claim_ceiling")
-        != Some("no_formulation_or_garment_process_qualification")
+    if text_at(profile, "claim_ceiling") != Some("no_formulation_or_garment_process_qualification")
     {
         errors.push("profile cannot claim formulation or garment-process qualification".to_owned());
     }
@@ -67,10 +64,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     } else {
         errors.push("tracks must be an array".to_owned());
     }
-    for required in [
-        "wool_anti_felting_finishing",
-        "stain_specific_enzyme_care",
-    ] {
+    for required in ["wool_anti_felting_finishing", "stain_specific_enzyme_care"] {
         if !track_ids.contains(required) {
             errors.push(format!("required independent track missing: {required}"));
         }
@@ -91,12 +85,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
             if !comparator_ids.insert(id.to_owned()) {
                 errors.push(format!("duplicate external comparator: {id}"));
             }
-            if comparator
-                .get("is_our_result")
-                .and_then(Value::as_bool)
-                != Some(false)
-            {
-                errors.push(format!("{id}: external paper result cannot be presented as ours"));
+            if comparator.get("is_our_result").and_then(Value::as_bool) != Some(false) {
+                errors.push(format!(
+                    "{id}: external paper result cannot be presented as ours"
+                ));
             }
             let track_id = text_at(comparator, "track_id").unwrap_or("");
             if !track_ids.contains(track_id) {
@@ -117,10 +109,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                     "{id}: enzyme-only claim cannot include auxiliary chemistry"
                 ));
             }
-            if !enzyme_only_claim
-                && family == "enzyme_only"
-                && !auxiliaries.is_empty()
-            {
+            if !enzyme_only_claim && family == "enzyme_only" && !auxiliaries.is_empty() {
                 errors.push(format!(
                     "{id}: enzyme-only treatment family cannot include auxiliary chemistry"
                 ));
@@ -129,11 +118,14 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 have_pcdI = true;
                 if family != "enzyme_plus_polymer_prefill"
                     || enzyme_only_claim
-                    || !auxiliaries.iter().any(|value| {
-                        value.as_str().is_some_and(|text| text.contains("PCDI"))
-                    })
+                    || !auxiliaries
+                        .iter()
+                        .any(|value| value.as_str().is_some_and(|text| text.contains("PCDI")))
                 {
-                    errors.push("PCDI comparator must be labelled polymer-assisted, not enzyme-only".to_owned());
+                    errors.push(
+                        "PCDI comparator must be labelled polymer-assisted, not enzyme-only"
+                            .to_owned(),
+                    );
                 }
             }
             if id == "WOOL-WAVE-RIDING-PROTEASE-2025" {
@@ -163,7 +155,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
             if family == "enzyme_plus_reductant" {
                 have_reductant = true;
                 if enzyme_only_claim || auxiliaries.is_empty() {
-                    errors.push(format!("{id}: reductant-assisted route must expose its auxiliary"));
+                    errors.push(format!(
+                        "{id}: reductant-assisted route must expose its auxiliary"
+                    ));
                 }
             }
             if id == "BLOOD-PROTEASE-LIPASE-2025" {
@@ -172,7 +166,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                     || family != "enzyme_plus_detergent"
                     || enzyme_only_claim
                 {
-                    errors.push("blood-stain study cannot be promoted as wool or enzyme-only evidence".to_owned());
+                    errors.push(
+                        "blood-stain study cannot be promoted as wool or enzyme-only evidence"
+                            .to_owned(),
+                    );
                 }
                 has_blood_60_c = comparator
                     .get("reported_temperature_c")
@@ -214,12 +211,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     }
 
     let standards = profile.get("standards");
-    if text_at(standards.unwrap_or(&Value::Null), "domestic_wash_dry")
-        != Some("ISO 6330:2021")
-        || text_at(standards.unwrap_or(&Value::Null), "dimensional_change")
-            != Some("ISO 5077:2007")
-        || text_at(standards.unwrap_or(&Value::Null), "colour_fastness")
-            != Some("ISO 105-C06:2010")
+    if text_at(standards.unwrap_or(&Value::Null), "domestic_wash_dry") != Some("ISO 6330:2021")
+        || text_at(standards.unwrap_or(&Value::Null), "dimensional_change") != Some("ISO 5077:2007")
+        || text_at(standards.unwrap_or(&Value::Null), "colour_fastness") != Some("ISO 105-C06:2010")
         || text_at(standards.unwrap_or(&Value::Null), "colour_fastness_role")
             != Some("colour_fastness_only_not_stain_removal_metric")
     {
@@ -228,15 +222,39 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
 
     let validation = profile.get("validation_policy");
     for (key, expected, label) in [
-        ("independent_specimen_and_lot_holdout", true, "independent specimen and lot holdout"),
-        ("random_measurement_split_allowed", false, "random measurement split prohibition"),
-        ("repeated_specimen_is_independent_n", false, "repeat-measurement dependence"),
-        ("swatch_only_proves_garment_washability", false, "swatch-to-garment inference prohibition"),
+        (
+            "independent_specimen_and_lot_holdout",
+            true,
+            "independent specimen and lot holdout",
+        ),
+        (
+            "random_measurement_split_allowed",
+            false,
+            "random measurement split prohibition",
+        ),
+        (
+            "repeated_specimen_is_independent_n",
+            false,
+            "repeat-measurement dependence",
+        ),
+        (
+            "swatch_only_proves_garment_washability",
+            false,
+            "swatch-to-garment inference prohibition",
+        ),
         ("repeat_cycles_required", true, "repeat cycle requirement"),
         ("blinded_assessment_required", true, "blinded assessment"),
-        ("pilot_variance_before_sample_size", true, "pilot variance before sample-size selection"),
+        (
+            "pilot_variance_before_sample_size",
+            true,
+            "pilot variance before sample-size selection",
+        ),
     ] {
-        if validation.and_then(|value| value.get(key)).and_then(Value::as_bool) != Some(expected) {
+        if validation
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_bool)
+            != Some(expected)
+        {
             errors.push(format!("{label} policy is invalid"));
         }
     }
@@ -244,15 +262,43 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     let safety = profile.get("safety_policy");
     for (key, expected, label) in [
         ("closed_handling", true, "closed handling"),
-        ("open_powder_or_aerosol_allowed", false, "no open powder/aerosol"),
-        ("characterized_supplier_preparations", true, "characterized enzyme sourcing"),
-        ("enzyme_residual_assessment", true, "enzyme residual assessment"),
-        ("auxiliary_chemistry_assessment", true, "auxiliary chemistry assessment"),
+        (
+            "open_powder_or_aerosol_allowed",
+            false,
+            "no open powder/aerosol",
+        ),
+        (
+            "characterized_supplier_preparations",
+            true,
+            "characterized enzyme sourcing",
+        ),
+        (
+            "enzyme_residual_assessment",
+            true,
+            "enzyme residual assessment",
+        ),
+        (
+            "auxiliary_chemistry_assessment",
+            true,
+            "auxiliary chemistry assessment",
+        ),
         ("wastewater_assessment", true, "wastewater assessment"),
-        ("live_microbe_appliance_production_allowed", false, "no live-microbe appliance production"),
-        ("occupational_exposure_assessment", true, "occupational exposure assessment"),
+        (
+            "live_microbe_appliance_production_allowed",
+            false,
+            "no live-microbe appliance production",
+        ),
+        (
+            "occupational_exposure_assessment",
+            true,
+            "occupational exposure assessment",
+        ),
     ] {
-        if safety.and_then(|value| value.get(key)).and_then(Value::as_bool) != Some(expected) {
+        if safety
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_bool)
+            != Some(expected)
+        {
             errors.push(format!("{label} policy is invalid"));
         }
     }
@@ -266,7 +312,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("duplicate metric ID: {id}"));
             }
             if text_at(metric, "status") != Some("proposal_target_only") {
-                errors.push(format!("{id}: proposed target cannot be promoted to measured result"));
+                errors.push(format!(
+                    "{id}: proposed target cannot be promoted to measured result"
+                ));
             }
             if text_at(metric, "denominator").is_none_or(str::is_empty) {
                 errors.push(format!("{id}: denominator must be explicit"));
@@ -302,7 +350,11 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     }
 
     let governance = profile.get("governance");
-    for field in ["physical_observations", "trained_models", "formulations_qualified"] {
+    for field in [
+        "physical_observations",
+        "trained_models",
+        "formulations_qualified",
+    ] {
         if governance
             .and_then(|value| value.get(field))
             .and_then(Value::as_u64)
@@ -479,8 +531,7 @@ mod tests {
     #[test]
     fn protease_only_comparator_cannot_silently_add_auxiliary() {
         let (schema, mut profile) = fixture();
-        profile["external_comparators"][1]["auxiliary_chemistry"] =
-            json!(["undisclosed polymer"]);
+        profile["external_comparators"][1]["auxiliary_chemistry"] = json!(["undisclosed polymer"]);
         assert!(!is_valid(&schema, &profile));
     }
 
@@ -510,16 +561,14 @@ mod tests {
     #[test]
     fn swatch_test_does_not_qualify_whole_garment_washability() {
         let (schema, mut profile) = fixture();
-        profile["validation_policy"]["swatch_only_proves_garment_washability"] =
-            Value::Bool(true);
+        profile["validation_policy"]["swatch_only_proves_garment_washability"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
     #[test]
     fn repeated_measurements_cannot_be_counted_as_independent_specimens() {
         let (schema, mut profile) = fixture();
-        profile["validation_policy"]["repeated_specimen_is_independent_n"] =
-            Value::Bool(true);
+        profile["validation_policy"]["repeated_specimen_is_independent_n"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
@@ -533,8 +582,7 @@ mod tests {
     #[test]
     fn no_live_microbe_production_in_appliance() {
         let (schema, mut profile) = fixture();
-        profile["safety_policy"]["live_microbe_appliance_production_allowed"] =
-            Value::Bool(true);
+        profile["safety_policy"]["live_microbe_appliance_production_allowed"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
