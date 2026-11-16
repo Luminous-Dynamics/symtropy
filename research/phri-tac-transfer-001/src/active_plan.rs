@@ -381,7 +381,7 @@ mod tests {
         let plan = plan_calibration(&request(vec![
             candidate("low-a", "low-force", 0.2, 1),
             candidate("high-a", "high-force", 0.1, 1),
-            candidate("optional-a", "low-force", 100.0, 1),
+            candidate("optional-a", "optional", 100.0, 1),
         ]))
         .expect("valid request");
 
