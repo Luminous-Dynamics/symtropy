@@ -1,0 +1,585 @@
+{
+  "schema_version": "waterloop-modular-train-options-v0.1",
+  "benchmark_id": "WATERLOOP-MODULAR-TRAIN-T0",
+  "evidence_class": "concept_candidate",
+  "claim_ceiling": "architecture_composition_and_interface_contract_only_no_treatment_or_potable_qualification",
+  "design_owner_issue": 5644,
+  "physical_demonstrator_owner_issue": 5335,
+  "declared_initial_scope": {
+    "test_environment": "unoccupied_room_scale_test_cell",
+    "source_streams": [
+      "bathroom_shower_bath_light_greywater_only"
+    ],
+    "intended_use_class": "nonpotable_test_cell_use_profile_to_be_frozen",
+    "explicitly_excluded": [
+      "potable_reuse",
+      "toilet_blackwater",
+      "kitchen_wastewater",
+      "laundry_greywater",
+      "stormwater_mixed_with_greywater",
+      "occupied_dwelling_connection"
+    ],
+    "source_mixing_allowed": false,
+    "treated_product_release_requires": "independent_use_specific_quality_and_process_admission"
+  },
+  "architecture_invariants": [
+    "Each raw source retains independent identity and batch lineage until separate quality/use admission authorizes a downstream combination.",
+    "Raw equalisation storage and treated-water quarantine storage are separate hydraulic inventories.",
+    "Every inlet, outlet, backwash, purge, reject, overflow and drain route has a named destination and measured or uncertainty-bounded balance.",
+    "Treatment modules cannot self-authorize output quality or release.",
+    "Critical quality or metrology uncertainty results in hold/isolate/divert to approved residual route; protected alternate supply remains physically separate.",
+    "Cloud, AI and external connectivity are not required for safe local operation.",
+    "No potable/nonpotable interconnection is permitted in the initial prototype.",
+    "All alternative trains are compared on identical feed, intended use, demand, temperature, storage age, fault script, test duration and evidence class."
+  ],
+  "ports": [
+    {
+      "port_class": "raw_source",
+      "direction": "inlet",
+      "fluid_state": "raw",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "screened_raw",
+      "direction": "outlet",
+      "fluid_state": "raw",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "equalized_feed",
+      "direction": "outlet",
+      "fluid_state": "raw_equalized",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "process_feed",
+      "direction": "inlet",
+      "fluid_state": "raw_conditioned",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "process_product_candidate",
+      "direction": "outlet",
+      "fluid_state": "treated_candidate",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "polished_product_candidate",
+      "direction": "outlet",
+      "fluid_state": "treated_candidate",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "disinfection_inlet",
+      "direction": "inlet",
+      "fluid_state": "polished_candidate",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "quarantine_inlet",
+      "direction": "inlet",
+      "fluid_state": "treated_quarantine",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "admitted_nonpotable_product",
+      "direction": "outlet",
+      "fluid_state": "use_qualified_nonpotable",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "reject_residual",
+      "direction": "outlet",
+      "fluid_state": "reject_or_residual",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "backwash_cleaning",
+      "direction": "outlet",
+      "fluid_state": "cleaning_residual",
+      "identity_required": true,
+      "quality_admission_required": true
+    },
+    {
+      "port_class": "overflow_drain",
+      "direction": "outlet",
+      "fluid_state": "overflow_or_drain",
+      "identity_required": true,
+      "quality_admission_required": true
+    }
+  ],
+  "modules": [
+    {
+      "module_id": "SRC-SCR-001",
+      "name": "Source inlet screen and lint capture",
+      "category": "source_preparation",
+      "status": "concept_candidate",
+      "purpose": "Remove coarse lint/hair/large debris from declared bathroom feed; not a pathogen or dissolved-contaminant barrier.",
+      "inputs": [
+        "raw_source"
+      ],
+      "outputs": [
+        "screened_raw",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "mesh/opening identity",
+        "head loss at declared flow",
+        "cleaning interval under feed challenge",
+        "captured solids mass and disposal route"
+      ],
+      "critical_faults": [
+        "blocked_screen",
+        "bypass_leak",
+        "screen_missing_or_wrong_grade"
+      ],
+      "safe_state": "isolate feed or divert; do not treat bypassed screen as admitted pre-treatment"
+    },
+    {
+      "module_id": "EQ-RAW-001",
+      "name": "Raw equalisation and diversion",
+      "category": "storage_and_feed",
+      "status": "concept_candidate",
+      "purpose": "Buffer variable inflow and support controlled batch admission; does not provide a validated disinfection or treatment barrier.",
+      "inputs": [
+        "screened_raw"
+      ],
+      "outputs": [
+        "equalized_feed",
+        "overflow_drain",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "tank geometry and calibrated level-volume relation",
+        "mixing or stratification assumption",
+        "retention age and temperature",
+        "cleanability/drainability",
+        "overflow destination"
+      ],
+      "critical_faults": [
+        "high_level",
+        "stale_or_unadmitted_level",
+        "overflow_route_blocked",
+        "unexpected_batch_mixing"
+      ],
+      "safe_state": "stop/divert source inflow to approved route; preserve raw/treated separation"
+    },
+    {
+      "module_id": "SEP-PRI-001",
+      "name": "Primary separation and sedimentation",
+      "category": "primary_treatment",
+      "status": "concept_candidate",
+      "purpose": "Provide selected solids separation ahead of the candidate process; efficacy and required residence are not assumed.",
+      "inputs": [
+        "equalized_feed"
+      ],
+      "outputs": [
+        "process_feed",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "solids capture under defined feed profile",
+        "settleable solids/retained solids accounting",
+        "sludge removal and cleaning method",
+        "hydraulic short-circuit assessment"
+      ],
+      "critical_faults": [
+        "sludge_carryover",
+        "short_circuiting",
+        "residual_capacity_exceeded"
+      ],
+      "safe_state": "isolate downstream; divert feed; remove residual under approved procedure"
+    },
+    {
+      "module_id": "BIO-TRT-001",
+      "name": "Biological treatment module slot",
+      "category": "biological_process",
+      "status": "candidate_not_selected",
+      "purpose": "Optional biological process slot for a specifically characterized feed and intended-use target.",
+      "inputs": [
+        "process_feed"
+      ],
+      "outputs": [
+        "process_product_candidate",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "inoculum/media identity",
+        "loading envelope",
+        "start-up and restart profile",
+        "temperature sensitivity",
+        "biomass/sludge balance",
+        "microbial and chemical performance"
+      ],
+      "critical_faults": [
+        "biomass_loss",
+        "shock_load",
+        "temperature_outside_envelope",
+        "regrowth"
+      ],
+      "safe_state": "hold/quarantine product; bypass only to approved waste route, never direct use"
+    },
+    {
+      "module_id": "UF-TRT-001",
+      "name": "Ultrafiltration module slot",
+      "category": "physical_barrier",
+      "status": "candidate_not_selected",
+      "purpose": "Optional membrane polishing/barrier module; membrane integrity and operating limits must be independently tested.",
+      "inputs": [
+        "process_feed"
+      ],
+      "outputs": [
+        "process_product_candidate",
+        "backwash_cleaning"
+      ],
+      "design_evidence_required": [
+        "membrane model and pore/retention declaration",
+        "integrity-test method and acceptance",
+        "transmembrane pressure and flow envelope",
+        "fouling/cleaning/recovery study",
+        "backwash volume and residual route"
+      ],
+      "critical_faults": [
+        "membrane_integrity_fail",
+        "pressure_high",
+        "flow_low",
+        "cleaning_due"
+      ],
+      "safe_state": "close product outlet, isolate module and divert/hold feed"
+    },
+    {
+      "module_id": "OX-TRT-001",
+      "name": "Ozone oxidation module slot",
+      "category": "oxidation",
+      "status": "candidate_not_selected",
+      "purpose": "Optional oxidation module; oxidant generation, off-gas, residuals, by-products and occupational safety require separate hazard review.",
+      "inputs": [
+        "process_feed"
+      ],
+      "outputs": [
+        "process_product_candidate",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "ozone generator identity and dose method",
+        "contactor and mass-transfer performance",
+        "off-gas destruction/safety verification",
+        "residual oxidant monitoring",
+        "by-product assessment",
+        "power/fault response"
+      ],
+      "critical_faults": [
+        "ozone_leak",
+        "offgas_destroyer_fail",
+        "dose_control_fault",
+        "residual_oxidant_unknown"
+      ],
+      "safe_state": "de-energize oxidant generation, isolate process and divert; no product release"
+    },
+    {
+      "module_id": "GAC-TRT-001",
+      "name": "Granular activated carbon adsorption module slot",
+      "category": "adsorption_polishing",
+      "status": "candidate_not_selected",
+      "purpose": "Optional adsorption/polishing slot; GAC identity, breakthrough and changeout evidence are mandatory.",
+      "inputs": [
+        "process_feed"
+      ],
+      "outputs": [
+        "polished_product_candidate",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "carbon source/grade/lot",
+        "empty-bed contact basis",
+        "breakthrough curve per challenge analyte",
+        "head loss and channeling check",
+        "spent-media handling"
+      ],
+      "critical_faults": [
+        "breakthrough",
+        "channeling",
+        "media_misidentified",
+        "headloss_high"
+      ],
+      "safe_state": "isolate adsorber; hold/divert product; replace media and recommission"
+    },
+    {
+      "module_id": "SAND-TRT-001",
+      "name": "Slow sand or granular media filtration module slot",
+      "category": "media_filtration",
+      "status": "candidate_not_selected",
+      "purpose": "Optional filtration/polishing stage; maturation, media identity, hydraulic rate and cleaning/reset state must be demonstrated.",
+      "inputs": [
+        "process_feed"
+      ],
+      "outputs": [
+        "polished_product_candidate",
+        "backwash_cleaning"
+      ],
+      "design_evidence_required": [
+        "media specification and depth",
+        "hydraulic loading",
+        "maturation/start-up procedure",
+        "head loss profile",
+        "cleaning/reset and residual route"
+      ],
+      "critical_faults": [
+        "clogging",
+        "media_short_circuit",
+        "media_replacement"
+      ],
+      "safe_state": "isolate and divert until performance re-established"
+    },
+    {
+      "module_id": "UV-DIS-001",
+      "name": "Ultraviolet disinfection barrier slot",
+      "category": "disinfection",
+      "status": "candidate_not_selected",
+      "purpose": "Optional disinfection barrier only where the use-specific risk/quality plan requires and validated UV dose can be demonstrated.",
+      "inputs": [
+        "disinfection_inlet"
+      ],
+      "outputs": [
+        "quarantine_inlet"
+      ],
+      "design_evidence_required": [
+        "validated reactor configuration and dose envelope",
+        "UV intensity/flow/UVT monitoring",
+        "lamp age and alarm state",
+        "sleeve fouling/cleaning procedure",
+        "challenge organism method and independent test"
+      ],
+      "critical_faults": [
+        "uv_intensity_low",
+        "flow_above_validated_limit",
+        "uv_transmittance_low",
+        "lamp_failure",
+        "sensor_unadmitted"
+      ],
+      "safe_state": "close product/quarantine outlet; divert or hold; do not treat lamp energization as dose proof"
+    },
+    {
+      "module_id": "WETLAND-TRT-001",
+      "name": "Nature-based / constructed wetland process slot",
+      "category": "nature_based_process",
+      "status": "candidate_not_selected",
+      "purpose": "Optional site-specific passive or hybrid biological stage; requires land, hydraulic, pretreatment and seasonal process qualification.",
+      "inputs": [
+        "process_feed"
+      ],
+      "outputs": [
+        "process_product_candidate",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "media/vegetation/geometry identity",
+        "hydraulic loading and residence evidence",
+        "pretreatment and clogging risk",
+        "seasonal temperature performance",
+        "vector/odour controls",
+        "land footprint and access",
+        "final polishing/disinfection need"
+      ],
+      "critical_faults": [
+        "clogging",
+        "hydraulic_short_circuit",
+        "media_saturation",
+        "vector_or_odour_failure"
+      ],
+      "safe_state": "stop release and divert/hold; maintenance and requalification before restart"
+    },
+    {
+      "module_id": "POL-POST-001",
+      "name": "Post-treatment polishing module slot",
+      "category": "polishing",
+      "status": "candidate_not_selected",
+      "purpose": "Optional final solids/adsorption/filtration barrier selected from the exact intended-use risk assessment.",
+      "inputs": [
+        "process_product_candidate"
+      ],
+      "outputs": [
+        "polished_product_candidate",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "target analyte rationale",
+        "effluent quality envelope",
+        "breakthrough/fouling/end-of-life",
+        "residual route"
+      ],
+      "critical_faults": [
+        "polish_breakthrough",
+        "turbidity_out_of_envelope"
+      ],
+      "safe_state": "hold/divert product until renewed evidence and replacement"
+    },
+    {
+      "module_id": "TQ-001",
+      "name": "Treated product quarantine tank",
+      "category": "treated_storage",
+      "status": "concept_candidate",
+      "purpose": "Physically segregated hold tank preventing unadmitted product from reaching a use outlet.",
+      "inputs": [
+        "quarantine_inlet"
+      ],
+      "outputs": [
+        "admitted_nonpotable_product",
+        "overflow_drain",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "tank geometry and level-volume calibration",
+        "contact/storage age envelope",
+        "cleanability and cover",
+        "sample point and recirculation state",
+        "release valve fail position"
+      ],
+      "critical_faults": [
+        "high_level",
+        "stale_quality_sample",
+        "cross_connection",
+        "outlet_valve_fault",
+        "storage_age_exceeded"
+      ],
+      "safe_state": "normally closed release; quarantine or drain to approved route"
+    },
+    {
+      "module_id": "REL-INT-001",
+      "name": "Independent release interlock interface",
+      "category": "release_safety",
+      "status": "concept_candidate",
+      "purpose": "Consume independently admitted quality and process state; no AI or cloud authority.",
+      "inputs": [
+        "admitted_nonpotable_product"
+      ],
+      "outputs": [
+        "admitted_nonpotable_product",
+        "reject_residual"
+      ],
+      "design_evidence_required": [
+        "deterministic state table",
+        "proof-test procedure",
+        "fail position and loss-of-power test",
+        "stale/conflict handling",
+        "operator override audit"
+      ],
+      "critical_faults": [
+        "missing_quality_admission",
+        "conflicting_interlocks",
+        "power_loss",
+        "controller_crash"
+      ],
+      "safe_state": "close release; enter hold/divert state; mains fallback remains separate"
+    },
+    {
+      "module_id": "MTR-OBS-001",
+      "name": "Measurement and sample interface",
+      "category": "evidence_interface",
+      "status": "integration_contract_only",
+      "purpose": "Consumes Mycelix measurement/sample and calibration contracts; not a new sensor passport or lab system.",
+      "inputs": [
+        "raw_source",
+        "process_feed",
+        "process_product_candidate",
+        "admitted_nonpotable_product",
+        "reject_residual"
+      ],
+      "outputs": [],
+      "design_evidence_required": [
+        "channel and instrument identities",
+        "calibration and uncertainty",
+        "timebase and field conditions",
+        "sample custody and analytical methods"
+      ],
+      "critical_faults": [
+        "sensor_stale",
+        "clock_mismatch",
+        "calibration_expired",
+        "sample_identity_mismatch"
+      ],
+      "safe_state": "mark critical evidence unadmitted; trigger process release interlock"
+    }
+  ],
+  "process_options": [
+    {
+      "option_id": "WL-OPT-A-GRAVITY-BASELINE",
+      "status": "comparison_baseline",
+      "modules": [
+        "SRC-SCR-001",
+        "EQ-RAW-001"
+      ],
+      "notes": "Useful only as a collection/service baseline; no treatment or reuse quality claim."
+    },
+    {
+      "option_id": "WL-OPT-B-UF-UV",
+      "status": "candidate_not_selected",
+      "modules": [
+        "SRC-SCR-001",
+        "EQ-RAW-001",
+        "SEP-PRI-001",
+        "UF-TRT-001",
+        "POL-POST-001",
+        "UV-DIS-001",
+        "TQ-001",
+        "REL-INT-001"
+      ],
+      "notes": "Compact physical barrier candidate; requires actual membrane integrity, UVT/dose, fouling and cleaning tests."
+    },
+    {
+      "option_id": "WL-OPT-C-OZONE-GAC-UV",
+      "status": "candidate_not_selected",
+      "modules": [
+        "SRC-SCR-001",
+        "EQ-RAW-001",
+        "SEP-PRI-001",
+        "OX-TRT-001",
+        "GAC-TRT-001",
+        "UV-DIS-001",
+        "TQ-001",
+        "REL-INT-001"
+      ],
+      "notes": "Oxidation/adsorption candidate; requires off-gas, oxidant residual, by-product, GAC breakthrough and regrowth testing."
+    },
+    {
+      "option_id": "WL-OPT-D-NATURE-BASED-HYBRID",
+      "status": "candidate_not_selected",
+      "modules": [
+        "SRC-SCR-001",
+        "EQ-RAW-001",
+        "SEP-PRI-001",
+        "WETLAND-TRT-001",
+        "POL-POST-001",
+        "UV-DIS-001",
+        "TQ-001",
+        "REL-INT-001"
+      ],
+      "notes": "Site/land-specific candidate; must count land, seasonal variability, clogging and maintenance, not just kWh."
+    }
+  ],
+  "fault_matrix_file": "modular-train-fault-matrix-v0.1.json",
+  "required_gates": [
+    "Unoccupied physical test cell approved and detailed P&ID frozen by owner #5335.",
+    "Use-specific quality plan admitted by Mycelix #6100 for every claimed service output.",
+    "Measurement/channel/calibration/uncertainty/timebase accepted through Mycelix 6034/6029/6048/6054/6057.",
+    "WaterLoop service continuity and cost outputs use existing T0 evaluators; no parallel evaluator.",
+    "Qualified South African plumbing/electrical/process review and applicable approvals before fabrication/installation."
+  ],
+  "nonclaims": [
+    "No module or train is selected, sized, built, installed or qualified by this concept inventory.",
+    "No potable water output or SANS 241 compliance is claimed.",
+    "No treated wastewater reuse permission or health outcome is inferred.",
+    "No physical energy, throughput, cost, maintenance or service performance is established.",
+    "No autonomous treatment or release authority is granted to AI/cloud systems."
+  ]
+}
