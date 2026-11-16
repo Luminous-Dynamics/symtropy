@@ -35,9 +35,9 @@ fn schema_validator(schema: &Value) -> Result<Validator, String> {
 }
 
 fn array_has(values: Option<&Value>, expected: &str) -> bool {
-    values.and_then(Value::as_array).is_some_and(|items| {
-        items.iter().any(|item| item.as_str() == Some(expected))
-    })
+    values
+        .and_then(Value::as_array)
+        .is_some_and(|items| items.iter().any(|item| item.as_str() == Some(expected)))
 }
 
 fn semantic_errors(profile: &Value) -> Vec<String> {
@@ -46,10 +46,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(profile, "program_id") != Some("GARMENT-MATERIAL-PASSPORT-001") {
         errors.push("program_id must remain GARMENT-MATERIAL-PASSPORT-001".to_owned());
     }
-    if text_at(profile, "status")
-        != Some("benchmark_contract_proposal_no_physical_measurements")
-    {
-        errors.push("profile must remain proposal-only until physical scan evidence exists".to_owned());
+    if text_at(profile, "status") != Some("benchmark_contract_proposal_no_physical_measurements") {
+        errors.push(
+            "profile must remain proposal-only until physical scan evidence exists".to_owned(),
+        );
     }
     if text_at(profile, "claim_ceiling") != Some("no_model_or_process_qualification_claim") {
         errors.push("profile cannot claim model or process qualification".to_owned());
@@ -64,14 +64,18 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("duplicate dataset identity: {id}"));
             }
             if dataset.get("not_our_measurement").and_then(Value::as_bool) != Some(true) {
-                errors.push(format!("{id}: external corpus cannot be presented as our physical measurement"));
+                errors.push(format!(
+                    "{id}: external corpus cannot be presented as our physical measurement"
+                ));
             }
         }
     } else {
         errors.push("datasets must be an array".to_owned());
     }
 
-    let external = profile.get("external_reference_results").and_then(Value::as_array);
+    let external = profile
+        .get("external_reference_results")
+        .and_then(Value::as_array);
     let mut reference_ids = BTreeSet::new();
     if let Some(results) = external {
         for result in results {
@@ -80,11 +84,15 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("duplicate external reference result: {id}"));
             }
             if result.get("is_our_result").and_then(Value::as_bool) != Some(false) {
-                errors.push(format!("{id}: literature result cannot be relabelled as our result"));
+                errors.push(format!(
+                    "{id}: literature result cannot be relabelled as our result"
+                ));
             }
             let dataset_id = text_at(result, "dataset_id").unwrap_or("");
             if !dataset_ids.contains(dataset_id) {
-                errors.push(format!("{id}: external result references an unknown dataset"));
+                errors.push(format!(
+                    "{id}: external result references an unknown dataset"
+                ));
             }
         }
     } else {
@@ -95,8 +103,13 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     let split_fields = validation
         .and_then(|value| value.get("split_group_fields"))
         .and_then(Value::as_array);
-    for field in ["physical_specimen_id", "source_lot_id", "acquisition_session_id"] {
-        if !split_fields.is_some_and(|items| items.iter().any(|item| item.as_str() == Some(field))) {
+    for field in [
+        "physical_specimen_id",
+        "source_lot_id",
+        "acquisition_session_id",
+    ] {
+        if !split_fields.is_some_and(|items| items.iter().any(|item| item.as_str() == Some(field)))
+        {
             errors.push(format!("validation split must group by {field}"));
         }
     }
@@ -131,7 +144,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("duplicate metric identity: {id}"));
             }
             if text_at(metric, "status") != Some("proposal_target_only") {
-                errors.push(format!("{id}: metric target cannot be promoted to a result"));
+                errors.push(format!(
+                    "{id}: metric target cannot be promoted to a result"
+                ));
             }
         }
     }
@@ -183,7 +198,8 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(governance.unwrap_or(&Value::Null), "physical_interlocks")
         != Some("independent_deterministic_device_controls")
     {
-        errors.push("physical interlocks must remain independent deterministic controls".to_owned());
+        errors
+            .push("physical interlocks must remain independent deterministic controls".to_owned());
     }
     if profile
         .get("scan_records")
@@ -305,8 +321,7 @@ mod tests {
     #[test]
     fn random_pixel_split_is_rejected() {
         let (schema, mut profile) = fixture();
-        profile["validation_policy"]["random_spectral_pixel_split_allowed"] =
-            Value::Bool(true);
+        profile["validation_policy"]["random_spectral_pixel_split_allowed"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
@@ -321,8 +336,7 @@ mod tests {
     #[test]
     fn external_published_result_cannot_be_claimed_as_ours() {
         let (schema, mut profile) = fixture();
-        profile["external_reference_results"][0]["is_our_result"] =
-            Value::Bool(true);
+        profile["external_reference_results"][0]["is_our_result"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
