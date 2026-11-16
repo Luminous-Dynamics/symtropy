@@ -49,6 +49,8 @@ pub struct InspectionEvidence {
     /// Evidence lineage groups are supplied by the evidence/observation owner.
     pub measurement_source_group: String,
     pub baseline_source_group: String,
+    /// Independence disposition from the source/evidence owner, not inferred from labels.
+    pub independence_status: GateStatus,
     pub calibration_status: GateStatus,
     pub applicability_status: GateStatus,
     pub outcome_status: GateStatus,
@@ -81,6 +83,7 @@ pub enum BlockReason {
     OutcomeBlocked,
     OutcomeUnknown,
     CorrelatedObservationOrigin,
+    ObservationIndependenceUnknown,
     RepairScopeIncomplete,
 }
 
@@ -213,6 +216,11 @@ fn validate_episode(episode: &Episode) -> Result<BTreeMap<u32, CommitmentState>,
 fn evidence_block(inspection: &InspectionEvidence) -> Option<BlockReason> {
     if inspection.measurement_source_group == inspection.baseline_source_group {
         return Some(BlockReason::CorrelatedObservationOrigin);
+    }
+    match inspection.independence_status {
+        GateStatus::Block => return Some(BlockReason::CorrelatedObservationOrigin),
+        GateStatus::Unknown => return Some(BlockReason::ObservationIndependenceUnknown),
+        GateStatus::Pass => {}
     }
     match inspection.calibration_status {
         GateStatus::Block => return Some(BlockReason::CalibrationBlocked),
@@ -409,6 +417,7 @@ mod tests {
                 outcome_id: "OUTCOME-POSITIVE".to_owned(),
                 measurement_source_group: "INDEPENDENT-TEST-STAND".to_owned(),
                 baseline_source_group: "MACHINE-DASHBOARD".to_owned(),
+                independence_status: GateStatus::Pass,
                 calibration_status: GateStatus::Pass,
                 applicability_status: GateStatus::Pass,
                 outcome_status: GateStatus::Pass,
@@ -615,6 +624,7 @@ mod tests {
             "applicability_unknown" => Some(BlockReason::ApplicabilityUnknown),
             "applicability_blocked" => Some(BlockReason::ApplicabilityBlocked),
             "correlated" => Some(BlockReason::CorrelatedObservationOrigin),
+            "independence_unknown" => Some(BlockReason::ObservationIndependenceUnknown),
             "outcome_unknown" => Some(BlockReason::OutcomeUnknown),
             "outcome_blocked" => Some(BlockReason::OutcomeBlocked),
             "repair_scope_incomplete" => Some(BlockReason::RepairScopeIncomplete),
@@ -633,31 +643,32 @@ mod tests {
                 continue;
             }
             let columns: Vec<&str> = line.split('\t').collect();
-            assert_eq!(columns.len(), 15, "fixture row {}", line_index + 1);
+            assert_eq!(columns.len(), 16, "fixture row {}", line_index + 1);
             rows += 1;
 
             let mut source = episode();
             source.episode_id = columns[0].to_owned();
             source.impact.receipt_id = format!("impact-{}", columns[0]);
-            source.impact.affected_operation_ids = parse_operation_ids(columns[8]);
+            source.impact.affected_operation_ids = parse_operation_ids(columns[9]);
             source.inspection.receipt_id = format!("inspection-{}", columns[0]);
             source.inspection.test_id = columns[1].to_owned();
             source.inspection.outcome_id = format!("outcome-{}", columns[0]);
             source.inspection.measurement_source_group = columns[3].to_owned();
             source.inspection.baseline_source_group = columns[4].to_owned();
-            source.inspection.calibration_status = parse_case_status(columns[5]);
-            source.inspection.applicability_status = parse_case_status(columns[6]);
-            source.inspection.outcome_status = parse_case_status(columns[7]);
+            source.inspection.independence_status = parse_case_status(columns[5]);
+            source.inspection.calibration_status = parse_case_status(columns[6]);
+            source.inspection.applicability_status = parse_case_status(columns[7]);
+            source.inspection.outcome_status = parse_case_status(columns[8]);
 
             let candidate = RepairProposal {
                 diagnosis_receipt_id: source.inspection.receipt_id.clone(),
                 impact_receipt_id: source.impact.receipt_id.clone(),
-                release_operation_ids: parse_operation_ids(columns[9]),
-                containment_operation_ids: parse_operation_ids(columns[10]),
+                release_operation_ids: parse_operation_ids(columns[10]),
+                containment_operation_ids: parse_operation_ids(columns[11]),
             };
 
             let evaluated = evaluate_scope(&source, &candidate).unwrap();
-            let expected_status = match columns[11] {
+            let expected_status = match columns[12] {
                 "eligible" => EvaluationStatus::Eligible,
                 "blocked" => EvaluationStatus::Blocked,
                 other => panic!("unknown expected status: {other}"),
@@ -665,13 +676,13 @@ mod tests {
             assert_eq!(evaluated.status, expected_status, "fixture {}", columns[0]);
             assert_eq!(
                 evaluated.block_reason,
-                expected_block_reason(columns[12]),
+                expected_block_reason(columns[13]),
                 "fixture {}",
                 columns[0]
             );
             assert_eq!(
                 evaluated.metrics.false_preserved_affected_operations,
-                columns[13].parse::<usize>().unwrap(),
+                columns[15].parse::<usize>().unwrap(),
                 "fixture {}",
                 columns[0]
             );
@@ -690,6 +701,20 @@ mod tests {
         assert_eq!(rows, 18);
         assert_eq!(hidden_future_results.len(), 2);
         assert_eq!(hidden_future_results[0], hidden_future_results[1]);
+    }
+
+    #[test]
+    fn distinct_source_labels_without_independence_proof_are_blocked() {
+        let mut source = episode();
+        source.inspection.measurement_source_group = "SECOND_SENSOR".to_owned();
+        source.inspection.baseline_source_group = "PRIMARY_SENSOR".to_owned();
+        source.inspection.independence_status = GateStatus::Unknown;
+        let result = evaluate_scope(&source, &proposal()).unwrap();
+        assert_eq!(result.status, EvaluationStatus::Blocked);
+        assert_eq!(
+            result.block_reason,
+            Some(BlockReason::ObservationIndependenceUnknown)
+        );
     }
 
     #[test]
