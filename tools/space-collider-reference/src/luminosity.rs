@@ -85,6 +85,15 @@ impl CcmInputs {
         {
             return Err("effective luminosity fraction must be finite and in [0, 1]".to_owned());
         }
+        let integer_counts = [
+            self.total_bunches_per_beam,
+            self.colliding_bunch_pairs_per_ip,
+            self.protons_per_bunch,
+            self.interaction_points,
+        ];
+        if integer_counts.iter().any(|value| value.fract() != 0.0) {
+            return Err("bunch, particle and interaction-point counts must be integers".to_owned());
+        }
         if self.colliding_bunch_pairs_per_ip > self.total_bunches_per_beam {
             return Err("colliding bunch pairs per IP cannot exceed total stored bunches".to_owned());
         }
@@ -496,6 +505,14 @@ mod tests {
 
         let mut invalid = CcmInputs::published_reference();
         invalid.interaction_points = f64::NAN;
+        assert!(calculate(invalid).is_err());
+
+        let mut invalid = CcmInputs::published_reference();
+        invalid.colliding_bunch_pairs_per_ip = 1_200_000.5;
+        assert!(calculate(invalid).is_err());
+
+        let mut invalid = CcmInputs::published_reference();
+        invalid.colliding_bunch_pairs_per_ip = 1_200_001.0;
         assert!(calculate(invalid).is_err());
     }
 
