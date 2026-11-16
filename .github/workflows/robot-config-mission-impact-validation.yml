@@ -1,0 +1,53 @@
+name: Robot Mission Impact Package Validation
+
+on:
+  push:
+    branches:
+      - research/robot-config-mission-impact-v0-1
+    paths:
+      - "research/robot-config-mission-impact-v0-1/**"
+      - ".github/workflows/robot-config-mission-impact-validation.yml"
+  pull_request:
+    branches: [main, research/robot-config-mission-impact-v0-1]
+    paths:
+      - "research/robot-config-mission-impact-v0-1/**"
+      - ".github/workflows/robot-config-mission-impact-validation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robot-mission-impact-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Mission package validation (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Resolve lockfile for initial review artifact
+        run: cargo generate-lockfile --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --all -- --check
+      - name: Run schema and cross-file tests
+        run: cargo test --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked --all-targets
+      - name: Run deterministic package validator
+        run: cargo run --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Export resolved Cargo lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-mission-impact-lock-${{ matrix.os }}
+          path: research/robot-config-mission-impact-v0-1/validator/Cargo.lock
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,389 @@
+{
+  "schema_version": "robot-config-mission-impact-outcome-metrics-v0.1",
+  "benchmark_id": "ROBOT-CONFIG-MISSION-IMPACT-001",
+  "visibility": "public_synthetic_development_not_physical_measurements",
+  "unit": "one synthetic functional layout segment per matched task pair",
+  "rows": [
+    {
+      "pair_id": "MIP-001",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 720,
+        "total_workflow_crew_seconds": 420,
+        "energy_wh": 95,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.7,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-001/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "held",
+        "functional_units_attempted": 1,
+        "accepted_units": 0,
+        "rejected_units": 0,
+        "held_units": 1,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 840,
+        "total_workflow_crew_seconds": 610,
+        "energy_wh": 102,
+        "operator_interventions": 1,
+        "intervention_seconds": 90,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": null,
+          "expanded_uncertainty_mm": null,
+          "independent_measurement_ref": null
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-002",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 480,
+        "total_workflow_crew_seconds": 300,
+        "energy_wh": 88,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.8,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-002/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "rejected",
+        "functional_units_attempted": 1,
+        "accepted_units": 0,
+        "rejected_units": 1,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 600,
+        "total_workflow_crew_seconds": 390,
+        "energy_wh": 110,
+        "operator_interventions": 1,
+        "intervention_seconds": 75,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 2.7,
+          "expanded_uncertainty_mm": 0.35,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-002/target"
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-003",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 660,
+        "total_workflow_crew_seconds": 360,
+        "energy_wh": 98,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.9,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-003/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "aborted_safe_hold",
+        "functional_units_attempted": 1,
+        "accepted_units": 0,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 1,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 525,
+        "total_workflow_crew_seconds": 270,
+        "energy_wh": 75,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": null,
+          "expanded_uncertainty_mm": null,
+          "independent_measurement_ref": null
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-004",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 780,
+        "total_workflow_crew_seconds": 460,
+        "energy_wh": 120,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.9,
+          "expanded_uncertainty_mm": 0.3,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-004/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "held",
+        "functional_units_attempted": 1,
+        "accepted_units": 0,
+        "rejected_units": 0,
+        "held_units": 1,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 950,
+        "total_workflow_crew_seconds": 620,
+        "energy_wh": 150,
+        "operator_interventions": 1,
+        "intervention_seconds": 130,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": null,
+          "expanded_uncertainty_mm": null,
+          "independent_measurement_ref": null
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-005",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 700,
+        "total_workflow_crew_seconds": 390,
+        "energy_wh": 93,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.8,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-005/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "unknown",
+        "functional_units_attempted": 1,
+        "accepted_units": 0,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 1,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 715,
+        "total_workflow_crew_seconds": 410,
+        "energy_wh": 95,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": null,
+          "expanded_uncertainty_mm": null,
+          "independent_measurement_ref": null
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-006",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 600,
+        "total_workflow_crew_seconds": 330,
+        "energy_wh": 80,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.8,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-006/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 720,
+        "total_workflow_crew_seconds": 480,
+        "energy_wh": 92,
+        "operator_interventions": 1,
+        "intervention_seconds": 80,
+        "reinspection_count": 1,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 1.6,
+          "expanded_uncertainty_mm": 0.3,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-006/target"
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-007",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 700,
+        "total_workflow_crew_seconds": 400,
+        "energy_wh": 90,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.7,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-007/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "not_started",
+        "functional_units_attempted": 0,
+        "accepted_units": 0,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 1,
+        "robot_elapsed_seconds": 0,
+        "total_workflow_crew_seconds": 130,
+        "energy_wh": 0,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": null,
+          "expanded_uncertainty_mm": null,
+          "independent_measurement_ref": null
+        }
+      }
+    },
+    {
+      "pair_id": "MIP-008",
+      "source": {
+        "mission_outcome": "accepted",
+        "functional_units_attempted": 1,
+        "accepted_units": 1,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 0,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 750,
+        "total_workflow_crew_seconds": 420,
+        "energy_wh": 102,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": 0.8,
+          "expanded_uncertainty_mm": 0.25,
+          "independent_measurement_ref": "fixture://referee-measurement/MIP-008/source"
+        }
+      },
+      "target": {
+        "mission_outcome": "unknown",
+        "functional_units_attempted": 1,
+        "accepted_units": 0,
+        "rejected_units": 0,
+        "held_units": 0,
+        "aborted_units": 0,
+        "unknown_units": 1,
+        "not_started_units": 0,
+        "robot_elapsed_seconds": 0,
+        "total_workflow_crew_seconds": 210,
+        "energy_wh": 0,
+        "operator_interventions": 0,
+        "intervention_seconds": 0,
+        "reinspection_count": 0,
+        "quality": {
+          "acceptance_tolerance_mm": 2,
+          "signed_error_mm": null,
+          "expanded_uncertainty_mm": null,
+          "independent_measurement_ref": null
+        }
+      }
+    }
+  ],
+  "nonclaims": [
+    "All elapsed time, crew time, energy, quality errors, uncertainty and outcome counts are invented development fixtures.",
+    "No field trials, robot telemetry, calibrated metrology, vendor product data or customer acceptance data are represented.",
+    "Metrics are intentionally not combined into a composite productivity or safety score."
+  ]
+}

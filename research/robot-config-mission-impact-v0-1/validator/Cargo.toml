@@ -1,0 +1,13 @@
+[package]
+name = "robot-mission-impact-package-check"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Schema and cross-file consistency checker for the synthetic robot mission-impact benchmark package"
+
+[dependencies]
+jsonschema = "=0.60.2"
+serde_json = "=1.0.154"
+
+[workspace]

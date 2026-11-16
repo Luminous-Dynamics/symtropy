@@ -1,0 +1,65 @@
+{
+  "schema_version": "robot-config-mission-stage-catalog-v0.1",
+  "stages": [
+    {
+      "stage_id": "S01",
+      "name": "task_contract",
+      "description": "Task/work-package identity, prerequisites and acceptance criteria",
+      "order": 1
+    },
+    {
+      "stage_id": "S02",
+      "name": "site_observation",
+      "description": "Site, material, obstacle and task-relevant observation",
+      "order": 2
+    },
+    {
+      "stage_id": "S03",
+      "name": "frame_localization",
+      "description": "Survey control, map/frame epoch and robot localization",
+      "order": 3
+    },
+    {
+      "stage_id": "S04",
+      "name": "navigation",
+      "description": "Route planning and travel to work area",
+      "order": 4
+    },
+    {
+      "stage_id": "S05",
+      "name": "base_positioning",
+      "description": "Workspace access and stable/useful base pose",
+      "order": 5
+    },
+    {
+      "stage_id": "S06",
+      "name": "tool_calibration",
+      "description": "Module/tool identity, TCP, calibration and interface checks",
+      "order": 6
+    },
+    {
+      "stage_id": "S07",
+      "name": "operation",
+      "description": "Declared task execution",
+      "order": 7
+    },
+    {
+      "stage_id": "S08",
+      "name": "independent_acceptance",
+      "description": "Referee measurement and functional acceptance",
+      "order": 8
+    },
+    {
+      "stage_id": "S09",
+      "name": "recovery",
+      "description": "Discrepancy, fault and failed-attempt reconciliation",
+      "order": 9
+    },
+    {
+      "stage_id": "S10",
+      "name": "state_reconciliation",
+      "description": "Output/WIP/configuration reconciliation and return-to-service observation",
+      "order": 10
+    }
+  ]
+}

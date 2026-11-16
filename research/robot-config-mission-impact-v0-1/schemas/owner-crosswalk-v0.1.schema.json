@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-owner-crosswalk:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 owner crosswalk v0.1",
+  "description": "Closed proposed crosswalk to existing qualification, reconfiguration and accepted-output owner contracts. Not evidence of owner acceptance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "qualification_owner",
+    "reconfiguration_owner",
+    "accepted_output_owner",
+    "mappings",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-owner-crosswalk-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-MISSION-IMPACT-001"
+    },
+    "visibility": {
+      "const": "public_proposed_crosswalk_not_owner_accepted"
+    },
+    "qualification_owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "issue_number",
+        "issue_url",
+        "corpus_path",
+        "corpus_locator_branch",
+        "corpus_blob_sha",
+        "oracle_artifact_path",
+        "interface_state"
+      ],
+      "properties": {
+        "repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "issue_number": {
+          "const": 5488
+        },
+        "issue_url": {
+          "const": "https://github.com/Luminous-Dynamics/symtropy/issues/5488"
+        },
+        "corpus_path": {
+          "const": "research/robot-config-change-qualification-v0-1/robot-config-change-corpus-v0.1.json"
+        },
+        "corpus_locator_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corpus_blob_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "oracle_artifact_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interface_state": {
+          "const": "public_development_corpus_pinned_by_blob_not_accepted_machine_interface"
+        }
+      }
+    },
+    "reconfiguration_owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "issue_number",
+        "issue_url",
+        "required_link",
+        "transition_receipt_ref",
+        "interface_state"
+      ],
+      "properties": {
+        "repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "issue_number": {
+          "const": 5411
+        },
+        "issue_url": {
+          "const": "https://github.com/Luminous-Dynamics/symtropy/issues/5411"
+        },
+        "required_link": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transition_receipt_ref": {
+          "type": "null"
+        },
+        "interface_state": {
+          "const": "owner_issue_contract_only_no_pinned_machine_receipt_in_this_tranche"
+        }
+      }
+    },
+    "accepted_output_owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "issue_number",
+        "issue_url",
+        "functional_unit_ref",
+        "owner_contract_artifact_ref",
+        "interface_state"
+      ],
+      "properties": {
+        "repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "issue_number": {
+          "const": 3605
+        },
+        "issue_url": {
+          "const": "https://github.com/Luminous-Dynamics/symtropy/issues/3605"
+        },
+        "functional_unit_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_contract_artifact_ref": {
+          "type": "null"
+        },
+        "interface_state": {
+          "const": "task_acceptance_fixture_only_owner_machine_contract_not_pinned"
+        }
+      }
+    },
+    "mappings": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mission_pair_id",
+          "qualification_case_id",
+          "mapping_kind",
+          "mission_mutation_family",
+          "qualification_family"
+        ],
+        "properties": {
+          "mission_pair_id": {
+            "type": "string",
+            "pattern": "^MIP-[0-9]{3}$"
+          },
+          "qualification_case_id": {
+            "type": "string",
+            "pattern": "^RCQ-[0-9]{3}$"
+          },
+          "mapping_kind": {
+            "const": "family_related_not_case_equivalence"
+          },
+          "mission_mutation_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "qualification_family": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

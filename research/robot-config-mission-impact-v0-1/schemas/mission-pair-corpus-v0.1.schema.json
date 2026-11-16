@@ -1,0 +1,443 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-impact-corpus:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 public development corpus v0.1",
+  "description": "Closed structural schema for synthetic paired mission traces. Schema validity does not establish physical performance or oracle correctness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "evidence_scope",
+    "stage_catalog_ref",
+    "cases",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-impact-corpus-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-MISSION-IMPACT-001"
+    },
+    "visibility": {
+      "const": "public_synthetic_development_not_blind"
+    },
+    "evidence_scope": {
+      "const": "synthetic_fixture_events_only"
+    },
+    "stage_catalog_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pair_id",
+          "mutation_family",
+          "description",
+          "development_seed",
+          "source_configuration",
+          "target_configuration",
+          "declared_delta",
+          "task",
+          "matched_conditions",
+          "source_trace",
+          "target_trace"
+        ],
+        "properties": {
+          "pair_id": {
+            "type": "string",
+            "pattern": "^MIP-[0-9]{3}$"
+          },
+          "mutation_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "development_seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "source_configuration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "configuration_ref",
+              "article_ref",
+              "manifest_ref",
+              "revision"
+            ],
+            "properties": {
+              "configuration_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "article_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "manifest_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "target_configuration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "configuration_ref",
+              "article_ref",
+              "manifest_ref",
+              "revision"
+            ],
+            "properties": {
+              "configuration_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "article_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "manifest_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "revision": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "declared_delta": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "delta_ref",
+              "changed_components"
+            ],
+            "properties": {
+              "delta_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "changed_components": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component_id",
+                    "component_type",
+                    "declared_scope"
+                  ],
+                  "properties": {
+                    "component_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "component_type": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "declared_scope": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "task": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "work_package_ref",
+              "work_package_revision",
+              "functional_unit",
+              "acceptance_profile_ref",
+              "operating_domain_ref",
+              "site_snapshot_ref",
+              "frame_epoch_ref"
+            ],
+            "properties": {
+              "work_package_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "work_package_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "functional_unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "acceptance_profile_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "operating_domain_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "site_snapshot_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "frame_epoch_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "matched_conditions": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "same_task",
+              "same_site_snapshot",
+              "same_acceptance_profile",
+              "same_reference_method",
+              "same_crew_policy",
+              "order_policy",
+              "carryover_policy_ref"
+            ],
+            "properties": {
+              "same_task": {
+                "type": "boolean"
+              },
+              "same_site_snapshot": {
+                "type": "boolean"
+              },
+              "same_acceptance_profile": {
+                "type": "boolean"
+              },
+              "same_reference_method": {
+                "type": "boolean"
+              },
+              "same_crew_policy": {
+                "type": "boolean"
+              },
+              "order_policy": {
+                "enum": [
+                  "randomized_reversible",
+                  "a_then_b",
+                  "b_then_a",
+                  "not_run_target_hold",
+                  "not_run_target_unknown"
+                ]
+              },
+              "carryover_policy_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "source_trace": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "event_time_tick",
+                "event_type",
+                "source_class",
+                "raw_artifact_ref",
+                "stage_id",
+                "event_time_clock_domain_ref",
+                "arrival_time_tick",
+                "arrival_time_clock_domain_ref",
+                "clock_mapping_ref",
+                "clock_mapping_status"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "event_time_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "event_type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_class": {
+                  "enum": [
+                    "task_system",
+                    "robot_telemetry",
+                    "referee_measurement",
+                    "independent_referee",
+                    "operator_action"
+                  ]
+                },
+                "raw_artifact_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "stage_id": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^S[0-9]{2}$"
+                    }
+                  ]
+                },
+                "event_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arrival_time_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "arrival_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "clock_mapping_ref": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                "clock_mapping_status": {
+                  "enum": [
+                    "qualified",
+                    "unqualified",
+                    "absent"
+                  ]
+                }
+              }
+            }
+          },
+          "target_trace": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "event_time_tick",
+                "event_type",
+                "source_class",
+                "raw_artifact_ref",
+                "stage_id",
+                "event_time_clock_domain_ref",
+                "arrival_time_tick",
+                "arrival_time_clock_domain_ref",
+                "clock_mapping_ref",
+                "clock_mapping_status"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "event_time_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "event_type": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_class": {
+                  "enum": [
+                    "task_system",
+                    "robot_telemetry",
+                    "referee_measurement",
+                    "independent_referee",
+                    "operator_action"
+                  ]
+                },
+                "raw_artifact_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "stage_id": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^S[0-9]{2}$"
+                    }
+                  ]
+                },
+                "event_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arrival_time_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "arrival_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "clock_mapping_ref": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                "clock_mapping_status": {
+                  "enum": [
+                    "qualified",
+                    "unqualified",
+                    "absent"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

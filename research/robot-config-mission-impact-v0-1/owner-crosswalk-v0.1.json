@@ -1,0 +1,95 @@
+{
+  "schema_version": "robot-config-mission-owner-crosswalk-v0.1",
+  "benchmark_id": "ROBOT-CONFIG-MISSION-IMPACT-001",
+  "visibility": "public_proposed_crosswalk_not_owner_accepted",
+  "qualification_owner": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "issue_number": 5488,
+    "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5488",
+    "corpus_path": "research/robot-config-change-qualification-v0-1/robot-config-change-corpus-v0.1.json",
+    "corpus_locator_branch": "research/robot-config-change-reference-evaluator-v0-1",
+    "corpus_blob_sha": "8ed43a9f4b99ddc6c8a76e8de42d6610325e2229",
+    "oracle_artifact_path": "research/robot-config-change-qualification-v0-1/development-oracle-v0.1.json",
+    "interface_state": "public_development_corpus_pinned_by_blob_not_accepted_machine_interface"
+  },
+  "reconfiguration_owner": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "issue_number": 5411,
+    "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5411",
+    "required_link": "source last accepted output A -> transition receipt -> first accepted output B",
+    "transition_receipt_ref": null,
+    "interface_state": "owner_issue_contract_only_no_pinned_machine_receipt_in_this_tranche"
+  },
+  "accepted_output_owner": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "issue_number": 3605,
+    "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3605",
+    "functional_unit_ref": "fixture://acceptance/layout-referee-v1",
+    "owner_contract_artifact_ref": null,
+    "interface_state": "task_acceptance_fixture_only_owner_machine_contract_not_pinned"
+  },
+  "mappings": [
+    {
+      "mission_pair_id": "MIP-001",
+      "qualification_case_id": "RCQ-007",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "camera_serial_replacement",
+      "qualification_family": "camera_serial_replacement"
+    },
+    {
+      "mission_pair_id": "MIP-002",
+      "qualification_case_id": "RCQ-004",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "tool_geometry_changed",
+      "qualification_family": "tool_geometry_changed"
+    },
+    {
+      "mission_pair_id": "MIP-003",
+      "qualification_case_id": "RCQ-009",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "battery_health_unmeasured",
+      "qualification_family": "battery_replacement_same_mechanical_envelope"
+    },
+    {
+      "mission_pair_id": "MIP-004",
+      "qualification_case_id": "RCQ-010",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "drive_module_changed",
+      "qualification_family": "drive_module_replacement"
+    },
+    {
+      "mission_pair_id": "MIP-005",
+      "qualification_case_id": "RCQ-014",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "timebase_replaced",
+      "qualification_family": "timebase_replaced"
+    },
+    {
+      "mission_pair_id": "MIP-006",
+      "qualification_case_id": "RCQ-005",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "payload_com_changed",
+      "qualification_family": "payload_within_qualified_envelope"
+    },
+    {
+      "mission_pair_id": "MIP-007",
+      "qualification_case_id": "RCQ-011",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "safety_chain_revision",
+      "qualification_family": "safety_chain_revision"
+    },
+    {
+      "mission_pair_id": "MIP-008",
+      "qualification_case_id": "RCQ-016",
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "unknown_module_incomplete_scope",
+      "qualification_family": "unclassified_component_missing_dependencies"
+    }
+  ],
+  "nonclaims": [
+    "Mappings relate public synthetic MIP pairs to RCQ cases by declared change family only; they do not assert identical input conditions or equivalent expected dispositions.",
+    "The RCQ corpus is pinned by exact blob SHA; the issue and branch locator are references, not an accepted API or owner endorsement.",
+    "No #5411 transition receipt or #3605 machine-readable acceptance profile is invented where a pinned artifact is unavailable.",
+    "All mission and qualification cases in the linked development packages are synthetic fixtures, not hardware trials."
+  ]
+}
