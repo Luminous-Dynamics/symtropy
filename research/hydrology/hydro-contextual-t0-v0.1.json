@@ -532,7 +532,13 @@
           1,
           7,
           8
-        ]
+        ],
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
       }
     },
     {
@@ -543,7 +549,13 @@
         "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
         "forecast_probability": 0.8,
         "reference_probability": 0.4,
-        "observed_event": 1
+        "observed_event": 1,
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
       }
     },
     {
@@ -561,7 +573,13 @@
         "reference_ensemble_members": [
           4,
           4
-        ]
+        ],
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
       }
     },
     {
@@ -572,7 +590,13 @@
         "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
         "forecast_probability": 0.8,
         "reference_probability": 0.4,
-        "observed_event": 1
+        "observed_event": 1,
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
       }
     },
     {
@@ -583,7 +607,55 @@
         "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
         "forecast_probability": 0.8,
         "reference_probability": 1.5,
-        "observed_event": 1
+        "observed_event": 1,
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-time-mismatch",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "target_definition_id": "daily_streamflow_m3_s",
+        "reference_target_definition_id": "daily_streamflow_m3_s",
+        "observed": 4,
+        "forecast_ensemble_members": [
+          3,
+          5,
+          6
+        ],
+        "reference_ensemble_members": [
+          1,
+          7,
+          8
+        ],
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
+      }
+    },
+    {
+      "case_id": "HC-T0-039-brier-skill-population-mismatch",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 0.8,
+        "reference_probability": 0.4,
+        "observed_event": 1,
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1"
       }
     }
   ]
