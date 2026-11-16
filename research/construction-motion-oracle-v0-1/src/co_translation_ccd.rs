@@ -779,7 +779,7 @@ mod tests {
 
     #[test]
     fn generated_ten_thousand_contacts_are_never_pruned_by_adaptive_space_time() {
-        let mut seed = 0x51ace_2026_u64;
+        let mut seed = 0x0005_1ace_2026_u64;
         let mut next = || {
             seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
             ((seed >> 32) % 2_001) as f64 / 100.0 - 10.0
