@@ -5,7 +5,7 @@
 //! metrics, checks matched scope and cost/benefit identity, and enforces
 //! non-compensatory safety decisions. It is not a hazard or service simulator.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::process;
@@ -91,10 +91,7 @@ type OutcomeContractKey = (String, String);
 type OutcomeContractValue = (String, u64, u64);
 type OutcomeContracts = BTreeMap<OutcomeContractKey, OutcomeContractValue>;
 
-fn outcome_contracts(
-    outcomes: &[Value],
-    horizon: usize,
-) -> Result<OutcomeContracts, String> {
+fn outcome_contracts(outcomes: &[Value], horizon: usize) -> Result<OutcomeContracts, String> {
     if outcomes.is_empty() {
         return Err("service_outcomes must be a non-empty array".to_owned());
     }
@@ -123,7 +120,9 @@ fn outcome_contracts(
             return Err(format!("{path}.beneficiary_count must be positive"));
         }
         if !(1..=1000).contains(&floor) {
-            return Err(format!("{path}.minimum_service_permille must be in 1..=1000"));
+            return Err(format!(
+                "{path}.minimum_service_permille must be in 1..=1000"
+            ));
         }
         if delivered.len() != horizon {
             return Err(format!(
@@ -131,10 +130,10 @@ fn outcome_contracts(
                 delivered.len()
             ));
         }
-        if delivered.iter().any(|item| {
-            item.as_u64()
-                .is_none_or(|ratio| ratio > 1000)
-        }) {
+        if delivered
+            .iter()
+            .any(|item| item.as_u64().is_none_or(|ratio| ratio > 1000))
+        {
             return Err(format!(
                 "{path}.delivered_service_permille values must be integers in 0..=1000"
             ));
@@ -156,7 +155,9 @@ fn outcome_contracts(
         if required_text(origin, "kind", &format!("{path}.origin"))?
             != "SYNTHETIC_REFERENCE_TRAJECTORY"
         {
-            return Err(format!("{path}.origin.kind must identify a synthetic reference"));
+            return Err(format!(
+                "{path}.origin.kind must identify a synthetic reference"
+            ));
         }
         required_text(origin, "upstream_owner", &format!("{path}.origin"))?;
         required_text(origin, "source_receipt", &format!("{path}.origin"))?;
@@ -217,8 +218,8 @@ fn evaluate_outcomes(
         let recovery_index = delivered
             .windows(sustained_intervals)
             .position(|window| window.iter().all(|ratio| ratio >= floor));
-        let recovery_minutes = recovery_index
-            .map(|start| (start as u64).saturating_mul(interval_minutes));
+        let recovery_minutes =
+            recovery_index.map(|start| (start as u64).saturating_mul(interval_minutes));
 
         let aggregate = aggregates.entry(service_id.clone()).or_default();
         aggregate.deficit_milli_beneficiary_minutes = aggregate
@@ -249,10 +250,7 @@ fn validate_benefit_claims(
 
     let outcome_ids: BTreeSet<String> = outcomes
         .iter()
-        .map(|outcome| {
-            required_text(outcome, "outcome_id", "service_outcome")
-                .map(str::to_owned)
-        })
+        .map(|outcome| required_text(outcome, "outcome_id", "service_outcome").map(str::to_owned))
         .collect::<Result<_, _>>()?;
     let mut claimed_outcomes = BTreeSet::new();
     let mut claim_ids = BTreeSet::new();
@@ -265,7 +263,9 @@ fn validate_benefit_claims(
         }
         let outcome_id = required_text(claim, "outcome_id", &path)?;
         if !outcome_ids.contains(outcome_id) {
-            return Err(format!("{path}: claim references unknown outcome {outcome_id}"));
+            return Err(format!(
+                "{path}: claim references unknown outcome {outcome_id}"
+            ));
         }
         if !claimed_outcomes.insert(outcome_id.to_owned()) {
             return Err(format!(
@@ -322,11 +322,7 @@ fn lifecycle_cost(portfolio: &Value) -> Result<u64, String> {
     Ok(total)
 }
 
-fn validate_status<'a>(
-    value: &'a Value,
-    label: &str,
-    allowed: &[&str],
-) -> Result<&'a str, String> {
+fn validate_status<'a>(value: &'a Value, label: &str, allowed: &[&str]) -> Result<&'a str, String> {
     let status = required_text(value, "status", label)?;
     if !allowed.contains(&status) {
         return Err(format!("{label}.status is unsupported: {status}"));
@@ -348,10 +344,8 @@ fn service_totals_report(
     for (index, limit) in limits.iter().enumerate() {
         let path = format!("service_limits[{index}]");
         let service_id = required_text(limit, "service_id", &path)?;
-        let max_deficit =
-            required_u64(limit, "maximum_deficit_milli_beneficiary_minutes", &path)?;
-        let max_recovery =
-            required_u64(limit, "maximum_recovery_minutes_per_stratum", &path)?;
+        let max_deficit = required_u64(limit, "maximum_deficit_milli_beneficiary_minutes", &path)?;
+        let max_recovery = required_u64(limit, "maximum_recovery_minutes_per_stratum", &path)?;
         if limit_map
             .insert(service_id.to_owned(), (max_deficit, max_recovery))
             .is_some()
@@ -361,7 +355,9 @@ fn service_totals_report(
     }
 
     if current.keys().ne(baseline.keys()) || limit_map.keys().ne(current.keys()) {
-        return Err("ABSTAIN_INCOMPARABLE_SCOPE: service IDs or service-limit scope differ".to_owned());
+        return Err(
+            "ABSTAIN_INCOMPARABLE_SCOPE: service IDs or service-limit scope differ".to_owned(),
+        );
     }
 
     let mut reports = Vec::with_capacity(current.len());
@@ -379,8 +375,7 @@ fn service_totals_report(
                 .sustained_recovery_start_minutes
                 .is_some_and(|minutes| minutes <= *max_recovery)
         });
-        let within = aggregate.deficit_milli_beneficiary_minutes <= *max_deficit
-            && all_recovered;
+        let within = aggregate.deficit_milli_beneficiary_minutes <= *max_deficit && all_recovered;
         all_within &= within;
 
         let baseline_deficit = baseline
@@ -438,10 +433,7 @@ struct EvaluationContext<'a> {
     family_ids: &'a BTreeSet<String>,
 }
 
-fn evaluate_portfolio(
-    portfolio: &Value,
-    context: &EvaluationContext<'_>,
-) -> Result<Value, String> {
+fn evaluate_portfolio(portfolio: &Value, context: &EvaluationContext<'_>) -> Result<Value, String> {
     let portfolio_id = required_text(portfolio, "portfolio_id", "portfolio")?;
     if portfolio.get("scope") != Some(context.scope) {
         return Err(format!(
@@ -460,8 +452,12 @@ fn evaluate_portfolio(
         ));
     }
 
-    let (metrics, aggregates) =
-        evaluate_outcomes(outcomes, context.horizon, context.interval_minutes, context.sustained_intervals)?;
+    let (metrics, aggregates) = evaluate_outcomes(
+        outcomes,
+        context.horizon,
+        context.interval_minutes,
+        context.sustained_intervals,
+    )?;
     let mut metric_by_service: BTreeMap<String, Vec<&OutcomeMetric>> = BTreeMap::new();
     for metric in &metrics {
         metric_by_service
@@ -494,8 +490,12 @@ fn evaluate_portfolio(
         &["PASS", "FAIL", "UNKNOWN"],
     )?;
 
-    let (service_totals, service_pass) =
-        service_totals_report(&aggregates, context.baseline_aggregates, context.limits, &metric_by_service)?;
+    let (service_totals, service_pass) = service_totals_report(
+        &aggregates,
+        context.baseline_aggregates,
+        context.limits,
+        &metric_by_service,
+    )?;
 
     let disposition = if safety_status == "VIOLATED" || !service_pass {
         "INFEASIBLE"
@@ -565,10 +565,11 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
     required_text(scope, "jurisdiction_context", "scope")?;
     required_text(scope, "system_boundary_id", "scope")?;
     required_text(scope, "scenario_id", "scope")?;
-    if required_text(scope, "scenario_basis", "scope")?
-        != "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC"
+    if required_text(scope, "scenario_basis", "scope")? != "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC"
     {
-        return Err("E0 must remain a bounded deterministic, non-probabilistic scenario".to_owned());
+        return Err(
+            "E0 must remain a bounded deterministic, non-probabilistic scenario".to_owned(),
+        );
     }
     required_text(scope, "demand_profile_id", "scope")?;
     let horizon = usize::try_from(required_u64(scope, "horizon_intervals", "scope")?)
@@ -609,19 +610,27 @@ fn evaluate_fixture(fixture: &str, registry: &str) -> Result<Value, String> {
         return Err("baseline role must be BASELINE_REFERENCE_ONLY".to_owned());
     }
     if baseline.get("scope") != Some(scope) {
-        return Err("ABSTAIN_INCOMPARABLE_SCOPE: baseline scope differs from evaluation scope".to_owned());
+        return Err(
+            "ABSTAIN_INCOMPARABLE_SCOPE: baseline scope differs from evaluation scope".to_owned(),
+        );
     }
     let baseline_cost = lifecycle_cost(baseline)?;
     if baseline_cost != 0 {
-        return Err("E0 persistence baseline must have zero incremental intervention cost".to_owned());
+        return Err(
+            "E0 persistence baseline must have zero incremental intervention cost".to_owned(),
+        );
     }
     let baseline_outcomes = baseline
         .get("service_outcomes")
         .and_then(Value::as_array)
         .ok_or_else(|| "baseline.service_outcomes must be an array".to_owned())?;
     let baseline_contracts = outcome_contracts(baseline_outcomes, horizon)?;
-    let (baseline_metrics, baseline_aggregates) =
-        evaluate_outcomes(baseline_outcomes, horizon, interval_minutes, sustained_intervals)?;
+    let (baseline_metrics, baseline_aggregates) = evaluate_outcomes(
+        baseline_outcomes,
+        horizon,
+        interval_minutes,
+        sustained_intervals,
+    )?;
     let baseline_totals: Vec<Value> = baseline_aggregates
         .iter()
         .map(|(service_id, aggregate)| {
@@ -709,8 +718,14 @@ mod tests {
     fn e0_exact_reference_matches_all_three_portfolio_answers() {
         let report = run().expect("valid E0 reference");
         assert_eq!(report["all_expected_reports_match"], Value::Bool(true));
-        assert_eq!(report["baseline_service_totals"][0]["deficit_milli_beneficiary_minutes"], 6_240_000);
-        assert_eq!(report["portfolio_reports"].as_array().expect("reports").len(), 3);
+        assert_eq!(
+            report["baseline_service_totals"][0]["deficit_milli_beneficiary_minutes"],
+            6_240_000
+        );
+        assert_eq!(
+            report["portfolio_reports"].as_array().expect("reports").len(),
+            3
+        );
     }
 
     #[test]
@@ -736,7 +751,10 @@ mod tests {
         let report = run().expect("valid E0 reference");
         let unsafe_report = &report["portfolio_reports"][2];
         assert_eq!(unsafe_report["disposition"], "INFEASIBLE");
-        assert_eq!(unsafe_report["service_totals"][0]["deficit_milli_beneficiary_minutes"], 0);
+        assert_eq!(
+            unsafe_report["service_totals"][0]["deficit_milli_beneficiary_minutes"],
+            0
+        );
         assert_eq!(unsafe_report["lifecycle_cost_minor_units"], 5_000_000);
     }
 
@@ -755,7 +773,8 @@ mod tests {
         root["portfolios"][0]["buffer_recovery"]["status"] = Value::String("UNKNOWN".into());
         root["portfolios"][0]["expected_report"]["disposition"] =
             Value::String("ABSTAIN_MISSING_UPSTREAM_EVIDENCE".into());
-        let report = evaluate_fixture(&root.to_string(), REGISTRY).expect("unknown evidence abstains");
+        let report =
+            evaluate_fixture(&root.to_string(), REGISTRY).expect("unknown evidence abstains");
         assert_eq!(
             report["portfolio_reports"][0]["disposition"],
             "ABSTAIN_MISSING_UPSTREAM_EVIDENCE"
@@ -832,7 +851,7 @@ mod tests {
                 "beneficiary_unit":"PERSON","beneficiary_count":1,"minimum_service_permille":800,
                 "delivered_service_permille":[700,800],"origin":{"kind":"SYNTHETIC_REFERENCE_TRAJECTORY",
                 "upstream_owner":"test","source_receipt":"test","claim_ceiling":"test"}
-            })
+            }),
         ];
         let (_, totals) = evaluate_outcomes(&outcomes, 2, 60, 2).expect("separate service totals");
         assert_eq!(totals.len(), 2);
