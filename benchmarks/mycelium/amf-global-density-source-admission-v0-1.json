@@ -1,0 +1,106 @@
+{
+  "schema_version": "myco.global_density_benchmark.v0.1",
+  "suite_id": "AMF-GLOBAL-DENSITY-001",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5599",
+  "paper": {
+    "title": "Global density and biomass of arbuscular mycorrhizal fungal networks",
+    "doi": "10.1126/science.adu4373",
+    "journal": "Science",
+    "volume": 392,
+    "issue": 6803,
+    "pages": "1171-1176",
+    "publication_date": "2026-06-11",
+    "data_code_statement": "Dryad"
+  },
+  "data": {
+    "doi": "10.5061/dryad.p2ngf1w1f",
+    "published": "2026-05-20",
+    "archive": "Dryad_StewartBisot_etal.zip",
+    "archive_size_gb": 2.16,
+    "exact_archive_sha256": null,
+    "download_status": "not_downloaded",
+    "rights_status": "file_level_reuse_terms_not_yet_admitted",
+    "paper_studies": 322,
+    "paper_soil_cores": 16000,
+    "paper_biomes": 9,
+    "dryad_readme_field_measurements": ">4000",
+    "paper_imaged_hyphae": ">300000",
+    "readme_imaged_hyphae": ">280000",
+    "readme_imaged_species": 5,
+    "image_count_discrepancy": "reconcile exact inventory",
+    "unit": "metres of hypha per cubic centimetre of soil",
+    "raster_resolution_km2": 1,
+    "source_model": "Random Forest via Google Earth Engine",
+    "uncertainty_rasters": [
+      "hyphal_density_m_cm3_Classified_mean.tif",
+      "hyphal_density_m_cm3_Classified_sd.tif"
+    ],
+    "sampling_intensity_raster": "sample_intensity_hyphae_scaled_global.tif"
+  },
+  "key_files": [
+    "hyphal_density_m_cm3.csv",
+    "hyphal_density_full_metadata.csv",
+    "hyphal_density_m_cm3_GEE_processed.csv",
+    "Radius_effective_per_plate_avg.csv",
+    "raw_data.zip",
+    "hyphal_density_m_cm3_Classified_mean.tif",
+    "hyphal_density_m_cm3_Classified_sd.tif",
+    "sample_intensity_hyphae_scaled_global.tif",
+    "Biome_Hyphal_Summary.csv",
+    "Ecoregion_Hyphal_Summary_update.csv",
+    "DataSources.xlsx",
+    "Main_pipeline.ipynb",
+    "Global_Carbon_Prop_Uncertainty.R",
+    "Spatial autocorrelation.R",
+    "SHAP analyses.R"
+  ],
+  "modeling_tournament": [
+    "source_gee_random_forest",
+    "non_spatial_environmental_regression",
+    "study_random_effects_spatial_model",
+    "spatial_blocked_tree_ensemble",
+    "quantile_or_distributional_random_forest",
+    "calibrated_residual_spatial_model",
+    "uncertainty_aware_ensemble"
+  ],
+  "holdouts": [
+    "leave_study_out",
+    "spatial_block",
+    "leave_biome_out",
+    "leave_country_or_region_out",
+    "leave_method_out",
+    "deep_soil_holdout"
+  ],
+  "metrics": [
+    "rmse_log_density",
+    "mae_log_density",
+    "spatial_block_predictive_log_score",
+    "study_out_predictive_error",
+    "interval_coverage_50_80_90_95",
+    "interval_width",
+    "biome_worst_stratum_error",
+    "residual_morans_i",
+    "global_aggregate_density_error",
+    "global_aggregate_uncertainty",
+    "hyphal_radius_distribution_error",
+    "biomass_conversion_sensitivity",
+    "sampling_budget_expected_uncertainty_reduction"
+  ],
+  "proposed_targets_not_results": {
+    "spatial_block": "beat source RF without degrading interval coverage",
+    "calibration": "90 percent interval coverage within plus/minus 5 percentage points overall and adequately sampled biomes",
+    "active_sampling": "20 percent reduction in global aggregate uncertainty under a fixed simulated sampling budget versus random sampling",
+    "reproduction": "match published rasters and biome summaries within declared tolerance"
+  },
+  "claim_boundaries": [
+    "density is not connected topology",
+    "predicted density is not direct observation",
+    "hyphal length is not dry biomass without geometry and tissue-density conversion",
+    "biomass is not carbon flux or turnover",
+    "infrastructure density is not nutrient transfer or plant benefit"
+  ],
+  "runtime_dependencies_reported": [
+    "R 4.6 packages terra,sf,ranger,fastshap,tidyverse,ggplot2",
+    "Python/GEE environment README says Python 3.1; verify before fixing environment"
+  ]
+}
