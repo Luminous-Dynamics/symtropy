@@ -956,6 +956,8 @@ mod tests {
         assert_eq!(report.class_counts.get("NORMALIZED_EQUIVALENT"), Some(&1));
         assert_eq!(report.class_counts.get("DERIVED"), Some(&1));
         assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&14));
+        assert_eq!(report.mapping_decision_count, 52);
+        assert!(!report.class_counts.contains_key("UNKNOWN_OR_UNSUPPORTED"));
     }
 
     #[test]
