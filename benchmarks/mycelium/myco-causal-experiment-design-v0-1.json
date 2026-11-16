@@ -1,0 +1,330 @@
+{
+  "schema_version": "myco.causal_experiment_design.v0.1",
+  "suite_id": "MYCO-CAUSAL-EXPERIMENT-DESIGN-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5574",
+  "status": "protocol_defined_not_executed",
+  "design_invariants": [
+    "biological experimental unit is explicit",
+    "subsampled frames, ROIs, hyphae, trajectories and spectral bands are nested, not independent n",
+    "treatment assignment is randomized at a declared level or observational design limitations are explicit",
+    "manipulation fidelity is an outcome-independent measurement",
+    "negative controls map to specific false-positive causal pathways",
+    "source receipts and acquisition calibration are preserved",
+    "power analysis uses pilot or source variance and is not guessed"
+  ],
+  "experiment_families": [
+    {
+      "id": "E1",
+      "name": "hyphal_highway_causal_discrimination",
+      "randomization_unit": "microfluidic_device",
+      "blocking": [
+        "experimental_batch",
+        "filament_species_or_domain",
+        "bacterial_strain",
+        "nutrient_context",
+        "inoculation_strategy"
+      ],
+      "factors": [
+        {
+          "name": "filament_presence",
+          "levels": [
+            "absent",
+            "true_fungus",
+            "oomycete"
+          ]
+        },
+        {
+          "name": "liquid_film_continuity",
+          "levels": [
+            "connected",
+            "disconnected",
+            "unreported"
+          ]
+        },
+        {
+          "name": "bacterial_presence",
+          "levels": [
+            "present",
+            "absent"
+          ]
+        },
+        {
+          "name": "bacterial_motility",
+          "levels": [
+            "motile",
+            "non_motile_or_perturbed"
+          ]
+        },
+        {
+          "name": "nutrient_context",
+          "levels": [
+            "rich",
+            "poor"
+          ]
+        }
+      ],
+      "primary_outcomes": [
+        "device_level_outlet_arrival",
+        "time_to_arrival",
+        "CFU_recovery"
+      ],
+      "manipulation_checks": [
+        "hyphal_front",
+        "liquid_patch_connectivity",
+        "film_continuity",
+        "bacterial_motility"
+      ],
+      "negative_controls": [
+        "bacteria_only",
+        "no_filament",
+        "disconnected_film",
+        "PBS_volume_control",
+        "non_motile_bacteria"
+      ],
+      "source_study_limit": "published HHD controls are not a complete full factorial; this design is proposed future work"
+    },
+    {
+      "id": "E2",
+      "name": "host_independent_flow_and_cargo",
+      "randomization_unit": "independent_culture_or_plate",
+      "blocking": [
+        "R_irregularis_strain",
+        "culture_batch",
+        "imaging_day",
+        "ROI_location"
+      ],
+      "factors": [
+        {
+          "name": "host_context",
+          "levels": [
+            "host_free",
+            "host_present_where_protocol_supports"
+          ]
+        },
+        {
+          "name": "myristic_acid",
+          "levels": [
+            "absent",
+            "0.5_mM",
+            "withdrawal_or_washout_future"
+          ]
+        },
+        {
+          "name": "tracer_class",
+          "levels": [
+            "bulk_cytoplasm",
+            "fluorescent_lipid_cargo"
+          ]
+        }
+      ],
+      "primary_outcomes": [
+        "bulk_flow_velocity_distribution",
+        "lipid_cargo_velocity_distribution",
+        "network_length",
+        "network_area"
+      ],
+      "negative_controls": [
+        "unlabelled_control",
+        "vehicle_control",
+        "washout_control_future"
+      ],
+      "pseudoreplication_rule": "videos and trajectories are repeated measurements nested within plate/culture"
+    },
+    {
+      "id": "E3",
+      "name": "spectral_metabolism_and_photodamage",
+      "randomization_unit": "independent_microfluidic_chip_or_colony",
+      "blocking": [
+        "hyphal_thickness_stratum",
+        "Cu_stress_stratum",
+        "acquisition_day",
+        "chip_batch"
+      ],
+      "factors": [
+        {
+          "name": "imaging_modality",
+          "levels": [
+            "dark_or_sham",
+            "spontaneous_Raman",
+            "SIP_Raman",
+            "SRS"
+          ]
+        },
+        {
+          "name": "illumination_schedule",
+          "levels": [
+            "single_low_exposure",
+            "repeat_low_exposure",
+            "higher_exposure_gradient"
+          ]
+        },
+        {
+          "name": "Cu_stress",
+          "levels": [
+            "control",
+            "Cu_treatment"
+          ]
+        }
+      ],
+      "primary_outcomes": [
+        "deuterated_glucose_spectral_response",
+        "growth_change_after_exposure",
+        "independent_viability_outcome"
+      ],
+      "manipulation_checks": [
+        "incident_energy_proxy",
+        "repeat_exposure_count",
+        "ROI_illumination_history"
+      ],
+      "negative_controls": [
+        "dark_sham",
+        "unlabelled_substrate",
+        "instrument_background",
+        "independent_viability_assay"
+      ],
+      "non_equivalence_rules": [
+        "spectral_intensity_is_not_metabolic_rate_without_calibration",
+        "cytochrome_c_signal_is_not_viability"
+      ]
+    },
+    {
+      "id": "E4",
+      "name": "host_fungal_nutrient_exchange_pareto",
+      "randomization_unit": "independent_plant_or_plant_fungal_mesocosm",
+      "blocking": [
+        "host_genotype",
+        "fungal_strain",
+        "growth_chamber",
+        "harvest_time"
+      ],
+      "factors": [
+        {
+          "name": "host_genotype",
+          "levels": [
+            "multiple_admitted_genotypes"
+          ]
+        },
+        {
+          "name": "fungal_strain",
+          "levels": [
+            "multiple_admitted_strains"
+          ]
+        },
+        {
+          "name": "P_supply",
+          "levels": [
+            "low",
+            "reference",
+            "high"
+          ]
+        },
+        {
+          "name": "N_supply",
+          "levels": [
+            "low",
+            "reference",
+            "high"
+          ]
+        },
+        {
+          "name": "time",
+          "levels": [
+            "baseline",
+            "pulse",
+            "chase",
+            "harvest"
+          ]
+        }
+      ],
+      "primary_outcomes": [
+        "donor_acquisition",
+        "fungal_allocation",
+        "recipient_delivery",
+        "plant_uptake",
+        "C_P_exchange_front"
+      ],
+      "measurement_requirements": [
+        "isotope_tracer_by_compartment",
+        "fungal_vs_bacterial_pathway_controls",
+        "root_fungal_identity"
+      ],
+      "claim_limit": "Do not collapse acquisition, allocation, transfer and uptake into one exchange ratio."
+    },
+    {
+      "id": "E5",
+      "name": "global_field_sampling_value_of_information",
+      "randomization_unit": "independent_site_or_soil_core_cluster",
+      "blocking": [
+        "biome",
+        "study_protocol",
+        "soil_type",
+        "site"
+      ],
+      "factors": [
+        {
+          "name": "site_selection_policy",
+          "levels": [
+            "random",
+            "stratified_gap",
+            "uncertainty_only",
+            "expected_information_gain"
+          ]
+        },
+        {
+          "name": "measurement_package",
+          "levels": [
+            "core_density",
+            "robotic_hyphal_imaging",
+            "both"
+          ]
+        }
+      ],
+      "primary_outcomes": [
+        "study_holdout_error",
+        "biome_holdout_error",
+        "global_interval_width",
+        "uncertainty_reduction_per_cost"
+      ],
+      "claim_limit": "A model-proposed site is not an observed soil core."
+    }
+  ],
+  "model_competitors": [
+    "random_experiment_selection",
+    "sensitivity_only",
+    "uncertainty_only",
+    "expected_information_gain",
+    "causal_hypothesis_discrimination",
+    "cost_constrained_pareto_design"
+  ],
+  "evaluation_metrics": [
+    "expected_information_gain_per_cost",
+    "heldout_hypothesis_discrimination_accuracy",
+    "manipulation_fidelity_pass_rate",
+    "negative_control_false_positive_rate",
+    "replicate_level_interval_coverage",
+    "minimum_detectable_effect",
+    "worst_stratum_calibration",
+    "cost_per_independent_unit",
+    "randomization_replay_match"
+  ],
+  "preregistration_receipt": [
+    "hypothesis_set_and_prediction_table",
+    "primary_estimand",
+    "randomization_unit",
+    "nested_sampling_structure",
+    "blocking_and_randomization_seed",
+    "treatment_protocol_and_manipulation_check",
+    "primary_and_secondary_outcomes",
+    "negative_controls",
+    "exclusion_and_missingness_rules",
+    "power_analysis_source_variance",
+    "analysis_code_digest",
+    "source_and_instrument_calibration"
+  ],
+  "target_policy": {
+    "no_fixed_sample_sizes_without_pilot_variance": true,
+    "no_pseudoreplication": true,
+    "future_interventions_are_not_claimed_as_completed": true,
+    "target": "design selection should outperform random/uncertainty-only baselines in held-out known-truth simulation before experimental use"
+  }
+}
