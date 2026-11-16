@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CASE_COUNT: usize = 50;
+const CASE_COUNT: usize = 34;
 const SCHEMA_VERSION: &str = "waterloop-physical-t0-v0.1";
 const CLAIM_CEILING: &str = "synthetic_water_service_arithmetic_and_contract_semantics_only";
 
@@ -489,164 +489,6 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
-fn compute_modular_configuration(input: &Value) -> Result<Value, String> {
-    let configuration_id = text(input, "configuration_id")?;
-    let source_values = field(input, "source_classes")?
-        .as_array()
-        .ok_or_else(|| "source_classes: expected array".to_owned())?;
-    if source_values.is_empty() {
-        return Err("source_classes: must not be empty".to_owned());
-    }
-    let source_classes = source_values
-        .iter()
-        .enumerate()
-        .map(|(index, value)| {
-            value.as_str().ok_or_else(|| format!("source_classes[{index}]: expected string"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut reject = Vec::new();
-    let mut indeterminate = Vec::new();
-    let mut not_comparable = Vec::new();
-    let allowed_sources = [
-        "bathroom_light_greywater",
-        "laundry_greywater",
-        "roof_rainwater",
-    ];
-    for source in &source_classes {
-        if !allowed_sources.contains(source) {
-            reject.push("SOURCE_CLASS_EXCLUDED_FROM_V0_1");
-        }
-    }
-
-    let source_profile_admitted = boolean(input, "source_profile_admitted")?;
-    let source_streams_mixed = boolean(input, "source_streams_mixed")?;
-    let mixed_feed_profile_admitted = boolean(input, "mixed_feed_profile_admitted")?;
-    if !source_profile_admitted {
-        indeterminate.push("SOURCE_PROFILE_NOT_ADMITTED");
-    }
-    if source_streams_mixed && !mixed_feed_profile_admitted {
-        indeterminate.push("MIXED_FEED_PROFILE_NOT_ADMITTED");
-    }
-    if source_classes.len() > 1 && !source_streams_mixed {
-        reject.push("MULTIPLE_SOURCE_CLASSES_WITHOUT_DECLARED_SEPARATION");
-    }
-
-    let intended_use = text(input, "intended_use_profile_id")?;
-    let assessed_use = text(input, "quality_assessment_use_profile_id")?;
-    let quality_use_matches = intended_use == assessed_use;
-    if !quality_use_matches {
-        not_comparable.push("QUALITY_ASSESSMENT_USE_PROFILE_MISMATCH");
-    }
-    if !boolean(input, "batch_quality_admitted")? {
-        indeterminate.push("BATCH_QUALITY_NOT_ADMITTED");
-    }
-    if !boolean(input, "batch_quality_current")? {
-        indeterminate.push("BATCH_QUALITY_EVIDENCE_STALE");
-    }
-    if !boolean(input, "metrology_admitted")? {
-        indeterminate.push("CRITICAL_METROLOGY_NOT_ADMITTED");
-    }
-    if !boolean(input, "process_envelope_admitted")? {
-        indeterminate.push("PROCESS_ENVELOPE_NOT_ADMITTED");
-    }
-    if !boolean(input, "disinfection_validation_current")? {
-        indeterminate.push("DISINFECTION_VALIDATION_NOT_CURRENT");
-    }
-
-    let modules_value = field(input, "module_ids")?
-        .as_array()
-        .ok_or_else(|| "module_ids: expected array".to_owned())?;
-    let module_ids = modules_value
-        .iter()
-        .enumerate()
-        .map(|(index, value)| {
-            value.as_str().ok_or_else(|| format!("module_ids[{index}]: expected string"))
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    let allowed_modules = ["P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"];
-    let mut unique_modules = BTreeSet::new();
-    for module in &module_ids {
-        if !allowed_modules.contains(module) {
-            reject.push("UNKNOWN_MODULE_ID");
-        }
-        if !unique_modules.insert(*module) {
-            reject.push("DUPLICATE_MODULE_ID");
-        }
-    }
-    for required in ["P0", "P6", "P7", "P8"] {
-        if !module_ids.contains(&required) {
-            reject.push("REQUIRED_SOURCE_DISINFECTION_HOLD_OR_DISTRIBUTION_MODULE_MISSING");
-            break;
-        }
-    }
-    if !["P2", "P3", "P4", "P5"].iter().any(|module| module_ids.contains(module)) {
-        reject.push("NO_DECLARED_TREATMENT_BARRIER_MODULE");
-    }
-    if !boolean(input, "module_interfaces_complete")? {
-        reject.push("MODULE_INTERFACE_CONTRACT_INCOMPLETE");
-    }
-
-    if boolean(input, "cross_connection_present")? {
-        reject.push("POTABLE_NONPOTABLE_CROSS_CONNECTION_PRESENT");
-    }
-    let potable_makeup_connected = boolean(input, "potable_makeup_connected")?;
-    if potable_makeup_connected
-        && (!boolean(input, "backflow_protection_admitted")?
-            || !boolean(input, "authority_review_admitted")?)
-    {
-        reject.push("POTABLE_MAKEUP_LACKS_ADMITTED_BACKFLOW_AND_AUTHORITY_REVIEW");
-    }
-
-    let reject_route_present = boolean(input, "reject_route_present")?;
-    let bypass_destination = text(input, "failure_bypass_destination")?;
-    let bypass_isolated = boolean(input, "failure_bypass_isolated_from_product")?;
-    if !reject_route_present {
-        reject.push("REJECT_OR_OVERFLOW_ROUTE_MISSING");
-    }
-    if !["sewer", "approved_reject_containment"].contains(&bypass_destination.as_str()) {
-        reject.push("FAILURE_BYPASS_NOT_ROUTED_TO_APPROVED_REJECT_DESTINATION");
-    }
-    if !bypass_isolated {
-        reject.push("FAILURE_BYPASS_CAN_REACH_PRODUCT_OUTLET");
-    }
-
-    let disposition = if !reject.is_empty() {
-        "REJECT"
-    } else if !not_comparable.is_empty() {
-        "NOT_COMPARABLE"
-    } else if !indeterminate.is_empty() {
-        "INDETERMINATE"
-    } else {
-        "BENCH_CONFIGURATION_ADMITTED"
-    };
-    Ok(json!({
-        "configuration_id": configuration_id,
-        "configuration_disposition": disposition,
-        "reject_reason_codes": reject,
-        "indeterminate_reason_codes": indeterminate,
-        "not_comparable_reason_codes": not_comparable,
-        "source_class_count": source_classes.len(),
-        "source_classes": source_classes,
-        "intended_use_profile_id": intended_use,
-        "quality_assessment_use_profile_id": assessed_use,
-        "quality_use_profile_matches": quality_use_matches,
-        "module_ids": module_ids,
-        "required_module_interfaces_present": ["P0", "P6", "P7", "P8"]
-            .iter()
-            .all(|required| module_ids.contains(required)),
-        "treatment_barrier_module_present": ["P2", "P3", "P4", "P5"]
-            .iter()
-            .any(|module| module_ids.contains(module)),
-        "reject_route_present": reject_route_present,
-        "failure_bypass_destination": bypass_destination,
-        "failure_bypass_isolated_from_product": bypass_isolated,
-        "bench_only": true,
-        "product_release_authorized": false,
-        "occupied_installation_authorized": false
-    }))
-}
-
 fn compute(case: &Value) -> Result<Value, String> {
     let id = case_id(case)?;
     let input = field(case, "inputs")?;
@@ -1005,22 +847,6 @@ fn compute(case: &Value) -> Result<Value, String> {
         | "WL-T0-032-economics-use-profile-mismatch"
         | "WL-T0-033-economics-low-cost-service-floor-failure"
         | "WL-T0-034-economics-tariff-billing-period-mismatch" => compute_water_economics(input),
-        "WL-T0-035-modular-bathroom-source-accepted"
-        | "WL-T0-036-excluded-kitchen-source-reject"
-        | "WL-T0-037-excluded-blackwater-source-reject"
-        | "WL-T0-038-excluded-nappy-source-reject"
-        | "WL-T0-039-mixed-laundry-source-unadmitted"
-        | "WL-T0-040-potable-nonpotable-cross-connection-reject"
-        | "WL-T0-041-stale-batch-quality-abstains"
-        | "WL-T0-042-quality-use-profile-mismatch-not-comparable"
-        | "WL-T0-043-bypass-to-product-outlet-reject"
-        | "WL-T0-044-reject-route-missing-reject"
-        | "WL-T0-045-metrology-not-admitted-abstains"
-        | "WL-T0-046-product-hold-module-missing-reject"
-        | "WL-T0-047-separately-admitted-laundry-source"
-        | "WL-T0-048-separate-rainwater-source"
-        | "WL-T0-049-potable-makeup-without-protection-reject"
-        | "WL-T0-050-potable-makeup-with-approved-protection" => compute_modular_configuration(input),
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
 }
@@ -1557,68 +1383,6 @@ mod tests {
             "SERVICE_FLOORS_NOT_MET"
         );
         assert_eq!(actual["economic_preference_eligible"], false);
-    }
-
-
-    #[test]
-    fn modular_configuration_admits_only_a_complete_bench_profile() {
-        let actual = compute(&fixture("inputs")["cases"][34]).expect("bathroom configuration");
-        assert_eq!(actual["configuration_disposition"], "BENCH_CONFIGURATION_ADMITTED");
-        assert_eq!(actual["product_release_authorized"], false);
-        assert_eq!(actual["occupied_installation_authorized"], false);
-    }
-
-    #[test]
-    fn modular_configuration_rejects_excluded_sources() {
-        for index in [35, 36, 37] {
-            let actual = compute(&fixture("inputs")["cases"][index]).expect("excluded source");
-            assert_eq!(actual["configuration_disposition"], "REJECT");
-            assert!(actual["reject_reason_codes"].as_array().unwrap().contains(&json!("SOURCE_CLASS_EXCLUDED_FROM_V0_1")));
-        }
-    }
-
-    #[test]
-    fn modular_configuration_abstains_on_uncharacterized_mixed_laundry() {
-        let actual = compute(&fixture("inputs")["cases"][38]).expect("mixed laundry source");
-        assert_eq!(actual["configuration_disposition"], "INDETERMINATE");
-        assert!(actual["indeterminate_reason_codes"].as_array().unwrap().contains(&json!("MIXED_FEED_PROFILE_NOT_ADMITTED")));
-    }
-
-    #[test]
-    fn modular_configuration_rejects_potable_nonpotable_cross_connection() {
-        let actual = compute(&fixture("inputs")["cases"][39]).expect("cross-connection attack");
-        assert_eq!(actual["configuration_disposition"], "REJECT");
-        assert!(actual["reject_reason_codes"].as_array().unwrap().contains(&json!("POTABLE_NONPOTABLE_CROSS_CONNECTION_PRESENT")));
-    }
-
-    #[test]
-    fn modular_configuration_abstains_on_stale_quality_and_metrology() {
-        let actual = compute(&fixture("inputs")["cases"][40]).expect("stale batch evidence");
-        assert_eq!(actual["configuration_disposition"], "INDETERMINATE");
-        assert!(actual["indeterminate_reason_codes"].as_array().unwrap().contains(&json!("BATCH_QUALITY_EVIDENCE_STALE")));
-    }
-
-    #[test]
-    fn modular_configuration_rejects_failed_bypass_and_residual_routes() {
-        for index in [42, 43] {
-            let actual = compute(&fixture("inputs")["cases"][index]).expect("bypass/residual attack");
-            assert_eq!(actual["configuration_disposition"], "REJECT");
-        }
-    }
-
-    #[test]
-    fn modular_configuration_requires_source_quality_and_module_interfaces() {
-        let actual = compute(&fixture("inputs")["cases"][45]).expect("missing product hold module");
-        assert_eq!(actual["configuration_disposition"], "REJECT");
-        assert!(actual["reject_reason_codes"].as_array().unwrap().contains(&json!("REQUIRED_SOURCE_DISINFECTION_HOLD_OR_DISTRIBUTION_MODULE_MISSING")));
-    }
-
-    #[test]
-    fn modular_configuration_requires_admitted_backflow_protection_for_potable_makeup() {
-        let rejected = compute(&fixture("inputs")["cases"][48]).expect("unprotected potable makeup");
-        let admitted = compute(&fixture("inputs")["cases"][49]).expect("protected potable makeup");
-        assert_eq!(rejected["configuration_disposition"], "REJECT");
-        assert_eq!(admitted["configuration_disposition"], "BENCH_CONFIGURATION_ADMITTED");
     }
 
     #[test]
