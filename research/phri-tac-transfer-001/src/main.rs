@@ -96,6 +96,37 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::adversarial::run_adversarial_campaign(
+                20261116, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("adversarial_response_campaign=paired_seed_v0_1");
+                    println!("adversarial_family_count={}", campaign.families.len());
+                    println!("adversarial_replicates={}", campaign.replicate_count);
+                    for family in campaign.families {
+                        for result in family.policies {
+                            println!(
+                                "adversarial_family={} policy={} source_contacts={} target_contacts={} rmse_mean={:.6} rmse_p95={:.6} worst_error_mean={:.6} interval_coverage_mean={:.4} paired_rmse_delta_mean={:.6} bootstrap95_low={:.6} bootstrap95_high={:.6}",
+                                family.family_id,
+                                result.policy_id,
+                                result.source_reference_contacts,
+                                result.target_reference_contacts,
+                                result.rmse_n.mean,
+                                result.rmse_n.p95,
+                                result.worst_absolute_error_n.mean,
+                                result.prediction_interval_coverage_95.mean,
+                                result.paired_rmse_delta_vs_full_grid_n.mean,
+                                result.paired_rmse_delta_bootstrap_95.lower_95,
+                                result.paired_rmse_delta_bootstrap_95.upper_95,
+                            );
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("adversarial_response_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {

@@ -200,3 +200,12 @@ First 50-seed campaign output (all values are synthetic model estimates; force u
 - The bootstrap resamples paired seed-level differences, but these seeds are not independent physical instruments. The interval is conditional on this synthetic generator. The pseudo prediction interval is not a GUM uncertainty budget, and the cost values are not measured fixture time.
 
 The next required campaign changes the physical/model response family and introduces model misspecification, nonlinearity, hysteresis, reference common-mode faults, aging/remount and unit/lot variation. No physical acceptance decision should be based on this first campaign.
+
+
+## Adversarial model-family tranche — five first known answers
+
+A separate executable module adds five response families: nominal, cubic-force misspecification, force × temperature × history interaction, sensor saturation, and common-mode reference bias. The current inverse-model basis is deliberately held fixed across families so that a changed response law can expose estimator and policy failure rather than being silently learned into the assumed model.
+
+Every family compares the same seven policy arms over at least 50 paired seeds. The training labels are generated separately from selector-visible stimuli; the held-out evaluator truth remains separate and inaccessible to selection and fitting. The reference-bias scenario injects a shared 0.25 N offset into training reference observations while leaving held-out truth unbiased, so an internally consistent but wrong fit can be exposed through held-out error and its regression interval diagnostic.
+
+This is a first stress tranche only. It does not yet model physical aging curves, remount geometry changes, dropout, multi-channel common-mode correlation, or independently measured sensor-unit/lot variability. Those remain future response-family extensions and require physical fixture characterization before parameter values can be called realistic.
