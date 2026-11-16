@@ -101,7 +101,14 @@ pub enum TransactionEventKind {
         package_id: String,
         evidence_digest: String,
     },
+    PreflightRejected {
+        reason: PreflightRejectionReason,
+    },
+    PreflightSafeHold {
+        reason: PreflightHoldReason,
+    },
     ActuationTimeout,
+    PowerInterruption,
     NetworkPartition,
     SensorDisagreement,
     ReconciliationResolved {
@@ -118,6 +125,24 @@ pub enum ReconciliationOutcome {
     NoActionTaken,
     Returned,
     Quarantined,
+}
+
+/// A hard pre-dispatch violation. No physical command may be issued.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PreflightRejectionReason {
+    WrongContainer,
+    PayloadMassExceeded,
+    AuthorizationExpired,
+}
+
+/// A condition that requires a safe pause before any physical command.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PreflightHoldReason {
+    TemperatureObservationStale,
+    TransferGateInterlocked,
+    SealNotIntact,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -314,7 +339,39 @@ impl PhysicalTransaction {
                     EventDisposition::ReconciliationRequired
                 }
             }
-            TransactionEventKind::ActuationTimeout | TransactionEventKind::NetworkPartition => {
+            TransactionEventKind::PreflightRejected { reason: _ } => {
+                let valid = matches!(
+                    self.state,
+                    PhysicalTransactionState::AwaitingAuthorization
+                        | PhysicalTransactionState::Authorized
+                ) && !self.dispatch_issued
+                    && event.actor_id == self.context.receiver_actor_id;
+                if valid {
+                    self.state = PhysicalTransactionState::Rejected;
+                    EventDisposition::Rejected
+                } else {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                }
+            }
+            TransactionEventKind::PreflightSafeHold { reason: _ } => {
+                let valid = matches!(
+                    self.state,
+                    PhysicalTransactionState::AwaitingAuthorization
+                        | PhysicalTransactionState::Authorized
+                ) && !self.dispatch_issued
+                    && event.actor_id == self.context.receiver_actor_id;
+                if valid {
+                    self.state = PhysicalTransactionState::SafeHold;
+                    EventDisposition::SafeHold
+                } else {
+                    self.state = PhysicalTransactionState::ReconciliationRequired;
+                    EventDisposition::ReconciliationRequired
+                }
+            }
+            TransactionEventKind::ActuationTimeout
+            | TransactionEventKind::PowerInterruption
+            | TransactionEventKind::NetworkPartition => {
                 if self.dispatch_issued || self.release_observed {
                     self.state = PhysicalTransactionState::ReconciliationRequired;
                     EventDisposition::ReconciliationRequired
