@@ -373,16 +373,16 @@ impl HyphalHighwayNetwork {
                         HighwayUnresolvedReason::MissingPatchObservation(patch_id),
                     ));
                 };
-                if let Some(first_patch) = patch_receipt_owners.insert(observation_id, patch_id) {
-                    if first_patch != patch_id {
-                        return Ok(unresolved(
-                            HighwayUnresolvedReason::PatchReceiptReusedAcrossDistinctPatches {
-                                receipt: observation_id,
-                                first_patch,
-                                second_patch: patch_id,
-                            },
-                        ));
-                    }
+                if let Some(first_patch) = patch_receipt_owners.insert(observation_id, patch_id)
+                    && first_patch != patch_id
+                {
+                    return Ok(unresolved(
+                        HighwayUnresolvedReason::PatchReceiptReusedAcrossDistinctPatches {
+                            receipt: observation_id,
+                            first_patch,
+                            second_patch: patch_id,
+                        },
+                    ));
                 }
                 let Some(patch_receipt) = receipt_map.get(&observation_id) else {
                     return Ok(unresolved(HighwayUnresolvedReason::MissingPatchReceipt(
@@ -546,9 +546,9 @@ fn unresolved(reason: HighwayUnresolvedReason) -> HyphalHighwayAssessment {
     }
 }
 
-fn receipt_index<'a>(
-    receipts: &'a [ObservationEvidenceReceipt],
-) -> Result<BTreeMap<ObservationEvidenceId, &'a ObservationEvidenceReceipt>, HyphalHighwayError> {
+fn receipt_index(
+    receipts: &[ObservationEvidenceReceipt],
+) -> Result<BTreeMap<ObservationEvidenceId, &ObservationEvidenceReceipt>, HyphalHighwayError> {
     let mut index = BTreeMap::new();
     for receipt in receipts {
         if index.insert(receipt.id, receipt).is_some() {
