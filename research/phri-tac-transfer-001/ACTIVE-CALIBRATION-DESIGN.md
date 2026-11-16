@@ -209,3 +209,51 @@ A separate executable module adds five response families: nominal, cubic-force m
 Every family compares the same seven policy arms over at least 50 paired seeds. The training labels are generated separately from selector-visible stimuli; the held-out evaluator truth remains separate and inaccessible to selection and fitting. The reference-bias scenario injects a shared 0.25 N offset into training reference observations while leaving held-out truth unbiased, so an internally consistent but wrong fit can be exposed through held-out error and its regression interval diagnostic.
 
 This is a first stress tranche only. It does not yet model physical aging curves, remount geometry changes, dropout, multi-channel common-mode correlation, or independently measured sensor-unit/lot variability. Those remain future response-family extensions and require physical fixture characterization before parameter values can be called realistic.
+
+
+## Independent reference-channel integrity tranche
+
+The follow-on contract adds a second synthetic reference stream that is not used in model fitting. Qualified synthetic fits require both:
+1. pairwise primary/check disagreement within the named synthetic-only tolerance (0.02 N in this executable fixture); and
+2. an explicit synthetic reference-ancestry attestation indicating distinct calibration ancestry.
+
+The report always states that pairwise agreement does **not** prove independence. A sixth response family injects the same 0.25 N offset into both reference streams. Its pairwise disagreement is small, but its ancestry attestation is false, so the qualified fitting path rejects it. A separate family biases only the primary stream; the numerical disagreement guard rejects it.
+
+The adversarial campaign still executes the unguarded diagnostic fit to quantify the damage from ignoring a failed reference gate. These policy metrics are counterfactual diagnostics only and must not be treated as qualified measurements. The normal active-calibration benchmark and fit helper now enforce the reference gate before fitting.
+
+The 0.02 N threshold and ancestry boolean are synthetic test-fixture parameters, not physical metrology thresholds or proof of actual instrument independence. Real qualification requires the #4753 owners to establish independent instrument identities, calibration ancestry, timebases, mounting/range applicability, uncertainty, and common-cause analysis.
+
+
+## Reference integrity: two separate gates
+
+The reference-channel prototype now requires both numeric agreement and an attested distinct calibration ancestry before the normal calibration-fitting path accepts a domain. The synthetic cross-check tolerance is 0.02 N and is named in code as a synthetic-only fixture value. It is not a physical metrology threshold.
+
+A sixth adversarial family, shared reference common-mode bias, gives both numerical channels the same 0.25 N offset. Pairwise disagreement alone would accept it; the fixture therefore marks its ancestry attestation false, and the qualification path rejects it. The primary-only reference-bias family is rejected by a large pairwise difference. The report always states that numerical agreement does not prove independence.
+
+The adversarial campaign retains explicit diagnostic-only functions that bypass reference qualification to measure the counterfactual error from using faulty data. They are isolated from the normal active calibration path and never qualify a measurement. The standard benchmark's source and target fits now require the integrity gate.
+
+Real hardware still requires independent calibration ancestry, calibration validity/range, clock/time alignment, mounting/force-path analysis, uncertainty and common-cause review from the physical phantom/reference owner. A software ancestry boolean is not a calibration certificate.
+
+
+## First hosted reference-integrity result
+
+Hosted workflow #112 on source head `a431b6cf8d4688d0321e8769da1e0c18eeacbad3` passed 48 Rust tests, rustfmt, strict Clippy, the tracked 34-case transfer oracle, the 50-seed campaign and the six-family adversarial CLI. The subsequent workflow writeback commit `150237be23450c31078f3cc71fcea710a6142196` contains rustfmt-only changes to the source already tested.
+
+Reference integrity results for 72 synthetic target calibration contacts (0.02 N synthetic-only tolerance):
+
+| Response family | Max primary/check disagreement | Ancestry attested | Gate |
+|---|---:|---:|---|
+| Nominal | 0.004343 N | Yes | Pass |
+| Cubic force | 0.004343 N | Yes | Pass |
+| Force × temperature × history | 0.004343 N | Yes | Pass |
+| Sensor saturation | 0.004343 N | Yes | Pass |
+| Primary-only 0.25 N reference bias | 0.254343 N | Yes | Reject |
+| Shared 0.25 N reference bias | 0.004343 N | No | Reject |
+
+The last row is the critical common-cause result: both numeric streams agree because both share the injected 0.25 N offset. Pairwise agreement cannot detect that. The separate synthetic ancestry attestation rejects the scenario, and the output explicitly states that agreement does not prove independence.
+
+The 48-test hosted pass belongs to source head `a431b6cf...`. Follow-up commit `150237be...` is formatting-only. The current branch/PR head may move again when a later hosted run writes generated formatting; do not silently treat an action-required bot event as a new test pass.
+
+## New outstanding issue: range observability
+
+The saturation family shows that a reference chain can be internally consistent while the tactile transducer itself has stopped responding at high loads. An independent reference channel does not fix loss of sensor information. This is now tracked separately under PHRI-TAC-OBSERVABILITY-001 / #5616. The future gate must detect flatlined response increments, clipped taxels and unidentifiable ranges and mark those operating points out-of-profile or more-evidence-required rather than interpreting model confidence as observability.

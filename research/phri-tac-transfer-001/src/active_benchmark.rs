@@ -17,6 +17,8 @@ const STRATA: usize = 4;
 const CONTACTS_PER_STRATUM: usize = 4;
 const TARGET_BUDGET: usize = STRATA * CONTACTS_PER_STRATUM;
 const RIDGE: f64 = 1.0e-8;
+/// Synthetic-only primary/check reference agreement threshold; not a hardware tolerance.
+pub const SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N: f64 = 0.02;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Candidate {
@@ -37,7 +39,71 @@ struct Candidate {
 #[derive(Clone, Debug, PartialEq)]
 struct SyntheticDomain {
     candidates: Vec<Candidate>,
+    /// Primary reference channel used for fitting.
     reference_force_observations_n: Vec<f64>,
+    /// Separate synthetic check channel; never used to fit this model.
+    independent_check_reference_force_observations_n: Vec<f64>,
+    /// Synthetic fixture attestation for distinct reference calibration ancestry.
+    /// Real use requires separately validated provenance, not this boolean.
+    independent_reference_ancestry_attested: bool,
+}
+
+/// Pairwise reference-channel agreement is only a fault screen. Agreement does
+/// not establish traceability or prove that the channels have independent
+/// calibration ancestry / common-cause failure modes.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReferenceIntegrityReport {
+    pub accepted: bool,
+    pub sample_count: usize,
+    pub max_abs_disagreement_n: f64,
+    pub rms_disagreement_n: f64,
+    pub tolerance_n: f64,
+    pub independent_reference_ancestry_attested: bool,
+    /// Always false: pairwise numerical agreement is not proof of independence.
+    pub agreement_proves_independence: bool,
+}
+
+pub fn reference_integrity_check(
+    primary_reference_n: &[f64],
+    independent_check_reference_n: &[f64],
+    tolerance_n: f64,
+    independent_reference_ancestry_attested: bool,
+) -> Result<ReferenceIntegrityReport, String> {
+    if primary_reference_n.is_empty()
+        || primary_reference_n.len() != independent_check_reference_n.len()
+        || !tolerance_n.is_finite()
+        || tolerance_n < 0.0
+    {
+        return Err(
+            "reference channels require equal nonempty samples and a finite nonnegative tolerance"
+                .to_owned(),
+        );
+    }
+    let mut squared = 0.0;
+    let mut maximum = 0.0_f64;
+    for (primary, check) in primary_reference_n
+        .iter()
+        .zip(independent_check_reference_n)
+    {
+        if !primary.is_finite() || !check.is_finite() {
+            return Err("reference channel contains non-finite sample".to_owned());
+        }
+        let difference = (primary - check).abs();
+        maximum = maximum.max(difference);
+        squared += difference * difference;
+    }
+    let count = primary_reference_n.len() as f64;
+    Ok(ReferenceIntegrityReport {
+        accepted: maximum <= tolerance_n && independent_reference_ancestry_attested,
+        sample_count: primary_reference_n.len(),
+        max_abs_disagreement_n: maximum,
+        rms_disagreement_n: (squared / count).sqrt(),
+        tolerance_n,
+        independent_reference_ancestry_attested,
+        // Pairwise numeric agreement can never prove distinct calibration
+        // ancestry or rule out a shared systematic cause.
+        agreement_proves_independence: false,
+    })
 }
 
 /// Held-out truth is not attached to selector-visible candidate records.
@@ -200,6 +266,7 @@ fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> (Candidate, f64) {
 fn target_candidate_pool(seed: u64) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
     let mut reference_force_observations_n = Vec::with_capacity(72);
+    let mut independent_check_reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
     for force_index in 0..6 {
         let force = force_index as f64 * 2.0;
@@ -220,6 +287,8 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
+                    independent_check_reference_force_observations_n
+                        .push(force + deterministic_noise(seed ^ 0xA076_1D64_78BD_642F, id, 0.003));
                     id += 1;
                 }
             }
@@ -228,12 +297,15 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
     SyntheticDomain {
         candidates,
         reference_force_observations_n,
+        independent_check_reference_force_observations_n,
+        independent_reference_ancestry_attested: true,
     }
 }
 
 fn source_candidate_pool(seed: u64) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
     let mut reference_force_observations_n = Vec::with_capacity(72);
+    let mut independent_check_reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
     for force_index in 0..6 {
         let force = force_index as f64 * 2.0;
@@ -254,6 +326,8 @@ fn source_candidate_pool(seed: u64) -> SyntheticDomain {
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
+                    independent_check_reference_force_observations_n
+                        .push(force + deterministic_noise(seed ^ 0xE703_7ED1_A0B4_28DB, id, 0.003));
                     id += 1;
                 }
             }
@@ -262,6 +336,8 @@ fn source_candidate_pool(seed: u64) -> SyntheticDomain {
     SyntheticDomain {
         candidates,
         reference_force_observations_n,
+        independent_check_reference_force_observations_n,
+        independent_reference_ancestry_attested: true,
     }
 }
 
@@ -358,6 +434,35 @@ fn quadratic_form(vector: &[f64; PARAMS], matrix: &[[f64; PARAMS]; PARAMS]) -> f
         }
     }
     value.max(0.0)
+}
+
+fn fit_qualified_domain(
+    domain: &SyntheticDomain,
+    selected: &[usize],
+    prior: Option<&[f64; PARAMS]>,
+    prior_strength: f64,
+) -> Result<Fit, String> {
+    let integrity = reference_integrity_check(
+        &domain.reference_force_observations_n,
+        &domain.independent_check_reference_force_observations_n,
+        SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+        domain.independent_reference_ancestry_attested,
+    )?;
+    if !integrity.accepted {
+        return Err(format!(
+            "reference integrity gate failed: max disagreement {:.6} N, tolerance {:.6} N, ancestry attested {}",
+            integrity.max_abs_disagreement_n,
+            integrity.tolerance_n,
+            integrity.independent_reference_ancestry_attested,
+        ));
+    }
+    fit_model(
+        &domain.candidates,
+        &domain.reference_force_observations_n,
+        selected,
+        prior,
+        prior_strength,
+    )
 }
 
 fn fit_model(
@@ -614,13 +719,7 @@ fn information_matrix(
 
 fn source_prior(source_domain: &SyntheticDomain) -> Result<[f64; PARAMS], String> {
     let selected: Vec<_> = (0..source_domain.candidates.len()).collect();
-    let fit = fit_model(
-        &source_domain.candidates,
-        &source_domain.reference_force_observations_n,
-        &selected,
-        None,
-        0.0,
-    )?;
+    let fit = fit_qualified_domain(source_domain, &selected, None, 0.0)?;
     Ok(fit.coefficients)
 }
 
@@ -714,13 +813,7 @@ fn evaluate_source_transfer(
     heldout: &HeldoutDomain,
 ) -> Result<PolicyResult, String> {
     let selected: Vec<_> = (0..source_domain.candidates.len()).collect();
-    let fit = fit_model(
-        &source_domain.candidates,
-        &source_domain.reference_force_observations_n,
-        &selected,
-        None,
-        0.0,
-    )?;
+    let fit = fit_qualified_domain(source_domain, &selected, None, 0.0)?;
     // Source reference contacts are reported separately. They never count as
     // target-device calibration contacts and never inherit target identity.
     evaluate(
@@ -757,13 +850,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
 
     let mut results = Vec::new();
 
-    let full_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &all_target,
-        None,
-        0.0,
-    )?;
+    let full_fit = fit_qualified_domain(&target_domain, &all_target, None, 0.0)?;
     results.push(evaluate(
         "target_full_grid_reference",
         target_candidates,
@@ -774,13 +861,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let uniform_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &uniform,
-        None,
-        0.0,
-    )?;
+    let uniform_fit = fit_qualified_domain(&target_domain, &uniform, None, 0.0)?;
     results.push(evaluate(
         "uniform_stratified",
         target_candidates,
@@ -791,13 +872,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let random_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &random,
-        None,
-        0.0,
-    )?;
+    let random_fit = fit_qualified_domain(&target_domain, &random, None, 0.0)?;
     results.push(evaluate(
         "random_stratified",
         target_candidates,
@@ -808,13 +883,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let maximin_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &maximin,
-        None,
-        0.0,
-    )?;
+    let maximin_fit = fit_qualified_domain(&target_domain, &maximin, None, 0.0)?;
     results.push(evaluate(
         "maximin_stratified",
         target_candidates,
@@ -825,13 +894,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let d_optimal_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &d_optimal,
-        None,
-        0.0,
-    )?;
+    let d_optimal_fit = fit_qualified_domain(&target_domain, &d_optimal, None, 0.0)?;
     results.push(evaluate(
         "d_optimal_stratified",
         target_candidates,
@@ -845,13 +908,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     results.push(evaluate_source_transfer(&source_domain, &heldout)?);
 
     let prior = source_prior(&source_domain)?;
-    let transfer_active_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &d_optimal,
-        Some(&prior),
-        0.25,
-    )?;
+    let transfer_active_fit = fit_qualified_domain(&target_domain, &d_optimal, Some(&prior), 0.25)?;
     results.push(evaluate(
         "transfer_plus_d_optimal_target_adaptation",
         target_candidates,
@@ -1095,6 +1152,57 @@ pub fn run_active_calibration_campaign(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reference_integrity_requires_agreement_and_ancestry_attestation() {
+        let domain = target_candidate_pool(20261116);
+        let report = reference_integrity_check(
+            &domain.reference_force_observations_n,
+            &domain.independent_check_reference_force_observations_n,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            domain.independent_reference_ancestry_attested,
+        )
+        .expect("valid reference agreement report");
+        assert!(report.accepted);
+        assert!(!report.agreement_proves_independence);
+        assert!(report.independent_reference_ancestry_attested);
+
+        let shared_cause = reference_integrity_check(
+            &[1.25, 2.25, 3.25],
+            &[1.25, 2.25, 3.25],
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            false,
+        )
+        .expect("shared-cause reference report");
+        assert!(!shared_cause.accepted);
+        assert!(shared_cause.max_abs_disagreement_n == 0.0);
+        assert!(!shared_cause.agreement_proves_independence);
+    }
+
+    #[test]
+    fn malformed_reference_channels_fail_closed() {
+        assert!(reference_integrity_check(&[1.0, 2.0], &[1.0], 0.02, true).is_err());
+        assert!(reference_integrity_check(&[], &[], 0.02, true).is_err());
+        assert!(reference_integrity_check(&[f64::NAN], &[1.0], 0.02, true).is_err());
+        assert!(reference_integrity_check(&[1.0], &[1.0], -0.01, true).is_err());
+    }
+
+    #[test]
+    fn qualified_fit_rejects_reference_disagreement_and_missing_ancestry() {
+        let domain = target_candidate_pool(20261116);
+        let selected: Vec<_> = (0..domain.candidates.len()).collect();
+        assert!(fit_qualified_domain(&domain, &selected, None, 0.0).is_ok());
+
+        let mut biased = domain.clone();
+        for observation in &mut biased.reference_force_observations_n {
+            *observation += 0.25;
+        }
+        assert!(fit_qualified_domain(&biased, &selected, None, 0.0).is_err());
+
+        let mut unattested = domain;
+        unattested.independent_reference_ancestry_attested = false;
+        assert!(fit_qualified_domain(&unattested, &selected, None, 0.0).is_err());
+    }
 
     #[test]
     fn selector_stimuli_do_not_contain_reference_labels_or_heldout_truth() {

@@ -104,6 +104,20 @@ fn main() -> ExitCode {
                     println!("adversarial_family_count={}", campaign.families.len());
                     println!("adversarial_replicates={}", campaign.replicate_count);
                     for family in campaign.families {
+                        println!(
+                            "reference_integrity family={} accepted={} samples={} max_abs_disagreement_n={:.6} rms_disagreement_n={:.6} tolerance_n={:.6} ancestry_attested={} agreement_proves_independence={} shared_common_cause_injected={}",
+                            family.family_id,
+                            family.reference_integrity.accepted,
+                            family.reference_integrity.sample_count,
+                            family.reference_integrity.max_abs_disagreement_n,
+                            family.reference_integrity.rms_disagreement_n,
+                            family.reference_integrity.tolerance_n,
+                            family
+                                .reference_integrity
+                                .independent_reference_ancestry_attested,
+                            family.reference_integrity.agreement_proves_independence,
+                            family.shared_reference_common_cause_injected,
+                        );
                         for result in family.policies {
                             println!(
                                 "adversarial_family={} policy={} source_contacts={} target_contacts={} rmse_mean={:.6} rmse_p95={:.6} worst_error_mean={:.6} interval_coverage_mean={:.4} paired_rmse_delta_mean={:.6} bootstrap95_low={:.6} bootstrap95_high={:.6}",

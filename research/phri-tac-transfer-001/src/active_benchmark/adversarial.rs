@@ -16,6 +16,7 @@ pub enum ResponseFamily {
     ForceTemperatureHistoryInteraction,
     Saturation,
     ReferenceCommonModeBias,
+    SharedReferenceCommonModeBias,
 }
 
 impl ResponseFamily {
@@ -26,12 +27,15 @@ impl ResponseFamily {
             Self::ForceTemperatureHistoryInteraction => "force_temperature_history_interaction",
             Self::Saturation => "sensor_response_saturation",
             Self::ReferenceCommonModeBias => "reference_common_mode_bias",
+            Self::SharedReferenceCommonModeBias => "shared_reference_common_mode_bias",
         }
     }
 
     fn sensor_response_shift(self, force_n: f64, temperature: f64, phase: f64) -> f64 {
         match self {
-            Self::Nominal | Self::ReferenceCommonModeBias => 0.0,
+            Self::Nominal | Self::ReferenceCommonModeBias | Self::SharedReferenceCommonModeBias => {
+                0.0
+            }
             Self::CubicForce => 0.0009 * force_n.powi(3),
             Self::ForceTemperatureHistoryInteraction => 0.035 * force_n * temperature * phase,
             Self::Saturation => 0.0,
@@ -40,9 +44,20 @@ impl ResponseFamily {
 
     fn reference_bias_n(self) -> f64 {
         match self {
-            Self::ReferenceCommonModeBias => 0.25,
+            Self::ReferenceCommonModeBias | Self::SharedReferenceCommonModeBias => 0.25,
             _ => 0.0,
         }
+    }
+
+    fn independent_check_bias_n(self) -> f64 {
+        match self {
+            Self::SharedReferenceCommonModeBias => 0.25,
+            _ => 0.0,
+        }
+    }
+
+    fn has_shared_reference_common_cause(self) -> bool {
+        self == Self::SharedReferenceCommonModeBias
     }
 }
 
@@ -61,6 +76,10 @@ pub struct FamilyPolicySummary {
 #[derive(Clone, Debug, PartialEq)]
 pub struct FamilyCampaignResult {
     pub family_id: &'static str,
+    pub reference_integrity: ReferenceIntegrityReport,
+    /// This is known from the synthetic fault injection. Pairwise channel
+    /// agreement cannot discover an undisclosed shared systematic cause.
+    pub shared_reference_common_cause_injected: bool,
     pub policies: Vec<FamilyPolicySummary>,
 }
 
@@ -145,6 +164,7 @@ fn family_training_domain(
 ) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
     let mut reference_force_observations_n = Vec::with_capacity(72);
+    let mut independent_check_reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
 
     for force_index in 0..6 {
@@ -167,6 +187,11 @@ fn family_training_domain(
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference);
+                    independent_check_reference_force_observations_n.push(
+                        force
+                            + deterministic_noise(seed ^ 0xA076_1D64_78BD_642F, id, 0.003)
+                            + family.independent_check_bias_n(),
+                    );
                     id += 1;
                 }
             }
@@ -176,6 +201,8 @@ fn family_training_domain(
     SyntheticDomain {
         candidates,
         reference_force_observations_n,
+        independent_check_reference_force_observations_n,
+        independent_reference_ancestry_attested: !family.has_shared_reference_common_cause(),
     }
 }
 
@@ -215,6 +242,44 @@ fn family_heldout_domain(seed: u64, family: ResponseFamily) -> HeldoutDomain {
     }
 }
 
+fn source_prior_diagnostic_only(source: &SyntheticDomain) -> Result<[f64; PARAMS], String> {
+    // Deliberately bypasses qualification only for counterfactual diagnostics.
+    let selected: Vec<_> = (0..source.candidates.len()).collect();
+    let fit = fit_model(
+        &source.candidates,
+        &source.reference_force_observations_n,
+        &selected,
+        None,
+        0.0,
+    )?;
+    Ok(fit.coefficients)
+}
+
+fn evaluate_source_transfer_diagnostic_only(
+    source: &SyntheticDomain,
+    heldout: &HeldoutDomain,
+) -> Result<PolicyResult, String> {
+    // Deliberately bypasses qualification only to quantify the consequence of
+    // ignoring an invalid reference chain. It cannot qualify any measurement.
+    let selected: Vec<_> = (0..source.candidates.len()).collect();
+    let fit = fit_model(
+        &source.candidates,
+        &source.reference_force_observations_n,
+        &selected,
+        None,
+        0.0,
+    )?;
+    evaluate(
+        "transfer_only_source_model",
+        &[],
+        &[],
+        source.candidates.len(),
+        candidate_cost_sum(&source.candidates)?,
+        &fit,
+        heldout,
+    )
+}
+
 fn evaluate_family_policy_arms(
     seed: u64,
     family: ResponseFamily,
@@ -232,6 +297,10 @@ fn evaluate_family_policy_arms(
 
     let mut results = Vec::with_capacity(7);
 
+    // Diagnostic-only counterfactual: these deliberately bypass the
+    // reference-integrity gate so the benchmark can quantify the damage from
+    // fitting against a biased or unqualified reference. These results never
+    // become qualified measurements.
     let full_fit = fit_model(
         candidates,
         &target.reference_force_observations_n,
@@ -317,9 +386,9 @@ fn evaluate_family_policy_arms(
         &heldout,
     )?);
 
-    results.push(evaluate_source_transfer(&source, &heldout)?);
+    results.push(evaluate_source_transfer_diagnostic_only(&source, &heldout)?);
 
-    let prior = source_prior(&source)?;
+    let prior = source_prior_diagnostic_only(&source)?;
     let transfer_fit = fit_model(
         candidates,
         &target.reference_force_observations_n,
@@ -363,6 +432,7 @@ pub fn run_adversarial_campaign(
         ResponseFamily::ForceTemperatureHistoryInteraction,
         ResponseFamily::Saturation,
         ResponseFamily::ReferenceCommonModeBias,
+        ResponseFamily::SharedReferenceCommonModeBias,
     ];
 
     let mut family_summaries = Vec::with_capacity(families.len());
@@ -442,8 +512,18 @@ pub fn run_adversarial_campaign(
             });
         }
 
+        let target_reference_domain = family_training_domain(first_seed, TARGET_PROFILE, family);
+        let reference_integrity = reference_integrity_check(
+            &target_reference_domain.reference_force_observations_n,
+            &target_reference_domain.independent_check_reference_force_observations_n,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            target_reference_domain.independent_reference_ancestry_attested,
+        )?;
+
         family_summaries.push(FamilyCampaignResult {
             family_id: family.id(),
+            reference_integrity,
+            shared_reference_common_cause_injected: family.has_shared_reference_common_cause(),
             policies: policy_summaries,
         });
     }
@@ -464,15 +544,72 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reference_common_mode_bias_is_not_hidden_by_small_training_residuals() {
+    fn primary_reference_common_mode_bias_is_rejected_before_qualification() {
+        let domain = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::ReferenceCommonModeBias,
+        );
+        let integrity = reference_integrity_check(
+            &domain.reference_force_observations_n,
+            &domain.independent_check_reference_force_observations_n,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            domain.independent_reference_ancestry_attested,
+        )
+        .expect("reference integrity report");
+        assert!(!integrity.accepted);
+        assert!(integrity.max_abs_disagreement_n > 0.2);
+
+        // Diagnostic-only metrics still show the consequence of ignoring the
+        // failed gate; these metrics must never qualify a measurement.
         let runs = evaluate_family_policy_arms(20261116, ResponseFamily::ReferenceCommonModeBias)
-            .expect("reference-bias family");
+            .expect("reference-bias diagnostic family");
         let sparse = runs
             .iter()
             .find(|result| result.policy_id == "d_optimal_stratified")
-            .expect("D-optimal result");
+            .expect("D-optimal diagnostic result");
         assert!(sparse.rmse_n > 0.1);
         assert!(sparse.interval_coverage_95 < 0.5);
+    }
+
+    #[test]
+    fn failed_reference_integrity_blocks_qualified_model_fitting() {
+        let biased = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::ReferenceCommonModeBias,
+        );
+        let selected: Vec<_> = (0..biased.candidates.len()).collect();
+        assert!(fit_qualified_domain(&biased, &selected, None, 0.0).is_err());
+
+        let shared = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::SharedReferenceCommonModeBias,
+        );
+        let selected: Vec<_> = (0..shared.candidates.len()).collect();
+        assert!(fit_qualified_domain(&shared, &selected, None, 0.0).is_err());
+    }
+
+    #[test]
+    fn shared_reference_bias_passes_pairwise_agreement_but_remains_unresolved() {
+        let domain = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::SharedReferenceCommonModeBias,
+        );
+        let integrity = reference_integrity_check(
+            &domain.reference_force_observations_n,
+            &domain.independent_check_reference_force_observations_n,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            domain.independent_reference_ancestry_attested,
+        )
+        .expect("pairwise reference check");
+        assert!(integrity.max_abs_disagreement_n <= integrity.tolerance_n);
+        assert!(!integrity.accepted);
+        assert!(!integrity.independent_reference_ancestry_attested);
+        assert!(!integrity.agreement_proves_independence);
+        assert!(ResponseFamily::SharedReferenceCommonModeBias.has_shared_reference_common_cause());
     }
 
     #[test]
