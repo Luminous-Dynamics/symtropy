@@ -29,12 +29,13 @@
   ],
   "required_samples_per_block_and_arm": {
     "all_arms": [
-      "donor_source_post_label",
-      "receiver_prelabel_baseline",
-      "receiver_post_label"
+      "donor_plant_prelabel_baseline",
+      "donor_plant_postlabel",
+      "receiver_plant_prelabel_baseline",
+      "receiver_plant_postlabel"
     ],
     "intact_hyphal_connection": [
-      "fungal_bridge_post_label"
+      "fungal_bridge_postlabel"
     ]
   },
   "isotopes": [
@@ -79,5 +80,45 @@
     ],
     "mass_reporting": "do not report transferred elemental mass without measured total element pool mass and uncertainty"
   },
-  "status": "protocol_defined_not_run"
+  "status": "protocol_defined_not_run",
+  "implementation": {
+    "branch": "feat/mycelium-hyphal-graph-kernel-v0-2",
+    "module": "crates/domains/symtropy-mycelium/src/isotope_transfer.rs",
+    "integration": "reuses ObservationEvidenceReceipt, ExperimentTimeAligner, NetworkEvidenceAssessment",
+    "authored_tests": 13,
+    "result_status": "pending_exact_head_ci",
+    "semantics": {
+      "donor_baseline": "Donor post-label atom fraction is compared with the same donor compartment's own pre-label baseline.",
+      "receiver_baseline": "Receiver post-label atom fraction and matched control contrasts are compared with that arm's receiver pre-label baseline.",
+      "bridge": "An intact-arm fungal-bridge post-label sample is mandatory for route-consistent status.",
+      "timing": "Both donor and receiver baselines must be temporally before donor labelling; donor-to-bridge-to-receiver order must have disjoint conservative intervals.",
+      "bounds": "Absolute error bounds are added conservatively; no independence or Gaussian assumption.",
+      "control_contrast": "Within each matched block, intact receiver excess lower bound must exceed every required control receiver excess upper bound.",
+      "independent_blocks": "At least three matched blocks; sample replicate IDs must remain distinct across arms and blocks.",
+      "route_claim": "The highest outcome is a route-consistent evidence candidate, never a causal proof."
+    }
+  },
+  "required_controls": [
+    {
+      "arm": "hyphae_severed",
+      "alternative_ruled_out": "residual/non-network pathway after interrupting fungal continuity"
+    },
+    {
+      "arm": "diffusion_only_barrier",
+      "alternative_ruled_out": "abiotic diffusion through the surrounding medium"
+    },
+    {
+      "arm": "no_fungus",
+      "alternative_ruled_out": "plant/soil abiotic baseline without fungal inoculation"
+    },
+    {
+      "arm": "microbial_only",
+      "alternative_ruled_out": "bacterial or other non-target microbial mediation"
+    },
+    {
+      "arm": "no_donor_label",
+      "alternative_ruled_out": "natural-abundance background, contamination or instrument artefact"
+    }
+  ],
+  "claim_ceiling": "A deterministic route-consistency screen using source-linked isotope observations and matched controls. It does not calculate statistical significance, estimate causal effects, prove direct fungal transport, or generalize beyond the experiment."
 }
