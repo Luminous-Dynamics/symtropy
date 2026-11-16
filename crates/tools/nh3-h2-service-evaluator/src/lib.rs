@@ -461,13 +461,16 @@ fn evaluate_scenario(
                     .any(|value| !valid_nonnegative(*value))
                     || input <= 0.0
                 {
-                    rejected.push("NH3 ledger contains non-finite/negative mass or zero feed".to_owned());
+                    rejected.push(
+                        "NH3 ledger contains non-finite/negative mass or zero feed".to_owned(),
+                    );
                 } else {
                     let residual = input - reacted - recovered - purge - slip;
                     nh3_balance_residual_g = Some(residual);
                     if residual.abs() > scenario.feed.tolerance_g {
                         rejected.push(
-                            "NH3 feed/reaction/recovery/purge/slip balance does not close".to_owned(),
+                            "NH3 feed/reaction/recovery/purge/slip balance does not close"
+                                .to_owned(),
                         );
                     }
                     if let Some(reported) = scenario.feed.reported_conversion_fraction {
@@ -476,14 +479,15 @@ fn evaluate_scenario(
                             || !(0.0..=1.0).contains(&reported)
                             || !close_enough(actual, reported, 1.0e-6)
                         {
-                            rejected.push("reported NH3 conversion does not match feed ledger".to_owned());
+                            rejected.push(
+                                "reported NH3 conversion does not match feed ledger".to_owned(),
+                            );
                         }
                     }
                 }
             }
-            _ => blocked.push(
-                "NH3 feed, reacted, recovered, purge or slip stream is unknown".to_owned(),
-            ),
+            _ => blocked
+                .push("NH3 feed, reacted, recovered, purge or slip stream is unknown".to_owned()),
         }
     }
 
