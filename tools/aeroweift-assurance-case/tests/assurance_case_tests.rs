@@ -25,7 +25,7 @@ fn scope() -> AssuranceCaseScope {
         time_scale_id: "UTC-SYNTHETIC".into(),
         horizontal_frame_id: "LOCAL-ENU-01".into(),
         vertical_datum_id: "SYNTHETIC-VD-01".into(),
-        operation_start: 0,
+        operation_start: 20,
         operation_end: 100,
         effective_cutoff: 50,
         knowledge_cutoff: 60,
@@ -54,7 +54,7 @@ fn node(id: &str, kind: NodeKind) -> AssuranceNode {
         owner_role: format!("owner-{id}"),
         revision: "rev-1".into(),
         valid_from: 0,
-        valid_until: 90,
+        valid_until: 110,
         claim: None,
         assumption: None,
         hazard_id: None,
@@ -102,7 +102,7 @@ fn decision_node(status: AuthorityDecisionStatus) -> AssuranceNode {
         status,
         effective_at: 10,
         recorded_at: 12,
-        valid_until: Some(80),
+        valid_until: Some(110),
         conditions_sha256: digest('4'),
     });
     result
@@ -732,5 +732,156 @@ fn unknown_or_unbounded_case_scope_is_rejected_before_graph_evaluation() {
     assert_eq!(
         evaluate_assurance_case(&nodes, &edges, "root", &frozen),
         Err(EvaluationError::InvalidScope)
+    );
+}
+
+
+#[test]
+fn node_validity_must_cover_the_entire_operation_window() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "evidence-model-validation")
+        .unwrap()
+        .valid_until = 99;
+    assert_eq!(
+        evaluate(&nodes, &edges),
+        Err(EvaluationError::NodeValidityDoesNotCoverOperation)
+    );
+}
+
+#[test]
+fn authority_decision_must_remain_valid_through_operation_end() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.kind == NodeKind::AuthorityDecision)
+        .unwrap()
+        .authority_decision
+        .as_mut()
+        .unwrap()
+        .valid_until = Some(99);
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::AuthorityDecisionOutstanding
+    ));
+    assert_eq!(
+        result.outstanding_authority_roles,
+        vec!["risk-acceptance".to_string()]
+    );
+}
+
+#[test]
+fn authority_decision_effective_after_operation_start_is_not_accepted_for_whole_window() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.kind == NodeKind::AuthorityDecision)
+        .unwrap()
+        .authority_decision
+        .as_mut()
+        .unwrap()
+        .effective_at = 21;
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(
+        &result,
+        BlockerReason::AuthorityDecisionOutstanding
+    ));
+}
+
+#[test]
+fn unregistered_hazard_cannot_be_omitted_from_the_frozen_hazard_manifest() {
+    let (mut nodes, mut edges) = positive_case();
+    let mut extra = node("hazard-unregistered", NodeKind::Hazard);
+    extra.hazard_id = Some("unregistered-hazard".into());
+    nodes.push(extra);
+    edges.push(edge(
+        "context-operation",
+        "hazard-unregistered",
+        EdgeKind::Contextualizes,
+    ));
+    assert_eq!(
+        evaluate(&nodes, &edges),
+        Err(EvaluationError::HazardNotInRequiredManifest)
+    );
+}
+
+#[test]
+fn mitigation_without_hazard_attachment_is_blocked_even_if_it_has_evidence() {
+    let (mut nodes, mut edges) = positive_case();
+    let mut extra = node("mitigation-unattached", NodeKind::Mitigation);
+    extra.mitigation_state = Some(ClaimState::Supported);
+    nodes.push(extra);
+    edges.push(edge(
+        "evidence-mitigation-test",
+        "mitigation-unattached",
+        EdgeKind::Supports,
+    ));
+    assert!(blocker(
+        &evaluate(&nodes, &edges).unwrap(),
+        BlockerReason::MitigationNotAttachedToHazard
+    ));
+}
+
+#[test]
+fn defeater_must_challenge_a_claim_or_mitigation() {
+    let (mut nodes, mut edges) = positive_case();
+    edges.retain(|item| {
+        !(item.from_node_id == "defeater-sensor-bias" && item.kind == EdgeKind::Challenges)
+    });
+    edges.push(edge(
+        "context-operation",
+        "defeater-sensor-bias",
+        EdgeKind::Contextualizes,
+    ));
+    // Replace the context edge with a valid root-connected path: the evidence discharge
+    // remains attached to the defeater, but the challenge relation is absent.
+    assert!(blocker(
+        &evaluate(&nodes, &edges).unwrap(),
+        BlockerReason::DefeaterWithoutChallenge
+    ));
+}
+
+#[test]
+fn unknown_assumption_is_indeterminate_not_merely_incomplete() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "assumption-weather-profile")
+        .unwrap()
+        .assumption
+        .as_mut()
+        .unwrap()
+        .state = AssumptionState::Unknown;
+    assert_eq!(evaluate(&nodes, &edges).unwrap().status, AssuranceStatus::Indeterminate);
+}
+
+#[test]
+fn indeterminate_mitigation_does_not_get_collapsed_to_unsupported() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.node_id == "mitigation-conflict-screen")
+        .unwrap()
+        .mitigation_state = Some(ClaimState::Indeterminate);
+    assert_eq!(evaluate(&nodes, &edges).unwrap().status, AssuranceStatus::Indeterminate);
+}
+
+#[test]
+fn rejected_authority_decision_is_reported_as_outstanding() {
+    let (mut nodes, edges) = positive_case();
+    nodes
+        .iter_mut()
+        .find(|item| item.kind == NodeKind::AuthorityDecision)
+        .unwrap()
+        .authority_decision
+        .as_mut()
+        .unwrap()
+        .status = AuthorityDecisionStatus::Rejected;
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert_eq!(
+        result.outstanding_authority_roles,
+        vec!["risk-acceptance".to_string()]
     );
 }
