@@ -507,7 +507,6 @@ mod tests {
     }
 
     #[test]
-    #[test]
     fn lunar_stored_beam_energy_closes_against_current_and_fcc_reference() {
         let value = calculate(CcmInputs::published_reference()).expect("valid CCM");
         close(
@@ -524,6 +523,7 @@ mod tests {
         close(value.ccm_to_fcc_stored_energy_ratio, 16_021.766_34, 0.01);
     }
 
+    #[test]
     fn fcc_reference_reproduces_thousand_hertz_revolution_and_million_hertz_crossing_rates() {
         let revolution_hz = SPEED_OF_LIGHT_M_S / 97_750.0;
         close(revolution_hz, 3_066.930_516_624_041, 1.0e-9);
