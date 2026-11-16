@@ -395,7 +395,7 @@ mod tests {
         );
         assert_eq!(
             witness_result.disposition,
-            ChangeDisposition::IndeterminateWithinUncertainty
+            ChangeDisposition::NotDistinguishedFromZero
         );
     }
 
