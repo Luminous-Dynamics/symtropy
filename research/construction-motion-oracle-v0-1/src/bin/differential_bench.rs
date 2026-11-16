@@ -7,7 +7,8 @@ use construction_motion_oracle::{
     swept_sphere_capsule_aabb_candidate, translating_capsule_aabb_candidate,
     translating_capsule_capsule_collision, translating_capsule_vs_capsule,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
-    co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
+    co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
+    endpoints_only_co_translating_capsule_collision,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -293,5 +294,33 @@ fn main() {
         )
         .expect("valid co-translating pair AABB query");
     });
+
+    for subdivisions in [1_u32, 2, 4, 8, 16, 32] {
+        let outcome = co_translating_capsule_time_sliced_aabb_candidates(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+            subdivisions,
+        )
+        .expect("valid time-sliced AABB query");
+        println!(
+            "co-translating-capsules,time-sliced-candidate-slabs-{subdivisions},{}",
+            outcome.candidate_slab_count
+        );
+        measure(
+            &format!("co-translating-capsule-time-sliced-aabb-{subdivisions}"),
+            || {
+                co_translating_capsule_time_sliced_aabb_candidates(
+                    black_box(moving_pair_a),
+                    black_box(moving_pair_a_delta),
+                    black_box(moving_pair_b),
+                    black_box(moving_pair_b_delta),
+                    subdivisions,
+                )
+                .expect("valid time-sliced AABB query");
+            },
+        );
+    }
 
 }
