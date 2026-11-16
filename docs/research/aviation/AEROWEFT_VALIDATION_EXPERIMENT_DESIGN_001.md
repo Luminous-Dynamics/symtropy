@@ -42,7 +42,7 @@ The prototype consumes owner-supplied admissibility facts. It does not independe
 
 ## Selection contract
 
-Candidate estimates are normalized [0,1] conservative bounds produced by a pinned estimator and method at a declared confidence level. Benefits are lower bounds; uninformative probability is an upper bound. The selector does not calculate or authenticate those estimates. Model-discrimination candidates must also provide explicit hypothesis-pair contrast estimates; listing model families alone is not sufficient. The exact campaign, model/sensor/control scope, intended-use profile, scenario, design and measurement-plan digests are bound to every candidate.
+Candidate estimates are normalized [0,1] conservative bounds produced by a pinned estimator and method at a declared confidence level. Benefits are lower bounds; uninformative probability is an upper bound. The selector does not calculate or authenticate those estimates. Model-discrimination candidates must also provide explicit hypothesis-pair contrast estimates; listing model families alone is not sufficient. The exact campaign, model/sensor/control scope, intended-use profile, scenario, design and measurement-plan digests are bound to every candidate and repeated in each affirmative gate receipt. A receipt's payload digest must match the legacy gate reference; duplicate IDs/roles or a receipt from another design/policy fail closed.
 
 The following dimensions remain separate:
 - expected decision-relevant predictive uncertainty reduction;
