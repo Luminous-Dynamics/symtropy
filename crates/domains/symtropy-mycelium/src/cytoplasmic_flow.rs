@@ -37,6 +37,16 @@ pub enum FlowVelocitySupport {
     CrossSectionMean,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FlowTracerKind {
+    /// Bulk cytoplasmic movement measurement, not cargo-specific movement.
+    BulkCytoplasm,
+    /// A fluorescently labelled cargo such as Nile-red-labelled lipid.
+    FluorescentLipidCargo,
+    /// Particle/tracer identity has not been chemically or biologically typed.
+    UnspecifiedParticle,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FlowSoluteConcentration {
     pub solute: SoluteId,
@@ -51,6 +61,8 @@ pub struct CytoplasmicFlowObservation {
     pub roi: FlowRoiId,
     pub segment: SegmentId,
     pub time_hours: f64,
+    /// Identity of the measured moving material; distinct tracers are never pooled.
+    pub tracer: FlowTracerKind,
     /// Signed relative to the graph segment's declared from-to orientation.
     pub signed_velocity_mm_per_s: f64,
     /// Prevents treating a tracked particle's local speed as bulk mean velocity.
@@ -214,6 +226,7 @@ mod tests {
             roi: FlowRoiId(5),
             segment: SegmentId(7),
             time_hours: 12.0,
+            tracer: FlowTracerKind::UnspecifiedParticle,
             signed_velocity_mm_per_s: velocity,
             velocity_support: FlowVelocitySupport::TrajectoryParticle,
             velocity_std_dev_mm_per_s: Some(0.2),
@@ -305,6 +318,24 @@ mod tests {
         );
         assert_eq!(item.signed_volume_flow_mm3_per_s(), None);
         assert_eq!(item.signed_solute_mass_rate_mg_per_s(), None);
+    }
+
+    #[test]
+    fn bulk_cytoplasm_and_lipid_cargo_remain_distinct_tracer_classes() {
+        let mut bulk = observation(13, 30, 6.0, None);
+        let mut lipid = observation(14, 31, 3.0, None);
+        bulk.tracer = FlowTracerKind::BulkCytoplasm;
+        lipid.tracer = FlowTracerKind::FluorescentLipidCargo;
+
+        assert_ne!(bulk.tracer, lipid.tracer);
+        assert_eq!(bulk.signed_velocity_mm_per_s, 6.0);
+        assert_eq!(lipid.signed_velocity_mm_per_s, 3.0);
+        // Neither trajectory-particle measurement is silently promoted to
+        // a cross-sectional bulk velocity or a nutrient mass flux.
+        assert_eq!(bulk.signed_volume_flow_mm3_per_s(), None);
+        assert_eq!(lipid.signed_volume_flow_mm3_per_s(), None);
+        assert_eq!(bulk.signed_solute_mass_rate_mg_per_s(), None);
+        assert_eq!(lipid.signed_solute_mass_rate_mg_per_s(), None);
     }
 
     #[test]
