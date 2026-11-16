@@ -391,6 +391,28 @@ The biological adapter should expose source-bound observation and simulation rec
 
 The Symthaea benchmark should separately measure proper predictive score/calibration, model-inadequacy detection, false causal attribution under adversarial controls, abstention/coverage, and realized decision value at equal experiment budgets. A benchmark pass in hypothesis selection does not qualify Symtropy's physical model.
 
+### T13 — CFN / CMN / CMN-HC evidence qualification
+
+Use Lehmann & Rillig's five-criterion framework (DOI 10.1002/ppp3.10618) as an explicit evidence ladder, not as a decorative label. The framework's 123-study map found only 9 studies meeting all five criteria. Record each criterion independently with a source-linked observation receipt:
+1. at least two plant units;
+2. all linked plants AM-colonized;
+3. root systems separated to suppress the root-root pathway;
+4. a hyphal-linking treatment;
+5. hyphal continuity tested.
+
+Four criteria (1–4) are the framework's threshold for CMN effect attribution; all five support a CMN-HC evidence level. An unreported criterion is not a pass. The fifth criterion does not alone establish continuous cytoplasmic flow. A separate flow observation must be linked to a continuous plant-to-plant fungal path before making that stronger claim.
+
+The public Rust module `network_evidence.rs` encodes the five criteria as PASS / FAIL / UNREPORTED / NOT_APPLICABLE, requires source-linked receipt IDs for PASS/FAIL, and returns separate claim and cytoplasmic-flow levels. Thirteen tests cover criterion completeness/order, CFN vs AMF classification, root/hyphal control failures, missing evidence, and the requirement that plant-to-plant flow also needs a supported shared fungal link. Implementation is on [PR #5388](https://github.com/Luminous-Dynamics/symtropy/pull/5388); the benchmark contract is `benchmarks/mycelium/myco-exchange-tradeoff-v0-1.json`.
+
+### T14 — host-conditioned C:P/N exchange and root-anatomy trade-offs
+
+Add [MYCO-EXCHANGE-TRADEOFF-001 #5521](https://github.com/Luminous-Dynamics/symtropy/issues/5521) as a new benchmark lane. It joins three complementary sources without pooling their evidential basis:
+- **PNAS 2026 C:P exchange:** Bisot et al. (DOI 10.1073/pnas.2512182123) used robotics, machine learning and about 100 million hyphal-shape measurements to estimate reciprocal C/P fluxes. The reported C:P ratio was comparatively stable across tested fungal strains within host context, but strongly host-genotype-dependent; host swaps shifted the exploration/exploitation Pareto front. The [PC_2025 replication repository](https://github.com/Cocopyth/PC_2025) describes coarse-grained data tables, a simulator and ML training materials. Exact revisions and code/data rights remain to be admitted. Its flux estimates must remain labeled morphology/ML-derived unless independently tracer-grounded.
+- **Root anatomy theory:** Cao et al. (DOI 10.1038/s41467-025-64553-1) derive equations linking root radius, stele/ToS geometry, arbuscule position, nutrient delivery and energetic cost. Reproduce equations 1–10 as a distinct theoretical comparator; do not present it as a fitted or field-validated root-fungal solver.
+- **Field hyphosphere C:N:** Brandt et al. (DOI 10.1111/nph.71576) used 36 hyphoboxes, three label treatments, three destructive timepoints and four nominal replicates. The 3-day 15N replicate count fell to n=3 after a damaged box was replaced. The paper reports 16.9% recovery of added 15N in plants in that experiment, and 13C transfer to fungal then bacterial biomarkers. Other raw amplicon data are in SRA PRJNA1415267 and data in BExIS 32469 (DOI 10.71615/bexis.32469). Preserve the missing replicate and distinguish isotope recovery from source attribution and actual flux.
+
+The central new benchmark is an exchange surface conditioned on host genotype, root anatomy, fungal strain, network morphology, nutrient availability and microbial context. Report Pareto front shape and uncertainty, flux source/evidence class, and worst-stratum predictions. The target is not one universal C:P coefficient: it is to predict when host genotype or fungal phenotype shifts the feasible exploration/exploitation surface, and to identify what measurement would distinguish fungal transport from soil diffusion, root leakage, bacterial mediation or abiotic tracer movement.
+
 ## 9. Ownership and claim boundaries
 
 - **Symtropy:** canonical hyphal graph, field coupling, transport, ledgers, replay and benchmark execution. The initial passive transport primitive, if accepted by review and CI, only settles caller-supplied conductance on active graph edges; it is not a biological conductance model.
