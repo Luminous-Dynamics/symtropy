@@ -3,6 +3,7 @@ name = "beam-handoff-validator"
 version = "0.1.0"
 edition = "2024"
 publish = false
+license = "AGPL-3.0-or-later"
 description = "Fail-closed validator for muon-collider beam-state handoff envelopes"
 
 [workspace]
