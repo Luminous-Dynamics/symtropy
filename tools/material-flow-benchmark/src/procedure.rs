@@ -577,9 +577,9 @@ impl EvidenceKind {
         use EvidenceKind as E;
         use RequiredVerificationDomain as D;
         match self {
-            E::ManifestSnapshot
-            | E::PackageIdentityObservation
-            | E::ReleaseExecutionReceipt => Some(D::ServiceProviderAttestation),
+            E::ManifestSnapshot | E::PackageIdentityObservation | E::ReleaseExecutionReceipt => {
+                Some(D::ServiceProviderAttestation)
+            }
             E::AuthorizationReceipt => Some(D::HouseholdGrantAuthority),
             E::ReceiverCapabilityReceipt => Some(D::ReceiverCapabilityAttestation),
             E::ContainerFitObservation
@@ -996,8 +996,8 @@ mod tests {
     fn evidence_admission_rejects_observation_exactly_at_earliest_decision_time() {
         let (scenario, procedure) = fixture();
         let mut bundle = evidence_fixture();
-        bundle.receipts[0].observed_at_unix_ms = scenario.started_at_unix_ms
-            - u64::from(scenario.clock_uncertainty_ms);
+        bundle.receipts[0].observed_at_unix_ms =
+            scenario.started_at_unix_ms - u64::from(scenario.clock_uncertainty_ms);
         assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
     }
 
@@ -1005,8 +1005,8 @@ mod tests {
     fn evidence_admission_rejects_expiry_exactly_at_latest_decision_time() {
         let (scenario, procedure) = fixture();
         let mut bundle = evidence_fixture();
-        bundle.receipts[0].expires_at_unix_ms = scenario.started_at_unix_ms
-            + u64::from(scenario.clock_uncertainty_ms);
+        bundle.receipts[0].expires_at_unix_ms =
+            scenario.started_at_unix_ms + u64::from(scenario.clock_uncertainty_ms);
         assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
     }
 
