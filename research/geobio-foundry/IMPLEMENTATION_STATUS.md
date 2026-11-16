@@ -48,7 +48,7 @@
 - Numerical overflow and non-finite input rejection; complete-composition reconciliation and resource-intensity ratio overflow guards.
 - Bounded single-species ideal-gas model for rigid, isothermal compartments; prescribed gas-mass transfer; observed-pressure residual classification.
 - Non-uniform subterranean profile summary with explicit unobserved intervals, coverage, length-weighted geometry, measurement uncertainty and variability.
-- Cross-field claim-consistency checks so direct connectivity requires demonstrated access and interior survey; survey/qualified pressurized use requires prerequisite evidence; authorized activity requires planetary-protection authorization and a basis record.
+- Cross-field claim-consistency checks so direct connectivity requires demonstrated access and interior survey; survey/qualified pressurized use requires prerequisite evidence; non-Earth authorized activity requires planetary-protection authorization, named authorization-case reference and basis record. Earth may declare planetary protection not applicable but still requires an activity basis.
 
 ## Validation evidence
 
@@ -63,7 +63,7 @@
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
 | Rust source and 47 unit tests (16 resource + 5 pressure + 11 morphometry + 15 evidence semantics) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
-| Cross-field semantic validation for all site-state combinations | **NOT IMPLEMENTED** | JSON Schema validates fields and types; a semantic validator is still required to enforce state-transition dependencies |
+| Cross-field semantic validation | **PARTIALLY IMPLEMENTED** | Typed validator covers core connectivity/access/survey/engineering/preservation dependencies; JSON-to-typed adapter and exhaustive state-combination tests remain outstanding |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
 
 ## Known limitations
@@ -74,9 +74,9 @@
 4. The pressure module assumes a single ideal-gas species, fixed volume and uniform fixed temperature; it applies prescribed mass transfers and does not calculate leak conductance, compressible flow, heat transfer, structural stress or rock-mass interaction. It is an analytical bookkeeping reference only.
 5. Subterra morphometry is a one-dimensional piecewise-constant profile summary, not a 3D interior reconstruction, cave-connectivity inference, geomechanics model or stability/safety assessment.
 6. The typed semantic validator checks a subset of cross-field dependencies but does not authenticate evidence references, validate coordinate transforms, or replace independent geotechnical/planetary-protection review. The JSON record-to-typed-validator adapter is not yet implemented.
-5. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
-6. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
-7. The synthetic electrolysis fixture is not an empirical performance datum.
+7. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
+8. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
+9. The synthetic electrolysis fixture is not an empirical performance datum.
 
 ## Immediate next increments
 
