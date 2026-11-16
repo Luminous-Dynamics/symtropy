@@ -153,3 +153,23 @@ Three synthetic, schema-conforming site-evidence records accompany the lineage m
 - Site C: one isolated raw acquisition used as the evaluation control.
 
 The consumer must check that every lineage record's `site_id` and `observation_id` match exactly one site-evidence observation and that every site-evidence observation has exactly one lineage record. This rejects dangling observations, wrong-site binding, duplicate observation reuse and incomplete lineage manifests. The check is performed against the typed fields from schema-conforming site-evidence documents; it does not authenticate provenance references.
+
+
+## 12. Competitive evaluation: SubT challenge, SKiD-SLAM and evidence return
+
+Subterra must be compared by responsibility layer rather than by a single robotics score.
+
+The DARPA Subterranean Challenge rewarded artifact type correctness and spatial localization within 5 m, with a limited report budget and speed incentive. This remains a relevant search/detection/localization reference, but it does not score scientific hypothesis calibration, source dependence, value of an experiment, evidence custody or scientific admission. Official reference: https://www.darpa.mil/research/programs/darpa-subterranean-challenge
+
+SKiD-SLAM's 2026 field report demonstrates distributed multi-robot LiDAR SLAM, including a three-rover Majang lava-tube cave deployment under a 250 kbps inter-robot communication budget. It addresses place recognition, relative pose estimation and distributed trajectory fusion; code/data are linked by the authors. References: https://doi.org/10.1109/TFR.2026.3721725 and https://sparolab.github.io/research/skid_slam/
+
+The October 2026 Active Visual Perception review recommends evaluating the closed loop from task-related evidence need through sensing action and observation value to subsequent decision, separately reporting evidence improvement, downstream task utility and acquisition costs (motion, compute, communication, energy, time and safety). Reference: https://doi.org/10.3390/s26206544
+
+The fair Subterra comparison therefore freezes a strong mapping/localization backbone (initially SKiD-SLAM where reproducible data permit) and keeps its map/pose outputs constant across random, fixed-priority, frontier, entropy, information-gain-per-cost, risk-aware, EVSI and survival-conditioned policies. Report:
+- map/localization quality separately from measurement-selection quality;
+- decision regret and useful evidence returned per equal energy/time/data/comms budget;
+- site/acquisition/common-cause split integrity, calibration and abstention coverage;
+- retreat/survival constraints and robot/data-loss outcomes;
+- science-return completion through delivery and admission, not merely command execution or sensor acquisition.
+
+Proposed targets—not achieved results—are at least 20% lower preregistered decision regret and 15% more independently supported, decision-relevant observations returned at equal expected resource use, with no relaxation of risk, preservation or hard resource gates. Subterra does not presently claim to outperform DARPA SubT teams, SKiD-SLAM or deployed cave-robot platforms in search, mapping, localization, mobility or field reliability.
