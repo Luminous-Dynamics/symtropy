@@ -48,6 +48,26 @@ References:
 
 These values are not directly rankable. Build a reproducible, same-cohort benchmark rather than copying a vendor success percentage.
 
+
+## 4E. Reuse standardized cloth-manipulation benchmarks instead of reinventing them
+
+The RAL-SI **Benchmarking Bimanual Cloth Manipulation** resource already defines cross-platform tasks for tablecloth spreading, towel folding and partial T-shirt dressing. It includes multiple starting configurations (two-point grasp, one-point grasp, flat, folded and crumpled), complexity levels and scoring for phase success, execution time, force and task quality.
+
+Reference: https://ral-si.github.io/cloth-benchmark/
+
+This is a useful lower-level calibration layer, not an end-to-end laundry service benchmark. Its towel-fold completion criterion can be as small as one fold, so it does not measure final table-ready stack placement, commercial throughput or garment-ready acceptance. We should reproduce its tasks and scoring where feasible, then add the missing end-to-end acceptance steps rather than claim to invent the field's first cloth benchmark.
+
+A February 2026 systematic review of 41 cloth-manipulation papers (2019–2024) finds that 70.7% focus on folding/unfolding only; 53.7% manipulate towels/napkins, while 29.3% address garments. It identifies diverse initial states, cloth-property simulation fidelity, Sim2Real, real-world dataset availability, multimodal sensing and inconsistent metrics as open problems.
+
+Reference: https://doi.org/10.3389/frobt.2026.1752914
+
+Our benchmark should therefore have three layers:
+1. **Primitive comparability:** replicate RAL-SI spread/towel-fold/partial-dressing tasks, their starting states, success phases, time, force and quality metrics.
+2. **Garment generalization:** hold out garment families, fabric properties, initial states, home/site, lighting and hardware revisions. Include RGB-D/point-cloud and force/contact channels where available; treat simulation-only results as simulation.
+3. **Service acceptance:** add quality inspection, correct bin/stack/destination, downstream-ready state, recovery, intervention, damage, throughput and 18-hour availability.
+
+A further physical-AI opportunity is adaptive primitive selection: choose between fling, pick/place, drag/mop, regrasp and human handoff according to garment state and uncertainty. The systematic review describes these primitive families and the need to combine them rather than expect a single policy to handle every cloth geometry. A classifier should not force a high-risk action when state estimation is weak; abstention and recovery are part of the capability.
+
 ## 5. Benchmark work
 
 ### A. Ready-state endpoint control
@@ -84,17 +104,29 @@ Prefer purpose-built fixtures/rails over assuming a humanoid robot is necessary.
 
 ## 6. Proposed targets (hypotheses only)
 
-| Metric | First target | Stretch direction |
-|---|---:|---:|
-| Endpoint first-pass acceptance | ≥95% in validated scope | ≥99% |
-| Unnecessary post-endpoint drying energy | ≥20% reduction vs matched endpoint control | Minimize without appearance/storage penalty |
-| Appearance | Non-inferior to matched control under frozen ISO edition | One grade improvement in selected wrinkle classes |
-| Core robot fold first-pass success | ≥95% | ≥99% broader supported set |
-| Robot P50 time | ≤2× skilled-human median on identical set | Human parity |
-| Human interventions | ≤1 per 100 simple garments | ≤0.2 per 100 |
-| Garment loss/damage | 0 in frozen challenge set | Maintain in longer field exposure |
+### Ready-state endpoints
+- First-pass endpoint acceptance: >=95% in the declared and validated garment scope; stretch >=99%.
+- Unnecessary post-endpoint drying energy: >=20% reduction against matched conventional endpoint control without an appearance, material or storage penalty.
+- Appearance: non-inferior to a matched control under the frozen ISO 15487 edition; explore a one-grade improvement in selected wrinkle classes.
+- Moisture: no hidden wet regions; report local seam/cuff/pocket/lining moisture, not only load-average mass loss.
 
-Establish human timing variance, garment cohort, endpoint thresholds, measurement uncertainty and a preregistered scoring rubric before freezing gates. Zero observed damage still requires sample-size/confidence reporting.
+### Tier 1 — standardized commercial textiles
+Current comparator: DYNA's August 2026 company report says Dyna-2 folds about 95 napkins/hour, 93% meet its table-ready quality bar and approximately 1,590 table-ready napkins are produced in an 18-hour shift. DYNA describes correctly assigned bin placement and organized stacks as part of the finished task. This is a company-reported production baseline, not independent Luminous validation.
+
+- First target: >=98% first-pass quality acceptance, >=100 correctly folded and stacked/table-ready items/hour, >=1,800 per 18-hour shift and >=99.5% correct destination placement.
+- Stretch: >=99.5% first-pass quality acceptance, >=120 accepted items/hour, >=2,160 per 18-hour shift and >=99.9% correct destination placement.
+- Human throughput ratios must use the same frozen items, station presentation, shift length and acceptance rubric. No human-speed claim is made from DYNA's company-reported throughput alone.
+
+### Tier 2 — diverse household garments
+- First target: >=99.5% accepted success in the declared support envelope, <=2x skilled-human median time on the same garment set, and zero per-home adaptation on held-out-home tests.
+- Stretch: >=99.9% accepted success and human P50 time parity, with broader unseen-garment and unseen-home transfer.
+- Keep shirts, trousers, jeans, blouses, knits, layered garments and mixed piles stratified. Never pool these into the standardized napkin/towel rate.
+
+### Shared handling and reliability
+- Human intervention: <=1 per 100 simple garments in the declared core set; stretch <=0.2/100.
+- Garment loss/damage: zero observed in the frozen qualification cohort, with a confidence bound and sample size reported.
+- Report P50/P90/P95 time, accepted throughput, rework, intervention, placement, uptime, maintenance, energy and cost per accepted output.
+- All targets are proposals. Freeze workload, human skill distribution, quality rubric, non-inferiority margins, uncertainty and sample sizes before confirmatory evaluation.
 
 ## 7. Functional units and hard gates
 
