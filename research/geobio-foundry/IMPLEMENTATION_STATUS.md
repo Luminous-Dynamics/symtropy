@@ -19,6 +19,7 @@
 | `SUBTERRA_BENCHMARK_PROTOCOL_v0.1.md` | Evidence-separated subterranean exploration, mapping, communications and qualification benchmarks |
 | `SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json` | Separate morphology, origin, connectivity, accessibility, engineering and preservation claims |
 | `SUBTERRA_PROFILE_SCHEMA_v0.1.json` | Non-uniform profile intervals with explicit unobserved geometry |
+| `fixtures/subterra-site-evidence-synthetic.json` | Synthetic Mars candidate record preserving unknown origin, connectivity, accessibility and use qualification |
 | `fixtures/subterra-nonuniform-profile-synthetic.json` | Synthetic profile with a deliberately unobserved interval |
 | `BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md` | Reproduction-first biological/abiotic/hybrid protocol with process accounting, sample sizes and statistical significance controls |
 | `PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md` | Ideal-gas analytical reference assumptions, equations, exclusions, S0/S1 tests and physical qualification boundary |
@@ -51,13 +52,16 @@
 
 | Check | Result | Boundary |
 |---|---|---|
-| JSON Schema draft-2020-12 meta-validation | **PASS** | Python jsonschema `Draft202012Validator.check_schema` |
+| GeoBio JSON Schema draft-2020-12 meta-validation | **PASS** | Python jsonschema `Draft202012Validator.check_schema` |
+| Subterra site/profile schema meta-validation | **PASS** | Python jsonschema `Draft202012Validator.check_schema` |
+| Subterra site/profile synthetic fixtures | **PASS** | Both fixture records validate against their respective schemas with format checking |
 | Synthetic fixture against schema | **PASS** | Format checker enabled; zero validation errors |
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
 | Rust source and 32 unit tests (16 resource + 5 pressure + 11 Subterra) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
+| Cross-field semantic validation for all site-state combinations | **NOT IMPLEMENTED** | JSON Schema validates fields and types; a semantic validator is still required to enforce state-transition dependencies |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
 
 ## Known limitations
@@ -67,6 +71,7 @@
 3. Detection limits, censored values, elemental ontology/chemical speciation, isotopes, heat and exergy balances, water-specific accounting, product purity, downstream recovery, lifecycle cost and JSON deserialization remain future work.
 4. The pressure module assumes a single ideal-gas species, fixed volume and uniform fixed temperature; it applies prescribed mass transfers and does not calculate leak conductance, compressible flow, heat transfer, structural stress or rock-mass interaction. It is an analytical bookkeeping reference only.
 5. Subterra morphometry is a one-dimensional piecewise-constant profile summary, not a 3D interior reconstruction, cave-connectivity inference, geomechanics model or stability/safety assessment.
+6. The Subterra site-evidence schema does not yet enforce all cross-field semantic rules; for example, a `directly_observed_connected` state must eventually require direct in-situ evidence and a consistent interior survey record.
 5. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
 6. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
 7. The synthetic electrolysis fixture is not an empirical performance datum.
