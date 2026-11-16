@@ -7,8 +7,8 @@
     "issue_number": 5488,
     "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5488",
     "corpus_path": "research/robot-config-change-qualification-v0-1/robot-config-change-corpus-v0.1.json",
-    "corpus_locator_branch": "research/robot-config-change-qualification-v0-1",
-    "corpus_blob_sha": "9e38da798173c653bd01fc1ceb648fd0ff8a6dff",
+    "corpus_locator_branch": "research/robot-config-change-reference-evaluator-v0-1",
+    "corpus_blob_sha": "8ed43a9f4b99ddc6c8a76e8de42d6610325e2229",
     "oracle_artifact_path": "research/robot-config-change-qualification-v0-1/development-oracle-v0.1.json",
     "interface_state": "public_development_corpus_pinned_by_blob_not_accepted_machine_interface"
   },
