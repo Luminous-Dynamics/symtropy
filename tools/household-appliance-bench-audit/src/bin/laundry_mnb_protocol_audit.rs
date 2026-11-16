@@ -7,8 +7,10 @@ use std::fs;
 use std::process::ExitCode;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:mnb-external-loop:0.1.0";
+#[cfg(test)]
 const SCHEMA_TEXT: &str =
     include_str!("../../../../schemas/laundry/mnb_external_loop_v0_1.schema.json");
+#[cfg(test)]
 const PROFILE_TEXT: &str = include_str!("../../../../fixtures/laundry/mnb_external_loop_v0_1.json");
 
 fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
