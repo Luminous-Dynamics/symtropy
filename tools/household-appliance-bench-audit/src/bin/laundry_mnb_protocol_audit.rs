@@ -9,8 +9,7 @@ use std::process::ExitCode;
 const SCHEMA_ID: &str = "urn:luminous-dynamics:mnb-external-loop:0.1.0";
 const SCHEMA_TEXT: &str =
     include_str!("../../../../schemas/laundry/mnb_external_loop_v0_1.schema.json");
-const PROFILE_TEXT: &str =
-    include_str!("../../../../fixtures/laundry/mnb_external_loop_v0_1.json");
+const PROFILE_TEXT: &str = include_str!("../../../../fixtures/laundry/mnb_external_loop_v0_1.json");
 
 fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
@@ -50,8 +49,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(profile, "status") != Some("protocol_proposed_no_physical_runs") {
         errors.push("profile must remain protocol_proposed_no_physical_runs".to_owned());
     }
-    if text_at(profile, "claim_ceiling")
-        != Some("no_cleaning_energy_or_product_superiority_claim")
+    if text_at(profile, "claim_ceiling") != Some("no_cleaning_energy_or_product_superiority_claim")
     {
         errors.push("claim ceiling cannot be promoted by a protocol audit".to_owned());
     }
@@ -133,7 +131,11 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         "blinded_cleaning_measurement_where_practicable",
         "report_confidence_intervals_and_uncertainty",
     ] {
-        if analysis.and_then(|value| value.get(field)).and_then(Value::as_bool) != Some(true) {
+        if analysis
+            .and_then(|value| value.get(field))
+            .and_then(Value::as_bool)
+            != Some(true)
+        {
             errors.push(format!("analysis requirement must remain enabled: {field}"));
         }
     }
@@ -156,10 +158,14 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(governance.unwrap_or(&Value::Null), "symthaea_authority")
         != Some("advisory_only_no_actuation")
     {
-        errors.push("Symthaea must remain advisory-only with no actuation authority".to_owned());
+        errors.push(
+            "Symthaea must remain advisory-only with no actuation authority".to_owned(),
+        );
     }
-    if text_at(governance.unwrap_or(&Value::Null), "safety_interlock_authority")
-        != Some("independent_deterministic_device_controls")
+    if text_at(
+        governance.unwrap_or(&Value::Null),
+        "safety_interlock_authority",
+    ) != Some("independent_deterministic_device_controls")
     {
         errors.push(
             "safety interlocks must remain independent deterministic device controls".to_owned(),
@@ -215,7 +221,9 @@ fn audit(schema_bytes: &[u8], profile_bytes: &[u8]) -> Result<Value, Vec<String>
     }
 
     let arm_count = profile["control_arms"].as_array().map_or(0, Vec::len);
-    let channel_count = profile["measurement_channels"].as_array().map_or(0, Vec::len);
+    let channel_count = profile["measurement_channels"]
+        .as_array()
+        .map_or(0, Vec::len);
     Ok(json!({
         "audit": "MNB_EXTERNAL_LOOP_PROTOCOL",
         "status": "PASS_PROTOCOL_CONTRACT_ONLY",
@@ -258,7 +266,10 @@ fn run() -> Result<Value, Vec<String>> {
 fn main() -> ExitCode {
     match run() {
         Ok(receipt) => {
-            println!("{}", serde_json::to_string_pretty(&receipt).unwrap_or_default());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&receipt).unwrap_or_default()
+            );
             ExitCode::SUCCESS
         }
         Err(errors) => {
