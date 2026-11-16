@@ -525,43 +525,41 @@ This is the minimal executable foundation for the procedure-learning hypothesis 
 
 
 
-### 12.8 Procedure evidence-receipt admission
+### 12.8 Procedure evidence-receipt admission and trust-domain separation
 
 The procedure graph has a receipt-envelope admission layer in `src/procedure.rs`, a 14-receipt synthetic bundle at `fixtures/nominal-receiving-evidence.json`, and an `mfb-admit-procedure-evidence` CLI.
 
-For each receipt, the admission layer checks:
-- bundle procedure ID/version and exact scenario identity;
-- exact scenario source commit and configuration digest;
-- unique evidence ID and kind, and complete coverage of all required external evidence kinds;
-- evidence-kind-specific subject binding (manifest/scenario, grant, receiver endpoint, package, tote or transfer mechanism);
-- issuer actor existence and allowed actor role for the evidence kind;
-- SHA-256 digest syntax;
-- declared observation and expiry timestamps against the full scenario clock-uncertainty window;
-- a versioned maximum observation age for each evidence kind, evaluated at the latest plausible decision time.
+The admission layer checks exact procedure/scenario/source/configuration binding, subject, allowed actor role, required receipt coverage, SHA-256 digest syntax, declared time windows and per-kind maximum observation age. It now requires strict inequality at both uncertainty boundaries: an observation at the earliest plausible decision time is rejected, as is an expiry at the latest plausible decision time.
 
-Freshness policy v1 maximum ages: manifest 300,000 ms; authorization 60,000 ms; receiver capability and container fit 86,400,000 ms; package identity and payload mass 2,000 ms; seal 5,000 ms; temperature 2,000 ms; transfer-gate and receiver-presence 500 ms; release-execution 10,000 ms; placement 1,000 ms; counterparty custody 30,000 ms; ambiguous outcome 5,000 ms.
+It also maps receipts into six future verifier domains:
+1. household grant authority;
+2. service-provider attestation;
+3. receiver capability attestation;
+4. physical-observation attestation;
+5. counterparty custody attestation;
+6. transaction-outcome attestation.
 
-Boundary comparisons are strict: an observation exactly at the earliest plausible decision time is rejected, as is an expiry exactly at the latest plausible decision time. This prevents a tie at either uncertainty boundary from being admitted.
+This is a routing/architecture classification only. It does not mean these six verifiers already exist or that their evidence is trusted.
 
-The receipt kinds are classified into future verification domains: household grant authority, service-provider attestation, receiver capability attestation, physical-observation attestation, counterparty custody attestation and transaction-outcome attestation. The domain map identifies which verifier system must be composed; it does not authenticate the issuer.
+The output explicitly distinguishes:
+- structural envelope admission;
+- declared freshness policy result;
+- content digest recomputation;
+- cryptographic authentication;
+- issuer authorization;
+- trusted chronology;
+- sensor/physical truth;
+- motion authority, command execution and task success.
 
-Adversarial tests reject missing/duplicate receipts, wrong issuer roles, wrong subjects, malformed digests, source/configuration mismatch, stale observations and timestamps that touch either clock-uncertainty boundary.
+The current implementation can report structural admission and a pass of the declared-time freshness policy. It explicitly reports `content_digest_verified=false`, `cryptographic_authentication_verified=false`, `issuer_authorization_verified=false`, `trusted_time_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. Digest syntax alone is not a content commitment; declared timestamps are not trusted chronology.
 
-**Critical claim boundary:** the current report distinguishes declared freshness from trusted time, and digest syntax from content integrity. It reports:
-- `evidence_envelopes_structurally_admitted=true`;
-- `declared_freshness_policy_passed=true` (scenario-relative timestamp/age checks only);
-- `content_digest_verified=false`;
-- `cryptographic_authentication_verified=false`;
-- `issuer_authorization_verified=false`;
-- `trusted_time_verified=false`;
-- `sensor_truth_established=false`;
-- `motion_authority_granted=false`, `physical_command_emitted=false`, `task_success_attested=false`.
+**Freshness policy v1** uses maximum ages: manifest 300,000 ms; authorization 60,000 ms; receiver capability and container fit 86,400,000 ms; package identity and payload mass 2,000 ms; seal 5,000 ms; temperature 2,000 ms; transfer-gate and receiver-presence 500 ms; release-execution 10,000 ms; placement 1,000 ms; counterparty custody 30,000 ms; ambiguous outcome 5,000 ms. These limits apply to declared observation times at the latest plausible scenario decision time. They are operational screening bounds, not a timestamp-authority theorem.
 
-The existing Xenia/Symtropy cryptographic evidence programme is the intended authentication substrate: Symtropy PHYS-EVID-03A/#1143 freezes the canonical proposition; PHYS-EVID-03B0/#1144 freezes the hybrid Ed25519 + ML-DSA-65 profile and domain-separated transcript; PHYS-EVID-03B1/#1145 governs credential authorization; Xenia `xenia-peer#341` defines the dedicated typed evidence-attestor boundary. MFB must consume the resulting verified/authorized evidence types. It must not create a parallel Ed25519-only signing scheme, trust caller-provided transcript bytes, or infer issuer authorization from signature validity.
+**Use the existing security substrate:** Symtropy PHYS-EVID-03A/#1143 defines canonical persistent evidence; B0/#1144 defines the dedicated hybrid Ed25519 + ML-DSA-65 profile and exact transcript; B1/#1145 governs credential authorization. Xenia `xenia-peer#341` defines the separate typed evidence-attestor boundary. MFB should consume the verified and issuer-authorized types from that programme. It must not implement a second signature format, a local Ed25519-only path, accept caller-selected transcript bytes, or treat cryptographic validity as proof of issuer authorization or sensor truth.
 
-The current freshness policy is an operational screening rule over declared times, not trusted chronology. The upstream issuer-policy design explicitly forbids relying on wall-clock timestamps for historical validity without a separately qualified timestamp/order theorem. Until a trusted chronology source exists, no physical safety decision may depend on MFB's declared-time comparison alone.
+The non-physical receipt domains (household grant, provider records, receiver capability, custody and transaction outcome) must use their respective qualified native authorities. Integration and the evidence-kind-to-verifier matrix are tracked in [#5530](https://github.com/Luminous-Dynamics/symtropy/issues/5530).
 
-**Exact-head history:** the earlier structural-admission implementation passed workflow [43823753266](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266), source `386fc63ea84561f072ec58804154cb02f0d4b8d9`, with 76 tests and 14/14 synthetic receipt envelopes admitted. The stricter trust-domain reporting and strict timestamp-boundary comparisons added afterwards require a new exact-head run; the earlier pass does not qualify those changes.
+**Exact-head history:** the earlier structural-admission implementation passed [workflow 43823753266](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266), source `386fc63ea84561f072ec58804154cb02f0d4b8d9`, with 76 tests and 14/14 synthetic envelopes admitted. The required-verifier-domain map, new anti-claim fields and strict timestamp-boundary rejection were added afterwards and need their own exact-head qualification. The earlier run does not qualify them.
 
 
 ## 12. First executable slice
