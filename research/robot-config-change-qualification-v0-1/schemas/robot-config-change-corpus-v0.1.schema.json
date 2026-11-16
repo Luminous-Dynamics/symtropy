@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/robot-config-change-qualification-v0-1/schemas/robot-config-change-corpus-v0.1.schema.json",
+  "title": "ROBOT-CONFIG-CHANGE-QUAL-001 development corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "issue_url",
+    "evidence_scope",
+    "corpus_visibility",
+    "claim_catalog",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-change-corpus-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-CHANGE-QUAL-001"
+    },
+    "issue_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "evidence_scope": {
+      "const": "synthetic_development_only"
+    },
+    "corpus_visibility": {
+      "const": "public_development_not_blind"
+    },
+    "claim_catalog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_id",
+          "criticality",
+          "depends_on",
+          "evidence_axes"
+        ],
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "criticality": {
+            "enum": [
+              "safety_critical",
+              "quality_critical",
+              "operational_critical",
+              "noncritical"
+            ]
+          },
+          "depends_on": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_axes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "mutation_family",
+          "description",
+          "source_configuration_ref",
+          "target_configuration_ref",
+          "dependency_snapshot_complete",
+          "context",
+          "changed_components",
+          "equivalence_witnesses",
+          "claims_to_evaluate"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^RCQ-[0-9]{3}$"
+          },
+          "mutation_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependency_snapshot_complete": {
+            "type": "boolean"
+          },
+          "context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operating_domain",
+              "site_epoch",
+              "frame_ref",
+              "timebase_ref"
+            ],
+            "properties": {
+              "operating_domain": {
+                "type": "string"
+              },
+              "site_epoch": {
+                "type": "string"
+              },
+              "frame_ref": {
+                "type": "string"
+              },
+              "timebase_ref": {
+                "type": "string"
+              }
+            }
+          },
+          "changed_components": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "component_id",
+                "component_type",
+                "source_ref",
+                "target_ref",
+                "declared_scope",
+                "scope_witness"
+              ],
+              "properties": {
+                "component_id": {
+                  "type": "string"
+                },
+                "component_type": {
+                  "type": "string"
+                },
+                "source_ref": {
+                  "type": "string"
+                },
+                "target_ref": {
+                  "type": "string"
+                },
+                "declared_scope": {
+                  "type": "string"
+                },
+                "scope_witness": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "equivalence_witnesses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "witness_id",
+                "witness_type",
+                "covers_claims",
+                "status"
+              ],
+              "properties": {
+                "witness_id": {
+                  "type": "string"
+                },
+                "witness_type": {
+                  "type": "string"
+                },
+                "covers_claims": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "status": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "claims_to_evaluate": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "claim_id",
+                "prior_evidence_ref",
+                "target_claim_profile_ref"
+              ],
+              "properties": {
+                "claim_id": {
+                  "type": "string"
+                },
+                "prior_evidence_ref": {
+                  "type": "string"
+                },
+                "target_claim_profile_ref": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
