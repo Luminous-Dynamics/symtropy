@@ -41,3 +41,45 @@ These are analytic consistency checks on the paper's equations and declared conv
 - No external dependencies.
 - Input values are hardcoded in the small reference executable and unit tests; they are not a source-data corpus.
 - This does not establish beam stability, luminosity, beam–beam tune shift, formation tolerance, passive cooling, power feasibility, launch mass, cost, safety or orbital-ring feasibility.
+
+
+## Beam, luminosity and operating-budget closure
+
+The reference executable now includes a second, separate arithmetic audit for the 2022 lunar Circular Collider (CCM) parameter set. It closes the paper's source inputs across:
+
+- revolution frequency and actual colliding-bunch-pair rate;
+- stored bunch population and reconstructed beam current;
+- the paper's round-beam, head-on tune-shift luminosity relation;
+- interactions per crossing for an explicitly named total cross section;
+- burn-off beam lifetime;
+- synchrotron-radiation energy loss per turn from per-beam power/current;
+- scheduled-time and availability conversion to annual integrated luminosity.
+
+It also reports a pinned FCC-hh CDR baseline row (97.75 km, 100 TeV centre-of-mass, 16 T, 10,600 bunches, 0.5 A, 2.4 MW/beam) and its derived revolution/collision rates. FCC baseline and ultimate luminosity/event-crossing figures remain separate source values.
+
+### First arithmetic findings
+
+Using the lunar paper's rounded inputs:
+
+- 11,000 km circumference gives 27.2539 revolutions/s.
+- 1.2 million bunches × 10^11 protons gives 0.524 A from the bunch population, consistent with the rounded 0.5 A.
+- 1.2 million colliding pairs per IP gives 32.705 MHz crossings/IP.
+- 25 ns slots would permit 40 MHz only for a completely filled ring; the source bunch count corresponds to an approximately 81.8% nominal fill fraction.
+- The tune-shift formula produces 1.82 × 10^38 cm^-2 s^-1 using the rounded 0.5 A input, or 1.91 × 10^38 when using the bunch-derived current, close to the paper's approximately 2 × 10^38.
+- 283 mb total cross section with the reported luminosity implies about 1.73 million total-cross-section interactions per crossing. This is a rate proxy, not a detector-accepted pile-up count.
+- The paper's rounded approximately 1 million interactions/crossing implies an effective cross section near 164 mb at the same collision rate. The tool records this as an implied value, not as a source-certified inelastic cross section. The event definition/cross section behind the rounded table figure needs clarification.
+- The burn-off equation gives approximately 17.67 minutes, consistent with the paper's 18-minute estimate.
+- 8.5 TW per beam / 0.5 A gives approximately 17 TeV lost per proton per turn.
+- 160 scheduled physics days × 70% availability gives approximately 1,935 ab^-1 per year at the stated peak luminosity and effective operating fraction 1.0.
+
+The CERN-2025-006 FCC-hh baseline gives about 3,066.93 turns/s and about 32.51 million collision crossings/s for 10,600 colliding bunch pairs/IP. The lunar and FCC baselines therefore have similar nominal per-IP crossing rates in these source examples, despite their very different ring circumferences and bunch counts. The lunar source's much larger luminosity is consequently expressed as an enormous interactions-per-crossing burden, not merely as a higher collision frequency.
+
+These are arithmetic closures and source-consistency diagnostics. They do not validate the lunar paper's assumed proton-beam tune-shift limit, FODO/final-focus optics, detector response, top-up injection, RF delivery, magnet performance or the actual feasibility of sustaining 8.5 TW per beam.
+
+Sources:
+- Beacham & Zimmermann, 2022 lunar collider paper: https://doi.org/10.1088/1367-2630/ac4921
+- CERN FCC-hh Extended Conceptual Design Report, CERN-2025-006: https://doi.org/10.23731/CYRM-2025-006
+- CERN luminosity calculator: https://lpc.web.cern.ch/lumiCalc.html
+- PDG 2025 accelerator physics and collider review: https://pdg.lbl.gov/2025/reviews/rpp2025-rev-accel-phys-colliders.pdf
+
+The Rust evaluator intentionally keeps total-cross-section interactions, inelastic process pile-up and detector-accepted events distinct. No unprovided inelastic cross section or detector acceptance is silently supplied.
