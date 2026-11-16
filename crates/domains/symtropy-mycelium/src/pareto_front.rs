@@ -412,21 +412,19 @@ mod tests {
         host: u64,
         strain: u64,
         growth_unit: u64,
-        density: f64,
-        speed: f64,
-        start: f64,
-        end: f64,
+        objectives: (f64, f64),
+        window: (f64, f64),
     ) -> ParetoPhenotypeSample {
         ParetoPhenotypeSample {
             id: ParetoSampleId(id),
             plant_genotype: PlantGenotypeId(host),
             fungal_strain: FungalStrainId(strain),
             growth_unit: GrowthUnitId(growth_unit),
-            window_start_hours: start,
-            window_end_hours: end,
+            window_start_hours: window.0,
+            window_end_hours: window.1,
             objectives: ParetoObjectives {
-                surface_area_density_per_m: density,
-                wave_speed_m_per_hour: speed,
+                surface_area_density_per_m: objectives.0,
+                wave_speed_m_per_hour: objectives.1,
             },
         }
     }
@@ -448,10 +446,10 @@ mod tests {
     #[test]
     fn known_tradeoff_front_and_hypervolume_match_hand_calculation() {
         let samples = [
-            sample(1, 1, 10, 1, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 1, 10, 2, 2.0, 2.0, 0.0, 10.0),
-            sample(3, 1, 10, 3, 3.0, 1.0, 0.0, 10.0),
-            sample(4, 1, 10, 4, 1.0, 1.0, 0.0, 10.0),
+            sample(1, 1, 10, 1, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 1, 10, 2, (2.0, 2.0), (0.0, 10.0)),
+            sample(3, 1, 10, 3, (3.0, 1.0), (0.0, 10.0)),
+            sample(4, 1, 10, 4, (1.0, 1.0), (0.0, 10.0)),
         ];
 
         let result = analyze_by_plant_genotype(&samples, origin(), normalization()).unwrap();
@@ -471,10 +469,10 @@ mod tests {
     #[test]
     fn host_genotypes_receive_separate_fronts_and_hypervolumes() {
         let samples = [
-            sample(1, 1, 10, 1, 1.0, 2.0, 0.0, 10.0),
-            sample(2, 1, 10, 1, 2.0, 1.0, 10.0, 20.0),
-            sample(3, 2, 10, 2, 2.0, 3.0, 0.0, 10.0),
-            sample(4, 2, 10, 2, 3.0, 2.0, 10.0, 20.0),
+            sample(1, 1, 10, 1, (1.0, 2.0), (0.0, 10.0)),
+            sample(2, 1, 10, 1, (2.0, 1.0), (10.0, 20.0)),
+            sample(3, 2, 10, 2, (2.0, 3.0), (0.0, 10.0)),
+            sample(4, 2, 10, 2, (3.0, 2.0), (10.0, 20.0)),
         ];
 
         let result = analyze_by_plant_genotype(&samples, origin(), normalization()).unwrap();
@@ -488,11 +486,11 @@ mod tests {
     #[test]
     fn host_fronts_are_independent_of_input_order() {
         let samples = [
-            sample(1, 1, 10, 1, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 1, 10, 2, 2.0, 2.0, 0.0, 10.0),
-            sample(3, 1, 10, 3, 3.0, 1.0, 0.0, 10.0),
-            sample(4, 2, 11, 4, 2.0, 2.0, 0.0, 10.0),
-            sample(5, 2, 11, 5, 3.0, 1.5, 0.0, 10.0),
+            sample(1, 1, 10, 1, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 1, 10, 2, (2.0, 2.0), (0.0, 10.0)),
+            sample(3, 1, 10, 3, (3.0, 1.0), (0.0, 10.0)),
+            sample(4, 2, 11, 4, (2.0, 2.0), (0.0, 10.0)),
+            sample(5, 2, 11, 5, (3.0, 1.5), (0.0, 10.0)),
         ];
         let reversed = samples.iter().rev().copied().collect::<Vec<_>>();
 
@@ -505,9 +503,9 @@ mod tests {
     #[test]
     fn repeated_time_windows_remain_on_the_same_growth_unit() {
         let samples = [
-            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 1, 10, 7, 2.0, 2.0, 10.0, 20.0),
-            sample(3, 1, 10, 7, 3.0, 1.0, 20.0, 30.0),
+            sample(1, 1, 10, 7, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 1, 10, 7, (2.0, 2.0), (10.0, 20.0)),
+            sample(3, 1, 10, 7, (3.0, 1.0), (20.0, 30.0)),
         ];
 
         let result = analyze_by_plant_genotype(&samples, origin(), normalization()).unwrap();
@@ -518,8 +516,8 @@ mod tests {
     #[test]
     fn overlapping_time_windows_within_a_growth_unit_are_rejected() {
         let samples = [
-            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 1, 10, 7, 2.0, 2.0, 9.0, 19.0),
+            sample(1, 1, 10, 7, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 1, 10, 7, (2.0, 2.0), (9.0, 19.0)),
         ];
         assert_eq!(
             analyze_by_plant_genotype(&samples, origin(), normalization()),
@@ -534,8 +532,8 @@ mod tests {
     #[test]
     fn adjacent_time_windows_within_a_growth_unit_are_allowed() {
         let samples = [
-            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 1, 10, 7, 2.0, 2.0, 10.0, 20.0),
+            sample(1, 1, 10, 7, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 1, 10, 7, (2.0, 2.0), (10.0, 20.0)),
         ];
         assert!(analyze_by_plant_genotype(&samples, origin(), normalization()).is_ok());
     }
@@ -543,8 +541,8 @@ mod tests {
     #[test]
     fn a_growth_unit_cannot_change_host_or_fungal_identity() {
         let samples = [
-            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 2, 10, 7, 2.0, 2.0, 10.0, 20.0),
+            sample(1, 1, 10, 7, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 2, 10, 7, (2.0, 2.0), (10.0, 20.0)),
         ];
         assert_eq!(
             analyze_by_plant_genotype(&samples, origin(), normalization()),
@@ -554,8 +552,8 @@ mod tests {
         );
 
         let mixed_strain = [
-            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
-            sample(2, 1, 11, 7, 2.0, 2.0, 10.0, 20.0),
+            sample(1, 1, 10, 7, (1.0, 3.0), (0.0, 10.0)),
+            sample(2, 1, 11, 7, (2.0, 2.0), (10.0, 20.0)),
         ];
         assert_eq!(
             analyze_by_plant_genotype(&mixed_strain, origin(), normalization()),
@@ -568,8 +566,8 @@ mod tests {
     #[test]
     fn duplicate_sample_ids_are_rejected() {
         let samples = [
-            sample(1, 1, 10, 1, 1.0, 3.0, 0.0, 10.0),
-            sample(1, 1, 10, 2, 2.0, 2.0, 0.0, 10.0),
+            sample(1, 1, 10, 1, (1.0, 3.0), (0.0, 10.0)),
+            sample(1, 1, 10, 2, (2.0, 2.0), (0.0, 10.0)),
         ];
         assert_eq!(
             analyze_by_plant_genotype(&samples, origin(), normalization()),
@@ -579,7 +577,7 @@ mod tests {
 
     #[test]
     fn invalid_objectives_and_time_windows_are_rejected() {
-        let mut item = sample(1, 1, 10, 1, 0.0, 3.0, 0.0, 10.0);
+        let mut item = sample(1, 1, 10, 1, (0.0, 3.0), (0.0, 10.0));
         assert_eq!(
             analyze_by_plant_genotype(&[item], origin(), normalization()),
             Err(ParetoAnalysisError::InvalidObjective(ParetoSampleId(1)))
@@ -591,7 +589,7 @@ mod tests {
             Err(ParetoAnalysisError::InvalidObjective(ParetoSampleId(2)))
         );
 
-        item = sample(3, 1, 10, 3, 1.0, 1.0, 10.0, 10.0);
+        item = sample(3, 1, 10, 3, (1.0, 1.0), (10.0, 10.0));
         assert_eq!(
             analyze_by_plant_genotype(&[item], origin(), normalization()),
             Err(ParetoAnalysisError::InvalidTimeWindow(ParetoSampleId(3)))
@@ -600,7 +598,7 @@ mod tests {
 
     #[test]
     fn normalization_and_reference_point_are_validated() {
-        let samples = [sample(1, 1, 10, 1, 1.0, 1.0, 0.0, 10.0)];
+        let samples = [sample(1, 1, 10, 1, (1.0, 1.0), (0.0, 10.0))];
         let bad_normalization = ParetoNormalization {
             surface_area_density_scale_per_m: 0.0,
             wave_speed_scale_m_per_hour: 1.0,
@@ -622,7 +620,7 @@ mod tests {
 
     #[test]
     fn reference_point_must_be_weakly_dominated_by_every_sample() {
-        let samples = [sample(1, 1, 10, 1, 1.0, 1.0, 0.0, 10.0)];
+        let samples = [sample(1, 1, 10, 1, (1.0, 1.0), (0.0, 10.0))];
         let reference = ParetoReferencePoint {
             surface_area_density_per_m: 0.5,
             wave_speed_m_per_hour: 1.5,
@@ -637,14 +635,14 @@ mod tests {
 
     #[test]
     fn additive_epsilon_matches_known_positive_and_negative_values() {
-        let approximation = [sample(1, 1, 10, 1, 2.0, 2.0, 0.0, 10.0)];
-        let reference = [sample(2, 1, 10, 2, 3.0, 4.0, 0.0, 10.0)];
+        let approximation = [sample(1, 1, 10, 1, (2.0, 2.0), (0.0, 10.0))];
+        let reference = [sample(2, 1, 10, 2, (3.0, 4.0), (0.0, 10.0))];
         assert_eq!(
             additive_epsilon_indicator(&approximation, &reference, normalization()),
             Ok(2.0)
         );
 
-        let dominated_reference = [sample(3, 1, 10, 3, 1.0, 1.0, 0.0, 10.0)];
+        let dominated_reference = [sample(3, 1, 10, 3, (1.0, 1.0), (0.0, 10.0))];
         assert_eq!(
             additive_epsilon_indicator(&approximation, &dominated_reference, normalization()),
             Ok(-1.0)
@@ -653,8 +651,8 @@ mod tests {
 
     #[test]
     fn epsilon_comparison_rejects_mixed_host_genotypes() {
-        let approximation = [sample(1, 1, 10, 1, 2.0, 2.0, 0.0, 10.0)];
-        let reference = [sample(2, 2, 10, 2, 3.0, 4.0, 0.0, 10.0)];
+        let approximation = [sample(1, 1, 10, 1, (2.0, 2.0), (0.0, 10.0))];
+        let reference = [sample(2, 2, 10, 2, (3.0, 4.0), (0.0, 10.0))];
         assert_eq!(
             additive_epsilon_indicator(&approximation, &reference, normalization()),
             Err(ParetoAnalysisError::MixedHostGenotypes)
