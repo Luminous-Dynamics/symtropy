@@ -877,6 +877,12 @@ fn stage_transition_decision(case: &Value) -> (&'static str, &'static str) {
         };
     }
 
+    if required_calibration
+        && string_at(case, &["current_calibration_status"]) != Some("current")
+    {
+        return ("held", "EXPIRED_CALIBRATION_EVIDENCE");
+    }
+
     let current_revision = string_at(case, &["current_configuration_revision"]);
     let current_frame = string_at(case, &["current_frame_epoch_ref"]);
     let mut stale_configuration = false;
@@ -1287,6 +1293,33 @@ mod tests {
         assert_eq!(
             stage_transition_decision(&corpus["cases"][15]),
             ("held", "POSTCONDITION_UNKNOWN")
+        );
+    }
+
+    #[test]
+    fn safety_critical_stage_profiles_require_independent_referee_class() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let stages = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let mut corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        let oracle = read_json(&base.join("stage-transition-oracle-v0.1.json")).unwrap();
+        corpus["cases"][2]["stage_criticality"] = Value::String("safety_critical".to_owned());
+        let errors = stage_transition_invariants(&stages, &corpus, &oracle);
+        assert!(errors
+            .iter()
+            .any(|error| error.starts_with("stage_transition_safety_stage_lacks_independent_referee:")));
+    }
+
+    #[test]
+    fn interruption_with_changed_frame_epoch_requires_reconciliation() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let mut corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        corpus["cases"][12]["resume_context"]["prior_configuration_revision"] =
+            Value::String("rev-b".to_owned());
+        corpus["cases"][12]["resume_context"]["prior_frame_epoch_ref"] =
+            Value::String("frame-a".to_owned());
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][12]),
+            ("held", "RESUME_FRAME_EPOCH_MISMATCH")
         );
     }
 
