@@ -176,7 +176,9 @@ pub struct EnergyReceipt {
     pub wall_plug_kwh_per_accepted_kg: Option<f64>,
     pub wall_plug_kwh_per_serving: Option<f64>,
     pub missing_stages: Vec<EnergyStage>,
+    pub stage_energy_kwh: BTreeMap<EnergyStage, f64>,
     pub evidence_classes: BTreeMap<EnergyStage, EvidenceClass>,
+    pub not_applicable_justifications: BTreeMap<EnergyStage, String>,
     pub complete: bool,
     /// True only when every included numeric energy value is measured,
     /// explicitly allocated, or attested and every required stage is complete.
@@ -223,7 +225,9 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
 
     let mut missing = Vec::new();
     let mut total_kwh = 0.0_f64;
+    let mut stage_energy_kwh = BTreeMap::new();
     let mut evidence_classes = BTreeMap::new();
+    let mut not_applicable_justifications = BTreeMap::new();
     let mut all_claimable = true;
 
     for stage in required {
@@ -233,7 +237,9 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
         };
 
         match &term.applicability {
-            Applicability::NotApplicable { .. } => {}
+            Applicability::NotApplicable { justification } => {
+                not_applicable_justifications.insert(stage, justification.clone());
+            }
             Applicability::Required => {
                 let Some(value) = term.wall_plug_kwh else {
                     missing.push(stage);
@@ -253,6 +259,7 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
                     continue;
                 }
                 total_kwh += value;
+                stage_energy_kwh.insert(stage, value);
                 evidence_classes.insert(stage, class);
                 all_claimable &= class.permits_performance_claim();
             }
@@ -268,6 +275,11 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
         wall_plug_kwh.map(|value| value / input.accepted_edible_kg);
     let wall_plug_kwh_per_serving = wall_plug_kwh
         .map(|value| value / input.accepted_edible_kg * input.serving_mass_kg);
+    if wall_plug_kwh_per_accepted_kg.is_some_and(|value| !value.is_finite())
+        || wall_plug_kwh_per_serving.is_some_and(|value| !value.is_finite())
+    {
+        return Err(OracleError::InvalidNonNegativeNumber("energy_intensity"));
+    }
 
     Ok(EnergyReceipt {
         trial_id: input.trial_id.clone(),
@@ -285,7 +297,9 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
         wall_plug_kwh_per_accepted_kg,
         wall_plug_kwh_per_serving,
         missing_stages: missing,
+        stage_energy_kwh,
         evidence_classes,
+        not_applicable_justifications,
         complete,
         claim_eligible: complete && all_claimable,
     })
@@ -344,6 +358,9 @@ pub fn compare_energy(
     }
 
     let reduction = (control_intensity - candidate_intensity) / control_intensity * 100.0;
+    if !reduction.is_finite() {
+        return Err(OracleError::InvalidNonNegativeNumber("energy_reduction_percent"));
+    }
     let claimable_reduction_percent =
         (control.claim_eligible && candidate.claim_eligible).then_some(reduction);
 
@@ -398,6 +415,9 @@ pub fn calculate_time(input: TimeInput) -> Result<TimeReceipt, OracleError> {
                 upstream + input.household_cook_stage_minutes + other
             })
     };
+    if total_sequential_minutes.is_some_and(|value| !value.is_finite()) {
+        return Err(OracleError::InvalidNonNegativeNumber("total_sequential_minutes"));
+    }
 
     Ok(TimeReceipt {
         household_cook_stage_minutes: input.household_cook_stage_minutes,
@@ -571,7 +591,7 @@ mod tests {
         })
         .expect("valid time fixture");
         assert_eq!(five_minute_pretreatment.household_cook_stage_minutes, 21.1);
-        assert_eq!(five_minute_pretreatment.total_sequential_minutes, Some(26.1));
+        assert!((five_minute_pretreatment.total_sequential_minutes.unwrap() - 26.1).abs() < 1.0e-9);
 
         let ten_minute_pretreatment = calculate_time(TimeInput {
             household_cook_stage_minutes: 21.1,
@@ -580,7 +600,7 @@ mod tests {
             other_sequential_minutes: Some(0.0),
         })
         .expect("valid time fixture");
-        assert_eq!(ten_minute_pretreatment.total_sequential_minutes, Some(31.1));
+        assert!((ten_minute_pretreatment.total_sequential_minutes.unwrap() - 31.1).abs() < 1.0e-9);
     }
 
 
