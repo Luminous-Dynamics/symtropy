@@ -233,3 +233,27 @@ A sixth adversarial family, shared reference common-mode bias, gives both numeri
 The adversarial campaign retains explicit diagnostic-only functions that bypass reference qualification to measure the counterfactual error from using faulty data. They are isolated from the normal active calibration path and never qualify a measurement. The standard benchmark's source and target fits now require the integrity gate.
 
 Real hardware still requires independent calibration ancestry, calibration validity/range, clock/time alignment, mounting/force-path analysis, uncertainty and common-cause review from the physical phantom/reference owner. A software ancestry boolean is not a calibration certificate.
+
+
+## First hosted reference-integrity result
+
+Hosted workflow #112 on source head `a431b6cf8d4688d0321e8769da1e0c18eeacbad3` passed 48 Rust tests, rustfmt, strict Clippy, the tracked 34-case transfer oracle, the 50-seed campaign and the six-family adversarial CLI. The subsequent workflow writeback commit `150237be23450c31078f3cc71fcea710a6142196` contains rustfmt-only changes to the source already tested.
+
+Reference integrity results for 72 synthetic target calibration contacts (0.02 N synthetic-only tolerance):
+
+| Response family | Max primary/check disagreement | Ancestry attested | Gate |
+|---|---:|---:|---|
+| Nominal | 0.004343 N | Yes | Pass |
+| Cubic force | 0.004343 N | Yes | Pass |
+| Force × temperature × history | 0.004343 N | Yes | Pass |
+| Sensor saturation | 0.004343 N | Yes | Pass |
+| Primary-only 0.25 N reference bias | 0.254343 N | Yes | Reject |
+| Shared 0.25 N reference bias | 0.004343 N | No | Reject |
+
+The last row is the critical common-cause result: both numeric streams agree because both share the injected 0.25 N offset. Pairwise agreement cannot detect that. The separate synthetic ancestry attestation rejects the scenario, and the output explicitly states that agreement does not prove independence.
+
+The 48-test hosted pass belongs to source head `a431b6cf...`. Follow-up commit `150237be...` is formatting-only. The current branch/PR head may move again when a later hosted run writes generated formatting; do not silently treat an action-required bot event as a new test pass.
+
+## New outstanding issue: range observability
+
+The saturation family shows that a reference chain can be internally consistent while the tactile transducer itself has stopped responding at high loads. An independent reference channel does not fix loss of sensor information. This is now tracked separately under PHRI-TAC-OBSERVABILITY-001 / #5616. The future gate must detect flatlined response increments, clipped taxels and unidentifiable ranges and mark those operating points out-of-profile or more-evidence-required rather than interpreting model confidence as observability.
