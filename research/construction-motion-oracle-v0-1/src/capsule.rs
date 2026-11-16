@@ -37,18 +37,25 @@ impl Capsule {
         })
     }
 
+    /// Outward-rounded static bounds. If an input was forged or the expansion
+    /// overflows, return an unbounded box so broad phase cannot turn that case
+    /// into a false disjoint/clear result.
     pub fn aabb(self) -> CapsuleAabb3 {
-        CapsuleAabb3 {
-            min: Vec3::new(
-                self.start.x.min(self.end.x) - self.radius_mm,
-                self.start.y.min(self.end.y) - self.radius_mm,
-                self.start.z.min(self.end.z) - self.radius_mm,
-            ),
-            max: Vec3::new(
-                self.start.x.max(self.end.x) + self.radius_mm,
-                self.start.y.max(self.end.y) + self.radius_mm,
-                self.start.z.max(self.end.z) + self.radius_mm,
-            ),
+        let min = Vec3::new(
+            (self.start.x.min(self.end.x) - self.radius_mm).next_down(),
+            (self.start.y.min(self.end.y) - self.radius_mm).next_down(),
+            (self.start.z.min(self.end.z) - self.radius_mm).next_down(),
+        );
+        let max = Vec3::new(
+            (self.start.x.max(self.end.x) + self.radius_mm).next_up(),
+            (self.start.y.max(self.end.y) + self.radius_mm).next_up(),
+            (self.start.z.max(self.end.z) + self.radius_mm).next_up(),
+        );
+
+        if !is_finite(min) || !is_finite(max) {
+            unbounded_aabb()
+        } else {
+            CapsuleAabb3 { min, max }
         }
     }
 }
@@ -60,6 +67,10 @@ pub struct CapsuleAabb3 {
 }
 
 impl CapsuleAabb3 {
+    pub fn unbounded() -> Self {
+        unbounded_aabb()
+    }
+
     pub fn overlaps(self, other: Self) -> bool {
         self.min.x <= other.max.x
             && self.max.x >= other.min.x
@@ -187,19 +198,33 @@ pub fn swept_sphere_capsule_aabb_candidate(
     if !is_finite(path_start) || !is_finite(path_end) {
         return Err(CapsuleError::NonFiniteCoordinate);
     }
-    let moving = CapsuleAabb3 {
-        min: Vec3::new(
-            path_start.x.min(path_end.x) - moving_radius_mm,
-            path_start.y.min(path_end.y) - moving_radius_mm,
-            path_start.z.min(path_end.z) - moving_radius_mm,
-        ),
-        max: Vec3::new(
-            path_start.x.max(path_end.x) + moving_radius_mm,
-            path_start.y.max(path_end.y) + moving_radius_mm,
-            path_start.z.max(path_end.z) + moving_radius_mm,
-        ),
+    let moving_min = Vec3::new(
+        (path_start.x.min(path_end.x) - moving_radius_mm).next_down(),
+        (path_start.y.min(path_end.y) - moving_radius_mm).next_down(),
+        (path_start.z.min(path_end.z) - moving_radius_mm).next_down(),
+    );
+    let moving_max = Vec3::new(
+        (path_start.x.max(path_end.x) + moving_radius_mm).next_up(),
+        (path_start.y.max(path_end.y) + moving_radius_mm).next_up(),
+        (path_start.z.max(path_end.z) + moving_radius_mm).next_up(),
+    );
+    let moving = if !is_finite(moving_min) || !is_finite(moving_max) {
+        unbounded_aabb()
+    } else {
+        CapsuleAabb3 {
+            min: moving_min,
+            max: moving_max,
+        }
     };
     Ok(moving.overlaps(obstacle.aabb()))
+}
+
+
+fn unbounded_aabb() -> CapsuleAabb3 {
+    CapsuleAabb3 {
+        min: Vec3::new(f64::NEG_INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY),
+        max: Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY),
+    }
 }
 
 fn validate_radius(radius_mm: f64) -> Result<(), CapsuleError> {
@@ -219,6 +244,39 @@ mod tests {
     use super::*;
     fn p(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3::new(x, y, z)
+    }
+
+    #[test]
+    fn static_capsule_aabb_rounds_outward() {
+        let capsule = Capsule::new(
+            p(1.0, -1.0, 0.5),
+            p(1.0, -1.0, 0.5),
+            0.25,
+        )
+        .unwrap();
+        let bounds = capsule.aabb();
+        assert!(bounds.min.x < 0.75);
+        assert!(bounds.min.y < -1.25);
+        assert!(bounds.min.z < 0.25);
+        assert!(bounds.max.x > 1.25);
+        assert!(bounds.max.y > -0.75);
+        assert!(bounds.max.z > 0.75);
+    }
+
+    #[test]
+    fn static_capsule_aabb_overflow_becomes_unbounded_candidate() {
+        let capsule = Capsule {
+            start: p(f64::MAX, f64::MAX, f64::MAX),
+            end: p(f64::MAX, f64::MAX, f64::MAX),
+            radius_mm: f64::MAX,
+        };
+        let bounds = capsule.aabb();
+        assert_eq!(bounds.min.x, f64::NEG_INFINITY);
+        assert_eq!(bounds.max.x, f64::INFINITY);
+        assert!(bounds.overlaps(CapsuleAabb3 {
+            min: p(1.0e300, 1.0e300, 1.0e300),
+            max: p(1.0e300, 1.0e300, 1.0e300),
+        }));
     }
 
     #[test]
