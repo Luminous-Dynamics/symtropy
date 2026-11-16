@@ -151,10 +151,7 @@ pub enum LifecycleChange {
 }
 
 impl LifecycleSnapshot {
-    pub fn new(
-        identity: PhysicalIdentity,
-        temperature_c: f64,
-    ) -> Result<Self, String> {
+    pub fn new(identity: PhysicalIdentity, temperature_c: f64) -> Result<Self, String> {
         if !identity.missing_fields().is_empty() {
             return Err("physical identity contains an empty required field".to_owned());
         }
@@ -199,7 +196,9 @@ impl LifecycleSnapshot {
                     && self.identity.skin_revision == *skin_revision
                     && self.identity.material_lot_id == *material_lot_id
                 {
-                    return Err("skin replacement must change article, revision or material lot".to_owned());
+                    return Err(
+                        "skin replacement must change article, revision or material lot".to_owned(),
+                    );
                 }
                 next.identity.skin_article_id = skin_article_id.clone();
                 next.identity.skin_revision = skin_revision.clone();
@@ -216,7 +215,9 @@ impl LifecycleSnapshot {
                 if self.identity.mounting_revision == *mounting_revision
                     && self.identity.geometry_digest == *geometry_digest
                 {
-                    return Err("remount must change mounting revision or geometry digest".to_owned());
+                    return Err(
+                        "remount must change mounting revision or geometry digest".to_owned()
+                    );
                 }
                 next.identity.mounting_revision = mounting_revision.clone();
                 next.identity.geometry_digest = geometry_digest.clone();
@@ -411,8 +412,9 @@ impl CalibrationPassport {
             ));
         }
 
-        let contact_cycles_since_calibration =
-            current.total_contact_cycles.checked_sub(self.calibration_contact_cycles);
+        let contact_cycles_since_calibration = current
+            .total_contact_cycles
+            .checked_sub(self.calibration_contact_cycles);
         match contact_cycles_since_calibration {
             None => reasons.push(AssessmentReason::ContactCycleCounterRollback {
                 calibration_cycles: self.calibration_contact_cycles,
@@ -461,9 +463,9 @@ impl CalibrationPassport {
                     | AssessmentReason::LifecycleGenerationMismatch { .. }
             )
         });
-        let has_maintenance_condition = reasons.iter().any(|reason| {
-            matches!(reason, AssessmentReason::SurfaceConditionNotQualified(_))
-        });
+        let has_maintenance_condition = reasons
+            .iter()
+            .any(|reason| matches!(reason, AssessmentReason::SurfaceConditionNotQualified(_)));
         let has_envelope_failure = reasons.iter().any(|reason| {
             matches!(
                 reason,
@@ -565,13 +567,21 @@ mod tests {
             .expect("replacement");
         let assessment = calibration.assess(&current);
         assert_eq!(assessment.disposition, AssessmentDisposition::Invalidated);
-        assert!(assessment.reasons.contains(&AssessmentReason::IdentityMismatch(
-            IdentityField::SkinArticle
-        )));
-        assert!(assessment.reasons.contains(&AssessmentReason::LifecycleGenerationMismatch {
-            calibrated_generation: 0,
-            current_generation: 1
-        }));
+        assert!(
+            assessment
+                .reasons
+                .contains(&AssessmentReason::IdentityMismatch(
+                    IdentityField::SkinArticle
+                ))
+        );
+        assert!(
+            assessment
+                .reasons
+                .contains(&AssessmentReason::LifecycleGenerationMismatch {
+                    calibrated_generation: 0,
+                    current_generation: 1
+                })
+        );
     }
 
     #[test]
@@ -590,9 +600,13 @@ mod tests {
             .expect("remount");
         let assessment = calibration.assess(&current);
         assert_eq!(assessment.disposition, AssessmentDisposition::Invalidated);
-        assert!(assessment.reasons.contains(&AssessmentReason::IdentityMismatch(
-            IdentityField::MountingRevision
-        )));
+        assert!(
+            assessment
+                .reasons
+                .contains(&AssessmentReason::IdentityMismatch(
+                    IdentityField::MountingRevision
+                ))
+        );
     }
 
     #[test]
@@ -692,7 +706,11 @@ mod tests {
     #[test]
     fn damage_requires_maintenance_even_when_identity_is_unchanged() {
         let current = snapshot()
-            .apply(&event("event-damage-01", 1, LifecycleChange::DamageDetected))
+            .apply(&event(
+                "event-damage-01",
+                1,
+                LifecycleChange::DamageDetected,
+            ))
             .expect("damage");
         assert_eq!(
             passport(&current).assess(&current).disposition,
@@ -722,7 +740,9 @@ mod tests {
             .apply(&event(
                 "event-temperature-01",
                 1,
-                LifecycleChange::TemperatureObserved { temperature_c: 45.0 },
+                LifecycleChange::TemperatureObserved {
+                    temperature_c: 45.0,
+                },
             ))
             .expect("temperature update");
         assert_eq!(
@@ -737,10 +757,15 @@ mod tests {
         let mut incomplete = passport(&current);
         incomplete.reference_chain_receipt_id.clear();
         let assessment = incomplete.assess(&current);
-        assert_eq!(assessment.disposition, AssessmentDisposition::UnqualifiedEvidence);
-        assert!(assessment.reasons.contains(&AssessmentReason::MissingEvidenceReceipt(
-            "reference_chain"
-        )));
+        assert_eq!(
+            assessment.disposition,
+            AssessmentDisposition::UnqualifiedEvidence
+        );
+        assert!(
+            assessment
+                .reasons
+                .contains(&AssessmentReason::MissingEvidenceReceipt("reference_chain"))
+        );
     }
 
     #[test]
@@ -749,17 +774,23 @@ mod tests {
         let first = event(
             "event-temp-01",
             1,
-            LifecycleChange::TemperatureObserved { temperature_c: 24.0 },
+            LifecycleChange::TemperatureObserved {
+                temperature_c: 24.0,
+            },
         );
         let current = original.apply(&first).expect("first event");
         assert!(current.apply(&first).is_err());
-        assert!(current
-            .apply(&event(
-                "event-temp-02",
-                1,
-                LifecycleChange::TemperatureObserved { temperature_c: 25.0 },
-            ))
-            .is_err());
+        assert!(
+            current
+                .apply(&event(
+                    "event-temp-02",
+                    1,
+                    LifecycleChange::TemperatureObserved {
+                        temperature_c: 25.0
+                    },
+                ))
+                .is_err()
+        );
         assert_eq!(original.last_event_sequence, 0);
         assert_eq!(current.last_event_sequence, 1);
     }
@@ -775,15 +806,17 @@ mod tests {
                 },
             ))
             .expect("first cycle update");
-        assert!(original
-            .apply(&event(
-                "event-cycles-02",
-                2,
-                LifecycleChange::ContactCyclesAdvanced {
-                    total_contact_cycles: 499,
-                },
-            ))
-            .is_err());
+        assert!(
+            original
+                .apply(&event(
+                    "event-cycles-02",
+                    2,
+                    LifecycleChange::ContactCyclesAdvanced {
+                        total_contact_cycles: 499,
+                    },
+                ))
+                .is_err()
+        );
         assert_eq!(original.total_contact_cycles, 500);
         assert_eq!(original.last_event_sequence, 1);
     }
