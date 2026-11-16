@@ -227,7 +227,7 @@ fn evidence_block(inspection: &InspectionEvidence) -> Option<BlockReason> {
             if inspection
                 .independence_receipt_id
                 .as_deref()
-                .is_none_or(str::is_empty)
+                .is_none_or(|receipt_id| receipt_id.trim().is_empty())
             {
                 return Some(BlockReason::IndependenceReceiptMissing);
             }
@@ -656,13 +656,13 @@ mod tests {
                 continue;
             }
             let columns: Vec<&str> = line.split('\t').collect();
-            assert_eq!(columns.len(), 16, "fixture row {}", line_index + 1);
+            assert_eq!(columns.len(), 17, "fixture row {}", line_index + 1);
             rows += 1;
 
             let mut source = episode();
             source.episode_id = columns[0].to_owned();
             source.impact.receipt_id = format!("impact-{}", columns[0]);
-            source.impact.affected_operation_ids = parse_operation_ids(columns[9]);
+            source.impact.affected_operation_ids = parse_operation_ids(columns[10]);
             source.inspection.receipt_id = format!("inspection-{}", columns[0]);
             source.inspection.test_id = columns[1].to_owned();
             source.inspection.outcome_id = format!("outcome-{}", columns[0]);
@@ -670,20 +670,20 @@ mod tests {
             source.inspection.baseline_source_group = columns[4].to_owned();
             source.inspection.independence_status = parse_case_status(columns[5]);
             source.inspection.independence_receipt_id =
-                (columns[5] == "pass").then(|| format!("independence-evidence-{}", columns[0]));
-            source.inspection.calibration_status = parse_case_status(columns[6]);
-            source.inspection.applicability_status = parse_case_status(columns[7]);
-            source.inspection.outcome_status = parse_case_status(columns[8]);
+                (columns[6] != "-").then(|| columns[6].to_owned());
+            source.inspection.calibration_status = parse_case_status(columns[7]);
+            source.inspection.applicability_status = parse_case_status(columns[8]);
+            source.inspection.outcome_status = parse_case_status(columns[9]);
 
             let candidate = RepairProposal {
                 diagnosis_receipt_id: source.inspection.receipt_id.clone(),
                 impact_receipt_id: source.impact.receipt_id.clone(),
-                release_operation_ids: parse_operation_ids(columns[10]),
-                containment_operation_ids: parse_operation_ids(columns[11]),
+                release_operation_ids: parse_operation_ids(columns[11]),
+                containment_operation_ids: parse_operation_ids(columns[12]),
             };
 
             let evaluated = evaluate_scope(&source, &candidate).unwrap();
-            let expected_status = match columns[12] {
+            let expected_status = match columns[13] {
                 "eligible" => EvaluationStatus::Eligible,
                 "blocked" => EvaluationStatus::Blocked,
                 other => panic!("unknown expected status: {other}"),
@@ -691,13 +691,13 @@ mod tests {
             assert_eq!(evaluated.status, expected_status, "fixture {}", columns[0]);
             assert_eq!(
                 evaluated.block_reason,
-                expected_block_reason(columns[13]),
+                expected_block_reason(columns[14]),
                 "fixture {}",
                 columns[0]
             );
             assert_eq!(
                 evaluated.metrics.false_preserved_affected_operations,
-                columns[14].parse::<usize>().unwrap(),
+                columns[16].parse::<usize>().unwrap(),
                 "fixture {}",
                 columns[0]
             );
@@ -736,6 +736,18 @@ mod tests {
     fn passing_independence_without_owner_receipt_is_blocked() {
         let mut source = episode();
         source.inspection.independence_receipt_id = None;
+        let result = evaluate_scope(&source, &proposal()).unwrap();
+        assert_eq!(result.status, EvaluationStatus::Blocked);
+        assert_eq!(
+            result.block_reason,
+            Some(BlockReason::IndependenceReceiptMissing)
+        );
+    }
+
+    #[test]
+    fn whitespace_only_independence_receipt_is_rejected() {
+        let mut source = episode();
+        source.inspection.independence_receipt_id = Some("  ".to_owned());
         let result = evaluate_scope(&source, &proposal()).unwrap();
         assert_eq!(result.status, EvaluationStatus::Blocked);
         assert_eq!(
