@@ -7,6 +7,8 @@ on:
       - "research/protect-resilience-e0-oracle-v0-1"
       - "research/protect-model-evidence-e1-v0-1"
       - "research/protect-evidence-portability-e2-review-v0-1"
+      - "research/protect-evidence-portability-e2-review-v0-1"
+      - "research/protect-evidence-multiprovider-e3-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -47,9 +49,8 @@ jobs:
           workspaces: |
             research/protective-systems/verifier -> target
 
-      # Check formatting on the E1 executable introduced by this branch.
-      # Other isolated verifiers were present in the stacked base and have
-      # separate formatting debt; do not silently reformat unrelated owners.
+      # Check the complete isolated verifier crate; parent and child gates
+      # share one formatting contract.
       - name: Check formatting
         run: cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
 
@@ -83,6 +84,9 @@ jobs:
       - name: Run PROV-O and RO-Crate portability gate
         run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-evidence-portability
 
+      - name: Run DataCite, OGC Records and OpenLineage E3 portability gate
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-multiprovider-e3
+
 
   independent-ro-crate-validation:
     name: Independent RO-Crate 1.3 conformance
@@ -100,5 +104,8 @@ jobs:
       - name: Install pinned independent RO-Crate validator
         run: python -m pip install --disable-pip-version-check --only-binary=:all: roc-validator==0.13.1
 
-      - name: Validate package against RO-Crate 1.3 profile
+      - name: Validate E2 RO-Crate 1.3 package
         run: ro-crate-validator validate research/protective-systems/fixtures/protective-evidence-crate-v0.1
+
+      - name: Validate E3 RO-Crate 1.3 package
+        run: ro-crate-validator validate research/protective-systems/fixtures/protective-evidence-multiprovider-e3-v0.1
