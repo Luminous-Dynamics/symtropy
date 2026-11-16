@@ -74,9 +74,7 @@ impl CheckpointEvidenceKind {
         match self {
             Self::PlantRootExudateSignal => ObservationSubject::PlantRootExudateSignal,
             Self::SymbioticSignalResponse => ObservationSubject::SymbioticSignalResponse,
-            Self::ArbusculeInterfaceMorphology => {
-                ObservationSubject::ArbusculeInterfaceMorphology
-            }
+            Self::ArbusculeInterfaceMorphology => ObservationSubject::ArbusculeInterfaceMorphology,
             Self::HostCarbonInvestment => ObservationSubject::HostCarbonInvestment,
             Self::FungalNutrientDelivery => ObservationSubject::FungalNutrientDelivery,
             Self::ArbusculeTurnover => ObservationSubject::ArbusculeTurnover,
@@ -154,10 +152,12 @@ impl CheckpointObservation {
             ),
         };
         if !allowed {
-            return Err(SymbiosisCheckpointError::EvidenceKindNotValidForCheckpoint {
-                checkpoint: self.checkpoint,
-                evidence_kind: self.evidence_kind,
-            });
+            return Err(
+                SymbiosisCheckpointError::EvidenceKindNotValidForCheckpoint {
+                    checkpoint: self.checkpoint,
+                    evidence_kind: self.evidence_kind,
+                },
+            );
         }
 
         if self.outcome == CheckpointOutcome::Unreported && self.observation.is_some() {
@@ -255,9 +255,9 @@ impl SymbiosisCheckpointTimeline {
     }
 
     pub fn has_checkpoint(&self, checkpoint: SymbiosisCheckpoint) -> bool {
-        self.events
-            .iter()
-            .any(|event| event.checkpoint == checkpoint && event.outcome != CheckpointOutcome::Unreported)
+        self.events.iter().any(|event| {
+            event.checkpoint == checkpoint && event.outcome != CheckpointOutcome::Unreported
+        })
     }
 }
 
@@ -315,14 +315,8 @@ impl PerformanceEvaluationEvidence {
                 self.resource_contribution,
                 ObservationSubject::IsotopeTracerTransfer,
             ),
-            (
-                self.host_response,
-                ObservationSubject::HostNutrientResponse,
-            ),
-            (
-                self.interface_fate,
-                ObservationSubject::ArbusculeTurnover,
-            ),
+            (self.host_response, ObservationSubject::HostNutrientResponse),
+            (self.interface_fate, ObservationSubject::ArbusculeTurnover),
             (
                 self.matched_control,
                 ObservationSubject::MatchedControlCondition,
@@ -358,14 +352,10 @@ impl PerformanceEvaluationEvidence {
             (TemporalOrdering::FirstBeforeSecond, TemporalOrdering::FirstBeforeSecond) => {
                 PerformanceEvaluationStatus::SequenceConsistentButCausalityNotEstablished
             }
-            (
-                TemporalOrdering::IndeterminateOverlap,
-                _,
-            )
-            | (
-                _,
-                TemporalOrdering::IndeterminateOverlap,
-            ) => PerformanceEvaluationStatus::TemporalOrderIndeterminate,
+            (TemporalOrdering::IndeterminateOverlap, _)
+            | (_, TemporalOrdering::IndeterminateOverlap) => {
+                PerformanceEvaluationStatus::TemporalOrderIndeterminate
+            }
             _ => PerformanceEvaluationStatus::SequenceContradictsProposedDirection,
         })
     }
@@ -385,12 +375,12 @@ fn validate_receipt_subject(
     receipt: &ObservationEvidenceReceipt,
     required: ObservationSubject,
 ) -> Result<(), SymbiosisCheckpointError> {
-    receipt.validate().map_err(|source| {
-        SymbiosisCheckpointError::InvalidObservationReceipt {
+    receipt.validate().map_err(
+        |source| SymbiosisCheckpointError::InvalidObservationReceipt {
             id: receipt.id,
             source,
-        }
-    })?;
+        },
+    )?;
     if receipt.subject != required {
         return Err(SymbiosisCheckpointError::WrongObservationSubject {
             id: receipt.id,
@@ -452,7 +442,11 @@ impl fmt::Display for SymbiosisCheckpointError {
             Self::InvalidObservationReceipt { id, source } => {
                 write!(f, "invalid checkpoint receipt {:?}: {}", id, source)
             }
-            Self::WrongObservationSubject { id, expected, actual } => write!(
+            Self::WrongObservationSubject {
+                id,
+                expected,
+                actual,
+            } => write!(
                 f,
                 "receipt {:?} has subject {:?}; expected {:?}",
                 id, actual, expected
@@ -466,10 +460,18 @@ impl fmt::Display for SymbiosisCheckpointError {
                 evidence_kind, checkpoint
             ),
             Self::MissingObservationReceiptForEvent(id) => {
-                write!(f, "checkpoint event {:?} requires an observation receipt", id)
+                write!(
+                    f,
+                    "checkpoint event {:?} requires an observation receipt",
+                    id
+                )
             }
             Self::UnexpectedObservationReceipt(id) => {
-                write!(f, "unreported checkpoint event {:?} must not carry a receipt", id)
+                write!(
+                    f,
+                    "unreported checkpoint event {:?} must not carry a receipt",
+                    id
+                )
             }
             Self::InvalidAlignedTimestamp(id) => {
                 write!(f, "checkpoint event {:?} has invalid aligned time", id)
@@ -488,7 +490,10 @@ impl fmt::Display for SymbiosisCheckpointError {
                 actual, expected
             ),
             Self::PerformanceReferenceClockMismatch => {
-                write!(f, "performance evidence links use different reference clocks")
+                write!(
+                    f,
+                    "performance evidence links use different reference clocks"
+                )
             }
             Self::TemporalAlignment(source) => write!(f, "temporal alignment failed: {}", source),
         }
@@ -594,10 +599,7 @@ mod tests {
             receipt(3, ObservationSubject::FungalNutrientDelivery),
         ];
         assert_eq!(timeline.validate_against_receipts(&receipts), Ok(()));
-        assert_eq!(
-            timeline.chronological_events()[0].id,
-            CheckpointEventId(1)
-        );
+        assert_eq!(timeline.chronological_events()[0].id, CheckpointEventId(1));
         assert!(timeline.has_checkpoint(SymbiosisCheckpoint::Maintenance));
     }
 
