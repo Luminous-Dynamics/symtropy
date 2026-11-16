@@ -65,3 +65,11 @@ No complete human replication, consciousness claim, diagnosis, treatment selecti
 ## Reproducibility
 
 No participant-level records belong in this repository. Dataset adapters must be local-only, record exact source/version/license/split metadata, and emit only rights-compatible aggregate receipts. Every simulation must record model/configuration revisions, seed, timebase, initial conditions and parameter provenance.
+
+
+## Follow-on synthetic causal research
+
+- [Human intervention / exposure DGP protocol v0.1](HUMAN_INTERVENTION_DGP_PROTOCOL_V0_1.md) — separates assigned actions, delivered exposures, latent response, sensor observation and oracle-only potential outcomes; composes Symthaea #11954.
+- [Human intervention / exposure scenario catalogue](HUMAN_INTERVENTION_DGP_SCENARIOS_V0_1.json) — 11 synthetic known-truth scenario families, no participant data.
+
+This work reuses Symthaea's generic causal DGP and observation-event owners. It does not implement a second causal estimator or make real-person intervention claims.
