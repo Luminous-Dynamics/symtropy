@@ -118,6 +118,19 @@ jobs:
           grep -q '"blind_retry_blocked_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
           grep -q '"false_completion_blocked_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
           cat mfb-l1-evidence/gate-obstruction-fault-sweep.json
+      - name: Cross-check false-positive receiver signal against evaluator-only physical ground truth
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-cross-channel-gate-fault -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"fault_oracle_passed": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"package_inside_tote": false' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"verdict": "contradictory"' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"physical_and_observation_disagreement_detected": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"reconciliation_required": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"blind_retry_blocked": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"custody_completion_blocked": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"false_completion_blocked": true' mfb-l1-evidence/cross-channel-false-positive.json
+          grep -q '"custody_completion_permitted": false' mfb-l1-evidence/cross-channel-false-positive.json
+          cat mfb-l1-evidence/cross-channel-false-positive.json
           {
             echo "source_sha=${GITHUB_SHA}"
             echo "workflow_run_id=${GITHUB_RUN_ID}"
@@ -165,6 +178,9 @@ jobs:
             echo
             echo "[gate_obstruction_fault_sweep_digest]"
             sha256sum mfb-l1-evidence/gate-obstruction-fault-sweep.json
+            echo
+            echo "[cross_channel_false_positive_digest]"
+            sha256sum mfb-l1-evidence/cross-channel-false-positive.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
