@@ -44,3 +44,6 @@ jobs:
             | tee space-collider-reference.json
           grep -q '"evidence_class": "analytical_reference_check"' space-collider-reference.json
           grep -q '"gamma_ratio_under_center_of_mass_convention": 71.428571' space-collider-reference.json
+          grep -q '"performance_closure"' space-collider-reference.json
+          grep -q '"burnoff_lifetime_min": 17.667845' space-collider-reference.json
+          grep -q '"annual_integrated_luminosity_ab_inv": 1935.360000' space-collider-reference.json
