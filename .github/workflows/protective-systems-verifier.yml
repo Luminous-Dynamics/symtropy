@@ -6,6 +6,7 @@ on:
       - "research/protect-threat-portfolio-v0-1"
       - "research/protect-resilience-e0-oracle-v0-1"
       - "research/protect-model-evidence-e1-v0-1"
+      - "research/protect-model-archive-e2-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -15,6 +16,7 @@ on:
       - "research/protective-systems-benchmark-v0-1"
       - "research/protect-threat-portfolio-v0-1"
       - "research/protect-resilience-e0-oracle-v0-1"
+      - "research/protect-model-evidence-e1-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -77,3 +79,6 @@ jobs:
 
       - name: Run external model evidence envelope gate
         run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-evidence
+
+      - name: Run metadata-only model archive intake
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-archive-intake
