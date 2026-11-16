@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json",
+  "title": "WaterLoop Modular Architecture T0 Contract",
+  "description": "Design-reference architecture and source/module compatibility contract. Does not qualify treatment, water quality, installation or safety.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "architecture_id",
+    "revision",
+    "date",
+    "evidence_class",
+    "qualification_status",
+    "claim_ceiling",
+    "nonclaims",
+    "boundaries",
+    "source_classes",
+    "intended_use_classes",
+    "module_interface",
+    "candidate_modules",
+    "candidate_train_families",
+    "fail_safe_state",
+    "qualification_stages",
+    "benchmark_targets"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-modular-architecture-v0.1"
+    },
+    "architecture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "evidence_class": {
+      "const": "design_reference_only"
+    },
+    "qualification_status": {
+      "const": "NotRun"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "boundaries": {
+      "type": "object",
+      "required": [
+        "system_scope",
+        "separate_authorities",
+        "hydraulic_sizing",
+        "local_regulatory_review"
+      ],
+      "properties": {
+        "system_scope": {
+          "type": "string"
+        },
+        "separate_authorities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "hydraulic_sizing": {
+          "type": "string"
+        },
+        "local_regulatory_review": {
+          "type": "string"
+        }
+      }
+    },
+    "source_classes": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "description",
+          "admission_requirements",
+          "default_action"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "admission_requirements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "default_action": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "intended_use_classes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "exposure",
+          "barriers"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "exposure": {
+            "type": "string"
+          },
+          "barriers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "module_interface": {
+      "type": "object",
+      "required": [
+        "interface_revision",
+        "mandatory_identity",
+        "hydraulic_ports",
+        "energy_ports",
+        "telemetry_fields",
+        "mandatory_engineering_data",
+        "unknown_required_field_policy",
+        "module_change_effect"
+      ],
+      "properties": {
+        "interface_revision": {
+          "type": "string"
+        },
+        "mandatory_identity": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "hydraulic_ports": {
+          "type": "array",
+          "minItems": 7,
+          "items": {
+            "type": "string"
+          }
+        },
+        "energy_ports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "telemetry_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "mandatory_engineering_data": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "unknown_required_field_policy": {
+          "type": "string"
+        },
+        "module_change_effect": {
+          "type": "string"
+        }
+      }
+    },
+    "candidate_modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "function",
+          "inputs",
+          "outputs",
+          "hazards",
+          "required_controls",
+          "qualification"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "function": {
+            "type": "string"
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hazards": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "required_controls": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "qualification": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "candidate_train_families": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "sources",
+          "candidate_sequence",
+          "selection"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "candidate_sequence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "selection": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fail_safe_state": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "qualification_stages": {
+      "type": "array",
+      "minItems": 3
+    },
+    "benchmark_targets": {
+      "type": "object",
+      "required": [
+        "safety",
+        "service",
+        "reliability",
+        "resource"
+      ],
+      "properties": {
+        "safety": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "service": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "reliability": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "resource": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
