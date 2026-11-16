@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/robot-config-change-qualification-v0-1/research/robot-config-change-qualification-v0-1/schemas/development-oracle-v0.1.schema.json",
+  "$id": "urn:luminous-dynamics:robot-config-change-development-oracle:v0.1",
   "title": "ROBOT-CONFIG-CHANGE-QUAL-001 public development oracle v0.1",
   "description": "Closed structural schema for the public development oracle. Structural validity does not establish oracle correctness, independence, admissibility, or physical truth.",
   "type": "object",
