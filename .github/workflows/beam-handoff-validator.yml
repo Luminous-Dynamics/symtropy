@@ -109,6 +109,7 @@ jobs:
         run: cargo clippy --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml --all-targets -- -D warnings
 
       - name: Evaluate synthetic physics-agent case registry
+        shell: bash
         run: |
           cargo run --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml -- \
             docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json \
