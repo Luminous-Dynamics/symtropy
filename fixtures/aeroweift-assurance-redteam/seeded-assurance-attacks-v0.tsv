@@ -1,0 +1,9 @@
+# attack_id|mutation|oracle_expected|verifier_expected
+drop-hazard-argument-link|remove strategy AddressesHazard edge|HAZARD_NOT_ADDRESSED|BLOCKED
+model-purpose-substitution|TrackT ModelCredibility to TrackR ConflictPerformance|REQUIRED_EVIDENCE_PURPOSE_MISSING|BLOCKED
+foreign-aircraft-scope|change evidence aircraft identity|SCOPE_SPLICE|REJECT
+reject-authority|Accepted to Rejected|AUTHORITY_DECISION_INVALID|BLOCKED
+node-expires-mid-operation|valid_until operation_end-1|NODE_VALIDITY_SHORT|REJECT
+remove-correlation|remove evidence correlation group|INSUFFICIENT_INDEPENDENT_EVIDENCE_GROUPS|BLOCKED
+remove-context-link|remove context-only relation, preserve connectivity|NONE|REVIEW_READY_ONLY
+nonexistent-edge|remove absent relation|INVALID_ATTACK|NOT_RUN
