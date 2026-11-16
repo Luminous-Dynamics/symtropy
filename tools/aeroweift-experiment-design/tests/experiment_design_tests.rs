@@ -952,7 +952,6 @@ fn reported_hypothesis_pair_count_uses_the_frozen_separation_floor() {
     );
 }
 
-
 #[test]
 fn below_floor_pairwise_contrast_cannot_create_pareto_advantage() {
     let baseline = candidate("baseline-pair-count");
@@ -962,12 +961,14 @@ fn below_floor_pairwise_contrast_cannot_create_pareto_advantage() {
         hypothesis_sha256: digest('0'),
         group_id: "model-family-c".into(),
     });
-    extra_weak_pair.hypothesis_contrasts.push(HypothesisContrast {
-        left_hypothesis_id: "hypothesis-a".into(),
-        right_hypothesis_id: "hypothesis-c".into(),
-        separation_lower_bound: 0.19,
-        contrast_estimate_sha256: digest('a'),
-    });
+    extra_weak_pair
+        .hypothesis_contrasts
+        .push(HypothesisContrast {
+            left_hypothesis_id: "hypothesis-a".into(),
+            right_hypothesis_id: "hypothesis-c".into(),
+            separation_lower_bound: 0.19,
+            contrast_estimate_sha256: digest('a'),
+        });
 
     let result = select_experiments(&[baseline, extra_weak_pair], &policy()).unwrap();
     assert_eq!(result.pareto_front.len(), 2);
