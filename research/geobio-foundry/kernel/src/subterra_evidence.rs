@@ -173,12 +173,9 @@ pub enum SemanticViolation {
     SupportedClaimMissingEvidence(&'static str),
     InvalidOriginHypothesis(usize),
     InvalidConnectivityExtent,
-    DirectConnectivityWithoutAccess,
-    DirectConnectivityWithoutInteriorSurvey,
     DemonstratedAccessMissingMethod,
     DemonstratedAccessMissingEgress,
     DemonstratedAccessMissingEvidence,
-    SurveyWithoutDemonstratedAccess,
     InvalidSurveyExtent,
     InvalidSurveyCoverage,
     SurveyMissingEvidence,
@@ -274,23 +271,12 @@ pub fn validate_site_evidence(
         violations.push(SemanticViolation::ConnectivityClaimMissingEvidence);
     }
 
-    if record.connectivity.state == ConnectivityState::DirectlyObservedConnected {
-        if !demonstrated_access(record.accessibility.state) {
-            violations.push(SemanticViolation::DirectConnectivityWithoutAccess);
-        }
-        if !surveyed_interior(record.interior_survey.state)
-            || !record
-                .interior_survey
-                .surveyed_extent_m
-                .is_some_and(|extent| extent.is_finite() && extent > 0.0)
-        {
-            violations.push(SemanticViolation::DirectConnectivityWithoutInteriorSurvey);
-        }
-        if !has_refs(&record.connectivity.evidence_refs) {
-            violations.push(SemanticViolation::SupportedClaimMissingEvidence(
-                "direct_connectivity",
-            ));
-        }
+    if record.connectivity.state == ConnectivityState::DirectlyObservedConnected
+        && !has_refs(&record.connectivity.evidence_refs)
+    {
+        violations.push(SemanticViolation::SupportedClaimMissingEvidence(
+            "direct_connectivity",
+        ));
     }
 
     if demonstrated_access(record.accessibility.state) {
@@ -316,9 +302,6 @@ pub fn validate_site_evidence(
     }
 
     if surveyed_interior(record.interior_survey.state) {
-        if !demonstrated_access(record.accessibility.state) {
-            violations.push(SemanticViolation::SurveyWithoutDemonstratedAccess);
-        }
         if !record
             .interior_survey
             .surveyed_extent_m
@@ -531,18 +514,36 @@ mod tests {
     }
 
     #[test]
-    fn direct_connectivity_cannot_coexist_with_no_access_or_survey() {
+    fn directly_observed_connectivity_is_independent_of_access_and_survey() {
         let mut record = valid_candidate();
         record.connectivity.state = ConnectivityState::DirectlyObservedConnected;
         record.connectivity.evidence_refs = vec!["interior-video-01".to_string()];
 
-        let violations = validate_site_evidence(&record).unwrap_err();
-        assert!(violations.contains(&SemanticViolation::DirectConnectivityWithoutAccess));
-        assert!(violations.contains(&SemanticViolation::DirectConnectivityWithoutInteriorSurvey));
+        // A conduit can be directly observed without a robot demonstrating
+        // traversal or the complete interior having been surveyed.
+        assert!(validate_site_evidence(&record).is_ok());
+        assert_eq!(record.accessibility.state, AccessibilityState::Unknown);
+        assert_eq!(record.interior_survey.state, InteriorSurveyState::NotSurveyed);
     }
 
     #[test]
-    fn direct_connectivity_requires_egress_and_survey_evidence() {
+    fn interior_survey_does_not_imply_demonstrated_edge_traversal() {
+        let mut record = valid_candidate();
+        record.accessibility.state = AccessibilityState::Unknown;
+        record.interior_survey = InteriorSurveyClaim {
+            state: InteriorSurveyState::Partial,
+            surveyed_extent_m: Some(5.0),
+            coverage_fraction: Some(0.2),
+            evidence_refs: vec!["remote-interior-survey-01".to_string()],
+        };
+
+        // The survey may have been acquired by a tethered, remote or otherwise
+        // non-traversal-proving instrument; access remains a separate claim.
+        assert!(validate_site_evidence(&record).is_ok());
+    }
+
+    #[test]
+    fn qualified_habitation_requires_access_egress_and_survey_evidence() {
         let mut record = valid_candidate();
         record.accessibility.state = AccessibilityState::RobotAccessDemonstrated;
         record.accessibility.access_method = Some("tethered rover".to_string());
