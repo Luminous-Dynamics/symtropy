@@ -466,6 +466,31 @@ On exact source `b9a8fc5416e721f81fe9a0c41d9cb710e78d799d`, it measured:
 
 This supports a narrow Tier-B statement for **translational free fall before contact** under the tested Q16.16 build/host. It does not validate contact dynamics, packaging, asymmetric inertia, articulated systems, robot handling or the whole receiver. Independent-engine comparison and broader contact validation remain open in [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469).
 
+### 12.6 Executable ten-fault protocol campaign
+
+The benchmark now distinguishes campaign **plan validation** from campaign **execution**:
+
+- `mfb-validate-campaign` checks the fixed ten-fault manifest and expected terminal-state oracle.
+- `mfb-run-campaign` creates a fresh handoff transaction for each episode, injects typed fault events into the Rust reference state machine and emits a machine-readable trace report.
+
+The ten executed protocol cases are:
+1. Wrong tote → preflight rejection; no release command.
+2. Over-mass payload → preflight rejection; no release command.
+3. Stale temperature observation → safe hold; no release command.
+4. Interlocked/blocked transfer gate → safe hold; no release command.
+5. Damaged or unknown seal → safe hold; no release command.
+6. Duplicate handoff → same logical command replay is suppressed; a second distinct physical-release observation moves the transaction to reconciliation; retry is blocked.
+7. Missing receiver acknowledgement after release → reconciliation required; retry is blocked.
+8. Expired grant → rejected before dispatch.
+9. Power interruption after release → reconciliation required; retry is blocked.
+10. Network partition after release → reconciliation required; retry is blocked.
+
+The runner checks that every observed terminal state matches the campaign oracle, no pre-dispatch case issues a command, every post-dispatch ambiguous case blocks retry, and no episode is falsely completed.
+
+**Evidence level:** deterministic protocol-event injection against a pure in-memory state machine. These are real executed software transitions and negative controls, but not physical fault injection. It does not actually interrupt power, partition a network, corrupt a temperature sensor, jam a gate or move an object. It does not exercise a deployed Holochain conductor or hardware. Those require separate simulator, HIL and guarded-rig campaigns.
+
+The CI workflow archives `protocol-fault-campaign.json` with the L1 physics result and analytical convergence output. Exact-head workflow qualification is pending for the new executable runner.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
