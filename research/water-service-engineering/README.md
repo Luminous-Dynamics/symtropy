@@ -141,3 +141,14 @@ The full time-resolved service semantics, scenario families, South African regul
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+## Modular greywater treatment demonstrator
+
+The source-aware architecture, process candidates, fail-safe boundary and matched test programme are documented in:
+- [WATERLOOP_MODULAR_TRAIN_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_TRAIN_ARCHITECTURE_V0_1.md)
+- [module interface manifest](waterloop-modular-train-interface-v0.1.json) and [schema](waterloop-modular-train-interface-v0.1.schema.json)
+- [source acceptance matrix](waterloop-source-acceptance-v0.1.json) and [schema](waterloop-source-acceptance-v0.1.schema.json)
+- [demonstrator test matrix](waterloop-demonstrator-test-matrix-v0.1.json) and [schema](waterloop-demonstrator-test-matrix-v0.1.schema.json)
+
+This is a research reference and planning package only. The demonstrator matrix explicitly records `physical_testing_authorized: false`; qualified water-quality, plumbing and electrical review is required before physical work.
