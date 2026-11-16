@@ -170,12 +170,12 @@ fn validate_accepted_product(record: &ObservationRecord) -> Result<(), RegisterE
         return Ok(());
     }
 
-    let quantity = match record.status {
+    let conservative_quantity = match record.status {
         ObservationStatus::Numeric => record.value.unwrap_or(0.0),
-        ObservationStatus::Range => record.range.map(|range| range.upper).unwrap_or(0.0),
+        ObservationStatus::Range => record.range.map(|range| range.lower).unwrap_or(0.0),
         ObservationStatus::Qualitative | ObservationStatus::NotReported => 0.0,
     };
-    if !quantity.is_finite() || quantity <= 0.0 {
+    if !conservative_quantity.is_finite() || conservative_quantity <= 0.0 {
         return Err(RegisterError::AcceptedProductMustBePositive);
     }
 
