@@ -167,7 +167,7 @@ separate component name
 
 Claim-relative dependence and common-mode classes remain owned by #4918. #5488 consumes its assessment and reports uncertainty; it must not build a second dependency graph.
 
-## 6. Evidence and equivalence rules
+## 7. Evidence and equivalence rules
 
 A change may preserve a claim only when one of these conditions is met:
 
@@ -181,7 +181,7 @@ Evidence dimensions remain orthogonal. Configuration identity, calibration, meas
 
 A geometry-equivalence witness cannot preserve a process-quality claim unless that claim's own evidence profile says the witness covers the process variables and acceptance procedure. A battery-interface witness cannot preserve battery-health or endurance claims without the relevant measurements.
 
-## 7. Requalification obligations are proposals
+## 8. Requalification obligations are proposals
 
 The adapter may emit a claim-specific proposed next action:
 
@@ -197,7 +197,7 @@ The output must identify the owner, procedure/profile reference, claim, changed 
 
 It does **not** acquire evidence, contact a laboratory, spend money, alter a robot, commission a module, clear a safety hold or authorize work. Where cost/source options are known, the adapter can pass a read-only request proposal to #12046. Any real acquisition/disclosure/action stays with the proper human or institutional authority.
 
-## 8. Output contract and auditability
+## 9. Output contract and auditability
 
 Every evaluated claim should return at least:
 
@@ -218,7 +218,7 @@ Historical evidence is never deleted or rewritten because it is no longer applic
 
 Results must be deterministic for identical canonical inputs and pinned owner revisions. Reordering JSON object keys must not change semantic identity; changing source bytes must still change the raw artifact digest. Conflicting, missing or unreconciled inputs remain explicit.
 
-## 9. Evaluator implementation gate
+## 10. Evaluator implementation gate
 
 Do not implement the scored Rust evaluator until all of the following exist:
 
@@ -232,6 +232,6 @@ Do not implement the scored Rust evaluator until all of the following exist:
 
 Until these gates are satisfied, the right executable work is to improve the public corpus, oracle consistency, schema integrity and benchmark audit—not to build a plausible-looking evaluator that silently invents owner semantics.
 
-## 10. Nonclaims
+## 11. Nonclaims
 
 This note does not define or implement an upstream API, dependency engine, capability registry, evidence store, equivalence authority, safety function, robot controller, commissioning workflow, maintenance ledger, physical test, certification or release decision. It is a proposed adapter contract for coordinating the existing owners.
