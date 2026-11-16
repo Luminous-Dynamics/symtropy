@@ -1,6 +1,6 @@
 use aeroweift_contingency_resilience::{
-    Applicability, AuthorizationState, ContingencyCase, ContingencyKind, EvidenceState,
-    EvaluationError, InventoryState, OptionBounds, OptionDisposition, OptionInventory,
+    Applicability, AuthorizationState, ContingencyCase, ContingencyKind, EvaluationError,
+    EvidenceState, InventoryState, OptionBounds, OptionDisposition, OptionInventory,
     RecoverabilityPolicy, RecoverabilityStatus, RecoveryOption, SubjectScope,
     evaluate_recoverability,
 };
@@ -111,12 +111,18 @@ fn evaluate(
 fn positive_control_proves_two_independent_recovery_options() {
     let result = evaluate(
         &case(),
-        &[option("return", &["C2", "AIRFRAME"]), option("divert", &["GNSS", "AIRFRAME"])],
+        &[
+            option("return", &["C2", "AIRFRAME"]),
+            option("divert", &["GNSS", "AIRFRAME"]),
+        ],
         &inventory(),
         &policy(),
     )
     .unwrap();
-    assert_eq!(result.status, RecoverabilityStatus::CoveredWithRequiredDiversity);
+    assert_eq!(
+        result.status,
+        RecoverabilityStatus::CoveredWithRequiredDiversity
+    );
     assert_eq!(result.admissible_option_ids, vec!["divert", "return"]);
     assert_eq!(result.independent_option_witness, vec!["divert", "return"]);
     assert!(result.inventory_complete);
@@ -139,7 +145,10 @@ fn common_c2_dependency_prevents_false_diversity_credit() {
 fn different_geometry_does_not_override_shared_gnss_dependency() {
     let result = evaluate(
         &case(),
-        &[option("geometry-a", &["GNSS"]), option("geometry-b", &["GNSS"])],
+        &[
+            option("geometry-a", &["GNSS"]),
+            option("geometry-b", &["GNSS"]),
+        ],
         &inventory(),
         &policy(),
     )
@@ -159,9 +168,11 @@ fn known_failed_dependency_rejects_the_option() {
     )
     .unwrap();
     assert_eq!(result.status, RecoverabilityStatus::NoAdmissibleOption);
-    assert!(result.options[0].rejection_reasons.contains(
-        &aeroweift_contingency_resilience::RejectionReason::FailedDependency
-    ));
+    assert!(
+        result.options[0]
+            .rejection_reasons
+            .contains(&aeroweift_contingency_resilience::RejectionReason::FailedDependency)
+    );
 }
 
 #[test]
@@ -170,7 +181,10 @@ fn incomplete_option_dependency_inventory_is_indeterminate() {
     candidate.dependency_inventory_complete = false;
     let result = evaluate(&case(), &[candidate], &inventory(), &policy()).unwrap();
     assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
-    assert_eq!(result.options[0].disposition, OptionDisposition::Indeterminate);
+    assert_eq!(
+        result.options[0].disposition,
+        OptionDisposition::Indeterminate
+    );
 }
 
 #[test]
@@ -284,9 +298,11 @@ fn subject_authorization_revision_must_match_exactly() {
     candidate.subject.authorization_revision += 1;
     let result = evaluate(&case(), &[candidate], &inventory(), &policy()).unwrap();
     assert_eq!(result.status, RecoverabilityStatus::NoAdmissibleOption);
-    assert!(result.options[0].rejection_reasons.contains(
-        &aeroweift_contingency_resilience::RejectionReason::SubjectScopeMismatch
-    ));
+    assert!(
+        result.options[0]
+            .rejection_reasons
+            .contains(&aeroweift_contingency_resilience::RejectionReason::SubjectScopeMismatch)
+    );
 }
 
 #[test]
@@ -301,7 +317,13 @@ fn model_revision_mismatch_cannot_inherit_old_recoverability_credit() {
 fn out_of_domain_case_is_not_credited() {
     let mut contingency = case();
     contingency.applicability = Applicability::OutOfDomain;
-    let result = evaluate(&contingency, &[option("route", &["GNSS"])], &inventory(), &policy()).unwrap();
+    let result = evaluate(
+        &contingency,
+        &[option("route", &["GNSS"])],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
     assert_eq!(result.status, RecoverabilityStatus::OutOfDomain);
 }
 
@@ -309,7 +331,13 @@ fn out_of_domain_case_is_not_credited() {
 fn unknown_case_applicability_is_indeterminate() {
     let mut contingency = case();
     contingency.applicability = Applicability::Unknown;
-    let result = evaluate(&contingency, &[option("route", &["GNSS"])], &inventory(), &policy()).unwrap();
+    let result = evaluate(
+        &contingency,
+        &[option("route", &["GNSS"])],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
     assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
 }
 
@@ -351,8 +379,18 @@ fn known_failure_plus_unknown_candidate_preserves_indeterminate_status() {
     unknown.evidence_state = EvidenceState::Unknown;
     let result = evaluate(&case(), &[failed, unknown], &inventory(), &policy()).unwrap();
     assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
-    assert!(result.options.iter().any(|item| !item.rejection_reasons.is_empty()));
-    assert!(result.options.iter().any(|item| !item.uncertainty_reasons.is_empty()));
+    assert!(
+        result
+            .options
+            .iter()
+            .any(|item| !item.rejection_reasons.is_empty())
+    );
+    assert!(
+        result
+            .options
+            .iter()
+            .any(|item| !item.uncertainty_reasons.is_empty())
+    );
 }
 
 #[test]
@@ -368,7 +406,10 @@ fn common_airframe_dependency_can_be_explicitly_exempted_from_diversity() {
     )
     .unwrap();
     assert_eq!(result.status, RecoverabilityStatus::CoveredWithRequiredDiversity);
-    assert_eq!(result.options[0].diversity_dependencies, vec!["C2".to_string()]);
+    assert_eq!(
+        result.options[0].diversity_dependencies,
+        vec!["C2".to_string()]
+    );
 }
 
 #[test]
@@ -428,7 +469,12 @@ fn option_permutation_preserves_canonical_assessment() {
 fn duplicate_option_identity_is_rejected() {
     let candidate = option("duplicate", &["GNSS"]);
     assert_eq!(
-        evaluate(&case(), &[candidate.clone(), candidate], &inventory(), &policy()),
+        evaluate(
+            &case(),
+            &[candidate.clone(), candidate],
+            &inventory(),
+            &policy()
+        ),
         Err(EvaluationError::DuplicateOptionId)
     );
 }
@@ -436,7 +482,9 @@ fn duplicate_option_identity_is_rejected() {
 #[test]
 fn duplicate_receipt_identity_is_rejected() {
     let mut candidate = option("duplicate-receipt", &["GNSS"]);
-    candidate.evidence_receipt_ids.push(candidate.evidence_receipt_ids[0].clone());
+    candidate
+        .evidence_receipt_ids
+        .push(candidate.evidence_receipt_ids[0].clone());
     assert_eq!(
         evaluate(&case(), &[candidate], &inventory(), &policy()),
         Err(EvaluationError::DuplicateReceiptId)
