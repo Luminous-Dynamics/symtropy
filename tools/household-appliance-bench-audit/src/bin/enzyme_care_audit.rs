@@ -136,7 +136,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                     errors.push("PCDI comparator must be labelled polymer-assisted, not enzyme-only".to_owned());
                 }
             }
-            if id == "WOOL-PROTEASE-ONLY-2025" {
+            if id == "WOOL-WAVE-RIDING-PROTEASE-2025" {
                 have_pure_wool_enzyme = true;
                 if family != "enzyme_only" || !auxiliaries.is_empty() || !enzyme_only_claim {
                     errors.push("protease-only wool comparator must remain enzyme-only".to_owned());
@@ -437,7 +437,7 @@ mod tests {
     }
 
     #[test]
-    fn PCDI_assisted_treatment_cannot_be_labelled_enzyme_only() {
+    fn pcdi_assisted_treatment_cannot_be_labelled_enzyme_only() {
         let (schema, mut profile) = fixture();
         profile["external_comparators"][0]["enzyme_only_claim"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
@@ -467,7 +467,7 @@ mod tests {
     }
 
     #[test]
-    fn 60_degree_stain_result_cannot_be_called_cold_wash() {
+    fn sixty_degree_stain_result_cannot_be_called_cold_wash() {
         let (schema, mut profile) = fixture();
         profile["external_comparators"][4]["reported_temperature_c"] = json!(30);
         assert!(!is_valid(&schema, &profile));
