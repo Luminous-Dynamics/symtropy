@@ -84,11 +84,22 @@ The optimized metric re-basing path computes two matrix products, O(N^3), instea
 
 This is an internal algorithmic scaling comparison, not a simulator or industry solver result. Retain the exact runner/compiler/CPU receipt before making a speed claim.
 
+## Operator conditioning extension
+
+The stacked operator track in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https://github.com/Luminous-Dynamics/symtropy/issues/4818) adds separate frame-typed maps:
+
+- `TangentToTangentOperator`: whitened matrix (B=L_Y^T A L_X^{-T});
+- `TangentToCotangentOperator`: whitened matrix (B=L_Y^{-1} A L_X^{-T}).
+
+A one-sided Jacobi SVD estimates the singular spectrum without forming (B^T B). Rank-deficient maps receive no finite condition estimate; maps beyond the declared condition envelope are marked separately. The mass Riesz map (M:T\to T^*), paired with the same metric on both sides, should whiten to identity and have condition 1. This is a check of the Riesz isomorphism, not a claim that arbitrary physical operators are well-conditioned.
+
+The operator module now supports square and rectangular dense maps in both tangent-to-tangent and tangent-to-cotangent variance classes. The one-sided Jacobi spectrum is a numerical estimate, not a formal interval enclosure, and the current reference does not qualify nonlinear residual-to-state maps.
+
 ## Scope and next step
 
 v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
 
-The next step is to connect these frame-typed and constraint-space norms to the physical one-step dumbbell fixture in Symtropy #4730 and its conditioning-aware error envelope in #4765. Every residual must identify its domain/codomain and tensor variance; raw coordinate norms remain diagnostic only.
+The next step is to connect these frame-typed, operator-condition and constraint-space receipts to the physical one-step dumbbell fixture in Symtropy #4730 and the matched industry comparison in #4805. Every residual must identify its domain/codomain, metric and tensor variance; raw coordinate norms remain diagnostic only.
 
 ## Reproducible microbenchmark v0.1
 
