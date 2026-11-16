@@ -97,10 +97,19 @@ pub struct HumanReviewReceipt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IndependentAdjudicationReceipt {
+    /// Two or more distinct pseudonymous reviewer keys.
+    pub reviewer_keys: Vec<String>,
+    pub decision: HumanDecision,
+    pub reason_code: String,
+    pub reviewed_at_unix_ms: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EvidenceDisposition {
     MachineGenerated,
     HumanReviewed(HumanReviewReceipt),
-    IndependentlyAdjudicated(HumanReviewReceipt),
+    IndependentlyAdjudicated(IndependentAdjudicationReceipt),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -140,6 +149,9 @@ pub enum EvidenceReceiptError {
     EmptyProcessorRevision,
     EmptyReviewerKey,
     EmptyReviewReason,
+    InsufficientIndependentReviewers,
+    DuplicateReviewerKey,
+    StringTooLong,
     InvalidSpatialUncertainty,
     DepthCalibrationRequired,
     ThreeDimensionalUncertaintyRequiresDepthCalibration,
@@ -176,6 +188,13 @@ impl fmt::Display for EvidenceReceiptError {
             Self::EmptyProcessorRevision => write!(f, "processor revision cannot be empty"),
             Self::EmptyReviewerKey => write!(f, "human reviewer key cannot be empty"),
             Self::EmptyReviewReason => write!(f, "human review reason code cannot be empty"),
+            Self::InsufficientIndependentReviewers => {
+                write!(f, "independent adjudication requires at least two reviewers")
+            }
+            Self::DuplicateReviewerKey => {
+                write!(f, "independent adjudication reviewer keys must be distinct")
+            }
+            Self::StringTooLong => write!(f, "canonical receipt string exceeds u32 length limit"),
             Self::InvalidSpatialUncertainty => {
                 write!(f, "spatial uncertainty must be finite and non-negative")
             }
@@ -295,8 +314,7 @@ impl ObservationEvidenceReceipt {
 
         match &self.disposition {
             EvidenceDisposition::MachineGenerated => {}
-            EvidenceDisposition::HumanReviewed(review)
-            | EvidenceDisposition::IndependentlyAdjudicated(review) => {
+            EvidenceDisposition::HumanReviewed(review) => {
                 if review.reviewer_key.trim().is_empty() {
                     return Err(EvidenceReceiptError::EmptyReviewerKey);
                 }
@@ -304,8 +322,126 @@ impl ObservationEvidenceReceipt {
                     return Err(EvidenceReceiptError::EmptyReviewReason);
                 }
             }
+            EvidenceDisposition::IndependentlyAdjudicated(review) => {
+                if review.reviewer_keys.len() < 2 {
+                    return Err(EvidenceReceiptError::InsufficientIndependentReviewers);
+                }
+                let mut reviewer_keys = std::collections::BTreeSet::new();
+                for key in &review.reviewer_keys {
+                    if key.trim().is_empty() {
+                        return Err(EvidenceReceiptError::EmptyReviewerKey);
+                    }
+                    if !reviewer_keys.insert(key) {
+                        return Err(EvidenceReceiptError::DuplicateReviewerKey);
+                    }
+                }
+                if review.reason_code.trim().is_empty() {
+                    return Err(EvidenceReceiptError::EmptyReviewReason);
+                }
+            }
         }
         Ok(())
+    }
+
+    /// Return deterministic, versioned bytes for external hashing or archival.
+    ///
+    /// Strings use UTF-8 with a little-endian u32 byte length. Integers and
+    /// IEEE-754 f64 bit patterns use little-endian encoding. Optional fields
+    /// have explicit 0/1 tags. Negative zero is normalized to positive zero.
+    /// Reviewer keys in independent adjudication are serialized in sorted
+    /// order because the panel is semantically an unordered set.
+    ///
+    /// This method does not compute SHA-256; it defines canonical bytes only.
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, EvidenceReceiptError> {
+        self.validate()?;
+        let mut out = Vec::with_capacity(256);
+        out.extend_from_slice(b"MYCO-EVIDENCE-RECEIPT\\0");
+        push_u16(&mut out, 1);
+
+        push_u64(&mut out, self.id.0);
+        out.extend_from_slice(&self.source_file_sha256.0);
+        push_u32(&mut out, self.frame.frame.0);
+        match self.frame.slice {
+            Some(slice) => {
+                push_u8(&mut out, 1);
+                push_u32(&mut out, slice.0);
+            }
+            None => push_u8(&mut out, 0),
+        }
+        push_f64(&mut out, self.frame.timestamp_s);
+
+        push_u64(&mut out, self.roi.id.0);
+        push_u32(&mut out, self.roi.x_min);
+        push_u32(&mut out, self.roi.y_min);
+        push_u32(&mut out, self.roi.width_px);
+        push_u32(&mut out, self.roi.height_px);
+
+        push_f64(&mut out, self.calibration.pixel_width_um);
+        push_f64(&mut out, self.calibration.pixel_height_um);
+        push_optional_f64(&mut out, self.calibration.voxel_depth_um);
+        push_optional_f64(&mut out, self.calibration.frame_interval_s);
+
+        push_string(&mut out, &self.processor_name)?;
+        push_string(&mut out, &self.processor_revision)?;
+        out.extend_from_slice(&self.processor_parameters_sha256.0);
+        push_u8(&mut out, subject_tag(self.subject));
+
+        match self.graph_target {
+            Some(EvidenceGraphTarget::Node(id)) => {
+                push_u8(&mut out, 1);
+                push_u64(&mut out, id.0);
+            }
+            Some(EvidenceGraphTarget::Segment(id)) => {
+                push_u8(&mut out, 2);
+                push_u64(&mut out, id.0);
+            }
+            None => push_u8(&mut out, 0),
+        }
+        match self.graph_event {
+            Some(event_id) => {
+                push_u8(&mut out, 1);
+                push_u64(&mut out, event_id.0);
+            }
+            None => push_u8(&mut out, 0),
+        }
+
+        match self.uncertainty {
+            Some(uncertainty) => {
+                push_u8(&mut out, 1);
+                push_optional_f64(&mut out, uncertainty.x_std_dev_um);
+                push_optional_f64(&mut out, uncertainty.y_std_dev_um);
+                push_optional_f64(&mut out, uncertainty.z_std_dev_um);
+            }
+            None => push_u8(&mut out, 0),
+        }
+
+        match &self.disposition {
+            EvidenceDisposition::MachineGenerated => push_u8(&mut out, 0),
+            EvidenceDisposition::HumanReviewed(review) => {
+                push_u8(&mut out, 1);
+                push_string(&mut out, &review.reviewer_key)?;
+                push_u8(&mut out, decision_tag(review.decision));
+                push_string(&mut out, &review.reason_code)?;
+                push_u64(&mut out, review.reviewed_at_unix_ms);
+            }
+            EvidenceDisposition::IndependentlyAdjudicated(review) => {
+                push_u8(&mut out, 2);
+                let mut reviewers: Vec<&str> =
+                    review.reviewer_keys.iter().map(String::as_str).collect();
+                reviewers.sort_unstable();
+                push_u32(
+                    &mut out,
+                    u32::try_from(reviewers.len()).map_err(|_| EvidenceReceiptError::StringTooLong)?,
+                );
+                for reviewer in reviewers {
+                    push_string(&mut out, reviewer)?;
+                }
+                push_u8(&mut out, decision_tag(review.decision));
+                push_string(&mut out, &review.reason_code)?;
+                push_u64(&mut out, review.reviewed_at_unix_ms);
+            }
+        }
+        Ok(out)
     }
 
     pub fn validate_graph_target(&self, graph: &HyphalGraph) -> Result<(), EvidenceReceiptError> {
@@ -326,6 +462,65 @@ impl ObservationEvidenceReceipt {
                 Ok(())
             }
         }
+    }
+}
+
+fn push_u8(out: &mut Vec<u8>, value: u8) {
+    out.push(value);
+}
+
+fn push_u16(out: &mut Vec<u8>, value: u16) {
+    out.extend_from_slice(&value.to_le_bytes());
+}
+
+fn push_u32(out: &mut Vec<u8>, value: u32) {
+    out.extend_from_slice(&value.to_le_bytes());
+}
+
+fn push_u64(out: &mut Vec<u8>, value: u64) {
+    out.extend_from_slice(&value.to_le_bytes());
+}
+
+fn push_f64(out: &mut Vec<u8>, value: f64) {
+    let bits = if value == 0.0 { 0.0_f64.to_bits() } else { value.to_bits() };
+    push_u64(out, bits);
+}
+
+fn push_optional_f64(out: &mut Vec<u8>, value: Option<f64>) {
+    match value {
+        Some(value) => {
+            push_u8(out, 1);
+            push_f64(out, value);
+        }
+        None => push_u8(out, 0),
+    }
+}
+
+fn push_string(out: &mut Vec<u8>, value: &str) -> Result<(), EvidenceReceiptError> {
+    let length = u32::try_from(value.len()).map_err(|_| EvidenceReceiptError::StringTooLong)?;
+    push_u32(out, length);
+    out.extend_from_slice(value.as_bytes());
+    Ok(())
+}
+
+const fn decision_tag(decision: HumanDecision) -> u8 {
+    match decision {
+        HumanDecision::Confirmed => 1,
+        HumanDecision::Rejected => 2,
+        HumanDecision::Ambiguous => 3,
+    }
+}
+
+const fn subject_tag(subject: ObservationSubject) -> u8 {
+    match subject {
+        ObservationSubject::HyphalSegmentTrace => 1,
+        ObservationSubject::BranchPointCandidate => 2,
+        ObservationSubject::JunctionCandidate => 3,
+        ObservationSubject::CrossingCandidate => 4,
+        ObservationSubject::DepthEstimate => 5,
+        ObservationSubject::GrowingTip => 6,
+        ObservationSubject::CytoplasmicFlowStream => 7,
+        ObservationSubject::FluorescenceRoi => 8,
     }
 }
 
@@ -524,6 +719,97 @@ mod tests {
         item.graph_event = Some(EventId(9));
         item.graph_target = Some(EvidenceGraphTarget::Node(NodeId(3)));
         assert_eq!(item.validate_graph_target(&graph), Ok(()));
+    }
+
+    #[test]
+    fn canonical_bytes_are_deterministic_and_versioned() {
+        let item = receipt();
+        let first = item.canonical_bytes().unwrap();
+        let second = item.canonical_bytes().unwrap();
+        assert_eq!(first, second);
+        assert!(first.starts_with(b"MYCO-EVIDENCE-RECEIPT\\0"));
+        assert_eq!(&first[21..23], &1_u16.to_le_bytes());
+    }
+
+    #[test]
+    fn canonical_bytes_change_when_source_or_roi_changes() {
+        let base = receipt().canonical_bytes().unwrap();
+
+        let mut changed_source = receipt();
+        changed_source.source_file_sha256 = Sha256Digest([3; 32]);
+        assert_ne!(base, changed_source.canonical_bytes().unwrap());
+
+        let mut changed_roi = receipt();
+        changed_roi.roi.x_min += 1;
+        assert_ne!(base, changed_roi.canonical_bytes().unwrap());
+    }
+
+    #[test]
+    fn canonical_bytes_normalize_negative_zero() {
+        let mut positive_zero = receipt();
+        positive_zero.frame.timestamp_s = 0.0;
+        let mut negative_zero = receipt();
+        negative_zero.frame.timestamp_s = -0.0;
+        assert_eq!(
+            positive_zero.canonical_bytes().unwrap(),
+            negative_zero.canonical_bytes().unwrap()
+        );
+    }
+
+    #[test]
+    fn independent_adjudication_requires_two_distinct_reviewers() {
+        let mut item = receipt();
+        item.disposition = EvidenceDisposition::IndependentlyAdjudicated(
+            IndependentAdjudicationReceipt {
+                reviewer_keys: vec!["reviewer-a".to_owned()],
+                decision: HumanDecision::Confirmed,
+                reason_code: "continuity_confirmed".to_owned(),
+                reviewed_at_unix_ms: 2,
+            },
+        );
+        assert_eq!(
+            item.validate(),
+            Err(EvidenceReceiptError::InsufficientIndependentReviewers)
+        );
+
+        item.disposition = EvidenceDisposition::IndependentlyAdjudicated(
+            IndependentAdjudicationReceipt {
+                reviewer_keys: vec!["reviewer-a".to_owned(), "reviewer-a".to_owned()],
+                decision: HumanDecision::Confirmed,
+                reason_code: "continuity_confirmed".to_owned(),
+                reviewed_at_unix_ms: 2,
+            },
+        );
+        assert_eq!(
+            item.validate(),
+            Err(EvidenceReceiptError::DuplicateReviewerKey)
+        );
+    }
+
+    #[test]
+    fn independent_adjudication_serialization_is_panel_order_independent() {
+        let mut first = receipt();
+        first.disposition = EvidenceDisposition::IndependentlyAdjudicated(
+            IndependentAdjudicationReceipt {
+                reviewer_keys: vec!["reviewer-a".to_owned(), "reviewer-b".to_owned()],
+                decision: HumanDecision::Confirmed,
+                reason_code: "continuity_confirmed".to_owned(),
+                reviewed_at_unix_ms: 2,
+            },
+        );
+        let mut second = first.clone();
+        second.disposition = EvidenceDisposition::IndependentlyAdjudicated(
+            IndependentAdjudicationReceipt {
+                reviewer_keys: vec!["reviewer-b".to_owned(), "reviewer-a".to_owned()],
+                decision: HumanDecision::Confirmed,
+                reason_code: "continuity_confirmed".to_owned(),
+                reviewed_at_unix_ms: 2,
+            },
+        );
+        assert_eq!(
+            first.canonical_bytes().unwrap(),
+            second.canonical_bytes().unwrap()
+        );
     }
 
     #[test]
