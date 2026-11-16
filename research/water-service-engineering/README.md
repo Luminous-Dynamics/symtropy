@@ -141,3 +141,15 @@ The full time-resolved service semantics, scenario families, South African regul
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+## Modular WaterLoop reference architecture — 16 November 2026
+
+The source-separated, swappable process utility design is documented in MODULAR_WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md. Its machine-readable candidate catalogue and safety/test contracts are:
+- modular-train-options-v0.1.json
+- modular-train-interface.schema.json
+- modular-train-fault-matrix-v0.1.json
+
+The first intended prototype is non-potable bathroom shower/bath light-greywater only, in an unoccupied test cell, with separate raw equalisation and treated-product quarantine storage. Laundry, kitchen, blackwater and stormwater are excluded from the first trial and must not be blended into the source feed. Four candidate train families are listed but none is selected or qualified: gravity/basic collection baseline, UF+UV, ozone+GAC+UV, and nature-based hybrid.
+
+This child composes with physical demonstrator #5335, continuity #5364/#5368, economics #5425/#5429, Mycelix metrology/quality and Sol-Atlas household outcome owners. #5335 remains the physical P&ID/test-cell owner. The JSON files are design candidates/fault scripts only; no hardware is authorized or qualified.
