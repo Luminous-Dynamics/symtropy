@@ -53,6 +53,9 @@
         },
         {
           "@id": "evidence/protective-model-evidence-envelope-v0.1.json"
+        },
+        {
+          "@id": "schemas/protect-evidence-binding-v0.1.schema.json"
         }
       ],
       "publisher": {
@@ -162,6 +165,17 @@
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY",
       "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY"
+    },
+    {
+      "@id": "schemas/protect-evidence-binding-v0.1.schema.json",
+      "@type": "File",
+      "name": "protect-evidence-binding-v0.1.schema.json",
+      "encodingFormat": "application/schema+json",
+      "contentSize": "3896",
+      "sha256": "851e488723f971bfd59e1c86f8a2ecc86fe437c1cb9cd54ee2d119adc834c81c",
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY"
     }
   ]
 }
