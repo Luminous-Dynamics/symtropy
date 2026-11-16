@@ -246,6 +246,21 @@ fn multiply_interval<const R: usize, const K: usize, const C: usize>(
     Ok(result)
 }
 
+fn multiply_interval_vector<const R: usize, const K: usize>(
+    matrix: &[[Interval; K]; R],
+    vector: &[Interval; K],
+) -> Result<[Interval; R], ConstraintBasisErrorV1> {
+    let mut result = [Interval::zero(); R];
+    for row in 0..R {
+        let mut sum = Interval::zero();
+        for column in 0..K {
+            sum = sum.add(matrix[row][column].mul(vector[column])?)?;
+        }
+        result[row] = sum;
+    }
+    Ok(result)
+}
+
 fn multiply_point_interval<const R: usize, const K: usize, const C: usize>(
     left: &[[f64; K]; R],
     right: &[[Interval; C]; K],
@@ -612,8 +627,8 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
 
     // Check J delta_v = r in both constraint representations.
     let residual_reconstructed_original =
-        multiply_interval(jacobian, &minimum_kinetic_correction_original)?;
-    let residual_reconstructed_transformed = multiply_interval(
+        multiply_interval_vector(jacobian, &minimum_kinetic_correction_original)?;
+    let residual_reconstructed_transformed = multiply_interval_vector(
         &transformed_jacobian,
         &minimum_kinetic_correction_transformed,
     )?;
