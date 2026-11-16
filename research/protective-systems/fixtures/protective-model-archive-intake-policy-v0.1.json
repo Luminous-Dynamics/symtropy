@@ -1,0 +1,26 @@
+{
+  "schema_version": "protective-model-archive-intake-policy/0.1",
+  "policy_id": "SYNTHETIC-ARCHIVE-INTAKE-TEST-POLICY-001",
+  "policy_class": "SYNTHETIC_CONFORMANCE_ONLY_NOT_FOR_PRODUCTION",
+  "profile": "ZIP_SINGLE_DISK_NO_ZIP64_NO_ENCRYPTION_NO_SYMLINKS_V0_1",
+  "max_archive_bytes": 1048576,
+  "max_central_directory_bytes": 262144,
+  "max_entries": 32,
+  "max_filename_bytes": 128,
+  "max_compressed_member_bytes": 131072,
+  "max_uncompressed_member_bytes": 262144,
+  "max_aggregate_uncompressed_bytes": 524288,
+  "max_declared_compression_ratio": 20,
+  "permitted_compression_methods": [
+    0,
+    8
+  ],
+  "allow_utf8_names": false,
+  "allow_symlinks": false,
+  "allow_special_file_types": false,
+  "allow_zip64": false,
+  "allow_multidisk": false,
+  "allow_encryption": false,
+  "allow_data_descriptors": false,
+  "extract_members": false
+}
