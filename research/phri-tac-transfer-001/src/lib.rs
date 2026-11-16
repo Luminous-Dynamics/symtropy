@@ -629,13 +629,13 @@ fn validate_case(case: &Case) -> Result<(), String> {
         }
     }
 
-    if let Some(calibration) = &input.target_calibration {
-        if !is_hex_digest(&calibration.profile_digest) {
-            return Err(format!(
-                "{}: target calibration profile digest is invalid",
-                case.id
-            ));
-        }
+    if let Some(calibration) = &input.target_calibration
+        && !is_hex_digest(&calibration.profile_digest)
+    {
+        return Err(format!(
+            "{}: target calibration profile digest is invalid",
+            case.id
+        ));
     }
 
     let derived = expected_for(input);
