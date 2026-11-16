@@ -252,8 +252,7 @@ fn minimize_box_quadratic(
             for index in 0..free_count {
                 let parameter = solution[index];
                 if !parameter.is_finite()
-                    || parameter < -PARAMETER_EPSILON
-                    || parameter > 1.0 + PARAMETER_EPSILON
+                    || !(-PARAMETER_EPSILON..=1.0 + PARAMETER_EPSILON).contains(&parameter)
                 {
                     continue;
                 }
@@ -263,7 +262,8 @@ fn minimize_box_quadratic(
             // Reject the entire face if any free parameter was infeasible.
             let feasible = (0..free_count).all(|index| {
                 let value = solution[index];
-                value.is_finite() && value >= -PARAMETER_EPSILON && value <= 1.0 + PARAMETER_EPSILON
+                value.is_finite()
+                    && (-PARAMETER_EPSILON..=1.0 + PARAMETER_EPSILON).contains(&value)
             });
             if !feasible {
                 continue;
