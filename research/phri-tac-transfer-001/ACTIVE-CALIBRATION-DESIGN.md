@@ -51,6 +51,14 @@ The candidate planner receives only the candidate stimulus description, permitte
 
 The independent reference system owns the actual applied force/displacement labels. A commanded stage position, target controller setpoint or candidate sensor self-report is not a reference observation.
 
+## First executable planner slice
+
+The Rust crate now includes a deterministic coverage-first selection primitive. It filters candidates by exact target unit/profile and phantom revision, current independent reference calibration, qualified method, and within-envelope conditions. It satisfies required strata before using a model-supplied information-per-cost ranking for optional contacts.
+
+This is intentionally narrower than full active experimental design: the current primitive does not compute D-optimality, posterior covariance, nonlinear sensitivity, uncertainty propagation or expected reduction in measurement uncertainty. It does not command the fixture. It only creates a candidate contact list from predeclared eligible stimuli.
+
+The initial tests verify mandatory coverage precedence, stale-reference/method/condition exclusion, target/phantom identity binding, budget shortfall, deterministic tie-breaking, duplicate identities and invalid ranking values. These are software contract tests only, not physical calibration results.
+
 ## Compared selection policies
 
 Freeze at least these policies against the same candidate set and sample budget:
