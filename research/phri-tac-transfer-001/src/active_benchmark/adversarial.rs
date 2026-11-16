@@ -478,7 +478,7 @@ pub fn run_adversarial_campaign(
         let reference_integrity = reference_integrity_check(
             &target_reference_domain.reference_force_observations_n,
             &target_reference_domain.independent_check_reference_force_observations_n,
-            0.02,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
         )?;
 
         family_summaries.push(FamilyCampaignResult {
@@ -511,7 +511,7 @@ mod tests {
         let integrity = reference_integrity_check(
             &domain.reference_force_observations_n,
             &domain.independent_check_reference_force_observations_n,
-            0.02,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
         )
         .expect("reference integrity report");
         assert!(!integrity.accepted);
@@ -539,7 +539,7 @@ mod tests {
         let integrity = reference_integrity_check(
             &domain.reference_force_observations_n,
             &domain.independent_check_reference_force_observations_n,
-            0.02,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
         )
         .expect("pairwise reference check");
         assert!(integrity.accepted);
