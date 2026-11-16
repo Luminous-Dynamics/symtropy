@@ -70,6 +70,22 @@ Design hypotheses:
 - Replaceable wear parts and supplier-neutral interfaces where these improve repairability.
 - Load-aware motor control may adapt speed/torque, but inferred texture is not observed texture. Verify against measured particle distributions and output mass.
 
+### 3.4 Power- and grid-aware operation
+
+Treat available electrical capacity as a declared household constraint, not an assumed constant. This is especially useful in markets where appliances may operate on household inverters, generators or constrained circuits.
+
+The scheduler should accept a power envelope supplied by the user / installer: continuous real-power limit, short-duration surge capability, permitted concurrent loads, voltage/frequency range and any known circuit restrictions. These are inputs to a schedule, not values inferred from an appliance marketing wattage.
+
+Research hypotheses:
+- stagger the processor and heating module when their combined draw would exceed a declared envelope;
+- use retained heat / insulation and sequencing to reduce unnecessary reheating only where the food-quality and food-safety evidence supports the profile;
+- expose expected peak draw and duration alongside total energy and time-to-plate;
+- preserve local manual control and deterministic appliance safety when network, scheduler or power is lost;
+- do not automatically restart a pressure cycle after power restoration unless the exact appliance's manufacturer-defined recovery behavior permits it;
+- keep backup batteries/inverters external to the first appliance design; qualify appliance and power-source compatibility independently.
+
+Benchmark a matched multi-dish workflow under a declared power cap: manual scheduling, fixed-rule scheduling and Symtropy scheduling receive the same tasks, appliances, ingredients and power envelope. Record peak real power, duration above threshold, cap violations, total Wh, time-to-plate, user-present time, meal acceptance and interruption recovery disposition. Include waveform/power-quality constraints where an inverter or generator is used. Never intentionally interrupt a pressurized appliance outside a manufacturer-approved safe test procedure.
+
 ### 3.3 Food and ingredient interfaces
 
 A small set of stackable containers may connect delivery crates, dry/cold storage, weighing, portioning, preparation, serving and leftovers.
