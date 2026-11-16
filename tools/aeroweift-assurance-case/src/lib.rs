@@ -662,22 +662,46 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
     Ok(())
 }
 
-fn evidence_purpose_matches_source(
-    source: EvidenceSourceKind,
-    purpose: EvidencePurpose,
-) -> bool {
+fn evidence_purpose_matches_source(source: EvidenceSourceKind, purpose: EvidencePurpose) -> bool {
     matches!(
         (source, purpose),
         (EvidenceSourceKind::TrackL, EvidencePurpose::PntReachability)
-            | (EvidenceSourceKind::TrackM, EvidencePurpose::SurveillanceObservability)
-            | (EvidenceSourceKind::TrackN, EvidencePurpose::IntentConformance)
-            | (EvidenceSourceKind::TrackP, EvidencePurpose::CausalReceiptBinding)
-            | (EvidenceSourceKind::TrackQ, EvidencePurpose::AuthenticatedCustody)
-            | (EvidenceSourceKind::TrackR, EvidencePurpose::ConflictPerformance)
-            | (EvidenceSourceKind::TrackS, EvidencePurpose::MultiSubjectScope)
-            | (EvidenceSourceKind::TrackT, EvidencePurpose::ModelCredibility)
-            | (EvidenceSourceKind::TrackU, EvidencePurpose::ModelRequalification)
-            | (EvidenceSourceKind::TrackVPlanning, EvidencePurpose::ExperimentPlan)
+            | (
+                EvidenceSourceKind::TrackM,
+                EvidencePurpose::SurveillanceObservability
+            )
+            | (
+                EvidenceSourceKind::TrackN,
+                EvidencePurpose::IntentConformance
+            )
+            | (
+                EvidenceSourceKind::TrackP,
+                EvidencePurpose::CausalReceiptBinding
+            )
+            | (
+                EvidenceSourceKind::TrackQ,
+                EvidencePurpose::AuthenticatedCustody
+            )
+            | (
+                EvidenceSourceKind::TrackR,
+                EvidencePurpose::ConflictPerformance
+            )
+            | (
+                EvidenceSourceKind::TrackS,
+                EvidencePurpose::MultiSubjectScope
+            )
+            | (
+                EvidenceSourceKind::TrackT,
+                EvidencePurpose::ModelCredibility
+            )
+            | (
+                EvidenceSourceKind::TrackU,
+                EvidencePurpose::ModelRequalification
+            )
+            | (
+                EvidenceSourceKind::TrackVPlanning,
+                EvidencePurpose::ExperimentPlan
+            )
             | (
                 EvidenceSourceKind::ExternalFlightTest,
                 EvidencePurpose::PhysicalMitigationEffectiveness
