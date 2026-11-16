@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use robot_config_change_reference_evaluator::{
-    PACKAGE_DIR, evaluate_against_oracle, read_json, repository_root, sha256_hex,
+    PACKAGE_DIR, read_json, repository_root, sha256_hex,
     validate_instance, validate_package,
 };
 use serde_json::Value;
