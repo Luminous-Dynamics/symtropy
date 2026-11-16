@@ -259,6 +259,7 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         ("on_barrier_fault", "FAIL_CLOSED"),
         ("on_unknown_source", "REJECT_OR_HOLD_BATCH"),
         ("on_overflow_or_blocked_reject", "STOP_FEED_AND_ALARM"),
+        ("on_cross_connection_suspected", "LATCH_FAULT"),
     ] {
         if !string(fail_safe, key)?.contains(required) {
             return Err(format!("fail-safe rule {key} is missing {required}"));
