@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-sensor-condition-state-corpus:v0.1",
+  "title": "ROBOT-SENSOR-CONDITION-STATE-001 challenge corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "policy_id",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-sensor-condition-state-corpus-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-SENSOR-CONDITION-STATE-001"
+    },
+    "visibility": {
+      "const": "public_synthetic_development"
+    },
+    "policy_id": {
+      "const": "sensor-condition-evidence-policy-v0.1"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "description",
+          "required_verifier_class",
+          "sensor",
+          "condition",
+          "diagnostics",
+          "intervention",
+          "reference_check"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^SCS-[0-9]{3}$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_verifier_class": {
+            "enum": [
+              "robot_self_diagnostic",
+              "operator_inspection",
+              "reference_artifact",
+              "independent_referee"
+            ]
+          },
+          "sensor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sensor_id",
+              "modality",
+              "serial",
+              "mount_revision",
+              "configuration_revision",
+              "calibration_status",
+              "calibration_ref"
+            ],
+            "properties": {
+              "sensor_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "modality": {
+                "enum": [
+                  "camera",
+                  "lidar"
+                ]
+              },
+              "serial": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mount_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "calibration_status": {
+                "enum": [
+                  "current",
+                  "expired",
+                  "missing",
+                  "unknown"
+                ]
+              },
+              "calibration_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "condition": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "contaminant_family",
+              "exposure_state",
+              "severity_band",
+              "aperture_impact",
+              "common_cause_event_ref"
+            ],
+            "properties": {
+              "contaminant_family": {
+                "enum": [
+                  "dust",
+                  "water_droplet",
+                  "condensation",
+                  "oil_film",
+                  "cement_slurry",
+                  "mud",
+                  "abrasion",
+                  "none",
+                  "unknown"
+                ]
+              },
+              "exposure_state": {
+                "enum": [
+                  "stable",
+                  "accumulating",
+                  "cleaned_unverified",
+                  "cleaned_verified",
+                  "unknown"
+                ]
+              },
+              "severity_band": {
+                "enum": [
+                  "none",
+                  "low",
+                  "moderate",
+                  "severe",
+                  "unknown"
+                ]
+              },
+              "aperture_impact": {
+                "enum": [
+                  "none",
+                  "localized",
+                  "sector_occluded",
+                  "obscured",
+                  "unknown"
+                ]
+              },
+              "common_cause_event_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "diagnostics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "self_diagnostic",
+              "modality_quality",
+              "cross_modal_consistency",
+              "cross_modal_independence_asserted"
+            ],
+            "properties": {
+              "self_diagnostic": {
+                "enum": [
+                  "healthy",
+                  "degraded",
+                  "fault",
+                  "unknown"
+                ]
+              },
+              "modality_quality": {
+                "enum": [
+                  "within_profile",
+                  "degraded_within_profile",
+                  "outside_profile",
+                  "unknown"
+                ]
+              },
+              "cross_modal_consistency": {
+                "enum": [
+                  "consistent",
+                  "disagreement",
+                  "not_available",
+                  "unknown"
+                ]
+              },
+              "cross_modal_independence_asserted": {
+                "type": "boolean"
+              }
+            }
+          },
+          "intervention": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cleaning_state",
+              "maintenance_event_ref",
+              "post_clean_reference_state"
+            ],
+            "properties": {
+              "cleaning_state": {
+                "enum": [
+                  "not_performed",
+                  "completed",
+                  "claimed",
+                  "unknown"
+                ]
+              },
+              "maintenance_event_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "post_clean_reference_state": {
+                "enum": [
+                  "not_applicable",
+                  "absent",
+                  "pass",
+                  "fail",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "reference_check": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "verifier_class",
+              "checked_sensor_serial",
+              "checked_mount_revision",
+              "checked_configuration_revision",
+              "profile_ref",
+              "raw_artifact_ref",
+              "calibration_ref"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "absent",
+                  "unknown"
+                ]
+              },
+              "verifier_class": {
+                "enum": [
+                  "robot_self_diagnostic",
+                  "operator_inspection",
+                  "reference_artifact",
+                  "independent_referee"
+                ]
+              },
+              "checked_sensor_serial": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "checked_mount_revision": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "checked_configuration_revision": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "profile_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "raw_artifact_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "calibration_ref": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
