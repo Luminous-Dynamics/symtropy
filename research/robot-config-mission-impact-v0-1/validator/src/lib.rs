@@ -703,7 +703,12 @@ pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<Stri
     };
 
     check_unique_ids(mappings, "mission_pair_id", "crosswalk_pair", &mut errors);
-    check_unique_ids(mappings, "qualification_case_id", "crosswalk_qualification_case", &mut errors);
+    check_unique_ids(
+        mappings,
+        "qualification_case_id",
+        "crosswalk_qualification_case",
+        &mut errors,
+    );
 
     let mission_ids = cases
         .iter()
@@ -722,12 +727,15 @@ pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<Stri
         let qualification_case = string_at(mapping, &["qualification_case_id"]);
         let kind = string_at(mapping, &["mapping_kind"]);
         if kind != Some("family_related_not_case_equivalence") {
-            errors.push(format!("owner_crosswalk_mapping_kind_not_conservative:{pair_id}"));
+            errors.push(format!(
+                "owner_crosswalk_mapping_kind_not_conservative:{pair_id}"
+            ));
         }
 
-        let Some(case) = cases.iter().find(|case| {
-            string_at(case, &["pair_id"]) == Some(pair_id)
-        }) else {
+        let Some(case) = cases
+            .iter()
+            .find(|case| string_at(case, &["pair_id"]) == Some(pair_id))
+        else {
             continue;
         };
         let mission_family = string_at(mapping, &["mission_mutation_family"]);
@@ -736,10 +744,14 @@ pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<Stri
             errors.push(format!("owner_crosswalk_mission_family_mismatch:{pair_id}"));
         }
         if qualification_case.is_none_or(str::is_empty) {
-            errors.push(format!("owner_crosswalk_qualification_case_missing:{pair_id}"));
+            errors.push(format!(
+                "owner_crosswalk_qualification_case_missing:{pair_id}"
+            ));
         }
         if string_at(mapping, &["qualification_family"]).is_none() {
-            errors.push(format!("owner_crosswalk_qualification_family_missing:{pair_id}"));
+            errors.push(format!(
+                "owner_crosswalk_qualification_family_missing:{pair_id}"
+            ));
         }
     }
 
@@ -763,7 +775,9 @@ pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<Stri
             &["interface_state"],
         ) != Some("owner_issue_contract_only_no_pinned_machine_receipt_in_this_tranche")
     {
-        errors.push("owner_crosswalk_reconfiguration_receipt_claimed_without_pinned_interface".to_owned());
+        errors.push(
+            "owner_crosswalk_reconfiguration_receipt_claimed_without_pinned_interface".to_owned(),
+        );
     }
 
     let accepted_output_owner = crosswalk.get("accepted_output_owner");
@@ -775,7 +789,9 @@ pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<Stri
             &["interface_state"],
         ) != Some("task_acceptance_fixture_only_owner_machine_contract_not_pinned")
     {
-        errors.push("owner_crosswalk_acceptance_contract_claimed_without_pinned_interface".to_owned());
+        errors.push(
+            "owner_crosswalk_acceptance_contract_claimed_without_pinned_interface".to_owned(),
+        );
     }
 
     errors.sort();
@@ -984,9 +1000,11 @@ mod tests {
         let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
         crosswalk["mappings"][0]["mission_mutation_family"] =
             Value::String("tool_geometry_changed".to_owned());
-        assert!(owner_crosswalk_invariants(&crosswalk, &corpus)
-            .iter()
-            .any(|error| error.starts_with("owner_crosswalk_mission_family_mismatch:")));
+        assert!(
+            owner_crosswalk_invariants(&crosswalk, &corpus)
+                .iter()
+                .any(|error| error.starts_with("owner_crosswalk_mission_family_mismatch:"))
+        );
     }
 
     #[test]
@@ -997,9 +1015,12 @@ mod tests {
         let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
         crosswalk["reconfiguration_owner"]["transition_receipt_ref"] =
             Value::String("fixture://unapproved/transition".to_owned());
-        assert!(owner_crosswalk_invariants(&crosswalk, &corpus)
-            .iter()
-            .any(|error| error == "owner_crosswalk_reconfiguration_receipt_claimed_without_pinned_interface"));
+        assert!(
+            owner_crosswalk_invariants(&crosswalk, &corpus)
+                .iter()
+                .any(|error| error
+                    == "owner_crosswalk_reconfiguration_receipt_claimed_without_pinned_interface")
+        );
     }
 
     #[test]
