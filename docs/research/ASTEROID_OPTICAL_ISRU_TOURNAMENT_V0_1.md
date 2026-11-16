@@ -186,28 +186,34 @@ Report:
 
 A model suggestion is not a measured result. A high expected information gain is not permission to violate a safety or material-handling constraint.
 
-## 10. External reference set and claim boundaries
+## 10. External reference set, industry comparison and claim boundaries
 
-| Reference | What is supported | What must not be claimed |
+| Programme / study | Publicly supported milestone | What remains unproven by that milestone |
 |---|---|---|
-| NASA optical-mining demonstration (8 kW class, 10 m concentrator) | Historical vacuum experiment using high-fidelity CI-type asteroid simulant without contact/downforce | Operational asteroid mine or unreported accepted-product throughput |
-| Nectar carbonaceous-chondrite experiments (2025) | Irradiance-, morphology- and brittle/ductile-regime-dependent response; organic deposition can impair performance | Universal monotonic benefit from higher irradiance |
-| Cryogenic-vacuum laser mining (2026) | C-/S-type simulant test at 300/600/900 W, 30 s, 10^-2 Pa and 253 K; Fe-Ni enrichment in ejected fines | Qualified refined metal or captured yield absent corresponding evidence |
-| NASA CaRD (2026) | Integrated solar-carbothermal prototype; CO detection confirmed a reaction | A deployed lunar plant or independently accepted purified O2 |
-| Lunar Resources MRE (ICES 2026) | NASA NTRS reports 25 kg lunar simulant and average 0.07 kg/h oxygen during a nine-hour vacuum demonstration | An asteroid process result or a directly matched solar-thermal comparison |
-| Blue Alchemist / NASA TechPort | Integrated lunar-regolith manufacturing programme and its stated technology objectives | Independently measured delivery of every advertised commodity or a flight-operational plant |
-| TransAstra SolarForge | Proposed solar-powered asteroid/debris processing architecture; Capture Bag ISS demonstration reported by developer | Demonstrated asteroid resource production |
-| JPL-affiliated cislunar laser-beaming model (2026) | Modeled transmission, visibility, pointing and receiver trade space | Asteroid laser-mining experiment or flight-demonstrated power service |
+| NASA optical mining (historical) | Full-scale 8 kW demonstration with high-fidelity CI-type simulant in vacuum using a 10 m solar concentrator, without mechanical contact or downforce | Operational asteroid mine, captured water/product yield or mission-economics proof |
+| Nectar A/B optical mining (2025) | Vacuum test-bed dataset; approximate excavation-rate peaks near 350 and 250 W/cm²; A excavation about 4–5× B at matched irradiance; material response depends on morphology, melt/spallation and organic fouling | Universal irradiance optimum; accepted product mass; directly captured water corresponding to the RGA-derived rates |
+| Cryogenic-vacuum asteroid laser experiment (2026) | CW 1080 nm fibre laser; 300/600/900 W for 30 s at 10⁻² Pa and 253 K; Fe–Ni reported from 16.7% in original simulant to 69.6% in ejected fines | Captured/refined metal mass, independently accepted metal grade, asteroid operation or mission-scale power efficiency |
+| NASA CaRD (2026) | Integrated solar concentrator, mirrors, carbothermal reactor, gas-analysis and controls; CO detected during solar-carbothermal processing | Numerical accepted purified-O₂ product in the public presentation, flight-capable deployed plant or lunar operational throughput |
+| NASA/Lunar Resources MRE (ICES 2026) | 25 kg simulant, 9 h electrolysis in 1G vacuum ground test; source-reported 0.07 kg/h, 2.3 wt%, 0.3 mol O₂/kWh, 45 V / 210 A overall and ~9 kW maximum chamber-operation draw; some gas-analysis datapoints reached up to 80 vol% O₂ | Lunar-gravity operation, fully specified integrated-energy boundary, purified/pressurized accepted oxygen mass, long-duration availability or asteroid process performance |
+| Blue Origin Blue Alchemist | NASA's 2025 ISAM State of Play lists silicon solar cells and aluminium wire produced from simulants as of 2024; NASA TechPort lists an active project updated 17 July 2026 and describes an integrated eight-technology lunar-regolith manufacturing programme targeting TRL 6 | Flight-operational lunar factory, independently qualified delivery of every advertised output, or a matched comparison to an asteroid optical process |
+| TransAstra SolarForge / Mantis | TransAstra describes SolarForge as a solar-concentrated-sunlight materials-processing concept and reports synthetic-material spallation with a 1 m reflector; its Mantis/Capture Bag was deployed on the ISS in 2025, a separate capture-system milestone | Asteroid capture, solar-thermal resource production, captured asteroid product or commercial resource delivery |
+| Space-resource sector tracker | An independent mission/company tracker records no commercial resource delivery from the Moon, an asteroid or Mars in its records checked through 14 November 2026 | This is a tracked dataset's status, not an official global registry or proof that no unreported activity exists |
 
-Primary sources:
+Primary sources and status boundaries:
+
 - NASA optical mining: https://www.nasa.gov/general/optical-mining-of-asteroids-moons-and-planets-to-enable-sustainable-human-exploration-and-space-industrialization/
-- Nectar study, DOI: https://doi.org/10.1016/j.actaastro.2025.04.033
-- 2026 laser study, DOI: https://doi.org/10.1016/j.cherd.2026.08.007
+- Nectar A/B paper, DOI: https://doi.org/10.1016/j.actaastro.2025.04.033
+- 2026 laser experiment, DOI: https://doi.org/10.1016/j.cherd.2026.08.007
 - NASA CaRD, NTRS 20260003603: https://ntrs.nasa.gov/citations/20260003603
-- NASA Lunar Resources MRE, NTRS 20260006167: https://ntrs.nasa.gov/citations/20260006167
-- Blue Alchemist / NASA TechPort: https://techport.nasa.gov/projects/146991
-- TransAstra: https://www.transastra.com/
-- Cislunar laser beaming, DOI: https://doi.org/10.1103/hry6-dl1g
+- NASA MRE, NTRS 20260006167: https://ntrs.nasa.gov/citations/20260006167
+- NASA Blue Alchemist technology project: https://techport.nasa.gov/projects/146991
+- NASA 2025 ISAM State of Play: https://ntrs.nasa.gov/citations/20250008988
+- TransAstra SolarForge / Capture Bag: https://www.transastra.com/rnd and https://www.transastra.com/products/capturebag
+- Independent space-resource mission tracker: https://spaceminingdata.com/
+
+**Competitive interpretation.** Blue Alchemist is a more mature integrated lunar-manufacturing comparator than Luminous's software-only prototype. NASA CaRD and MRE provide stronger integrated physical demonstrations than our current software evaluator. TransAstra's capture and SolarForge work is a relevant adjacent architecture, but the ISS capture deployment and company-described spallation demonstrations are not equivalent to asteroid extraction and accepted-product production. The 2026 cryogenic laser paper adds a new process-level material baseline. Luminous should not claim to outperform these systems in physical throughput or TRL.
+
+The defensible differentiation available to Luminous now is the evidence/engineering layer: source-faithful observation typing, matched campaign contracts, uncertainty-aware comparison, separate material/energy/capture/product balances, provenance, refusal of overclaim and cross-architecture decision support. Physical performance superiority requires a matched, independent laboratory campaign and product assays.
 
 Source-access and transcription limits must be recorded. If only an abstract or summary is accessible, reproduce only those reported values; do not digitize or invent missing experimental points.
 
