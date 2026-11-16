@@ -143,10 +143,16 @@ impl fmt::Display for EvidenceReceiptError {
         match self {
             Self::InvalidTimestamp => write!(f, "image timestamp must be finite and non-negative"),
             Self::InvalidPixelCalibration => {
-                write!(f, "pixel width/height calibration must be finite and positive")
+                write!(
+                    f,
+                    "pixel width/height calibration must be finite and positive"
+                )
             }
             Self::InvalidVoxelCalibration => {
-                write!(f, "voxel depth calibration must be finite and positive when present")
+                write!(
+                    f,
+                    "voxel depth calibration must be finite and positive when present"
+                )
             }
             Self::InvalidFrameInterval => {
                 write!(f, "frame interval must be finite and positive when present")
@@ -166,10 +172,18 @@ impl fmt::Display for EvidenceReceiptError {
                 write!(f, "Z uncertainty requires explicit Z calibration")
             }
             Self::MissingGraphNode(id) => {
-                write!(f, "evidence references graph node {:?} that does not exist", id)
+                write!(
+                    f,
+                    "evidence references graph node {:?} that does not exist",
+                    id
+                )
             }
             Self::MissingGraphSegment(id) => {
-                write!(f, "evidence references graph segment {:?} that does not exist", id)
+                write!(
+                    f,
+                    "evidence references graph segment {:?} that does not exist",
+                    id
+                )
             }
         }
     }
@@ -249,7 +263,9 @@ impl ObservationEvidenceReceipt {
                 }
             }
             if uncertainty.z_std_dev_um.is_some() && self.calibration.voxel_depth_um.is_none() {
-                return Err(EvidenceReceiptError::ThreeDimensionalUncertaintyRequiresDepthCalibration);
+                return Err(
+                    EvidenceReceiptError::ThreeDimensionalUncertaintyRequiresDepthCalibration,
+                );
             }
         }
 
@@ -268,10 +284,7 @@ impl ObservationEvidenceReceipt {
         Ok(())
     }
 
-    pub fn validate_graph_target(
-        &self,
-        graph: &HyphalGraph,
-    ) -> Result<(), EvidenceReceiptError> {
+    pub fn validate_graph_target(&self, graph: &HyphalGraph) -> Result<(), EvidenceReceiptError> {
         self.validate()?;
         match self.graph_target {
             Some(EvidenceGraphTarget::Node(id)) if graph.node(id).is_none() => {
@@ -375,7 +388,10 @@ mod tests {
         let mut item = receipt();
         item.subject = ObservationSubject::DepthEstimate;
         item.calibration.voxel_depth_um = None;
-        assert_eq!(item.validate(), Err(EvidenceReceiptError::DepthCalibrationRequired));
+        assert_eq!(
+            item.validate(),
+            Err(EvidenceReceiptError::DepthCalibrationRequired)
+        );
     }
 
     #[test]
@@ -390,7 +406,10 @@ mod tests {
 
         item = receipt();
         item.calibration.pixel_width_um = 0.0;
-        assert_eq!(item.validate(), Err(EvidenceReceiptError::InvalidPixelCalibration));
+        assert_eq!(
+            item.validate(),
+            Err(EvidenceReceiptError::InvalidPixelCalibration)
+        );
     }
 
     #[test]
@@ -432,7 +451,10 @@ mod tests {
     fn spatial_uncertainty_rejects_negative_and_nan_values() {
         let mut item = receipt();
         item.uncertainty.as_mut().unwrap().z_std_dev_um = Some(-0.1);
-        assert_eq!(item.validate(), Err(EvidenceReceiptError::InvalidSpatialUncertainty));
+        assert_eq!(
+            item.validate(),
+            Err(EvidenceReceiptError::InvalidSpatialUncertainty)
+        );
 
         item = receipt();
         item.uncertainty.as_mut().unwrap().x_std_dev_um = Some(f64::NAN);
