@@ -266,7 +266,8 @@
                 "event_time_clock_domain_ref",
                 "arrival_time_tick",
                 "arrival_time_clock_domain_ref",
-                "clock_mapping_ref"
+                "clock_mapping_ref",
+                "clock_mapping_status"
               ],
               "properties": {
                 "event_id": {
@@ -326,6 +327,13 @@
                       "type": "string",
                       "minLength": 1
                     }
+                  ]
+                },
+                "clock_mapping_status": {
+                  "enum": [
+                    "qualified",
+                    "unqualified",
+                    "absent"
                   ]
                 }
               }
@@ -347,7 +355,8 @@
                 "event_time_clock_domain_ref",
                 "arrival_time_tick",
                 "arrival_time_clock_domain_ref",
-                "clock_mapping_ref"
+                "clock_mapping_ref",
+                "clock_mapping_status"
               ],
               "properties": {
                 "event_id": {
@@ -407,6 +416,13 @@
                       "type": "string",
                       "minLength": 1
                     }
+                  ]
+                },
+                "clock_mapping_status": {
+                  "enum": [
+                    "qualified",
+                    "unqualified",
+                    "absent"
                   ]
                 }
               }
