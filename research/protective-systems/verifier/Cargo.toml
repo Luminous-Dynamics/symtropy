@@ -36,3 +36,7 @@ path = "src/bin/protective_resilience_e0.rs"
 [[bin]]
 name = "protective-model-evidence"
 path = "src/bin/protective_model_evidence.rs"
+
+[[bin]]
+name = "protective-evidence-portability"
+path = "src/bin/protective_evidence_portability.rs"

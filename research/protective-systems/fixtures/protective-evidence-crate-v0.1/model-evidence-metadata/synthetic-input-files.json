@@ -1,0 +1,11 @@
+[
+  {
+    "id": "synthetic-file-water-input-001",
+    "deleted": false,
+    "filename": "synthetic-input.json",
+    "mimeType": "application/json",
+    "size": 228,
+    "dataURL": "synthetic-fixture://synthetic.dataset.water.input.001/synthetic-file-water-input-001",
+    "md5sum": "8f495c7f8ba1ce7189866c009956fd08"
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "fixture_id": "SYNTHETIC-COMMUNITY-WATER-OUTPUT-001",
+  "records": [
+    {"service": "potable_water", "delivered_permille": [700, 800, 900]},
+    {"service": "clinic_access", "delivered_permille": [600, 700, 800]}
+  ],
+  "claim_ceiling": "synthetic trajectory only"
+}

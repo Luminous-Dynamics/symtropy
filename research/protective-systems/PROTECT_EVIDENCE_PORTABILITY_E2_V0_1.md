@@ -1,0 +1,176 @@
+# Protective Evidence Portability E2 — PROV-O and RO-Crate 1.3
+
+**Snapshot:** 16 November 2026  
+**Owner:** PROTECT-EVIDENCE-PORTABILITY-001 #5524  
+**Parent E1:** PROTECT-MODEL-EVIDENCE-001 #5474 / PR #5493 (hosted run 43835683157 passed formatting, Clippy, all tests and all configured executables)  
+**Review branch:** `research/protect-evidence-portability-e2-review-v0-1`  
+**Status:** synthetic portability package, Rust profile verifier and independent RO-Crate validator job wired; exact-head hosted verification pending
+
+## 1. Paradigm shift: semantic portability, not file conversion
+
+A converted file that still parses may have lost what made its evidence useful: provider identities, file relationships, provenance semantics, unknown states, rights declarations, native units, or claim limitations.
+
+E2 defines portability as a testable semantic-preservation contract. The exporter must preserve what the source actually declared, preserve what remains unknown, and refuse to invent stronger relationships because a target standard has more expressive vocabulary.
+
+This is not an attempt to replace W3C provenance, RO-Crate, OGC records or specialist modelling tools. It is a narrow, auditable bridge between them.
+
+## 2. Industry standards to compose
+
+### W3C PROV-O
+
+PROV-O models provenance using Entities, Activities and Agents. The synthetic graph models datasets as Entities, an analysis as an Activity and the synthetic provider as an Agent. It expresses inputs through `prov:used`, outputs via `prov:wasGeneratedBy`, and provider responsibility through `prov:wasAssociatedWith`.
+
+The most important invariant is that *used* is not the same as *derived from*. One activity can use several inputs and generate multiple outputs without each output being derived from every input. The E1 envelope declares only `CONSUMED_BY` and `PRODUCED_BY` edges; it does not declare a direct `wasDerivedFrom` edge. E2 must not upgrade those E1 relations into a stronger derivation. The one derivation in the E2 graph is a separately declared synthetic-control assertion in the E2 binding manifest, not an E1 provider claim.
+
+References:
+- W3C PROV-O: https://www.w3.org/TR/prov-o/
+- W3C PROV constraints: https://www.w3.org/TR/prov-constraints/
+
+### RO-Crate 1.3
+
+E2 packages the six E1 provider-native metadata/payload artifacts, the exact E1 evidence envelope, an explicit dataset-binding manifest, and one provenance graph in a directory-style RO-Crate 1.3 fixture. It includes:
+- versioned JSON-LD context;
+- `ro-crate-metadata.json` descriptor as a CreativeWork;
+- `conformsTo` pinned to RO-Crate 1.3;
+- `about` pointing to the root data entity;
+- a root Dataset with exact `hasPart` file inventory;
+- File entities with encoding format, byte size and SHA-256;
+- contextual synthetic provider Organization.
+
+The crate uses explicit E2 terms for claim ceiling, rights status and permitted use. It does **not** assert a `license` field. Format conformance is not a licence grant or provider authentication.
+
+References:
+- RO-Crate 1.3 JSON-LD: https://www.researchobject.org/ro-crate/specification/1.3/appendix/jsonld.html
+- Descriptor and root data entity: https://www.researchobject.org/ro-crate/specification/1.3/root-data-entity.html
+- RO-Crate 1.3 specification: https://www.researchobject.org/ro-crate/specification/1.3/
+
+### OGC API - Records
+
+OGC API - Records is an optional discovery adapter for geospatial metadata. It is not a raster/vector payload importer or CRS transformation engine. Any future mapping preserves record IDs, resource links and CRS references and keeps missing metadata unknown.
+
+Reference: https://ogcapi.ogc.org/records/
+
+### JSON Schema conformance
+
+E1's envelope uses Draft 2020-12 and the pinned Rust validator `jsonschema = 0.61.2`, with URI format checks. Bowtie's independent dashboard currently reports 58 implementations, 385 cases and 1,300 tests for Draft 2020-12. This is a separate cross-implementation validation comparator; Luminous fixture tests are not a substitute for the Bowtie suite and no validator leaderboard claim is made.
+
+Reference: https://bowtie.report/
+
+## 3. E2 synthetic package
+
+Root directory:
+
+`fixtures/protective-evidence-crate-v0.1/`
+
+Contents:
+- two provider-shaped dataset metadata snapshots;
+- two separate file-metadata endpoint snapshots;
+- two exact E1 data payloads;
+- the exact E1 evidence envelope (byte-for-byte copy);
+- a binding manifest linking PROV entities to E1 dataset IDs or explicitly synthetic control IDs;
+- one sparse PROV-O graph;
+- one versioned Draft 2020-12 schema for the E2 binding manifest;
+- one RO-Crate 1.3 metadata document.
+
+The package contains ten data files: six original E1 provider artifacts, the E1 envelope, the binding manifest, the binding manifest's Draft 2020-12 JSON Schema and the PROV-O graph. The six source artifacts and E1 envelope are byte-identical to their E1 fixture sources.
+
+### Sparse graph fixture
+
+The graph includes:
+- two input Entities: water demand and power availability;
+- two output Entities: water service and clinic access;
+- explicit dataset IDs, direction and binding status on each Entity;
+- an Activity identity/execution status bound to the E1 analysis record;
+- `E1_ENVELOPE_DATASET` bindings for water demand and water service;
+- `SYNTHETIC_CONTROL_ONLY` bindings (with no artifact paths) for power availability and clinic access;
+- one analysis Activity;
+- one Agent;
+- two `prov:used` edges;
+- two `prov:wasGeneratedBy` edges;
+- one `prov:wasAssociatedWith` edge;
+- exactly one `prov:wasDerivedFrom` edge: water-service output from water-demand input.
+
+Clinic-access is generated by the same activity but has no explicit per-output derivation. The verifier rejects any invented derivation to the power-availability input. This is deliberately designed to prevent false all-to-all provenance in multi-input/multi-output analysis graphs.
+
+## 4. Rust E2 verifier
+
+Binary: `protective-evidence-portability`
+
+It checks:
+- RO-Crate 1.3 context, descriptor, conformsTo, root pointer and root Dataset;
+- exact root hasPart inventory and exact File entity inventory;
+- byte length, media type and SHA-256 for all ten package data files;
+- exact E1 envelope byte equality against the original E1 fixture;
+- E1 envelope analysis identity/execution status against the binding manifest;
+- E1 dataset IDs, directions and artifact paths against the binding manifest;
+- explicit synthetic-control-only status for non-E1 graph nodes;
+- packaged binding-schema bytes are identical to the schema used by the verifier;
+- consistency of all four PROV entity IDs/dataset IDs/directions/binding statuses against the binding manifest;
+- all six copied E1 provider artifacts against the E1 evidence envelope;
+- exact synthetic rights status, use and claim ceiling;
+- rejection of unauthenticated license claims;
+- PROV namespace binding, unique IDs and Entity/Activity/Agent counts;
+- exact input, output, activity and provider relations;
+- exact sparse derivation relationship.
+
+The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only synthetic portability/structure/artifact-integrity conformance. It does not authenticate a provider or license, validate a scientific model, or establish physical resilience.
+
+## 5. Adversarial tests
+
+29 Rust unit tests are written:
+- valid RO-Crate + sparse PROV-O graph;
+- all-to-all derivation inference;
+- incorrect sparse derivation target;
+- missing used input;
+- missing generated-by edge;
+- claim-ceiling escalation;
+- rights-status escalation;
+- missing root part;
+- digest swap;
+- duplicate RO-Crate IDs;
+- wrong RO-Crate version context;
+- unauthenticated license claim;
+- extra unlisted File entity;
+- wrong PROV namespace or E2 prefix mapping;
+- duplicate used input edge;
+- graph/edge ordering metamorphic control (semantic result stable, byte digest changes);
+- RO-Crate contentSize uses the byte-count representation and rejects human-readable suffixes;
+- PROV dataset IDs match the binding manifest;
+- synthetic control cannot be promoted to an E1 dataset;
+- binding manifest pins the exact E1 envelope digest;
+- binding schema rejects unknown properties, non-synthetic evidence class and artifacts on synthetic controls;
+- PROV activity identity matches the E1 analysis identity;
+- extra generation edge on an input;
+- descriptor pointing away from root.
+
+Rust formatting, Clippy, test execution and executable output must be exact-head verified. A written test count is not a pass.
+
+## 6. Benchmark programme
+
+| Benchmark | Definition | Prospective target |
+|---|---|---:|
+| Provider artifact preservation | Exact bytes, provider file IDs, metadata IDs and SHA-256 survive export/import | 100% |
+| RO-Crate structure | Descriptor, version, root Dataset and file inventory match | 100% |
+| PROV-O relation preservation | Entity/activity/agent, used/generated/associated relations preserved | 100% |
+| False derivation | Unsupported per-output derivation accepted | 0 |
+| Unknown-state fidelity | Missing values silently changed to defaults | 0 |
+| Rights escalation | Synthetic or unknown rights promoted to authenticated grants | 0 |
+| Claim-ceiling escalation | Metadata integrity upgraded to scientific/physical validation | 0 |
+| Deterministic replay | Frozen package returns identical report and digests | 100% |
+| Adversarial control coverage | Enumerated negative controls rejected | 100% |
+| Integration burden | Mapping and review effort per provider | Measure p50/p95 |
+| Runtime overhead | CPU, memory and package size | Measure p50/p95 |
+
+A genuine SOTA advantage would be lower semantic loss and fewer unsafe inferences across at least three independent providers/standards, zero false provenance/rights/claim escalations on a frozen adversarial corpus, and less manual mapping/review time than the baseline.
+
+The target is not to beat W3C, RO-Crate or OGC at their own standards. It is to show that Luminous can make multiple evidence systems interoperate more safely and cheaply.
+
+## 7. Next stages
+
+1. Run the generated crate through an independent RO-Crate 1.3 validator and JSON-LD processor.
+2. Validate PROV constraints independently rather than only using our own verifier.
+3. Add an optional read-only OGC API - Records metadata fixture.
+4. Add two more independently maintained provider fixtures with rights-cleared public records.
+5. Benchmark semantic round-trip loss, time-to-integrate, reviewer effort and operational overhead.
+
+No live API requests, private datasets, credentials, provider authentication, physical action or procurement is part of E2.

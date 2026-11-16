@@ -252,3 +252,45 @@ The actual implementation references are pinned to a public pyIncore commit:
 - https://github.com/IN-CORE/pyincore/blob/540b3cc568643ff788479ffd4004853d059d7067/tests/data/dataset_metadata.json
 
 The current fixture is still synthetic and no IN-CORE endpoint is called.
+
+
+## E2 PROV-O and RO-Crate 1.3 portability
+
+The `protective-evidence-portability` binary validates the synthetic E2 package
+at `research/protective-systems/fixtures/protective-evidence-crate-v0.1/`.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-evidence-portability
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-evidence-portability
+```
+
+The E2 gate checks the RO-Crate 1.3 descriptor, root Dataset, exact ten-file
+inventory, file byte lengths and SHA-256 values, embedded E1 envelope byte
+identity, the packaged Draft 2020-12 binding schema, E1 dataset IDs/directions/
+artifact paths, the explicit PROV binding manifest, rights and claim ceilings,
+and the sparse PROV-O graph. Each graph
+entity is labelled either E1_ENVELOPE_DATASET or SYNTHETIC_CONTROL_ONLY; a
+synthetic control has no provider artifact paths and cannot be promoted. The synthetic graph has two
+used inputs and two generated outputs, but exactly one explicitly declared
+per-output derivation. Duplicate input edges, extra generation edges and
+invented derivations are rejected.
+
+CI also runs the independently maintained `roc-validator==0.13.1` package
+against the crate's base RO-Crate 1.3 profile. This is a test-only external
+oracle; the production verifier remains Rust. CI selects `ro-crate-1.3`
+explicitly and enables advisory extra checks. An independent validator pass
+does not authenticate a provider, grant a license or establish physical truth.
+
+The E2 fixture has 29 unit tests written. Their result is pending exact-head
+hosted execution. The gate returns `ABSTAIN_SYNTHETIC_NOT_EXECUTED`.
+
+
+**Standards conformance scope:** the Rust E2 PROV checker enforces the project's
+compact JSON-LD profile only. It does not implement all JSON-LD 1.1 processing
+algorithms or certify full W3C PROV-DM constraints/equivalence. The emitted
+report makes these limitations explicit. CI runs the separate
+`roc-validator==0.13.1` implementation against the RO-Crate 1.3 base profile.

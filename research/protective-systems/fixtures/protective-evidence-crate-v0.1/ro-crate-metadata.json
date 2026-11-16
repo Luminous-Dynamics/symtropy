@@ -1,0 +1,191 @@
+{
+  "@context": [
+    "https://w3id.org/ro/crate/1.3/context",
+    {
+      "ex": "https://luminousdynamics.io/protect-evidence/e2/",
+      "claimCeiling": "ex:claimCeiling",
+      "rightsStatus": "ex:rightsStatus",
+      "permittedUse": "ex:permittedUse"
+    }
+  ],
+  "@graph": [
+    {
+      "@id": "ro-crate-metadata.json",
+      "@type": "CreativeWork",
+      "conformsTo": {
+        "@id": "https://w3id.org/ro/crate/1.3"
+      },
+      "about": {
+        "@id": "./"
+      },
+      "description": "RO-Crate 1.3 metadata descriptor for a synthetic Protective Systems evidence interoperability fixture."
+    },
+    {
+      "@id": "./",
+      "@type": "Dataset",
+      "name": "Luminous Protective Systems E2 Evidence Crate",
+      "description": "Synthetic-only package of provider-shaped dataset metadata, file-metadata endpoint snapshots, payloads and a sparse PROV-O derivation example. Not an external model execution or physical resilience evidence.",
+      "datePublished": "2026-11-16",
+      "hasPart": [
+        {
+          "@id": "model-evidence-metadata/synthetic-input-dataset.json"
+        },
+        {
+          "@id": "model-evidence-metadata/synthetic-input-files.json"
+        },
+        {
+          "@id": "model-evidence-payloads/synthetic-input.json"
+        },
+        {
+          "@id": "model-evidence-metadata/synthetic-output-dataset.json"
+        },
+        {
+          "@id": "model-evidence-metadata/synthetic-output-files.json"
+        },
+        {
+          "@id": "model-evidence-payloads/synthetic-output.json"
+        },
+        {
+          "@id": "provenance/e2-sparse-derivation.jsonld"
+        },
+        {
+          "@id": "provenance/e2-evidence-binding.json"
+        },
+        {
+          "@id": "evidence/protective-model-evidence-envelope-v0.1.json"
+        },
+        {
+          "@id": "schemas/protect-evidence-binding-v0.1.schema.json"
+        }
+      ],
+      "publisher": {
+        "@id": "ex:agent/synthetic-provider"
+      },
+      "isBasedOn": {
+        "@id": "https://github.com/Luminous-Dynamics/symtropy/issues/5524"
+      },
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "@id": "model-evidence-metadata/synthetic-input-dataset.json",
+      "@type": "File",
+      "name": "synthetic-input-dataset.json",
+      "encodingFormat": "application/json",
+      "contentSize": "824",
+      "sha256": "4666739793f3a85025da66ab7d829222f7539549dcf93127728253c5a7756373",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped input dataset metadata snapshot."
+    },
+    {
+      "@id": "model-evidence-metadata/synthetic-input-files.json",
+      "@type": "File",
+      "name": "synthetic-input-files.json",
+      "encodingFormat": "application/json",
+      "contentSize": "323",
+      "sha256": "2b719d5523bd6154b779cf9abff637603f1ba1da9b0da0874c59f881129bf386",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped input file-metadata endpoint response."
+    },
+    {
+      "@id": "model-evidence-payloads/synthetic-input.json",
+      "@type": "File",
+      "name": "synthetic-input.json",
+      "encodingFormat": "application/json",
+      "contentSize": "228",
+      "sha256": "7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped water-demand input payload."
+    },
+    {
+      "@id": "model-evidence-metadata/synthetic-output-dataset.json",
+      "@type": "File",
+      "name": "synthetic-output-dataset.json",
+      "encodingFormat": "application/json",
+      "contentSize": "847",
+      "sha256": "d04f016c8973ba8eb21fc2e9db64e2b8b6229258017873d09f7a6f62012612af",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped output dataset metadata snapshot."
+    },
+    {
+      "@id": "model-evidence-metadata/synthetic-output-files.json",
+      "@type": "File",
+      "name": "synthetic-output-files.json",
+      "encodingFormat": "application/json",
+      "contentSize": "327",
+      "sha256": "fcb0ca282e15f69c4c940e19f2a4434bed3b36a701ce7be4e825acf027ffc633",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped output file-metadata endpoint response."
+    },
+    {
+      "@id": "model-evidence-payloads/synthetic-output.json",
+      "@type": "File",
+      "name": "synthetic-output.json",
+      "encodingFormat": "application/json",
+      "contentSize": "272",
+      "sha256": "ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped water-service output payload; not produced by an executed model."
+    },
+    {
+      "@id": "provenance/e2-sparse-derivation.jsonld",
+      "@type": "File",
+      "name": "e2-sparse-derivation.jsonld",
+      "encodingFormat": "application/ld+json",
+      "contentSize": "2789",
+      "sha256": "c5c55a1d1df5cb84addf66e4343dab47b0c42a18b4fd67d0f2d3a50c2515657c",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic PROV-O graph fixture separating E1 lineage declarations from an E2-only sparse control derivation."
+    },
+    {
+      "@id": "ex:agent/synthetic-provider",
+      "@type": "Organization",
+      "name": "Synthetic E2 fixture provider",
+      "description": "Nonexistent test identity used only to validate graph structure; not an authenticated provider."
+    },
+    {
+      "@id": "provenance/e2-evidence-binding.json",
+      "@type": "File",
+      "name": "e2-evidence-binding.json",
+      "encodingFormat": "application/json",
+      "contentSize": "2436",
+      "sha256": "ce6856f29872279c6c72c0f1abddc905c9bc04594320635664dde21978b17387",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "description": "Machine-readable binding between E1 dataset identities, E2 synthetic controls and the E2-only derivation assertion."
+    },
+    {
+      "@id": "evidence/protective-model-evidence-envelope-v0.1.json",
+      "@type": "File",
+      "name": "protective-model-evidence-envelope-v0.1.json",
+      "encodingFormat": "application/json",
+      "contentSize": "5399",
+      "sha256": "530af9e09e5bd38b0be070e2193ec76e99a58f756f52034aaab4ef5347962676",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "description": "Exact E1 synthetic evidence envelope packaged unchanged in the E2 crate."
+    },
+    {
+      "@id": "schemas/protect-evidence-binding-v0.1.schema.json",
+      "@type": "File",
+      "name": "protect-evidence-binding-v0.1.schema.json",
+      "encodingFormat": "application/schema+json",
+      "contentSize": "5430",
+      "sha256": "e220e814374b9a37d502a546cdf45f67767f7d577708801b354af3e0a71b96fb",
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Pinned Draft 2020-12 schema for the E2 evidence-binding manifest."
+    }
+  ]
+}

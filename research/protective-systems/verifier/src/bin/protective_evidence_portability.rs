@@ -1,0 +1,1218 @@
+//! E2 portability gate for W3C PROV-O and RO-Crate 1.3.
+//!
+//! Synthetic-only assurance: byte identity and graph/metadata semantics are
+//! validated, but source authentication, license authenticity, model validity
+//! and physical resilience are explicitly outside this executable's claim.
+//!
+//! The provenance checker enforces the E2 compact-JSON-LD profile. It does not
+//! implement the full JSON-LD 1.1 processing algorithms or all W3C PROV-DM
+//! normalization, validity and equivalence constraints; those require an
+//! independent standards processor/validator stage.
+
+use serde::Serialize;
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
+use std::process;
+
+const CRATE: &str = include_str!(
+    "../../../fixtures/protective-evidence-crate-v0.1/ro-crate-metadata.json"
+);
+const PROV: &str = include_str!(
+    "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-sparse-derivation.jsonld"
+);
+const E1_ENVELOPE: &str = include_str!(
+    "../../../fixtures/protective-evidence-crate-v0.1/evidence/protective-model-evidence-envelope-v0.1.json"
+);
+const E1_SOURCE_ENVELOPE_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/protective-model-evidence-envelope-v0.1.json");
+const E2_BINDING: &str = include_str!(
+    "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-evidence-binding.json"
+);
+const BINDING_SCHEMA_SPEC: &str =
+    include_str!("../../../schemas/protect-evidence-binding-v0.1.schema.json");
+const BINDING_SCHEMA_SOURCE_BYTES: &[u8] =
+    include_bytes!("../../../schemas/protect-evidence-binding-v0.1.schema.json");
+const BINDING_SCHEMA_PACKAGE_BYTES: &[u8] = include_bytes!(
+    "../../../fixtures/protective-evidence-crate-v0.1/schemas/protect-evidence-binding-v0.1.schema.json"
+);
+
+const RO_CONTEXT: &str = "https://w3id.org/ro/crate/1.3/context";
+const RO_SPEC: &str = "https://w3id.org/ro/crate/1.3";
+const PROV_NS: &str = "http://www.w3.org/ns/prov#";
+const SCHEMA_NS: &str = "https://schema.org/";
+const E2_NS: &str = "https://luminousdynamics.io/protect-evidence/e2/";
+const CLAIM_CEILING: &str = "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY";
+const RIGHTS_STATUS: &str = "SYNTHETIC_OPEN_FIXTURE";
+const PERMITTED_USE: &str = "SYNTHETIC_TEST_ONLY";
+
+const ACTIVITY: &str = "ex:activity/e2-portability-fixture-001";
+const AGENT: &str = "ex:agent/synthetic-provider";
+const INPUT_WATER: &str = "ex:entity/input-water-demand";
+const INPUT_POWER: &str = "ex:entity/input-power-availability";
+const OUTPUT_WATER: &str = "ex:entity/output-water-service";
+const OUTPUT_CLINIC: &str = "ex:entity/output-clinic-access";
+
+const ARTIFACTS: [(&str, &[u8], &str); 10] = [
+    (
+        "model-evidence-metadata/synthetic-input-dataset.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/model-evidence-metadata/synthetic-input-dataset.json"
+        ),
+        "application/json",
+    ),
+    (
+        "model-evidence-metadata/synthetic-input-files.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/model-evidence-metadata/synthetic-input-files.json"
+        ),
+        "application/json",
+    ),
+    (
+        "model-evidence-payloads/synthetic-input.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/model-evidence-payloads/synthetic-input.json"
+        ),
+        "application/json",
+    ),
+    (
+        "model-evidence-metadata/synthetic-output-dataset.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/model-evidence-metadata/synthetic-output-dataset.json"
+        ),
+        "application/json",
+    ),
+    (
+        "model-evidence-metadata/synthetic-output-files.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/model-evidence-metadata/synthetic-output-files.json"
+        ),
+        "application/json",
+    ),
+    (
+        "model-evidence-payloads/synthetic-output.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/model-evidence-payloads/synthetic-output.json"
+        ),
+        "application/json",
+    ),
+    (
+        "provenance/e2-sparse-derivation.jsonld",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-sparse-derivation.jsonld"
+        ),
+        "application/ld+json",
+    ),
+    (
+        "provenance/e2-evidence-binding.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-evidence-binding.json"
+        ),
+        "application/json",
+    ),
+    (
+        "evidence/protective-model-evidence-envelope-v0.1.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/evidence/protective-model-evidence-envelope-v0.1.json"
+        ),
+        "application/json",
+    ),
+    (
+        "schemas/protect-evidence-binding-v0.1.schema.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/schemas/protect-evidence-binding-v0.1.schema.json"
+        ),
+        "application/schema+json",
+    ),
+];
+
+#[derive(Debug, Serialize)]
+struct GateReport {
+    schema_version: &'static str,
+    ro_crate_specification: &'static str,
+    crate_file_count: usize,
+    provenance_entity_count: usize,
+    provenance_activity_count: usize,
+    provenance_agent_count: usize,
+    used_input_count: usize,
+    generated_output_count: usize,
+    declared_derivation_count: usize,
+    evidence_binding_count: usize,
+    e1_dataset_binding_count: usize,
+    synthetic_control_binding_count: usize,
+    source_envelope_sha256: String,
+    verified_artifact_count: usize,
+    crate_metadata_sha256: String,
+    provenance_graph_sha256: String,
+    json_ld_processing_scope: &'static str,
+    prov_conformance_scope: &'static str,
+    disposition: &'static str,
+    structural_checks_passed: bool,
+    claim_ceiling: &'static str,
+}
+
+fn required_text<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str, String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .ok_or_else(|| format!("{path}.{key} must be non-empty text"))
+}
+
+fn entity_id<'a>(value: &'a Value, path: &str) -> Result<&'a str, String> {
+    required_text(value, "@id", path)
+}
+
+fn reference_id<'a>(value: &'a Value, path: &str) -> Result<&'a str, String> {
+    required_text(value, "@id", path)
+}
+
+fn entity_type(value: &Value) -> Option<&str> {
+    value.get("@type").and_then(Value::as_str)
+}
+
+fn require_type(value: &Value, expected: &str, path: &str) -> Result<(), String> {
+    if entity_type(value) == Some(expected) {
+        Ok(())
+    } else {
+        Err(format!("{path}.@type must equal {expected}"))
+    }
+}
+
+fn unique_graph(value: &Value, label: &str) -> Result<BTreeMap<String, Value>, String> {
+    let graph = value
+        .get("@graph")
+        .and_then(Value::as_array)
+        .filter(|items| !items.is_empty())
+        .ok_or_else(|| format!("{label} @graph must be a non-empty array"))?;
+    let mut entities = BTreeMap::new();
+    for (index, entity) in graph.iter().enumerate() {
+        let path = format!("{label} @graph[{index}]");
+        let id = entity_id(entity, &path)?.to_owned();
+        if entities.insert(id.clone(), entity.clone()).is_some() {
+            return Err(format!("duplicate {label} @id: {id}"));
+        }
+    }
+    Ok(entities)
+}
+
+fn validate_claim_and_rights(value: &Value, path: &str) -> Result<(), String> {
+    if required_text(value, "claimCeiling", path)? != CLAIM_CEILING {
+        return Err(format!("{path}.claimCeiling escalates the synthetic claim ceiling"));
+    }
+    if required_text(value, "rightsStatus", path)? != RIGHTS_STATUS {
+        return Err(format!("{path}.rightsStatus must remain {RIGHTS_STATUS}"));
+    }
+    if required_text(value, "permittedUse", path)? != PERMITTED_USE {
+        return Err(format!("{path}.permittedUse must remain {PERMITTED_USE}"));
+    }
+    if value.get("license").is_some() {
+        return Err(format!("{path}.license asserts an unauthenticated license grant"));
+    }
+    Ok(())
+}
+
+fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, String> {
+    validate_crate_with_binding(crate_text, prov_text, E2_BINDING)
+}
+
+fn validate_crate_with_binding(
+    crate_text: &str,
+    prov_text: &str,
+    binding_text: &str,
+) -> Result<GateReport, String> {
+    let crate_root: Value = serde_json::from_str(crate_text)
+        .map_err(|error| format!("RO-Crate JSON invalid: {error}"))?;
+    let prov_root: Value = serde_json::from_str(prov_text)
+        .map_err(|error| format!("PROV-O JSON-LD invalid: {error}"))?;
+    let e1: Value = serde_json::from_str(E1_ENVELOPE)
+        .map_err(|error| format!("E1 envelope JSON invalid: {error}"))?;
+    if E1_ENVELOPE.as_bytes() != E1_SOURCE_ENVELOPE_BYTES {
+        return Err("packaged E1 envelope bytes differ from the original E1 fixture".to_owned());
+    }
+    if BINDING_SCHEMA_SOURCE_BYTES != BINDING_SCHEMA_PACKAGE_BYTES {
+        return Err("packaged E2 binding schema bytes differ from the verifier schema".to_owned());
+    }
+    let binding_root: Value = serde_json::from_str(binding_text)
+        .map_err(|error| format!("E2 evidence binding JSON invalid: {error}"))?;
+    let binding_schema: Value = serde_json::from_str(BINDING_SCHEMA_SPEC)
+        .map_err(|error| format!("E2 binding schema JSON invalid: {error}"))?;
+    let binding_validator = jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&binding_schema)
+        .map_err(|error| format!("E2 binding schema is invalid: {error}"))?;
+    binding_validator.validate(&binding_root).map_err(|error| {
+        format!("E2 evidence binding schema validation failed: {error}")
+    })?;
+    if required_text(&binding_root, "schema_version", "E2 binding")?
+        != "protect-evidence-binding/0.1"
+        || required_text(&binding_root, "evidence_class", "E2 binding")? != "synthetic"
+    {
+        return Err("E2 evidence binding must be the frozen synthetic binding schema".to_owned());
+    }
+    let source_envelope = binding_root
+        .get("source_envelope")
+        .ok_or_else(|| "E2 binding.source_envelope is required".to_owned())?;
+    if required_text(source_envelope, "relative_path", "E2 binding.source_envelope")?
+        != "evidence/protective-model-evidence-envelope-v0.1.json"
+    {
+        return Err("E2 binding must identify the E1 envelope packaged in the crate".to_owned());
+    }
+    let source_envelope_length = source_envelope
+        .get("byte_length")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "E2 binding source envelope byte_length is invalid".to_owned())?;
+    if source_envelope_length != E1_SOURCE_ENVELOPE_BYTES.len() as u64 {
+        return Err("E2 binding source envelope byte_length differs from the E1 envelope".to_owned());
+    }
+    let source_envelope_sha256 = format!("{:x}", Sha256::digest(E1_SOURCE_ENVELOPE_BYTES));
+    if required_text(source_envelope, "sha256", "E2 binding.source_envelope")?
+        != source_envelope_sha256
+    {
+        return Err("E2 binding source envelope SHA-256 differs from the E1 envelope".to_owned());
+    }
+
+    let e1_analysis = e1
+        .get("analysis")
+        .ok_or_else(|| "E1 envelope analysis is required".to_owned())?;
+    let e1_analysis_id = required_text(e1_analysis, "analysis_id", "E1 analysis")?;
+    let e1_execution_status = required_text(e1_analysis, "execution_status", "E1 analysis")?;
+    let binding_analysis = binding_root
+        .get("analysis")
+        .ok_or_else(|| "E2 binding.analysis is required".to_owned())?;
+    if required_text(binding_analysis, "analysis_id", "E2 binding.analysis")?
+        != e1_analysis_id
+        || required_text(binding_analysis, "execution_status", "E2 binding.analysis")?
+            != e1_execution_status
+    {
+        return Err("E2 binding analysis identity/status differs from the E1 envelope".to_owned());
+    }
+    let fixture_activity_binding = binding_root
+        .get("fixture_activity")
+        .ok_or_else(|| "E2 binding.fixture_activity is required".to_owned())?;
+    let fixture_activity_id =
+        required_text(fixture_activity_binding, "fixture_activity_id", "E2 fixture activity")?;
+    let fixture_execution_class =
+        required_text(fixture_activity_binding, "execution_class", "E2 fixture activity")?;
+    if required_text(fixture_activity_binding, "prov_activity_id", "E2 fixture activity")?
+        != ACTIVITY
+        || fixture_execution_class != "E2_SYNTHETIC_GRAPH_FIXTURE"
+        || fixture_activity_binding
+            .get("source_analysis_not_executed")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err("E2 fixture Activity must remain distinct from the NOT_EXECUTED E1 analysis".to_owned());
+    }
+
+    let contexts = crate_root
+        .get("@context")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "RO-Crate @context must be an array".to_owned())?;
+    if contexts.first().and_then(Value::as_str) != Some(RO_CONTEXT) {
+        return Err("RO-Crate @context must pin the RO-Crate 1.3 context".to_owned());
+    }
+    let extension = contexts
+        .get(1)
+        .and_then(Value::as_object)
+        .ok_or_else(|| "RO-Crate E2 extension context is required".to_owned())?;
+    let required_extensions = [
+        ("ex", "https://luminousdynamics.io/protect-evidence/e2/"),
+        ("claimCeiling", "ex:claimCeiling"),
+        ("rightsStatus", "ex:rightsStatus"),
+        ("permittedUse", "ex:permittedUse"),
+    ];
+    for (key, expected) in required_extensions {
+        if extension.get(key).and_then(Value::as_str) != Some(expected) {
+            return Err(format!("RO-Crate extension context mapping for {key} is invalid"));
+        }
+    }
+
+    let crate_entities = unique_graph(&crate_root, "RO-Crate")?;
+    let descriptor = crate_entities
+        .get("ro-crate-metadata.json")
+        .ok_or_else(|| "RO-Crate metadata descriptor is missing".to_owned())?;
+    require_type(descriptor, "CreativeWork", "RO-Crate descriptor")?;
+    if reference_id(
+        descriptor
+            .get("conformsTo")
+            .ok_or_else(|| "RO-Crate descriptor.conformsTo is required".to_owned())?,
+        "RO-Crate descriptor.conformsTo",
+    )? != RO_SPEC
+    {
+        return Err("RO-Crate descriptor must conform to RO-Crate 1.3".to_owned());
+    }
+    if reference_id(
+        descriptor
+            .get("about")
+            .ok_or_else(|| "RO-Crate descriptor.about is required".to_owned())?,
+        "RO-Crate descriptor.about",
+    )? != "./"
+    {
+        return Err("RO-Crate descriptor.about must reference root ./".to_owned());
+    }
+
+    let root = crate_entities
+        .get("./")
+        .ok_or_else(|| "RO-Crate root data entity ./ is missing".to_owned())?;
+    require_type(root, "Dataset", "RO-Crate root")?;
+    validate_claim_and_rights(root, "RO-Crate root")?;
+    if reference_id(
+        root.get("publisher")
+            .ok_or_else(|| "RO-Crate root.publisher is required".to_owned())?,
+        "RO-Crate root.publisher",
+    )? != AGENT
+    {
+        return Err(
+            "RO-Crate root.publisher must reference the declared synthetic provider".to_owned(),
+        );
+    }
+    require_type(
+        crate_entities
+            .get(AGENT)
+            .ok_or_else(|| "RO-Crate synthetic provider contextual entity is missing".to_owned())?,
+        "Organization",
+        "RO-Crate synthetic provider",
+    )?;
+
+    let expected_parts: BTreeSet<String> = ARTIFACTS
+        .iter()
+        .map(|(path, _, _)| (*path).to_owned())
+        .collect();
+    let has_parts = root
+        .get("hasPart")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "RO-Crate root.hasPart must be an array".to_owned())?;
+    let mut part_ids = BTreeSet::new();
+    for item in has_parts {
+        let id = reference_id(item, "RO-Crate root.hasPart entry")?.to_owned();
+        if !part_ids.insert(id.clone()) {
+            return Err(format!("duplicate RO-Crate root.hasPart entry: {id}"));
+        }
+    }
+    if part_ids != expected_parts {
+        return Err(
+            "RO-Crate root.hasPart does not exactly match the frozen artifact inventory".to_owned(),
+        );
+    }
+    let file_ids: BTreeSet<String> = crate_entities
+        .iter()
+        .filter(|(_, value)| entity_type(value) == Some("File"))
+        .map(|(id, _)| id.clone())
+        .collect();
+    if file_ids != expected_parts {
+        return Err(
+            "RO-Crate File entity inventory does not exactly match the root data entity inventory"
+                .to_owned(),
+        );
+    }
+
+    let mut verified_artifacts = 0usize;
+    for (path, bytes, media_type) in ARTIFACTS {
+        let file = crate_entities
+            .get(path)
+            .ok_or_else(|| format!("RO-Crate File entity is missing: {path}"))?;
+        require_type(file, "File", path)?;
+        validate_claim_and_rights(file, path)?;
+        if required_text(file, "encodingFormat", path)? != media_type {
+            return Err(format!("{path}.encodingFormat is inconsistent"));
+        }
+        if required_text(file, "contentSize", path)? != bytes.len().to_string() {
+            return Err(format!("{path}.contentSize does not match artifact byte length"));
+        }
+        let actual_sha = format!("{:x}", Sha256::digest(bytes));
+        if required_text(file, "sha256", path)? != actual_sha {
+            return Err(format!("{path}.sha256 does not match local artifact bytes"));
+        }
+        verified_artifacts += 1;
+    }
+
+    let e1_datasets_array = e1
+        .get("datasets")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "E1 envelope datasets must be an array".to_owned())?;
+    let mut e1_dataset_bindings: BTreeMap<String, (String, BTreeSet<String>)> =
+        BTreeMap::new();
+    for (index, dataset) in e1_datasets_array.iter().enumerate() {
+        let path = format!("E1 datasets[{index}]");
+        let dataset_id = required_text(dataset, "dataset_id", &path)?.to_owned();
+        let direction = required_text(dataset, "direction", &path)?.to_owned();
+        let artifacts = dataset
+            .get("artifacts")
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{path}.artifacts must be an array"))?;
+        let artifact_paths: BTreeSet<String> = artifacts
+            .iter()
+            .map(|artifact| {
+                required_text(artifact, "relative_path", &format!("{path}.artifact"))
+                    .map(str::to_owned)
+            })
+            .collect::<Result<_, _>>()?;
+        if artifact_paths.len() != artifacts.len()
+            || e1_dataset_bindings
+                .insert(dataset_id.clone(), (direction, artifact_paths))
+                .is_some()
+        {
+            return Err(format!("{path} has duplicate dataset or artifact identities"));
+        }
+    }
+
+    let bindings = binding_root
+        .get("bindings")
+        .and_then(Value::as_array)
+        .filter(|items| items.len() == 4)
+        .ok_or_else(|| "E2 binding must contain exactly four PROV entity bindings".to_owned())?;
+    let mut entity_bindings: BTreeMap<String, (String, String, String)> = BTreeMap::new();
+    let mut dataset_binding_ids = BTreeSet::new();
+    let mut e1_binding_count = 0usize;
+    let mut synthetic_control_count = 0usize;
+    for (index, binding) in bindings.iter().enumerate() {
+        let path = format!("E2 binding.bindings[{index}]");
+        let entity_id = required_text(binding, "prov_entity_id", &path)?.to_owned();
+        let dataset_id = required_text(binding, "dataset_id", &path)?.to_owned();
+        let direction = required_text(binding, "direction", &path)?.to_owned();
+        let binding_status = required_text(binding, "binding_status", &path)?.to_owned();
+        let source = required_text(binding, "source", &path)?.to_owned();
+        if !["INPUT", "OUTPUT"].contains(&direction.as_str())
+            || !dataset_binding_ids.insert(dataset_id.clone())
+        {
+            return Err(format!("{path} has an unsupported direction or duplicate dataset ID"));
+        }
+        let artifact_paths_array = binding
+            .get("artifact_paths")
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{path}.artifact_paths must be an array"))?;
+        let artifact_paths: BTreeSet<String> = artifact_paths_array
+            .iter()
+            .map(|item| {
+                item.as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| format!("{path}.artifact_paths entries must be text"))
+            })
+            .collect::<Result<_, _>>()?;
+        if artifact_paths.len() != artifact_paths_array.len() {
+            return Err(format!("{path}.artifact_paths contains duplicate entries"));
+        }
+        match binding_status.as_str() {
+            "E1_ENVELOPE_DATASET" => {
+                if source != "E1_ENVELOPE" {
+                    return Err(format!("{path}: E1 dataset binding must cite E1_ENVELOPE"));
+                }
+                let (expected_direction, expected_paths) = e1_dataset_bindings
+                    .get(&dataset_id)
+                    .ok_or_else(|| format!("{path}: dataset ID does not exist in the E1 envelope"))?;
+                if expected_direction != &direction || expected_paths != &artifact_paths {
+                    return Err(format!("{path}: E1 dataset direction/artifact paths differ from the envelope"));
+                }
+                e1_binding_count += 1;
+            }
+            "SYNTHETIC_CONTROL_ONLY" => {
+                if source != "E2_FIXTURE"
+                    || !artifact_paths.is_empty()
+                    || e1_dataset_bindings.contains_key(&dataset_id)
+                {
+                    return Err(format!("{path}: synthetic control cannot claim E1/provider artifacts"));
+                }
+                synthetic_control_count += 1;
+            }
+            other => return Err(format!("{path}.binding_status is unsupported: {other}")),
+        }
+        if entity_bindings
+            .insert(entity_id.clone(), (dataset_id, direction, binding_status))
+            .is_some()
+        {
+            return Err(format!("{path} duplicates PROV entity binding {entity_id}"));
+        }
+    }
+    let expected_bound_entities = BTreeSet::from([
+        INPUT_WATER.to_owned(),
+        INPUT_POWER.to_owned(),
+        OUTPUT_WATER.to_owned(),
+        OUTPUT_CLINIC.to_owned(),
+    ]);
+    if entity_bindings.keys().cloned().collect::<BTreeSet<_>>() != expected_bound_entities
+        || e1_binding_count != e1_datasets_array.len()
+        || synthetic_control_count != 2
+    {
+        return Err("E2 entity binding inventory must map both E1 datasets and two synthetic controls".to_owned());
+    }
+
+    let e1_artifacts: BTreeMap<String, (u64, String)> = e1
+        .get("datasets")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "E1 envelope datasets must be an array".to_owned())?
+        .iter()
+        .flat_map(|dataset| {
+            dataset
+                .get("artifacts")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .map(|artifact| {
+            let path = required_text(artifact, "relative_path", "E1 artifact")?.to_owned();
+            let length = artifact
+                .get("byte_length")
+                .and_then(Value::as_u64)
+                .ok_or_else(|| format!("E1 artifact {path}.byte_length is invalid"))?;
+            let sha = required_text(artifact, "sha256", &format!("E1 artifact {path}"))?.to_owned();
+            Ok((path, (length, sha)))
+        })
+        .collect::<Result<BTreeMap<_, _>, String>>()?;
+    for (path, bytes, _) in ARTIFACTS.iter().take(6) {
+        let (length, sha) = e1_artifacts
+            .get(*path)
+            .ok_or_else(|| format!("E1 envelope does not register {path}"))?;
+        if *length != bytes.len() as u64 || sha.as_str() != format!("{:x}", Sha256::digest(bytes)) {
+            return Err(format!("{path} differs from the E1 envelope artifact record"));
+        }
+    }
+
+    let prov_context = prov_root
+        .get("@context")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "PROV-O @context must be an object".to_owned())?;
+    if prov_context.get("prov").and_then(Value::as_str) != Some(PROV_NS) {
+        return Err("PROV-O context must bind prov to the W3C PROV namespace".to_owned());
+    }
+    if prov_context.get("schema").and_then(Value::as_str) != Some(SCHEMA_NS) {
+        return Err("PROV-O context must bind schema to schema.org".to_owned());
+    }
+    if prov_context.get("ex").and_then(Value::as_str) != Some(E2_NS) {
+        return Err("PROV-O context must bind ex to the E2 fixture namespace".to_owned());
+    }
+
+    let prov_entities = unique_graph(&prov_root, "PROV-O")?;
+    if prov_entities.len() != 6 {
+        return Err(format!(
+            "E2 sparse fixture requires six PROV nodes, found {}",
+            prov_entities.len()
+        ));
+    }
+
+    let activity = prov_entities
+        .get(ACTIVITY)
+        .ok_or_else(|| "PROV-O analysis Activity is missing".to_owned())?;
+    require_type(activity, "prov:Activity", "PROV-O analysis")?;
+    if required_text(activity, "ex:fixtureActivityId", "PROV-O fixture activity")?
+        != fixture_activity_id
+        || required_text(activity, "ex:executionClass", "PROV-O fixture activity")?
+            != fixture_execution_class
+        || required_text(activity, "ex:sourceAnalysisId", "PROV-O fixture activity")?
+            != e1_analysis_id
+        || required_text(
+            activity,
+            "ex:sourceAnalysisExecutionStatus",
+            "PROV-O fixture activity",
+        )? != e1_execution_status
+        || required_text(activity, "ex:analysisExecutionClaim", "PROV-O fixture activity")?
+            != "NONE"
+    {
+        return Err(
+            "PROV-O Activity must identify the synthetic E2 graph fixture and preserve E1 NOT_EXECUTED status"
+                .to_owned(),
+        );
+    }
+    let agent = prov_entities
+        .get(AGENT)
+        .ok_or_else(|| "PROV-O Agent is missing".to_owned())?;
+    require_type(agent, "prov:Agent", "PROV-O provider")?;
+
+    let used = activity
+        .get("prov:used")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "PROV-O analysis must contain prov:used".to_owned())?;
+    let used_ids: BTreeSet<String> = used
+        .iter()
+        .map(|item| reference_id(item, "prov:used").map(str::to_owned))
+        .collect::<Result<_, _>>()?;
+    let expected_used = BTreeSet::from([INPUT_WATER.to_owned(), INPUT_POWER.to_owned()]);
+    if used.len() != 2 || used_ids != expected_used {
+        return Err("prov:used must contain exactly two unique declared input entities".to_owned());
+    }
+    if reference_id(
+        activity
+            .get("prov:wasAssociatedWith")
+            .ok_or_else(|| "PROV-O activity.prov:wasAssociatedWith is required".to_owned())?,
+        "prov:wasAssociatedWith",
+    )? != AGENT
+        || activity
+            .get("prov:wasAssociatedWith")
+            .is_some_and(Value::is_array)
+    {
+        return Err("PROV-O activity must have exactly one declared associated Agent".to_owned());
+    }
+
+    for id in [INPUT_WATER, INPUT_POWER, OUTPUT_WATER, OUTPUT_CLINIC] {
+        let entity = prov_entities
+            .get(id)
+            .ok_or_else(|| format!("PROV-O bound Entity is missing: {id}"))?;
+        let (dataset_id, direction, binding_status) = entity_bindings
+            .get(id)
+            .ok_or_else(|| format!("E2 binding is missing PROV entity {id}"))?;
+        if required_text(entity, "ex:datasetId", id)? != dataset_id
+            || required_text(entity, "ex:datasetDirection", id)? != direction
+            || required_text(entity, "ex:bindingStatus", id)? != binding_status
+        {
+            return Err(format!("{id}: PROV entity binding differs from the E2 binding manifest"));
+        }
+    }
+
+    for id in [INPUT_WATER, INPUT_POWER] {
+        require_type(
+            prov_entities
+                .get(id)
+                .ok_or_else(|| format!("PROV-O input Entity is missing: {id}"))?,
+            "prov:Entity",
+            id,
+        )?;
+    }
+    for id in [OUTPUT_WATER, OUTPUT_CLINIC] {
+        let output = prov_entities
+            .get(id)
+            .ok_or_else(|| format!("PROV-O output Entity is missing: {id}"))?;
+        require_type(output, "prov:Entity", id)?;
+        if reference_id(
+            output
+                .get("prov:wasGeneratedBy")
+                .ok_or_else(|| format!("{id}.prov:wasGeneratedBy is required"))?,
+            &format!("{id}.prov:wasGeneratedBy"),
+        )? != ACTIVITY
+        {
+            return Err(format!("{id} was not generated by the declared activity"));
+        }
+    }
+
+    let derivation_assertions = binding_root
+        .get("derivations")
+        .and_then(Value::as_array)
+        .filter(|items| items.len() == 1)
+        .ok_or_else(|| "E2 binding must declare exactly one synthetic sparse derivation".to_owned())?;
+    let derivation_assertion = &derivation_assertions[0];
+    let derivation_source = required_text(
+        derivation_assertion,
+        "source_entity_id",
+        "E2 binding.derivations[0]",
+    )?;
+    let derivation_generated = required_text(
+        derivation_assertion,
+        "generated_entity_id",
+        "E2 binding.derivations[0]",
+    )?;
+    let derivation_source_class = required_text(
+        derivation_assertion,
+        "source_class",
+        "E2 binding.derivations[0]",
+    )?;
+    let derivation_assertion_source = required_text(
+        derivation_assertion,
+        "assertion_source",
+        "E2 binding.derivations[0]",
+    )?;
+    if derivation_source != INPUT_POWER
+        || derivation_generated != OUTPUT_CLINIC
+        || derivation_source_class != "E2_FIXTURE"
+        || derivation_assertion_source != "E2_FIXTURE_SYNTHETIC_CONTROL"
+        || derivation_assertion
+            .get("not_in_e1_lineage")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err("E2 sparse derivation must be explicitly declared as a synthetic control, not E1 lineage".to_owned());
+    }
+    if prov_entities[OUTPUT_WATER].get("prov:wasDerivedFrom").is_some() {
+        return Err("E1 water output must not gain an unsupported wasDerivedFrom relation".to_owned());
+    }
+    if reference_id(
+        prov_entities[OUTPUT_CLINIC]
+            .get("prov:wasDerivedFrom")
+            .ok_or_else(|| "clinic-control output lacks the E2 fixture derivation".to_owned())?,
+        "output-clinic.prov:wasDerivedFrom",
+    )? != derivation_source
+        || required_text(
+            &prov_entities[OUTPUT_CLINIC],
+            "ex:derivationAssertionSource",
+            "output-clinic",
+        )? != derivation_assertion_source
+    {
+        return Err("PROV-O derivation differs from the E2 synthetic binding assertion".to_owned());
+    }
+    let derivation_count = prov_entities
+        .values()
+        .filter(|entity| entity.get("prov:wasDerivedFrom").is_some())
+        .count();
+    if derivation_count != 1 {
+        return Err(format!(
+            "exactly one E2 synthetic derivation is allowed, found {derivation_count}"
+        ));
+    }
+
+    let generation_edge_count = prov_entities
+        .values()
+        .filter(|value| value.get("prov:wasGeneratedBy").is_some())
+        .count();
+    if generation_edge_count != 2 {
+        return Err(format!(
+            "exactly two synthetic fixture prov:wasGeneratedBy edges are allowed, found {generation_edge_count}"
+        ));
+    }
+
+    let entity_count = prov_entities
+        .values()
+        .filter(|value| entity_type(value) == Some("prov:Entity"))
+        .count();
+    let activity_count = prov_entities
+        .values()
+        .filter(|value| entity_type(value) == Some("prov:Activity"))
+        .count();
+    let agent_count = prov_entities
+        .values()
+        .filter(|value| entity_type(value) == Some("prov:Agent"))
+        .count();
+    if entity_count != 4 || activity_count != 1 || agent_count != 1 {
+        return Err(
+            "PROV-O node-type inventory differs from the E2 sparse graph contract".to_owned(),
+        );
+    }
+
+    Ok(GateReport {
+        schema_version: "protect-evidence-portability/0.1",
+        ro_crate_specification: RO_SPEC,
+        crate_file_count: verified_artifacts,
+        provenance_entity_count: entity_count,
+        provenance_activity_count: activity_count,
+        provenance_agent_count: agent_count,
+        used_input_count: used_ids.len(),
+        generated_output_count: 2,
+        declared_derivation_count: derivation_count,
+        evidence_binding_count: entity_bindings.len(),
+        e1_dataset_binding_count: e1_binding_count,
+        synthetic_control_binding_count: synthetic_control_count,
+        source_envelope_sha256,
+        verified_artifact_count: verified_artifacts,
+        crate_metadata_sha256: format!("{:x}", Sha256::digest(crate_text.as_bytes())),
+        provenance_graph_sha256: format!("{:x}", Sha256::digest(prov_text.as_bytes())),
+        json_ld_processing_scope: "E2 compact-profile checks only; full JSON-LD 1.1 expansion is not implemented",
+        prov_conformance_scope: "E2 PROV-O subset only; full PROV-DM constraints and equivalence are not certified",
+        disposition: "ABSTAIN_SYNTHETIC_NOT_EXECUTED",
+        structural_checks_passed: true,
+        claim_ceiling: CLAIM_CEILING,
+    })
+}
+
+fn run() -> Result<GateReport, String> {
+    validate_crate(CRATE, PROV)
+}
+
+fn main() {
+    match run() {
+        Ok(report) => println!(
+            "{}",
+            serde_json::to_string_pretty(&report).expect("E2 gate report serialization")
+        ),
+        Err(error) => {
+            eprintln!("{error}");
+            process::exit(2);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn crate_value() -> Value {
+        serde_json::from_str(CRATE).expect("embedded RO-Crate JSON")
+    }
+
+    fn prov_value() -> Value {
+        serde_json::from_str(PROV).expect("embedded PROV-O JSON-LD")
+    }
+
+    #[test]
+    fn valid_ro_crate_and_sparse_prov_graph_are_accepted() {
+        let report = run().expect("valid E2 synthetic package");
+        assert_eq!(report.crate_file_count, 10);
+        assert_eq!(report.evidence_binding_count, 4);
+        assert_eq!(report.e1_dataset_binding_count, 2);
+        assert_eq!(report.synthetic_control_binding_count, 2);
+        assert_eq!(report.provenance_entity_count, 4);
+        assert_eq!(report.provenance_activity_count, 1);
+        assert_eq!(report.provenance_agent_count, 1);
+        assert_eq!(report.used_input_count, 2);
+        assert_eq!(report.generated_output_count, 2);
+        assert_eq!(report.declared_derivation_count, 1);
+        assert!(report.json_ld_processing_scope.contains("not implemented"));
+        assert!(report.prov_conformance_scope.contains("not certified"));
+        assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_NOT_EXECUTED");
+    }
+
+    #[test]
+    fn binding_schema_rejects_unknown_properties() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["unrecognized"] = Value::Bool(true);
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("binding schema additionalProperties=false");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn binding_schema_requires_synthetic_evidence_class() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["evidence_class"] = Value::String("external_observed".into());
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("binding class escalation");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn binding_schema_rejects_e1_as_the_source_of_synthetic_derivation() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["derivations"][0]["assertion_source"] = Value::String("E1_ENVELOPE".into());
+        binding["derivations"][0]["not_in_e1_lineage"] = Value::Bool(false);
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("E1 must not be promoted into direct derivation");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn e1_consumed_and_produced_edges_are_not_promoted_to_was_derived_from() {
+        let e1: Value = serde_json::from_str(E1_ENVELOPE).expect("E1 envelope");
+        let edges = e1["lineage_edges"].as_array().expect("E1 lineage");
+        assert!(edges.iter().all(|edge| {
+            edge["relationship"] == "CONSUMED_BY" || edge["relationship"] == "PRODUCED_BY"
+        }));
+        assert!(edges.iter().all(|edge| edge["relationship"] != "WAS_DERIVED_FROM"));
+        let prov = prov_value();
+        let nodes = prov["@graph"].as_array().expect("PROV graph");
+        let water = nodes
+            .iter()
+            .find(|node| node["@id"] == OUTPUT_WATER)
+            .expect("E1 output node");
+        assert!(water.get("prov:wasDerivedFrom").is_none());
+    }
+
+    #[test]
+    fn binding_schema_rejects_artifacts_on_synthetic_control() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["bindings"][1]["artifact_paths"] =
+            json!(["model-evidence-payloads/unknown-provider-data.json"]);
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("synthetic control has no provider artifacts");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn prov_dataset_identity_must_match_binding_manifest() {
+        let mut prov = prov_value();
+        let power = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == INPUT_POWER)
+            .expect("power input");
+        power["ex:datasetId"] = Value::String("synthetic.dataset.water.input.001".into());
+        let error = validate_crate(CRATE, &prov.to_string())
+            .expect_err("dataset ID disagrees with evidence binding manifest");
+        assert!(error.contains("PROV entity binding differs from the E2 binding manifest"));
+    }
+
+    #[test]
+    fn synthetic_control_cannot_be_promoted_to_an_e1_dataset() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["bindings"][1]["binding_status"] =
+            Value::String("E1_ENVELOPE_DATASET".into());
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("synthetic control has no E1 source");
+        assert!(error.contains("E1 dataset binding must cite E1_ENVELOPE"));
+    }
+
+    #[test]
+    fn e2_binding_must_pin_the_exact_e1_envelope_digest() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["source_envelope"]["sha256"] = Value::String("00".repeat(32));
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("source envelope digest mismatch");
+        assert!(error.contains("source envelope SHA-256 differs from the E1 envelope"));
+    }
+
+    #[test]
+    fn prov_activity_must_match_e1_analysis_identity() {
+        let mut prov = prov_value();
+        let activity = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("activity");
+        activity["ex:fixtureActivityId"] = Value::String("other-fixture".into());
+        let error = validate_crate(CRATE, &prov.to_string())
+            .expect_err("fixture activity identity mismatch");
+        assert!(error.contains("synthetic E2 graph fixture and preserve E1 NOT_EXECUTED status"));
+    }
+
+    #[test]
+    fn all_to_all_derivation_inference_is_rejected() {
+        let mut prov = prov_value();
+        let water = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == OUTPUT_WATER)
+            .expect("water output");
+        water["prov:wasDerivedFrom"] = json!({"@id": INPUT_WATER});
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("unsupported E1 derivation");
+        assert!(error.contains("E1 water output must not gain an unsupported"));
+    }
+
+    #[test]
+    fn wrong_sparse_derivation_target_is_rejected() {
+        let mut prov = prov_value();
+        let clinic = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == OUTPUT_CLINIC)
+            .expect("clinic output");
+        clinic["prov:wasDerivedFrom"] = json!({"@id": INPUT_WATER});
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong synthetic derivation");
+        assert!(error.contains("PROV-O derivation differs from the E2 synthetic binding assertion"));
+    }
+
+    #[test]
+    fn missing_used_input_is_rejected() {
+        let mut prov = prov_value();
+        let activity = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("analysis");
+        activity["prov:used"] = json!([{"@id": INPUT_WATER}]);
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("missing input");
+        assert!(error.contains("prov:used must contain exactly the two declared input entities"));
+    }
+
+    #[test]
+    fn generated_output_without_activity_is_rejected() {
+        let mut prov = prov_value();
+        let clinic = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == OUTPUT_CLINIC)
+            .expect("clinic output");
+        clinic.as_object_mut().expect("object").remove("prov:wasGeneratedBy");
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("missing generation");
+        assert!(error.contains("prov:wasGeneratedBy is required"));
+    }
+
+    #[test]
+    fn claim_ceiling_escalation_is_rejected() {
+        let mut metadata = crate_value();
+        let root = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == "./")
+            .expect("root");
+        root["claimCeiling"] = Value::String("PHYSICALLY_VALIDATED".into());
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("claim escalation");
+        assert!(error.contains("claimCeiling escalates"));
+    }
+
+    #[test]
+    fn rights_status_escalation_is_rejected() {
+        let mut metadata = crate_value();
+        let root = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == "./")
+            .expect("root");
+        root["rightsStatus"] = Value::String("LICENSED".into());
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("rights escalation");
+        assert!(error.contains("rightsStatus must remain"));
+    }
+
+    #[test]
+    fn missing_ro_crate_part_is_rejected() {
+        let mut metadata = crate_value();
+        let root = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == "./")
+            .expect("root");
+        let _ = root["hasPart"].as_array_mut().expect("parts").pop();
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("missing file part");
+        assert!(error.contains("root.hasPart does not exactly match"));
+    }
+
+    #[test]
+    fn content_size_uses_ro_crate_byte_count_representation() {
+        let mut metadata = crate_value();
+        let input = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| {
+                node["@id"] == "model-evidence-payloads/synthetic-input.json"
+            })
+            .expect("input payload");
+        input["contentSize"] = Value::String("228 bytes".into());
+        let error = validate_crate(&metadata.to_string(), PROV)
+            .expect_err("human-readable suffix is not the profile byte-count representation");
+        assert!(error.contains(".contentSize does not match artifact byte length"));
+    }
+
+    #[test]
+    fn artifact_digest_swap_is_rejected() {
+        let mut metadata = crate_value();
+        let input = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == "model-evidence-payloads/synthetic-input.json")
+            .expect("input payload");
+        input["sha256"] = Value::String(
+            "ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6".into(),
+        );
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("digest swap");
+        assert!(error.contains(".sha256 does not match"));
+    }
+
+    #[test]
+    fn duplicate_ro_crate_ids_are_rejected() {
+        let mut metadata = crate_value();
+        let graph = metadata["@graph"].as_array_mut().expect("graph");
+        let duplicate = graph[2].clone();
+        graph.push(duplicate);
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("duplicate ID");
+        assert!(error.contains("duplicate RO-Crate @id"));
+    }
+
+    #[test]
+    fn context_must_pin_ro_crate_13() {
+        let mut metadata = crate_value();
+        metadata["@context"][0] = Value::String("https://w3id.org/ro/crate/1.2/context".into());
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("wrong context");
+        assert!(error.contains("RO-Crate 1.3 context"));
+    }
+
+    #[test]
+    fn unauthenticated_license_claim_is_rejected() {
+        let mut metadata = crate_value();
+        let root = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == "./")
+            .expect("root");
+        root["license"] = json!({"@id":"https://example.invalid/license"});
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("license claim");
+        assert!(error.contains("unauthenticated license grant"));
+    }
+
+    #[test]
+    fn extra_file_entity_not_listed_by_root_is_rejected() {
+        let mut metadata = crate_value();
+        metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .push(json!({"@id":"unlisted.bin","@type":"File"}));
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("unlisted File");
+        assert!(error.contains("File entity inventory"));
+    }
+
+    #[test]
+    fn prov_namespace_binding_is_required() {
+        let mut prov = prov_value();
+        prov["@context"]["prov"] = Value::String("https://example.invalid/prov#".into());
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong PROV namespace");
+        assert!(error.contains("W3C PROV namespace"));
+    }
+
+    #[test]
+    fn graph_and_edge_order_do_not_change_semantic_result() {
+        let baseline = run().expect("baseline profile graph");
+        let mut reordered = prov_value();
+        let graph = reordered["@graph"].as_array_mut().expect("graph");
+        graph.reverse();
+        let activity = graph
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("activity");
+        activity["prov:used"].as_array_mut().expect("used edges").reverse();
+
+        let candidate =
+            validate_crate(CRATE, &reordered.to_string()).expect("reordered profile graph");
+        assert_eq!(candidate.provenance_entity_count, baseline.provenance_entity_count);
+        assert_eq!(candidate.provenance_activity_count, baseline.provenance_activity_count);
+        assert_eq!(candidate.provenance_agent_count, baseline.provenance_agent_count);
+        assert_eq!(candidate.used_input_count, baseline.used_input_count);
+        assert_eq!(candidate.generated_output_count, baseline.generated_output_count);
+        assert_eq!(candidate.declared_derivation_count, baseline.declared_derivation_count);
+        assert_eq!(candidate.disposition, baseline.disposition);
+        assert_ne!(
+            candidate.provenance_graph_sha256,
+            baseline.provenance_graph_sha256,
+            "raw-byte digest should still bind the actual serialization"
+        );
+    }
+
+    #[test]
+    fn duplicate_used_input_is_rejected() {
+        let mut prov = prov_value();
+        let activity = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("analysis");
+        activity["prov:used"] = json!([
+            {"@id": INPUT_WATER},
+            {"@id": INPUT_WATER}
+        ]);
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("duplicate used edge");
+        assert!(error.contains("exactly two unique declared input entities"));
+    }
+
+    #[test]
+    fn unexpected_generation_edge_on_an_input_is_rejected() {
+        let mut prov = prov_value();
+        let input = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == INPUT_POWER)
+            .expect("power input");
+        input["prov:wasGeneratedBy"] = json!({"@id": ACTIVITY});
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("extra generation edge");
+        assert!(error.contains("exactly two synthetic fixture prov:wasGeneratedBy edges"));
+    }
+
+    #[test]
+    fn e2_namespace_binding_is_required() {
+        let mut prov = prov_value();
+        prov["@context"]["ex"] = Value::String("https://example.invalid/e2/".into());
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong E2 namespace");
+        assert!(error.contains("E2 fixture namespace"));
+    }
+
+    #[test]
+    fn descriptor_must_point_to_the_root_data_entity() {
+        let mut metadata = crate_value();
+        let descriptor = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == "ro-crate-metadata.json")
+            .expect("descriptor");
+        descriptor["about"] = json!({"@id":"./wrong"});
+        let error = validate_crate(&metadata.to_string(), PROV).expect_err("wrong root");
+        assert!(error.contains("descriptor.about"));
+    }
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": "protect-evidence-binding/0.1",
+  "evidence_class": "synthetic",
+  "analysis": {
+    "analysis_id": "synthetic.analysis.water-continuity.001",
+    "execution_status": "NOT_EXECUTED"
+  },
+  "source_envelope": {
+    "relative_path": "evidence/protective-model-evidence-envelope-v0.1.json",
+    "byte_length": 5399,
+    "sha256": "530af9e09e5bd38b0be070e2193ec76e99a58f756f52034aaab4ef5347962676"
+  },
+  "bindings": [
+    {
+      "prov_entity_id": "ex:entity/input-water-demand",
+      "dataset_id": "synthetic.dataset.water.input.001",
+      "direction": "INPUT",
+      "binding_status": "E1_ENVELOPE_DATASET",
+      "source": "E1_ENVELOPE",
+      "artifact_paths": [
+        "model-evidence-metadata/synthetic-input-dataset.json",
+        "model-evidence-metadata/synthetic-input-files.json",
+        "model-evidence-payloads/synthetic-input.json"
+      ]
+    },
+    {
+      "prov_entity_id": "ex:entity/input-power-availability",
+      "dataset_id": "synthetic.dataset.power.input.control.001",
+      "direction": "INPUT",
+      "binding_status": "SYNTHETIC_CONTROL_ONLY",
+      "source": "E2_FIXTURE",
+      "artifact_paths": []
+    },
+    {
+      "prov_entity_id": "ex:entity/output-water-service",
+      "dataset_id": "synthetic.dataset.water.output.001",
+      "direction": "OUTPUT",
+      "binding_status": "E1_ENVELOPE_DATASET",
+      "source": "E1_ENVELOPE",
+      "artifact_paths": [
+        "model-evidence-metadata/synthetic-output-dataset.json",
+        "model-evidence-metadata/synthetic-output-files.json",
+        "model-evidence-payloads/synthetic-output.json"
+      ]
+    },
+    {
+      "prov_entity_id": "ex:entity/output-clinic-access",
+      "dataset_id": "synthetic.dataset.clinic.output.control.001",
+      "direction": "OUTPUT",
+      "binding_status": "SYNTHETIC_CONTROL_ONLY",
+      "source": "E2_FIXTURE",
+      "artifact_paths": []
+    }
+  ],
+  "fixture_activity": {
+    "prov_activity_id": "ex:activity/e2-portability-fixture-001",
+    "fixture_activity_id": "synthetic.e2.provenance.fixture.001",
+    "execution_class": "E2_SYNTHETIC_GRAPH_FIXTURE",
+    "source_analysis_not_executed": true
+  },
+  "derivations": [
+    {
+      "generated_entity_id": "ex:entity/output-clinic-access",
+      "source_entity_id": "ex:entity/input-power-availability",
+      "assertion_source": "E2_FIXTURE_SYNTHETIC_CONTROL",
+      "source_class": "E2_FIXTURE",
+      "not_in_e1_lineage": true
+    }
+  ]
+}

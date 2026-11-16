@@ -1,0 +1,78 @@
+{
+  "@context": {
+    "prov": "http://www.w3.org/ns/prov#",
+    "schema": "https://schema.org/",
+    "ex": "https://luminousdynamics.io/protect-evidence/e2/"
+  },
+  "@graph": [
+    {
+      "@id": "ex:activity/e2-portability-fixture-001",
+      "@type": "prov:Activity",
+      "prov:used": [
+        {
+          "@id": "ex:entity/input-water-demand"
+        },
+        {
+          "@id": "ex:entity/input-power-availability"
+        }
+      ],
+      "prov:wasAssociatedWith": {
+        "@id": "ex:agent/synthetic-provider"
+      },
+      "ex:fixtureActivityId": "synthetic.e2.provenance.fixture.001",
+      "ex:executionClass": "E2_SYNTHETIC_GRAPH_FIXTURE",
+      "ex:sourceAnalysisId": "synthetic.analysis.water-continuity.001",
+      "ex:sourceAnalysisExecutionStatus": "NOT_EXECUTED",
+      "ex:analysisExecutionClaim": "NONE",
+      "schema:name": "Synthetic E2 provenance-graph fixture activity",
+      "schema:description": "A constructed test graph for exercising PROV relationships. It is not the unexecuted E1 model analysis and is not evidence of a real service transformation."
+    },
+    {
+      "@id": "ex:agent/synthetic-provider",
+      "@type": "prov:Agent",
+      "schema:name": "Synthetic E2 provider fixture; not an external model execution"
+    },
+    {
+      "@id": "ex:entity/input-water-demand",
+      "@type": "prov:Entity",
+      "schema:name": "Synthetic water demand input",
+      "ex:datasetId": "synthetic.dataset.water.input.001",
+      "ex:datasetDirection": "INPUT",
+      "ex:bindingStatus": "E1_ENVELOPE_DATASET"
+    },
+    {
+      "@id": "ex:entity/input-power-availability",
+      "@type": "prov:Entity",
+      "schema:name": "Synthetic power availability input",
+      "ex:datasetId": "synthetic.dataset.power.input.control.001",
+      "ex:datasetDirection": "INPUT",
+      "ex:bindingStatus": "SYNTHETIC_CONTROL_ONLY"
+    },
+    {
+      "@id": "ex:entity/output-water-service",
+      "@type": "prov:Entity",
+      "prov:wasGeneratedBy": {
+        "@id": "ex:activity/analysis-001"
+      },
+      "schema:name": "Synthetic water service output",
+      "ex:datasetId": "synthetic.dataset.water.output.001",
+      "ex:datasetDirection": "OUTPUT",
+      "ex:bindingStatus": "E1_ENVELOPE_DATASET"
+    },
+    {
+      "@id": "ex:entity/output-clinic-access",
+      "@type": "prov:Entity",
+      "prov:wasGeneratedBy": {
+        "@id": "ex:activity/analysis-001"
+      },
+      "schema:name": "Synthetic clinic access output",
+      "ex:datasetId": "synthetic.dataset.clinic.output.control.001",
+      "ex:datasetDirection": "OUTPUT",
+      "ex:bindingStatus": "SYNTHETIC_CONTROL_ONLY",
+      "prov:wasDerivedFrom": {
+        "@id": "ex:entity/input-power-availability"
+      },
+      "ex:derivationAssertionSource": "E2_FIXTURE_SYNTHETIC_CONTROL"
+    }
+  ]
+}
