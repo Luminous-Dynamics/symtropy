@@ -308,6 +308,8 @@ fn audit(schema_bytes: &[u8], profile_bytes: &[u8]) -> Result<Value, Vec<String>
         "status": "PASS_BENCHMARK_CONTRACT_ONLY",
         "schema_id": SCHEMA_ID,
         "endpoint_class_count": profile["endpoint_classes"].as_array().map_or(0, Vec::len),
+        "benchmark_suite_count": profile["benchmark_suites"].as_array().map_or(0, Vec::len),
+        "external_comparator_count": profile["external_comparators"].as_array().map_or(0, Vec::len),
         "metric_count": profile["metrics"].as_array().map_or(0, Vec::len),
         "physical_observations": 0,
         "product_claims": false,
@@ -382,6 +384,14 @@ mod tests {
         let (schema, profile) = fixture();
         assert!(is_valid(&schema, &profile));
         assert_eq!(profile["metrics"].as_array().expect("metrics").len(), 10);
+        assert_eq!(profile["benchmark_suites"].as_array().expect("suites").len(), 2);
+        assert_eq!(
+            profile["external_comparators"]
+                .as_array()
+                .expect("external comparators")
+                .len(),
+            5
+        );
     }
 
     #[test]
