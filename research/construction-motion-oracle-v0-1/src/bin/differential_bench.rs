@@ -4,8 +4,7 @@ use std::time::{Duration, Instant};
 use construction_motion_oracle::{
     AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule, Vec3,
     chord_collision, co_translating_capsule_adaptive_query,
-    co_translating_capsule_capsule_collision,
-    co_translating_capsule_swept_aabb_candidate,
+    co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
