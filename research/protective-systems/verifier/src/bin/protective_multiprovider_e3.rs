@@ -693,8 +693,13 @@ fn validate_bundle(
     manifest_text: &str,
     crate_text: &str,
 ) -> Result<GateReport, String> {
-    if E1_CONTEXT != E1_ORIGINAL || e1_context_text.as_bytes() != E1_ORIGINAL {
-        return Err("E3 packaged E1 context envelope is not byte-identical to the E1 source fixture".to_owned());
+    if E1_CONTEXT != E1_ORIGINAL.as_ref()
+        || e1_context_text.as_bytes() != E1_ORIGINAL.as_ref()
+    {
+        return Err(
+            "E3 packaged E1 context envelope is not byte-identical to the E1 source fixture"
+                .to_owned(),
+        );
     }
     if E1_CONTEXT != e1_context_text.as_bytes() {
         return Err("E3 packaged E1 context differs from original bytes".to_owned());
