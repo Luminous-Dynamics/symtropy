@@ -78,3 +78,17 @@ This is not arbitrary continuous-to-continuous collision checking: both bodies m
 For two translating capsules, the full swept-AABB union ignores whether the bodies occupy overlapping coordinates at the same time. The new dyadic time-sliced candidate query partitions the shared normalized interval and computes a conservative swept AABB for each body within each slab. It returns the number of candidate slabs, not a collision verdict. Narrow phase remains mandatory for positive candidates.
 
 The construction invariant is one-sided: if the exact synchronized continuous narrow phase reports contact, at least one slab must remain a candidate for any positive subdivision count. For nested 1, 2, 4, 8, ... refinements, candidate time fraction is non-increasing; raw candidate slab count may increase when parent slabs split. More subdivisions tighten broad-phase selectivity but cost more tests; benchmark both cost and candidate reduction. This is still an AABB broad phase, not a safety guarantee or exact dynamic collision result.
+
+## Clock-skew robust relative-motion classification
+
+The clock-skew child adds a conservative classifier for bounded independent interpolation-phase error on two rigid capsules that translate linearly over a common normalized horizon. It does not assume nominal synchronized time is exact.
+
+For per-body phase errors `epsilonA`, `epsilonB` and total translation vectors `dA`, `dB`, the relative positional uncertainty is bounded by:
+`E = ||dA|| * epsilonA + ||dB|| * epsilonB`.
+
+The exact nominal shared-time minimum distance `d` is expanded to `[max(0,d-E), d+E]`:
+- `DefinitelyClear`: the lower bound exceeds the declared contact threshold;
+- `DefinitelyContact`: the upper bound is within the threshold;
+- `Unresolved`: the interval crosses the threshold.
+
+The unresolved band is intentional. This is a conservative classification under the stated phase-error model, not an exact solver for arbitrary offset-clock trajectories. It operates on normalized phase-error bounds; a timestamp adapter must convert clock error in milliseconds to phase error using each trajectory's declared horizon. The reservation/occupancy owners continue to handle reservation-window uncertainty separately. See [#5551](https://github.com/Luminous-Dynamics/symtropy/issues/5551).
