@@ -57,3 +57,8 @@ Official benchmark reference: https://scheduleopt.github.io/benchmarks/fjsplib
 ## Claim ceiling
 
 This adapter includes a bounded exact makespan oracle for tiny FJSP/FAJSP instances. It exhaustively enumerates every eligible-machine assignment and each resulting machine-order product, rejects cyclic precedence combinations, and derives earliest starts from a longest-path calculation. It is limited to nine operations, at most 100,000 assignments and at most 500,000 aggregate machine-order combinations; preflight overflow/bound failures return INCONCLUSIVE before partial search. For the documented Fattahi1 fixture, both text formats normalize to an exact makespan of 66 ticks after 16 assignments and 120 machine-order combinations (68 cyclic, 52 feasible). The fixture is synthetic and this result is not an industrial SOTA claim. The adapter does not reproduce a reference engine or establish real factory capacity.
+
+
+### Source-format metadata nuance
+
+The FJSP header declares its job count. The FAJSP header does not: it provides operation count, precedence-edge count and machine count; each precedence edge preserves the source job label in its third field. Consequently, FAJSP inputs retain edge-level job labels but expose `declared_job_count = None`. Do not infer a declared count from the number of distinct edge labels: a job with a single operation has no precedence edge and may not be represented in that label set. This is a conservative metadata boundary; scheduling uses the explicit operation and precedence graph, not an inferred total job count.
