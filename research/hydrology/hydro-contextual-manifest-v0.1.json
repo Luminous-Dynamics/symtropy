@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 37,
+  "case_count": 40,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -41,7 +41,10 @@
     "HC-T0-034-crps-skill-zero-reference-undefined",
     "HC-T0-035-weighted-interval-score",
     "HC-T0-036-weighted-interval-nesting-reject",
-    "HC-T0-037-weighted-interval-alpha-reject"
+    "HC-T0-037-weighted-interval-alpha-reject",
+    "HC-T0-038-weighted-interval-duplicate-alpha-reject",
+    "HC-T0-039-crpss-invalid-forecast-identity-reject",
+    "HC-T0-040-crpss-negative-lead-reject"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -90,6 +93,8 @@
     "CRPSS must use a named, frozen reference forecast on the identical target, event, lead time, forcing and verification population; non-comparable reference forecasts are not scored.",
     "CRPSS is undefined when reference CRPS is zero or within the predeclared denominator tolerance; do not replace the denominator with epsilon.",
     "Weighted interval score requires valid alpha in (0,1), ordered bounds, a median inside every central interval and nested central intervals; malformed intervals reject rather than being silently repaired.",
-    "Report interval levels and all component interval scores; WIS does not remove the need to report coverage, sharpness and calibration by lead time and event stratum."
+    "Report interval levels and all component interval scores; WIS does not remove the need to report coverage, sharpness and calibration by lead time and event stratum.",
+    "CRPSS input must carry distinct model and reference forecast IDs, a frozen verification-population ID and non-negative lead time; invalid identity/lead rejects.",
+    "The model and reference CRPS must be computed for the same observation and declared verification population; do not compare scores from different target populations or lead times."
   ]
 }
