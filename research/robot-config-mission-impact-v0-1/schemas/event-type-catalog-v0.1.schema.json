@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-event-type-catalog:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 event type catalog v0.1",
+  "description": "Closed schema for the explicit public development event-to-stage mappings; not a universal robotics ontology.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "events",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-event-type-catalog-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-MISSION-IMPACT-001"
+    },
+    "visibility": {
+      "const": "public_synthetic_development"
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_type",
+          "stage_id",
+          "allowed_source_classes",
+          "role",
+          "meaning"
+        ],
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stage_id": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^S[0-9]{2}$"
+              }
+            ]
+          },
+          "allowed_source_classes": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "task_system",
+                "robot_telemetry",
+                "referee_measurement",
+                "independent_referee",
+                "operator_action"
+              ]
+            }
+          },
+          "role": {
+            "enum": [
+              "stage_verdict_or_measurement",
+              "stage_observation",
+              "mission_or_precondition_record",
+              "precondition_record"
+            ]
+          },
+          "meaning": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
