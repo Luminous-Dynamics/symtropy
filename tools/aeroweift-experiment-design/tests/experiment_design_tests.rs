@@ -1217,3 +1217,138 @@ fn structured_gate_receipt_payload_must_match_legacy_gate_reference() {
         reason(&result, "gate-payload-splice").contains(&RejectionReason::InvalidEvidenceBinding)
     );
 }
+
+
+#[test]
+fn missing_utility_estimate_receipt_blocks_selection() {
+    let mut candidate = candidate("missing-utility-receipt");
+    candidate.utility_estimate_receipt = None;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "missing-utility-receipt")
+        .contains(&RejectionReason::MissingUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_cannot_be_replayed_across_candidate_designs() {
+    let first = candidate("original-candidate");
+    let mut replay = candidate("replayed-candidate");
+    replay.utility_estimate_receipt = first.utility_estimate_receipt.clone();
+    let result = select_experiments(&[replay], &policy()).unwrap();
+    assert!(reason(&result, "replayed-candidate")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_is_bound_to_exact_decision_boundary() {
+    let mut candidate = candidate("wrong-decision-boundary");
+    candidate.utility_estimate_receipt.as_mut().unwrap().decision_boundary_sha256 = digest('5');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "wrong-decision-boundary")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_is_bound_to_exact_robust_ambiguity_set() {
+    let mut candidate = candidate("wrong-robust-set");
+    candidate.utility_estimate_receipt.as_mut().unwrap().robust_uncertainty_set_sha256 =
+        digest('5');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "wrong-robust-set")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_is_bound_to_exact_adaptive_data_manifest() {
+    let mut candidate = candidate("wrong-adaptive-data");
+    candidate
+        .utility_estimate_receipt
+        .as_mut()
+        .unwrap()
+        .adaptive_data_manifest_sha256 = digest('5');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "wrong-adaptive-data")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_is_bound_to_exact_hypothesis_manifest() {
+    let mut candidate = candidate("wrong-hypothesis-manifest");
+    candidate
+        .utility_estimate_receipt
+        .as_mut()
+        .unwrap()
+        .hypothesis_manifest_sha256 = digest('5');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "wrong-hypothesis-manifest")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_must_cover_exact_hypothesis_and_contrast_records() {
+    let mut candidate = candidate("hypothesis-receipt-splice");
+    candidate
+        .utility_estimate_receipt
+        .as_mut()
+        .unwrap()
+        .hypothesis_groups
+        .pop();
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "hypothesis-receipt-splice")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn utility_estimate_receipt_cannot_claim_too_few_independent_units() {
+    let mut candidate = candidate("too-few-estimator-samples");
+    candidate
+        .utility_estimate_receipt
+        .as_mut()
+        .unwrap()
+        .independent_unit_count = 19;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "too-few-estimator-samples")
+        .contains(&RejectionReason::InsufficientEstimateSamples));
+}
+
+#[test]
+fn utility_estimate_receipt_must_use_the_policy_sampling_unit() {
+    let mut candidate = candidate("wrong-estimator-sample-unit");
+    candidate.utility_estimate_receipt.as_mut().unwrap().sample_unit =
+        EstimateSampleUnit::Flight;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "wrong-estimator-sample-unit")
+        .contains(&RejectionReason::InsufficientEstimateSamples));
+}
+
+#[test]
+fn utility_estimate_receipt_values_must_match_the_scored_candidate_vector() {
+    let mut candidate = candidate("estimate-vector-splice");
+    candidate
+        .utility_estimate_receipt
+        .as_mut()
+        .unwrap()
+        .decision_relevance = 0.99;
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "estimate-vector-splice")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn candidate_decision_boundary_identity_must_match_the_frozen_policy() {
+    let mut candidate = candidate("candidate-boundary-mismatch");
+    candidate.decision_boundary_sha256 = digest('5');
+    refresh_utility_estimate_receipt(&mut candidate);
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "candidate-boundary-mismatch")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn policy_requires_a_nonzero_independent_estimate_sample_floor() {
+    let mut invalid_policy = policy();
+    invalid_policy.minimum_estimate_independent_units = 0;
+    assert_eq!(
+        select_experiments(&[candidate("candidate")], &invalid_policy),
+        Err(aeroweift_experiment_design::DesignError::InvalidPolicy)
+    );
+}
