@@ -368,6 +368,32 @@
       ],
       "safety_boundary": "Do not infer microbiological cleanliness from visual cleanliness.",
       "control_condition": "Same soil and cleaning instruction; independent residue/hygiene method if claimed."
+    },
+    {
+      "task_id": "workflow-power-envelope",
+      "domain": "workflow",
+      "operation": "coordinate a multi-dish meal under a declared household power envelope",
+      "input_manifest_required": [
+        "full recipe manifests",
+        "appliance IDs and type plates",
+        "continuous real-power cap",
+        "surge limit and duration",
+        "voltage/frequency range",
+        "permitted concurrent loads",
+        "user time budget",
+        "serve time"
+      ],
+      "primary_metrics": [
+        "peak_real_power_w",
+        "power_cap_violation_count",
+        "energy_wh",
+        "total_time_to_plate_s",
+        "user_present_time_s",
+        "late_dish_count",
+        "accepted_servings"
+      ],
+      "safety_boundary": "Scheduler is advisory only. Local appliance protections remain authoritative. No pressure-cycle restart after power restoration unless manufacturer-approved; no power-interruption test outside the approved safe procedure.",
+      "control_condition": "Compare manual schedule, fixed-rule schedule and Symtropy schedule on identical tasks and declared electrical envelope."
     }
   ],
   "metrics": [
@@ -430,6 +456,22 @@
       "denominator": "complete post-task cleaning cycle",
       "method": "timestamped observation under frozen cleaning procedure",
       "evidence_class": "measured"
+    },
+    {
+      "metric_id": "peak_real_power_w",
+      "unit": "W real power",
+      "denominator": "complete multi-dish task window",
+      "method": "calibrated true-power meter with time series and recorded power-quality conditions",
+      "evidence_class": "measured",
+      "notes": "Report peak and duration above each declared threshold; not a marketing nameplate estimate."
+    },
+    {
+      "metric_id": "power_cap_violation_count",
+      "unit": "count",
+      "denominator": "complete multi-dish task window",
+      "method": "evaluate measured concurrent draw against frozen declared envelope",
+      "evidence_class": "measured",
+      "notes": "Target is zero observed cap violations for a schedule represented as feasible; record all exceptions."
     }
   ],
   "target_hypotheses": [
@@ -472,6 +514,17 @@
       "stop_conditions": [
         "food mass balance fails closure tolerance",
         "waste is shifted to another process stage"
+      ]
+    },
+    {
+      "hypothesis_id": "H-POWER-CAP",
+      "metric_id": "power_cap_violation_count",
+      "target": "0 measured violations against the declared real-power envelope for schedules marked feasible",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any measured cap violation",
+        "appliance unsafe state after supply loss",
+        "scheduler assumes unknown power budget is available"
       ]
     }
   ],
