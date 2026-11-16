@@ -112,7 +112,9 @@ fn evidence_node(
             EvidenceSourceKind::TrackT => EvidencePurpose::ModelCredibility,
             EvidenceSourceKind::TrackU => EvidencePurpose::ModelRequalification,
             EvidenceSourceKind::TrackVPlanning => EvidencePurpose::ExperimentPlan,
-            EvidenceSourceKind::ExternalFlightTest => EvidencePurpose::PhysicalMitigationEffectiveness,
+            EvidenceSourceKind::ExternalFlightTest => {
+                EvidencePurpose::PhysicalMitigationEffectiveness
+            }
             EvidenceSourceKind::ExternalMeasurement => EvidencePurpose::ReferenceMeasurement,
             EvidenceSourceKind::ExternalAuthority => EvidencePurpose::ExternalAuthorityRecord,
             EvidenceSourceKind::GenericSoftwareCi => EvidencePurpose::GenericSoftwareVerification,
@@ -957,7 +959,6 @@ fn hazard_must_be_explicitly_addressed_by_a_claim_or_strategy() {
     assert_eq!(result.status, AssuranceStatus::IncompleteArgument);
 }
 
-
 #[test]
 fn conflict_performance_receipt_cannot_substitute_for_model_credibility() {
     let (mut nodes, edges) = positive_case();
@@ -1044,10 +1045,12 @@ fn every_mitigation_requires_an_independent_policy_pinned_evidence_requirement()
 fn policy_requirement_for_absent_claim_is_reported_as_a_blocker() {
     let (nodes, edges) = positive_case();
     let mut frozen = policy();
-    frozen.required_claim_evidence.push(ClaimEvidenceRequirement {
-        claim_id: "claim-that-is-not-present".into(),
-        required_purposes: vec![EvidencePurpose::ModelCredibility],
-    });
+    frozen
+        .required_claim_evidence
+        .push(ClaimEvidenceRequirement {
+            claim_id: "claim-that-is-not-present".into(),
+            required_purposes: vec![EvidencePurpose::ModelCredibility],
+        });
     let result = evaluate_assurance_case(&nodes, &edges, "root", &frozen).unwrap();
     assert!(blocker(
         &result,
