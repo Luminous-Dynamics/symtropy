@@ -845,7 +845,6 @@ fn brier_reliability(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn ensemble_crps_skill(input: &Value) -> Result<Value, String> {
     let observed = number(input, "observed")?;
     let model_members = numeric_array(input, "model_members")?;
@@ -1069,7 +1068,8 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         | "HC-T0-034-crps-skill-zero-reference-undefined"
         | "HC-T0-039-crpss-invalid-forecast-identity-reject"
         | "HC-T0-040-crpss-negative-lead-reject" => ensemble_crps_skill(input),
-        "HC-T0-035-weighted-interval-score" | "HC-T0-036-weighted-interval-nesting-reject"
+        "HC-T0-035-weighted-interval-score"
+        | "HC-T0-036-weighted-interval-nesting-reject"
         | "HC-T0-037-weighted-interval-alpha-reject"
         | "HC-T0-038-weighted-interval-duplicate-alpha-reject" => weighted_interval_score(input),
         _ => compute_split(&id, input),
@@ -1350,12 +1350,13 @@ mod tests {
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
     }
 
-
     #[test]
     fn crps_skill_compares_model_against_explicit_reference() {
         let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPS skill");
         assert!((out["model_crps"].as_f64().expect("model CRPS") - 2.0 / 3.0).abs() < 1.0e-12);
-        assert!((out["reference_crps"].as_f64().expect("reference CRPS") - 4.0 / 9.0).abs() < 1.0e-12);
+        assert!(
+            (out["reference_crps"].as_f64().expect("reference CRPS") - 4.0 / 9.0).abs() < 1.0e-12
+        );
         assert!((out["crps_skill_score"].as_f64().expect("CRPSS") + 0.5).abs() < 1.0e-12);
     }
 
