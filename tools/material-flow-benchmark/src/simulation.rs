@@ -18,8 +18,8 @@ use symtropy_physics::{
 };
 
 use crate::transaction::{
-    PhysicalTransaction, PhysicalTransactionState, TransactionContext, TransactionEvent,
-    TransactionEventKind,
+    DispatchGate, PhysicalTransaction, PhysicalTransactionState, TransactionContext,
+    TransactionEvent, TransactionEventKind,
 };
 use crate::{AuthorizationAction, EvidenceLevel, ScenarioManifest, UseLimit};
 
@@ -31,6 +31,23 @@ const SETTLED_ANGULAR_SPEED_RAD_S: f64 = 0.08;
 const MAX_CONTACT_PENETRATION_M: f64 = 0.005;
 const ROTATION_HEALTH_TOLERANCE: f64 = 1e-8;
 const PLACEMENT_CLEARANCE_M: f64 = 0.005;
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct FaultSimulationResult {
+    pub schema_version: u16,
+    pub scenario_id: String,
+    pub seed: u64,
+    pub fault_id: String,
+    pub fault_model: String,
+    pub injection_semantics: String,
+    pub simulation: SimulationResult,
+    pub physical_fault_effect_observed: bool,
+    pub blind_retry_blocked: bool,
+    pub reconciliation_required: bool,
+    pub false_completion_blocked: bool,
+    pub fault_oracle_passed: bool,
+    pub limitations: Vec<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SimulationResult {
@@ -135,6 +152,7 @@ fn add_static_box(world: &mut PhysicsWorld<3>, position_m: [f64; 3], half_extent
 
 fn build_world(
     scenario: &ScenarioManifest,
+    closed_gate_obstruction: bool,
 ) -> Result<(PhysicsWorld<3>, BodyHandle, [f64; 3], [f64; 3]), String> {
     let geometry = tote_geometry(scenario)?;
     let package = &scenario.package;
@@ -186,6 +204,18 @@ fn build_world(
         [0.0, inner_y, inner_z + wall_z],
         [inner_x, inner_y, wall_z],
     );
+
+    // L1 obstruction proxy: a closed, immobile gate spans the tote opening.
+    // This is static collision geometry, not a model of gate actuation or
+    // interlock timing. The fault path observes the failed placement after
+    // the logical release has been issued.
+    if closed_gate_obstruction {
+        add_static_box(
+            &mut world,
+            [0.0, 2.0 * inner_y + 0.01, 0.0],
+            [outer_x, 0.01, outer_z],
+        );
+    }
 
     let mass_kg = package.mass_g as f64 / 1_000.0;
     let [half_x, half_y, half_z] = package_half_m;
@@ -257,8 +287,12 @@ fn hash_snapshot(hasher: &mut Sha256, tick: usize, snapshot: &WorldSnapshot<3>) 
     }
 }
 
-fn run_episode(scenario: &ScenarioManifest) -> Result<EpisodeTrace, String> {
-    let (mut world, package_handle, _initial_position, _package_half) = build_world(scenario)?;
+fn run_episode(
+    scenario: &ScenarioManifest,
+    closed_gate_obstruction: bool,
+) -> Result<EpisodeTrace, String> {
+    let (mut world, package_handle, _initial_position, _package_half) =
+        build_world(scenario, closed_gate_obstruction)?;
 
     let impulse = SVector::from([0.0, -RELEASE_IMPULSE_NS, 0.0]);
     let mut tape = ReplayTape::<3>::default();
@@ -333,7 +367,7 @@ fn custody_transaction(
     scenario: &ScenarioManifest,
     trace_digest: &str,
     physical_result_valid: bool,
-) -> Result<PhysicalTransactionState, String> {
+) -> Result<(PhysicalTransactionState, bool), String> {
     let authorization = &scenario.authorization;
     let reconciler = scenario
         .actors
@@ -440,19 +474,33 @@ fn custody_transaction(
             .map_err(|error| format!("sensor disagreement rejected: {error}"))?;
     }
 
-    Ok(transaction.state)
+    let blind_retry_blocked = if physical_result_valid {
+        false
+    } else {
+        matches!(
+            transaction.request_release_command(&command_id),
+            Ok(DispatchGate::BlockedByState(
+                PhysicalTransactionState::ReconciliationRequired
+            ))
+        )
+    };
+
+    Ok((transaction.state, blind_retry_blocked))
 }
 
-/// Run the nominal stationary-carrier receiving scene twice and require a
-/// bitwise-identical replay before accepting custody completion.
-pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult, String> {
+/// Execute the L1 scene with either the nominal open tote or the static
+/// closed-gate obstruction proxy, then replay the same scene bitwise.
+fn simulate_scene(
+    scenario: &ScenarioManifest,
+    closed_gate_obstruction: bool,
+) -> Result<(SimulationResult, bool), String> {
     scenario.validate().map_err(|errors| errors.join("; "))?;
     if scenario.evidence_level != EvidenceLevel::L1Simulation {
-        return Err("mfb-simulate currently accepts only L1 simulation scenarios".into());
+        return Err("MFB simulation accepts only L1 simulation scenarios".into());
     }
 
-    let first = run_episode(scenario)?;
-    let replay = run_episode(scenario)?;
+    let first = run_episode(scenario, closed_gate_obstruction)?;
+    let replay = run_episode(scenario, closed_gate_obstruction)?;
     let replay_bitwise_equal = first.digest == replay.digest
         && first.final_position_m.map(f64::to_bits) == replay.final_position_m.map(f64::to_bits)
         && first.final_speed_m_s.to_bits() == replay.final_speed_m_s.to_bits();
@@ -477,16 +525,36 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
         && settled
         && physics_numerically_healthy
         && penetration_within_limit;
-    let transaction_state = custody_transaction(scenario, &first.digest, physical_result_valid)?;
+    let (transaction_state, blind_retry_blocked) =
+        custody_transaction(scenario, &first.digest, physical_result_valid)?;
     let accepted =
         physical_result_valid && transaction_state == PhysicalTransactionState::Completed;
 
-    Ok(SimulationResult {
+    let mut limitations = vec![
+        "Reduced-order rigid-box package proxy; not real packaging/contact compliance".into(),
+        "Stationary receiver only; no truck, aircraft, route, launch/recovery or fleet simulation".into(),
+        "No sensor noise, calibration model, metrology or perception pipeline".into(),
+        "No actuator, robot, door, latch, guarding or emergency-stop hardware".into(),
+        "Same-host deterministic replay only; cross-platform bitwise equality is not claimed".into(),
+        "Asymmetric-body inertia is currently approximate in symtropy-physics; this centered drop is not a tumbling-body qualification".into(),
+        "Custody state machine validates declared event structure, not signature authenticity or evidence-source independence".into(),
+    ];
+    if closed_gate_obstruction {
+        limitations.push(
+            "Closed gate is a static collision proxy; gate motion, interlock sensing, firmware and actuation timing are not simulated".into(),
+        );
+    }
+
+    Ok((SimulationResult {
         schema_version: scenario.schema_version,
         scenario_id: scenario.scenario_id.clone(),
         seed: scenario.seed,
         evidence_level: scenario.evidence_level,
-        simulation_track: "stationary_receiver_rigid_package_drop_v1".into(),
+        simulation_track: if closed_gate_obstruction {
+            "stationary_receiver_closed_gate_obstruction_v1".into()
+        } else {
+            "stationary_receiver_rigid_package_drop_v1".into()
+        },
         physics_engine: "symtropy-physics 0.2.1 / deterministic-net Q16.16".into(),
         tick_count: first.ticks,
         fixed_dt_seconds: FIXED_DT,
@@ -505,14 +573,58 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
         physics_trace_digest: first.digest,
         transaction_state,
         accepted,
+        limitations,
+    }, blind_retry_blocked))
+}
+
+/// Run the nominal stationary-carrier receiving scene twice and require a
+/// bitwise-identical replay before accepting custody completion.
+pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult, String> {
+    simulate_scene(scenario, false).map(|(result, _)| result)
+}
+
+/// Execute a real L1 collision-geometry fault: a closed gate obstruction spans
+/// the tote opening. The package must remain outside the tote, the handoff must
+/// require reconciliation, and a retry of the old command must be blocked.
+pub fn simulate_closed_gate_obstruction(
+    scenario: &ScenarioManifest,
+) -> Result<FaultSimulationResult, String> {
+    let (simulation, blind_retry_blocked) = simulate_scene(scenario, true)?;
+    let geometry = tote_geometry(scenario)?;
+    let package_bottom_m = simulation.package_center_m[1]
+        - simulation.package_world_aabb_half_extents_m[1];
+    let tote_top_m = 2.0 * geometry.inner_half_m[1];
+    let physical_fault_effect_observed =
+        !simulation.safe_inside_tote && package_bottom_m > tote_top_m + 0.001;
+    let reconciliation_required =
+        simulation.transaction_state == PhysicalTransactionState::ReconciliationRequired;
+    let false_completion_blocked = !simulation.accepted && reconciliation_required;
+    let fault_oracle_passed = physical_fault_effect_observed
+        && simulation.replay_bitwise_equal
+        && simulation.settled
+        && simulation.physics_numerically_healthy
+        && simulation.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M
+        && reconciliation_required
+        && blind_retry_blocked
+        && false_completion_blocked;
+
+    Ok(FaultSimulationResult {
+        schema_version: simulation.schema_version,
+        scenario_id: simulation.scenario_id.clone(),
+        seed: simulation.seed,
+        fault_id: "fault-closed-gate-obstruction-after-release".into(),
+        fault_model: "static_closed_gate_collision_proxy".into(),
+        injection_semantics: "receiver_observes_placement_failure_after_logical_release".into(),
+        simulation,
+        physical_fault_effect_observed,
+        blind_retry_blocked,
+        reconciliation_required,
+        false_completion_blocked,
+        fault_oracle_passed,
         limitations: vec![
-            "Reduced-order rigid-box package proxy; not real packaging/contact compliance".into(),
-            "Stationary receiver only; no truck, aircraft, route, launch/recovery or fleet simulation".into(),
-            "No sensor noise, calibration model, metrology or perception pipeline".into(),
-            "No actuator, robot, door, latch, guarding or emergency-stop hardware".into(),
-            "Same-host deterministic replay only; cross-platform bitwise equality is not claimed".into(),
-            "Asymmetric-body inertia is currently approximate in symtropy-physics; this centered drop is not a tumbling-body qualification".into(),
-            "Custody state machine validates declared event structure, not signature authenticity or evidence-source independence".into(),
+            "This is an L1 rigid-body collision-geometry fault, not a moving gate/interlock controller test".into(),
+            "The gate proxy is static and present in the scene; actuation timing and sensor/firmware behavior are not modeled".into(),
+            "A passing oracle qualifies only the reduced-order geometry and transaction response under this deterministic case".into(),
         ],
     })
 }
@@ -541,6 +653,30 @@ mod tests {
             PhysicalTransactionState::Completed
         );
         assert!(result.accepted);
+    }
+
+    #[test]
+    fn closed_gate_obstruction_is_observed_physically_and_forces_reconciliation() {
+        let result = simulate_closed_gate_obstruction(&fixture())
+            .expect("closed-gate obstruction episode should execute");
+        assert!(result.physical_fault_effect_observed, "{result:?}");
+        assert!(result.simulation.replay_bitwise_equal, "{result:?}");
+        assert!(result.simulation.settled, "{result:?}");
+        assert!(result.simulation.physics_numerically_healthy, "{result:?}");
+        assert!(
+            result.simulation.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M,
+            "{result:?}"
+        );
+        assert!(!result.simulation.safe_inside_tote, "{result:?}");
+        assert_eq!(
+            result.simulation.transaction_state,
+            PhysicalTransactionState::ReconciliationRequired
+        );
+        assert!(result.reconciliation_required);
+        assert!(result.blind_retry_blocked);
+        assert!(result.false_completion_blocked);
+        assert!(!result.simulation.accepted);
+        assert!(result.fault_oracle_passed, "{result:?}");
     }
 
     #[test]
