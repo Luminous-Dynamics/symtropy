@@ -11,6 +11,7 @@ on:
       - research/construction-co-translating-capsule-oracle-v0-2
       - research/construction-adaptive-space-time-ccd-v0-1
       - research/construction-adaptive-ccd-cert-v0-2
+      - research/construction-adaptive-interval-verifier-v0-1
       - research/construction-adaptive-ccd-cert-v0-1
     paths:
       - "research/construction-motion-oracle-v0-1/**"
