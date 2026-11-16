@@ -83,6 +83,36 @@ impl CriterionEvidence {
     }
 }
 
+/// Evidence that one fungal network links at least two plant units.
+/// This is deliberately distinct from criterion 1 (the count of plant units).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SharedFungalLinkEvidence {
+    pub outcome: EvidenceOutcome,
+    pub observation: Option<ObservationEvidenceId>,
+    pub reason_code: String,
+}
+
+impl SharedFungalLinkEvidence {
+    pub fn validate(&self) -> Result<(), NetworkEvidenceError> {
+        if self.reason_code.trim().is_empty() {
+            return Err(NetworkEvidenceError::MissingSharedLinkReasonCode);
+        }
+        match self.outcome {
+            EvidenceOutcome::Pass | EvidenceOutcome::Fail => {
+                if self.observation.is_none() {
+                    return Err(NetworkEvidenceError::MissingSharedLinkReceipt);
+                }
+            }
+            EvidenceOutcome::Unreported | EvidenceOutcome::NotApplicable => {
+                if self.observation.is_some() {
+                    return Err(NetworkEvidenceError::UnexpectedSharedLinkReceipt);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkClaimLevel {
     NoNetworkClaimSupported,
@@ -133,7 +163,7 @@ impl CytoplasmicFlowReceipt {
 pub struct NetworkEvidenceAssessment {
     pub fungal_identity: FungalNetworkIdentity,
     /// Evidence that the same fungal network links the plant units.
-    pub shared_fungal_link: CriterionEvidence,
+    pub shared_fungal_link: SharedFungalLinkEvidence,
     /// Fixed order: criteria 1 through 5 from the CMN evidence framework.
     pub criteria: [CriterionEvidence; 5],
     /// Independent of criterion 5: continuity testing alone does not prove flow.
@@ -263,6 +293,9 @@ pub enum NetworkEvidenceError {
         expected: NetworkCriterion,
         actual: NetworkCriterion,
     },
+    MissingSharedLinkReceipt,
+    UnexpectedSharedLinkReceipt,
+    MissingSharedLinkReasonCode,
     MissingFlowReceipt,
     FlowWithoutSharedNetwork,
     UnexpectedFlowReceipt,
@@ -284,6 +317,9 @@ impl fmt::Display for NetworkEvidenceError {
             Self::CriterionOrderMismatch { index, expected, actual } => {
                 write!(f, "criterion slot {} expected {:?}, found {:?}", index, expected, actual)
             }
+            Self::MissingSharedLinkReceipt => write!(f, "shared fungal link requires a source receipt"),
+            Self::UnexpectedSharedLinkReceipt => write!(f, "unreported shared fungal link must not carry a receipt"),
+            Self::MissingSharedLinkReasonCode => write!(f, "shared fungal link requires a stable reason code"),
             Self::MissingFlowReceipt => write!(f, "plant-to-plant flow result requires a source receipt"),
             Self::FlowWithoutSharedNetwork => write!(f, "plant-to-plant flow requires a supported shared fungal link"),
             Self::UnexpectedFlowReceipt => write!(f, "unevaluated flow result must not carry a receipt"),
@@ -315,8 +351,7 @@ mod tests {
     fn amf_assessment(outcomes: [EvidenceOutcome; 5]) -> NetworkEvidenceAssessment {
         NetworkEvidenceAssessment {
             fungal_identity: FungalNetworkIdentity::ArbuscularMycorrhizal,
-            shared_fungal_link: CriterionEvidence {
-                criterion: NetworkCriterion::AtLeastTwoPlantUnits,
+            shared_fungal_link: SharedFungalLinkEvidence {
                 outcome: EvidenceOutcome::Pass,
                 observation: Some(ObservationEvidenceId(90)),
                 reason_code: "shared_genet_link_observed".to_owned(),
@@ -452,6 +487,16 @@ mod tests {
         assert_eq!(
             assessment.classify(),
             Err(NetworkEvidenceError::FlowWithoutSharedNetwork)
+        );
+    }
+
+    #[test]
+    fn shared_link_pass_without_source_receipt_is_rejected() {
+        let mut assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        assessment.shared_fungal_link.observation = None;
+        assert_eq!(
+            assessment.classify(),
+            Err(NetworkEvidenceError::MissingSharedLinkReceipt)
         );
     }
 
