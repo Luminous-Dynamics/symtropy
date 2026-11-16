@@ -184,7 +184,6 @@ fn calculate_profile_summary(
     phi: f64,
     deadline: u64,
 ) -> Result<ProfileSummary, String> {
-    let times = sample_times(profile, deadline);
     let (variance, count, latest_age) = posterior_variance(phi, deadline, &[profile])?;
     let effort = count as f64 * profile.effort_cost_per_sample;
     let disturbance = count as f64 * profile.disturbance_cost_per_sample;
