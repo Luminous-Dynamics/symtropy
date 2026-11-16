@@ -14,8 +14,7 @@ const REGISTRY_SCHEMA: &str = "protective-threat-portfolio/0.1";
 const CASE_SCHEMA: &str = "protective-threat-decision-cases/0.1";
 const REGISTRY: &str =
     include_str!("../../../fixtures/protective-threat-family-register-v0.1.json");
-const CASES: &str =
-    include_str!("../../../fixtures/protective-threat-decision-cases-v0.1.json");
+const CASES: &str = include_str!("../../../fixtures/protective-threat-decision-cases-v0.1.json");
 
 const DISPOSITIONS: [&str; 6] = [
     "INVEST_IMPLEMENT",
@@ -41,7 +40,10 @@ fn text<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 fn required_text(value: &Value, key: &str, where_: &str) -> Result<(), String> {
-    match text(value, key).map(str::trim).filter(|item| !item.is_empty()) {
+    match text(value, key)
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+    {
         Some(_) => Ok(()),
         None => Err(format!("{where_}.{key} must be non-empty text")),
     }
@@ -115,7 +117,9 @@ fn validate_registry(input: &str) -> Result<usize, String> {
 
         let disposition = text(family, "disposition").expect("required above");
         if !DISPOSITIONS.contains(&disposition) {
-            return Err(format!("{where_}.disposition is unsupported: {disposition}"));
+            return Err(format!(
+                "{where_}.disposition is unsupported: {disposition}"
+            ));
         }
 
         if text(family, "evidence_maturity")
@@ -233,8 +237,7 @@ fn validate_cases(input: &str) -> Result<usize, String> {
             ));
         }
 
-        if event_frequency == "ORDINAL_SCORE_ONLY"
-            && disposition != "ABSTAIN_INSUFFICIENT_CONTEXT"
+        if event_frequency == "ORDINAL_SCORE_ONLY" && disposition != "ABSTAIN_INSUFFICIENT_CONTEXT"
         {
             return Err(format!(
                 "{where_}: ordinal-only scores cannot produce an investment disposition"
