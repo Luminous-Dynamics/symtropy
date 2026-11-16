@@ -370,7 +370,7 @@ mod tests {
 
     fn fixture() -> Value {
         serde_json::from_str(include_str!(
-            "../../../research/water-service-engineering/waterloop-modular-architecture-v0.1.json"
+            "../../../../research/water-service-engineering/waterloop-modular-architecture-v0.1.json"
         ))
         .expect("modular architecture fixture")
     }
