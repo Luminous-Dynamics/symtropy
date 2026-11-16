@@ -282,3 +282,10 @@ does not authenticate a provider, grant a license or establish physical truth.
 
 The E2 fixture has 18 unit tests written. Their result is pending exact-head
 hosted execution. The gate returns `ABSTAIN_SYNTHETIC_NOT_EXECUTED`.
+
+
+**Standards conformance scope:** the Rust E2 PROV checker enforces the project's
+compact JSON-LD profile only. It does not implement all JSON-LD 1.1 processing
+algorithms or certify full W3C PROV-DM constraints/equivalence. The emitted
+report makes these limitations explicit. CI runs the separate
+`roc-validator==0.13.1` implementation against the RO-Crate 1.3 base profile.
