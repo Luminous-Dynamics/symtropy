@@ -24,6 +24,8 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [Subterra site evidence schema](SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json)
 - [Subterra non-uniform profile schema](SUBTERRA_PROFILE_SCHEMA_v0.1.json)
 - [Synthetic non-uniform profile fixture](fixtures/subterra-nonuniform-profile-synthetic.json)
+- [Synthetic non-uniform profile fixture](fixtures/subterra-nonuniform-profile-synthetic.json)
+- [Synthetic site-evidence fixture](fixtures/subterra-site-evidence-synthetic.json)
 
 
 - [Architecture fit and integration boundaries](ARCHITECTURE_FIT_v0.2.md)
