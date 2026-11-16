@@ -687,3 +687,8 @@ Track V hardening: the reported independent model-family-pair count and Pareto d
 
 
 Track V gate-custody structural hardening: each of five affirmative gate roles is tied to a policy-pinned expected issuer namespace, and each structured receipt must resolve to the candidate's exact payload-digest reference. Arbitrary non-empty issuer labels and receipt presence without a referenced payload are rejected. Signature authenticity and issuer authority remain Track Q/Mycelix responsibilities.
+
+
+### Track W — evidence-linked operational assurance case (#5647)
+
+Connects bounded operational claims to decomposed strategies/subclaims, assumptions, hazards, mitigations, evidence, defeaters and external authority decisions. It composes Tracks P–V and Mycelix trust/currentness owners; it does not duplicate their algorithms or create authority. Node/evidence and accepted-decision validity must cover the proposed operation window. Required hazards are frozen; extra hazards are rejected. Every mitigation must attach to a required hazard and have qualified evidence. Every defeater must challenge a claim/mitigation and be open, discharged or authority-accepted. Unknown assumptions/mitigations remain indeterminate. Authority decisions are checked against exact role/identity, effective/knowledge cutoffs and the whole operation interval. Generic CI and Track V planning outputs cannot become realized operational evidence. The only positive output is REVIEW_READY_ONLY and permission_granted is always false. Current implementation: tools/aeroweift-assurance-case/.
