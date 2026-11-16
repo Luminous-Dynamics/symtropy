@@ -813,7 +813,19 @@ pub fn validate_package(
     if !errors.is_empty() {
         return Err(sorted(errors));
     }
-    let result = evaluate_against_oracle(corpus, oracle)?;
+    let mut result = evaluate_against_oracle(corpus, oracle)?;
+    let canonical_corpus = serde_json::to_vec(corpus)
+        .map_err(|error| vec![format!("corpus_canonicalize:{error}")])?;
+    let canonical_oracle = serde_json::to_vec(oracle)
+        .map_err(|error| vec![format!("oracle_canonicalize:{error}")])?;
+    let canonical_result_schema = serde_json::to_vec(result_schema)
+        .map_err(|error| vec![format!("result_schema_canonicalize:{error}")])?;
+    result["input_digests"] = json!({
+        "canonicalization": "serde_json-1.0.154-default-map-order-compact-utf8-no-trailing-newline-v1",
+        "corpus_canonical_json_sha256": sha256_hex(&canonical_corpus),
+        "oracle_canonical_json_sha256": sha256_hex(&canonical_oracle),
+        "result_schema_canonical_json_sha256": sha256_hex(&canonical_result_schema)
+    });
     errors.extend(
         validate_instance(result_schema, &result)
             .into_iter()
