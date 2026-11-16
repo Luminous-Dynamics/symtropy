@@ -28,6 +28,7 @@ pub enum TranslationCcdError {
     /// Callers must preserve this as UNRESOLVED rather than treating it as no collision.
     NumericallyUnresolved,
     InvalidSubdivisionCount,
+    InvalidPhaseErrorBound,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
