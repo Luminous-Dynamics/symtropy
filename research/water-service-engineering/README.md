@@ -141,3 +141,25 @@ The full time-resolved service semantics, scenario families, South African regul
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+### Modular treatment architecture T0 — source/module compatibility
+
+The candidate modular architecture is defined in:
+- `research/water-service-engineering/waterloop-modular-architecture-v0.1.json`
+- `research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json`
+- `research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md`
+
+Run the structural gate:
+```sh
+cargo fmt --package water-service-t0 -- --check
+cargo test --locked --package water-service-t0
+cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings
+WATERLOOP_MODULAR_T0_REVISION="$(git rev-parse HEAD)" \
+  cargo run --locked --package water-service-t0 --bin waterloop-modular-t0 -- \
+    research/water-service-engineering/waterloop-modular-architecture-v0.1.json \
+    research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json \
+    artifacts/water-service-t0/waterloop-modular-receipt.json
+```
+
+The Rust gate checks unique source/module/train IDs, module references, required ports, excluded feed sources, segregation of laundry as a challenge-only path, drinking/cooking exclusion, fail-safe rules and configuration-identity changes. It parses and hashes the schema file but does not use a JSON-Schema engine to validate every schema keyword. It is not a hydraulic, treatment, plumbing, water-quality or regulatory qualification. All values remain design_reference_only and qualification_status NotRun.
